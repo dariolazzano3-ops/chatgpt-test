@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development only.
+# Never commit real secrets.
+APP_ENV=development
+EXAMPLE_API_KEY=replace-me-locally
