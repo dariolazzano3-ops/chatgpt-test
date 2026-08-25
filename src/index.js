@@ -1,6 +1,6 @@
 export default {
   async fetch() {
-    return new Response("LIVE TEST 2 ✅ ChatGPT hat GitHub geändert und Cloudflare sollte automatisch neu deployen.", {
+    return new Response("PIPELINE TEST 3 ✅ Branch → Pull Request → main → Cloudflare funktioniert.", {
       headers: { "content-type": "text/plain; charset=UTF-8" }
     });
   }
