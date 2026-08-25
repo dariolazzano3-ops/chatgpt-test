@@ -44,6 +44,32 @@ export default {
       });
     }
 
+    if (url.pathname === "/db-check" && request.method === "GET") {
+      if (!env.DB) {
+        return json({
+          ok: false,
+          error: "DB_NOT_CONFIGURED"
+        }, 503);
+      }
+
+      try {
+        const result = await env.DB.prepare("SELECT 1 AS ok").first();
+        return json({
+          ok: result?.ok === 1,
+          databaseConfigured: true,
+          databaseReachable: result?.ok === 1,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        return json({
+          ok: false,
+          databaseConfigured: true,
+          databaseReachable: false,
+          error: "DB_QUERY_FAILED"
+        }, 500);
+      }
+    }
+
     if (url.pathname === "/api/v1/status" && request.method === "GET") {
       return json({
         ok: true,
@@ -104,6 +130,7 @@ export default {
           "GET /",
           "GET /health",
           "GET /secret-check",
+          "GET /db-check",
           "GET /api/v1/status",
           "POST /api/v1/echo",
           "GET /api/v1/private (Bearer token required)"
