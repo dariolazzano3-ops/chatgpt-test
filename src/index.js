@@ -9,7 +9,7 @@ function json(data, status = 200) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
@@ -21,11 +21,19 @@ export default {
       });
     }
 
+    if (url.pathname === "/secret-check") {
+      return json({
+        ok: true,
+        secretConfigured: Boolean(env.TEST_SECRET),
+        secretValueExposed: false
+      });
+    }
+
     return json({
       message: "Platform foundation online ✅",
       service: "chatgpt-test",
       host: url.hostname,
-      endpoints: ["/", "/health"]
+      endpoints: ["/", "/health", "/secret-check"]
     });
   }
 };
