@@ -1,3 +1,125 @@
+const OPENAPI_YAML = `openapi: 3.1.0
+info:
+  title: ChatGPT Test API
+  version: 1.0.0
+  description: API contract for the Cloudflare Worker + D1 backend.
+servers:
+  - url: https://staging-chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev
+    description: Staging
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check service health
+      responses:
+        '200':
+          description: Service is healthy
+  /db-check:
+    get:
+      operationId: getDatabaseHealth
+      summary: Check D1 connectivity
+      responses:
+        '200':
+          description: Database is reachable
+  /api/v1/status:
+    get:
+      operationId: getApiStatus
+      summary: Get API environment status
+      responses:
+        '200':
+          description: API status
+  /api/v1/items:
+    get:
+      operationId: listItems
+      summary: List items
+      responses:
+        '200':
+          description: Item collection
+    post:
+      operationId: createItem
+      summary: Create an item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemWrite'
+      responses:
+        '201':
+          description: Item created
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
+  /api/v1/items/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      operationId: getItem
+      summary: Get one item
+      responses:
+        '200':
+          description: Item found
+        '404':
+          description: Item not found
+    patch:
+      operationId: updateItem
+      summary: Update an item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemWrite'
+      responses:
+        '200':
+          description: Item updated
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
+        '404':
+          description: Item not found
+    delete:
+      operationId: deleteItem
+      summary: Delete an item
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Item deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Item not found
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ItemWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          enum: [active, archived]
+      additionalProperties: false
+`;
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
@@ -39,6 +161,16 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const itemId = parseItemId(url.pathname);
+
+    if (url.pathname === "/openapi.yaml" && request.method === "GET") {
+      return new Response(OPENAPI_YAML, {
+        status: 200,
+        headers: {
+          "content-type": "application/yaml; charset=UTF-8",
+          "cache-control": "public, max-age=300"
+        }
+      });
+    }
 
     if (url.pathname === "/health" && request.method === "GET") {
       return json({
@@ -241,6 +373,7 @@ export default {
         host: url.hostname,
         endpoints: [
           "GET /",
+          "GET /openapi.yaml",
           "GET /health",
           "GET /secret-check",
           "GET /db-check",
