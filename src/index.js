@@ -22,6 +22,10 @@ function isAuthorized(request, env) {
   return authorization === `Bearer ${env.API_TOKEN}`;
 }
 
+function requireDb(env) {
+  return Boolean(env.DB);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -45,7 +49,7 @@ export default {
     }
 
     if (url.pathname === "/db-check" && request.method === "GET") {
-      if (!env.DB) {
+      if (!requireDb(env)) {
         return json({
           ok: false,
           error: "DB_NOT_CONFIGURED"
@@ -60,7 +64,7 @@ export default {
           databaseReachable: result?.ok === 1,
           timestamp: new Date().toISOString()
         });
-      } catch (error) {
+      } catch {
         return json({
           ok: false,
           databaseConfigured: true,
@@ -121,6 +125,72 @@ export default {
       });
     }
 
+    if (url.pathname === "/api/v1/items" && request.method === "GET") {
+      if (!requireDb(env)) {
+        return json({ ok: false, error: "DB_NOT_CONFIGURED" }, 503);
+      }
+
+      try {
+        const { results } = await env.DB.prepare(
+          "SELECT id, name, created_at FROM items ORDER BY id DESC LIMIT 100"
+        ).all();
+
+        return json({
+          ok: true,
+          items: results || []
+        });
+      } catch {
+        return json({
+          ok: false,
+          error: "DB_QUERY_FAILED"
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/v1/items" && request.method === "POST") {
+      if (!env.API_TOKEN) {
+        return json({ ok: false, error: "AUTH_NOT_CONFIGURED" }, 503);
+      }
+
+      if (!isAuthorized(request, env)) {
+        return json({ ok: false, error: "UNAUTHORIZED" }, 401);
+      }
+
+      if (!requireDb(env)) {
+        return json({ ok: false, error: "DB_NOT_CONFIGURED" }, 503);
+      }
+
+      const body = await readJson(request);
+      const name = typeof body?.name === "string" ? body.name.trim() : "";
+
+      if (!name || name.length > 120) {
+        return json({
+          ok: false,
+          error: "INVALID_BODY",
+          message: "Send JSON with a non-empty 'name' string up to 120 characters."
+        }, 400);
+      }
+
+      try {
+        const result = await env.DB.prepare(
+          "INSERT INTO items (name) VALUES (?)"
+        ).bind(name).run();
+
+        return json({
+          ok: true,
+          item: {
+            id: result.meta.last_row_id,
+            name
+          }
+        }, 201);
+      } catch {
+        return json({
+          ok: false,
+          error: "DB_WRITE_FAILED"
+        }, 500);
+      }
+    }
+
     if (url.pathname === "/") {
       return json({
         message: "Platform foundation online ✅",
@@ -133,7 +203,9 @@ export default {
           "GET /db-check",
           "GET /api/v1/status",
           "POST /api/v1/echo",
-          "GET /api/v1/private (Bearer token required)"
+          "GET /api/v1/private (Bearer token required)",
+          "GET /api/v1/items",
+          "POST /api/v1/items (Bearer token required)"
         ]
       });
     }
