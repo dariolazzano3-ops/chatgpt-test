@@ -16,6 +16,12 @@ async function readJson(request) {
   }
 }
 
+function isAuthorized(request, env) {
+  if (!env.API_TOKEN) return false;
+  const authorization = request.headers.get("authorization") || "";
+  return authorization === `Bearer ${env.API_TOKEN}`;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -33,6 +39,7 @@ export default {
       return json({
         ok: true,
         secretConfigured: Boolean(env.TEST_SECRET),
+        apiTokenConfigured: Boolean(env.API_TOKEN),
         secretValueExposed: false
       });
     }
@@ -65,6 +72,29 @@ export default {
       });
     }
 
+    if (url.pathname === "/api/v1/private" && request.method === "GET") {
+      if (!env.API_TOKEN) {
+        return json({
+          ok: false,
+          error: "AUTH_NOT_CONFIGURED"
+        }, 503);
+      }
+
+      if (!isAuthorized(request, env)) {
+        return json({
+          ok: false,
+          error: "UNAUTHORIZED"
+        }, 401);
+      }
+
+      return json({
+        ok: true,
+        authenticated: true,
+        message: "Protected API access granted",
+        timestamp: new Date().toISOString()
+      });
+    }
+
     if (url.pathname === "/") {
       return json({
         message: "Platform foundation online ✅",
@@ -75,7 +105,8 @@ export default {
           "GET /health",
           "GET /secret-check",
           "GET /api/v1/status",
-          "POST /api/v1/echo"
+          "POST /api/v1/echo",
+          "GET /api/v1/private (Bearer token required)"
         ]
       });
     }
