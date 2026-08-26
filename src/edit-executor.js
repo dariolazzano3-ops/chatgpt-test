@@ -1,3 +1,5 @@
+import { analyzeProject, resolveSemanticSelector } from "./project-analyzer.js";
+
 function clean(value, max = 4000) {
   return String(value || "").trim().slice(0, max);
 }
@@ -20,14 +22,20 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
   if (plan?.safety?.production_deploy !== false) return { error: "PRODUCTION_MUST_REMAIN_DISABLED" };
   if (plan?.safety?.active_project_only !== true) return { error: "ACTIVE_PROJECT_ONLY_REQUIRED" };
 
+  const analysis = analyzeProject({ html, css });
+  const resolved = analysis.semantic || {};
   const cssOverrides = [];
   const applied = [];
-  const resolved = plan.resolved_selectors || {};
 
   for (const op of Array.isArray(plan.operations) ? plan.operations : []) {
-    const target = clean(op.target, 120);
-    const action = clean(op.action, 120);
     const semantic = clean(op.semantic, 80);
+    const fallbackTarget = clean(op.target, 120);
+    const target = semantic && semantic !== "theme"
+      ? resolveSemanticSelector(analysis, semantic, fallbackTarget)
+      : fallbackTarget;
+    const action = clean(op.action, 120);
+
+    if (!target) continue;
 
     if (semantic === "rocket" && action === "scale") {
       const scale = Math.max(0.5, Math.min(2.5, safeNumber(op.value, 1)));
@@ -52,8 +60,8 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
       applied.push({ target, action, value: density, semantic });
     } else if (semantic === "smoke" && action === "spread") {
       const spread = op.value === "wide" ? "1.55" : "1.25";
-      const field = resolved.smoke_field || ".smoke-field";
-      cssOverrides.push(overrideBlock(field, { "transform": `scaleX(${spread})` }));
+      const field = resolved.smoke_field || target;
+      cssOverrides.push(overrideBlock(field, { transform: `scaleX(${spread})` }));
       applied.push({ target: field, action, value: op.value, semantic });
     } else if (semantic === "hero" && action === "brightness") {
       const brightness = Math.max(0.4, Math.min(1.6, safeNumber(op.value, 1)));
@@ -72,9 +80,9 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
     }
   }
 
-  if (!applied.length) return { error: "NO_EXECUTABLE_NATURAL_EDIT_OPERATIONS", applied: [] };
+  if (!applied.length) return { error: "NO_EXECUTABLE_NATURAL_EDIT_OPERATIONS", applied: [], analysis };
 
   const marker = "/* Project Factory V3 Natural Edit Overrides */";
   const nextCss = `${css.trimEnd()}\n\n${marker}\n${cssOverrides.filter(Boolean).join("\n\n")}\n`;
-  return { ok: true, css: nextCss, html, applied, changed_files: ["styles.css"] };
+  return { ok: true, css: nextCss, html, applied, analysis, changed_files: ["styles.css"] };
 }
