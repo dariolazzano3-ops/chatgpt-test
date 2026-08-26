@@ -1,4 +1,5 @@
 import { analyzeContentContext, composeSectionContent } from "./section-composer.js";
+import { planContentRefinement, executeContentRefinementPlan } from "./content-refiner.js";
 
 function clean(value, max = 4000) {
   return String(value || "").trim().slice(0, max);
@@ -44,8 +45,11 @@ export function planStructuralEdit(prompt = "") {
   if (includesAny(text, ["zweispaltig", "2 spalten", "zwei spalten"])) operations.push({ action: "layout_columns", count: 2, reason: "Use two-column layout" });
   else if (includesAny(text, ["vierspaltig", "4 spalten", "vier spalten"])) operations.push({ action: "layout_columns", count: 4, reason: "Use four-column layout" });
 
+  const contentPlan = planContentRefinement(raw);
+  if (contentPlan.operations.length) operations.push(...contentPlan.operations);
+
   return {
-    version: 2,
+    version: 3,
     mode: "structural-edit-plan",
     prompt: raw,
     operations,
@@ -104,30 +108,41 @@ export function executeStructuralEditPlan({ html = "", css = "", plan }) {
   const applied = [];
   const context = analyzeContentContext(nextHtml);
   let requestedColumns = null;
+  let structureStylesNeeded = false;
 
   for (const op of Array.isArray(plan.operations) ? plan.operations : []) {
-    if (op.action === "add_section") {
+    if (op.action === "refine_whole_page_copy") {
+      const refinementPlan = planContentRefinement(plan.prompt || "");
+      const refined = executeContentRefinementPlan({ html: nextHtml, css: nextCss, plan: refinementPlan });
+      if (!refined.ok) continue;
+      nextHtml = refined.html;
+      nextCss = refined.css;
+      applied.push(...refined.applied.map((item) => ({ ...item, engine: "content-refinement" })));
+    } else if (op.action === "add_section") {
       const type = clean(op.type, 40);
       if (sectionExists(nextHtml, type)) continue;
       const templates = { faq: faqSection, references: referencesSection, services: servicesSection, cta: ctaSection };
       const render = templates[type];
       if (!render) continue;
       nextHtml = insertBeforeContactOrFooter(nextHtml, render(context));
+      structureStylesNeeded = true;
       applied.push({ action: op.action, type, content_domain: context.domain, brand: context.brand });
     } else if (op.action === "add_cards") {
       if (sectionExists(nextHtml, "cards")) continue;
       const count = Math.max(1, Math.min(12, Number(op.count) || 3));
       nextHtml = insertBeforeContactOrFooter(nextHtml, cardsBlock(count, context));
+      structureStylesNeeded = true;
       applied.push({ action: op.action, count, content_domain: context.domain });
     } else if (op.action === "layout_columns") {
       requestedColumns = Math.max(1, Math.min(4, Number(op.count) || 3));
+      structureStylesNeeded = true;
       applied.push({ action: op.action, count: requestedColumns });
     }
   }
 
   if (!applied.length) return { error: "NO_EXECUTABLE_STRUCTURAL_EDIT_OPERATIONS", applied: [], context };
 
-  nextCss = ensureStructureStyles(nextCss, requestedColumns);
+  if (structureStylesNeeded) nextCss = ensureStructureStyles(nextCss, requestedColumns);
 
   return {
     ok: true,
@@ -135,6 +150,6 @@ export function executeStructuralEditPlan({ html = "", css = "", plan }) {
     css: nextCss,
     applied,
     content_context: context,
-    changed_files: ["index.html", "styles.css"]
+    changed_files: nextCss === css ? ["index.html"] : ["index.html", "styles.css"]
   };
 }
