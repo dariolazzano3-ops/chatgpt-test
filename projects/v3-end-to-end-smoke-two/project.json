@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "V3 End to End Smoke Two",
+    "slug": "v3-end-to-end-smoke-two"
+  },
+  "mode": "generate",
+  "intent": "local_food_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
