@@ -141,6 +141,101 @@ async function readJson(request) {
   }
 }
 
+async function executeGenerate(request, env, body) {
+  const blueprint = buildGenerateBlueprint(body || {});
+  if (blueprint.error) return { error: blueprint.error, status: 400 };
+
+  const materialization = await materializeProject(request, env, {
+    blueprint,
+    project_name: body.project_name || blueprint.project?.name,
+    project_slug: body.project_slug || blueprint.project?.slug,
+    base_branch: body.base_branch,
+    branch_name: body.branch_name
+  });
+
+  if (materialization.error) {
+    return {
+      error: "GENERATE_EXECUTION_FAILED",
+      stage: "materialize",
+      blueprint,
+      materialization,
+      status: materialization.status || 502
+    };
+  }
+
+  return {
+    ok: true,
+    status: 201,
+    mode: "generate",
+    project: blueprint.project,
+    blueprint_status: blueprint.status,
+    files_generated: Object.keys(blueprint.files || {}),
+    materialization,
+    preview_url: materialization.preview?.url || null,
+    production_deployed: false
+  };
+}
+
+async function executeRebuild(request, env, body) {
+  let analysis = body.analysis;
+  if (!analysis && body.source_url) {
+    analysis = await analyzePublicWebsite({ source_url: body.source_url, max_pages: body.max_pages });
+  }
+  if (!analysis || analysis.error || !analysis.ok) {
+    return {
+      error: analysis?.error || "VALID_ANALYSIS_OR_SOURCE_URL_REQUIRED",
+      stage: "analyze",
+      analysis: analysis || null,
+      status: 400
+    };
+  }
+
+  const blueprint = buildRebuildBlueprint(analysis, {
+    project_name: body.project_name,
+    project_slug: body.project_slug,
+    positioning: body.positioning,
+    style: body.style || {}
+  });
+  if (blueprint.error) return { error: blueprint.error, stage: "build", status: 400 };
+
+  const materialization = await materializeProject(request, env, {
+    blueprint,
+    project_name: body.project_name || blueprint.project?.name,
+    project_slug: body.project_slug || blueprint.project?.slug,
+    base_branch: body.base_branch,
+    branch_name: body.branch_name
+  });
+
+  if (materialization.error) {
+    return {
+      error: "REBUILD_EXECUTION_FAILED",
+      stage: "materialize",
+      analysis_summary: {
+        source_url: analysis.source_url,
+        pages_analyzed: analysis.pages_analyzed,
+        detected_gaps: analysis.detected_gaps || []
+      },
+      blueprint,
+      materialization,
+      status: materialization.status || 502
+    };
+  }
+
+  return {
+    ok: true,
+    status: 201,
+    mode: "rebuild",
+    project: blueprint.project,
+    source_url: analysis.source_url,
+    pages_analyzed: analysis.pages_analyzed,
+    blueprint_status: blueprint.status,
+    files_generated: Object.keys(blueprint.files || {}),
+    materialization,
+    preview_url: materialization.preview?.url || null,
+    production_deployed: false
+  };
+}
+
 export async function handleFactory(request, env = {}) {
   const url = new URL(request.url);
 
@@ -155,8 +250,10 @@ export async function handleFactory(request, env = {}) {
         capabilities: "GET /factory/capabilities",
         plan: "POST /factory/plan",
         generate_build: "POST /factory/generate/build",
+        generate_run: "POST /factory/generate/run",
         rebuild_analyze: "POST /factory/rebuild/analyze",
         rebuild_build: "POST /factory/rebuild/build",
+        rebuild_run: "POST /factory/rebuild/run",
         evolve_plan: "POST /factory/evolve/plan",
         evolve_apply: "POST /factory/evolve/apply",
         materialize: "POST /factory/materialize"
@@ -176,7 +273,8 @@ export async function handleFactory(request, env = {}) {
         inputs: ["prompt", "project_name", "style", "goal", "content_overrides"],
         outputs: ["generated_blueprint", "page_architecture", "design_tokens", "starter_index_html", "starter_styles_css", "project_manifest"],
         deterministic_core: true,
-        external_ai_required: false
+        external_ai_required: false,
+        one_shot_execution: "POST /factory/generate/run"
       },
       rebuild_engine: {
         public_web_only: true,
@@ -184,7 +282,8 @@ export async function handleFactory(request, env = {}) {
         hard_page_limit: 12,
         extracts: ["titles_and_meta", "heading_structure", "internal_routes", "public_contacts", "observed_public_prices", "cta_signals", "basic_seo_mobile_conversion_gaps"],
         outputs: ["business_fact_inventory", "independent_rebuild_blueprint", "page_architecture", "design_tokens", "starter_index_html", "starter_styles_css", "project_manifest"],
-        purpose: "Independent improved rebuilds, not verbatim cloning of protected expression."
+        purpose: "Independent improved rebuilds, not verbatim cloning of protected expression.",
+        one_shot_execution: "POST /factory/rebuild/run"
       },
       evolve_engine: {
         inputs: ["project", "prompt", "changes"],
@@ -199,6 +298,7 @@ export async function handleFactory(request, env = {}) {
         project_root: "projects/<slug>/",
         branch_per_project: true,
         draft_pull_request: true,
+        automatic_preview_trigger: true,
         production_deploy: false,
         requires: ["API_TOKEN", "GITHUB_TOKEN"],
         optional: ["GITHUB_REPOSITORY"]
@@ -232,6 +332,13 @@ export async function handleFactory(request, env = {}) {
     return json(blueprint, blueprint.error ? 400 : 200);
   }
 
+  if (request.method === "POST" && url.pathname === "/factory/generate/run") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = await executeGenerate(request, env, parsed.value || {});
+    return json(result, result.status || (result.error ? 400 : 201));
+  }
+
   if (request.method === "POST" && url.pathname === "/factory/rebuild/analyze") {
     const parsed = await readJson(request);
     if (!parsed.ok) return json({ error: parsed.error }, 400);
@@ -257,6 +364,13 @@ export async function handleFactory(request, env = {}) {
       style: body.style || {}
     });
     return json(blueprint, blueprint.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/rebuild/run") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = await executeRebuild(request, env, parsed.value || {});
+    return json(result, result.status || (result.error ? 400 : 201));
   }
 
   if (request.method === "POST" && url.pathname === "/factory/evolve/plan") {
