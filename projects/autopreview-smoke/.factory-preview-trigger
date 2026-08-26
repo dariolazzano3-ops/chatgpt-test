@@ -1,0 +1,5 @@
+{
+  "project_slug": "autopreview-smoke",
+  "branch": "factory/autopreview-smoke-20260826",
+  "purpose": "end-to-end automatic preview trigger smoke test"
+}
