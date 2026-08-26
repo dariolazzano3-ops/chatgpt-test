@@ -1,3 +1,5 @@
+import { resolveSemanticSelector } from "./project-analyzer.js";
+
 function clean(value, max = 4000) {
   return String(value || "").trim().slice(0, max);
 }
@@ -13,11 +15,11 @@ function detectIntensity(text) {
   return "normal";
 }
 
-function operation(target, action, value, reason) {
-  return { target, action, value, reason };
+function operation(target, action, value, reason, semantic = null) {
+  return { target, action, value, reason, semantic };
 }
 
-export function planNaturalEdit(prompt = "") {
+export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   const raw = clean(prompt, 4000);
   const text = raw.toLowerCase();
   const intensity = detectIntensity(text);
@@ -29,18 +31,23 @@ export function planNaturalEdit(prompt = "") {
   const hero = includesAny(text, ["hero", "startbereich", "kopfbereich", "hintergrund"]);
   const nav = includesAny(text, ["navigation", "navbar", "menü", "header"]);
 
+  const rocketSelector = resolveSemanticSelector(projectAnalysis, "rocket", ".rocket-system");
+  const smokeSelector = resolveSemanticSelector(projectAnalysis, "smoke", ".smoke");
+  const heroSelector = resolveSemanticSelector(projectAnalysis, "hero", ".hero");
+  const navSelector = resolveSemanticSelector(projectAnalysis, "navigation", ".site-header");
+
   if (rocket) {
     targets.add("rocket");
     if (includesAny(text, ["größer", "riesig", "massiv"])) {
       const scale = intensity === "strong" ? 1.6 : intensity === "light" ? 1.15 : 1.35;
-      operations.push(operation(".rocket-system", "scale", scale, "Increase rocket visual size"));
+      operations.push(operation(rocketSelector, "scale", scale, "Increase rocket visual size", "rocket"));
     }
     if (includesAny(text, ["realistisch", "realistischer", "echter"])) {
-      operations.push(operation(".rocket-system", "detail_level", "high", "Increase visual realism and structural detail"));
-      operations.push(operation(".rocket-system", "lighting", "cinematic", "Improve metallic lighting and depth"));
+      operations.push(operation(rocketSelector, "detail_level", "high", "Increase visual realism and structural detail", "rocket"));
+      operations.push(operation(rocketSelector, "lighting", "cinematic", "Improve metallic lighting and depth", "rocket"));
     }
     if (includesAny(text, ["schneller", "langsamer"])) {
-      operations.push(operation(".rocket-system", "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing"));
+      operations.push(operation(rocketSelector, "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing", "rocket"));
     }
   }
 
@@ -48,40 +55,42 @@ export function planNaturalEdit(prompt = "") {
     targets.add("smoke");
     if (includesAny(text, ["mehr", "richtig", "massiv", "dichter", "viel"])) {
       const density = intensity === "strong" ? 1.8 : intensity === "light" ? 1.15 : 1.45;
-      operations.push(operation(".smoke", "density", density, "Increase launch smoke volume"));
-      operations.push(operation(".smoke", "spread", intensity === "strong" ? "wide" : "medium", "Expand smoke footprint"));
+      operations.push(operation(smokeSelector, "density", density, "Increase launch smoke volume", "smoke"));
+      operations.push(operation(smokeSelector, "spread", intensity === "strong" ? "wide" : "medium", "Expand smoke footprint", "smoke"));
     }
     if (includesAny(text, ["weniger", "reduzier", "leichter"])) {
-      operations.push(operation(".smoke", "density", 0.7, "Reduce smoke volume"));
+      operations.push(operation(smokeSelector, "density", 0.7, "Reduce smoke volume", "smoke"));
     }
   }
 
   if (hero) {
     targets.add("hero");
-    if (text.includes("dunkler")) operations.push(operation(".hero", "brightness", 0.78, "Darken hero presentation"));
-    if (text.includes("heller")) operations.push(operation(".hero", "brightness", 1.12, "Brighten hero presentation"));
-    if (includesAny(text, ["größer", "höher"])) operations.push(operation(".hero", "min_height", "92svh", "Increase hero presence"));
+    if (text.includes("dunkler")) operations.push(operation(heroSelector, "brightness", 0.78, "Darken hero presentation", "hero"));
+    if (text.includes("heller")) operations.push(operation(heroSelector, "brightness", 1.12, "Brighten hero presentation", "hero"));
+    if (includesAny(text, ["größer", "höher"])) operations.push(operation(heroSelector, "min_height", "92svh", "Increase hero presence", "hero"));
   }
 
   if (nav) {
     targets.add("navigation");
-    if (includesAny(text, ["transparent", "durchsichtig"])) operations.push(operation(".site-header", "surface_opacity", 0.72, "Increase header transparency"));
-    if (text.includes("dunkler")) operations.push(operation(".site-header", "surface_opacity", 0.94, "Increase header contrast"));
+    if (includesAny(text, ["transparent", "durchsichtig"])) operations.push(operation(navSelector, "surface_opacity", 0.72, "Increase header transparency", "navigation"));
+    if (text.includes("dunkler")) operations.push(operation(navSelector, "surface_opacity", 0.94, "Increase header contrast", "navigation"));
   }
 
   const explicitColor = /#[0-9a-f]{3,8}\b/i.exec(raw);
   if (explicitColor) {
     targets.add("theme");
-    operations.push(operation(":root", "accent_color", explicitColor[0], "Apply explicit accent color"));
+    operations.push(operation(":root", "accent_color", explicitColor[0], "Apply explicit accent color", "theme"));
   }
 
   return {
-    version: 1,
+    version: 2,
     mode: "natural-edit-plan",
     prompt: raw,
     intensity,
     targets: [...targets],
     operations,
+    project_aware: Boolean(projectAnalysis),
+    resolved_selectors: projectAnalysis?.semantic || null,
     requires_interpretation: operations.length === 0,
     safety: {
       production_deploy: false,
