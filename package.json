@@ -1,9 +1,9 @@
 {
   "name": "chatgpt-test-worker",
-  "version": "1.5.0-alpha.3",
+  "version": "1.5.0-alpha.4",
   "private": true,
   "scripts": {
-    "check": "node --check src/index.js && node --check src/mcp.js && node --check src/factory.js && node --check src/scraper.js && node --check src/builder.js && node --check src/materializer.js && node --check src/entry.js",
+    "check": "node --check src/index.js && node --check src/mcp.js && node --check src/factory.js && node --check src/scraper.js && node --check src/builder.js && node --check src/generator.js && node --check src/materializer.js && node --check src/entry.js",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },
