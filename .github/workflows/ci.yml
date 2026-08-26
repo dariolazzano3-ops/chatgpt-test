@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [develop, staging, main]
+    branches: [develop, staging, main, feature/project-factory-v1-5]
   pull_request:
     branches: [develop, staging, main]
 
@@ -22,3 +22,12 @@ jobs:
         run: npm run check
       - name: Validate Cloudflare Worker bundle
         run: npx wrangler deploy --dry-run
+      - name: Check live Factory diagnostics
+        run: |
+          set -euo pipefail
+          echo '=== /factory/diagnostics ==='
+          curl -fsS 'https://chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics'
+          echo
+          echo '=== /factory/diagnostics/github ==='
+          curl -fsS 'https://chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics/github'
+          echo
