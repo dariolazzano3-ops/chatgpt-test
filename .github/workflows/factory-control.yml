@@ -149,6 +149,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Publish Factory failure
+        if: failure()
+        shell: bash
+        env:
+          REQUEST_FILE: ${{ steps.request.outputs.file || 'unresolved' }}
+        run: |
+          echo "### Factory Control Failure" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Request: \`$REQUEST_FILE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Active project promotion: skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Recovery: submit a corrected request; the previous active project remains unchanged" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Promote successful project to active state
         if: steps.factory.outputs.qa_only != 'true'
         env:
