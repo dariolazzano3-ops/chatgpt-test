@@ -98,7 +98,7 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
     } else if (semantic === "hero" && action === "mobile_launch_containment") {
       const rocket = resolved.rocket || ".rocket-system";
       const smokeField = resolved.smoke_field || ".smoke-field";
-      const mobileSmokeKeyframes = `@keyframes factoryMobileSmokeBillow {\n  0% { opacity: 0; transform: translate(0,80px) scale(.3); }\n  16% { opacity: .9; }\n  42% { opacity: .88; transform: translate(0,10px) scale(.92); }\n  100% { opacity: .16; transform: translate(0,-120px) scale(1.08); }\n}`;
+      const mobileSmokeKeyframes = `@keyframes factoryMobileSmokeBillow {\n  0% { opacity: 0; transform: translate(0,80px) scale(.3); }\n  16% { opacity: .9; }\n  42% { opacity: .88; transform: translate(0,10px) scale(.9); }\n  100% { opacity: .16; transform: translate(0,-120px) scale(1.02); }\n}`;
       cssOverrides.push(mediaBlock("max-width:760px", [
         overrideBlock(target, { overflow: "hidden", "max-width": "100%", contain: "paint" }),
         overrideBlock(".launch-scene", { overflow: "hidden", "max-width": "100%", contain: "paint" }),
@@ -106,10 +106,14 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
         overrideBlock(".launch-pad", { right: "0", "max-width": "100%" }),
         overrideBlock(".launch-glow", { right: "0", "max-width": "100%", "transform-origin": "right center" }),
         overrideBlock(smokeField, { right: "0", width: "100%", overflow: "hidden", "max-width": "100%", contain: "paint" }),
-        overrideBlock(`${smokeField} .smoke`, { "max-width": "88%", "transform-origin": "center center", "animation-name": "factoryMobileSmokeBillow" }),
+        overrideBlock(`${smokeField} .smoke`, { "max-width": "62%", "transform-origin": "center center", "animation-name": "factoryMobileSmokeBillow" }),
+        overrideBlock(`${smokeField} .puff-3`, { left: "36%", width: "48%" }),
+        overrideBlock(`${smokeField} .puff-4`, { left: "58%", width: "38%" }),
+        overrideBlock(`${smokeField} .puff-7`, { left: "56%", width: "32%" }),
+        overrideBlock(`${smokeField} .puff-9`, { left: "64%", width: "28%" }),
         mobileSmokeKeyframes
       ]));
-      applied.push({ target, action, value: "animated-strict", semantic });
+      applied.push({ target, action, value: "geometry-strict", semantic });
     } else if (semantic === "navigation" && action === "surface_opacity") {
       const opacity = Math.max(0, Math.min(1, safeNumber(op.value, 0.9)));
       cssOverrides.push(overrideBlock(target, { background: `rgba(6, 9, 18, ${opacity})`, "backdrop-filter": "blur(18px)" }));
