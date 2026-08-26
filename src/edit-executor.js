@@ -17,21 +17,21 @@ function overrideBlock(selector, declarations = {}) {
   return body ? `${selector} {\n${body}\n}` : "";
 }
 
+function mediaBlock(query, blocks = []) {
+  const body = blocks.filter(Boolean).map((block) => block.split("\n").map((line) => `  ${line}`).join("\n")).join("\n\n");
+  return body ? `@media(${query}) {\n${body}\n}` : "";
+}
+
 const MANAGED_START = "/* Project Factory V3 Overrides: START */";
 const MANAGED_END = "/* Project Factory V3 Overrides: END */";
 const LEGACY_MARKER = "/* Project Factory V3 Natural Edit Overrides */";
 
 function stripFactoryOverrides(css = "") {
   let next = String(css || "");
-
   const managedPattern = /\/\* Project Factory V3 Overrides: START \*\/[\s\S]*?\/\* Project Factory V3 Overrides: END \*\//g;
   next = next.replace(managedPattern, "");
-
   const legacyIndex = next.indexOf(LEGACY_MARKER);
-  if (legacyIndex !== -1) {
-    next = next.slice(0, legacyIndex);
-  }
-
+  if (legacyIndex !== -1) next = next.slice(0, legacyIndex);
   return next.trimEnd();
 }
 
@@ -95,6 +95,18 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
     } else if (semantic === "hero" && action === "min_height") {
       cssOverrides.push(overrideBlock(target, { "min-height": clean(op.value, 32) }));
       applied.push({ target, action, value: clean(op.value, 32), semantic });
+    } else if (semantic === "hero" && action === "mobile_launch_containment") {
+      const rocket = resolved.rocket || ".rocket-system";
+      const smokeField = resolved.smoke_field || ".smoke-field";
+      cssOverrides.push(mediaBlock("max-width:760px", [
+        overrideBlock(target, { overflow: "clip", "max-width": "100%" }),
+        overrideBlock(".launch-scene", { overflow: "clip", "max-width": "100%" }),
+        overrideBlock(rocket, { right: "0", "max-width": "calc(100% - 8px)" }),
+        overrideBlock(".launch-pad", { right: "0", "max-width": "100%" }),
+        overrideBlock(smokeField, { right: "0", width: "100%", overflow: "clip", "max-width": "100%" }),
+        overrideBlock(`${smokeField} .smoke`, { "max-width": "100%" })
+      ]));
+      applied.push({ target, action, value: "strict", semantic });
     } else if (semantic === "navigation" && action === "surface_opacity") {
       const opacity = Math.max(0, Math.min(1, safeNumber(op.value, 0.9)));
       cssOverrides.push(overrideBlock(target, { background: `rgba(6, 9, 18, ${opacity})`, "backdrop-filter": "blur(18px)" }));

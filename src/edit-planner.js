@@ -30,11 +30,27 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   const smoke = includesAny(text, ["rauch", "smoke", "dampf"]);
   const hero = includesAny(text, ["hero", "startbereich", "kopfbereich", "hintergrund"]);
   const nav = includesAny(text, ["navigation", "navbar", "menü", "header"]);
+  const mobile = includesAny(text, ["mobil", "mobile", "smartphone", "handy", "responsive"]);
+  const containment = includesAny(text, ["overflow", "hinausrag", "innerhalb", "begren", "viewport", "seitenbreite", "horizontal"]);
+  const launchScene = rocket || smoke || includesAny(text, ["launch", "startszene", "launch-pad", "launch pad"]);
 
   const rocketSelector = resolveSemanticSelector(projectAnalysis, "rocket", ".rocket-system");
   const smokeSelector = resolveSemanticSelector(projectAnalysis, "smoke", ".smoke");
   const heroSelector = resolveSemanticSelector(projectAnalysis, "hero", ".hero");
   const navSelector = resolveSemanticSelector(projectAnalysis, "navigation", ".site-header");
+
+  if (mobile && containment && launchScene) {
+    targets.add("hero");
+    targets.add("rocket");
+    targets.add("responsive");
+    operations.push(operation(
+      heroSelector,
+      "mobile_launch_containment",
+      "strict",
+      "Contain the animated launch scene inside the mobile hero viewport without global page clipping",
+      "hero"
+    ));
+  }
 
   if (rocket) {
     targets.add("rocket");
@@ -83,7 +99,7 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   }
 
   return {
-    version: 2,
+    version: 3,
     mode: "natural-edit-plan",
     prompt: raw,
     intensity,
