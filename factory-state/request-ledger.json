@@ -11,6 +11,17 @@
       "preview_url": "https://factory-aetheron-ai-17877695.chatgpt-factory-preview.pages.dev",
       "qa_only": true,
       "production_deployed": false
+    },
+    "7c23aaa489bcb07f5242b65323b6cc564d9b0b77fc350ba01c5f29977c6c8c4e": {
+      "request_key": "7c23aaa489bcb07f5242b65323b6cc564d9b0b77fc350ba01c5f29977c6c8c4e",
+      "completed_at": "2026-08-26T23:33:35.922Z",
+      "mode": "project",
+      "project_path": "projects/concurrency-beta-retry",
+      "branch": "factory/concurrency-beta-retry-1787787164922",
+      "pr_url": "https://github.com/dariolazzano3-ops/chatgpt-test/pull/83",
+      "preview_url": "https://factory-concurrency-beta-ret.chatgpt-factory-preview.pages.dev",
+      "qa_only": false,
+      "production_deployed": false
     }
   }
 }
