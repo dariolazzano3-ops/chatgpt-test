@@ -118,6 +118,20 @@ jobs:
         id: factory
         run: node scripts/factory-control.mjs '${{ steps.request.outputs.file }}'
 
+      - name: Restore event worktree before project checkout
+        if: steps.idempotency.outputs.duplicate != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git restore --source=HEAD --staged --worktree -- factory-state/active-project.json
+          if git cat-file -e HEAD:factory-state/request-ledger.json 2>/dev/null; then
+            git restore --source=HEAD --staged --worktree -- factory-state/request-ledger.json
+          else
+            git rm --cached --ignore-unmatch factory-state/request-ledger.json >/dev/null 2>&1 || true
+            rm -f factory-state/request-ledger.json
+          fi
+          test -f .factory-runtime/request.json
+
       - name: Checkout generated project branch
         if: steps.idempotency.outputs.duplicate != 'true'
         shell: bash
