@@ -1,3 +1,5 @@
+import { analyzePublicWebsite } from "./scraper.js";
+
 const MODES = {
   generate: {
     label: "GENERATE",
@@ -136,7 +138,8 @@ export async function handleFactory(request) {
       defaults: DEFAULT_LIMITS,
       endpoints: {
         capabilities: "GET /factory/capabilities",
-        plan: "POST /factory/plan"
+        plan: "POST /factory/plan",
+        rebuild_analyze: "POST /factory/rebuild/analyze"
       }
     });
   }
@@ -149,12 +152,29 @@ export async function handleFactory(request) {
         assist: "One or a small number of bounded automated checks/iterations.",
         auto_loop: "Optional bounded autonomous iterations controlled by max_iterations and api_budget_eur."
       },
+      rebuild_analyzer: {
+        public_web_only: true,
+        default_page_limit: 6,
+        hard_page_limit: 12,
+        extracts: [
+          "titles_and_meta",
+          "heading_structure",
+          "internal_routes",
+          "public_contacts",
+          "observed_public_prices",
+          "cta_signals",
+          "basic_seo_mobile_conversion_gaps"
+        ],
+        purpose: "Independent improved rebuilds, not verbatim cloning of protected expression."
+      },
       safeguards: [
         "hard_iteration_limit",
         "hard_api_budget_limit",
         "production_approval_gate",
         "project_isolation",
-        "preview_before_production"
+        "preview_before_production",
+        "private_and_local_url_blocking",
+        "bounded_public_site_crawl"
       ]
     });
   }
@@ -168,6 +188,17 @@ export async function handleFactory(request) {
     }
     const plan = buildPlan(body || {});
     return json(plan, plan.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/rebuild/analyze") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: "INVALID_JSON" }, 400);
+    }
+    const result = await analyzePublicWebsite(body || {});
+    return json(result, result.error ? 400 : 200);
   }
 
   return null;
