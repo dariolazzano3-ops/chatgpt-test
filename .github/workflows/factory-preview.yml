@@ -11,6 +11,12 @@ on:
         description: Branch containing the project files
         required: true
         type: string
+  push:
+    branches:
+      - feature/project-factory-v1-5
+    paths:
+      - '.github/workflows/factory-preview.yml'
+      - 'projects/factory-preview-smoke/**'
 
 permissions:
   contents: read
@@ -21,22 +27,37 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+      CLOUDFLARE_PAGES_PROJECT: chatgpt-factory-preview
     steps:
-      - name: Checkout requested branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_branch }}
-
-      - name: Validate project folder
+      - name: Resolve preview target
+        id: target
         shell: bash
         run: |
           set -euo pipefail
-          case "${{ inputs.project_slug }}" in
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "project_slug=${{ inputs.project_slug }}" >> "$GITHUB_OUTPUT"
+            echo "source_branch=${{ inputs.source_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "project_slug=factory-preview-smoke" >> "$GITHUB_OUTPUT"
+            echo "source_branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout requested branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.source_branch }}
+
+      - name: Validate project folder
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ steps.target.outputs.project_slug }}
+        run: |
+          set -euo pipefail
+          case "$PROJECT_SLUG" in
             *..*|/*|*\\*) echo "Invalid project slug"; exit 1 ;;
           esac
-          test -d "projects/${{ inputs.project_slug }}"
-          test -f "projects/${{ inputs.project_slug }}/index.html"
+          test -d "projects/$PROJECT_SLUG"
+          test -f "projects/$PROJECT_SLUG/index.html"
 
       - name: Check preview configuration
         shell: bash
@@ -44,12 +65,20 @@ jobs:
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
-          test -n "$CLOUDFLARE_PAGES_PROJECT" || { echo "Missing repository variable CLOUDFLARE_PAGES_PROJECT"; exit 1; }
 
-      - name: Deploy preview only
+      - name: Ensure preview project exists
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes wrangler@4 pages deploy "projects/${{ inputs.project_slug }}" \
+          npx --yes wrangler@4 pages project create "$CLOUDFLARE_PAGES_PROJECT" --production-branch main || true
+
+      - name: Deploy preview only
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ steps.target.outputs.project_slug }}
+          SOURCE_BRANCH: ${{ steps.target.outputs.source_branch }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy "projects/$PROJECT_SLUG" \
             --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-            --branch "${{ inputs.source_branch }}"
+            --branch "$SOURCE_BRANCH"
