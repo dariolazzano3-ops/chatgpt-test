@@ -1,0 +1,55 @@
+name: Factory Preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_slug:
+        description: Project folder slug under projects/
+        required: true
+        type: string
+      source_branch:
+        description: Branch containing the project files
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+    steps:
+      - name: Checkout requested branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Validate project folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ inputs.project_slug }}" in
+            *..*|/*|*\\*) echo "Invalid project slug"; exit 1 ;;
+          esac
+          test -d "projects/${{ inputs.project_slug }}"
+          test -f "projects/${{ inputs.project_slug }}/index.html"
+
+      - name: Check preview configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$CLOUDFLARE_PAGES_PROJECT" || { echo "Missing repository variable CLOUDFLARE_PAGES_PROJECT"; exit 1; }
+
+      - name: Deploy preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy "projects/${{ inputs.project_slug }}" \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+            --branch "${{ inputs.source_branch }}"
