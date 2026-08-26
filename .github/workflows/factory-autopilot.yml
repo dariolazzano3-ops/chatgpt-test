@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: read
+  actions: write
 
 jobs:
   continue-safe-factory-pr:
@@ -30,24 +30,16 @@ jobs:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
-
           if [[ "$HEAD_BRANCH" != factory-v3/auto/* ]]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping non-autopilot branch: $HEAD_BRANCH"
             exit 0
           fi
-
-          PR_JSON=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls")
-
+          PR_JSON=$(gh api -H "Accept: application/vnd.github+json" "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls")
           PR_NUMBER=$(printf '%s' "$PR_JSON" | jq -r '[.[] | select(.state == "open" and .base.ref == "main" and .head.ref == env.HEAD_BRANCH)][0].number // empty')
           if [ -z "$PR_NUMBER" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "No open main-targeting PR found for $HEAD_BRANCH"
             exit 0
           fi
-
           echo "eligible=true" >> "$GITHUB_OUTPUT"
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
@@ -62,33 +54,25 @@ jobs:
           HEAD_SHA: ${{ steps.resolve.outputs.head_sha }}
         run: |
           set -euo pipefail
-          RESPONSE=$(gh api --method PUT \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" \
-            -f merge_method=merge \
-            -f sha="$HEAD_SHA")
-
-          MERGED=$(printf '%s' "$RESPONSE" | jq -r '.merged')
+          RESPONSE=$(gh api --method PUT -H "Accept: application/vnd.github+json" "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" -f merge_method=merge -f sha="$HEAD_SHA")
+          test "$(printf '%s' "$RESPONSE" | jq -r '.merged')" = "true" || { printf '%s\n' "$RESPONSE"; exit 1; }
           MERGE_SHA=$(printf '%s' "$RESPONSE" | jq -r '.sha // empty')
-          MESSAGE=$(printf '%s' "$RESPONSE" | jq -r '.message // empty')
-          test "$MERGED" = "true" || { echo "Autopilot merge blocked: $MESSAGE"; exit 1; }
-          test -n "$MERGE_SHA" || { echo "Merge SHA missing"; exit 1; }
+          test -n "$MERGE_SHA"
           echo "merge_sha=$MERGE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Sync Factory Control and enqueue QA-only
         if: steps.resolve.outputs.eligible == 'true'
+        id: qa
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
         run: |
           set -euo pipefail
-
           git config user.name "factory-autopilot[bot]"
           git config user.email "factory-autopilot[bot]@users.noreply.github.com"
-
           git fetch origin "$MERGE_SHA"
           git checkout -B factory-control "$MERGE_SHA"
-
           mkdir -p factory-requests
           STAMP=$(date -u +%Y%m%d-%H%M%S)
           REQUEST_FILE="factory-requests/autopilot-qa-${STAMP}.json"
@@ -98,10 +82,11 @@ jobs:
             "active_state_path": "factory-state/active-project.json"
           }
           JSON
-
           git add "$REQUEST_FILE"
           git commit -m "Autopilot QA recheck after green V3 merge"
           git push --force origin factory-control
+          gh workflow run factory-control.yml --ref factory-control -f request_file="$REQUEST_FILE"
+          echo "request_file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Autopilot summary
         if: steps.resolve.outputs.eligible == 'true'
@@ -110,5 +95,6 @@ jobs:
           echo "- CI: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- PR: #${{ steps.resolve.outputs.pr_number }} merged" >> "$GITHUB_STEP_SUMMARY"
           echo "- factory-control: synchronized" >> "$GITHUB_STEP_SUMMARY"
-          echo "- QA-only: enqueued automatically" >> "$GITHUB_STEP_SUMMARY"
+          echo "- QA-only: dispatched explicitly" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Request: ${{ steps.qa.outputs.request_file }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production deployment: disabled" >> "$GITHUB_STEP_SUMMARY"

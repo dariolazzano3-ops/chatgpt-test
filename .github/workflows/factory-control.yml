@@ -6,6 +6,12 @@ on:
       - factory-control
     paths:
       - 'factory-requests/*.json'
+  workflow_dispatch:
+    inputs:
+      request_file:
+        description: 'Factory request JSON path on factory-control'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -25,6 +31,7 @@ jobs:
       - name: Checkout control request
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'factory-control' || github.ref }}
           fetch-depth: 2
 
       - name: Setup Node
@@ -45,10 +52,18 @@ jobs:
       - name: Resolve request file
         id: request
         shell: bash
+        env:
+          DISPATCH_FILE: ${{ github.event.inputs.request_file || '' }}
         run: |
           set -euo pipefail
-          REQUEST_FILE=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '^factory-requests/[^/]+\.json$' | head -n 1 || true)
-          test -n "$REQUEST_FILE" || { echo "No Factory request JSON found in latest commit"; exit 1; }
+          if [ -n "$DISPATCH_FILE" ]; then
+            REQUEST_FILE="$DISPATCH_FILE"
+          else
+            REQUEST_FILE=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '^factory-requests/[^/]+\.json$' | head -n 1 || true)
+          fi
+          test -n "$REQUEST_FILE" || { echo "No Factory request JSON found"; exit 1; }
+          test -f "$REQUEST_FILE" || { echo "Factory request file not found: $REQUEST_FILE"; exit 1; }
+          case "$REQUEST_FILE" in factory-requests/*.json) ;; *) echo "Unsafe request path"; exit 1 ;; esac
           echo "file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Execute Factory request
@@ -71,10 +86,7 @@ jobs:
           PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
         run: |
           set -euo pipefail
-          case "$PROJECT_PATH" in
-            projects/*) ;;
-            *) echo "Unsafe project path: $PROJECT_PATH"; exit 1 ;;
-          esac
+          case "$PROJECT_PATH" in projects/*) ;; *) echo "Unsafe project path: $PROJECT_PATH"; exit 1 ;; esac
           test -f "$PROJECT_PATH/index.html"
           test -f "$PROJECT_PATH/project.json"
           test -f "$PROJECT_PATH/styles.css"
@@ -99,13 +111,9 @@ jobs:
           SOURCE_DIR="$GITHUB_WORKSPACE/$PROJECT_PATH"
           cd /tmp
           npx --yes wrangler@4 pages project create "$CLOUDFLARE_PAGES_PROJECT" --production-branch main || true
-          DEPLOY_OUTPUT=$(npx --yes wrangler@4 pages deploy "$SOURCE_DIR" \
-            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-            --branch "$SOURCE_BRANCH" 2>&1 | tee /dev/stderr)
+          DEPLOY_OUTPUT=$(npx --yes wrangler@4 pages deploy "$SOURCE_DIR" --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch "$SOURCE_BRANCH" 2>&1 | tee /dev/stderr)
           PREVIEW_URL=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -n 's/.*Deployment alias URL: \(https:\/\/[^ ]*\).*/\1/p' | tail -n 1)
-          if [ -z "$PREVIEW_URL" ]; then
-            PREVIEW_URL=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -n 's/.*Take a peek over at \(https:\/\/[^ ]*\).*/\1/p' | tail -n 1)
-          fi
+          if [ -z "$PREVIEW_URL" ]; then PREVIEW_URL=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -n 's/.*Take a peek over at \(https:\/\/[^ ]*\).*/\1/p' | tail -n 1); fi
           test -n "$PREVIEW_URL" || { echo "Could not resolve preview URL"; exit 1; }
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
@@ -135,20 +143,9 @@ jobs:
         run: |
           set -euo pipefail
           HEAD_SHA=$(git rev-parse HEAD)
-          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
-            -f state=success \
-            -f context='factory-control/preview' \
-            -f description='Factory project validated, visually checked and preview deployed' \
-            -f target_url="$PREVIEW_URL" >/dev/null
-
-          if [ -n "$PR_URL" ]; then
-            gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed (desktop + mobile evidence attached to the workflow run)\n- Production: not deployed\n\nThe generated branch was validated before preview deployment."
-          fi
-
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description='Factory project validated, visually checked and preview deployed' -f target_url="$PREVIEW_URL" >/dev/null
+          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed (desktop + mobile evidence attached to the workflow run)\n- Production: not deployed"; fi
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
-          echo "- PR: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Validation: passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Visual QA: passed (desktop + mobile)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Status: factory-control/preview = success" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Visual QA: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
