@@ -1,0 +1,7 @@
+{
+  "mode": "edit",
+  "prompt": "Intentional late-stage Visual QA failure probe for transactional EVOLVE isolation.",
+  "changes": {
+    "headline": "<span style='display:block;width:300vw'>Late Recovery Failure Probe</span>"
+  }
+}
