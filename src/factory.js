@@ -1,5 +1,6 @@
 import { analyzePublicWebsite } from "./scraper.js";
 import { buildRebuildBlueprint } from "./builder.js";
+import { buildGenerateBlueprint } from "./generator.js";
 import { materializeProject } from "./materializer.js";
 
 const MODES = {
@@ -65,6 +66,7 @@ function stepsFor(mode) {
       "derive_information_architecture",
       "derive_design_system",
       "generate_project_files",
+      "materialize_git_project",
       "run_static_checks",
       "create_preview",
       "review_against_brief"
@@ -150,6 +152,7 @@ export async function handleFactory(request, env = {}) {
       endpoints: {
         capabilities: "GET /factory/capabilities",
         plan: "POST /factory/plan",
+        generate_build: "POST /factory/generate/build",
         rebuild_analyze: "POST /factory/rebuild/analyze",
         rebuild_build: "POST /factory/rebuild/build",
         materialize: "POST /factory/materialize"
@@ -164,6 +167,12 @@ export async function handleFactory(request, env = {}) {
         manual: "No autonomous iteration. ChatGPT/user drives each step.",
         assist: "One or a small number of bounded automated checks/iterations.",
         auto_loop: "Optional bounded autonomous iterations controlled by max_iterations and api_budget_eur."
+      },
+      generate_engine: {
+        inputs: ["prompt", "project_name", "style", "goal", "content_overrides"],
+        outputs: ["generated_blueprint", "page_architecture", "design_tokens", "starter_index_html", "starter_styles_css", "project_manifest"],
+        deterministic_core: true,
+        external_ai_required: false
       },
       rebuild_engine: {
         public_web_only: true,
@@ -217,6 +226,13 @@ export async function handleFactory(request, env = {}) {
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const plan = buildPlan(parsed.value || {});
     return json(plan, plan.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/generate/build") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const blueprint = buildGenerateBlueprint(parsed.value || {});
+    return json(blueprint, blueprint.error ? 400 : 200);
   }
 
   if (request.method === "POST" && url.pathname === "/factory/rebuild/analyze") {
