@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import { buildGenerateBlueprint } from "../src/generator.js";
 import { analyzePublicWebsite } from "../src/scraper.js";
@@ -10,10 +11,19 @@ const requestPath = process.argv[2];
 if (!requestPath) throw new Error("REQUEST_FILE_REQUIRED");
 if (!/^factory-requests\/[A-Za-z0-9._-]+\.json$/.test(requestPath)) throw new Error("REQUEST_PATH_INVALID");
 
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+  }
+  return value;
+}
+
 const raw = await fs.readFile(requestPath, "utf8");
-const job = validateFactoryRequest(JSON.parse(raw));
+const parsedRequest = JSON.parse(raw);
+const recoveryKey = crypto.createHash("sha256").update(JSON.stringify(stable(parsedRequest))).digest("hex");
+const job = validateFactoryRequest(parsedRequest);
 const mode = job.mode;
-const recoveryKey = String(process.env.FACTORY_REQUEST_KEY || "").trim();
 const internalToken = `actions-${process.env.GITHUB_RUN_ID || Date.now()}`;
 const request = new Request("https://factory-control.local/run", {
   headers: { authorization: `Bearer ${internalToken}` }
