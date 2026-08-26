@@ -18,11 +18,14 @@ function json(value, status = 200) {
   });
 }
 
+const DEFAULT_PAGES_PROJECT = "chatgpt-factory-preview";
+
 export function buildPreviewPlan(input = {}, env = {}) {
   const projectSlug = slug(input.project_slug || input.project || "project");
   const branch = clean(input.branch || input.branch_name || `factory/${projectSlug}`, 180);
-  const pagesProject = clean(env.CLOUDFLARE_PAGES_PROJECT || input.pages_project, 120);
+  const pagesProject = clean(env.CLOUDFLARE_PAGES_PROJECT || input.pages_project || DEFAULT_PAGES_PROJECT, 120);
   const safeBranch = slug(branch);
+  const previewUrl = `https://${safeBranch}.${pagesProject}.pages.dev`;
 
   return {
     ok: true,
@@ -31,6 +34,7 @@ export function buildPreviewPlan(input = {}, env = {}) {
     project_path: `projects/${projectSlug}`,
     branch,
     provider: "cloudflare_pages",
+    preview_url: previewUrl,
     deployment: {
       automatic_production: false,
       preview_only: true,
@@ -41,11 +45,11 @@ export function buildPreviewPlan(input = {}, env = {}) {
       }
     },
     cloudflare: {
-      configured: Boolean(pagesProject),
-      pages_project: pagesProject || null,
-      expected_branch_alias: pagesProject ? `https://${safeBranch}.${pagesProject}.pages.dev` : null,
+      configured: true,
+      pages_project: pagesProject,
+      expected_branch_alias: previewUrl,
       required_github_secrets: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
-      required_github_variable: "CLOUDFLARE_PAGES_PROJECT"
+      required_github_variable: null
     },
     gates: [
       "project_folder_must_exist",
@@ -53,7 +57,7 @@ export function buildPreviewPlan(input = {}, env = {}) {
       "preview_before_production",
       "manual_production_approval"
     ],
-    status: pagesProject ? "PREVIEW_READY_TO_DISPATCH" : "PREVIEW_CONFIGURATION_REQUIRED"
+    status: "PREVIEW_READY_TO_DISPATCH"
   };
 }
 
@@ -64,6 +68,7 @@ export async function handlePreview(request, env = {}) {
       ok: true,
       endpoint: "POST /factory/preview/plan",
       provider: "cloudflare_pages",
+      pages_project: DEFAULT_PAGES_PROJECT,
       production_deploy: false
     });
   }
