@@ -42,7 +42,8 @@ try {
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
       const body = document.body;
-      const overflow = Math.max(root.scrollWidth, body?.scrollWidth || 0) - root.clientWidth;
+      const viewportWidth = root.clientWidth;
+      const overflow = Math.max(root.scrollWidth, body?.scrollWidth || 0) - viewportWidth;
       const h1 = document.querySelector("h1");
       const main = document.querySelector("main");
       const visibleSections = [...document.querySelectorAll("main section")].filter((el) => {
@@ -50,12 +51,38 @@ try {
         const style = getComputedStyle(el);
         return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
       }).length;
+
+      const overflowElements = [...document.querySelectorAll("body *")]
+        .map((el) => {
+          const rect = el.getBoundingClientRect();
+          const style = getComputedStyle(el);
+          const rightOverflow = Math.max(0, rect.right - viewportWidth);
+          const leftOverflow = Math.max(0, -rect.left);
+          const amount = Math.max(rightOverflow, leftOverflow);
+          if (amount <= 1 || rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return null;
+          const id = el.id ? `#${el.id}` : "";
+          const classes = typeof el.className === "string" && el.className.trim()
+            ? `.${el.className.trim().split(/\s+/).join(".")}`
+            : "";
+          return {
+            selector: `${el.tagName.toLowerCase()}${id}${classes}`,
+            left: Math.round(rect.left * 10) / 10,
+            right: Math.round(rect.right * 10) / 10,
+            width: Math.round(rect.width * 10) / 10,
+            overflowPx: Math.round(amount * 10) / 10
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.overflowPx - a.overflowPx)
+        .slice(0, 12);
+
       return {
         title: document.title,
         hasH1: Boolean(h1 && h1.textContent.trim()),
         hasMain: Boolean(main),
         visibleSections,
         horizontalOverflowPx: Math.max(0, overflow),
+        overflowElements,
         bodyTextLength: (body?.innerText || "").trim().length
       };
     });
@@ -85,7 +112,7 @@ try {
 }
 
 const report = {
-  version: 1,
+  version: 2,
   url,
   generated_at: new Date().toISOString(),
   ok: results.every((result) => result.failures.length === 0),
