@@ -14,3 +14,18 @@
 .smoke-field {
   transform: scaleX(1.25);
 }
+
+/* Project Factory V3 Natural Edit Overrides */
+.rocket-system {
+  --factory-rocket-scale: 1.35;
+  transform: scale(var(--factory-rocket-scale));
+}
+
+.smoke {
+  opacity: 0.70;
+  transform: scale(1.41);
+}
+
+.smoke-field {
+  transform: scaleX(1.25);
+}
