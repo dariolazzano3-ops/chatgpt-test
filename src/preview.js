@@ -11,6 +11,10 @@ function slug(value) {
     .replace(/^-|-$/g, "") || "preview";
 }
 
+function cloudflareBranchAlias(branch) {
+  return slug(branch).slice(0, 28).replace(/-+$/g, "") || "preview";
+}
+
 function json(value, status = 200) {
   return new Response(JSON.stringify(value, null, 2), {
     status,
@@ -24,7 +28,7 @@ export function buildPreviewPlan(input = {}, env = {}) {
   const projectSlug = slug(input.project_slug || input.project || "project");
   const branch = clean(input.branch || input.branch_name || `factory/${projectSlug}`, 180);
   const pagesProject = clean(env.CLOUDFLARE_PAGES_PROJECT || input.pages_project || DEFAULT_PAGES_PROJECT, 120);
-  const safeBranch = slug(branch);
+  const safeBranch = cloudflareBranchAlias(branch);
   const previewUrl = `https://${safeBranch}.${pagesProject}.pages.dev`;
 
   return {
@@ -38,6 +42,7 @@ export function buildPreviewPlan(input = {}, env = {}) {
     deployment: {
       automatic_production: false,
       preview_only: true,
+      automatic_after_materialization: true,
       workflow: ".github/workflows/factory-preview.yml",
       workflow_dispatch_inputs: {
         project_slug: projectSlug,
@@ -57,7 +62,7 @@ export function buildPreviewPlan(input = {}, env = {}) {
       "preview_before_production",
       "manual_production_approval"
     ],
-    status: "PREVIEW_READY_TO_DISPATCH"
+    status: "PREVIEW_AUTOMATION_READY"
   };
 }
 
@@ -69,6 +74,7 @@ export async function handlePreview(request, env = {}) {
       endpoint: "POST /factory/preview/plan",
       provider: "cloudflare_pages",
       pages_project: DEFAULT_PAGES_PROJECT,
+      automatic_after_materialization: true,
       production_deploy: false
     });
   }
