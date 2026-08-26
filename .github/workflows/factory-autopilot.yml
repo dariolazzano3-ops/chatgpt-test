@@ -1,0 +1,114 @@
+name: Factory Autopilot
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  continue-safe-factory-pr:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve eligible Factory PR
+        id: resolve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$HEAD_BRANCH" != factory-v3/auto/* ]]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping non-autopilot branch: $HEAD_BRANCH"
+            exit 0
+          fi
+
+          PR_JSON=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls")
+
+          PR_NUMBER=$(printf '%s' "$PR_JSON" | jq -r '[.[] | select(.state == "open" and .base.ref == "main" and .head.ref == env.HEAD_BRANCH)][0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "No open main-targeting PR found for $HEAD_BRANCH"
+            exit 0
+          fi
+
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Merge green Factory PR
+        if: steps.resolve.outputs.eligible == 'true'
+        id: merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.resolve.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          RESPONSE=$(gh api --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" \
+            -f merge_method=merge \
+            -f sha="$HEAD_SHA")
+
+          MERGED=$(printf '%s' "$RESPONSE" | jq -r '.merged')
+          MERGE_SHA=$(printf '%s' "$RESPONSE" | jq -r '.sha // empty')
+          MESSAGE=$(printf '%s' "$RESPONSE" | jq -r '.message // empty')
+          test "$MERGED" = "true" || { echo "Autopilot merge blocked: $MESSAGE"; exit 1; }
+          test -n "$MERGE_SHA" || { echo "Merge SHA missing"; exit 1; }
+          echo "merge_sha=$MERGE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Sync Factory Control and enqueue QA-only
+        if: steps.resolve.outputs.eligible == 'true'
+        shell: bash
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "factory-autopilot[bot]"
+          git config user.email "factory-autopilot[bot]@users.noreply.github.com"
+
+          git fetch origin "$MERGE_SHA"
+          git checkout -B factory-control "$MERGE_SHA"
+
+          mkdir -p factory-requests
+          STAMP=$(date -u +%Y%m%d-%H%M%S)
+          REQUEST_FILE="factory-requests/autopilot-qa-${STAMP}.json"
+          cat > "$REQUEST_FILE" <<'JSON'
+          {
+            "mode": "qa",
+            "active_state_path": "factory-state/active-project.json"
+          }
+          JSON
+
+          git add "$REQUEST_FILE"
+          git commit -m "Autopilot QA recheck after green V3 merge"
+          git push --force origin factory-control
+
+      - name: Autopilot summary
+        if: steps.resolve.outputs.eligible == 'true'
+        run: |
+          echo "### Factory Autopilot" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CI: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PR: #${{ steps.resolve.outputs.pr_number }} merged" >> "$GITHUB_STEP_SUMMARY"
+          echo "- factory-control: synchronized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- QA-only: enqueued automatically" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production deployment: disabled" >> "$GITHUB_STEP_SUMMARY"
