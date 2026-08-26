@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "requests": {
+    "2e1273c18b97a112e9193a93167d40d82f9bd6b73a9372d38333b884eeb7851f": {
+      "request_key": "2e1273c18b97a112e9193a93167d40d82f9bd6b73a9372d38333b884eeb7851f",
+      "completed_at": "2026-08-26T23:31:21.320Z",
+      "mode": "qa",
+      "project_path": "projects/aetheron-ai",
+      "branch": "factory/aetheron-ai-1787769583100",
+      "pr_url": "https://github.com/dariolazzano3-ops/chatgpt-test/pull/46",
+      "preview_url": "https://factory-aetheron-ai-17877695.chatgpt-factory-preview.pages.dev",
+      "qa_only": true,
+      "production_deployed": false
+    }
+  }
+}
