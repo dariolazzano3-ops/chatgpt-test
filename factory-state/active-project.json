@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active": true,
-  "project_name": "Concurrency Epsilon",
-  "project_slug": "concurrency-epsilon",
-  "source_path": "projects/concurrency-epsilon",
-  "branch": "factory/concurrency-epsilon-1787787545665",
-  "pull_request": 87,
-  "preview_url": "https://factory-concurrency-epsilon.chatgpt-factory-preview.pages.dev",
+  "project_name": "Recovery Phoenix",
+  "project_slug": "recovery-phoenix",
+  "source_path": "projects/recovery-phoenix",
+  "branch": "factory/recovery-phoenix-eb40e39dc972",
+  "pull_request": 89,
+  "preview_url": "https://factory-recovery-phoenix-eb4.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
   "mode": "editing",
-  "updated_at": "2026-08-26T23:39:52.344Z"
+  "updated_at": "2026-08-26T23:49:24.544Z"
 }
