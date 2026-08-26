@@ -101,6 +101,23 @@ jobs:
           test -n "$PREVIEW_URL" || { echo "Could not resolve preview URL"; exit 1; }
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
+      - name: Install Visual QA browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Visual QA
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: node scripts/visual-qa.mjs "$PREVIEW_URL" visual-qa
+
+      - name: Upload Visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-qa-${{ github.run_id }}
+          path: visual-qa/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Publish Factory result
         shell: bash
         env:
@@ -113,16 +130,17 @@ jobs:
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
             -f state=success \
             -f context='factory-control/preview' \
-            -f description='Factory project validated and preview deployed' \
+            -f description='Factory project validated, visually checked and preview deployed' \
             -f target_url="$PREVIEW_URL" >/dev/null
 
           if [ -n "$PR_URL" ]; then
-            gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Production: not deployed\n\nThe generated branch was validated before preview deployment."
+            gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed (desktop + mobile evidence attached to the workflow run)\n- Production: not deployed\n\nThe generated branch was validated before preview deployment."
           fi
 
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
           echo "- PR: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Validation: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Visual QA: passed (desktop + mobile)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Status: factory-control/preview = success" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
