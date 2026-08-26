@@ -4,13 +4,15 @@ import { analyzePublicWebsite } from "../src/scraper.js";
 import { buildRebuildBlueprint } from "../src/builder.js";
 import { materializeProject } from "../src/materializer.js";
 import { evolveProject } from "../src/evolver.js";
+import { validateFactoryRequest } from "./factory-request-contract.mjs";
 
 const requestPath = process.argv[2];
 if (!requestPath) throw new Error("REQUEST_FILE_REQUIRED");
+if (!/^factory-requests\/[A-Za-z0-9._-]+\.json$/.test(requestPath)) throw new Error("REQUEST_PATH_INVALID");
 
 const raw = await fs.readFile(requestPath, "utf8");
-const job = JSON.parse(raw);
-const mode = String(job.mode || "generate").toLowerCase();
+const job = validateFactoryRequest(JSON.parse(raw));
+const mode = job.mode;
 const internalToken = `actions-${process.env.GITHUB_RUN_ID || Date.now()}`;
 const request = new Request("https://factory-control.local/run", {
   headers: { authorization: `Bearer ${internalToken}` }
@@ -45,10 +47,7 @@ if (mode === "qa" || mode === "recheck") {
   output = {
     ok: true,
     mode: "qa",
-    project: {
-      name: state.project_name,
-      slug: state.project_slug
-    },
+    project: { name: state.project_name, slug: state.project_slug },
     branch: state.branch,
     project_path: state.source_path,
     preview_expected: state.preview_url || null,
@@ -60,12 +59,11 @@ if (mode === "qa" || mode === "recheck") {
   };
 } else if (mode === "edit" || mode === "evolve") {
   const { statePath, state } = await readActiveProject();
-
   const result = await evolveProject(request, env, {
     project_slug: state.project_slug,
     prompt: job.prompt,
     changes: job.changes,
-    base_branch: job.base_branch || "main",
+    base_branch: "main",
     branch_name: state.branch,
     reuse_branch: true,
     existing_pull_request: state.pull_request
@@ -79,10 +77,7 @@ if (mode === "qa" || mode === "recheck") {
   output = {
     ok: true,
     mode: "edit",
-    project: {
-      name: state.project_name,
-      slug: state.project_slug
-    },
+    project: { name: state.project_name, slug: state.project_slug },
     branch: state.branch,
     project_path: state.source_path,
     preview_expected: state.preview_url || null,
@@ -98,11 +93,7 @@ if (mode === "qa" || mode === "recheck") {
   if (mode === "generate") {
     blueprint = buildGenerateBlueprint(job);
   } else if (mode === "rebuild") {
-    if (!job.source_url) throw new Error("SOURCE_URL_REQUIRED");
-    analysis = await analyzePublicWebsite({
-      source_url: job.source_url,
-      max_pages: job.max_pages
-    });
+    analysis = await analyzePublicWebsite({ source_url: job.source_url, max_pages: job.max_pages });
     if (!analysis?.ok) throw new Error(analysis?.error || "REBUILD_ANALYSIS_FAILED");
     blueprint = buildRebuildBlueprint(analysis, {
       project_name: job.project_name,
@@ -110,8 +101,6 @@ if (mode === "qa" || mode === "recheck") {
       positioning: job.positioning,
       style: job.style || {}
     });
-  } else {
-    throw new Error(`UNSUPPORTED_MODE:${mode}`);
   }
 
   if (blueprint?.error) throw new Error(blueprint.error);
@@ -120,7 +109,7 @@ if (mode === "qa" || mode === "recheck") {
     blueprint,
     project_name: job.project_name || blueprint.project?.name,
     project_slug: job.project_slug || blueprint.project?.slug,
-    base_branch: job.base_branch || "main",
+    base_branch: "main",
     branch_name: job.branch_name
   });
 
