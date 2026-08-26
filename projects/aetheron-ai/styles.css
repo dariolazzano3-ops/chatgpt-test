@@ -4,14 +4,16 @@
 
 
 
+
+
+/* Project Factory V3 Structure Styles: START */
+.factory-faq-list{display:grid;gap:12px}.factory-faq-list details{padding:18px 0;border-bottom:1px solid #ffffff18}.factory-faq-list summary{cursor:pointer;font-weight:700}.factory-cta-section{padding-top:80px;padding-bottom:80px}
+@media(max-width:760px){.factory-card-grid,.factory-reference-grid,.factory-services-grid{grid-template-columns:1fr}}
+/* Project Factory V3 Structure Styles: END */
+
 /* Project Factory V3 Overrides: START */
 .site-header {
   background: rgba(6, 9, 18, 0.72);
   backdrop-filter: blur(18px);
 }
 /* Project Factory V3 Overrides: END */
-
-/* Project Factory V3 Structure Styles: START */
-.factory-faq-list{display:grid;gap:12px}.factory-faq-list details{padding:18px 0;border-bottom:1px solid #ffffff18}.factory-faq-list summary{cursor:pointer;font-weight:700}.factory-cta-section{padding-top:80px;padding-bottom:80px}
-@media(max-width:760px){.factory-card-grid,.factory-reference-grid,.factory-services-grid{grid-template-columns:1fr}}
-/* Project Factory V3 Structure Styles: END */
