@@ -3,7 +3,7 @@ import { buildGenerateBlueprint } from "../src/generator.js";
 import { analyzePublicWebsite } from "../src/scraper.js";
 import { buildRebuildBlueprint } from "../src/builder.js";
 import { materializeProject } from "../src/materializer.js";
-import { evolveProject } from "../src/evolver.js";
+import { evolveProjectSafely } from "../src/evolve-safe.js";
 import { validateFactoryRequest } from "./factory-request-contract.mjs";
 
 const requestPath = process.argv[2];
@@ -59,7 +59,7 @@ if (mode === "qa" || mode === "recheck") {
   };
 } else if (mode === "edit" || mode === "evolve") {
   const { statePath, state } = await readActiveProject();
-  const result = await evolveProject(request, env, {
+  const result = await evolveProjectSafely(request, env, {
     project_slug: state.project_slug,
     prompt: job.prompt,
     changes: job.changes,
@@ -69,9 +69,9 @@ if (mode === "qa" || mode === "recheck") {
     existing_pull_request: state.pull_request
   });
 
-  if (!result?.ok) {
+  if (!result?.ok || !Array.isArray(result.updates) || result.updates.length === 0) {
     console.error(JSON.stringify({ mode, active_state: state, edit: result }, null, 2));
-    throw new Error(result?.error || "ACTIVE_EDIT_FAILED");
+    throw new Error(result?.error || "ACTIVE_EDIT_NO_VERIFIED_UPDATES");
   }
 
   output = {
