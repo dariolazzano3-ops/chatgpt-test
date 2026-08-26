@@ -33,14 +33,14 @@ export function planNaturalEdit(prompt = "") {
     targets.add("rocket");
     if (includesAny(text, ["größer", "riesig", "massiv"])) {
       const scale = intensity === "strong" ? 1.6 : intensity === "light" ? 1.15 : 1.35;
-      operations.push(operation(".rocket", "scale", scale, "Increase rocket visual size"));
+      operations.push(operation(".rocket-system", "scale", scale, "Increase rocket visual size"));
     }
     if (includesAny(text, ["realistisch", "realistischer", "echter"])) {
-      operations.push(operation(".rocket", "detail_level", "high", "Increase visual realism and structural detail"));
-      operations.push(operation(".rocket", "lighting", "cinematic", "Improve metallic lighting and depth"));
+      operations.push(operation(".rocket-system", "detail_level", "high", "Increase visual realism and structural detail"));
+      operations.push(operation(".rocket-system", "lighting", "cinematic", "Improve metallic lighting and depth"));
     }
     if (includesAny(text, ["schneller", "langsamer"])) {
-      operations.push(operation(".rocket", "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing"));
+      operations.push(operation(".rocket-system", "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing"));
     }
   }
 
