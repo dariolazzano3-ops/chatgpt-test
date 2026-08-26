@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Concurrency Alpha",
+    "slug": "concurrency-alpha"
+  },
+  "mode": "generate",
+  "intent": "technology_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
