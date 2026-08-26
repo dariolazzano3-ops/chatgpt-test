@@ -13,9 +13,7 @@ if (!/^factory-requests\/[A-Za-z0-9._-]+\.json$/.test(requestPath)) throw new Er
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
-  }
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
   return value;
 }
 
@@ -25,29 +23,20 @@ const recoveryKey = crypto.createHash("sha256").update(JSON.stringify(stable(par
 const job = validateFactoryRequest(parsedRequest);
 const mode = job.mode;
 const internalToken = `actions-${process.env.GITHUB_RUN_ID || Date.now()}`;
-const request = new Request("https://factory-control.local/run", {
-  headers: { authorization: `Bearer ${internalToken}` }
-});
-const env = {
-  API_TOKEN: internalToken,
-  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-  GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY
-};
+const request = new Request("https://factory-control.local/run", { headers: { authorization: `Bearer ${internalToken}` } });
+const env = { API_TOKEN: internalToken, GITHUB_TOKEN: process.env.GITHUB_TOKEN, GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY };
 
 if (!env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN_REQUIRED");
 
 async function readActiveProject() {
   const statePath = String(job.active_state_path || "factory-state/active-project.json");
-  const stateRaw = await fs.readFile(statePath, "utf8");
-  const state = JSON.parse(stateRaw);
-
+  const state = JSON.parse(await fs.readFile(statePath, "utf8"));
   if (state.active !== true) throw new Error("NO_ACTIVE_PROJECT");
   if (state.mode !== "editing") throw new Error("ACTIVE_PROJECT_NOT_IN_EDITING_MODE");
   if (!String(state.project_slug || "").trim()) throw new Error("ACTIVE_PROJECT_SLUG_REQUIRED");
   if (state.source_path !== `projects/${state.project_slug}`) throw new Error("ACTIVE_PROJECT_PATH_MISMATCH");
   if (!String(state.branch || "").startsWith("factory/")) throw new Error("ACTIVE_PROJECT_BRANCH_INVALID");
   if (state.production_deploy !== false) throw new Error("ACTIVE_PROJECT_PRODUCTION_MUST_BE_DISABLED");
-
   return { statePath, state };
 }
 
@@ -71,14 +60,16 @@ if (mode === "qa" || mode === "recheck") {
   };
 } else if (mode === "edit" || mode === "evolve") {
   const { statePath, state } = await readActiveProject();
+  const stagingBranch = `factory/${state.project_slug}-edit-${recoveryKey.slice(0, 12)}`;
   const result = await evolveProjectSafely(request, env, {
     project_slug: state.project_slug,
     prompt: job.prompt,
     changes: job.changes,
     base_branch: "main",
-    branch_name: state.branch,
-    reuse_branch: true,
-    existing_pull_request: state.pull_request
+    source_branch: state.branch,
+    branch_name: stagingBranch,
+    reuse_branch: false,
+    recover_branch: true
   });
 
   if (!result?.ok || !Array.isArray(result.updates) || result.updates.length === 0) {
@@ -90,15 +81,15 @@ if (mode === "qa" || mode === "recheck") {
     ok: true,
     mode: "edit",
     project: { name: state.project_name, slug: state.project_slug },
-    branch: state.branch,
+    branch: result.branch,
     project_path: state.source_path,
-    preview_expected: state.preview_url || null,
+    preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
     updates: result.updates,
     active_state_path: statePath,
     production_deployed: false,
     qa_only: false,
-    recovery_reused: true
+    recovery_reused: result.recovery_reused === true
   };
 } else {
   let blueprint;
@@ -117,7 +108,6 @@ if (mode === "qa" || mode === "recheck") {
   }
 
   if (blueprint?.error) throw new Error(blueprint.error);
-
   const result = await materializeProject(request, env, {
     blueprint,
     project_name: job.project_name || blueprint.project?.name,
@@ -126,12 +116,10 @@ if (mode === "qa" || mode === "recheck") {
     branch_name: job.branch_name,
     recovery_key: recoveryKey
   });
-
   if (!result?.ok) {
     console.error(JSON.stringify({ mode, analysis, blueprint, materialization: result }, null, 2));
     throw new Error(result?.error || "MATERIALIZATION_FAILED");
   }
-
   output = {
     ok: true,
     mode,

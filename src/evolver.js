@@ -32,6 +32,16 @@ async function github(token, path, init = {}) {
   return body;
 }
 
+async function githubOptional(token, path) {
+  try { return await github(token, path); }
+  catch (error) { if (error?.status === 404) return null; throw error; }
+}
+
+async function findOpenPullRequest(token, owner, repo, branch, base) {
+  const pulls = await github(token, `/repos/${owner}/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&base=${encodeURIComponent(base)}&per_page=10`);
+  return Array.isArray(pulls) ? pulls[0] || null : null;
+}
+
 function decodeBase64(content) { return decodeURIComponent(escape(atob(String(content || "").replace(/\n/g, "")))); }
 function encodeBase64(content) { return btoa(unescape(encodeURIComponent(content))); }
 function replaceFirst(source, regex, replacement) { return regex.test(source) ? source.replace(regex, replacement) : source; }
@@ -89,20 +99,7 @@ export function buildEvolvePlan(body = {}) {
   const natural_plan = recognized.length ? null : planNaturalEdit(body.prompt || "");
   const structural_plan = recognized.length ? null : planStructuralEdit(body.prompt || "");
   const executable = recognized.length || natural_plan?.operations?.length || structural_plan?.operations?.length;
-  return {
-    ok: true,
-    version: "3",
-    mode: "evolve",
-    project_slug: projectSlug,
-    prompt: clean(body.prompt, 4000) || null,
-    changes,
-    recognized_changes: recognized,
-    natural_plan,
-    structural_plan,
-    unsupported_prompt_requires_ai_or_manual_edit: !executable,
-    protected_contracts: ["project_path", "production_approval_gate", "branch_isolation", "existing_unrelated_files"],
-    status: executable ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION"
-  };
+  return { ok: true, version: "3", mode: "evolve", project_slug: projectSlug, prompt: clean(body.prompt, 4000) || null, changes, recognized_changes: recognized, natural_plan, structural_plan, unsupported_prompt_requires_ai_or_manual_edit: !executable, protected_contracts: ["project_path", "production_approval_gate", "branch_isolation", "existing_unrelated_files"], status: executable ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION" };
 }
 
 export async function evolveProject(request, env, body = {}) {
@@ -117,20 +114,28 @@ export async function evolveProject(request, env, body = {}) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) return { error: "INVALID_GITHUB_REPOSITORY", status: 500 };
   const [owner, repo] = repository.split("/");
   const base = clean(body.base_branch || "main", 100) || "main";
+  const sourceBranch = clean(body.source_branch || base, 180) || base;
   const reuseBranch = body.reuse_branch === true;
+  const recoverBranch = body.recover_branch === true;
   const branch = clean(body.branch_name || `factory/evolve-${plan.project_slug}-${Date.now()}`, 180);
   const prefix = `projects/${plan.project_slug}`;
   if (reuseBranch && !branch.startsWith("factory/")) return { error: "ACTIVE_EDIT_BRANCH_MUST_BE_FACTORY_BRANCH", status: 400 };
 
+  let recoveredExistingBranch = false;
   try {
     if (reuseBranch) {
       const branchRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
       if (!branchRef?.object?.sha) return { error: "ACTIVE_EDIT_BRANCH_NOT_FOUND", status: 404 };
     } else {
-      const baseRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);
-      const baseSha = baseRef?.object?.sha;
-      if (!baseSha) return { error: "BASE_BRANCH_SHA_NOT_FOUND", status: 502 };
-      await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/refs`, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }) });
+      const existingBranch = recoverBranch ? await githubOptional(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`) : null;
+      if (existingBranch?.object?.sha) {
+        recoveredExistingBranch = true;
+      } else {
+        const sourceRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(sourceBranch)}`);
+        const sourceSha = sourceRef?.object?.sha;
+        if (!sourceSha) return { error: "SOURCE_BRANCH_SHA_NOT_FOUND", status: 502 };
+        await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/refs`, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: sourceSha }) });
+      }
     }
 
     const updates = [];
@@ -160,7 +165,6 @@ export async function evolveProject(request, env, body = {}) {
         html = structural.html;
         applied.push(...structural.applied.map((item) => ({ ...item, engine: "structural" })));
       }
-
       if (plan.natural_plan?.operations?.length) {
         const natural = executeNaturalEditPlan({ css, html, plan: plan.natural_plan });
         if (!natural.ok) return { ...natural, plan, status: 422 };
@@ -181,18 +185,25 @@ export async function evolveProject(request, env, body = {}) {
       }
     }
 
+    if (!updates.length && recoveredExistingBranch) updates.push({ path: prefix, applied: ["recovery_noop"], recovery: true });
     if (!updates.length) return { error: "NO_APPLICABLE_CHANGES", plan, status: 422 };
 
     let pullRequest;
+    let reusedPullRequest = false;
     if (reuseBranch) {
       const number = Number(body.existing_pull_request || 0) || null;
       pullRequest = { number, url: number ? `https://github.com/${repository}/pull/${number}` : null, draft: true, reused: true };
     } else {
-      const pr = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/pulls`, { method: "POST", body: JSON.stringify({ title: `EVOLVE: ${plan.project_slug}`, head: branch, base, draft: true, body: `Generated by Project Factory EVOLVE.\n\nProject: \`${prefix}/\`\n\nProduction remains approval-gated.` }) });
-      pullRequest = { number: pr?.number, url: pr?.html_url, draft: pr?.draft === true, reused: false };
+      let pr = recoverBranch ? await findOpenPullRequest(env.GITHUB_TOKEN, owner, repo, branch, base) : null;
+      if (pr) {
+        reusedPullRequest = true;
+      } else {
+        pr = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/pulls`, { method: "POST", body: JSON.stringify({ title: `EVOLVE: ${plan.project_slug}`, head: branch, base, draft: true, body: `Generated by Project Factory EVOLVE.\n\nProject: \`${prefix}/\`\n\nSource branch: \`${sourceBranch}\`\n\nProduction remains approval-gated.` }) });
+      }
+      pullRequest = { number: pr?.number, url: pr?.html_url, draft: pr?.draft === true, reused: reusedPullRequest };
     }
 
-    return { ok: true, status: reuseBranch ? 200 : 201, repository, base_branch: base, branch, project_path: prefix, updates, pull_request: pullRequest, active_edit: reuseBranch, production_deployed: false };
+    return { ok: true, status: recoveredExistingBranch || reusedPullRequest ? 200 : 201, repository, base_branch: base, source_branch: sourceBranch, branch, project_path: prefix, updates, pull_request: pullRequest, active_edit: reuseBranch, recovery_reused: recoveredExistingBranch || reusedPullRequest, production_deployed: false };
   } catch (error) {
     return { error: "EVOLVE_GITHUB_FAILED", message: clean(error?.message || "Unknown GitHub error", 300), github_status: error?.status || null, status: 502 };
   }
