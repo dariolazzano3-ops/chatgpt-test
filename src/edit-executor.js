@@ -17,12 +17,37 @@ function overrideBlock(selector, declarations = {}) {
   return body ? `${selector} {\n${body}\n}` : "";
 }
 
+const MANAGED_START = "/* Project Factory V3 Overrides: START */";
+const MANAGED_END = "/* Project Factory V3 Overrides: END */";
+const LEGACY_MARKER = "/* Project Factory V3 Natural Edit Overrides */";
+
+function stripFactoryOverrides(css = "") {
+  let next = String(css || "");
+
+  const managedPattern = /\/\* Project Factory V3 Overrides: START \*\/[\s\S]*?\/\* Project Factory V3 Overrides: END \*\//g;
+  next = next.replace(managedPattern, "");
+
+  const legacyIndex = next.indexOf(LEGACY_MARKER);
+  if (legacyIndex !== -1) {
+    next = next.slice(0, legacyIndex);
+  }
+
+  return next.trimEnd();
+}
+
+function buildManagedOverrideBlock(blocks = []) {
+  const body = blocks.filter(Boolean).join("\n\n").trim();
+  if (!body) return "";
+  return `${MANAGED_START}\n${body}\n${MANAGED_END}`;
+}
+
 export function executeNaturalEditPlan({ css = "", html = "", plan }) {
   if (!plan || plan.mode !== "natural-edit-plan") return { error: "INVALID_NATURAL_EDIT_PLAN" };
   if (plan?.safety?.production_deploy !== false) return { error: "PRODUCTION_MUST_REMAIN_DISABLED" };
   if (plan?.safety?.active_project_only !== true) return { error: "ACTIVE_PROJECT_ONLY_REQUIRED" };
 
-  const analysis = analyzeProject({ html, css });
+  const cleanCss = stripFactoryOverrides(css);
+  const analysis = analyzeProject({ html, css: cleanCss });
   const resolved = analysis.semantic || {};
   const cssOverrides = [];
   const applied = [];
@@ -82,7 +107,20 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
 
   if (!applied.length) return { error: "NO_EXECUTABLE_NATURAL_EDIT_OPERATIONS", applied: [], analysis };
 
-  const marker = "/* Project Factory V3 Natural Edit Overrides */";
-  const nextCss = `${css.trimEnd()}\n\n${marker}\n${cssOverrides.filter(Boolean).join("\n\n")}\n`;
-  return { ok: true, css: nextCss, html, applied, analysis, changed_files: ["styles.css"] };
+  const managedBlock = buildManagedOverrideBlock(cssOverrides);
+  const nextCss = managedBlock ? `${cleanCss}\n\n${managedBlock}\n` : `${cleanCss}\n`;
+
+  return {
+    ok: true,
+    css: nextCss,
+    html,
+    applied,
+    analysis,
+    override_management: {
+      mode: "replace",
+      legacy_overrides_removed: css.includes(LEGACY_MARKER),
+      managed_block: true
+    },
+    changed_files: ["styles.css"]
+  };
 }
