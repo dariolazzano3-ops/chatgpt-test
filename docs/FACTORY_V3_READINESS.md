@@ -11,6 +11,6 @@ It fails CI unless the repository still proves the core V3 guarantees together:
 - The strict Factory request contract and cost thresholds remain present.
 - The active project stays inside `projects/`, has a canonical HTTPS preview, remains in editing mode, and has production deployment disabled.
 
-The gate runs as part of `npm run check`, so every CI run for infrastructure changes verifies the V3 control plane as one system instead of validating only individual files.
+The gate runs as part of `npm run check`, so every CI run for infrastructure changes verifies the V3 control plane as one system instead of validating only individual files. It prints a machine-readable JSON readiness result with passed and failed checks, which makes CI failures easier to diagnose.
 
 A green readiness gate does not authorize production deployment. Production remains a separate explicit approval-gated action.
