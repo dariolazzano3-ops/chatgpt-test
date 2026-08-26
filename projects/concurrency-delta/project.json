@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Concurrency Delta",
+    "slug": "concurrency-delta"
+  },
+  "mode": "generate",
+  "intent": "technology_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
