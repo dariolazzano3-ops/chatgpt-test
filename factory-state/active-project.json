@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active": true,
-  "project_name": "Concurrency Beta Retry",
-  "project_slug": "concurrency-beta-retry",
-  "source_path": "projects/concurrency-beta-retry",
-  "branch": "factory/concurrency-beta-retry-1787787164922",
-  "pull_request": 83,
-  "preview_url": "https://factory-concurrency-beta-ret.chatgpt-factory-preview.pages.dev",
+  "project_name": "Concurrency Delta",
+  "project_slug": "concurrency-delta",
+  "source_path": "projects/concurrency-delta",
+  "branch": "factory/concurrency-delta-1787787480102",
+  "pull_request": 86,
+  "preview_url": "https://factory-concurrency-delta-17.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
   "mode": "editing",
-  "updated_at": "2026-08-26T23:33:34.378Z"
+  "updated_at": "2026-08-26T23:38:45.961Z"
 }
