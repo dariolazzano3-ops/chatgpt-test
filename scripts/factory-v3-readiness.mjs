@@ -24,12 +24,16 @@ function requireJson(label, value) {
 const control = read('.github/workflows/factory-control.yml');
 const autopilot = read('.github/workflows/factory-autopilot.yml');
 const requestContract = read('scripts/factory-request-contract.mjs');
+const requestIdempotency = read('scripts/request-idempotency.mjs');
 const costGuard = read('scripts/cost-guard.mjs');
 const visualQa = read('scripts/visual-qa.mjs');
 const promoteActive = read('scripts/promote-active-project.mjs');
 const activeRaw = read('factory-state/active-project.json');
 
 requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch:');
+requireText('Factory Control serializes requests', control, 'factory-control-serial');
+requireText('Factory Control checks request idempotency', control, 'Check request idempotency');
+requireText('Factory Control records successful request fingerprints', control, 'Record successful request');
 requireText('Factory Control can write commit statuses', control, 'statuses: write');
 requireText('Factory Control runs cost guard', control, 'Cost and usage guard');
 requireText('Factory Control runs Visual QA', control, 'Run Visual QA');
@@ -37,6 +41,8 @@ requireText('Factory Control reports failed requests', control, 'Publish Factory
 requireText('Factory failure report confirms production remains disabled', control, 'Active project promotion: skipped');
 requireText('Factory Control promotes successful projects', control, 'Promote successful project to active state');
 requireText('Factory Control publishes preview status', control, "context='factory-control/preview'");
+requireText('Request idempotency uses SHA-256 fingerprint', requestIdempotency, "createHash('sha256')");
+requireText('Request idempotency persists a ledger', requestIdempotency, 'request-ledger.json');
 requireText('Active project promotion keeps production disabled', promoteActive, 'production_deploy: false');
 requireText('Active project promotion writes to control branch', promoteActive, "controlRef = 'factory-control'");
 requireText('Autopilot is restricted to V3 auto branches', autopilot, 'factory-v3/auto/*');
