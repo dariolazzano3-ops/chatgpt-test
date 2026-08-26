@@ -3,7 +3,7 @@
   "version": "1.5.0-alpha.6",
   "private": true,
   "scripts": {
-    "check": "node --check src/index.js && node --check src/mcp.js && node --check src/factory.js && node --check src/scraper.js && node --check src/builder.js && node --check src/generator.js && node --check src/materializer.js && node --check src/evolver.js && node --check src/project-analyzer.js && node --check src/edit-planner.js && node --check src/edit-executor.js && node --check src/universal-edit.js && node --check src/preview.js && node --check src/entry.js && node --check scripts/validate-active-project.mjs && node scripts/validate-active-project.mjs",
+    "check": "node --check src/index.js && node --check src/mcp.js && node --check src/factory.js && node --check src/scraper.js && node --check src/builder.js && node --check src/generator.js && node --check src/materializer.js && node --check src/evolver.js && node --check src/project-analyzer.js && node --check src/edit-planner.js && node --check src/edit-executor.js && node --check src/universal-edit.js && node --check src/section-composer.js && node --check src/preview.js && node --check src/entry.js && node --check scripts/validate-active-project.mjs && node scripts/validate-active-project.mjs",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },
