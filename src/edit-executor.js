@@ -27,20 +27,20 @@ export function executeNaturalEditPlan({ css = "", html = "", plan }) {
     const target = clean(op.target, 120);
     const action = clean(op.action, 120);
 
-    if (target === ".rocket" && action === "scale") {
+    if (target === ".rocket-system" && action === "scale") {
       const scale = Math.max(0.5, Math.min(2.5, safeNumber(op.value, 1)));
-      cssOverrides.push(overrideBlock(".rocket", { "--factory-rocket-scale": scale, transform: `scale(var(--factory-rocket-scale))` }));
+      cssOverrides.push(overrideBlock(".rocket-system", { "--factory-rocket-scale": scale, transform: `scale(var(--factory-rocket-scale))` }));
       applied.push({ target, action, value: scale });
-    } else if (target === ".rocket" && action === "detail_level" && op.value === "high") {
-      cssOverrides.push(overrideBlock(".rocket", { filter: "drop-shadow(0 18px 24px rgba(0,0,0,.42)) drop-shadow(0 0 22px rgba(180,215,255,.16))", "backface-visibility": "hidden" }));
-      cssOverrides.push(overrideBlock(".rocket-body, .booster", { "box-shadow": "inset -10px 0 18px rgba(0,0,0,.28), inset 8px 0 16px rgba(255,255,255,.12)" }));
+    } else if (target === ".rocket-system" && action === "detail_level" && op.value === "high") {
+      cssOverrides.push(overrideBlock(".rocket-system", { filter: "drop-shadow(0 18px 24px rgba(0,0,0,.42)) drop-shadow(0 0 22px rgba(180,215,255,.16))", "backface-visibility": "hidden" }));
+      cssOverrides.push(overrideBlock(".rocket-core, .booster", { "box-shadow": "inset -10px 0 18px rgba(0,0,0,.28), inset 8px 0 16px rgba(255,255,255,.12)" }));
       applied.push({ target, action, value: "high" });
-    } else if (target === ".rocket" && action === "lighting" && op.value === "cinematic") {
-      cssOverrides.push(overrideBlock(".rocket-body, .booster", { background: "linear-gradient(90deg, #8e99a6 0%, #eef4f8 28%, #aab6c2 58%, #55606c 100%)" }));
+    } else if (target === ".rocket-system" && action === "lighting" && op.value === "cinematic") {
+      cssOverrides.push(overrideBlock(".rocket-core, .booster", { background: "linear-gradient(90deg, #8e99a6 0%, #eef4f8 28%, #aab6c2 58%, #55606c 100%)" }));
       applied.push({ target, action, value: "cinematic" });
-    } else if (target === ".rocket" && action === "motion_profile") {
+    } else if (target === ".rocket-system" && action === "motion_profile") {
       const duration = op.value === "slower" ? "7.2s" : "4.1s";
-      cssOverrides.push(overrideBlock(".rocket", { "animation-duration": duration }));
+      cssOverrides.push(overrideBlock(".rocket-system", { "animation-duration": duration }));
       applied.push({ target, action, value: op.value });
     } else if (target === ".smoke" && action === "density") {
       const density = Math.max(0.2, Math.min(2.5, safeNumber(op.value, 1)));
