@@ -33,6 +33,8 @@ requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch
 requireText('Factory Control can write commit statuses', control, 'statuses: write');
 requireText('Factory Control runs cost guard', control, 'Cost and usage guard');
 requireText('Factory Control runs Visual QA', control, 'Run Visual QA');
+requireText('Factory Control reports failed requests', control, 'Publish Factory failure');
+requireText('Factory failure report confirms production remains disabled', control, 'Active project promotion: skipped');
 requireText('Factory Control promotes successful projects', control, 'Promote successful project to active state');
 requireText('Factory Control publishes preview status', control, "context='factory-control/preview'");
 requireText('Active project promotion keeps production disabled', promoteActive, 'production_deploy: false');
