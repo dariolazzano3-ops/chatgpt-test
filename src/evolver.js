@@ -1,5 +1,6 @@
 import { planNaturalEdit } from "./edit-planner.js";
 import { executeNaturalEditPlan } from "./edit-executor.js";
+import { planStructuralEdit, executeStructuralEditPlan } from "./universal-edit.js";
 
 function clean(value, max = 4000) {
   return String(value || "").trim().slice(0, max);
@@ -86,6 +87,8 @@ export function buildEvolvePlan(body = {}) {
   const changes = inferChanges(body);
   const recognized = Object.keys(changes).filter((key) => ["title", "meta_description", "headline", "cta_text", "accent_color", "radius"].includes(key));
   const natural_plan = recognized.length ? null : planNaturalEdit(body.prompt || "");
+  const structural_plan = recognized.length ? null : planStructuralEdit(body.prompt || "");
+  const executable = recognized.length || natural_plan?.operations?.length || structural_plan?.operations?.length;
   return {
     ok: true,
     version: "3",
@@ -95,9 +98,10 @@ export function buildEvolvePlan(body = {}) {
     changes,
     recognized_changes: recognized,
     natural_plan,
-    unsupported_prompt_requires_ai_or_manual_edit: recognized.length === 0 && natural_plan?.requires_interpretation === true,
+    structural_plan,
+    unsupported_prompt_requires_ai_or_manual_edit: !executable,
     protected_contracts: ["project_path", "production_approval_gate", "branch_isolation", "existing_unrelated_files"],
-    status: recognized.length || natural_plan?.operations?.length ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION"
+    status: executable ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION"
   };
 }
 
@@ -107,7 +111,7 @@ export async function evolveProject(request, env, body = {}) {
 
   const plan = buildEvolvePlan(body);
   if (plan.error) return { ...plan, status: 400 };
-  if (!plan.recognized_changes.length && !plan.natural_plan?.operations?.length) return { ...plan, status: 422 };
+  if (!plan.recognized_changes.length && !plan.natural_plan?.operations?.length && !plan.structural_plan?.operations?.length) return { ...plan, status: 422 };
 
   const repository = clean(env.GITHUB_REPOSITORY || "dariolazzano3-ops/chatgpt-test", 200);
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) return { error: "INVALID_GITHUB_REPOSITORY", status: 500 };
@@ -145,10 +149,36 @@ export async function evolveProject(request, env, body = {}) {
     } else {
       const cssFile = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/styles.css?ref=${encodeURIComponent(branch)}`);
       const htmlFile = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/index.html?ref=${encodeURIComponent(branch)}`);
-      const executed = executeNaturalEditPlan({ css: decodeBase64(cssFile.content), html: decodeBase64(htmlFile.content), plan: plan.natural_plan });
-      if (!executed.ok) return { ...executed, plan, status: 422 };
-      await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/styles.css`, { method: "PUT", body: JSON.stringify({ message: `Factory EDIT: ${clean(body.prompt, 100) || plan.project_slug}`, content: encodeBase64(executed.css), sha: cssFile.sha, branch }) });
-      updates.push({ path: `${prefix}/styles.css`, applied: executed.applied, natural: true });
+      let css = decodeBase64(cssFile.content);
+      let html = decodeBase64(htmlFile.content);
+      const applied = [];
+
+      if (plan.structural_plan?.operations?.length) {
+        const structural = executeStructuralEditPlan({ css, html, plan: plan.structural_plan });
+        if (!structural.ok) return { ...structural, plan, status: 422 };
+        css = structural.css;
+        html = structural.html;
+        applied.push(...structural.applied.map((item) => ({ ...item, engine: "structural" })));
+      }
+
+      if (plan.natural_plan?.operations?.length) {
+        const natural = executeNaturalEditPlan({ css, html, plan: plan.natural_plan });
+        if (!natural.ok) return { ...natural, plan, status: 422 };
+        css = natural.css;
+        html = natural.html;
+        applied.push(...natural.applied.map((item) => ({ ...item, engine: "style" })));
+      }
+
+      const originalHtml = decodeBase64(htmlFile.content);
+      const originalCss = decodeBase64(cssFile.content);
+      if (html !== originalHtml) {
+        await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/index.html`, { method: "PUT", body: JSON.stringify({ message: `Factory STRUCTURE: ${clean(body.prompt, 100) || plan.project_slug}`, content: encodeBase64(html), sha: htmlFile.sha, branch }) });
+        updates.push({ path: `${prefix}/index.html`, applied: applied.filter((item) => item.engine === "structural"), universal: true });
+      }
+      if (css !== originalCss) {
+        await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/styles.css`, { method: "PUT", body: JSON.stringify({ message: `Factory EDIT: ${clean(body.prompt, 100) || plan.project_slug}`, content: encodeBase64(css), sha: cssFile.sha, branch }) });
+        updates.push({ path: `${prefix}/styles.css`, applied, natural: true, universal: true });
+      }
     }
 
     if (!updates.length) return { error: "NO_APPLICABLE_CHANGES", plan, status: 422 };
