@@ -12,8 +12,36 @@
 /* Project Factory V3 Structure Styles: END */
 
 /* Project Factory V3 Overrides: START */
-.site-header {
-  background: rgba(6, 9, 18, 0.72);
-  backdrop-filter: blur(18px);
+@media(max-width:760px) {
+  .hero {
+    overflow: clip;
+    max-width: 100%;
+  }
+
+  .launch-scene {
+    overflow: clip;
+    max-width: 100%;
+  }
+
+  .rocket-system {
+    right: 0;
+    max-width: calc(100% - 8px);
+  }
+
+  .launch-pad {
+    right: 0;
+    max-width: 100%;
+  }
+
+  .smoke-field {
+    right: 0;
+    width: 100%;
+    overflow: clip;
+    max-width: 100%;
+  }
+
+  .smoke-field .smoke {
+    max-width: 100%;
+  }
 }
 /* Project Factory V3 Overrides: END */
