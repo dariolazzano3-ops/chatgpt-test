@@ -1,0 +1,7 @@
+{
+  "mode": "edit",
+  "prompt": "Apply the corrected headline after the failed Visual QA probe.",
+  "changes": {
+    "headline": "Recovery Phoenix bleibt stabil unter Fehlern."
+  }
+}
