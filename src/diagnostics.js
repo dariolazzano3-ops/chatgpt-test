@@ -34,6 +34,9 @@ async function githubProbe(token, path) {
       status: response.status,
       message: response.ok ? null : clean(body?.message || `GITHUB_HTTP_${response.status}`),
       documentation_url: response.ok ? null : clean(body?.documentation_url || "") || null,
+      accepted_permissions: clean(response.headers.get("x-accepted-github-permissions") || "", 300) || null,
+      oauth_scopes: clean(response.headers.get("x-oauth-scopes") || "", 300) || null,
+      token_expiration: clean(response.headers.get("github-authentication-token-expiration") || "", 120) || null,
       body
     };
   } catch (error) {
@@ -42,9 +45,24 @@ async function githubProbe(token, path) {
       status: null,
       message: clean(error?.message || "GITHUB_NETWORK_ERROR"),
       documentation_url: null,
+      accepted_permissions: null,
+      oauth_scopes: null,
+      token_expiration: null,
       body: null
     };
   }
+}
+
+function safeProbe(probe) {
+  return {
+    ok: probe.ok,
+    status: probe.status,
+    message: probe.message,
+    documentation_url: probe.documentation_url,
+    accepted_permissions: probe.accepted_permissions,
+    oauth_scopes: probe.oauth_scopes,
+    token_expiration: probe.token_expiration
+  };
 }
 
 export async function handleDiagnostics(request, env = {}) {
@@ -59,11 +77,12 @@ export async function handleDiagnostics(request, env = {}) {
   const result = {
     ok: true,
     service: "chatgpt-project-factory-diagnostics",
-    version: "1.0",
+    version: "1.1",
     timestamp: new Date().toISOString(),
     secrets: {
       api_token_configured: Boolean(env.API_TOKEN),
       github_token_configured: Boolean(env.GITHUB_TOKEN),
+      github_token_shape: env.GITHUB_TOKEN ? (String(env.GITHUB_TOKEN).startsWith("github_pat_") ? "fine_grained_pat" : "other") : null,
       secret_values_exposed: false
     },
     configuration: {
@@ -92,12 +111,7 @@ export async function handleDiagnostics(request, env = {}) {
 
   const repoProbe = await githubProbe(env.GITHUB_TOKEN, `/repos/${owner}/${repo}`);
   result.checks.github_api_reachable = repoProbe.status !== null;
-  result.checks.repository_access = {
-    ok: repoProbe.ok,
-    status: repoProbe.status,
-    message: repoProbe.message,
-    documentation_url: repoProbe.documentation_url
-  };
+  result.checks.repository_access = safeProbe(repoProbe);
 
   if (!repoProbe.ok) {
     result.ok = false;
@@ -107,10 +121,7 @@ export async function handleDiagnostics(request, env = {}) {
 
   const branchProbe = await githubProbe(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/main`);
   result.checks.base_branch_readable = {
-    ok: branchProbe.ok,
-    status: branchProbe.status,
-    message: branchProbe.message,
-    documentation_url: branchProbe.documentation_url,
+    ...safeProbe(branchProbe),
     sha_present: Boolean(branchProbe.body?.object?.sha)
   };
 
