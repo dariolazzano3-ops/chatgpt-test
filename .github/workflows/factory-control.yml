@@ -13,6 +13,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: factory-control-serial
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -51,6 +55,7 @@ jobs:
           cp scripts/visual-qa.mjs .factory-runtime/visual-qa.mjs
           cp scripts/cost-guard.mjs .factory-runtime/cost-guard.mjs
           cp scripts/promote-active-project.mjs .factory-runtime/promote-active-project.mjs
+          cp scripts/request-idempotency.mjs .factory-runtime/request-idempotency.mjs
 
       - name: Resolve request file
         id: request
@@ -69,11 +74,44 @@ jobs:
           case "$REQUEST_FILE" in factory-requests/*.json) ;; *) echo "Unsafe request path"; exit 1 ;; esac
           echo "file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
 
+      - name: Check request idempotency
+        id: idempotency
+        shell: bash
+        env:
+          REQUEST_FILE: ${{ steps.request.outputs.file }}
+        run: |
+          set -euo pipefail
+          cp "$REQUEST_FILE" .factory-runtime/request.json
+          node .factory-runtime/request-idempotency.mjs check "$REQUEST_FILE" factory-state/request-ledger.json
+
+      - name: Publish duplicate request result
+        if: steps.idempotency.outputs.duplicate == 'true'
+        shell: bash
+        env:
+          REQUEST_KEY: ${{ steps.idempotency.outputs.request_key }}
+          PREVIEW_URL: ${{ steps.idempotency.outputs.existing_preview_url }}
+          PROJECT_PATH: ${{ steps.idempotency.outputs.existing_project_path }}
+          SOURCE_BRANCH: ${{ steps.idempotency.outputs.existing_branch }}
+          PR_URL: ${{ steps.idempotency.outputs.existing_pr_url }}
+        run: |
+          set -euo pipefail
+          echo "### Factory Control Duplicate" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Request key: $REQUEST_KEY" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: prior successful execution reused" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Project: $PROJECT_PATH" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch: $SOURCE_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pull request: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- New branch/PR/deploy: skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Execute Factory request
+        if: steps.idempotency.outputs.duplicate != 'true'
         id: factory
         run: node scripts/factory-control.mjs '${{ steps.request.outputs.file }}'
 
       - name: Checkout generated project branch
+        if: steps.idempotency.outputs.duplicate != 'true'
         shell: bash
         env:
           BRANCH: ${{ steps.factory.outputs.branch }}
@@ -84,8 +122,11 @@ jobs:
           test -f .factory-runtime/visual-qa.mjs
           test -f .factory-runtime/cost-guard.mjs
           test -f .factory-runtime/promote-active-project.mjs
+          test -f .factory-runtime/request-idempotency.mjs
+          test -f .factory-runtime/request.json
 
       - name: Validate generated project
+        if: steps.idempotency.outputs.duplicate != 'true'
         shell: bash
         env:
           PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
@@ -99,13 +140,14 @@ jobs:
           npm run check
 
       - name: Cost and usage guard
+        if: steps.idempotency.outputs.duplicate != 'true'
         id: cost
         env:
           QA_ONLY: ${{ steps.factory.outputs.qa_only }}
         run: node .factory-runtime/cost-guard.mjs "$(git rev-parse HEAD)" .factory-runtime/visual-qa.mjs
 
       - name: Validate preview configuration
-        if: steps.cost.outputs.duplicate != 'true'
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -113,7 +155,7 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
 
       - name: Deploy automatic preview
-        if: steps.cost.outputs.duplicate != 'true'
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         id: preview
         shell: bash
         env:
@@ -131,17 +173,17 @@ jobs:
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Install Visual QA browser
-        if: steps.cost.outputs.duplicate != 'true'
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run Visual QA
-        if: steps.cost.outputs.duplicate != 'true'
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
         run: node .factory-runtime/visual-qa.mjs "$PREVIEW_URL" visual-qa
 
       - name: Upload Visual QA evidence
-        if: always() && steps.cost.outputs.duplicate != 'true'
+        if: always() && steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: visual-qa-${{ github.run_id }}
@@ -150,7 +192,7 @@ jobs:
           retention-days: 14
 
       - name: Publish Factory failure
-        if: failure()
+        if: failure() && steps.idempotency.outputs.duplicate != 'true'
         shell: bash
         env:
           REQUEST_FILE: ${{ steps.request.outputs.file || 'unresolved' }}
@@ -162,7 +204,7 @@ jobs:
           echo "- Recovery: submit a corrected request; the previous active project remains unchanged" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Promote successful project to active state
-        if: steps.factory.outputs.qa_only != 'true'
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.factory.outputs.qa_only != 'true'
         env:
           PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
           SOURCE_BRANCH: ${{ steps.factory.outputs.branch }}
@@ -170,7 +212,36 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.url || steps.cost.outputs.existing_url }}
         run: node .factory-runtime/promote-active-project.mjs "$PROJECT_PATH" "$SOURCE_BRANCH" "$PR_URL" "$PREVIEW_URL"
 
+      - name: Record successful request
+        if: steps.idempotency.outputs.duplicate != 'true'
+        shell: bash
+        env:
+          REQUEST_KEY: ${{ steps.idempotency.outputs.request_key }}
+          MODE: ${{ steps.factory.outputs.qa_only == 'true' && 'qa' || 'project' }}
+          PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
+          SOURCE_BRANCH: ${{ steps.factory.outputs.branch }}
+          PR_URL: ${{ steps.factory.outputs.pr_url }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url || steps.cost.outputs.existing_url }}
+          QA_ONLY: ${{ steps.factory.outputs.qa_only }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIEW_URL" || { echo "Preview URL missing before idempotency record"; exit 1; }
+          META=$(mktemp)
+          node -e 'const fs=require("fs"); fs.writeFileSync(process.argv[1], JSON.stringify({mode:process.env.MODE,project_path:process.env.PROJECT_PATH,branch:process.env.SOURCE_BRANCH,pr_url:process.env.PR_URL,preview_url:process.env.PREVIEW_URL,qa_only:process.env.QA_ONLY==="true"},null,2))' "$META"
+          rm -rf /tmp/factory-control-ledger
+          git fetch origin factory-control
+          git worktree add --detach /tmp/factory-control-ledger origin/factory-control
+          node .factory-runtime/request-idempotency.mjs record .factory-runtime/request.json /tmp/factory-control-ledger/factory-state/request-ledger.json "$META"
+          cd /tmp/factory-control-ledger
+          git config user.name "factory-control[bot]"
+          git config user.email "factory-control[bot]@users.noreply.github.com"
+          git add factory-state/request-ledger.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Factory: record successful request $REQUEST_KEY"
+          git push origin HEAD:factory-control
+
       - name: Publish Factory result
+        if: steps.idempotency.outputs.duplicate != 'true'
         shell: bash
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url || steps.cost.outputs.existing_url }}
@@ -180,6 +251,7 @@ jobs:
           QA_DUPLICATE: ${{ steps.cost.outputs.duplicate }}
           MONTHLY_RUNS: ${{ steps.cost.outputs.monthly_runs }}
           USAGE_LEVEL: ${{ steps.cost.outputs.usage_level }}
+          REQUEST_KEY: ${{ steps.idempotency.outputs.request_key }}
         run: |
           set -euo pipefail
           HEAD_SHA=$(git rev-parse HEAD)
@@ -191,8 +263,9 @@ jobs:
           fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description="$DESCRIPTION" -f target_url="$PREVIEW_URL" >/dev/null
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context="$QA_CONTEXT" -f description='Visual QA passed for this QA runtime version' -f target_url="$PREVIEW_URL" >/dev/null
-          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
+          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- Request key: \`$REQUEST_KEY\`\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Request key: $REQUEST_KEY" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Visual QA: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- QA cache reused: $QA_DUPLICATE" >> "$GITHUB_STEP_SUMMARY"
