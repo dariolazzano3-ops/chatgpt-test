@@ -16,7 +16,8 @@ function githubHeaders(token) {
   return {
     authorization: `Bearer ${token}`,
     accept: "application/vnd.github+json",
-    "x-github-api-version": "2022-11-28"
+    "x-github-api-version": "2022-11-28",
+    "user-agent": "chatgpt-project-factory-diagnostics/1.2"
   };
 }
 
@@ -77,7 +78,7 @@ export async function handleDiagnostics(request, env = {}) {
   const result = {
     ok: true,
     service: "chatgpt-project-factory-diagnostics",
-    version: "1.1",
+    version: "1.2",
     timestamp: new Date().toISOString(),
     secrets: {
       api_token_configured: Boolean(env.API_TOKEN),
@@ -88,7 +89,8 @@ export async function handleDiagnostics(request, env = {}) {
     configuration: {
       repository,
       repository_valid: repositoryValid,
-      base_branch: "main"
+      base_branch: "main",
+      github_user_agent_configured: true
     },
     checks: {
       github_api_reachable: null,
