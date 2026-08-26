@@ -50,6 +50,7 @@ jobs:
           mkdir -p .factory-runtime
           cp scripts/visual-qa.mjs .factory-runtime/visual-qa.mjs
           cp scripts/cost-guard.mjs .factory-runtime/cost-guard.mjs
+          cp scripts/promote-active-project.mjs .factory-runtime/promote-active-project.mjs
 
       - name: Resolve request file
         id: request
@@ -82,6 +83,7 @@ jobs:
           git checkout -B "$BRANCH" "origin/$BRANCH"
           test -f .factory-runtime/visual-qa.mjs
           test -f .factory-runtime/cost-guard.mjs
+          test -f .factory-runtime/promote-active-project.mjs
 
       - name: Validate generated project
         shell: bash
@@ -146,6 +148,15 @@ jobs:
           path: visual-qa/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Promote successful project to active state
+        if: steps.factory.outputs.qa_only != 'true'
+        env:
+          PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
+          SOURCE_BRANCH: ${{ steps.factory.outputs.branch }}
+          PR_URL: ${{ steps.factory.outputs.pr_url }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url || steps.cost.outputs.existing_url }}
+        run: node .factory-runtime/promote-active-project.mjs "$PROJECT_PATH" "$SOURCE_BRANCH" "$PR_URL" "$PREVIEW_URL"
 
       - name: Publish Factory result
         shell: bash
