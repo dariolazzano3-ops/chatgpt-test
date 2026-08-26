@@ -11,6 +11,13 @@ function slug(value) {
     .replace(/^-|-$/g, "") || "preview";
 }
 
+function json(value, status = 200) {
+  return new Response(JSON.stringify(value, null, 2), {
+    status,
+    headers: { "content-type": "application/json; charset=UTF-8", "cache-control": "no-store" }
+  });
+}
+
 export function buildPreviewPlan(input = {}, env = {}) {
   const projectSlug = slug(input.project_slug || input.project || "project");
   const branch = clean(input.branch || input.branch_name || `factory/${projectSlug}`, 180);
@@ -48,4 +55,20 @@ export function buildPreviewPlan(input = {}, env = {}) {
     ],
     status: pagesProject ? "PREVIEW_READY_TO_DISPATCH" : "PREVIEW_CONFIGURATION_REQUIRED"
   };
+}
+
+export async function handlePreview(request, env = {}) {
+  const url = new URL(request.url);
+  if (request.method === "GET" && url.pathname === "/factory/preview") {
+    return json({
+      ok: true,
+      endpoint: "POST /factory/preview/plan",
+      provider: "cloudflare_pages",
+      production_deploy: false
+    });
+  }
+  if (request.method !== "POST" || url.pathname !== "/factory/preview/plan") return null;
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "INVALID_JSON" }, 400); }
+  return json(buildPreviewPlan(body || {}, env));
 }
