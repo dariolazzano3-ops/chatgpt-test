@@ -3,6 +3,7 @@ function jsonHeaders(token) {
     "authorization": `Bearer ${token}`,
     "accept": "application/vnd.github+json",
     "x-github-api-version": "2022-11-28",
+    "user-agent": "chatgpt-project-factory/1.5",
     "content-type": "application/json"
   };
 }
