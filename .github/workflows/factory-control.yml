@@ -35,6 +35,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Stage Visual QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .factory-runtime
+          cp scripts/visual-qa.mjs .factory-runtime/visual-qa.mjs
+
       - name: Resolve request file
         id: request
         shell: bash
@@ -56,6 +63,7 @@ jobs:
           set -euo pipefail
           git fetch origin "$BRANCH"
           git checkout -B "$BRANCH" "origin/$BRANCH"
+          test -f .factory-runtime/visual-qa.mjs
 
       - name: Validate generated project
         shell: bash
@@ -107,7 +115,7 @@ jobs:
       - name: Run Visual QA
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
-        run: node scripts/visual-qa.mjs "$PREVIEW_URL" visual-qa
+        run: node .factory-runtime/visual-qa.mjs "$PREVIEW_URL" visual-qa
 
       - name: Upload Visual QA evidence
         if: always()
