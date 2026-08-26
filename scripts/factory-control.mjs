@@ -3,6 +3,7 @@ import { buildGenerateBlueprint } from "../src/generator.js";
 import { analyzePublicWebsite } from "../src/scraper.js";
 import { buildRebuildBlueprint } from "../src/builder.js";
 import { materializeProject } from "../src/materializer.js";
+import { evolveProject } from "../src/evolver.js";
 
 const requestPath = process.argv[2];
 if (!requestPath) throw new Error("REQUEST_FILE_REQUIRED");
@@ -22,60 +23,107 @@ const env = {
 
 if (!env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN_REQUIRED");
 
-let blueprint;
-let analysis = null;
-if (mode === "generate") {
-  blueprint = buildGenerateBlueprint(job);
-} else if (mode === "rebuild") {
-  if (!job.source_url) throw new Error("SOURCE_URL_REQUIRED");
-  analysis = await analyzePublicWebsite({
-    source_url: job.source_url,
-    max_pages: job.max_pages
+let output;
+
+if (mode === "edit" || mode === "evolve") {
+  const statePath = String(job.active_state_path || "factory-state/active-project.json");
+  const stateRaw = await fs.readFile(statePath, "utf8");
+  const state = JSON.parse(stateRaw);
+
+  if (state.active !== true) throw new Error("NO_ACTIVE_PROJECT");
+  if (state.mode !== "editing") throw new Error("ACTIVE_PROJECT_NOT_IN_EDITING_MODE");
+  if (!String(state.project_slug || "").trim()) throw new Error("ACTIVE_PROJECT_SLUG_REQUIRED");
+  if (state.source_path !== `projects/${state.project_slug}`) throw new Error("ACTIVE_PROJECT_PATH_MISMATCH");
+  if (!String(state.branch || "").startsWith("factory/")) throw new Error("ACTIVE_PROJECT_BRANCH_INVALID");
+  if (state.production_deploy !== false) throw new Error("ACTIVE_PROJECT_PRODUCTION_MUST_BE_DISABLED");
+
+  const result = await evolveProject(request, env, {
+    project_slug: state.project_slug,
+    prompt: job.prompt,
+    changes: job.changes,
+    base_branch: job.base_branch || "main",
+    branch_name: state.branch,
+    reuse_branch: true,
+    existing_pull_request: state.pull_request
   });
-  if (!analysis?.ok) throw new Error(analysis?.error || "REBUILD_ANALYSIS_FAILED");
-  blueprint = buildRebuildBlueprint(analysis, {
-    project_name: job.project_name,
-    project_slug: job.project_slug,
-    positioning: job.positioning,
-    style: job.style || {}
-  });
+
+  if (!result?.ok) {
+    console.error(JSON.stringify({ mode, active_state: state, edit: result }, null, 2));
+    throw new Error(result?.error || "ACTIVE_EDIT_FAILED");
+  }
+
+  output = {
+    ok: true,
+    mode: "edit",
+    project: {
+      name: state.project_name,
+      slug: state.project_slug
+    },
+    branch: state.branch,
+    project_path: state.source_path,
+    preview_expected: state.preview_url || null,
+    pull_request: result.pull_request,
+    updates: result.updates,
+    active_state_path: statePath,
+    production_deployed: false
+  };
 } else {
-  throw new Error(`UNSUPPORTED_MODE:${mode}`);
+  let blueprint;
+  let analysis = null;
+  if (mode === "generate") {
+    blueprint = buildGenerateBlueprint(job);
+  } else if (mode === "rebuild") {
+    if (!job.source_url) throw new Error("SOURCE_URL_REQUIRED");
+    analysis = await analyzePublicWebsite({
+      source_url: job.source_url,
+      max_pages: job.max_pages
+    });
+    if (!analysis?.ok) throw new Error(analysis?.error || "REBUILD_ANALYSIS_FAILED");
+    blueprint = buildRebuildBlueprint(analysis, {
+      project_name: job.project_name,
+      project_slug: job.project_slug,
+      positioning: job.positioning,
+      style: job.style || {}
+    });
+  } else {
+    throw new Error(`UNSUPPORTED_MODE:${mode}`);
+  }
+
+  if (blueprint?.error) throw new Error(blueprint.error);
+
+  const result = await materializeProject(request, env, {
+    blueprint,
+    project_name: job.project_name || blueprint.project?.name,
+    project_slug: job.project_slug || blueprint.project?.slug,
+    base_branch: job.base_branch || "main",
+    branch_name: job.branch_name
+  });
+
+  if (!result?.ok) {
+    console.error(JSON.stringify({ mode, analysis, blueprint, materialization: result }, null, 2));
+    throw new Error(result?.error || "MATERIALIZATION_FAILED");
+  }
+
+  output = {
+    ok: true,
+    mode,
+    project: blueprint.project,
+    branch: result.branch,
+    project_path: result.project_path,
+    preview_expected: result.preview?.url || null,
+    pull_request: result.pull_request,
+    production_deployed: false
+  };
 }
 
-if (blueprint?.error) throw new Error(blueprint.error);
-
-const result = await materializeProject(request, env, {
-  blueprint,
-  project_name: job.project_name || blueprint.project?.name,
-  project_slug: job.project_slug || blueprint.project?.slug,
-  base_branch: job.base_branch || "main",
-  branch_name: job.branch_name
-});
-
-if (!result?.ok) {
-  console.error(JSON.stringify({ mode, analysis, blueprint, materialization: result }, null, 2));
-  throw new Error(result?.error || "MATERIALIZATION_FAILED");
-}
-
-const output = {
-  ok: true,
-  mode,
-  project: blueprint.project,
-  branch: result.branch,
-  project_path: result.project_path,
-  preview_expected: result.preview?.url || null,
-  pull_request: result.pull_request,
-  production_deployed: false
-};
 console.log(JSON.stringify(output, null, 2));
 
 if (process.env.GITHUB_OUTPUT) {
   const lines = [
-    `branch=${result.branch}`,
-    `project_slug=${blueprint.project?.slug || ""}`,
-    `project_path=${result.project_path || ""}`,
-    `pr_url=${result.pull_request?.url || ""}`
+    `branch=${output.branch || ""}`,
+    `project_slug=${output.project?.slug || ""}`,
+    `project_path=${output.project_path || ""}`,
+    `pr_url=${output.pull_request?.url || ""}`
   ];
   await fs.appendFile(process.env.GITHUB_OUTPUT, `${lines.join("\n")}\n`);
 }
