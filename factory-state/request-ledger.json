@@ -22,6 +22,17 @@
       "preview_url": "https://factory-concurrency-beta-ret.chatgpt-factory-preview.pages.dev",
       "qa_only": false,
       "production_deployed": false
+    },
+    "7512dcd858982d72a32d749e5bad2ef4a9b35d5ffe8c95e9ce535ea627355ed3": {
+      "request_key": "7512dcd858982d72a32d749e5bad2ef4a9b35d5ffe8c95e9ce535ea627355ed3",
+      "completed_at": "2026-08-26T23:38:47.357Z",
+      "mode": "project",
+      "project_path": "projects/concurrency-delta",
+      "branch": "factory/concurrency-delta-1787787480102",
+      "pr_url": "https://github.com/dariolazzano3-ops/chatgpt-test/pull/86",
+      "preview_url": "https://factory-concurrency-delta-17.chatgpt-factory-preview.pages.dev",
+      "qa_only": false,
+      "production_deployed": false
     }
   }
 }
