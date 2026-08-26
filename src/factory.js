@@ -1,4 +1,5 @@
 import { analyzePublicWebsite } from "./scraper.js";
+import { buildRebuildBlueprint } from "./builder.js";
 
 const MODES = {
   generate: {
@@ -74,10 +75,10 @@ function stepsFor(mode) {
       "collect_public_pages",
       "extract_business_facts",
       "extract_information_architecture",
-      "inventory_public_assets",
       "identify_ux_seo_conversion_gaps",
       "create_independent_rebuild_brief",
-      "generate_project_files",
+      "derive_design_system",
+      "generate_starter_files",
       "run_static_checks",
       "create_preview",
       "compare_business_coverage"
@@ -126,6 +127,14 @@ function buildPlan(body) {
   };
 }
 
+async function readJson(request) {
+  try {
+    return { ok: true, value: await request.json() };
+  } catch {
+    return { ok: false, error: "INVALID_JSON" };
+  }
+}
+
 export async function handleFactory(request) {
   const url = new URL(request.url);
 
@@ -139,7 +148,8 @@ export async function handleFactory(request) {
       endpoints: {
         capabilities: "GET /factory/capabilities",
         plan: "POST /factory/plan",
-        rebuild_analyze: "POST /factory/rebuild/analyze"
+        rebuild_analyze: "POST /factory/rebuild/analyze",
+        rebuild_build: "POST /factory/rebuild/build"
       }
     });
   }
@@ -152,7 +162,7 @@ export async function handleFactory(request) {
         assist: "One or a small number of bounded automated checks/iterations.",
         auto_loop: "Optional bounded autonomous iterations controlled by max_iterations and api_budget_eur."
       },
-      rebuild_analyzer: {
+      rebuild_engine: {
         public_web_only: true,
         default_page_limit: 6,
         hard_page_limit: 12,
@@ -164,6 +174,15 @@ export async function handleFactory(request) {
           "observed_public_prices",
           "cta_signals",
           "basic_seo_mobile_conversion_gaps"
+        ],
+        outputs: [
+          "business_fact_inventory",
+          "independent_rebuild_blueprint",
+          "page_architecture",
+          "design_tokens",
+          "starter_index_html",
+          "starter_styles_css",
+          "project_manifest"
         ],
         purpose: "Independent improved rebuilds, not verbatim cloning of protected expression."
       },
@@ -180,25 +199,37 @@ export async function handleFactory(request) {
   }
 
   if (request.method === "POST" && url.pathname === "/factory/plan") {
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: "INVALID_JSON" }, 400);
-    }
-    const plan = buildPlan(body || {});
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const plan = buildPlan(parsed.value || {});
     return json(plan, plan.error ? 400 : 200);
   }
 
   if (request.method === "POST" && url.pathname === "/factory/rebuild/analyze") {
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: "INVALID_JSON" }, 400);
-    }
-    const result = await analyzePublicWebsite(body || {});
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = await analyzePublicWebsite(parsed.value || {});
     return json(result, result.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/rebuild/build") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const body = parsed.value || {};
+    let analysis = body.analysis;
+    if (!analysis && body.source_url) {
+      analysis = await analyzePublicWebsite({ source_url: body.source_url, max_pages: body.max_pages });
+    }
+    if (!analysis || analysis.error || !analysis.ok) {
+      return json({ error: analysis?.error || "VALID_ANALYSIS_OR_SOURCE_URL_REQUIRED", analysis: analysis || null }, 400);
+    }
+    const blueprint = buildRebuildBlueprint(analysis, {
+      project_name: body.project_name,
+      project_slug: body.project_slug,
+      positioning: body.positioning,
+      style: body.style || {}
+    });
+    return json(blueprint, blueprint.error ? 400 : 200);
   }
 
   return null;
