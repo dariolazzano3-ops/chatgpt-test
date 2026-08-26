@@ -14,13 +14,15 @@
 /* Project Factory V3 Overrides: START */
 @media(max-width:760px) {
   .hero {
-    overflow: clip;
+    overflow: hidden;
     max-width: 100%;
+    contain: paint;
   }
 
   .launch-scene {
-    overflow: clip;
+    overflow: hidden;
     max-width: 100%;
+    contain: paint;
   }
 
   .rocket-system {
@@ -33,15 +35,31 @@
     max-width: 100%;
   }
 
+  .launch-glow {
+    right: 0;
+    max-width: 100%;
+    transform-origin: right center;
+  }
+
   .smoke-field {
     right: 0;
     width: 100%;
-    overflow: clip;
+    overflow: hidden;
     max-width: 100%;
+    contain: paint;
   }
 
   .smoke-field .smoke {
-    max-width: 100%;
+    max-width: 88%;
+    transform-origin: center center;
+    animation-name: factoryMobileSmokeBillow;
+  }
+
+  @keyframes factoryMobileSmokeBillow {
+    0% { opacity: 0; transform: translate(0,80px) scale(.3); }
+    16% { opacity: .9; }
+    42% { opacity: .88; transform: translate(0,10px) scale(.92); }
+    100% { opacity: .16; transform: translate(0,-120px) scale(1.08); }
   }
 }
 /* Project Factory V3 Overrides: END */
