@@ -13,9 +13,11 @@ on:
         type: string
   push:
     branches:
+      - 'factory/**'
       - feature/project-factory-v1-5
     paths:
       - '.github/workflows/factory-preview.yml'
+      - 'projects/**/.factory-preview-trigger'
       - 'projects/factory-preview-smoke/**'
 
 permissions:
@@ -29,23 +31,38 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_PAGES_PROJECT: chatgpt-factory-preview
     steps:
-      - name: Resolve preview target
-        id: target
+      - name: Resolve source branch
+        id: source
         shell: bash
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "project_slug=${{ inputs.project_slug }}" >> "$GITHUB_OUTPUT"
             echo "source_branch=${{ inputs.source_branch }}" >> "$GITHUB_OUTPUT"
           else
-            echo "project_slug=factory-preview-smoke" >> "$GITHUB_OUTPUT"
             echo "source_branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout requested branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.target.outputs.source_branch }}
+          ref: ${{ steps.source.outputs.source_branch }}
+          fetch-depth: 2
+
+      - name: Resolve project slug
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PROJECT_SLUG='${{ inputs.project_slug }}'
+          elif [ "${{ github.ref_name }}" = "feature/project-factory-v1-5" ]; then
+            PROJECT_SLUG='factory-preview-smoke'
+          else
+            TRIGGER_PATH=$(git show --pretty='' --name-only HEAD | grep -E '^projects/[^/]+/\.factory-preview-trigger$' | head -n 1 || true)
+            test -n "$TRIGGER_PATH" || { echo "Factory preview trigger file not found in latest commit"; exit 1; }
+            PROJECT_SLUG=$(printf '%s' "$TRIGGER_PATH" | cut -d/ -f2)
+          fi
+          echo "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
 
       - name: Validate project folder
         shell: bash
@@ -78,7 +95,7 @@ jobs:
         shell: bash
         env:
           PROJECT_SLUG: ${{ steps.target.outputs.project_slug }}
-          SOURCE_BRANCH: ${{ steps.target.outputs.source_branch }}
+          SOURCE_BRANCH: ${{ steps.source.outputs.source_branch }}
         run: |
           set -euo pipefail
           SOURCE_DIR="$GITHUB_WORKSPACE/projects/$PROJECT_SLUG"
