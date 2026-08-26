@@ -20,8 +20,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
 
 jobs:
   preview:
@@ -97,52 +95,3 @@ jobs:
           echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
           echo "### Factory Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish preview URL to pull request
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_BRANCH: ${{ steps.target.outputs.source_branch }}
-          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
-        run: |
-          set -euo pipefail
-          PR_NUMBER=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY/pulls?state=open&head=$GITHUB_REPOSITORY_OWNER:$SOURCE_BRANCH" \
-            --jq '.[0].number // empty')
-
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No open pull request found for $SOURCE_BRANCH; preview is still available at $PREVIEW_URL"
-            exit 0
-          fi
-
-          MARKER='<!-- factory-preview -->'
-          BODY="$MARKER
-          ## 🌐 Factory Preview
-
-          **Preview:** $PREVIEW_URL
-
-          Branch: \`$SOURCE_BRANCH\`
-          Project: \`${{ steps.target.outputs.project_slug }}\`
-
-          _Automatically updated after a successful Cloudflare Pages preview deployment._"
-
-          COMMENT_ID=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-            --paginate \
-            --jq '.[] | select(.body | contains("<!-- factory-preview -->")) | .id' | head -n 1)
-
-          if [ -n "$COMMENT_ID" ]; then
-            gh api --method PATCH \
-              -H "Accept: application/vnd.github+json" \
-              "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID" \
-              -f body="$BODY" >/dev/null
-          else
-            gh api --method POST \
-              -H "Accept: application/vnd.github+json" \
-              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-              -f body="$BODY" >/dev/null
-          fi
-
-          echo "Published preview URL to PR #$PR_NUMBER"
