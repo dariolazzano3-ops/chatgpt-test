@@ -79,11 +79,13 @@ export async function materializeProject(request, env, body = {}) {
   const branch = clean(body.branch_name || `factory/${projectSlug}-${Date.now()}`, 180);
   if (!/^[A-Za-z0-9._\/-]+$/.test(branch)) return { error: "INVALID_BRANCH_NAME", status: 400 };
 
+  let stage = "read_base_ref";
   try {
     const baseRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);
     const baseSha = baseRef?.object?.sha;
-    if (!baseSha) return { error: "BASE_BRANCH_SHA_NOT_FOUND", status: 502 };
+    if (!baseSha) return { error: "BASE_BRANCH_SHA_NOT_FOUND", stage, status: 502 };
 
+    stage = "create_branch";
     await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/refs`, {
       method: "POST",
       body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
@@ -91,6 +93,7 @@ export async function materializeProject(request, env, body = {}) {
 
     const written = [];
     for (const [relativePath, content] of checked.entries) {
+      stage = `write_file:${relativePath}`;
       const fullPath = `${prefix}/${relativePath}`;
       await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${fullPath.split("/").map(encodeURIComponent).join("/")}`, {
         method: "PUT",
@@ -103,22 +106,16 @@ export async function materializeProject(request, env, body = {}) {
       written.push(fullPath);
     }
 
+    stage = "write_preview_trigger";
     const triggerPath = `${prefix}/.factory-preview-trigger`;
-    const triggerPayload = JSON.stringify({
-      project_slug: projectSlug,
-      branch,
-      created_at: new Date().toISOString()
-    }, null, 2);
+    const triggerPayload = JSON.stringify({ project_slug: projectSlug, branch, created_at: new Date().toISOString() }, null, 2);
     await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${triggerPath.split("/").map(encodeURIComponent).join("/")}`, {
       method: "PUT",
-      body: JSON.stringify({
-        message: `Factory: trigger preview for ${projectName}`,
-        content: btoa(unescape(encodeURIComponent(triggerPayload))),
-        branch
-      })
+      body: JSON.stringify({ message: `Factory: trigger preview for ${projectName}`, content: btoa(unescape(encodeURIComponent(triggerPayload))), branch })
     });
     written.push(triggerPath);
 
+    stage = "create_draft_pr";
     const previewUrl = previewAlias(branch);
     const pr = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/pulls`, {
       method: "POST",
@@ -139,25 +136,18 @@ export async function materializeProject(request, env, body = {}) {
       branch,
       project_path: prefix,
       files_written: written,
-      preview: {
-        automatic: true,
-        status: "QUEUED_BY_GITHUB_PUSH",
-        provider: "cloudflare_pages",
-        url: previewUrl,
-        workflow: ".github/workflows/factory-preview.yml"
-      },
-      pull_request: {
-        number: pr?.number,
-        url: pr?.html_url,
-        draft: pr?.draft === true
-      },
+      preview: { automatic: true, status: "QUEUED_BY_GITHUB_PUSH", provider: "cloudflare_pages", url: previewUrl, workflow: ".github/workflows/factory-preview.yml" },
+      pull_request: { number: pr?.number, url: pr?.html_url, draft: pr?.draft === true },
       production_deployed: false
     };
   } catch (error) {
+    const githubMessage = error?.body?.message || error?.message || "Unknown GitHub error";
     return {
       error: "GITHUB_MATERIALIZATION_FAILED",
-      message: clean(error?.message || "Unknown GitHub error", 300),
+      stage,
+      message: clean(githubMessage, 300),
       github_status: error?.status || null,
+      github_documentation_url: clean(error?.body?.documentation_url || "", 300) || null,
       status: 502
     };
   }
