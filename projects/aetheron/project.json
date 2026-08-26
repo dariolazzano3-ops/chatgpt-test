@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Aetheron",
+    "slug": "aetheron"
+  },
+  "mode": "generate",
+  "intent": "local_food_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
