@@ -2,6 +2,7 @@ import { analyzePublicWebsite } from "./scraper.js";
 import { buildRebuildBlueprint } from "./builder.js";
 import { buildGenerateBlueprint } from "./generator.js";
 import { materializeProject } from "./materializer.js";
+import { buildEvolvePlan, evolveProject } from "./evolver.js";
 
 const MODES = {
   generate: {
@@ -93,6 +94,7 @@ function stepsFor(mode) {
     "identify_requested_changes",
     "protect_existing_contracts",
     "apply_targeted_changes",
+    "materialize_evolution_branch",
     "run_static_checks",
     "create_preview",
     "compare_before_after"
@@ -155,6 +157,8 @@ export async function handleFactory(request, env = {}) {
         generate_build: "POST /factory/generate/build",
         rebuild_analyze: "POST /factory/rebuild/analyze",
         rebuild_build: "POST /factory/rebuild/build",
+        evolve_plan: "POST /factory/evolve/plan",
+        evolve_apply: "POST /factory/evolve/apply",
         materialize: "POST /factory/materialize"
       }
     });
@@ -178,25 +182,17 @@ export async function handleFactory(request, env = {}) {
         public_web_only: true,
         default_page_limit: 6,
         hard_page_limit: 12,
-        extracts: [
-          "titles_and_meta",
-          "heading_structure",
-          "internal_routes",
-          "public_contacts",
-          "observed_public_prices",
-          "cta_signals",
-          "basic_seo_mobile_conversion_gaps"
-        ],
-        outputs: [
-          "business_fact_inventory",
-          "independent_rebuild_blueprint",
-          "page_architecture",
-          "design_tokens",
-          "starter_index_html",
-          "starter_styles_css",
-          "project_manifest"
-        ],
+        extracts: ["titles_and_meta", "heading_structure", "internal_routes", "public_contacts", "observed_public_prices", "cta_signals", "basic_seo_mobile_conversion_gaps"],
+        outputs: ["business_fact_inventory", "independent_rebuild_blueprint", "page_architecture", "design_tokens", "starter_index_html", "starter_styles_css", "project_manifest"],
         purpose: "Independent improved rebuilds, not verbatim cloning of protected expression."
+      },
+      evolve_engine: {
+        inputs: ["project", "prompt", "changes"],
+        deterministic_changes: ["title", "meta_description", "headline", "cta_text", "accent_color", "radius"],
+        branch_per_evolution: true,
+        draft_pull_request: true,
+        unrelated_files_preserved: true,
+        external_ai_required_for_freeform_unrecognized_changes: true
       },
       materializer: {
         status: "available_when_github_token_configured",
@@ -216,7 +212,8 @@ export async function handleFactory(request, env = {}) {
         "private_and_local_url_blocking",
         "bounded_public_site_crawl",
         "authenticated_materialization",
-        "draft_pr_before_merge"
+        "draft_pr_before_merge",
+        "targeted_evolution_only"
       ]
     });
   }
@@ -260,6 +257,20 @@ export async function handleFactory(request, env = {}) {
       style: body.style || {}
     });
     return json(blueprint, blueprint.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/evolve/plan") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = buildEvolvePlan(parsed.value || {});
+    return json(result, result.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/evolve/apply") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = await evolveProject(request, env, parsed.value || {});
+    return json(result, result.status || (result.error ? 400 : 201));
   }
 
   if (request.method === "POST" && url.pathname === "/factory/materialize") {
