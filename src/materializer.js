@@ -42,6 +42,15 @@ async function github(token, path, init = {}) {
   return body;
 }
 
+async function githubOptional(token, path) {
+  try {
+    return await github(token, path);
+  } catch (error) {
+    if (error?.status === 404) return null;
+    throw error;
+  }
+}
+
 function validateFiles(files) {
   if (!files || typeof files !== "object" || Array.isArray(files)) return { error: "FILES_REQUIRED" };
   const entries = Object.entries(files);
@@ -62,6 +71,27 @@ function previewAlias(branch, pagesProject = "chatgpt-factory-preview") {
   return `https://${cloudflareBranchAlias(branch)}.${pagesProject}.pages.dev`;
 }
 
+async function putTextFile(token, owner, repo, branch, fullPath, message, content) {
+  const encodedPath = fullPath.split("/").map(encodeURIComponent).join("/");
+  const existing = await githubOptional(token, `/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`);
+  const payload = {
+    message,
+    content: btoa(unescape(encodeURIComponent(content))),
+    branch
+  };
+  if (existing?.sha) payload.sha = existing.sha;
+  await github(token, `/repos/${owner}/${repo}/contents/${encodedPath}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+  return existing?.sha ? "updated" : "created";
+}
+
+async function findOpenPullRequest(token, owner, repo, branch, base) {
+  const pulls = await github(token, `/repos/${owner}/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&base=${encodeURIComponent(base)}&per_page=10`);
+  return Array.isArray(pulls) ? pulls[0] || null : null;
+}
+
 export async function materializeProject(request, env, body = {}) {
   if (!authorized(request, env)) return { error: "UNAUTHORIZED", status: 401 };
   if (!env.GITHUB_TOKEN) return { error: "GITHUB_TOKEN_NOT_CONFIGURED", status: 503 };
@@ -77,66 +107,78 @@ export async function materializeProject(request, env, body = {}) {
   if (!checked.ok) return { ...checked, status: 400 };
 
   const prefix = `projects/${projectSlug}`;
-  const branch = clean(body.branch_name || `factory/${projectSlug}-${Date.now()}`, 180);
+  const recoveryKey = clean(body.recovery_key, 128).toLowerCase().replace(/[^a-f0-9]/g, "");
+  const deterministicBranch = recoveryKey ? `factory/${projectSlug}-${recoveryKey.slice(0, 12)}` : `factory/${projectSlug}-${Date.now()}`;
+  const branch = clean(body.branch_name || deterministicBranch, 180);
   if (!/^[A-Za-z0-9._\/-]+$/.test(branch)) return { error: "INVALID_BRANCH_NAME", status: 400 };
 
   let stage = "read_base_ref";
+  let reusedBranch = false;
+  let reusedPullRequest = false;
   try {
     const baseRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);
     const baseSha = baseRef?.object?.sha;
     if (!baseSha) return { error: "BASE_BRANCH_SHA_NOT_FOUND", stage, status: 502 };
 
-    stage = "create_branch";
-    await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/refs`, {
-      method: "POST",
-      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
-    });
+    stage = "resolve_recovery_branch";
+    const existingBranch = await githubOptional(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
+    if (existingBranch?.object?.sha) {
+      reusedBranch = true;
+    } else {
+      stage = "create_branch";
+      await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/refs`, {
+        method: "POST",
+        body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
+      });
+    }
 
     const written = [];
     for (const [relativePath, content] of checked.entries) {
       stage = `write_file:${relativePath}`;
       const fullPath = `${prefix}/${relativePath}`;
-      await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${fullPath.split("/").map(encodeURIComponent).join("/")}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          message: `Factory: add ${projectName} ${relativePath}`,
-          content: btoa(unescape(encodeURIComponent(content))),
-          branch
-        })
-      });
-      written.push(fullPath);
+      const action = await putTextFile(env.GITHUB_TOKEN, owner, repo, branch, fullPath, `Factory: ${reusedBranch ? "recover" : "add"} ${projectName} ${relativePath}`, content);
+      written.push({ path: fullPath, action });
     }
 
     stage = "write_preview_trigger";
     const triggerPath = `${prefix}/.factory-preview-trigger`;
-    const triggerPayload = JSON.stringify({ project_slug: projectSlug, branch, created_at: new Date().toISOString() }, null, 2);
-    await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${triggerPath.split("/").map(encodeURIComponent).join("/")}`, {
-      method: "PUT",
-      body: JSON.stringify({ message: `Factory: trigger preview for ${projectName}`, content: btoa(unescape(encodeURIComponent(triggerPayload))), branch })
-    });
-    written.push(triggerPath);
+    const triggerPayload = JSON.stringify({ project_slug: projectSlug, branch, request_key: recoveryKey || null, updated_at: new Date().toISOString() }, null, 2);
+    const triggerAction = await putTextFile(env.GITHUB_TOKEN, owner, repo, branch, triggerPath, `Factory: trigger preview for ${projectName}`, triggerPayload);
+    written.push({ path: triggerPath, action: triggerAction });
 
-    stage = "create_draft_pr";
+    stage = "resolve_draft_pr";
     const previewUrl = previewAlias(branch);
-    const pr = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/pulls`, {
-      method: "POST",
-      body: JSON.stringify({
-        title: `Factory: ${projectName}`,
-        head: branch,
-        base,
-        draft: true,
-        body: `Generated by Project Factory v1.5.\n\nProject: ${projectName}\nPath: \`${prefix}/\`\n\nPreview: ${previewUrl}\n\nProduction deployment remains approval-gated.`
-      })
-    });
+    let pr = await findOpenPullRequest(env.GITHUB_TOKEN, owner, repo, branch, base);
+    if (pr) {
+      reusedPullRequest = true;
+    } else {
+      stage = "create_draft_pr";
+      pr = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/pulls`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: `Factory: ${projectName}`,
+          head: branch,
+          base,
+          draft: true,
+          body: `Generated by Project Factory v1.5.\n\nProject: ${projectName}\nPath: \`${prefix}/\`\n\nPreview: ${previewUrl}\n\nRecovery key: \`${recoveryKey || "none"}\`\n\nProduction deployment remains approval-gated.`
+        })
+      });
+    }
 
     return {
       ok: true,
-      status: 201,
+      status: reusedBranch || reusedPullRequest ? 200 : 201,
       repository,
       base_branch: base,
       branch,
       project_path: prefix,
       files_written: written,
+      recovery: {
+        deterministic: Boolean(recoveryKey),
+        request_key: recoveryKey || null,
+        reused_branch: reusedBranch,
+        reused_pull_request: reusedPullRequest
+      },
       preview: { automatic: true, status: "QUEUED_BY_GITHUB_PUSH", provider: "cloudflare_pages", url: previewUrl, workflow: ".github/workflows/factory-preview.yml" },
       pull_request: { number: pr?.number, url: pr?.html_url, draft: pr?.draft === true },
       production_deployed: false
@@ -147,6 +189,14 @@ export async function materializeProject(request, env, body = {}) {
       error: "GITHUB_MATERIALIZATION_FAILED",
       stage,
       message: clean(githubMessage, 300),
+      branch,
+      project_path: prefix,
+      recovery: {
+        deterministic: Boolean(recoveryKey),
+        request_key: recoveryKey || null,
+        reused_branch: reusedBranch,
+        reused_pull_request: reusedPullRequest
+      },
       github_status: error?.status || null,
       github_documentation_url: clean(error?.body?.documentation_url || "", 300) || null,
       status: 502
