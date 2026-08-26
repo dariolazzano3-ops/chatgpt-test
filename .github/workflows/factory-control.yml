@@ -17,6 +17,7 @@ permissions:
   contents: write
   pull-requests: write
   statuses: write
+  actions: read
 
 jobs:
   run-factory-request:
@@ -42,12 +43,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Stage Visual QA runtime
+      - name: Stage Factory runtime
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .factory-runtime
           cp scripts/visual-qa.mjs .factory-runtime/visual-qa.mjs
+          cp scripts/cost-guard.mjs .factory-runtime/cost-guard.mjs
 
       - name: Resolve request file
         id: request
@@ -79,6 +81,7 @@ jobs:
           git fetch origin "$BRANCH"
           git checkout -B "$BRANCH" "origin/$BRANCH"
           test -f .factory-runtime/visual-qa.mjs
+          test -f .factory-runtime/cost-guard.mjs
 
       - name: Validate generated project
         shell: bash
@@ -93,7 +96,14 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$PROJECT_PATH/project.json"
           npm run check
 
+      - name: Cost and usage guard
+        id: cost
+        env:
+          QA_ONLY: ${{ steps.factory.outputs.qa_only }}
+        run: node .factory-runtime/cost-guard.mjs "$(git rev-parse HEAD)" .factory-runtime/visual-qa.mjs
+
       - name: Validate preview configuration
+        if: steps.cost.outputs.duplicate != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -101,6 +111,7 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
 
       - name: Deploy automatic preview
+        if: steps.cost.outputs.duplicate != 'true'
         id: preview
         shell: bash
         env:
@@ -118,15 +129,17 @@ jobs:
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Install Visual QA browser
+        if: steps.cost.outputs.duplicate != 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run Visual QA
+        if: steps.cost.outputs.duplicate != 'true'
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
         run: node .factory-runtime/visual-qa.mjs "$PREVIEW_URL" visual-qa
 
       - name: Upload Visual QA evidence
-        if: always()
+        if: always() && steps.cost.outputs.duplicate != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: visual-qa-${{ github.run_id }}
@@ -137,15 +150,29 @@ jobs:
       - name: Publish Factory result
         shell: bash
         env:
-          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url || steps.cost.outputs.existing_url }}
           PR_URL: ${{ steps.factory.outputs.pr_url }}
           PROJECT_PATH: ${{ steps.factory.outputs.project_path }}
+          QA_CONTEXT: ${{ steps.cost.outputs.qa_context }}
+          QA_DUPLICATE: ${{ steps.cost.outputs.duplicate }}
+          MONTHLY_RUNS: ${{ steps.cost.outputs.monthly_runs }}
+          USAGE_LEVEL: ${{ steps.cost.outputs.usage_level }}
         run: |
           set -euo pipefail
           HEAD_SHA=$(git rev-parse HEAD)
-          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description='Factory project validated, visually checked and preview deployed' -f target_url="$PREVIEW_URL" >/dev/null
-          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed (desktop + mobile evidence attached to the workflow run)\n- Production: not deployed"; fi
+          test -n "$PREVIEW_URL" || { echo "Preview URL missing"; exit 1; }
+          if [ "$QA_DUPLICATE" = "true" ]; then
+            DESCRIPTION='Factory QA reused prior matching success; no new preview deploy'
+          else
+            DESCRIPTION='Factory project validated, visually checked and preview deployed'
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description="$DESCRIPTION" -f target_url="$PREVIEW_URL" >/dev/null
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context="$QA_CONTEXT" -f description='Visual QA passed for this QA runtime version' -f target_url="$PREVIEW_URL" >/dev/null
+          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Visual QA: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- QA cache reused: $QA_DUPLICATE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Factory Control runs this month: $MONTHLY_RUNS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Usage level: $USAGE_LEVEL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
