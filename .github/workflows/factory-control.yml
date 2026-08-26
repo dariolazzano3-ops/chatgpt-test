@@ -36,7 +36,7 @@ jobs:
       - name: Checkout control request
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'factory-control' || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'factory-control' || github.sha }}
           fetch-depth: 2
 
       - name: Setup Node
@@ -72,17 +72,25 @@ jobs:
           test -n "$REQUEST_FILE" || { echo "No Factory request JSON found"; exit 1; }
           test -f "$REQUEST_FILE" || { echo "Factory request file not found: $REQUEST_FILE"; exit 1; }
           case "$REQUEST_FILE" in factory-requests/*.json) ;; *) echo "Unsafe request path"; exit 1 ;; esac
+          cp "$REQUEST_FILE" .factory-runtime/request.json
           echo "file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Refresh serialized control state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin factory-control
+          git checkout origin/factory-control -- factory-state/active-project.json
+          if git cat-file -e origin/factory-control:factory-state/request-ledger.json 2>/dev/null; then
+            git checkout origin/factory-control -- factory-state/request-ledger.json
+          fi
+          test -f factory-state/active-project.json
+          test -f .factory-runtime/request.json
 
       - name: Check request idempotency
         id: idempotency
         shell: bash
-        env:
-          REQUEST_FILE: ${{ steps.request.outputs.file }}
-        run: |
-          set -euo pipefail
-          cp "$REQUEST_FILE" .factory-runtime/request.json
-          node .factory-runtime/request-idempotency.mjs check "$REQUEST_FILE" factory-state/request-ledger.json
+        run: node .factory-runtime/request-idempotency.mjs check .factory-runtime/request.json factory-state/request-ledger.json
 
       - name: Publish duplicate request result
         if: steps.idempotency.outputs.duplicate == 'true'
