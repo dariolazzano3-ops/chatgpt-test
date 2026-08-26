@@ -34,6 +34,7 @@ requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch
 requireText('Factory Control serializes requests', control, 'factory-control-serial');
 requireText('Factory Control pins push runs to the request event commit', control, "github.sha");
 requireText('Factory Control refreshes durable state after queue wait', control, 'Refresh serialized control state');
+requireText('Factory Control restores event worktree before branch checkout', control, 'Restore event worktree before project checkout');
 requireText('Factory Control checks request idempotency', control, 'Check request idempotency');
 requireText('Factory Control records successful request fingerprints', control, 'Record successful request');
 requireText('Factory Control can write commit statuses', control, 'statuses: write');
