@@ -23,9 +23,7 @@ const env = {
 
 if (!env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN_REQUIRED");
 
-let output;
-
-if (mode === "edit" || mode === "evolve") {
+async function readActiveProject() {
   const statePath = String(job.active_state_path || "factory-state/active-project.json");
   const stateRaw = await fs.readFile(statePath, "utf8");
   const state = JSON.parse(stateRaw);
@@ -36,6 +34,32 @@ if (mode === "edit" || mode === "evolve") {
   if (state.source_path !== `projects/${state.project_slug}`) throw new Error("ACTIVE_PROJECT_PATH_MISMATCH");
   if (!String(state.branch || "").startsWith("factory/")) throw new Error("ACTIVE_PROJECT_BRANCH_INVALID");
   if (state.production_deploy !== false) throw new Error("ACTIVE_PROJECT_PRODUCTION_MUST_BE_DISABLED");
+
+  return { statePath, state };
+}
+
+let output;
+
+if (mode === "qa" || mode === "recheck") {
+  const { statePath, state } = await readActiveProject();
+  output = {
+    ok: true,
+    mode: "qa",
+    project: {
+      name: state.project_name,
+      slug: state.project_slug
+    },
+    branch: state.branch,
+    project_path: state.source_path,
+    preview_expected: state.preview_url || null,
+    pull_request: state.pull_request ? { number: state.pull_request, url: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${state.pull_request}` } : null,
+    updates: [],
+    active_state_path: statePath,
+    production_deployed: false,
+    qa_only: true
+  };
+} else if (mode === "edit" || mode === "evolve") {
+  const { statePath, state } = await readActiveProject();
 
   const result = await evolveProject(request, env, {
     project_slug: state.project_slug,
@@ -65,7 +89,8 @@ if (mode === "edit" || mode === "evolve") {
     pull_request: result.pull_request,
     updates: result.updates,
     active_state_path: statePath,
-    production_deployed: false
+    production_deployed: false,
+    qa_only: false
   };
 } else {
   let blueprint;
@@ -112,7 +137,8 @@ if (mode === "edit" || mode === "evolve") {
     project_path: result.project_path,
     preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
-    production_deployed: false
+    production_deployed: false,
+    qa_only: false
   };
 }
 
@@ -123,7 +149,8 @@ if (process.env.GITHUB_OUTPUT) {
     `branch=${output.branch || ""}`,
     `project_slug=${output.project?.slug || ""}`,
     `project_path=${output.project_path || ""}`,
-    `pr_url=${output.pull_request?.url || ""}`
+    `pr_url=${output.pull_request?.url || ""}`,
+    `qa_only=${output.qa_only ? "true" : "false"}`
   ];
   await fs.appendFile(process.env.GITHUB_OUTPUT, `${lines.join("\n")}\n`);
 }
