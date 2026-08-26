@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Concurrency Gamma",
+    "slug": "concurrency-gamma"
+  },
+  "mode": "generate",
+  "intent": "technology_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
