@@ -43,7 +43,11 @@ try {
       const root = document.documentElement;
       const body = document.body;
       const viewportWidth = root.clientWidth;
-      const overflow = Math.max(root.scrollWidth, body?.scrollWidth || 0) - viewportWidth;
+      const rootScrollWidth = root.scrollWidth;
+      const bodyScrollWidth = body?.scrollWidth || 0;
+      const scrollOverflow = Math.max(rootScrollWidth, bodyScrollWidth) - viewportWidth;
+      const rootStyle = getComputedStyle(root);
+      const bodyStyle = body ? getComputedStyle(body) : null;
       const h1 = document.querySelector("h1");
       const main = document.querySelector("main");
       const visibleSections = [...document.querySelectorAll("main section")].filter((el) => {
@@ -52,10 +56,17 @@ try {
         return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
       }).length;
 
-      const overflowElements = [...document.querySelectorAll("body *")]
+      const visibleElementRects = [...document.querySelectorAll("body *")]
         .map((el) => {
           const rect = el.getBoundingClientRect();
           const style = getComputedStyle(el);
+          if (rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return null;
+          return { el, rect, style };
+        })
+        .filter(Boolean);
+
+      const overflowElements = visibleElementRects
+        .map(({ el, rect, style }) => {
           const rightOverflow = Math.max(0, rect.right - viewportWidth);
           const leftOverflow = Math.max(0, -rect.left);
           const amount = Math.max(rightOverflow, leftOverflow);
@@ -76,12 +87,33 @@ try {
         .sort((a, b) => b.overflowPx - a.overflowPx)
         .slice(0, 12);
 
+      const geometricBounds = visibleElementRects.reduce((acc, { rect }) => ({
+        minLeft: Math.min(acc.minLeft, rect.left),
+        maxRight: Math.max(acc.maxRight, rect.right)
+      }), { minLeft: 0, maxRight: viewportWidth });
+      const geometricOverflow = Math.max(
+        0,
+        geometricBounds.maxRight - viewportWidth,
+        -geometricBounds.minLeft
+      );
+
       return {
         title: document.title,
         hasH1: Boolean(h1 && h1.textContent.trim()),
         hasMain: Boolean(main),
         visibleSections,
-        horizontalOverflowPx: Math.max(0, overflow),
+        horizontalOverflowPx: Math.max(0, scrollOverflow),
+        scrollOverflowPx: Math.max(0, scrollOverflow),
+        geometricOverflowPx: Math.round(geometricOverflow * 10) / 10,
+        documentWidths: {
+          innerWidth: window.innerWidth,
+          rootClientWidth: root.clientWidth,
+          rootScrollWidth,
+          bodyClientWidth: body?.clientWidth || 0,
+          bodyScrollWidth,
+          rootOverflowX: rootStyle.overflowX,
+          bodyOverflowX: bodyStyle?.overflowX || null
+        },
         overflowElements,
         bodyTextLength: (body?.innerText || "").trim().length
       };
@@ -112,7 +144,7 @@ try {
 }
 
 const report = {
-  version: 2,
+  version: 3,
   url,
   generated_at: new Date().toISOString(),
   ok: results.every((result) => result.failures.length === 0),
