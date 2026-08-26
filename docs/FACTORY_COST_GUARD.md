@@ -26,4 +26,4 @@ Every Factory Control summary reports:
 - whether the QA cache was reused
 - preview URL
 
-The guard is intentionally conservative: the monthly workflow count can overestimate actual Cloudflare builds because a Factory Control run may fail before deployment.
+The guard is intentionally conservative: the monthly workflow count can overestimate actual Cloudflare builds because a Factory Control run may fail before deployment. This gives us safety margin rather than optimistic accounting.
