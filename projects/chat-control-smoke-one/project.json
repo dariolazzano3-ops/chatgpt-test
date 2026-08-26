@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Chat Control Smoke One",
+    "slug": "chat-control-smoke-one"
+  },
+  "mode": "generate",
+  "intent": "local_food_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
