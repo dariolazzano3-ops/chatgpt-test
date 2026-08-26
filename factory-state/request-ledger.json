@@ -44,6 +44,17 @@
       "preview_url": "https://factory-concurrency-epsilon.chatgpt-factory-preview.pages.dev",
       "qa_only": false,
       "production_deployed": false
+    },
+    "eb40e39dc97237e7f988d97cca077e873596fd4f74f961d6129a7261d390fe19": {
+      "request_key": "eb40e39dc97237e7f988d97cca077e873596fd4f74f961d6129a7261d390fe19",
+      "completed_at": "2026-08-26T23:49:25.915Z",
+      "mode": "project",
+      "project_path": "projects/recovery-phoenix",
+      "branch": "factory/recovery-phoenix-eb40e39dc972",
+      "pr_url": "https://github.com/dariolazzano3-ops/chatgpt-test/pull/89",
+      "preview_url": "https://factory-recovery-phoenix-eb4.chatgpt-factory-preview.pages.dev",
+      "qa_only": false,
+      "production_deployed": false
     }
   }
 }
