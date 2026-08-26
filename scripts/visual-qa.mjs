@@ -34,10 +34,7 @@ try {
     const response = await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
     const status = response?.status() || 0;
 
-    await page.screenshot({
-      path: path.join(outDir, `${viewport.name}.png`),
-      fullPage: true
-    });
+    await page.screenshot({ path: path.join(outDir, `${viewport.name}.png`), fullPage: true });
 
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
@@ -50,6 +47,15 @@ try {
       const bodyStyle = body ? getComputedStyle(body) : null;
       const h1 = document.querySelector("h1");
       const main = document.querySelector("main");
+
+      const selectorFor = (el) => {
+        const id = el.id ? `#${el.id}` : "";
+        const classes = typeof el.className === "string" && el.className.trim()
+          ? `.${el.className.trim().split(/\s+/).join(".")}`
+          : "";
+        return `${el.tagName.toLowerCase()}${id}${classes}`;
+      };
+
       const visibleSections = [...document.querySelectorAll("main section")].filter((el) => {
         const rect = el.getBoundingClientRect();
         const style = getComputedStyle(el);
@@ -66,17 +72,13 @@ try {
         .filter(Boolean);
 
       const overflowElements = visibleElementRects
-        .map(({ el, rect, style }) => {
+        .map(({ el, rect }) => {
           const rightOverflow = Math.max(0, rect.right - viewportWidth);
           const leftOverflow = Math.max(0, -rect.left);
           const amount = Math.max(rightOverflow, leftOverflow);
-          if (amount <= 1 || rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return null;
-          const id = el.id ? `#${el.id}` : "";
-          const classes = typeof el.className === "string" && el.className.trim()
-            ? `.${el.className.trim().split(/\s+/).join(".")}`
-            : "";
+          if (amount <= 1) return null;
           return {
-            selector: `${el.tagName.toLowerCase()}${id}${classes}`,
+            selector: selectorFor(el),
             left: Math.round(rect.left * 10) / 10,
             right: Math.round(rect.right * 10) / 10,
             width: Math.round(rect.width * 10) / 10,
@@ -91,11 +93,39 @@ try {
         minLeft: Math.min(acc.minLeft, rect.left),
         maxRight: Math.max(acc.maxRight, rect.right)
       }), { minLeft: 0, maxRight: viewportWidth });
-      const geometricOverflow = Math.max(
-        0,
-        geometricBounds.maxRight - viewportWidth,
-        -geometricBounds.minLeft
-      );
+      const geometricOverflow = Math.max(0, geometricBounds.maxRight - viewportWidth, -geometricBounds.minLeft);
+
+      const pseudoCandidates = [...document.querySelectorAll("body, body *")]
+        .flatMap((el) => ["::before", "::after"].map((pseudo) => {
+          const style = getComputedStyle(el, pseudo);
+          const content = style.content;
+          if (!content || content === "none" || content === "normal") return null;
+          const position = style.position;
+          const potentiallyViewportAffecting = position === "absolute" || position === "fixed" || style.transform !== "none" || style.filter !== "none";
+          if (!potentiallyViewportAffecting) return null;
+          return {
+            selector: `${selectorFor(el)}${pseudo}`,
+            position,
+            left: style.left,
+            right: style.right,
+            width: style.width,
+            transform: style.transform,
+            filter: style.filter,
+            overflowX: style.overflowX
+          };
+        }))
+        .filter(Boolean)
+        .slice(0, 20);
+
+      const scrollOnlyOverflow = scrollOverflow > 4 && geometricOverflow <= 4 && overflowElements.length === 0;
+      const clippingPresent = rootStyle.overflowX === "hidden" || rootStyle.overflowX === "clip" || bodyStyle?.overflowX === "hidden" || bodyStyle?.overflowX === "clip";
+      const overflowClassification = geometricOverflow > 4
+        ? "geometric"
+        : scrollOnlyOverflow && clippingPresent
+          ? "scroll-only-clipped"
+          : scrollOnlyOverflow
+            ? "scroll-only-unclipped"
+            : "none";
 
       return {
         title: document.title,
@@ -105,6 +135,7 @@ try {
         horizontalOverflowPx: Math.max(0, scrollOverflow),
         scrollOverflowPx: Math.max(0, scrollOverflow),
         geometricOverflowPx: Math.round(geometricOverflow * 10) / 10,
+        overflowClassification,
         documentWidths: {
           innerWidth: window.innerWidth,
           rootClientWidth: root.clientWidth,
@@ -115,16 +146,20 @@ try {
           bodyOverflowX: bodyStyle?.overflowX || null
         },
         overflowElements,
+        pseudoCandidates,
         bodyTextLength: (body?.innerText || "").trim().length
       };
     });
 
     const failures = [];
+    const warnings = [];
     if (status < 200 || status >= 400) failures.push(`HTTP status ${status}`);
     if (!metrics.hasH1) failures.push("missing visible h1");
     if (!metrics.hasMain) failures.push("missing main element");
     if (metrics.visibleSections < 2) failures.push(`only ${metrics.visibleSections} visible main sections`);
-    if (metrics.horizontalOverflowPx > 4) failures.push(`horizontal overflow ${metrics.horizontalOverflowPx}px`);
+    if (metrics.geometricOverflowPx > 4) failures.push(`geometric horizontal overflow ${metrics.geometricOverflowPx}px`);
+    else if (metrics.overflowClassification === "scroll-only-unclipped") failures.push(`unexplained scroll overflow ${metrics.scrollOverflowPx}px`);
+    else if (metrics.overflowClassification === "scroll-only-clipped") warnings.push(`clipped scroll-width overflow ${metrics.scrollOverflowPx}px without geometric overflow`);
     if (metrics.bodyTextLength < 80) failures.push("page contains too little visible text");
     if (pageErrors.length) failures.push(`${pageErrors.length} page error(s)`);
 
@@ -134,6 +169,7 @@ try {
       metrics,
       consoleErrors: consoleErrors.slice(0, 20),
       pageErrors: pageErrors.slice(0, 20),
+      warnings,
       failures
     });
 
@@ -144,7 +180,7 @@ try {
 }
 
 const report = {
-  version: 3,
+  version: 4,
   url,
   generated_at: new Date().toISOString(),
   ok: results.every((result) => result.failures.length === 0),
