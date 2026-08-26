@@ -17,8 +17,7 @@ on:
       - feature/project-factory-v1-5
     paths:
       - '.github/workflows/factory-preview.yml'
-      - 'projects/**/.factory-preview-trigger'
-      - 'projects/factory-preview-smoke/**'
+      - 'projects/**'
 
 permissions:
   contents: read
@@ -58,9 +57,10 @@ jobs:
           elif [ "${{ github.ref_name }}" = "feature/project-factory-v1-5" ]; then
             PROJECT_SLUG='factory-preview-smoke'
           else
-            TRIGGER_PATH=$(git show --pretty='' --name-only HEAD | grep -E '^projects/[^/]+/\.factory-preview-trigger$' | head -n 1 || true)
-            test -n "$TRIGGER_PATH" || { echo "Factory preview trigger file not found in latest commit"; exit 1; }
-            PROJECT_SLUG=$(printf '%s' "$TRIGGER_PATH" | cut -d/ -f2)
+            PROJECT_SLUG=$(git diff-tree --no-commit-id --name-only -r HEAD \
+              | sed -n 's#^projects/\([^/][^/]*\)/.*#\1#p' \
+              | head -n 1)
+            test -n "$PROJECT_SLUG" || { echo "No changed project folder found in latest commit"; exit 1; }
           fi
           echo "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
 
