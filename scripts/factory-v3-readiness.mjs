@@ -32,6 +32,8 @@ const activeRaw = read('factory-state/active-project.json');
 
 requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch:');
 requireText('Factory Control serializes requests', control, 'factory-control-serial');
+requireText('Factory Control pins push runs to the request event commit', control, "github.sha");
+requireText('Factory Control refreshes durable state after queue wait', control, 'Refresh serialized control state');
 requireText('Factory Control checks request idempotency', control, 'Check request idempotency');
 requireText('Factory Control records successful request fingerprints', control, 'Record successful request');
 requireText('Factory Control can write commit statuses', control, 'statuses: write');
@@ -47,6 +49,10 @@ requireText('Active project promotion keeps production disabled', promoteActive,
 requireText('Active project promotion writes to control branch', promoteActive, "controlRef = 'factory-control'");
 requireText('Autopilot is restricted to V3 auto branches', autopilot, 'factory-v3/auto/*');
 requireText('Autopilot requires successful CI', autopilot, "github.event.workflow_run.conclusion == 'success'");
+requireText('Autopilot preserves durable queue/state', autopilot, 'durable queue/state: preserved');
+requireText('Autopilot no longer force-resets Factory Control', autopilot, 'git push origin factory-control');
+if (autopilot.includes('git push --force origin factory-control')) failures.push('Autopilot must not force-reset factory-control');
+else passes.push('Autopilot does not force-reset factory-control');
 requireText('Autopilot dispatches QA-only request', autopilot, '"mode": "qa"');
 requireText('Autopilot does not deploy production', autopilot, 'Production deployment: disabled');
 requireText('Strict request contract exists', requestContract, 'production_deploy');
