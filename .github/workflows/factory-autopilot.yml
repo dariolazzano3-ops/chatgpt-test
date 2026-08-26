@@ -71,8 +71,21 @@ jobs:
           set -euo pipefail
           git config user.name "factory-autopilot[bot]"
           git config user.email "factory-autopilot[bot]@users.noreply.github.com"
-          git fetch origin "$MERGE_SHA"
-          git checkout -B factory-control "$MERGE_SHA"
+          git fetch origin factory-control "$MERGE_SHA"
+          git checkout -B factory-control origin/factory-control
+
+          # Sync runtime/code from the new main merge while preserving the durable
+          # control queue and state. Never force-reset factory-control.
+          git checkout "$MERGE_SHA" -- . ':(exclude)factory-state/**' ':(exclude)factory-requests/**'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Autopilot: sync Factory runtime after green V3 merge"
+          fi
+
+          # Rebase onto any state/ledger commit that landed while this run was
+          # working. Runtime and durable control state live in separate paths.
+          git pull --rebase origin factory-control
+
           mkdir -p factory-requests
           STAMP=$(date -u +%Y%m%d-%H%M%S)
           REQUEST_FILE="factory-requests/autopilot-qa-${STAMP}.json"
@@ -84,7 +97,15 @@ jobs:
           JSON
           git add "$REQUEST_FILE"
           git commit -m "Autopilot QA recheck after green V3 merge"
-          git push --force origin factory-control
+
+          # A concurrent Factory state write can still land between pull and push.
+          # Retry safely instead of overwriting it.
+          for attempt in 1 2 3; do
+            if git push origin factory-control; then break; fi
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            git pull --rebase origin factory-control
+          done
+
           gh workflow run factory-control.yml --ref factory-control -f request_file="$REQUEST_FILE"
           echo "request_file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
 
@@ -94,7 +115,8 @@ jobs:
           echo "### Factory Autopilot" >> "$GITHUB_STEP_SUMMARY"
           echo "- CI: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- PR: #${{ steps.resolve.outputs.pr_number }} merged" >> "$GITHUB_STEP_SUMMARY"
-          echo "- factory-control: synchronized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- factory-control: synchronized without force reset" >> "$GITHUB_STEP_SUMMARY"
+          echo "- durable queue/state: preserved" >> "$GITHUB_STEP_SUMMARY"
           echo "- QA-only: dispatched explicitly" >> "$GITHUB_STEP_SUMMARY"
           echo "- Request: ${{ steps.qa.outputs.request_file }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production deployment: disabled" >> "$GITHUB_STEP_SUMMARY"
