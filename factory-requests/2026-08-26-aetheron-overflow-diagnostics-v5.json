@@ -1,0 +1,5 @@
+{
+  "mode": "edit",
+  "prompt": "Begrenze die Raketenanimation auf Mobilgeräten vollständig innerhalb des Hero-Bereichs. Rakete, Launch-Pad, Launch-Glow, Rauch und animierte Rauch-Puffs dürfen keinen horizontalen Overflow erzeugen. Behalte die Animation optisch groß und hochwertig. Verwende keinen globalen body overflow-x Hack.",
+  "active_state_path": "factory-state/active-project.json"
+}
