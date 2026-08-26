@@ -1,0 +1,68 @@
+import fs from 'node:fs';
+
+const failures = [];
+const passes = [];
+
+function read(path) {
+  if (!fs.existsSync(path)) {
+    failures.push(`missing required file: ${path}`);
+    return '';
+  }
+  return fs.readFileSync(path, 'utf8');
+}
+
+function requireText(label, text, expected) {
+  if (text.includes(expected)) passes.push(label);
+  else failures.push(`${label}: expected ${JSON.stringify(expected)}`);
+}
+
+function requireJson(label, value) {
+  if (value) passes.push(label);
+  else failures.push(label);
+}
+
+const control = read('.github/workflows/factory-control.yml');
+const autopilot = read('.github/workflows/factory-autopilot.yml');
+const requestContract = read('scripts/factory-request-contract.mjs');
+const costGuard = read('scripts/cost-guard.mjs');
+const visualQa = read('scripts/visual-qa.mjs');
+const activeRaw = read('factory-state/active-project.json');
+
+requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch:');
+requireText('Factory Control can write commit statuses', control, 'statuses: write');
+requireText('Factory Control runs cost guard', control, 'Cost and usage guard');
+requireText('Factory Control runs Visual QA', control, 'Run Visual QA');
+requireText('Factory Control publishes preview status', control, "context='factory-control/preview'");
+requireText('Autopilot is restricted to V3 auto branches', autopilot, 'factory-v3/auto/*');
+requireText('Autopilot requires successful CI', autopilot, "github.event.workflow_run.conclusion == 'success'");
+requireText('Autopilot dispatches QA-only request', autopilot, '"mode": "qa"');
+requireText('Autopilot does not deploy production', autopilot, 'Production deployment: disabled');
+requireText('Strict request contract exists', requestContract, 'production_deploy');
+requireText('Cost guard exposes QA-only stop threshold', costGuard, 'qa_only_stop');
+requireText('Visual QA produces an ok verdict', visualQa, 'ok');
+
+if (activeRaw) {
+  try {
+    const active = JSON.parse(activeRaw);
+    requireJson('Active project is enabled', active.active === true);
+    requireJson('Active project source is constrained to projects/', typeof active.source_path === 'string' && active.source_path.startsWith('projects/'));
+    requireJson('Active project has canonical preview URL', typeof active.preview_url === 'string' && active.preview_url.startsWith('https://'));
+    requireJson('Active project production deployment is disabled', active.production_deploy === false);
+    requireJson('Active project editing mode is enabled', active.mode === 'editing');
+  } catch (error) {
+    failures.push(`active project JSON invalid: ${error.message}`);
+  }
+}
+
+const result = {
+  version: 1,
+  ready: failures.length === 0,
+  checks_passed: passes.length,
+  checks_failed: failures.length,
+  passes,
+  failures,
+};
+
+console.log(JSON.stringify(result, null, 2));
+
+if (failures.length > 0) process.exit(1);

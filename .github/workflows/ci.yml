@@ -2,7 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [develop, staging, main, feature/project-factory-v1-5]
+    branches:
+      - develop
+      - staging
+      - main
+      - feature/project-factory-v1-5
+      - 'factory-v3/auto/**'
   pull_request:
     branches: [develop, staging, main]
 
