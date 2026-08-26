@@ -1,5 +1,6 @@
 import { analyzePublicWebsite } from "./scraper.js";
 import { buildRebuildBlueprint } from "./builder.js";
+import { materializeProject } from "./materializer.js";
 
 const MODES = {
   generate: {
@@ -79,6 +80,7 @@ function stepsFor(mode) {
       "create_independent_rebuild_brief",
       "derive_design_system",
       "generate_starter_files",
+      "materialize_git_project",
       "run_static_checks",
       "create_preview",
       "compare_business_coverage"
@@ -135,7 +137,7 @@ async function readJson(request) {
   }
 }
 
-export async function handleFactory(request) {
+export async function handleFactory(request, env = {}) {
   const url = new URL(request.url);
 
   if (request.method === "GET" && url.pathname === "/factory") {
@@ -149,7 +151,8 @@ export async function handleFactory(request) {
         capabilities: "GET /factory/capabilities",
         plan: "POST /factory/plan",
         rebuild_analyze: "POST /factory/rebuild/analyze",
-        rebuild_build: "POST /factory/rebuild/build"
+        rebuild_build: "POST /factory/rebuild/build",
+        materialize: "POST /factory/materialize"
       }
     });
   }
@@ -186,6 +189,15 @@ export async function handleFactory(request) {
         ],
         purpose: "Independent improved rebuilds, not verbatim cloning of protected expression."
       },
+      materializer: {
+        status: "available_when_github_token_configured",
+        project_root: "projects/<slug>/",
+        branch_per_project: true,
+        draft_pull_request: true,
+        production_deploy: false,
+        requires: ["API_TOKEN", "GITHUB_TOKEN"],
+        optional: ["GITHUB_REPOSITORY"]
+      },
       safeguards: [
         "hard_iteration_limit",
         "hard_api_budget_limit",
@@ -193,7 +205,9 @@ export async function handleFactory(request) {
         "project_isolation",
         "preview_before_production",
         "private_and_local_url_blocking",
-        "bounded_public_site_crawl"
+        "bounded_public_site_crawl",
+        "authenticated_materialization",
+        "draft_pr_before_merge"
       ]
     });
   }
@@ -230,6 +244,13 @@ export async function handleFactory(request) {
       style: body.style || {}
     });
     return json(blueprint, blueprint.error ? 400 : 200);
+  }
+
+  if (request.method === "POST" && url.pathname === "/factory/materialize") {
+    const parsed = await readJson(request);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const result = await materializeProject(request, env, parsed.value || {});
+    return json(result, result.status || (result.error ? 400 : 201));
   }
 
   return null;
