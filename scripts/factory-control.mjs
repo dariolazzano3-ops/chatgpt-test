@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import { buildGenerateBlueprint } from "../src/generator.js";
 import { analyzePublicWebsite } from "../src/scraper.js";
@@ -10,8 +11,18 @@ const requestPath = process.argv[2];
 if (!requestPath) throw new Error("REQUEST_FILE_REQUIRED");
 if (!/^factory-requests\/[A-Za-z0-9._-]+\.json$/.test(requestPath)) throw new Error("REQUEST_PATH_INVALID");
 
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+  }
+  return value;
+}
+
 const raw = await fs.readFile(requestPath, "utf8");
-const job = validateFactoryRequest(JSON.parse(raw));
+const parsedRequest = JSON.parse(raw);
+const recoveryKey = crypto.createHash("sha256").update(JSON.stringify(stable(parsedRequest))).digest("hex");
+const job = validateFactoryRequest(parsedRequest);
 const mode = job.mode;
 const internalToken = `actions-${process.env.GITHUB_RUN_ID || Date.now()}`;
 const request = new Request("https://factory-control.local/run", {
@@ -55,7 +66,8 @@ if (mode === "qa" || mode === "recheck") {
     updates: [],
     active_state_path: statePath,
     production_deployed: false,
-    qa_only: true
+    qa_only: true,
+    recovery_reused: false
   };
 } else if (mode === "edit" || mode === "evolve") {
   const { statePath, state } = await readActiveProject();
@@ -85,7 +97,8 @@ if (mode === "qa" || mode === "recheck") {
     updates: result.updates,
     active_state_path: statePath,
     production_deployed: false,
-    qa_only: false
+    qa_only: false,
+    recovery_reused: true
   };
 } else {
   let blueprint;
@@ -110,7 +123,8 @@ if (mode === "qa" || mode === "recheck") {
     project_name: job.project_name || blueprint.project?.name,
     project_slug: job.project_slug || blueprint.project?.slug,
     base_branch: "main",
-    branch_name: job.branch_name
+    branch_name: job.branch_name,
+    recovery_key: recoveryKey
   });
 
   if (!result?.ok) {
@@ -127,7 +141,8 @@ if (mode === "qa" || mode === "recheck") {
     preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
     production_deployed: false,
-    qa_only: false
+    qa_only: false,
+    recovery_reused: result.recovery?.reused_branch === true || result.recovery?.reused_pull_request === true
   };
 }
 
@@ -139,7 +154,8 @@ if (process.env.GITHUB_OUTPUT) {
     `project_slug=${output.project?.slug || ""}`,
     `project_path=${output.project_path || ""}`,
     `pr_url=${output.pull_request?.url || ""}`,
-    `qa_only=${output.qa_only ? "true" : "false"}`
+    `qa_only=${output.qa_only ? "true" : "false"}`,
+    `recovery_reused=${output.recovery_reused ? "true" : "false"}`
   ];
   await fs.appendFile(process.env.GITHUB_OUTPUT, `${lines.join("\n")}\n`);
 }
