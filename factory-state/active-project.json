@@ -1,7 +1,7 @@
 {
   "version": 1,
   "active": true,
-  "project_name": "MultiProject Alpha",
+  "project_name": "RIOSYSTEMS DASHBOARD",
   "project_slug": "multiproject-alpha",
   "source_path": "projects/multiproject-alpha",
   "branch": "factory/multiproject-alpha-edit-8fa72755f070",
@@ -10,6 +10,7 @@
   "pull_request": 132,
   "preview_url": "https://bd8c5d3e.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
+  "factory_version": "LEAN V3.1",
   "release_readiness": {
     "version": 1,
     "gate": "factory-v3-release-readiness",
