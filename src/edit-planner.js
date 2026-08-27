@@ -4,9 +4,15 @@ function clean(value, max = 4000) { return String(value || "").trim().slice(0, m
 function includesAny(text, terms) { return terms.some((term) => text.includes(term)); }
 function operation(target, action, value, reason, semantic = null, scope = null) { return { target, action, value, reason, semantic, scope }; }
 function extractText(raw, patterns, max = 180) { for (const pattern of patterns) { const match = pattern.exec(raw.trim()); if (match?.[1]) return clean(match[1].replace(/[.!]+$/, ""), max); } return ""; }
-function extractHeadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:headline|überschrift|ueberschrift)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,180})["„“']?[.!]?$/i, /(?:headline|überschrift|ueberschrift)\s*:\s*["„“']?([^\n"„“']{2,180})["„“']?/i]); }
-function extractSubheadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:subheadline|unterüberschrift|unterueberschrift|untertitel|beschreibung)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,260})["„“']?[.!]?$/i], 260); }
-function extractCtaText(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:den\s+|die\s+)?(?:cta|button|knopf|cta[- ]?text|button[- ]?text)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{1,100})["„“']?[.!]?$/i], 100); }
+function trimCompoundValue(value = "") { return clean(String(value).replace(/\s+(?:und|,|sowie)\s+(?=(?:den|die|das)?\s*(?:cta|button|knopf|headline|überschrift|ueberschrift|subheadline|untertitel|beschreibung)\b)[\s\S]*$/i, "").replace(/[.!]+$/, ""), 260); }
+function extractNamedValue(raw, names, max = 180) {
+  const token = names.join('|');
+  const match = new RegExp(`(?:${token})\\s+(?:auf|zu|in)\\s+["„“']?([\\s\\S]{1,${max + 120}})$`, 'i').exec(raw.trim());
+  return match?.[1] ? clean(trimCompoundValue(match[1]), max) : "";
+}
+function extractHeadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:headline|überschrift|ueberschrift)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,180})["„“']?[.!]?$/i, /(?:headline|überschrift|ueberschrift)\s*:\s*["„“']?([^\n"„“']{2,180})["„“']?/i]) || extractNamedValue(raw,["headline","überschrift","ueberschrift"],180); }
+function extractSubheadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:subheadline|unterüberschrift|unterueberschrift|untertitel|beschreibung)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,260})["„“']?[.!]?$/i], 260) || extractNamedValue(raw,["subheadline","unterüberschrift","unterueberschrift","untertitel","beschreibung"],260); }
+function extractCtaText(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:den\s+|die\s+)?(?:cta|button|knopf|cta[- ]?text|button[- ]?text)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{1,100})["„“']?[.!]?$/i], 100) || extractNamedValue(raw,["cta[- ]?text","button[- ]?text","cta","button","knopf"],100); }
 function extractColumns(raw = "") { const match = /(?:grid|cards?|karten|kacheln)[^\n]{0,50}?(?:auf|in|mit)?\s*(\d)\s*(?:spalten|columns?)/i.exec(raw); return match ? Math.max(1, Math.min(4, Number(match[1]))) : null; }
 function detectScope(text) {
   const ordinal = /(?:die|der|das)?\s*(erste|zweite|dritte|vierte|1\.|2\.|3\.|4\.)\s+(?:section|sektion|abschnitt|bereich)/i.exec(text);
