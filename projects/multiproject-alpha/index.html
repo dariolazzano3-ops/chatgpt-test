@@ -3,95 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="MultiProject Alpha — autonomous AI Factory control center.">
-<title>MultiProject Alpha — Factory Control</title>
+<meta name="description" content="RIOSYSTEMS Dashboard — LEAN V3 Factory operations interface.">
+<title>RIOSYSTEMS DASHBOARD</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-<div class="page-grid" aria-hidden="true"></div>
-<header class="site-header">
-  <a class="brand" href="#top"><span class="brand-mark"></span><span>MPA / FACTORY</span></a>
-  <div class="system-status"><span class="pulse"></span><span>SYSTEM ONLINE</span></div>
+<div class="grid" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"></span><span>RIOSYSTEMS</span><small>DASHBOARD</small></div>
+  <div class="top-actions"><span class="online"><i></i>SYSTEM ONLINE</span><button id="logout" class="ghost small">LOG OUT</button></div>
 </header>
-<main id="top">
-  <section class="hero">
-    <div class="hero-shell">
-      <div class="eyebrow"><span>LEAN V3</span><span class="eyebrow-line"></span><span>CONTROL INTERFACE</span></div>
-      <h1>BUILD.<br>TEST.<br>EVOLVE.</h1>
-      <p class="hero-copy">A self-evolving digital factory controlled by conversation.</p>
-      <div class="hero-actions">
-        <a class="button primary" href="#factory-control">ENTER THE FACTORY</a>
-        <a class="button secondary" href="#factory-flow">VIEW SYSTEM STATUS</a>
-      </div>
-      <div class="hero-readout" aria-label="Factory telemetry">
-        <div><span>MODE</span><strong>AUTONOMOUS</strong></div>
-        <div><span>PIPELINE</span><strong>STANDBY</strong></div>
-        <div><span>GATE</span><strong>MANUAL</strong></div>
-      </div>
-    </div>
-    <div class="orbital" aria-hidden="true"><span></span><span></span><span></span></div>
+<main>
+  <section class="intro">
+    <div><span class="kicker">LEAN V3 OPERATIONS</span><h1>Control the factory.<br>Keep production deliberate.</h1><p>Send work into the active Factory project, watch the pipeline, review the preview and keep Production behind a human gate.</p></div>
+    <div class="hero-state"><span>ACTIVE PROJECT</span><strong>MultiProject Alpha</strong><code>multiproject-alpha</code></div>
   </section>
 
-  <section id="factory-control" class="section control-section">
-    <div class="section-heading">
-      <div><span class="kicker">FACTORY CONTROL</span><h2>Four systems. One continuous loop.</h2></div>
-      <p>Every module has one job: move an idea forward without letting production become accidental.</p>
-    </div>
-    <div class="module-grid">
-      <article class="module active">
-        <div class="module-top"><span>01</span><span class="status-dot"></span></div>
-        <h3>BUILD ENGINE</h3><p>Transforms conversation into an isolated working revision.</p>
-        <div class="module-status"><span>STATUS</span><strong>ACTIVE</strong></div>
-      </article>
-      <article class="module ready">
-        <div class="module-top"><span>02</span><span class="status-dot"></span></div>
-        <h3>PREVIEW PIPELINE</h3><p>Publishes a reviewable build without touching production.</p>
-        <div class="module-status"><span>STATUS</span><strong>READY</strong></div>
-      </article>
-      <article class="module monitoring">
-        <div class="module-top"><span>03</span><span class="status-dot"></span></div>
-        <h3>VISUAL QA</h3><p>Checks the interface before it becomes a decision point.</p>
-        <div class="module-status"><span>STATUS</span><strong>MONITORING</strong></div>
-      </article>
-      <article class="module locked">
-        <div class="module-top"><span>04</span><span class="lock-icon">LOCK</span></div>
-        <h3>PRODUCTION GATE</h3><p>Release remains sealed until explicit human approval.</p>
-        <div class="module-status"><span>STATUS</span><strong>LOCKED</strong></div>
-      </article>
-    </div>
-  </section>
+  <section class="dashboard-grid">
+    <article class="panel command-panel">
+      <div class="panel-head"><div><span class="label">NEW FACTORY REQUEST</span><h2>What should the Factory change?</h2></div><span class="badge live">EDIT MODE</span></div>
+      <form id="request-form">
+        <label for="prompt">INSTRUCTION</label>
+        <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Example: Make the hero more cinematic, keep mobile clean and do not touch production."></textarea>
+        <div class="form-row"><div><label for="mode">MODE</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJECT</label><div class="static-field">MultiProject Alpha</div></div></div>
+        <button class="primary" type="submit">SEND TO FACTORY <span>↗</span></button>
+        <p class="micro">Creates a Factory request on the control branch. Production deployment is hard-coded off.</p>
+      </form>
+      <div id="request-result" class="request-result" hidden></div>
+    </article>
 
-  <section id="factory-flow" class="section flow-section">
-    <div class="section-heading compact">
-      <div><span class="kicker">LIVE FACTORY FLOW</span><h2>From instruction to controlled release.</h2></div>
-    </div>
-    <div class="flow-track" role="list" aria-label="Factory process">
-      <div class="flow-node" role="listitem"><span>01</span><strong>PROMPT</strong></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node" role="listitem"><span>02</span><strong>BUILD</strong></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node" role="listitem"><span>03</span><strong>PREVIEW</strong></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node" role="listitem"><span>04</span><strong>QA</strong></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node" role="listitem"><span>05</span><strong>REVIEW</strong></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node locked-node" role="listitem"><span>06</span><strong>PRODUCTION</strong><small>LOCKED</small></div>
-    </div>
-    <div class="activity-panel">
-      <div class="activity-copy"><span class="pulse large"></span><div><strong>FACTORY ACTIVITY</strong><p>Preview mode active. Production requires explicit approval.</p></div></div>
-      <div class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    </div>
+    <article class="panel status-panel">
+      <div class="panel-head"><div><span class="label">FACTORY STATE</span><h2>Current pipeline</h2></div><button id="refresh" class="ghost small">REFRESH</button></div>
+      <div class="pipeline">
+        <div class="step active"><span>01</span><div><strong>PROMPT</strong><small>Ready for instruction</small></div><i></i></div>
+        <div class="step"><span>02</span><div><strong>BUILD</strong><small>Factory branch</small></div><i></i></div>
+        <div class="step"><span>03</span><div><strong>PREVIEW</strong><small>Cloudflare Pages</small></div><i></i></div>
+        <div class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobile</small></div><i></i></div>
+        <div class="step"><span>05</span><div><strong>REVIEW</strong><small>Human decision</small></div><i></i></div>
+        <div class="step locked"><span>06</span><div><strong>PRODUCTION</strong><small>Manual approval only</small></div><b>LOCKED</b></div>
+      </div>
+    </article>
+
+    <article class="panel telemetry">
+      <div class="panel-head"><div><span class="label">TELEMETRY</span><h2>System snapshot</h2></div></div>
+      <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">READY</strong></div><div><span>VISUAL QA</span><strong id="qa-state">PASS</strong></div><div><span>PRODUCTION</span><strong class="danger">LOCKED</strong></div><div><span>CONTROL</span><strong>LEAN V3</strong></div></div>
+    </article>
+
+    <article class="panel preview-panel">
+      <div class="panel-head"><div><span class="label">REVIEW DESTINATION</span><h2>Latest preview</h2></div><span class="badge">CANONICAL</span></div>
+      <a class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Open MultiProject Alpha Preview</span><b>↗</b></a>
+      <p class="micro">The same canonical preview URL updates across iterations.</p>
+    </article>
+
+    <article class="panel production-panel">
+      <div class="panel-head"><div><span class="label danger-text">PRODUCTION GATE</span><h2>Release control</h2></div><span class="badge danger-badge">LOCKED</span></div>
+      <p>Production cannot be triggered from Dashboard V1. A separate explicit approval flow will be required before this control can ever become active.</p>
+      <button class="production-button" disabled>PRODUCTION DEPLOY DISABLED</button>
+    </article>
   </section>
 </main>
-<footer><span>© MULTIPROJECT ALPHA</span><span>LEAN V3 / EXPERIMENTAL CONTROL SYSTEM</span></footer>
+<footer><span>RIOSYSTEMS / LEAN V3</span><span>AUTHENTICATED OPERATIONS INTERFACE</span></footer>
 <script>
-const modules=[...document.querySelectorAll('.module')];
-modules.forEach((module,index)=>module.addEventListener('pointermove',e=>{const r=module.getBoundingClientRect();module.style.setProperty('--mx',`${e.clientX-r.left}px`);module.style.setProperty('--my',`${e.clientY-r.top}px`);module.style.setProperty('--tiltX',`${((e.clientY-r.top)/r.height-.5)*-3}deg`);module.style.setProperty('--tiltY',`${((e.clientX-r.left)/r.width-.5)*3}deg`)}));
-modules.forEach(module=>module.addEventListener('pointerleave',()=>{module.style.setProperty('--tiltX','0deg');module.style.setProperty('--tiltY','0deg')}));
-const observed=document.querySelectorAll('.section,.hero-shell');
-const io=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)entry.target.classList.add('in-view')}),{threshold:.12});
-observed.forEach(el=>io.observe(el));
+const form=document.querySelector('#request-form');
+const result=document.querySelector('#request-result');
+const refresh=document.querySelector('#refresh');
+const logout=document.querySelector('#logout');
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(r.status===401){location.href='/login';throw new Error('AUTH_REQUIRED')}if(!r.ok)throw new Error(data.error||`REQUEST_FAILED_${r.status}`);return data}
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='SENDING…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';result.innerHTML=`<strong>REQUEST ACCEPTED</strong><span>${data.request_file||'Factory request created'}</span>`;result.hidden=false;form.reset()}catch(err){result.className='request-result error';result.innerHTML=`<strong>REQUEST BLOCKED</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='SEND TO FACTORY <span>↗</span>'}});
+refresh.addEventListener('click',async()=>{refresh.textContent='CHECKING…';try{const d=await api('/api/factory/status');document.querySelector('#preview-state').textContent=d.preview_ready?'READY':'CHECK';document.querySelector('#qa-state').textContent=d.qa||'UNKNOWN'}catch{}finally{refresh.textContent='REFRESH'}});
+logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
 </script>
 </body>
 </html>
