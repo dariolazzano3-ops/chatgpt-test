@@ -11,9 +11,9 @@
   "recovery_status": "resuming",
   "recovery_attempt": 1,
   "qa_status": "pending",
-  "last_error": null,
-  "failure_stage": null,
-  "failure_kind": null,
+  "last_error": "EVOLVE_NO_VERIFIED_UPDATES",
+  "failure_stage": "request_planning",
+  "failure_kind": "request_ambiguity",
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": "2026-08-27T19:47:26.747Z",
   "request_file": "factory-requests/v34-semantic-recovery-verification-20260827.json",
   "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
-  "status": "IMPLEMENTING",
+  "status": "FAILED",
   "events": [
     {
       "sequence": 1,
@@ -67,8 +67,19 @@
       "at": "2026-08-27T19:52:05.088Z",
       "type": "IMPLEMENTATION_STARTED",
       "stage": "implementation"
+    },
+    {
+      "sequence": 7,
+      "at": "2026-08-27T19:52:06.855Z",
+      "type": "SEMANTIC_FAILURE",
+      "outcome": "request_ambiguity",
+      "stage": "request_planning",
+      "note": "EVOLVE_NO_VERIFIED_UPDATES"
     }
   ],
-  "event_count": 6,
-  "updated_at": "2026-08-27T19:52:05.088Z"
+  "event_count": 7,
+  "updated_at": "2026-08-27T19:52:06.855Z",
+  "clarification_reasons": [
+    "AMBIGUOUS_REFERENCE"
+  ]
 }
