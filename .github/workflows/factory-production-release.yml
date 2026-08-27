@@ -50,9 +50,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Stage immutable release gate runtime
+      - name: Stage immutable release runtime
         shell: bash
-        run: cp scripts/production-release-gate.mjs /tmp/production-release-gate.mjs
+        run: |
+          cp scripts/production-release-gate.mjs /tmp/production-release-gate.mjs
+          cp scripts/record-production-release.mjs /tmp/record-production-release.mjs
 
       - name: Load canonical active Factory state
         id: state
@@ -135,7 +137,7 @@ jobs:
           test -n "$PRODUCTION_URL" || { echo "Could not resolve production URL"; exit 1; }
           echo "url=$PRODUCTION_URL" >> "$GITHUB_OUTPUT"
 
-      - name: Record successful production release
+      - name: Record successful production release and synchronize active state
         if: inputs.dry_run == false
         shell: bash
         env:
@@ -153,21 +155,10 @@ jobs:
           git fetch origin factory-control
           git worktree add --detach /tmp/factory-release-state origin/factory-control
           cd /tmp/factory-release-state
-          mkdir -p factory-state
-          node - <<'NODE'
-          const fs=require('fs');
-          const p='factory-state/releases.json';
-          let data={version:1,releases:[]};
-          if(fs.existsSync(p)) data=JSON.parse(fs.readFileSync(p,'utf8'));
-          if(!Array.isArray(data.releases)) data.releases=[];
-          data.version=1;
-          data.releases.push({project_slug:process.env.PROJECT_SLUG,edit_revision:Number(process.env.EDIT_REVISION),project_sha:process.env.PROJECT_SHA,branch:process.env.BRANCH,preview_url:process.env.PREVIEW_URL,production_url:process.env.PRODUCTION_URL,cloudflare_pages_project:process.env.TARGET_PROJECT,approved_by:process.env.ACTOR,production_deploy:true,deployed_at:new Date().toISOString()});
-          data.updated_at=new Date().toISOString();
-          fs.writeFileSync(p,JSON.stringify(data,null,2)+'\n');
-          NODE
+          node /tmp/record-production-release.mjs factory-state
           git config user.name "factory-production[bot]"
           git config user.email "factory-production[bot]@users.noreply.github.com"
-          git add factory-state/releases.json
+          git add factory-state/releases.json factory-state/active-project.json factory-state/projects.json
           git commit -m "Factory: record production release $PROJECT_SLUG rev $EDIT_REVISION"
           git push origin HEAD:factory-control
 
@@ -181,4 +172,5 @@ jobs:
           echo "- Revision: ${{ steps.gate.outputs.edit_revision }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit: ${{ steps.gate.outputs.project_sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Active state synchronized: yes" >> "$GITHUB_STEP_SUMMARY"
           echo "- Approved by: ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
