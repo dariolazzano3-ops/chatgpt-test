@@ -34,6 +34,16 @@ export function planStructuralEdit(prompt = "") {
   const text = raw.toLowerCase();
   const operations = [];
 
+  const asksLogo = includesAny(text, ["logo", "brand-mark", "brand mark", "markenzeichen"]);
+  const asksPlanet = includesAny(text, ["planet", "planetensymbol", "planeten-symbol"]);
+  if (asksLogo && asksPlanet) {
+    operations.push({
+      action: "replace_brand_mark_planet",
+      rotate: includesAny(text, ["dreh", "rotier", "rotation", "drehen"]),
+      reason: "Replace the current brand mark with a verifiable planet logo"
+    });
+  }
+
   if (includesAny(text, ["faq", "fragen und antworten", "häufige fragen"])) operations.push({ action: "add_section", type: "faq", reason: "Add FAQ section" });
   if (includesAny(text, ["referenzen", "referenzbereich", "projekte", "cases", "case studies"])) operations.push({ action: "add_section", type: "references", reason: "Add references section" });
   if (includesAny(text, ["leistungen", "services", "servicebereich", "leistungsbereich"])) operations.push({ action: "add_section", type: "services", reason: "Add services section" });
@@ -99,6 +109,23 @@ function ensureStructureStyles(css, columns = null) {
   return next;
 }
 
+function applyPlanetLogo(html, css, rotate = true) {
+  let nextHtml = String(html || "");
+  let nextCss = String(css || "");
+  const target = /<span\s+class=["'][^"']*brand-mark[^"']*["'][^>]*>\s*<\/span>/i;
+  const replacement = '<span class="brand-mark planet-logo" data-factory-feature="planet-logo" aria-hidden="true"><i></i></span>';
+  if (target.test(nextHtml)) nextHtml = nextHtml.replace(target, replacement);
+  else if (/<div\s+class=["'][^"']*brand[^"']*["'][^>]*>/i.test(nextHtml)) nextHtml = nextHtml.replace(/(<div\s+class=["'][^"']*brand[^"']*["'][^>]*>)/i, `$1${replacement}`);
+  else return { ok: false, html: nextHtml, css: nextCss, reason: "BRAND_MARK_TARGET_NOT_FOUND" };
+
+  const markerStart = "/* Project Factory Planet Logo: START */";
+  const markerEnd = "/* Project Factory Planet Logo: END */";
+  nextCss = nextCss.replace(/\/\* Project Factory Planet Logo: START \*\/[\s\S]*?\/\* Project Factory Planet Logo: END \*\//g, "").trimEnd();
+  const animation = rotate ? "animation:factoryPlanetOrbit 9s linear infinite;" : "";
+  nextCss += `\n\n${markerStart}\n.brand-mark.planet-logo{position:relative;width:17px;height:17px;border:1px solid var(--accent);border-radius:50%;box-shadow:0 0 18px color-mix(in srgb,var(--accent) 35%,transparent);background:transparent;${animation}}\n.brand-mark.planet-logo::before{content:\"\";position:absolute;left:-5px;top:6px;width:25px;height:5px;border:1px solid var(--accent);border-radius:50%;transform:rotate(-24deg)}\n.brand-mark.planet-logo i{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--accent);right:1px;top:2px;box-shadow:0 0 7px var(--accent)}\n@keyframes factoryPlanetOrbit{to{transform:rotate(360deg)}}\n@media(prefers-reduced-motion:reduce){.brand-mark.planet-logo{animation:none}}\n${markerEnd}\n`;
+  return { ok: true, html: nextHtml, css: nextCss };
+}
+
 export function executeStructuralEditPlan({ html = "", css = "", plan }) {
   if (!plan || plan.mode !== "structural-edit-plan") return { error: "INVALID_STRUCTURAL_EDIT_PLAN" };
   if (plan?.safety?.production_deploy !== false || plan?.safety?.active_project_only !== true) return { error: "STRUCTURAL_EDIT_SAFETY_VIOLATION" };
@@ -111,7 +138,13 @@ export function executeStructuralEditPlan({ html = "", css = "", plan }) {
   let structureStylesNeeded = false;
 
   for (const op of Array.isArray(plan.operations) ? plan.operations : []) {
-    if (op.action === "refine_whole_page_copy") {
+    if (op.action === "replace_brand_mark_planet") {
+      const result = applyPlanetLogo(nextHtml, nextCss, op.rotate !== false);
+      if (!result.ok) continue;
+      nextHtml = result.html;
+      nextCss = result.css;
+      applied.push({ action: op.action, rotate: op.rotate !== false, acceptance_marker: "planet-logo" });
+    } else if (op.action === "refine_whole_page_copy") {
       const refinementPlan = planContentRefinement(plan.prompt || "");
       const refined = executeContentRefinementPlan({ html: nextHtml, css: nextCss, plan: refinementPlan });
       if (!refined.ok) continue;
