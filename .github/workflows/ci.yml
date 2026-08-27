@@ -9,7 +9,7 @@ on:
       - feature/project-factory-v1-5
       - 'factory-v3/auto/**'
   pull_request:
-    branches: [develop, staging, main]
+    branches: [develop, staging, main, factory-control]
     paths-ignore:
       - 'projects/**'
 
