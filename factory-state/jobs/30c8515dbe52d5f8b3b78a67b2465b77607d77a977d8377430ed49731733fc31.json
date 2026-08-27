@@ -15,7 +15,12 @@
   "failure_stage": null,
   "failure_kind": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 6,
+    "failures": [],
+    "issues": []
+  },
   "preview_url": "https://afc3628d.chatgpt-factory-preview.pages.dev",
   "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56",
   "branch": "factory/multiproject-alpha-edit-30c8515dbe52",
@@ -27,7 +32,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
   "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
-  "status": "FULFILLMENT_CHECK",
+  "status": "READY_FOR_REVIEW",
   "events": [
     {
       "sequence": 1,
@@ -84,9 +89,55 @@
         "qa_ms": 3374,
         "total_ms": 11680
       }
+    },
+    {
+      "sequence": 7,
+      "at": "2026-08-27T22:23:56.966Z",
+      "type": "FULFILLMENT_RESULT",
+      "attempt": 1,
+      "outcome": "passed",
+      "stage": "request_fulfillment",
+      "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56",
+      "preview_url": "https://afc3628d.chatgpt-factory-preview.pages.dev",
+      "issue_codes": [],
+      "durations_ms": {
+        "total_ms": 703
+      }
     }
   ],
-  "event_count": 6,
-  "updated_at": "2026-08-27T22:23:55.112Z",
-  "fulfillment_status": "running"
+  "event_count": 7,
+  "updated_at": "2026-08-27T22:23:56.966Z",
+  "fulfillment_status": "passed",
+  "fulfillment_result": {
+    "version": 2,
+    "generated_at": "2026-08-27T22:23:56.846Z",
+    "request_mode": "edit",
+    "prompt": "Mobile-only Reparatur für RIOSYSTEMS DASHBOARD. Bestehenden RIO-Assistant vollständig erhalten. Füge auf Smartphones bis 768px eine feste Bottom-Navigation mit vier Buttons hinzu: RIO scrollt zum bestehenden #assistant-form bzw. .assistant-panel, Status zur .status-panel, Preview zur .preview-panel, Werkstatt zu #workshop-panel bzw. #step-workshop. Desktop ab 769px unverändert. Keine Backend-Endpunkte entfernen oder verändern, insbesondere /api/rio/chat muss erhalten bleiben. Bestehende RIO-Chat-Oberfläche, aktueller Auftrag, Werkstatt-UI und Factory-Status dürfen nicht entfernt werden. Production bleibt gesperrt.",
+    "verification_level": "structural",
+    "baseline_branch": "factory/riosystems-dashboard-staging",
+    "candidate_branch": "factory/multiproject-alpha-edit-30c8515dbe52",
+    "changed_files": [
+      "projects/multiproject-alpha/index.html",
+      "projects/multiproject-alpha/styles.css"
+    ],
+    "checks": [
+      {
+        "id": "project_delta",
+        "ok": true,
+        "detail": [
+          "projects/multiproject-alpha/index.html",
+          "projects/multiproject-alpha/styles.css"
+        ]
+      }
+    ],
+    "ok": true,
+    "failures": []
+  },
+  "qa_metrics": {
+    "total_loop_ms": 14662,
+    "final_attempt_ms": 13601,
+    "final_preview_ms": 5948,
+    "final_qa_ms": 3374,
+    "fulfillment_ms": 703
+  }
 }
