@@ -47,7 +47,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
   const priorManagedBody=extractFactoryOverrideBody(css), cleanCss=stripFactoryOverrides(css), analysis=analyzeProject({html,css:cleanCss}), cssOverrides=[], applied=[];
   let nextHtml=String(html||"");
   for (const op of Array.isArray(plan.operations)?plan.operations:[]) {
-    const semantic=clean(op.semantic,80), fallbackTarget=clean(op.target,240), target=semantic && !["theme","headline","subheadline"].includes(semantic) ? (op.scope ? fallbackTarget : resolveSemanticSelector(analysis,semantic,fallbackTarget)) : fallbackTarget, action=clean(op.action,120);
+    const semantic=clean(op.semantic,80), fallbackTarget=clean(op.target,240), target=semantic && !["theme","headline","subheadline","resolved_reference"].includes(semantic) ? (op.scope ? fallbackTarget : resolveSemanticSelector(analysis,semantic,fallbackTarget)) : fallbackTarget, action=clean(op.action,120);
     if (!target) continue;
     if (["headline","subheadline","cta"].includes(semantic) && action==="replace_text") {
       const value=clean(op.value, semantic==="subheadline"?260:semantic==="headline"?180:100); const changed=mutateScopedHtml(nextHtml,op.scope,semantic,value); if(changed===nextHtml) continue; nextHtml=changed; applied.push({target,action,value,semantic,scope:op.scope||null});
@@ -59,6 +59,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
     } else if (semantic==="grid" && action==="columns") { const count=Math.max(1,Math.min(4,Math.round(safeNumber(op.value,3)))); cssOverrides.push(overrideBlock(target,{"grid-template-columns":`repeat(${count}, minmax(0, 1fr))`})); cssOverrides.push(mediaBlock("max-width:760px",[overrideBlock(target,{"grid-template-columns":"1fr"})])); applied.push({target,action,value:count,semantic,scope:op.scope||null});
     } else if (semantic==="section" && action==="vertical_spacing") { const value=clean(op.value,32); cssOverrides.push(overrideBlock(target,{"padding-top":value,"padding-bottom":value})); applied.push({target,action,value,semantic});
     } else if (semantic==="navigation" && action==="surface_opacity") { const opacity=Math.max(0,Math.min(1,safeNumber(op.value,.9))); cssOverrides.push(overrideBlock(target,{background:`rgba(6, 9, 18, ${opacity})`,"backdrop-filter":"blur(18px)"})); applied.push({target,action,value:opacity,semantic});
+    } else if (semantic==="resolved_reference" && action==="context_emphasis") { cssOverrides.push(overrideBlock(target,{display:"inline-flex","align-items":"center",gap:"0.35em",padding:"0.28em 0.68em","border-radius":"999px",border:"1px solid color-mix(in srgb, currentColor 42%, transparent)",background:"linear-gradient(135deg, color-mix(in srgb, currentColor 10%, transparent), transparent)","letter-spacing":"0.08em","box-shadow":"inset 0 0 24px color-mix(in srgb, currentColor 7%, transparent)"})); applied.push({target,action,value:"futuristic",semantic});
     } else if (target===":root" && action==="accent_color" && /^#[0-9a-f]{3,8}$/i.test(clean(op.value,16))) { const value=clean(op.value,16); cssOverrides.push(overrideBlock(":root",{"--accent":value})); applied.push({target,action,value,semantic:"theme"});
     }
   }

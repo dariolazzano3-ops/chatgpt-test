@@ -1,6 +1,7 @@
 import { planNaturalEdit } from "./edit-planner.js";
 import { executeNaturalEditPlan } from "./edit-executor.js";
 import { planStructuralEdit, executeStructuralEditPlan } from "./universal-edit.js";
+import { analyzeProject } from "./project-analyzer.js";
 
 function clean(value, max = 4000) {
   return String(value || "").trim().slice(0, max);
@@ -90,25 +91,24 @@ function inferChanges(body = {}) {
   return explicit;
 }
 
-export function buildEvolvePlan(body = {}) {
+export function buildEvolvePlan(body = {}, projectAnalysis = null) {
   const projectSlug = slugify(body.project_slug || body.project || "");
   if (!clean(body.project_slug || body.project, 120)) return { error: "PROJECT_REQUIRED" };
   if (!clean(body.prompt, 4000) && (!body.changes || typeof body.changes !== "object")) return { error: "PROMPT_OR_CHANGES_REQUIRED" };
   const changes = inferChanges(body);
   const recognized = Object.keys(changes).filter((key) => ["title", "meta_description", "headline", "cta_text", "accent_color", "radius"].includes(key));
-  const natural_plan = recognized.length ? null : planNaturalEdit(body.prompt || "");
+  const natural_plan = recognized.length ? null : planNaturalEdit(body.prompt || "", projectAnalysis);
   const structural_plan = recognized.length ? null : planStructuralEdit(body.prompt || "");
   const executable = recognized.length || natural_plan?.operations?.length || structural_plan?.operations?.length;
-  return { ok: true, version: "3", mode: "evolve", project_slug: projectSlug, prompt: clean(body.prompt, 4000) || null, changes, recognized_changes: recognized, natural_plan, structural_plan, unsupported_prompt_requires_ai_or_manual_edit: !executable, protected_contracts: ["project_path", "production_approval_gate", "branch_isolation", "existing_unrelated_files"], status: executable ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION" };
+  return { ok: true, version: "3.5", mode: "evolve", project_slug: projectSlug, prompt: clean(body.prompt, 4000) || null, changes, recognized_changes: recognized, natural_plan, structural_plan, project_context_used:Boolean(projectAnalysis), unsupported_prompt_requires_ai_or_manual_edit: !executable, protected_contracts: ["project_path", "production_approval_gate", "branch_isolation", "existing_unrelated_files"], status: executable ? "EVOLVE_PLAN_READY" : "EVOLVE_PLAN_NEEDS_INTERPRETATION" };
 }
 
 export async function evolveProject(request, env, body = {}) {
   if (!authorized(request, env)) return { error: "UNAUTHORIZED", status: 401 };
   if (!env.GITHUB_TOKEN) return { error: "GITHUB_TOKEN_NOT_CONFIGURED", status: 503 };
 
-  const plan = buildEvolvePlan(body);
+  let plan = buildEvolvePlan(body);
   if (plan.error) return { ...plan, status: 400 };
-  if (!plan.recognized_changes.length && !plan.natural_plan?.operations?.length && !plan.structural_plan?.operations?.length) return { ...plan, status: 422 };
 
   const repository = clean(env.GITHUB_REPOSITORY || "dariolazzano3-ops/chatgpt-test", 200);
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) return { error: "INVALID_GITHUB_REPOSITORY", status: 500 };
@@ -123,6 +123,14 @@ export async function evolveProject(request, env, body = {}) {
 
   let recoveredExistingBranch = false;
   try {
+    if (!plan.recognized_changes.length) {
+      const sourceHtmlFile = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/index.html?ref=${encodeURIComponent(sourceBranch)}`);
+      const sourceCssFile = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/contents/${prefix}/styles.css?ref=${encodeURIComponent(sourceBranch)}`);
+      const projectAnalysis = analyzeProject({ html: decodeBase64(sourceHtmlFile.content), css: decodeBase64(sourceCssFile.content) });
+      plan = buildEvolvePlan(body, projectAnalysis);
+      if (!plan.natural_plan?.operations?.length && !plan.structural_plan?.operations?.length) return { ...plan, error:"EVOLVE_NEEDS_CLARIFICATION", clarification:plan.natural_plan?.clarification || null, status:422 };
+    }
+
     if (reuseBranch) {
       const branchRef = await github(env.GITHUB_TOKEN, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
       if (!branchRef?.object?.sha) return { error: "ACTIVE_EDIT_BRANCH_NOT_FOUND", status: 404 };
@@ -203,7 +211,7 @@ export async function evolveProject(request, env, body = {}) {
       pullRequest = { number: pr?.number, url: pr?.html_url, draft: pr?.draft === true, reused: reusedPullRequest };
     }
 
-    return { ok: true, status: recoveredExistingBranch || reusedPullRequest ? 200 : 201, repository, base_branch: base, source_branch: sourceBranch, branch, project_path: prefix, updates, pull_request: pullRequest, active_edit: reuseBranch, recovery_reused: recoveredExistingBranch || reusedPullRequest, production_deployed: false };
+    return { ok: true, status: recoveredExistingBranch || reusedPullRequest ? 200 : 201, repository, base_branch: base, source_branch: sourceBranch, branch, project_path: prefix, updates, pull_request: pullRequest, active_edit: reuseBranch, recovery_reused: recoveredExistingBranch || reusedPullRequest, production_deployed: false, intent_resolution: plan.natural_plan?.resolved_reference || null };
   } catch (error) {
     return { error: "EVOLVE_GITHUB_FAILED", message: clean(error?.message || "Unknown GitHub error", 300), github_status: error?.status || null, status: 502 };
   }
