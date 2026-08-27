@@ -23,6 +23,47 @@ if (projectPath !== `projects/${projectSlug}`) throw new Error('PROJECT_PATH_SLU
 
 const prMatch = String(prUrl || '').match(/\/pull\/(\d+)(?:$|[/?#])/);
 const pullRequest = prMatch ? Number(prMatch[1]) : null;
+if (!pullRequest || !/^https:\/\/github\.com\//i.test(String(prUrl || ''))) throw new Error('PULL_REQUEST_REQUIRED_FOR_PROMOTION');
+
+let visualQaReport;
+try {
+  visualQaReport = JSON.parse(await fs.readFile('visual-qa/report.json', 'utf8'));
+} catch (error) {
+  throw new Error(`RELEASE_READINESS_QA_EVIDENCE_MISSING:${String(error?.message || error).slice(0, 180)}`);
+}
+const qaResults = Array.isArray(visualQaReport?.results) ? visualQaReport.results : [];
+const qaViewports = qaResults.map((item) => item?.viewport?.name).filter(Boolean);
+const qaFailures = qaResults.flatMap((item) => Array.isArray(item?.failures) ? item.failures : []);
+const qaReady = visualQaReport?.ok === true && qaFailures.length === 0 && qaViewports.includes('desktop') && qaViewports.includes('mobile');
+if (!qaReady) throw new Error(`RELEASE_READINESS_VISUAL_QA_FAILED:${JSON.stringify({ ok: visualQaReport?.ok, viewports: qaViewports, failures: qaFailures }).slice(0, 500)}`);
+
+const releaseReadiness = {
+  version: 1,
+  gate: 'factory-v3-release-readiness',
+  preview_ready: true,
+  production_ready: false,
+  production_deploy: false,
+  production_approved: false,
+  status: 'PREVIEW_READY_AWAITING_PRODUCTION_APPROVAL',
+  blockers: ['manual_production_approval_required'],
+  evidence: {
+    project_path_valid: true,
+    branch_isolated: true,
+    pull_request_present: true,
+    preview_https: true,
+    visual_qa: {
+      ok: true,
+      report_version: visualQaReport.version ?? null,
+      generated_at: visualQaReport.generated_at ?? null,
+      viewports: qaViewports
+    }
+  },
+  feedback: {
+    current_stage: 'preview_review',
+    next_action: 'review_preview_and_request_manual_approval',
+    safe_to_continue_editing: true
+  }
+};
 
 const headers = {
   authorization: `Bearer ${token}`,
@@ -67,6 +108,7 @@ async function assertBranchContains(baseBranch, headBranch) {
 }
 
 const now = new Date().toISOString();
+releaseReadiness.generated_at = now;
 const currentRegistry = await readJson(registryPath, false);
 const registry = currentRegistry.value && typeof currentRegistry.value === 'object'
   ? currentRegistry.value
@@ -94,6 +136,7 @@ const state = {
   pull_request: pullRequest,
   preview_url: previewUrl,
   production_deploy: false,
+  release_readiness: releaseReadiness,
   mode: 'editing',
   updated_at: now
 };
@@ -108,6 +151,7 @@ registry.projects[projectSlug] = {
   pull_request: pullRequest,
   preview_url: previewUrl,
   production_deploy: false,
+  release_readiness: releaseReadiness,
   mode: 'editing',
   updated_at: now
 };
