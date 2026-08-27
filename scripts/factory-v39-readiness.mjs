@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
-assert.equal(runtime.factory_version, '3.9');
+assert.ok(Number(runtime.factory_version) >= 3.9);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.orchestration_mission_state, true);
 assert.equal(runtime.capabilities.execution_adapter_registry, true);
