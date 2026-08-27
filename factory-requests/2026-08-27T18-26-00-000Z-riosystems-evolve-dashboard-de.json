@@ -1,0 +1,7 @@
+{
+  "mode": "evolve",
+  "prompt": "Überarbeite das bestehende RIOSYSTEMS DASHBOARD vollständig visuell und sprachlich. Ziel: extrem klar, minimalistisch, hochwertig und vollständig auf Deutsch, mit starkem Wow-Effekt ohne überladene Sci-Fi-Optik. Behalte Login, GitHub-/Factory-Anbindung, Live-Status und Production-Sperre unverändert sicher bei. Zeige klar aktives Projekt, Revision, Factory-Status, Preview, QA und Production. Hauptbereich: Was möchtest du ändern? mit großem Texteingabefeld und Button Änderung starten. Prozess: Auftrag → Umsetzung → Preview → Qualitätsprüfung → Prüfung durch dich → Veröffentlichung. Mobile sauber, keine Overflows, keine abgeschnittenen Texte. Production niemals deployen.",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "production_deploy": false
+}
