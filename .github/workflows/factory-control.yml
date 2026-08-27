@@ -58,6 +58,7 @@ jobs:
           cp scripts/promote-active-project.mjs .factory-runtime/promote-active-project.mjs
           cp scripts/request-idempotency.mjs .factory-runtime/request-idempotency.mjs
           cp scripts/factory-job-state.mjs .factory-runtime/factory-job-state.mjs
+          cp scripts/factory-observability.mjs .factory-runtime/factory-observability.mjs
           cp scripts/qa-repair-policy.mjs .factory-runtime/qa-repair-policy.mjs
           cp scripts/qa-repair-loop.mjs .factory-runtime/qa-repair-loop.mjs
 
@@ -102,7 +103,7 @@ jobs:
         env:
           JOB_ID: ${{ steps.idempotency.outputs.request_key }}
           REQUEST_FILE: ${{ steps.request.outputs.file }}
-        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" REQUESTED "{\"request_file\":\"$REQUEST_FILE\",\"request_key\":\"$JOB_ID\",\"qa_status\":\"pending\"}"
+        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" REQUESTED "{\"request_file\":\"$REQUEST_FILE\",\"request_key\":\"$JOB_ID\",\"qa_status\":\"pending\",\"__event\":{\"type\":\"JOB_REQUESTED\",\"stage\":\"queue\"}}"
 
       - name: Publish duplicate request result
         if: steps.idempotency.outputs.duplicate == 'true'
@@ -130,7 +131,7 @@ jobs:
         shell: bash
         env:
           JOB_ID: ${{ steps.idempotency.outputs.request_key }}
-        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" IMPLEMENTING '{"qa_status":"pending"}'
+        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" IMPLEMENTING '{"qa_status":"pending","__event":{"type":"IMPLEMENTATION_STARTED","stage":"implementation"}}'
 
       - name: Execute Factory request
         if: steps.idempotency.outputs.duplicate != 'true'
@@ -165,6 +166,7 @@ jobs:
           test -f .factory-runtime/promote-active-project.mjs
           test -f .factory-runtime/request-idempotency.mjs
           test -f .factory-runtime/factory-job-state.mjs
+          test -f .factory-runtime/factory-observability.mjs
           test -f .factory-runtime/qa-repair-policy.mjs
           test -f .factory-runtime/qa-repair-loop.mjs
           test -f .factory-runtime/request.json
@@ -201,7 +203,7 @@ jobs:
         run: |
           set -euo pipefail
           SHA=$(git rev-parse HEAD)
-          PATCH=$(node -e 'process.stdout.write(JSON.stringify({project_slug:process.env.PROJECT_SLUG,branch:process.env.SOURCE_BRANCH,commit_sha:process.env.SHA,preview_url:process.env.PREVIEW_URL,qa_status:"passed_cached",qa_attempt:0,qa_result:{ok:true,cached:true},production_deploy:false}))' SHA="$SHA")
+          PATCH=$(node -e 'process.stdout.write(JSON.stringify({project_slug:process.env.PROJECT_SLUG,branch:process.env.SOURCE_BRANCH,commit_sha:process.env.SHA,preview_url:process.env.PREVIEW_URL,qa_status:"passed_cached",qa_attempt:0,qa_result:{ok:true,cached:true},production_deploy:false,__event:{type:"QA_CACHE_REUSED",stage:"cost_guard",outcome:"passed_cached",preview_url:process.env.PREVIEW_URL,commit_sha:process.env.SHA}}))' SHA="$SHA")
           node .factory-runtime/factory-job-state.mjs "$JOB_ID" READY_FOR_REVIEW "$PATCH"
 
       - name: Validate preview configuration
@@ -242,7 +244,7 @@ jobs:
         shell: bash
         env:
           JOB_ID: ${{ steps.idempotency.outputs.request_key }}
-        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" FAIL_SAFE '{"last_error":"factory_execution_or_workflow_failure","failure_stage":"pre_review_pipeline","production_deploy":false}'
+        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" FAIL_SAFE '{"last_error":"factory_execution_or_workflow_failure","failure_stage":"pre_review_pipeline","production_deploy":false,"__event":{"type":"WORKFLOW_FAILURE","stage":"pre_review_pipeline","outcome":"failed"}}'
 
       - name: Publish Factory failure
         if: failure() && steps.idempotency.outputs.duplicate != 'true'
@@ -318,7 +320,7 @@ jobs:
           fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description="$DESCRIPTION" -f target_url="$PREVIEW_URL" >/dev/null
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context="$QA_CONTEXT" -f description='Visual QA passed for this QA runtime version' -f target_url="$PREVIEW_URL" >/dev/null
-          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3.2 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA attempt: $QA_ATTEMPT\n- Job: \`$REQUEST_KEY\`\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
+          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3.3 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA attempt: $QA_ATTEMPT\n- Job: \`$REQUEST_KEY\`\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
           echo "- Job: $REQUEST_KEY" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
@@ -328,3 +330,8 @@ jobs:
           echo "- Factory Control runs this month: $MONTHLY_RUNS" >> "$GITHUB_STEP_SUMMARY"
           echo "- Usage level: $USAGE_LEVEL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refresh Factory observability snapshot
+        if: always() && steps.idempotency.outputs.duplicate != 'true' && steps.idempotency.outputs.request_key != ''
+        continue-on-error: true
+        run: node .factory-runtime/factory-observability.mjs
