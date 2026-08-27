@@ -74,6 +74,7 @@ if (mode === "qa" || mode === "recheck") {
     mode: "qa",
     project: { name: state.project_name, slug: state.project_slug },
     branch: state.branch,
+    source_branch: state.branch,
     project_path: state.source_path,
     preview_expected: state.preview_url || null,
     pull_request: state.pull_request ? { number: state.pull_request, url: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${state.pull_request}` } : null,
@@ -86,13 +87,14 @@ if (mode === "qa" || mode === "recheck") {
   };
 } else if (mode === "edit" || mode === "evolve") {
   const { statePath, state, targeted } = await readProjectState();
+  const sourceBranch = state.branch;
   const stagingBranch = `factory/${state.project_slug}-edit-${recoveryKey.slice(0, 12)}`;
   const result = await evolveProjectSafely(request, env, {
     project_slug: state.project_slug,
     prompt: job.prompt,
     changes: job.changes,
     base_branch: "main",
-    source_branch: state.branch,
+    source_branch: sourceBranch,
     branch_name: stagingBranch,
     reuse_branch: false,
     recover_branch: true
@@ -108,6 +110,7 @@ if (mode === "qa" || mode === "recheck") {
     mode: "edit",
     project: { name: state.project_name, slug: state.project_slug },
     branch: result.branch,
+    source_branch: sourceBranch,
     project_path: state.source_path,
     preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
@@ -152,6 +155,7 @@ if (mode === "qa" || mode === "recheck") {
     mode,
     project: blueprint.project,
     branch: result.branch,
+    source_branch: "",
     project_path: result.project_path,
     preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
@@ -167,6 +171,7 @@ console.log(JSON.stringify(output, null, 2));
 if (process.env.GITHUB_OUTPUT) {
   const lines = [
     `branch=${output.branch || ""}`,
+    `source_branch=${output.source_branch || ""}`,
     `project_slug=${output.project?.slug || ""}`,
     `project_path=${output.project_path || ""}`,
     `pr_url=${output.pull_request?.url || ""}`,
