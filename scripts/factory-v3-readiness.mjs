@@ -22,6 +22,7 @@ function requireJson(label, value) {
 }
 
 const control = read('.github/workflows/factory-control.yml');
+const ci = read('.github/workflows/ci.yml');
 const autopilot = read('.github/workflows/factory-autopilot.yml');
 const requestContract = read('scripts/factory-request-contract.mjs');
 const requestIdempotency = read('scripts/request-idempotency.mjs');
@@ -47,6 +48,9 @@ requireText('Factory Control reports failed requests', control, 'Publish Factory
 requireText('Factory failure report confirms production remains disabled', control, 'Active project promotion: skipped');
 requireText('Factory Control promotes successful projects', control, 'Promote successful project to active state');
 requireText('Factory Control publishes preview status', control, "context='factory-control/preview'");
+requireText('Generic CI keeps pull request validation enabled', ci, 'pull_request:');
+requireText('Generic CI can ignore Factory project-only pull requests', ci, 'paths-ignore:');
+requireText('Generic CI delegates projects/** pull requests to Factory Control', ci, "- 'projects/**'");
 requireText('Request idempotency uses SHA-256 fingerprint', requestIdempotency, "createHash('sha256')");
 requireText('Request idempotency persists a ledger', requestIdempotency, 'request-ledger.json');
 requireText('Factory execution derives deterministic SHA-256 recovery key', factoryControl, 'crypto.createHash("sha256")');
