@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, resolveCandidateRevision } from './factory-job-state.mjs';
 import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
 
+// Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is now enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
 const sourceBranch = process.argv[3];
 const projectSlug = process.argv[4];
