@@ -9,7 +9,12 @@
   "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 6,
+    "failures": [],
+    "issues": []
+  },
   "preview_url": "https://05cf2f9d.chatgpt-factory-preview.pages.dev",
   "commit_sha": "b7f3b1e205d09a13be5e852a0b6a495080c08c28",
   "branch": "factory/multiproject-alpha-edit-3146df2f59c4",
@@ -17,7 +22,47 @@
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-23-00-000Z-riosystems-workshop-planet-logo-retest2.json",
   "request_key": "3146df2f59c41226fe91d39b081e5a5f0875349ec9b8e074d104ba82b053d024",
-  "status": "FULFILLMENT_CHECK",
-  "updated_at": "2026-08-27T19:23:48.611Z",
-  "fulfillment_status": "running"
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T19:23:50.500Z",
+  "fulfillment_status": "passed",
+  "fulfillment_result": {
+    "version": 2,
+    "generated_at": "2026-08-27T19:23:50.354Z",
+    "request_mode": "edit",
+    "prompt": "Ändere das kleine quadratische RIOSYSTEMS-Logo oben links in ein minimalistisches Planeten-Symbol. Der Planet soll aus einem einfachen Kreis mit einem dünnen Ring bestehen, sich dauerhaft sehr langsam drehen, zur bestehenden minimalistischen RIOSYSTEMS-Optik passen und dieselbe Akzentfarbe wie das aktuelle Interface verwenden. Nur das Logo verändern. Keine anderen Texte, Layouts, Farben oder Funktionen ändern. Desktop und Mobile prüfen. Keine horizontalen Overflows erzeugen. Production nicht deployen. Werkstatt-Retest 2: prüfe ausdrücklich, dass die sichtbare Anforderung wirklich umgesetzt wurde.",
+    "verification_level": "deterministic",
+    "baseline_branch": "factory/multiproject-alpha-edit-79b94c0daa6e",
+    "candidate_branch": "factory/multiproject-alpha-edit-3146df2f59c4",
+    "changed_files": [
+      "projects/multiproject-alpha/index.html",
+      "projects/multiproject-alpha/styles.css"
+    ],
+    "checks": [
+      {
+        "id": "project_delta",
+        "ok": true,
+        "detail": [
+          "projects/multiproject-alpha/index.html",
+          "projects/multiproject-alpha/styles.css"
+        ]
+      },
+      {
+        "id": "planet_logo_present",
+        "ok": true,
+        "detail": "Expected a semantic planet-logo marker in the rendered project."
+      },
+      {
+        "id": "planet_geometry_present",
+        "ok": true,
+        "detail": "Expected planet geometry/styles in styles.css."
+      },
+      {
+        "id": "requested_rotation_present",
+        "ok": true,
+        "detail": "Expected a continuous CSS rotation for the requested animated element."
+      }
+    ],
+    "ok": true,
+    "failures": []
+  }
 }
