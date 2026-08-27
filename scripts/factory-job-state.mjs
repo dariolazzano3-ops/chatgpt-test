@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
 const controlRef = 'factory-control';
-const TERMINAL = new Set(['READY_FOR_REVIEW', 'FAILED']);
+const TERMINAL = new Set(['READY_FOR_REVIEW', 'WORKSHOP_REQUIRED', 'FAILED']);
 
 function headers() {
   if (!token) throw new Error('GITHUB_TOKEN_REQUIRED');
