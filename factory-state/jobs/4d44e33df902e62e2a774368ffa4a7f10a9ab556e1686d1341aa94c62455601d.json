@@ -7,14 +7,19 @@
   "production_deploy": false,
   "request_file": "factory-requests/v31-success-cta-retry-20260827-1910.json",
   "request_key": "4d44e33df902e62e2a774368ffa4a7f10a9ab556e1686d1341aa94c62455601d",
-  "qa_status": "pending",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T17:11:49.282Z",
+  "qa_status": "passed",
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T17:11:53.419Z",
   "last_error": "factory_execution_or_workflow_failure",
   "failure_stage": "pre_review_pipeline",
   "project_slug": "multiproject-alpha",
   "revision": 7,
   "branch": "factory/multiproject-alpha-edit-4d44e33df902",
   "commit_sha": "00fd996c2e384d301461776e893699987f74f2ce",
-  "preview_url": "https://e8fb3d45.chatgpt-factory-preview.pages.dev"
+  "preview_url": "https://e8fb3d45.chatgpt-factory-preview.pages.dev",
+  "qa_result": {
+    "ok": true,
+    "report_version": 4,
+    "failures": []
+  }
 }
