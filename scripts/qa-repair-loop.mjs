@@ -69,6 +69,16 @@ async function readProjectBundle() {
   return Object.fromEntries(entries);
 }
 
+function readProjectBundleAtBranch(branch, names = ['index.html', 'styles.css', '_worker.js']) {
+  if (!branch) return {};
+  const bundle = {};
+  for (const name of names) {
+    const result = run('git', ['show', `origin/${branch}:${projectPath}/${name}`]);
+    if (result.status === 0) bundle[name] = String(result.stdout || '');
+  }
+  return bundle;
+}
+
 function resolveActiveBaselineBranch() {
   try {
     execFileSync('git', ['fetch', 'origin', 'factory-control'], { stdio: 'ignore' });
@@ -79,6 +89,57 @@ function resolveActiveBaselineBranch() {
   } catch {
     return '';
   }
+}
+
+function explicitRemovalRequested(prompt, aliases) {
+  const destructive = /\b(entfern(?:e|en|t)|lösch(?:e|en|t)|remove|delete|abschaff(?:en|e)|deaktivier(?:en|e))\b/i.test(prompt);
+  return destructive && aliases.some((alias) => prompt.toLowerCase().includes(alias.toLowerCase()));
+}
+
+function criticalEditFeatureChecks(request, baselineFiles, candidateFiles) {
+  if (String(request.mode || '').toLowerCase() !== 'edit') return [];
+  if (projectSlug !== 'multiproject-alpha') return [];
+
+  const baselineHtml = baselineFiles['index.html'] || '';
+  const baselineWorker = baselineFiles['_worker.js'] || '';
+  const html = candidateFiles['index.html'] || '';
+  const worker = candidateFiles['_worker.js'] || '';
+  const prompt = String(request.prompt || '');
+
+  const features = [
+    {
+      id: 'regression_rio_assistant',
+      aliases: ['rio', 'assistant', 'chat'],
+      baselinePresent: /id=["']assistant-form["']/.test(baselineHtml) && /\/api\/rio\/chat/.test(baselineWorker),
+      candidatePresent: /id=["']assistant-form["']/.test(html) && /\/api\/rio\/chat/.test(worker),
+      detail: 'EDIT regression: existing RIO assistant UI/API disappeared.'
+    },
+    {
+      id: 'regression_factory_status',
+      aliases: ['status', 'aktueller status'],
+      baselinePresent: /class=["'][^"']*status-panel/.test(baselineHtml) && /\/api\/factory\/status/.test(baselineWorker),
+      candidatePresent: /class=["'][^"']*status-panel/.test(html) && /\/api\/factory\/status/.test(worker),
+      detail: 'EDIT regression: existing Factory status UI/API disappeared.'
+    },
+    {
+      id: 'regression_preview',
+      aliases: ['preview', 'vorschau'],
+      baselinePresent: /class=["'][^"']*preview-panel/.test(baselineHtml) && /id=["']preview-link["']/.test(baselineHtml),
+      candidatePresent: /class=["'][^"']*preview-panel/.test(html) && /id=["']preview-link["']/.test(html),
+      detail: 'EDIT regression: existing preview access disappeared.'
+    },
+    {
+      id: 'regression_workshop',
+      aliases: ['werkstatt', 'workshop'],
+      baselinePresent: /id=["']workshop-panel["']/.test(baselineHtml) || /id=["']step-workshop["']/.test(baselineHtml),
+      candidatePresent: /id=["']workshop-panel["']/.test(html) || /id=["']step-workshop["']/.test(html),
+      detail: 'EDIT regression: existing workshop/status path disappeared.'
+    }
+  ];
+
+  return features
+    .filter((feature) => feature.baselinePresent && !explicitRemovalRequested(prompt, feature.aliases))
+    .map((feature) => ({ id: feature.id, ok: feature.candidatePresent, detail: feature.detail }));
 }
 
 async function verifyRequestFulfillment() {
@@ -99,6 +160,11 @@ async function verifyRequestFulfillment() {
   }
   checks.push({ id: 'project_delta', ok: changedFiles.length > 0, detail: changedFiles.length ? changedFiles : ['no project file changed'] });
 
+  if (baselineBranch && baselineBranch !== sourceBranch) {
+    const baselineFiles = readProjectBundleAtBranch(baselineBranch);
+    checks.push(...criticalEditFeatureChecks(request, baselineFiles, files));
+  }
+
   const asksLogo = /logo|brand-mark|brand mark|markenzeichen/i.test(prompt);
   const asksPlanet = /planet|planetensymbol|planeten-symbol/i.test(prompt);
   const asksRotation = /dreh|rotier|rotation|drehen/i.test(prompt);
@@ -118,7 +184,7 @@ async function verifyRequestFulfillment() {
   const explicitChecks = checks.filter((c) => c.id !== 'project_delta').length;
   const failed = checks.filter((c) => !c.ok);
   const report = {
-    version: 2,
+    version: 3,
     generated_at: new Date().toISOString(),
     request_mode: request.mode || null,
     prompt,
