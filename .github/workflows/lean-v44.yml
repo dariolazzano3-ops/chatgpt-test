@@ -1,0 +1,36 @@
+name: LEAN V4.4
+
+on:
+  pull_request:
+    paths:
+      - 'src/automation-supervised-runner.js'
+      - 'src/automation-external-actions.js'
+      - 'src/automation-executor.js'
+      - 'src/automation-factory.js'
+      - 'scripts/automation-supervised-runner-smoke.mjs'
+      - 'scripts/factory-v44-readiness.mjs'
+      - 'factory-state/runtime.json'
+      - 'docs/LEAN-V4.4.md'
+      - '.github/workflows/lean-v44.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-v44:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check src/automation-supervised-runner.js
+          node --check scripts/automation-supervised-runner-smoke.mjs
+          node --check scripts/factory-v44-readiness.mjs
+      - name: Supervised runner smoke
+        run: node scripts/automation-supervised-runner-smoke.mjs
+      - name: V4.4 readiness
+        run: node scripts/factory-v44-readiness.mjs
