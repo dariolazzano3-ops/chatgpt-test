@@ -7,7 +7,9 @@ const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8')
 const runner = supervisedAutomationManifest();
 const external = externalActionManifest();
 
-assert.equal(runtime.factory_version, '4.4');
+const [major = 0, minor = 0] = String(runtime.factory_version || '').split('.').map(Number);
+assert.equal(major, 4);
+assert.ok(minor >= 4, `runtime factory_version ${runtime.factory_version} must be >= 4.4`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.automation_supervised_runner, true);
 assert.equal(runtime.capabilities.automation_transport_injection_required, true);
