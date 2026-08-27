@@ -1,0 +1,6 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "prompt": "Ändere im Hero die Headline auf Alpha Release Gate E2E",
+  "production_deploy": false
+}
