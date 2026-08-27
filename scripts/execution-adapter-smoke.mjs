@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { buildOrchestrationPlan } from "../src/orchestration-planner.js";
 import { createMission } from "../src/orchestration-state.js";
 import { listExecutionAdapters } from "../src/execution-adapters.js";
-import { prepareMissionTaskDispatch, reconcileMissionTaskResult, webFactoryJobToAdapterResult } from "../src/mission-execution-bridge.js";
+import { prepareMissionTaskDispatch, reconcileMissionTaskResult, reconcileMissionTaskFromWebJob, webFactoryJobToAdapterResult } from "../src/mission-execution-bridge.js";
 
 const adapters = listExecutionAdapters();
 assert.equal(adapters.find((item) => item.engine === "web")?.available, true);
@@ -28,11 +28,12 @@ assert.equal(prepared.factory_request.target_project_slug, "multiproject-alpha")
 assert.equal(prepared.factory_request.production_deploy, false);
 assert.equal(prepared.dispatch.automatic_dispatch, false);
 assert.equal(prepared.mission.tasks.find((item) => item.task_id === task.task_id)?.state, "RUNNING");
+assert.equal(prepared.mission.tasks.find((item) => item.task_id === task.task_id)?.inputs.dispatch_envelope.adapter_id, "web-factory-v1");
 
 const pending = webFactoryJobToAdapterResult({ status: "QA_RUNNING", job_id: "job-1" });
 assert.equal(pending.status, "PENDING");
 
-const factoryResult = webFactoryJobToAdapterResult({
+const factoryJob = {
   status: "READY_FOR_REVIEW",
   job_id: "job-1",
   project_slug: "multiproject-alpha",
@@ -42,10 +43,11 @@ const factoryResult = webFactoryJobToAdapterResult({
   qa_status: "passed",
   qa_attempt: 1,
   production_deploy: false
-});
+};
+const factoryResult = webFactoryJobToAdapterResult(factoryJob);
 assert.equal(factoryResult.status, "COMPLETED");
 
-const reconciled = reconcileMissionTaskResult(prepared.mission, task.task_id, prepared.envelope, factoryResult);
+const reconciled = reconcileMissionTaskFromWebJob(prepared.mission, task.task_id, factoryJob);
 assert.equal(reconciled.ok, true);
 assert.equal(reconciled.mission.tasks.find((item) => item.task_id === task.task_id)?.state, "COMPLETED");
 assert.equal(reconciled.mission.tasks.find((item) => item.task_id === task.task_id)?.outputs.preview_url, "https://preview.example.invalid");
