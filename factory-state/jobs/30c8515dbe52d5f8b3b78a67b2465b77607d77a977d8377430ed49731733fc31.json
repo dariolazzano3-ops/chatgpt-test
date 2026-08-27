@@ -10,7 +10,7 @@
   "run_number": 1,
   "recovery_status": "fresh",
   "recovery_attempt": 0,
-  "qa_status": "pending",
+  "qa_status": "passed",
   "last_error": null,
   "failure_stage": null,
   "failure_kind": null,
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
   "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
-  "status": "QA_RUNNING",
+  "status": "FULFILLMENT_CHECK",
   "events": [
     {
       "sequence": 1,
@@ -68,9 +68,25 @@
       "durations_ms": {
         "preview_ms": 5948
       }
+    },
+    {
+      "sequence": 6,
+      "at": "2026-08-27T22:23:55.112Z",
+      "type": "QA_ATTEMPT_RESULT",
+      "attempt": 1,
+      "outcome": "passed",
+      "stage": "qa",
+      "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56",
+      "preview_url": "https://afc3628d.chatgpt-factory-preview.pages.dev",
+      "issue_codes": [],
+      "durations_ms": {
+        "preview_ms": 5948,
+        "qa_ms": 3374,
+        "total_ms": 11680
+      }
     }
   ],
-  "event_count": 5,
-  "updated_at": "2026-08-27T22:23:50.602Z",
-  "fulfillment_status": "pending"
+  "event_count": 6,
+  "updated_at": "2026-08-27T22:23:55.112Z",
+  "fulfillment_status": "running"
 }
