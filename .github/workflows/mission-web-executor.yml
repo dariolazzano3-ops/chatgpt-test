@@ -56,20 +56,29 @@ jobs:
 
       - name: Execute and supervise mission web task
         shell: bash
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          TASK_ID: ${{ inputs.task_id }}
+          PROJECT_SLUG: ${{ inputs.project_slug }}
+          PROJECT_NAME: ${{ inputs.project_name }}
+          SOURCE_URL: ${{ inputs.source_url }}
         run: |
           set -euo pipefail
-          args=(--mission "${{ inputs.mission_file }}" --task "${{ inputs.task_id }}")
-          if [ -n "${{ inputs.project_slug }}" ]; then args+=(--project-slug "${{ inputs.project_slug }}"); fi
-          if [ -n "${{ inputs.project_name }}" ]; then args+=(--project-name "${{ inputs.project_name }}"); fi
-          if [ -n "${{ inputs.source_url }}" ]; then args+=(--source-url "${{ inputs.source_url }}"); fi
+          args=(--mission "$MISSION_FILE" --task "$TASK_ID")
+          if [ -n "$PROJECT_SLUG" ]; then args+=(--project-slug "$PROJECT_SLUG"); fi
+          if [ -n "$PROJECT_NAME" ]; then args+=(--project-name "$PROJECT_NAME"); fi
+          if [ -n "$SOURCE_URL" ]; then args+=(--source-url "$SOURCE_URL"); fi
           node scripts/mission-web-supervisor.mjs "${args[@]}"
 
       - name: Publish safety summary
         if: always()
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          TASK_ID: ${{ inputs.task_id }}
         run: |
           echo '### LEAN V4.0 Mission Web Executor' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Mission: `${{ inputs.mission_file }}`' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Task: `${{ inputs.task_id }}`' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "- Mission: \`$MISSION_FILE\`" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "- Task: \`$TASK_ID\`" >> "$GITHUB_STEP_SUMMARY"
           echo '- Factory: web' >> "$GITHUB_STEP_SUMMARY"
           echo '- Production deploy: disabled' >> "$GITHUB_STEP_SUMMARY"
           echo '- Production approval: separate manual workflow required' >> "$GITHUB_STEP_SUMMARY"
