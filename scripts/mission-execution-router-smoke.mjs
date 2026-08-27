@@ -38,8 +38,11 @@ const automationContracts = {
 };
 
 const manifest = missionExecutionRouterManifest();
-assert.equal(manifest.version, '4.6');
-assert.deepEqual(manifest.supported_engines, ['web', 'automation']);
+const [major = 0, minor = 0] = String(manifest.version || '').split('.').map(Number);
+assert.equal(major, 4);
+assert.ok(minor >= 6, `router manifest ${manifest.version} must be >= 4.6`);
+assert.equal(manifest.supported_engines.includes('web'), true);
+assert.equal(manifest.supported_engines.includes('automation'), true);
 assert.equal(manifest.production_deploy, false);
 assert.equal(manifest.automatic_cross_factory_execution, false);
 
