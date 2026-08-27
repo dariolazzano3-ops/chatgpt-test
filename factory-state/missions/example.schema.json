@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mission_id": "example-mission",
+  "status": "PLANNED",
+  "production_deploy": false,
+  "tasks": []
+}
