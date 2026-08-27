@@ -17,6 +17,19 @@ function readJson(path) {
   }
 }
 
+function validateReleaseReadiness(value, label) {
+  if (value == null) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) fail(`${label}.release_readiness must be an object`);
+  if (value.gate !== 'factory-v3-release-readiness') fail(`${label}.release_readiness.gate invalid`);
+  if (value.preview_ready !== true) fail(`${label}.release_readiness.preview_ready must be true`);
+  if (value.production_ready !== false) fail(`${label}.release_readiness.production_ready must remain false before approval`);
+  if (value.production_deploy !== false) fail(`${label}.release_readiness.production_deploy must remain false`);
+  if (value.production_approved !== false) fail(`${label}.release_readiness.production_approved must remain false`);
+  if (value.status !== 'PREVIEW_READY_AWAITING_PRODUCTION_APPROVAL') fail(`${label}.release_readiness.status invalid`);
+  if (!Array.isArray(value.blockers) || !value.blockers.includes('manual_production_approval_required')) fail(`${label}.release_readiness approval blocker missing`);
+  if (value?.evidence?.visual_qa?.ok !== true) fail(`${label}.release_readiness visual QA evidence missing`);
+}
+
 function validateProjectState(state, label) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) fail(`${label} must be an object`);
   for (const key of ['project_name', 'project_slug', 'source_path', 'branch', 'preview_url', 'mode', 'updated_at']) {
@@ -34,6 +47,13 @@ function validateProjectState(state, label) {
   if (Number.isNaN(Date.parse(state.updated_at))) fail(`${label}.updated_at invalid`);
   if (state.previous_branch != null && (typeof state.previous_branch !== 'string' || !state.previous_branch.startsWith('factory/'))) fail(`${label}.previous_branch invalid`);
   if (state.edit_revision != null && (!Number.isInteger(state.edit_revision) || state.edit_revision < 0)) fail(`${label}.edit_revision invalid`);
+  validateReleaseReadiness(state.release_readiness, label);
+}
+
+function sameValue(a, b) {
+  if (a && typeof a === 'object') return JSON.stringify(a) === JSON.stringify(b);
+  if (b && typeof b === 'object') return JSON.stringify(a) === JSON.stringify(b);
+  return a === b;
 }
 
 const active = readJson(activePath);
@@ -59,12 +79,12 @@ if (!registeredActive) fail(`active project ${active.project_slug} missing from 
 
 const canonicalFields = [
   'project_name', 'project_slug', 'source_path', 'branch', 'pull_request',
-  'preview_url', 'production_deploy', 'mode', 'updated_at', 'previous_branch', 'edit_revision'
+  'preview_url', 'production_deploy', 'mode', 'updated_at', 'previous_branch', 'edit_revision', 'release_readiness'
 ];
 for (const field of canonicalFields) {
   const activeValue = active[field] ?? null;
   const registryValue = registeredActive[field] ?? null;
-  if (activeValue !== registryValue) fail(`active/registry drift at ${field}: active=${JSON.stringify(activeValue)} registry=${JSON.stringify(registryValue)}`);
+  if (!sameValue(activeValue, registryValue)) fail(`active/registry drift at ${field}: active=${JSON.stringify(activeValue)} registry=${JSON.stringify(registryValue)}`);
 }
 
 const latestProjectUpdate = Math.max(...slugs.map((slug) => Date.parse(registry.projects[slug].updated_at)));
