@@ -5,7 +5,7 @@
   "max_qa_attempts": 3,
   "qa_attempt": 1,
   "production_deploy": false,
-  "qa_status": "pending",
+  "qa_status": "passed",
   "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
@@ -17,7 +17,7 @@
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-23-00-000Z-riosystems-workshop-planet-logo-retest2.json",
   "request_key": "3146df2f59c41226fe91d39b081e5a5f0875349ec9b8e074d104ba82b053d024",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T19:23:44.321Z",
-  "fulfillment_status": "pending"
+  "status": "FULFILLMENT_CHECK",
+  "updated_at": "2026-08-27T19:23:48.611Z",
+  "fulfillment_status": "running"
 }
