@@ -3,7 +3,7 @@
   "job_id": "3146df2f59c41226fe91d39b081e5a5f0875349ec9b8e074d104ba82b053d024",
   "created_at": "2026-08-27T19:23:02.824Z",
   "max_qa_attempts": 3,
-  "qa_attempt": 0,
+  "qa_attempt": 1,
   "production_deploy": false,
   "qa_status": "pending",
   "last_error": null,
@@ -17,7 +17,7 @@
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-23-00-000Z-riosystems-workshop-planet-logo-retest2.json",
   "request_key": "3146df2f59c41226fe91d39b081e5a5f0875349ec9b8e074d104ba82b053d024",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T19:23:34.589Z",
+  "status": "PREVIEW_BUILDING",
+  "updated_at": "2026-08-27T19:23:35.744Z",
   "fulfillment_status": "pending"
 }
