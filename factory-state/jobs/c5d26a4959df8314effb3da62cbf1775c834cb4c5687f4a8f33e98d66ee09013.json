@@ -5,9 +5,9 @@
   "max_qa_attempts": 3,
   "qa_attempt": 0,
   "production_deploy": false,
-  "request_file": "factory-requests/v31-e2e-cta-test-20260827-1856.json",
+  "request_file": "factory-requests/v31-failure-lifecycle-retest-20260827-1902.json",
   "request_key": "c5d26a4959df8314effb3da62cbf1775c834cb4c5687f4a8f33e98d66ee09013",
   "qa_status": "pending",
   "status": "REQUESTED",
-  "updated_at": "2026-08-27T16:56:44.789Z"
+  "updated_at": "2026-08-27T17:02:06.287Z"
 }
