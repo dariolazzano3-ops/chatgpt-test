@@ -1,0 +1,64 @@
+name: Mission Intake
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'One high-level mission prompt'
+        required: true
+        type: string
+      project:
+        description: 'Optional project slug/context'
+        required: false
+        type: string
+      project_name:
+        description: 'Optional human-readable project name'
+        required: false
+        type: string
+
+concurrency:
+  group: mission-intake-${{ github.actor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout canonical Factory runtime
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate V4.10 readiness
+        run: node scripts/factory-v410-readiness.mjs
+      - name: Compile and persist mission package
+        shell: bash
+        env:
+          MISSION_PROMPT: ${{ inputs.prompt }}
+          PROJECT: ${{ inputs.project }}
+          PROJECT_NAME: ${{ inputs.project_name }}
+        run: |
+          set -euo pipefail
+          args=(--prompt "$MISSION_PROMPT")
+          if [ -n "$PROJECT" ]; then args+=(--project "$PROJECT"); fi
+          if [ -n "$PROJECT_NAME" ]; then args+=(--project-name "$PROJECT_NAME"); fi
+          node scripts/mission-intake.mjs "${args[@]}"
+      - name: Publish safety summary
+        if: always()
+        run: |
+          echo '### LEAN V4.10 Mission Intake' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Input: one high-level mission prompt' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Output: durable mission + safe factory contracts + activation requirements' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Execution: not started automatically' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production deploy: disabled' >> "$GITHUB_STEP_SUMMARY"

@@ -19,7 +19,7 @@ export function routeCapability(input = {}) {
   if (hit(prompt,["ändere","aendere","bearbeite","verbessere","evolve","update","anpassen","mach den","mach die"])&&project) add("web_evolve",5,"existing_project_change");
   if (hit(prompt,["rebuild","rekonstruiere","nachbauen","bestehende website analysieren"])) add("web_rebuild",6,"rebuild_intent");
   if (hit(prompt,["app","dashboard","internes tool","internal tool","software tool"])) add("app_build",4,"app_language");
-  if (hit(prompt,["automation","automatisiere","workflow","api verbinden","integration","webhook","datenfluss"])) add("automation_build",5,"automation_language");
+  if (hit(prompt,["automation","automatisiere","automatisch","automatisiert","workflow","api verbinden","integration","webhook","datenfluss","lead flow","lead-flow","eingehende leads","eingehender lead","verbinde eingehende","connect leads"])) add("automation_build",5,"automation_language");
   if (hit(prompt,["ki","ai ","agent","assistent","assistant","rag","wissenssystem","knowledge base"])) add("ai_system_build",5,"ai_language");
   if (hit(prompt,["crm","leads","lead-system","angebotssystem","kundenprozess","business system","vertrieb","sales pipeline"])) add("business_system_build",5,"business_language");
   const ranked=[...scores.entries()].map(([id,value])=>({id,...CAPABILITIES[id],...value})).sort((a,b)=>b.score-a.score); if(!ranked.length) return {ok:false,error:"CAPABILITY_UNRESOLVED",candidates:[]};
@@ -27,4 +27,4 @@ export function routeCapability(input = {}) {
   if(multi_domain.length>1&&!project) return {ok:true,capability:"multi_capability",status:"planned",confidence,candidates:ranked.slice(0,4),required_capabilities:multi_domain,reason:"compound_request_requires_orchestration",production_deploy:false};
   return {ok:true,capability:top.id,domain:top.domain,engine:top.engine,status:top.status,risk:top.risk,confidence,reason:top.reasons[0],candidates:ranked.slice(0,3),production_deploy:false};
 }
-export function capabilityRegistry(){ return {version:"4.8",architecture:"multi_factory_capability_registry",capabilities:listCapabilities(),principles:{core_routes_work:true,domain_engines_remain_modular:true,unavailable_capabilities_are_never_faked:true,compound_requests_require_orchestration:true,production_requires_explicit_approval:true}}; }
+export function capabilityRegistry(){ return {version:"4.10",architecture:"multi_factory_capability_registry",capabilities:listCapabilities(),principles:{core_routes_work:true,domain_engines_remain_modular:true,unavailable_capabilities_are_never_faked:true,compound_requests_require_orchestration:true,production_requires_explicit_approval:true}}; }

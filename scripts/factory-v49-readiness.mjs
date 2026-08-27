@@ -4,8 +4,10 @@ import { missionSupervisorManifest } from '../src/mission-supervisor.js';
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
 const manifest = missionSupervisorManifest();
+const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
 
-assert.equal(runtime.factory_version, '4.9');
+assert.equal(runtimeMajor, 4);
+assert.ok(runtimeMinor >= 9, `runtime factory_version ${runtime.factory_version} must be >= 4.9`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.supervised_multi_factory_mission_loop, true);
 assert.equal(runtime.capabilities.persisted_multi_factory_mission_supervisor, true);
