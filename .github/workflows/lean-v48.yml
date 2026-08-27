@@ -1,0 +1,47 @@
+name: LEAN V4.8
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/business-factory.js'
+      - 'src/business-executor.js'
+      - 'src/business-mission-bridge.js'
+      - 'src/mission-execution-router.js'
+      - 'src/automation-mission-bridge.js'
+      - 'src/execution-adapters.js'
+      - 'src/capability-router.js'
+      - 'scripts/business-factory-smoke.mjs'
+      - 'scripts/business-mission-bridge-smoke.mjs'
+      - 'scripts/mission-four-factory-smoke.mjs'
+      - 'scripts/factory-v48-readiness.mjs'
+      - 'factory-state/runtime.json'
+      - '.github/workflows/lean-v48.yml'
+
+jobs:
+  validate-v48:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/business-factory.js
+          node --check src/business-executor.js
+          node --check src/business-mission-bridge.js
+          node --check src/mission-execution-router.js
+          node --check scripts/business-factory-smoke.mjs
+          node --check scripts/business-mission-bridge-smoke.mjs
+          node --check scripts/mission-four-factory-smoke.mjs
+          node --check scripts/factory-v48-readiness.mjs
+      - name: Business Factory smoke
+        run: node scripts/business-factory-smoke.mjs
+      - name: Business mission bridge smoke
+        run: node scripts/business-mission-bridge-smoke.mjs
+      - name: Four-factory mission smoke
+        run: node scripts/mission-four-factory-smoke.mjs
+      - name: V4.8 readiness
+        run: node scripts/factory-v48-readiness.mjs
