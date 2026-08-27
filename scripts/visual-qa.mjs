@@ -73,13 +73,18 @@ try {
         .filter(Boolean);
 
       const overflowElements = visibleElementRects
-        .map(({ el, rect }) => {
+        .map(({ el, rect, style }) => {
           const rightOverflow = Math.max(0, rect.right - viewportWidth);
           const leftOverflow = Math.max(0, -rect.left);
           const amount = Math.max(rightOverflow, leftOverflow);
           if (amount <= 1) return null;
           return {
             selector: selectorFor(el),
+            tagName: el.tagName.toLowerCase(),
+            display: style.display,
+            position: style.position,
+            whiteSpace: style.whiteSpace,
+            textLength: (el.textContent || "").trim().length,
             left: Math.round(rect.left * 10) / 10,
             right: Math.round(rect.right * 10) / 10,
             width: Math.round(rect.width * 10) / 10,
@@ -95,6 +100,28 @@ try {
         maxRight: Math.max(acc.maxRight, rect.right)
       }), { minLeft: 0, maxRight: viewportWidth });
       const geometricOverflow = Math.max(0, geometricBounds.maxRight - viewportWidth, -geometricBounds.minLeft);
+
+      const pseudoCandidates = [...document.querySelectorAll("body, body *")]
+        .flatMap((el) => ["::before", "::after"].map((pseudo) => {
+          const style = getComputedStyle(el, pseudo);
+          const content = style.content;
+          if (!content || content === "none" || content === "normal") return null;
+          const position = style.position;
+          const potentiallyViewportAffecting = position === "absolute" || position === "fixed" || style.transform !== "none" || style.filter !== "none";
+          if (!potentiallyViewportAffecting) return null;
+          return {
+            selector: `${selectorFor(el)}${pseudo}`,
+            position,
+            left: style.left,
+            right: style.right,
+            width: style.width,
+            transform: style.transform,
+            filter: style.filter,
+            overflowX: style.overflowX
+          };
+        }))
+        .filter(Boolean)
+        .slice(0, 20);
 
       const scrollOnlyOverflow = scrollOverflow > 4 && geometricOverflow <= 4 && overflowElements.length === 0;
       const clippingPresent = rootStyle.overflowX === "hidden" || rootStyle.overflowX === "clip" || bodyStyle?.overflowX === "hidden" || bodyStyle?.overflowX === "clip";
@@ -126,22 +153,40 @@ try {
           bodyOverflowX: bodyStyle?.overflowX || null
         },
         overflowElements,
+        pseudoCandidates,
         bodyTextLength: (body?.innerText || "").trim().length
       };
     });
 
     const failures = [];
     const warnings = [];
-    if (status < 200 || status >= 400) failures.push(`HTTP status ${status}`);
-    if (!metrics.hasH1) failures.push("missing visible h1");
-    if (!metrics.hasMain) failures.push("missing main element");
-    if (!metrics.protectedLogin && metrics.visibleSections < 2) failures.push(`only ${metrics.visibleSections} visible main sections`);
+    const issues = [];
+    const addFailure = (code, message, details = {}) => {
+      failures.push(message);
+      issues.push({ code, message, details });
+    };
+
+    if (status < 200 || status >= 400) addFailure("HTTP_STATUS", `HTTP status ${status}`, { status });
+    if (!metrics.hasH1) addFailure("MISSING_H1", "missing visible h1");
+    if (!metrics.hasMain) addFailure("MISSING_MAIN", "missing main element");
+    if (!metrics.protectedLogin && metrics.visibleSections < 2) addFailure("TOO_FEW_SECTIONS", `only ${metrics.visibleSections} visible main sections`, { visibleSections: metrics.visibleSections });
     if (metrics.protectedLogin) warnings.push("protected preview detected; QA validated login gate and viewport safety");
-    if (metrics.geometricOverflowPx > 4) failures.push(`geometric horizontal overflow ${metrics.geometricOverflowPx}px`);
-    else if (metrics.overflowClassification === "scroll-only-unclipped") failures.push(`unexplained scroll overflow ${metrics.scrollOverflowPx}px`);
-    else if (metrics.overflowClassification === "scroll-only-clipped") warnings.push(`clipped scroll-width overflow ${metrics.scrollOverflowPx}px without geometric overflow`);
-    if (!metrics.protectedLogin && metrics.bodyTextLength < 80) failures.push("page contains too little visible text");
-    if (pageErrors.length) failures.push(`${pageErrors.length} page error(s)`);
+    if (metrics.geometricOverflowPx > 4) {
+      addFailure("GEOMETRIC_OVERFLOW", `geometric horizontal overflow ${metrics.geometricOverflowPx}px`, {
+        overflowPx: metrics.geometricOverflowPx,
+        overflowElements: metrics.overflowElements
+      });
+    } else if (metrics.overflowClassification === "scroll-only-unclipped") {
+      addFailure("SCROLL_OVERFLOW", `unexplained scroll overflow ${metrics.scrollOverflowPx}px`, {
+        overflowPx: metrics.scrollOverflowPx,
+        overflowElements: metrics.overflowElements,
+        pseudoCandidates: metrics.pseudoCandidates
+      });
+    } else if (metrics.overflowClassification === "scroll-only-clipped") {
+      warnings.push(`clipped scroll-width overflow ${metrics.scrollOverflowPx}px without geometric overflow`);
+    }
+    if (!metrics.protectedLogin && metrics.bodyTextLength < 80) addFailure("TOO_LITTLE_TEXT", "page contains too little visible text", { bodyTextLength: metrics.bodyTextLength });
+    if (pageErrors.length) addFailure("PAGE_ERROR", `${pageErrors.length} page error(s)`, { pageErrors: pageErrors.slice(0, 20) });
 
     results.push({
       viewport,
@@ -150,7 +195,8 @@ try {
       consoleErrors: consoleErrors.slice(0, 20),
       pageErrors: pageErrors.slice(0, 20),
       warnings,
-      failures
+      failures,
+      issues
     });
 
     await context.close();
@@ -160,7 +206,7 @@ try {
 }
 
 const report = {
-  version: 5,
+  version: 6,
   url,
   generated_at: new Date().toISOString(),
   ok: results.every((result) => result.failures.length === 0),

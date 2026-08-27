@@ -58,6 +58,7 @@ jobs:
           cp scripts/promote-active-project.mjs .factory-runtime/promote-active-project.mjs
           cp scripts/request-idempotency.mjs .factory-runtime/request-idempotency.mjs
           cp scripts/factory-job-state.mjs .factory-runtime/factory-job-state.mjs
+          cp scripts/qa-repair-policy.mjs .factory-runtime/qa-repair-policy.mjs
           cp scripts/qa-repair-loop.mjs .factory-runtime/qa-repair-loop.mjs
 
       - name: Resolve request file
@@ -164,6 +165,7 @@ jobs:
           test -f .factory-runtime/promote-active-project.mjs
           test -f .factory-runtime/request-idempotency.mjs
           test -f .factory-runtime/factory-job-state.mjs
+          test -f .factory-runtime/qa-repair-policy.mjs
           test -f .factory-runtime/qa-repair-loop.mjs
           test -f .factory-runtime/request.json
 
@@ -316,7 +318,7 @@ jobs:
           fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context='factory-control/preview' -f description="$DESCRIPTION" -f target_url="$PREVIEW_URL" >/dev/null
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=success -f context="$QA_CONTEXT" -f description='Visual QA passed for this QA runtime version' -f target_url="$PREVIEW_URL" >/dev/null
-          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3.1 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA attempt: $QA_ATTEMPT\n- Job: \`$REQUEST_KEY\`\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
+          if [ -n "$PR_URL" ]; then gh pr comment "$PR_URL" --body "✅ Factory Control V3.2 completed successfully.\n\n- Project: \`$PROJECT_PATH\`\n- Preview: $PREVIEW_URL\n- Visual QA: passed\n- QA attempt: $QA_ATTEMPT\n- Job: \`$REQUEST_KEY\`\n- QA cache reused: $QA_DUPLICATE\n- Factory Control runs this month: $MONTHLY_RUNS ($USAGE_LEVEL)\n- Production: not deployed"; fi
           echo "### Factory Control Result" >> "$GITHUB_STEP_SUMMARY"
           echo "- Job: $REQUEST_KEY" >> "$GITHUB_STEP_SUMMARY"
           echo "- Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
