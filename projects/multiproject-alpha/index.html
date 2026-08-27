@@ -81,5 +81,15 @@ refresh.addEventListener('click',()=>refreshStatus());
 logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
 refreshStatus(true);setInterval(()=>{if(!pollTimer)refreshStatus(true)},15000);
 </script>
+
+<nav class="factory-mobile-quick-nav" data-factory-mobile-quick-nav="true" aria-label="Mobile Schnellzugriffe">
+  <button type="button" data-factory-target="#request-form" aria-label="Chat mit RIO"><span aria-hidden="true">✦</span><small>RIO</small></button>
+  <button type="button" data-factory-target=".status-panel" aria-label="Aktueller Status"><span aria-hidden="true">◎</span><small>Status</small></button>
+  <button type="button" data-factory-target=".preview-panel" aria-label="Preview"><span aria-hidden="true">↗</span><small>Preview</small></button>
+  <button type="button" data-factory-target="#step-workshop" aria-label="Werkstatt"><span aria-hidden="true">◇</span><small>Werkstatt</small></button>
+</nav>
+<script data-factory-mobile-quick-nav-script="true">
+(()=>{const nav=document.querySelector('[data-factory-mobile-quick-nav="true"]');if(!nav)return;let toast=null;const showToast=()=>{if(!toast){toast=document.createElement('div');toast.className='factory-mobile-quick-nav-toast';toast.setAttribute('role','status');document.body.appendChild(toast)}toast.textContent='Bereich momentan nicht verfügbar';toast.classList.add('show');setTimeout(()=>toast?.classList.remove('show'),1800)};nav.addEventListener('click',e=>{const button=e.target.closest('button[data-factory-target]');if(!button)return;const target=document.querySelector(button.dataset.factoryTarget);if(!target){showToast();return}target.scrollIntoView({behavior:'smooth',block:'start'});});})();
+</script>
 </body>
 </html>
