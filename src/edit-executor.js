@@ -60,6 +60,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
     } else if (semantic==="section" && action==="vertical_spacing") { const value=clean(op.value,32); cssOverrides.push(overrideBlock(target,{"padding-top":value,"padding-bottom":value})); applied.push({target,action,value,semantic});
     } else if (semantic==="navigation" && action==="surface_opacity") { const opacity=Math.max(0,Math.min(1,safeNumber(op.value,.9))); cssOverrides.push(overrideBlock(target,{background:`rgba(6, 9, 18, ${opacity})`,"backdrop-filter":"blur(18px)"})); applied.push({target,action,value:opacity,semantic});
     } else if (target===":root" && action==="accent_color" && /^#[0-9a-f]{3,8}$/i.test(clean(op.value,16))) { const value=clean(op.value,16); cssOverrides.push(overrideBlock(":root",{"--accent":value})); applied.push({target,action,value,semantic:"theme"});
+    }
   }
   if (!applied.length) return { error:"NO_EXECUTABLE_NATURAL_EDIT_OPERATIONS", applied:[], analysis };
   const managedBlock=buildManagedOverrideBlock([priorManagedBody,...cssOverrides]), nextCss=managedBlock?`${cleanCss}\n\n${managedBlock}\n`:`${cleanCss}\n`, changedFiles=[]; if(nextHtml!==html) changedFiles.push("index.html"); if(nextCss!==css) changedFiles.push("styles.css");
