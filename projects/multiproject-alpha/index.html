@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="RIOSYSTEMS Dashboard — LEAN V3 Factory operations interface.">
+<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für LEAN V3.">
 <title>RIOSYSTEMS DASHBOARD</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -11,58 +11,58 @@
 <div class="grid" aria-hidden="true"></div>
 <header class="topbar">
   <div class="brand"><span class="brand-mark"></span><span>RIOSYSTEMS</span><small>DASHBOARD</small></div>
-  <div class="top-actions"><span class="online"><i></i>SYSTEM ONLINE</span><button id="logout" class="ghost small">LOG OUT</button></div>
+  <div class="top-actions"><span class="online"><i></i>SYSTEM BEREIT</span><button id="logout" class="ghost small">ABMELDEN</button></div>
 </header>
 <main>
   <section class="intro">
-    <div><span class="kicker">LEAN V3 OPERATIONS</span><h1>Control the factory.<br>Keep production deliberate.</h1><p>Send work into the active Factory project, watch the pipeline, review the preview and keep Production behind a human gate.</p></div>
-    <div class="hero-state"><span>ACTIVE PROJECT</span><strong>MultiProject Alpha</strong><code id="active-revision">multiproject-alpha</code></div>
+    <div><span class="kicker">LEAN V3 STEUERUNG</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
+    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong>MultiProject Alpha</strong><code id="active-revision">multiproject-alpha</code></div>
   </section>
 
   <section class="dashboard-grid">
     <article class="panel command-panel">
-      <div class="panel-head"><div><span class="label">NEW FACTORY REQUEST</span><h2>What should the Factory change?</h2></div><span class="badge live">EDIT MODE</span></div>
+      <div class="panel-head"><div><span class="label">NEUER AUFTRAG</span><h2>Was möchtest du ändern?</h2></div><span class="badge live">BEARBEITEN</span></div>
       <form id="request-form">
-        <label for="prompt">INSTRUCTION</label>
-        <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Example: Make the hero more cinematic, keep mobile clean and do not touch production."></textarea>
-        <div class="form-row"><div><label for="mode">MODE</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJECT</label><div class="static-field">MultiProject Alpha</div></div></div>
-        <button class="primary" type="submit">SEND TO FACTORY <span>↗</span></button>
+        <label for="prompt">DEIN AUFTRAG</label>
+        <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Beschreibe einfach, was geändert werden soll …"></textarea>
+        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field">MultiProject Alpha</div></div></div>
+        <button class="primary" type="submit">ÄNDERUNG STARTEN <span>↗</span></button>
         <p class="micro">Creates and verifies a Factory request on the control branch. Production deployment is hard-coded off.</p>
       </form>
       <div id="request-result" class="request-result" hidden></div>
     </article>
 
     <article class="panel status-panel">
-      <div class="panel-head"><div><span class="label">FACTORY STATE</span><h2>Current pipeline</h2></div><button id="refresh" class="ghost small">REFRESH</button></div>
+      <div class="panel-head"><div><span class="label">AKTUELLER STATUS</span><h2>Aktueller Ablauf</h2></div><button id="refresh" class="ghost small">AKTUALISIEREN</button></div>
       <div class="pipeline">
-        <div id="step-prompt" class="step"><span>01</span><div><strong>PROMPT</strong><small>Ready for instruction</small></div><i></i></div>
-        <div id="step-build" class="step"><span>02</span><div><strong>BUILD</strong><small>Factory branch</small></div><i></i></div>
-        <div id="step-preview" class="step"><span>03</span><div><strong>PREVIEW</strong><small>Cloudflare Pages</small></div><i></i></div>
-        <div id="step-qa" class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobile</small></div><i></i></div>
-        <div id="step-review" class="step"><span>05</span><div><strong>REVIEW</strong><small>Human decision</small></div><i></i></div>
-        <div class="step locked"><span>06</span><div><strong>PRODUCTION</strong><small>Manual approval only</small></div><b>LOCKED</b></div>
+        <div id="step-prompt" class="step"><span>01</span><div><strong>AUFTRAG</strong><small>Bereit für deinen Auftrag</small></div><i></i></div>
+        <div id="step-build" class="step"><span>02</span><div><strong>UMSETZUNG</strong><small>Neue Revision</small></div><i></i></div>
+        <div id="step-preview" class="step"><span>03</span><div><strong>PPRÜFUNG</strong><small>Testversion</small></div><i></i></div>
+        <div id="step-qa" class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobil</small></div><i></i></div>
+        <div id="step-review" class="step"><span>05</span><div><strong>PRÜFUNG</strong><small>Deine Entscheidung</small></div><i></i></div>
+        <div class="step locked"><span>06</span><div><strong>PRODUCTION</strong><small>Nur mit deiner Freigabe</small></div><b>GESPERRT</b></div>
       </div>
     </article>
 
     <article class="panel telemetry">
-      <div class="panel-head"><div><span class="label">TELEMETRY</span><h2>System snapshot</h2></div></div>
-      <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">CHECK</strong></div><div><span>VISUAL QA</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">LOCKED</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
+      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div></div>
+      <div class="metrics"><div><span>PPRÜFUNG</span><strong id="preview-state">CHECK</strong></div><div><span>QUALITÄTSPRÜFUNG</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">GESPERRT</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
     </article>
 
     <article class="panel preview-panel">
-      <div class="panel-head"><div><span class="label">REVIEW DESTINATION</span><h2>Latest preview</h2></div><span class="badge">LIVE</span></div>
-      <a id="preview-link" class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Open MultiProject Alpha Preview</span><b>↗</b></a>
+      <div class="panel-head"><div><span class="label">PRÜFUNG DESTINATION</span><h2>Aktuelle Preview</h2></div><span class="badge">LIVE</span></div>
+      <a id="preview-link" class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Preview öffnen</span><b>↗</b></a>
       <p id="run-state" class="micro">Checking the current Factory job…</p>
     </article>
 
     <article class="panel production-panel">
-      <div class="panel-head"><div><span class="label danger-text">PRODUCTION GATE</span><h2>Release control</h2></div><span class="badge danger-badge">LOCKED</span></div>
-      <p>Production cannot be triggered from Dashboard V1. A separate explicit approval flow will be required before this control can ever become active.</p>
-      <button class="production-button" disabled>PRODUCTION DEPLOY DISABLED</button>
+      <div class="panel-head"><div><span class="label danger-text">VERÖFFENTLICHUNG</span><h2>Production-Freigabe</h2></div><span class="badge danger-badge">GESPERRT</span></div>
+      <p>Diese Version wird erst veröffentlicht, wenn du sie ausdrücklich freigibst.</p>
+      <button class="production-button" disabled>PRODUCTION GESPERRT</button>
     </article>
   </section>
 </main>
-<footer><span>RIOSYSTEMS / LEAN V3</span><span>AUTHENTICATED OPERATIONS INTERFACE</span></footer>
+<footer><span>RIOSYSTEMS / LEAN V3</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
 <script>
 const form=document.querySelector('#request-form');
 const result=document.querySelector('#request-result');
@@ -77,11 +77,11 @@ function paintStage(stage){
   document.querySelector(`#step-${normalized}`)?.classList.add('active');
 }
 async function refreshStatus(silent=false){
-  if(!silent)refresh.textContent='CHECKING…';
+  if(!silent)refresh.textContent='WIRD AKTUALISIERT…';
   try{
     const d=await api('/api/factory/status');
     paintStage(d.stage);
-    document.querySelector('#preview-state').textContent=d.preview_ready?'READY':(d.stage==='preview'||d.stage==='qa'?'BUILDING':'CHECK');
+    document.querySelector('#preview-state').textContent=d.preview_ready?'READY':(d.stage==='preview'||d.stage==='qa'?'UMSETZUNGING':'CHECK');
     document.querySelector('#qa-state').textContent=d.qa||'CHECK';
     document.querySelector('#revision-state').textContent=d.revision??'—';
     document.querySelector('#active-revision').textContent=`multiproject-alpha · revision ${d.revision??'—'}`;
@@ -91,10 +91,10 @@ async function refreshStatus(silent=false){
     document.querySelector('#run-state').textContent=`${labels[d.stage]||'Bereit'}${run.status?` · ${run.status}`:''}${run.conclusion?` / ${run.conclusion}`:''}`;
     return d;
   }catch(err){document.querySelector('#run-state').textContent=`Status nicht verfügbar: ${err.message}`;return null}
-  finally{if(!silent)refresh.textContent='REFRESH'}
+  finally{if(!silent)refresh.textContent='AKTUALISIEREN'}
 }
 function beginPolling(){clearInterval(pollTimer);refreshStatus(true);pollTimer=setInterval(async()=>{const d=await refreshStatus(true);if(d&&(d.stage==='review'||d.stage==='error')){clearInterval(pollTimer);pollTimer=null}},4000)}
-form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='SENDING…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>REQUEST VERIFIED</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>REQUEST BLOCKED</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='SEND TO FACTORY <span>↗</span>'}});
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='WIRD ÜBERGEBEN…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>REQUEST BGESPERRT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
 refresh.addEventListener('click',()=>refreshStatus());
 logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
 refreshStatus(true);
