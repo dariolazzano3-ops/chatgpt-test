@@ -1,15 +1,17 @@
 import fs from 'node:fs';
 
-export function validateProductionRelease({ state, projectSlug, editRevision, confirmation }) {
+export function validateProductionRelease({ state, projectSlug, editRevision, confirmation, currentSha }) {
   const blockers = [];
   const expectedSlug = String(projectSlug || '').trim();
   const expectedRevision = Number(editRevision);
+  const actualSha = String(currentSha || '').trim().toLowerCase();
   const expectedConfirmation = `DEPLOY ${expectedSlug} REV ${expectedRevision}`;
 
   if (!state || typeof state !== 'object' || Array.isArray(state)) blockers.push('active_state_invalid');
   if (!expectedSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(expectedSlug)) blockers.push('project_slug_invalid');
   if (!Number.isInteger(expectedRevision) || expectedRevision < 0) blockers.push('edit_revision_invalid');
   if (String(confirmation || '').trim() !== expectedConfirmation) blockers.push('explicit_confirmation_mismatch');
+  if (!/^[0-9a-f]{40}$/.test(actualSha)) blockers.push('current_project_sha_invalid');
 
   if (state && typeof state === 'object') {
     if (state.active !== true) blockers.push('active_project_required');
@@ -26,6 +28,9 @@ export function validateProductionRelease({ state, projectSlug, editRevision, co
       if (readiness.preview_ready !== true) blockers.push('preview_not_ready');
       if (readiness.production_ready !== false) blockers.push('production_state_must_await_manual_approval');
       if (readiness.production_approved !== false) blockers.push('production_must_not_be_preapproved');
+      const qaSha = String(readiness.evidence?.project_sha || '').trim().toLowerCase();
+      if (!/^[0-9a-f]{40}$/.test(qaSha)) blockers.push('qa_project_sha_missing');
+      else if (qaSha !== actualSha) blockers.push('qa_project_sha_mismatch');
       if (readiness.evidence?.visual_qa?.ok !== true) blockers.push('visual_qa_not_green');
       const viewports = readiness.evidence?.visual_qa?.viewports || [];
       if (!Array.isArray(viewports) || !viewports.includes('desktop') || !viewports.includes('mobile')) blockers.push('visual_qa_viewports_incomplete');
@@ -45,6 +50,7 @@ export function validateProductionRelease({ state, projectSlug, editRevision, co
     edit_revision: expectedRevision,
     project_path: state?.source_path || null,
     branch: state?.branch || null,
+    project_sha: actualSha || null,
     preview_url: state?.preview_url || null,
     pull_request: state?.pull_request || null,
     production_deploy: false
@@ -52,9 +58,9 @@ export function validateProductionRelease({ state, projectSlug, editRevision, co
 }
 
 if (process.argv[1]?.endsWith('production-release-gate.mjs') && process.argv[2]) {
-  const [statePath, projectSlug, editRevision, confirmation] = process.argv.slice(2);
+  const [statePath, projectSlug, editRevision, confirmation, currentSha] = process.argv.slice(2);
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  const result = validateProductionRelease({ state, projectSlug, editRevision, confirmation });
+  const result = validateProductionRelease({ state, projectSlug, editRevision, confirmation, currentSha });
   console.log(JSON.stringify(result, null, 2));
   if (process.env.GITHUB_OUTPUT) {
     const lines = [
@@ -63,6 +69,7 @@ if (process.argv[1]?.endsWith('production-release-gate.mjs') && process.argv[2])
       `edit_revision=${result.edit_revision}`,
       `project_path=${result.project_path || ''}`,
       `branch=${result.branch || ''}`,
+      `project_sha=${result.project_sha || ''}`,
       `preview_url=${result.preview_url || ''}`,
       `pull_request=${result.pull_request || ''}`
     ];
