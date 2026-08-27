@@ -1,0 +1,7 @@
+{
+  "mode": "generate",
+  "project_name": "MultiProject Alpha",
+  "project_slug": "multiproject-alpha",
+  "prompt": "Create a minimal premium technology landing page with a clear hero and one concise feature section. This is a Factory multi-project registry test.",
+  "production_deploy": false
+}
