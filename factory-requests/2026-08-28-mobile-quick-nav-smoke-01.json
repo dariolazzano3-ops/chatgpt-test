@@ -1,0 +1,10 @@
+{
+  "mode": "edit",
+  "prompt": "Mobile/Handy: Implementiere eine feste Schnellzugriffsleiste (bottom nav) nur für die Mobilansicht bis 768px. Vier Schnellzugriffe: Chat mit RIO, Aktueller Status, Preview und Werkstatt. Desktop unverändert lassen. Keine Backend- oder Produktionsänderungen. Production nicht deployen.",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "factory_version": "4.1",
+  "factory_version_label": "LEAN VERSION 4.1",
+  "factory_runtime_sha": "6b25cc95d24860309aeb4ab50c379a82991cfd03",
+  "production_deploy": false
+}
