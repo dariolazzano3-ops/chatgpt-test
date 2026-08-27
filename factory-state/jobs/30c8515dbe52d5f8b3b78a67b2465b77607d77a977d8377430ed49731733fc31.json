@@ -27,15 +27,21 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
   "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
       "at": "2026-08-27T22:23:04.995Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-08-27T22:23:06.334Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 1,
-  "updated_at": "2026-08-27T22:23:04.995Z"
+  "event_count": 2,
+  "updated_at": "2026-08-27T22:23:06.334Z"
 }
