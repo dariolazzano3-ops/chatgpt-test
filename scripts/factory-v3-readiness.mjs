@@ -10,25 +10,19 @@ function read(path) {
   }
   return fs.readFileSync(path, 'utf8');
 }
-
-function requireText(label, text, expected) {
-  if (text.includes(expected)) passes.push(label);
-  else failures.push(`${label}: expected ${JSON.stringify(expected)}`);
-}
-
-function requireJson(label, value) {
-  if (value) passes.push(label);
-  else failures.push(label);
-}
+function requireText(label, text, expected) { if (text.includes(expected)) passes.push(label); else failures.push(`${label}: expected ${JSON.stringify(expected)}`); }
+function requireJson(label, value) { if (value) passes.push(label); else failures.push(label); }
 
 const control = read('.github/workflows/factory-control.yml');
 const ci = read('.github/workflows/ci.yml');
 const autopilot = read('.github/workflows/factory-autopilot.yml');
+const productionRelease = read('.github/workflows/factory-production-release.yml');
 const requestContract = read('scripts/factory-request-contract.mjs');
 const requestIdempotency = read('scripts/request-idempotency.mjs');
 const factoryControl = read('scripts/factory-control.mjs');
 const stateValidator = read('scripts/validate-factory-state.mjs');
 const releaseReadiness = read('scripts/release-readiness.mjs');
+const productionGate = read('scripts/production-release-gate.mjs');
 const materializer = read('src/materializer.js');
 const evolver = read('src/evolver.js');
 const costGuard = read('scripts/cost-guard.mjs');
@@ -38,7 +32,7 @@ const activeRaw = read('factory-state/active-project.json');
 
 requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch:');
 requireText('Factory Control serializes requests', control, 'factory-control-serial');
-requireText('Factory Control pins push runs to the request event commit', control, "github.sha");
+requireText('Factory Control pins push runs to the request event commit', control, 'github.sha');
 requireText('Factory Control refreshes durable state after queue wait', control, 'Refresh serialized control state');
 requireText('Factory Control restores event worktree before project checkout', control, 'Restore event worktree before project checkout');
 requireText('Factory Control checks request idempotency', control, 'Check request idempotency');
@@ -72,6 +66,15 @@ requireText('Factory state validator understands release readiness', stateValida
 requireText('Release readiness emits preview readiness', releaseReadiness, 'preview_ready');
 requireText('Release readiness keeps production deployment disabled', releaseReadiness, 'production_deploy: false');
 requireText('Release readiness requires manual production approval', releaseReadiness, 'manual_production_approval_required');
+requireText('Active promotion binds QA evidence to exact commit SHA', promoteActive, 'project_sha: projectSha');
+requireText('Production release is manual dispatch only', productionRelease, 'workflow_dispatch:');
+requireText('Production release defaults to dry run', productionRelease, 'default: true');
+requireText('Production release requires explicit confirmation string', productionGate, 'DEPLOY ${expectedSlug} REV ${expectedRevision}');
+requireText('Production release rejects stale revisions', productionGate, 'active_project_revision_mismatch');
+requireText('Production release rejects post-QA commit changes', productionGate, 'qa_project_sha_mismatch');
+requireText('Production release requires configured target variable', productionRelease, 'CLOUDFLARE_PRODUCTION_PAGES_PROJECT');
+requireText('Production release verifies Cloudflare production branch', productionRelease, 'PRODUCTION_BRANCH_MUST_BE_MAIN');
+requireText('Production release records successful releases durably', productionRelease, 'factory-state/releases.json');
 requireText('Evolver supports separate source branch', evolver, 'source_branch');
 requireText('Evolver detects existing recovery staging branch', evolver, 'recoveredExistingBranch');
 requireText('Evolver reuses existing open staging PR', evolver, 'findOpenPullRequest');
@@ -95,8 +98,7 @@ requireText('Autopilot is restricted to V3 auto branches', autopilot, 'factory-v
 requireText('Autopilot requires successful CI', autopilot, "github.event.workflow_run.conclusion == 'success'");
 requireText('Autopilot preserves durable queue/state', autopilot, 'durable queue/state: preserved');
 requireText('Autopilot no longer force-resets Factory Control', autopilot, 'git push origin factory-control');
-if (autopilot.includes('git push --force origin factory-control')) failures.push('Autopilot must not force-reset factory-control');
-else passes.push('Autopilot does not force-reset factory-control');
+if (autopilot.includes('git push --force origin factory-control')) failures.push('Autopilot must not force-reset factory-control'); else passes.push('Autopilot does not force-reset factory-control');
 requireText('Autopilot dispatches QA-only request', autopilot, '"mode": "qa"');
 requireText('Autopilot does not deploy production', autopilot, 'Production deployment: disabled');
 requireText('Strict request contract exists', requestContract, 'production_deploy');
@@ -111,9 +113,7 @@ if (activeRaw) {
     requireJson('Active project has canonical preview URL', typeof active.preview_url === 'string' && active.preview_url.startsWith('https://'));
     requireJson('Active project production deployment is disabled', active.production_deploy === false);
     requireJson('Active project editing mode is enabled', active.mode === 'editing');
-  } catch (error) {
-    failures.push(`active project JSON invalid: ${error.message}`);
-  }
+  } catch (error) { failures.push(`active project JSON invalid: ${error.message}`); }
 }
 
 const result = { version: 1, ready: failures.length === 0, checks_passed: passes.length, checks_failed: failures.length, passes, failures };
