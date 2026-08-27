@@ -1,0 +1,6 @@
+{
+  "mode": "recheck",
+  "target_project_slug": "multiproject-alpha",
+  "production_deploy": false,
+  "reason": "LEAN V3.3 observability runtime verification"
+}
