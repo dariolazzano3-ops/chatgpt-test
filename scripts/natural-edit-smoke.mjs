@@ -25,4 +25,14 @@ if (!second.css.includes('repeat(3, minmax(0, 1fr))')) throw new Error('prior gr
 const third = run('Ändere die Subheadline auf Wir bauen schneller.', second.html, second.css);
 if (!third.html.includes('<p>Wir bauen schneller</p>')) throw new Error('subheadline edit missing');
 
-console.log('Natural edit smoke: cumulative multi-element edits passed');
+const projectHtml = `<!doctype html><html><body><main><section class="hero"><div class="hero-copy"><h1>Factory</h1><a class="button primary" href="#factory-control">Jetzt starten</a><a class="button secondary" href="#factory-flow">Mehr</a></div></section></main></body></html>`;
+const projectCss = `.hero{display:grid}.hero-copy{display:flex}.button{display:inline-flex}.primary{background:#fff}.secondary{opacity:.7}`;
+const projectAnalysis = analyzeProject({ html: projectHtml, css: projectCss });
+if (projectAnalysis.semantic?.cta !== '.primary') throw new Error(`project CTA selector not resolved to .primary: ${projectAnalysis.semantic?.cta}`);
+const fourthPlan = planNaturalEdit('Ändere den Button auf V3.1 Test', projectAnalysis);
+const fourth = executeNaturalEditPlan({ html: projectHtml, css: projectCss, plan: fourthPlan });
+if (!fourth.ok) throw new Error(`resolved CTA edit failed: ${fourth.error}`);
+if (!fourth.html.includes('class="button primary" href="#factory-control">V3.1 Test</a>')) throw new Error('resolved .primary CTA text edit missing');
+if (!fourth.html.includes('class="button secondary" href="#factory-flow">Mehr</a>')) throw new Error('secondary CTA changed unexpectedly');
+
+console.log('Natural edit smoke: cumulative and project-resolved CTA edits passed');
