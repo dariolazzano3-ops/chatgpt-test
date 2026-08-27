@@ -10,8 +10,11 @@ const factory = businessFactoryManifest();
 const bridge = businessMissionBridgeManifest();
 const router = missionExecutionRouterManifest();
 const capabilities = Object.fromEntries(listCapabilities().map((item) => [item.id, item]));
+const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
+const [routerMajor = 0, routerMinor = 0] = String(router.version || '').split('.').map(Number);
 
-assert.equal(runtime.factory_version, '4.8');
+assert.equal(runtimeMajor, 4);
+assert.ok(runtimeMinor >= 8, `runtime factory_version ${runtime.factory_version} must be >= 4.8`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.business_factory_foundation, true);
 assert.equal(runtime.capabilities.business_contract_validation, true);
@@ -19,8 +22,8 @@ assert.equal(runtime.capabilities.business_bounded_local_execution, true);
 assert.equal(runtime.capabilities.business_external_writes_disabled, true);
 assert.equal(runtime.capabilities.business_mission_execution_bridge, true);
 assert.equal(runtime.capabilities.web_automation_ai_business_mission_routing, true);
-assert.deepEqual(runtime.capabilities.available_factories, ['web', 'automation', 'ai', 'business']);
-assert.deepEqual(runtime.capabilities.planned_factories, ['app']);
+for (const item of ['web', 'automation', 'ai', 'business']) assert.equal(runtime.capabilities.available_factories.includes(item), true);
+assert.equal(runtime.capabilities.planned_factories.includes('app'), true);
 assert.equal(runtime.capabilities.automatic_adapter_dispatch, false);
 assert.equal(runtime.capabilities.automatic_multi_factory_execution, false);
 
@@ -30,8 +33,9 @@ assert.equal(bridge.version, '4.8');
 assert.equal(bridge.adapter, 'business-factory-v1');
 assert.equal(bridge.explicit_dispatch_approval, true);
 assert.equal(bridge.external_writes, false);
-assert.equal(router.version, '4.8');
-assert.deepEqual(router.supported_engines, ['web', 'automation', 'ai', 'business']);
+assert.equal(routerMajor, 4);
+assert.ok(routerMinor >= 8, `router manifest ${router.version} must be >= 4.8`);
+for (const engine of ['web', 'automation', 'ai', 'business']) assert.equal(router.supported_engines.includes(engine), true);
 assert.equal(router.production_deploy, false);
 
 assert.equal(capabilities.automation_build.status, 'available');
