@@ -1,0 +1,6 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "prompt": "Change the main hero headline to: MultiProject Alpha is directly addressable. Keep the rest of the page unchanged.",
+  "production_deploy": false
+}
