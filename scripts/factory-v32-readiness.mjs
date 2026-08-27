@@ -4,6 +4,7 @@ const failures = [];
 const passes = [];
 const read = (path) => fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : (failures.push(`missing ${path}`), '');
 const need = (label, text, expected) => text.includes(expected) ? passes.push(label) : failures.push(`${label}: expected ${JSON.stringify(expected)}`);
+const needMatch = (label, text, pattern) => pattern.test(text) ? passes.push(label) : failures.push(`${label}: expected ${pattern}`);
 
 const visualQa = read('scripts/visual-qa.mjs');
 const policy = read('scripts/qa-repair-policy.mjs');
@@ -28,10 +29,10 @@ need('Repair loop remains capped at three attempts', loop, 'Math.min(3');
 need('Repair loop keeps production disabled', loop, 'production_deploy: false');
 need('Factory runtime stages repair policy', control, 'cp scripts/qa-repair-policy.mjs .factory-runtime/qa-repair-policy.mjs');
 need('Factory runtime verifies staged repair policy', control, 'test -f .factory-runtime/qa-repair-policy.mjs');
-need('Factory Control identifies V3.2 result', control, 'Factory Control V3.2 completed successfully');
-need('Package runtime version advanced', pkg, '"version": "1.6.0-alpha.1"');
+needMatch('Factory Control identifies V3.2-or-newer result', control, /Factory Control V3\.(?:2|[3-9]|\d{2,}) completed successfully/);
+needMatch('Package runtime is V3.2-or-newer generation', pkg, /"version": "1\.(?:6|[7-9]|\d{2,})\./);
 need('Package check executes QA repair policy smoke', pkg, 'node scripts/qa-repair-policy-smoke.mjs');
 
-const result = { version: 'LEAN V3.2', ready: failures.length === 0, checks_passed: passes.length, checks_failed: failures.length, passes, failures };
+const result = { version: 'LEAN V3.2+', ready: failures.length === 0, checks_passed: passes.length, checks_failed: failures.length, passes, failures };
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exit(1);
