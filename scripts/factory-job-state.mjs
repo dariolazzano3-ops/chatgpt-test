@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
 const controlRef = 'factory-control';
+const TERMINAL = new Set(['READY_FOR_REVIEW', 'FAILED']);
 
 function headers() {
   if (!token) throw new Error('GITHUB_TOKEN_REQUIRED');
@@ -70,6 +71,18 @@ export async function updateFactoryJob(jobId, patch = {}) {
   }
 }
 
+export async function failFactoryJobUnlessTerminal(jobId, patch = {}) {
+  const id = safeId(jobId);
+  const current = await readJson(`factory-state/jobs/${id}.json`, false);
+  if (TERMINAL.has(String(current.value?.status || ''))) return current.value;
+  return updateFactoryJob(id, {
+    ...patch,
+    status: 'FAILED',
+    qa_status: patch.qa_status || current.value?.qa_status || 'not_run',
+    production_deploy: false
+  });
+}
+
 export async function resolveCandidateRevision(projectSlug, qaOnly = false) {
   const current = await readJson('factory-state/projects.json', false);
   const base = Number(current.value?.projects?.[projectSlug]?.edit_revision || 0);
@@ -79,6 +92,8 @@ export async function resolveCandidateRevision(projectSlug, qaOnly = false) {
 if (process.argv[1]?.endsWith('factory-job-state.mjs') && process.argv[2]) {
   const [jobId, status, patchRaw = '{}'] = process.argv.slice(2);
   const patch = JSON.parse(patchRaw);
-  const result = await updateFactoryJob(jobId, { ...patch, status });
+  const result = status === 'FAIL_SAFE'
+    ? await failFactoryJobUnlessTerminal(jobId, patch)
+    : await updateFactoryJob(jobId, { ...patch, status });
   console.log(JSON.stringify(result, null, 2));
 }
