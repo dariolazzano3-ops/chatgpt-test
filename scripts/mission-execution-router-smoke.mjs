@@ -45,7 +45,7 @@ assert.equal(manifest.automatic_cross_factory_execution, false);
 
 const blocked = await executeMissionTask(structuredClone(mission), 'task-auto', {}, { automation_contract: automationContracts['task-auto'] });
 assert.equal(blocked.ok, false);
-assert.equal(blocked.error, 'ADAPTER_DISPATCH_NOT_AUTHORIZED');
+assert.equal(blocked.error, 'ADAPTER_DISPATCH_APPROVAL_REQUIRED');
 
 const executed = await executeReadyMissionTasks(
   structuredClone(mission),
