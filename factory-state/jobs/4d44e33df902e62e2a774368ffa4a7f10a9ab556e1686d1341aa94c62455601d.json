@@ -5,11 +5,11 @@
   "max_qa_attempts": 3,
   "qa_attempt": 0,
   "production_deploy": false,
-  "request_file": "factory-requests/v31-success-cta-test-20260827-1903.json",
+  "request_file": "factory-requests/v31-success-cta-retry-20260827-1910.json",
   "request_key": "4d44e33df902e62e2a774368ffa4a7f10a9ab556e1686d1341aa94c62455601d",
   "qa_status": "pending",
-  "status": "FAILED",
-  "updated_at": "2026-08-27T17:02:53.497Z",
+  "status": "REQUESTED",
+  "updated_at": "2026-08-27T17:10:50.352Z",
   "last_error": "factory_execution_or_workflow_failure",
   "failure_stage": "pre_review_pipeline"
 }
