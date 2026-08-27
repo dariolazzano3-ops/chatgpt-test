@@ -27,15 +27,21 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28-mobile-quick-nav-smoke-01.json",
   "request_key": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
       "at": "2026-08-27T22:11:18.208Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-08-27T22:11:19.653Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 1,
-  "updated_at": "2026-08-27T22:11:18.208Z"
+  "event_count": 2,
+  "updated_at": "2026-08-27T22:11:19.653Z"
 }
