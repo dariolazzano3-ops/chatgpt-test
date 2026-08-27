@@ -1,0 +1,23 @@
+name: LEAN V4.5
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/automation-mission-bridge.js'
+      - 'scripts/automation-mission-bridge-smoke.mjs'
+      - 'factory-state/runtime.json'
+      - '.github/workflows/lean-v45.yml'
+jobs:
+  validate-v45:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check src/automation-mission-bridge.js && node --check scripts/automation-mission-bridge-smoke.mjs
+      - name: Automation mission bridge smoke
+        run: node scripts/automation-mission-bridge-smoke.mjs
+      - name: Runtime metadata
+        run: node -e "const r=require('./factory-state/runtime.json'); if(r.factory_version!=='4.5'||!r.capabilities.automation_mission_execution_bridge||r.production_deploy!==false) process.exit(1)"
