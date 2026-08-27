@@ -1,6 +1,4 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import { prepareMissionTaskDispatch, reconcileMissionTaskFromWebJob } from '../src/mission-execution-bridge.js';
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -66,7 +64,6 @@ if (!prepared.ok) throw new Error(prepared.error);
 
 const request = { ...prepared.factory_request, mission_id: prepared.contract.mission_id, mission_task_id: taskId, production_deploy: false };
 const jobId = fingerprint(request);
-request.mission_job_id = jobId;
 const requestFile = `factory-requests/mission-${prepared.contract.mission_id}-${taskId}-${jobId.slice(0,10)}.json`;
 const mission = prepared.mission;
 const task = mission.tasks.find((item) => item.task_id === taskId);
