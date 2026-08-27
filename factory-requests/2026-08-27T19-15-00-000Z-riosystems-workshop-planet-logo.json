@@ -1,0 +1,9 @@
+{
+  "mode": "edit",
+  "prompt": "Ändere das kleine quadratische RIOSYSTEMS-Logo oben links in ein minimalistisches Planeten-Symbol. Der Planet soll aus einem einfachen Kreis mit einem dünnen Ring bestehen, sich dauerhaft sehr langsam drehen, zur bestehenden minimalistischen RIOSYSTEMS-Optik passen und dieselbe Akzentfarbe wie das aktuelle Interface verwenden. Nur das Logo verändern. Keine anderen Texte, Layouts, Farben oder Funktionen ändern. Desktop und Mobile prüfen. Keine horizontalen Overflows erzeugen. Production nicht deployen.",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "factory_version": "3.2",
+  "factory_version_label": "LEAN VERSION 3.2",
+  "production_deploy": false
+}
