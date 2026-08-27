@@ -45,8 +45,20 @@
         },
         "generated_at": "2026-08-27T14:04:13.068Z"
       },
+      "production_release": {
+        "version": 1,
+        "deployed": true,
+        "project_slug": "multiproject-alpha",
+        "edit_revision": 6,
+        "project_sha": "5d792ab6912c754ec05eeea09aca0ab39085c509",
+        "branch": "factory/multiproject-alpha-edit-2783448d8b07",
+        "production_url": "https://b40d904b.chatgpt-factory-production.pages.dev",
+        "cloudflare_pages_project": "chatgpt-factory-production",
+        "approved_by": "dariolazzano3-ops",
+        "deployed_at": "2026-08-27T16:13:24.231Z"
+      },
       "mode": "editing",
-      "updated_at": "2026-08-27T14:04:13.068Z"
+      "updated_at": "2026-08-27T16:13:24.231Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -60,5 +72,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T14:04:13.068Z"
+  "updated_at": "2026-08-27T16:13:24.231Z"
 }
