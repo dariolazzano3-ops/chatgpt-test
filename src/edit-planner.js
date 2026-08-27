@@ -4,9 +4,9 @@ function clean(value, max = 4000) { return String(value || "").trim().slice(0, m
 function includesAny(text, terms) { return terms.some((term) => text.includes(term)); }
 function operation(target, action, value, reason, semantic = null, scope = null) { return { target, action, value, reason, semantic, scope }; }
 function extractText(raw, patterns, max = 180) { for (const pattern of patterns) { const match = pattern.exec(raw.trim()); if (match?.[1]) return clean(match[1].replace(/[.!]+$/, ""), max); } return ""; }
-function extractHeadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:headline|überschrift|ueberschrift)\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,180})["„“']?[.!]?$/i, /(?:headline|überschrift|ueberschrift)\s*:\s*["„“']?([^\n"„“']{2,180})["„“']?/i]); }
-function extractSubheadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:subheadline|unterüberschrift|unterueberschrift|untertitel|beschreibung)\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,260})["„“']?[.!]?$/i], 260); }
-function extractCtaText(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:den\s+|die\s+)?(?:cta|button|knopf|cta[- ]?text|button[- ]?text)\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{1,100})["„“']?[.!]?$/i], 100); }
+function extractHeadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:headline|überschrift|ueberschrift)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,180})["„“']?[.!]?$/i, /(?:headline|überschrift|ueberschrift)\s*:\s*["„“']?([^\n"„“']{2,180})["„“']?/i]); }
+function extractSubheadline(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:subheadline|unterüberschrift|unterueberschrift|untertitel|beschreibung)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,260})["„“']?[.!]?$/i], 260); }
+function extractCtaText(raw = "") { return extractText(raw, [/(?:ändere|aendere|setze|mach)\s+(?:den\s+|die\s+)?(?:cta|button|knopf|cta[- ]?text|button[- ]?text)(?:\s+(?:im|in|aus dem|vom)\s+[^\n]{1,50})?\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{1,100})["„“']?[.!]?$/i], 100); }
 function extractColumns(raw = "") { const match = /(?:grid|cards?|karten|kacheln)[^\n]{0,50}?(?:auf|in|mit)?\s*(\d)\s*(?:spalten|columns?)/i.exec(raw); return match ? Math.max(1, Math.min(4, Number(match[1]))) : null; }
 function detectScope(text) {
   const ordinal = /(?:die|der|das)?\s*(erste|zweite|dritte|vierte|1\.|2\.|3\.|4\.)\s+(?:section|sektion|abschnitt|bereich)/i.exec(text);
@@ -23,14 +23,14 @@ function scopedTarget(scope, base) {
   if (scope.kind === "ordinal-section") return `section:nth-of-type(${scope.index}) ${base}`;
   const map = { hero: ".hero", services: "#factory-services,.services,.service-section", references: "#factory-references,.references,.projects,.cases", faq: "#factory-faq,.faq", contact: "#contact,.contact,.contact-section" };
   const section = map[scope.name];
-  return section ? `${section} ${base}` : base;
+  return section ? `:is(${section}) ${base}` : base;
 }
 
 export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   const raw = clean(prompt, 4000); const text = raw.toLowerCase(); const operations = []; const targets = new Set(); const scope = detectScope(text);
   const rocket = includesAny(text,["rakete","rocket"]), smoke = includesAny(text,["rauch","smoke","dampf"]), hero = includesAny(text,["hero","startbereich","kopfbereich"]), nav = includesAny(text,["navigation","navbar","menü","header"]), cards = includesAny(text,["card","cards","karte","karten","kachel","kacheln"]), grid = includesAny(text,["grid","spalten","columns","karten","cards"]), section = includesAny(text,["section","sektion","abschnitt","bereich"]);
   const headline = extractHeadline(raw), subheadline = extractSubheadline(raw), ctaText = extractCtaText(raw), columns = extractColumns(raw);
-  const heroSelector = resolveSemanticSelector(projectAnalysis,"hero",".hero"), heroCopy = resolveSemanticSelector(projectAnalysis,"hero_copy",".hero-copy"), cardSelector = resolveSemanticSelector(projectAnalysis,"cards",".card"), gridSelector = resolveSemanticSelector(projectAnalysis,"grid",".grid"), ctaSelector = resolveSemanticSelector(projectAnalysis,"cta",".cta"), navSelector = resolveSemanticSelector(projectAnalysis,"navigation",".site-header"), rocketSelector = resolveSemanticSelector(projectAnalysis,"rocket",".rocket-system"), smokeSelector = resolveSemanticSelector(projectAnalysis,"smoke",".smoke"), sectionSelector = resolveSemanticSelector(projectAnalysis,"section",".section");
+  const heroCopy = resolveSemanticSelector(projectAnalysis,"hero_copy",".hero-copy"), cardSelector = resolveSemanticSelector(projectAnalysis,"cards",".card"), gridSelector = resolveSemanticSelector(projectAnalysis,"grid",".grid"), ctaSelector = resolveSemanticSelector(projectAnalysis,"cta",".cta"), navSelector = resolveSemanticSelector(projectAnalysis,"navigation",".site-header"), rocketSelector = resolveSemanticSelector(projectAnalysis,"rocket",".rocket-system"), smokeSelector = resolveSemanticSelector(projectAnalysis,"smoke",".smoke"), sectionSelector = resolveSemanticSelector(projectAnalysis,"section",".section");
   if (headline) operations.push(operation(scopedTarget(scope,"h1"),"replace_text",headline,"Replace scoped headline","headline",scope));
   if (subheadline) operations.push(operation(scopedTarget(scope,heroCopy),"replace_text",subheadline,"Replace scoped supporting text","subheadline",scope));
   if (ctaText) operations.push(operation(scopedTarget(scope,ctaSelector),"replace_text",ctaText,"Replace scoped CTA","cta",scope));
