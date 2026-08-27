@@ -5,7 +5,7 @@
   "job_id": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
   "created_at": "2026-08-27T22:23:04.995Z",
   "max_qa_attempts": 3,
-  "qa_attempt": 0,
+  "qa_attempt": 1,
   "production_deploy": false,
   "run_number": 1,
   "recovery_status": "fresh",
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
   "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
-  "status": "IMPLEMENTING",
+  "status": "PREVIEW_BUILDING",
   "events": [
     {
       "sequence": 1,
@@ -47,9 +47,17 @@
       "type": "QA_LOOP_STARTED",
       "stage": "qa_pipeline",
       "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56"
+    },
+    {
+      "sequence": 4,
+      "at": "2026-08-27T22:23:43.372Z",
+      "type": "QA_ATTEMPT_STARTED",
+      "attempt": 1,
+      "stage": "preview",
+      "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56"
     }
   ],
-  "event_count": 3,
-  "updated_at": "2026-08-27T22:23:42.398Z",
+  "event_count": 4,
+  "updated_at": "2026-08-27T22:23:43.372Z",
   "fulfillment_status": "pending"
 }
