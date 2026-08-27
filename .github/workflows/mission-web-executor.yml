@@ -1,0 +1,84 @@
+name: Mission Web Executor
+
+on:
+  workflow_dispatch:
+    inputs:
+      mission_file:
+        description: 'Mission JSON path under factory-state/missions/'
+        required: true
+        type: string
+      task_id:
+        description: 'Mission task id to execute'
+        required: true
+        type: string
+      project_slug:
+        description: 'Optional project slug override'
+        required: false
+        type: string
+      project_name:
+        description: 'Optional project name override'
+        required: false
+        type: string
+      source_url:
+        description: 'Optional source URL for rebuild tasks'
+        required: false
+        type: string
+
+concurrency:
+  group: mission-web-${{ inputs.mission_file }}-${{ inputs.task_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  supervise-web-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout canonical Factory runtime
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate V4 mission execution guard
+        run: node scripts/factory-v40-readiness.mjs
+
+      - name: Execute and supervise mission web task
+        shell: bash
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          TASK_ID: ${{ inputs.task_id }}
+          PROJECT_SLUG: ${{ inputs.project_slug }}
+          PROJECT_NAME: ${{ inputs.project_name }}
+          SOURCE_URL: ${{ inputs.source_url }}
+        run: |
+          set -euo pipefail
+          args=(--mission "$MISSION_FILE" --task "$TASK_ID")
+          if [ -n "$PROJECT_SLUG" ]; then args+=(--project-slug "$PROJECT_SLUG"); fi
+          if [ -n "$PROJECT_NAME" ]; then args+=(--project-name "$PROJECT_NAME"); fi
+          if [ -n "$SOURCE_URL" ]; then args+=(--source-url "$SOURCE_URL"); fi
+          node scripts/mission-web-supervisor.mjs "${args[@]}"
+
+      - name: Publish safety summary
+        if: always()
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          TASK_ID: ${{ inputs.task_id }}
+        run: |
+          echo '### LEAN V4.0 Mission Web Executor' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "- Mission: \`$MISSION_FILE\`" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "- Task: \`$TASK_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Factory: web' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production deploy: disabled' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production approval: separate manual workflow required' >> "$GITHUB_STEP_SUMMARY"
