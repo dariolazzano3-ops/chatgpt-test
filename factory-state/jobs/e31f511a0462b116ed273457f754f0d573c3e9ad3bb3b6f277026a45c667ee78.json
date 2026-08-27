@@ -5,18 +5,21 @@
   "max_qa_attempts": 3,
   "qa_attempt": 0,
   "production_deploy": false,
-  "qa_status": "pending",
+  "qa_status": "passed_cached",
   "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
-  "preview_url": null,
-  "commit_sha": null,
-  "branch": null,
-  "project_slug": null,
+  "qa_result": {
+    "ok": true,
+    "cached": true
+  },
+  "preview_url": "https://3c55a89b.chatgpt-factory-preview.pages.dev",
+  "commit_sha": "694daa0637dab6d81e0bef00554d10ed5f83b95b",
+  "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
+  "project_slug": "multiproject-alpha",
   "revision": null,
   "request_file": "factory-requests/2026-08-27-riosystems-dashboard-v1-qa.json",
   "request_key": "e31f511a0462b116ed273457f754f0d573c3e9ad3bb3b6f277026a45c667ee78",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T17:30:00.769Z"
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T17:30:04.371Z"
 }
