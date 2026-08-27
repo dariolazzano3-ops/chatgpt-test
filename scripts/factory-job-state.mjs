@@ -59,6 +59,24 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const current = await readJson(path, false);
     const now = new Date().toISOString();
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
+    const retryReset = patch.status === 'REQUESTED' ? {
+      qa_attempt: 0,
+      qa_status: 'pending',
+      last_error: null,
+      failure_stage: null,
+      retry_exhausted: false,
+      qa_result: null,
+      preview_url: null,
+      commit_sha: null,
+      branch: null,
+      project_slug: null,
+      revision: null
+    } : {};
+    const terminalCleanup = patch.status === 'READY_FOR_REVIEW' ? {
+      last_error: null,
+      failure_stage: null,
+      retry_exhausted: false
+    } : {};
     const inferredSha = patch.status === 'READY_FOR_REVIEW' && !patch.commit_sha ? currentGitSha() : null;
     const next = {
       version: 1,
@@ -68,7 +86,9 @@ export async function updateFactoryJob(jobId, patch = {}) {
       qa_attempt: 0,
       production_deploy: false,
       ...existing,
+      ...retryReset,
       ...patch,
+      ...terminalCleanup,
       ...(inferredSha ? { commit_sha: inferredSha } : {}),
       job_id: id,
       production_deploy: false,
