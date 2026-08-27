@@ -17,6 +17,6 @@
   "revision": null,
   "request_file": "factory-requests/2026-08-27T18-24-00-000Z-riosystems-retry-protected-qa.json",
   "request_key": "5191290bf13050ff30fb318167271445c30794626eabc20b76173a7c2c9ddf5b",
-  "status": "REQUESTED",
-  "updated_at": "2026-08-27T18:21:16.150Z"
+  "status": "IMPLEMENTING",
+  "updated_at": "2026-08-27T18:21:17.514Z"
 }
