@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "telemetry_version": 2,
+  "recovery_version": 1,
+  "job_id": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
+  "created_at": "2026-08-27T22:23:04.995Z",
+  "max_qa_attempts": 3,
+  "qa_attempt": 0,
+  "production_deploy": false,
+  "run_number": 1,
+  "recovery_status": "fresh",
+  "recovery_attempt": 0,
+  "qa_status": "pending",
+  "last_error": null,
+  "failure_stage": null,
+  "failure_kind": null,
+  "retry_exhausted": false,
+  "qa_result": null,
+  "preview_url": null,
+  "commit_sha": null,
+  "branch": null,
+  "project_slug": null,
+  "revision": null,
+  "run_started_at": "2026-08-27T22:23:04.995Z",
+  "recovery_reason": null,
+  "recovery_from_status": null,
+  "recovery_previous_updated_at": null,
+  "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
+  "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
+  "status": "REQUESTED",
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-08-27T22:23:04.995Z",
+      "type": "JOB_REQUESTED",
+      "stage": "queue"
+    }
+  ],
+  "event_count": 1,
+  "updated_at": "2026-08-27T22:23:04.995Z"
+}
