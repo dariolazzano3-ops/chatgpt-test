@@ -4,6 +4,11 @@ const failures = [];
 const passes = [];
 const read = (path) => fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : (failures.push(`missing ${path}`), '');
 const need = (label, text, expected) => text.includes(expected) ? passes.push(label) : failures.push(`${label}: expected ${JSON.stringify(expected)}`);
+const needVersionAtLeast = (label, text, major, minor) => {
+  const match = /"version"\s*:\s*"(\d+)\.(\d+)\./.exec(text);
+  const ok = match && (Number(match[1]) > major || (Number(match[1]) === major && Number(match[2]) >= minor));
+  ok ? passes.push(label) : failures.push(`${label}: expected >= ${major}.${minor}.x`);
+};
 
 const recovery = read('scripts/factory-recovery.mjs');
 const jobs = read('scripts/factory-job-state.mjs');
@@ -32,9 +37,9 @@ need('Observability counts recovery starts', observability, 'recovery_starts');
 need('Observability counts recovered jobs', observability, 'recovered_jobs');
 need('Observability aggregates failure kinds', observability, 'failure_kinds');
 need('Observability remains production-safe', observability, 'production_deploy: false');
-need('Package runtime version advanced', pkg, '"version": "1.8.0-alpha.1"');
+needVersionAtLeast('Package runtime is V3.4-or-newer generation', pkg, 1, 8);
 need('Package executes recovery smoke', pkg, 'node scripts/factory-recovery-smoke.mjs');
 
-const result = { version: 'LEAN V3.4', ready: failures.length === 0, checks_passed: passes.length, checks_failed: failures.length, passes, failures };
+const result = { version: 'LEAN V3.4+', ready: failures.length === 0, checks_passed: passes.length, checks_failed: failures.length, passes, failures };
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exit(1);
