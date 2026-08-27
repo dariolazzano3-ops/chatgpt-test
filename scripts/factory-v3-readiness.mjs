@@ -24,6 +24,7 @@ const factoryControl = read('scripts/factory-control.mjs');
 const stateValidator = read('scripts/validate-factory-state.mjs');
 const releaseReadiness = read('scripts/release-readiness.mjs');
 const productionGate = read('scripts/production-release-gate.mjs');
+const releaseRecorder = read('scripts/record-production-release.mjs');
 const materializer = read('src/materializer.js');
 const evolver = read('src/evolver.js');
 const costGuard = read('scripts/cost-guard.mjs');
@@ -76,6 +77,11 @@ requireText('Production release rejects post-QA commit changes', productionGate,
 requireText('Production release requires configured target variable', productionRelease, 'CLOUDFLARE_PRODUCTION_PAGES_PROJECT');
 requireText('Production release verifies Cloudflare production branch', productionRelease, 'PRODUCTION_BRANCH_MUST_BE_MAIN');
 requireText('Production release records successful releases durably', productionRelease, 'factory-state/releases.json');
+requireText('Production release synchronizes active state', productionRelease, 'record-production-release.mjs');
+requireText('Production release records synchronized state files', productionRelease, 'factory-state/active-project.json factory-state/projects.json');
+requireText('Production release recorder preserves deploy policy flag', releaseRecorder, 'active.production_release = productionRelease');
+requireText('Production release recorder synchronizes project registry', releaseRecorder, 'registry.projects[projectSlug].production_release = productionRelease');
+requireText('Production release recorder binds release to exact active SHA', releaseRecorder, 'ACTIVE_PROJECT_SHA_MISMATCH');
 requireText('Production dry-run audit is explicit queue-driven', productionAudit, "'factory-audit-requests/*.json'");
 requireText('Production dry-run audit validates request safety', productionAudit, 'AUDIT_MUST_NOT_DEPLOY_PRODUCTION');
 requireText('Production dry-run audit loads canonical active state', productionAudit, 'factory-state/active-project.json');
@@ -124,7 +130,7 @@ if (activeRaw) {
     requireJson('Active project is enabled', active.active === true);
     requireJson('Active project source is constrained to projects/', typeof active.source_path === 'string' && active.source_path.startsWith('projects/'));
     requireJson('Active project has canonical preview URL', typeof active.preview_url === 'string' && active.preview_url.startsWith('https://'));
-    requireJson('Active project production deployment is disabled', active.production_deploy === false);
+    requireJson('Active project production deployment policy is disabled', active.production_deploy === false);
     requireJson('Active project editing mode is enabled', active.mode === 'editing');
   } catch (error) { failures.push(`active project JSON invalid: ${error.message}`); }
 }
