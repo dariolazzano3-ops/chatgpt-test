@@ -17,10 +17,10 @@
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
-  "commit_sha": null,
-  "branch": null,
-  "project_slug": null,
-  "revision": null,
+  "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
+  "branch": "factory/multiproject-alpha-edit-99c267b07e2a",
+  "project_slug": "multiproject-alpha",
+  "revision": 13,
   "run_started_at": "2026-08-27T22:11:18.208Z",
   "recovery_reason": null,
   "recovery_from_status": null,
@@ -40,8 +40,16 @@
       "at": "2026-08-27T22:11:19.653Z",
       "type": "IMPLEMENTATION_STARTED",
       "stage": "implementation"
+    },
+    {
+      "sequence": 3,
+      "at": "2026-08-27T22:12:00.082Z",
+      "type": "QA_LOOP_STARTED",
+      "stage": "qa_pipeline",
+      "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371"
     }
   ],
-  "event_count": 2,
-  "updated_at": "2026-08-27T22:11:19.653Z"
+  "event_count": 3,
+  "updated_at": "2026-08-27T22:12:00.082Z",
+  "fulfillment_status": "pending"
 }
