@@ -8,6 +8,12 @@ function assert(condition, code) {
   if (!condition) throw new Error(code);
 }
 
+function validateSlug(value, code) {
+  const slug = text(value);
+  assert(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug), code);
+  return slug;
+}
+
 export function validateFactoryRequest(input) {
   assert(input && typeof input === "object" && !Array.isArray(input), "REQUEST_OBJECT_REQUIRED");
 
@@ -30,13 +36,23 @@ export function validateFactoryRequest(input) {
     job.active_state_path = statePath;
   }
 
+  if (Object.prototype.hasOwnProperty.call(job, "target_project_slug")) {
+    job.target_project_slug = validateSlug(job.target_project_slug, "TARGET_PROJECT_SLUG_INVALID");
+  }
+
   if (mode === "generate") {
     assert(text(job.project_name), "PROJECT_NAME_REQUIRED");
     assert(text(job.prompt), "PROMPT_REQUIRED");
+    if (Object.prototype.hasOwnProperty.call(job, "project_slug")) {
+      job.project_slug = validateSlug(job.project_slug, "PROJECT_SLUG_INVALID");
+    }
   }
 
   if (mode === "rebuild") {
     assert(text(job.project_name), "PROJECT_NAME_REQUIRED");
+    if (Object.prototype.hasOwnProperty.call(job, "project_slug")) {
+      job.project_slug = validateSlug(job.project_slug, "PROJECT_SLUG_INVALID");
+    }
     const sourceUrl = text(job.source_url);
     assert(sourceUrl, "SOURCE_URL_REQUIRED");
     let parsed;
