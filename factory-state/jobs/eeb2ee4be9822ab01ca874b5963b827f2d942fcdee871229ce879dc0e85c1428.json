@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "telemetry_version": 2,
+  "recovery_version": 1,
+  "job_id": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
+  "created_at": "2026-08-27T19:47:23.124Z",
+  "max_qa_attempts": 3,
+  "qa_attempt": 0,
+  "production_deploy": false,
+  "run_number": 1,
+  "recovery_status": "fresh",
+  "recovery_attempt": 0,
+  "qa_status": "pending",
+  "last_error": null,
+  "failure_stage": null,
+  "failure_kind": null,
+  "retry_exhausted": false,
+  "qa_result": null,
+  "preview_url": null,
+  "commit_sha": null,
+  "branch": null,
+  "project_slug": null,
+  "revision": null,
+  "run_started_at": "2026-08-27T19:47:23.124Z",
+  "recovery_reason": null,
+  "recovery_from_status": null,
+  "recovery_previous_updated_at": null,
+  "request_file": "factory-requests/2026-08-27T19-47-04-939Z-riosystems-48ce2369.json",
+  "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
+  "status": "REQUESTED",
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-08-27T19:47:23.124Z",
+      "type": "JOB_REQUESTED",
+      "stage": "queue"
+    }
+  ],
+  "event_count": 1,
+  "updated_at": "2026-08-27T19:47:23.124Z"
+}
