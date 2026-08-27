@@ -2,31 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { aiFactoryManifest } from '../src/ai-factory.js';
 import { listExecutionAdapters } from '../src/execution-adapters.js';
-
-for (const file of ['src/ai-factory.js', 'src/ai-structured-output.js', 'src/execution-adapters.js', 'scripts/ai-factory-smoke.mjs', 'scripts/ai-structured-output-smoke.mjs']) {
-  assert.equal(fs.existsSync(file), true, `${file} missing`);
-}
-
+for (const file of ['src/ai-factory.js','src/ai-structured-output.js','src/ai-executor.js','src/ai-retry-policy.js','src/ai-job-state.js','src/ai-provider-registry.js','src/ai-mission-adapter.js','src/ai-handoffs.js','src/ai-runtime.js','src/execution-adapters.js','scripts/ai-factory-smoke.mjs','scripts/ai-structured-output-smoke.mjs','scripts/ai-executor-smoke.mjs','scripts/ai-factory-complete-smoke.mjs']) assert.equal(fs.existsSync(file), true, `${file} missing`);
 const manifest = aiFactoryManifest();
-assert.equal(manifest.id, 'ai-factory-v1');
-assert.equal(manifest.version, '1.1.0');
-assert.equal(manifest.status, 'structured_output_foundation');
-assert.equal(manifest.execution_mode, 'contract_only');
-assert.equal(manifest.provider_agnostic, true);
-assert.equal(manifest.model_routing, false);
-assert.equal(manifest.structured_output_validation, true);
-assert.equal(manifest.schema_contracts, true);
-assert.equal(manifest.tool_access, false);
-assert.equal(manifest.external_data_access, false);
-assert.equal(manifest.external_side_effects, false);
-assert.equal(manifest.production_deploy, false);
-assert.equal(manifest.limits.max_attempts, 3);
-
-const adapter = listExecutionAdapters().find((item) => item.engine === 'ai');
-assert.ok(adapter, 'AI execution adapter missing');
-assert.equal(adapter.available, true);
-assert.equal(adapter.mode, 'contract_only');
-assert.equal(adapter.automatic_execution, false);
-assert.equal(adapter.production_deploy, false);
-
+assert.equal(manifest.id, 'ai-factory-v1'); assert.equal(manifest.version, '2.0.0'); assert.equal(manifest.status, 'architecture_complete_activation_ready'); assert.equal(manifest.execution_mode, 'injected_runner_only'); assert.equal(manifest.execution_engine, true); assert.equal(manifest.provider_agnostic, true); assert.equal(manifest.provider_registry, true); assert.equal(manifest.provider_configured, false); assert.equal(manifest.real_provider_calls_enabled, false); assert.equal(manifest.model_routing, true); assert.equal(manifest.retry_repair, true); assert.equal(manifest.failure_classification, true); assert.equal(manifest.structured_output_validation, true); assert.equal(manifest.schema_contracts, true); assert.equal(manifest.job_state, true); assert.equal(manifest.observability, true); assert.equal(manifest.mission_adapter, true); assert.equal(manifest.cross_factory_handoffs, true); assert.equal(manifest.tool_access, false); assert.equal(manifest.external_data_access, false); assert.equal(manifest.external_side_effects, false); assert.equal(manifest.production_deploy, false); assert.equal(manifest.limits.max_attempts, 3); assert.deepEqual(manifest.activation_gates, ['provider_credentials', 'provider_cost_approval']);
+const adapter = listExecutionAdapters().find((item) => item.engine === 'ai'); assert.ok(adapter, 'AI execution adapter missing'); assert.equal(adapter.available, true); assert.equal(adapter.mode, 'injected_runner_only'); assert.equal(adapter.automatic_execution, false); assert.equal(adapter.provider_configured, false); assert.equal(adapter.production_deploy, false);
 console.log('ai-factory-v1-readiness: ok');
