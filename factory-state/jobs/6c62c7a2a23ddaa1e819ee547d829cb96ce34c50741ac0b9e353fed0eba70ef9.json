@@ -7,12 +7,17 @@
   "production_deploy": false,
   "request_file": "factory-requests/v31-restore-cta-20260827-1913.json",
   "request_key": "6c62c7a2a23ddaa1e819ee547d829cb96ce34c50741ac0b9e353fed0eba70ef9",
-  "qa_status": "pending",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T17:13:56.688Z",
+  "qa_status": "passed",
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T17:14:01.222Z",
   "project_slug": "multiproject-alpha",
   "revision": 8,
   "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
   "commit_sha": "694daa0637dab6d81e0bef00554d10ed5f83b95b",
-  "preview_url": "https://3c55a89b.chatgpt-factory-preview.pages.dev"
+  "preview_url": "https://3c55a89b.chatgpt-factory-preview.pages.dev",
+  "qa_result": {
+    "ok": true,
+    "report_version": 4,
+    "failures": []
+  }
 }
