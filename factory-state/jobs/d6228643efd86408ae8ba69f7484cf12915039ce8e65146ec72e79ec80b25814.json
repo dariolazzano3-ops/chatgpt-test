@@ -6,10 +6,15 @@
   "qa_attempt": 1,
   "production_deploy": false,
   "qa_status": "passed",
-  "last_error": null,
-  "failure_stage": null,
+  "last_error": "project_delta: no project file changed",
+  "failure_stage": "request_fulfillment",
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 6,
+    "failures": [],
+    "issues": []
+  },
   "preview_url": "https://82612b6e.chatgpt-factory-preview.pages.dev",
   "commit_sha": "bf81e9afaf4765a79f85082a849c1ce41afd1d2d",
   "branch": "factory/multiproject-alpha-edit-d6228643efd8",
@@ -17,7 +22,48 @@
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-15-00-000Z-riosystems-workshop-planet-logo.json",
   "request_key": "d6228643efd86408ae8ba69f7484cf12915039ce8e65146ec72e79ec80b25814",
-  "status": "FULFILLMENT_CHECK",
-  "updated_at": "2026-08-27T19:16:25.855Z",
-  "fulfillment_status": "running"
+  "status": "WORKSHOP_REQUIRED",
+  "updated_at": "2026-08-27T19:16:27.217Z",
+  "fulfillment_status": "failed",
+  "fulfillment_result": {
+    "version": 1,
+    "generated_at": "2026-08-27T19:16:27.057Z",
+    "request_mode": "edit",
+    "prompt": "Ändere das kleine quadratische RIOSYSTEMS-Logo oben links in ein minimalistisches Planeten-Symbol. Der Planet soll aus einem einfachen Kreis mit einem dünnen Ring bestehen, sich dauerhaft sehr langsam drehen, zur bestehenden minimalistischen RIOSYSTEMS-Optik passen und dieselbe Akzentfarbe wie das aktuelle Interface verwenden. Nur das Logo verändern. Keine anderen Texte, Layouts, Farben oder Funktionen ändern. Desktop und Mobile prüfen. Keine horizontalen Overflows erzeugen. Production nicht deployen.",
+    "verification_level": "deterministic",
+    "changed_files": [],
+    "checks": [
+      {
+        "id": "project_delta",
+        "ok": false,
+        "detail": [
+          "no project file changed"
+        ]
+      },
+      {
+        "id": "planet_logo_present",
+        "ok": true,
+        "detail": "Expected a semantic planet-logo marker in the rendered project."
+      },
+      {
+        "id": "planet_geometry_present",
+        "ok": true,
+        "detail": "Expected planet geometry/styles in styles.css."
+      },
+      {
+        "id": "requested_rotation_present",
+        "ok": true,
+        "detail": "Expected a continuous CSS rotation for the requested animated element."
+      }
+    ],
+    "ok": false,
+    "failures": [
+      {
+        "code": "project_delta",
+        "message": [
+          "no project file changed"
+        ]
+      }
+    ]
+  }
 }
