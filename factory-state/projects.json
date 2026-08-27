@@ -5,11 +5,11 @@
       "project_name": "RIOSYSTEMS DASHBOARD",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-3146df2f59c4",
-      "previous_branch": "factory/multiproject-alpha-edit-79b94c0daa6e",
-      "edit_revision": 12,
-      "pull_request": 139,
-      "preview_url": "https://05cf2f9d.chatgpt-factory-preview.pages.dev",
+      "branch": "factory/multiproject-alpha-edit-99c267b07e2a",
+      "previous_branch": "factory/multiproject-alpha-edit-3146df2f59c4",
+      "edit_revision": 13,
+      "pull_request": 157,
+      "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
       "release_readiness": {
         "version": 1,
@@ -23,7 +23,7 @@
           "manual_production_approval_required"
         ],
         "evidence": {
-          "project_sha": "b7f3b1e205d09a13be5e852a0b6a495080c08c28",
+          "project_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
           "project_path_valid": true,
           "branch_isolated": true,
           "pull_request_present": true,
@@ -31,7 +31,7 @@
           "visual_qa": {
             "ok": true,
             "report_version": 6,
-            "generated_at": "2026-08-27T19:23:48.459Z",
+            "generated_at": "2026-08-27T22:12:11.688Z",
             "viewports": [
               "desktop",
               "mobile"
@@ -43,10 +43,10 @@
           "next_action": "review_preview_and_request_manual_approval",
           "safe_to_continue_editing": true
         },
-        "generated_at": "2026-08-27T19:23:52.191Z"
+        "generated_at": "2026-08-27T22:12:16.383Z"
       },
       "mode": "editing",
-      "updated_at": "2026-08-27T19:23:52.191Z"
+      "updated_at": "2026-08-27T22:12:16.383Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -60,5 +60,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T19:23:52.191Z"
+  "updated_at": "2026-08-27T22:12:16.383Z"
 }
