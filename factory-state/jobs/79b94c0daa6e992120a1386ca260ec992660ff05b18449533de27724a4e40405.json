@@ -10,13 +10,13 @@
   "failure_stage": null,
   "retry_exhausted": false,
   "qa_result": null,
-  "preview_url": null,
+  "preview_url": "https://a8133182.chatgpt-factory-preview.pages.dev",
   "commit_sha": "92583c7b7e807460702613bfa8b547ec23812cdd",
   "branch": "factory/multiproject-alpha-edit-79b94c0daa6e",
   "project_slug": "multiproject-alpha",
   "revision": 11,
   "request_file": "factory-requests/2026-08-27T19-01-21-075Z-riosystems-ce9e949a.json",
   "request_key": "79b94c0daa6e992120a1386ca260ec992660ff05b18449533de27724a4e40405",
-  "status": "PREVIEW_BUILDING",
-  "updated_at": "2026-08-27T19:02:14.103Z"
+  "status": "QA_RUNNING",
+  "updated_at": "2026-08-27T19:02:21.139Z"
 }
