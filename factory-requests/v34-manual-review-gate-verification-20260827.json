@@ -1,0 +1,10 @@
+{
+  "mode": "edit",
+  "prompt": "da wo aktuell lean version 3.3 steht setze das in ein cooles muster bishen abgespacet rechts neben dem schriftzug RIOSYSTEMS DASHBOARD im selben kästchen wie es aber aktuell steht",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "factory_version": "3.4",
+  "factory_version_label": "LEAN VERSION 3.4",
+  "factory_runtime_sha": "efd278d92de3ca590ef6258116a53f129312a808",
+  "production_deploy": false
+}
