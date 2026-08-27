@@ -3,7 +3,6 @@ import { analyzeProject, resolveSemanticSelector } from "./project-analyzer.js";
 function clean(value, max = 4000) { return String(value || "").trim().slice(0, max); }
 function safeNumber(value, fallback = 1) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function escapeHtml(value = "") { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-function escapeRegex(value = "") { return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 function overrideBlock(selector, declarations = {}) { const body = Object.entries(declarations).filter(([,v]) => v !== null && v !== undefined && v !== "").map(([k,v]) => `  ${k}: ${v};`).join("\n"); return body ? `${selector} {\n${body}\n}` : ""; }
 function mediaBlock(query, blocks = []) { const body = blocks.filter(Boolean).map((b) => b.split("\n").map((l) => `  ${l}`).join("\n")).join("\n\n"); return body ? `@media(${query}) {\n${body}\n}` : ""; }
 const MANAGED_START = "/* Project Factory V3 Overrides: START */";
@@ -12,22 +11,7 @@ const LEGACY_MARKER = "/* Project Factory V3 Natural Edit Overrides */";
 function extractFactoryOverrideBody(css = "") { const m = String(css||"").match(/\/\* Project Factory V3 Overrides: START \*\/([\s\S]*?)\/\* Project Factory V3 Overrides: END \*\//); return m?.[1]?.trim() || ""; }
 function stripFactoryOverrides(css = "") { let next=String(css||""); next=next.replace(/\/\* Project Factory V3 Overrides: START \*\/[\s\S]*?\/\* Project Factory V3 Overrides: END \*\//g,""); const i=next.indexOf(LEGACY_MARKER); if(i!==-1) next=next.slice(0,i); return next.trimEnd(); }
 function buildManagedOverrideBlock(blocks=[]) { const body=blocks.filter(Boolean).join("\n\n").trim(); return body ? `${MANAGED_START}\n${body}\n${MANAGED_END}` : ""; }
-function replaceResolvedTargetText(fragment, target, value) {
-  const escaped = escapeHtml(value);
-  const selector = clean(target, 160);
-  if (/^\.[A-Za-z0-9_-]+$/.test(selector)) {
-    const className = escapeRegex(selector.slice(1));
-    const regex = new RegExp(`(<(?:a|button)\\b[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>)[\\s\\S]*?(<\\/(?:a|button)>)`, "i");
-    if (regex.test(fragment)) return fragment.replace(regex, `$1${escaped}$2`);
-  }
-  if (/^#[A-Za-z0-9_-]+$/.test(selector)) {
-    const id = escapeRegex(selector.slice(1));
-    const regex = new RegExp(`(<(?:a|button)\\b[^>]*id=["']${id}["'][^>]*>)[\\s\\S]*?(<\\/(?:a|button)>)`, "i");
-    if (regex.test(fragment)) return fragment.replace(regex, `$1${escaped}$2`);
-  }
-  return fragment;
-}
-function replaceFirstText(fragment, kind, value, target = "") {
+function replaceFirstText(fragment, kind, value) {
   const escaped = escapeHtml(value);
   if (kind === "headline") return /<h1\b[^>]*>[\s\S]*?<\/h1>/i.test(fragment) ? fragment.replace(/(<h1\b[^>]*>)[\s\S]*?(<\/h1>)/i, `$1${escaped}$2`) : fragment;
   if (kind === "subheadline") {
@@ -35,9 +19,7 @@ function replaceFirstText(fragment, kind, value, target = "") {
     if (lead.test(fragment)) return fragment.replace(lead, `$1${escaped}$2`);
     return /(<h1\b[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p\b[^>]*>)[\s\S]*?(<\/p>)/i.test(fragment) ? fragment.replace(/(<h1\b[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p\b[^>]*>)[\s\S]*?(<\/p>)/i, `$1${escaped}$2`) : fragment;
   }
-  const targeted = replaceResolvedTargetText(fragment, target, value);
-  if (targeted !== fragment) return targeted;
-  const cta=/(<a\b[^>]*class=["'][^"']*(?:cta|btn-primary|button-primary|hero-cta)[^"']*["'][^>]*>)[\s\S]*?(<\/a>)/i;
+  const cta=/(<a\b[^>]*class=["'][^"']*(?:cta|btn-primary|button-primary|hero-cta|primary)[^"']*["'][^>]*>)[\s\S]*?(<\/a>)/i;
   if (cta.test(fragment)) return fragment.replace(cta, `$1${escaped}$2`);
   return /(<button\b[^>]*>)[\s\S]*?(<\/button>)/i.test(fragment) ? fragment.replace(/(<button\b[^>]*>)[\s\S]*?(<\/button>)/i, `$1${escaped}$2`) : fragment;
 }
@@ -47,15 +29,15 @@ function scopedSectionRegex(scope) {
   const patterns={hero:"hero",services:"(?:services|service|factory-services)",references:"(?:references|projects|cases|factory-references)",faq:"(?:faq|factory-faq)",contact:"(?:contact)"};
   return patterns[scope.name] ? new RegExp(`<section\\b[^>]*(?:id|class)=["'][^"']*${patterns[scope.name]}[^"']*["'][^>]*>[\\s\\S]*?<\\/section>`,"i") : null;
 }
-function mutateScopedHtml(html, scope, kind, value, target = "") {
-  if (!scope) return replaceFirstText(html, kind, value, target);
+function mutateScopedHtml(html, scope, kind, value) {
+  if (!scope) return replaceFirstText(html, kind, value);
   if (scope.kind === "ordinal-section") {
     let count=0;
-    return html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi,(section)=>{ count++; if(count!==scope.index) return section; return replaceFirstText(section,kind,value,target); });
+    return html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi,(section)=>{ count++; if(count!==scope.index) return section; return replaceFirstText(section,kind,value); });
   }
   const regex=scopedSectionRegex(scope); if(!regex || regex.ordinal) return html;
   const match=html.match(regex); if(!match) return html;
-  const next=replaceFirstText(match[0],kind,value,target); return next===match[0] ? html : html.replace(match[0],next);
+  const next=replaceFirstText(match[0],kind,value); return next===match[0] ? html : html.replace(match[0],next);
 }
 
 export function executeNaturalEditPlan({ css="", html="", plan }) {
@@ -68,7 +50,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
     const semantic=clean(op.semantic,80), fallbackTarget=clean(op.target,240), target=semantic && !["theme","headline","subheadline"].includes(semantic) ? (op.scope ? fallbackTarget : resolveSemanticSelector(analysis,semantic,fallbackTarget)) : fallbackTarget, action=clean(op.action,120);
     if (!target) continue;
     if (["headline","subheadline","cta"].includes(semantic) && action==="replace_text") {
-      const value=clean(op.value, semantic==="subheadline"?260:semantic==="headline"?180:100); const changed=mutateScopedHtml(nextHtml,op.scope,semantic,value,target); if(changed===nextHtml) continue; nextHtml=changed; applied.push({target,action,value,semantic,scope:op.scope||null});
+      const value=clean(op.value, semantic==="subheadline"?260:semantic==="headline"?180:100); const changed=mutateScopedHtml(nextHtml,op.scope,semantic,value); if(changed===nextHtml) continue; nextHtml=changed; applied.push({target,action,value,semantic,scope:op.scope||null});
     } else if (semantic==="rocket" && action==="scale") { const scale=Math.max(.5,Math.min(2.5,safeNumber(op.value,1))); cssOverrides.push(overrideBlock(target,{scale})); applied.push({target,action,value:scale,semantic});
     } else if (semantic==="smoke" && action==="density") { const density=Math.max(.2,Math.min(2.5,safeNumber(op.value,1))); cssOverrides.push(overrideBlock(target,{opacity:Math.min(1,.48*density).toFixed(2),scale:Math.min(2.4,.9+density*.35).toFixed(2)})); applied.push({target,action,value:density,semantic});
     } else if (semantic==="hero_copy" && action==="text_align") { const align=op.value==="center"?"center":"left"; cssOverrides.push(overrideBlock(target,{"text-align":align,"align-items":align==="center"?"center":"flex-start"})); applied.push({target,action,value:align,semantic});
