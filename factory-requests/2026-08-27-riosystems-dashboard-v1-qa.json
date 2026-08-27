@@ -1,0 +1,6 @@
+{
+  "mode": "qa",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "production_deploy": false
+}
