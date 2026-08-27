@@ -19,6 +19,7 @@ export function prepareAutomationMissionTask(mission, taskId, automationContract
       adapter_id: authorized.envelope.adapter_id,
       dispatch_envelope: authorized.envelope,
       automation_contract: automationContract,
+      dependency_outputs: contract.dependency_outputs || {},
       supervised: true,
       automatic_execution: false,
       production_deploy: false,
@@ -48,7 +49,8 @@ export function automationRunnerToAdapterResult(result = {}) {
 export async function executeAutomationMissionTask(mission, taskId, automationContract = {}, approval = {}, options = {}) {
   const prepared = prepareAutomationMissionTask(mission, taskId, automationContract, approval, options);
   if (!prepared.ok) return prepared;
-  const result = await executeSupervisedAutomation(automationContract, options.input || {}, {
+  const executionInput = options.input ?? prepared.contract.dependency_outputs ?? {};
+  const result = await executeSupervisedAutomation(automationContract, executionInput, {
     transport: options.transport,
     policy: options.policy || {},
   });
@@ -62,5 +64,5 @@ export async function executeAutomationMissionTask(mission, taskId, automationCo
 }
 
 export function automationMissionBridgeManifest() {
-  return { version: '4.5', adapter: 'automation-factory-v1', mission_execution: 'supervised_only', explicit_dispatch_approval: true, external_policy_required_per_v43: true, injected_transport_only: true, automatic_execution: false, production_deploy: false };
+  return { version: '4.8', adapter: 'automation-factory-v1', mission_execution: 'supervised_only', explicit_dispatch_approval: true, dependency_output_handoff: true, external_policy_required_per_v43: true, injected_transport_only: true, automatic_execution: false, production_deploy: false };
 }
