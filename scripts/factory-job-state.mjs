@@ -161,8 +161,15 @@ export async function failFactoryJobUnlessTerminal(jobId, patch = {}) {
   const current = await readJson(`factory-state/jobs/${id}.json`, false);
   if (TERMINAL.has(String(current.value?.status || ''))) return current.value;
   const failureKind = patch.failure_kind || classifyFailureKind({ error: patch.last_error, stage: patch.failure_stage });
+  const recoverable = failureKind === 'infrastructure' || failureKind === 'pipeline_unknown';
   return updateFactoryJob(id, {
-    ...patch, failure_kind: failureKind, status: 'FAILED', qa_status: patch.qa_status || current.value?.qa_status || 'not_run', production_deploy: false,
+    ...patch,
+    failure_kind: failureKind,
+    recovery_status: recoverable ? (current.value?.recovery_status || 'retry_available') : 'manual_review',
+    recovery_reason: recoverable ? (current.value?.recovery_reason || `FAILED_${failureKind.toUpperCase()}`) : `FAILED_${failureKind.toUpperCase()}`,
+    status: 'FAILED',
+    qa_status: patch.qa_status || current.value?.qa_status || 'not_run',
+    production_deploy: false,
     __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: failureKind }
   });
 }
