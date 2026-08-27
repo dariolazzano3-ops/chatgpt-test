@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für LEAN VERSION 3.">
+<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für die aktuelle LEAN Factory.">
 <title>RIOSYSTEMS DASHBOARD</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -15,8 +15,8 @@
 </header>
 <main>
   <section class="intro">
-    <div><span class="kicker">LEAN VERSION 3</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
-    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong>RIOSYSTEMS DASHBOARD</strong><code id="active-revision">LEAN VERSION 3 · Revision 10</code></div>
+    <div><span class="kicker" id="factory-version-hero">LEAN VERSION …</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
+    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong id="active-project-name">RIOSYSTEMS DASHBOARD</strong><code id="active-revision">Version wird geladen · Revision …</code></div>
   </section>
 
   <section class="dashboard-grid">
@@ -25,9 +25,9 @@
       <form id="request-form">
         <label for="prompt">DEIN AUFTRAG</label>
         <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Beschreibe einfach, was geändert werden soll …"></textarea>
-        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field">RIOSYSTEMS DASHBOARD</div></div></div>
+        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field" id="project-field">RIOSYSTEMS DASHBOARD</div></div></div>
         <button class="primary" type="submit">ÄNDERUNG STARTEN <span>↗</span></button>
-        <p class="micro">Der Auftrag wird verifiziert an die Factory übergeben. Production bleibt technisch gesperrt.</p>
+        <p class="micro">Beim Start wird automatisch der neueste LEAN-Factory-Stand verwendet und im Auftrag dokumentiert. Production bleibt technisch gesperrt.</p>
       </form>
       <div id="request-result" class="request-result" hidden></div>
     </article>
@@ -45,13 +45,13 @@
     </article>
 
     <article class="panel telemetry">
-      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div><span class="badge">LEAN VERSION 3</span></div>
+      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div><span class="badge" id="factory-version-badge">LEAN VERSION …</span></div>
       <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">CHECK</strong></div><div><span>QUALITÄTSPRÜFUNG</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">GESPERRT</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
     </article>
 
     <article class="panel preview-panel">
       <div class="panel-head"><div><span class="label">PREVIEW</span><h2>Aktuelle Preview</h2></div><span class="badge">LIVE</span></div>
-      <a id="preview-link" class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Preview öffnen</span><b>↗</b></a>
+      <a id="preview-link" class="preview-link" href="#" target="_blank" rel="noreferrer"><span>Preview öffnen</span><b>↗</b></a>
       <p id="run-state" class="micro">Aktueller Factory-Status wird geprüft…</p>
     </article>
 
@@ -62,7 +62,7 @@
     </article>
   </section>
 </main>
-<footer><span>RIOSYSTEMS / LEAN VERSION 3</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
+<footer><span id="factory-version-footer">RIOSYSTEMS / LEAN VERSION …</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
 <script>
 const form=document.querySelector('#request-form');
 const result=document.querySelector('#request-result');
@@ -72,9 +72,10 @@ const stageOrder=['prompt','build','preview','qa','review'];
 let pollTimer=null;
 async function api(url,options={}){const r=await fetch(url,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(r.status===401){location.href='/login';throw new Error('AUTH_REQUIRED')}if(!r.ok)throw new Error(data.error||data.detail||`REQUEST_FAILED_${r.status}`);return data}
 function paintStage(stage){stageOrder.forEach(name=>document.querySelector(`#step-${name}`)?.classList.remove('active'));const normalized=stageOrder.includes(stage)?stage:(stage==='error'?'build':'prompt');document.querySelector(`#step-${normalized}`)?.classList.add('active')}
-async function refreshStatus(silent=false){if(!silent)refresh.textContent='WIRD AKTUALISIERT…';try{const d=await api('/api/factory/status');paintStage(d.stage);document.querySelector('#preview-state').textContent=d.preview_ready?'BEREIT':(d.stage==='preview'||d.stage==='qa'?'LÄUFT':'CHECK');document.querySelector('#qa-state').textContent=d.qa||'CHECK';document.querySelector('#revision-state').textContent=d.revision??'—';document.querySelector('#active-revision').textContent=`LEAN VERSION 3 · Revision ${d.revision??'—'}`;const link=document.querySelector('#preview-link');if(d.preview_url)link.href=d.preview_url;const run=d.run||{};const labels={prompt:'Auftrag angenommen',build:'Umsetzung läuft',preview:'Preview wird erstellt',qa:'Qualitätsprüfung läuft',review:'Bereit zur Prüfung',error:'Factory-Fehler'};document.querySelector('#run-state').textContent=`${labels[d.stage]||'Bereit'}${run.status?` · ${run.status}`:''}${run.conclusion?` / ${run.conclusion}`:''}`;return d}catch(err){document.querySelector('#run-state').textContent=`Status nicht verfügbar: ${err.message}`;return null}finally{if(!silent)refresh.textContent='AKTUALISIEREN'}}
+function paintIdentity(d){const project=d.project_name||'RIOSYSTEMS DASHBOARD';const version=d.factory_version_label||`LEAN VERSION ${d.factory_version||'?'}`;document.querySelector('#active-project-name').textContent=project;document.querySelector('#project-field').textContent=project;document.querySelector('#factory-version-hero').textContent=version;document.querySelector('#factory-version-badge').textContent=version;document.querySelector('#factory-version-footer').textContent=`RIOSYSTEMS / ${version}`;document.querySelector('#active-revision').textContent=`${version} · Revision ${d.revision??'—'}`}
+async function refreshStatus(silent=false){if(!silent)refresh.textContent='WIRD AKTUALISIERT…';try{const d=await api('/api/factory/status');paintIdentity(d);paintStage(d.stage);document.querySelector('#preview-state').textContent=d.preview_ready?'BEREIT':(d.stage==='preview'||d.stage==='qa'?'LÄUFT':'CHECK');document.querySelector('#qa-state').textContent=d.qa||'CHECK';document.querySelector('#revision-state').textContent=d.revision??'—';const link=document.querySelector('#preview-link');if(d.preview_url){link.href=d.preview_url;link.removeAttribute('aria-disabled')}else{link.href='#';link.setAttribute('aria-disabled','true')}const run=d.run||{};const labels={prompt:'Auftrag angenommen',build:'Umsetzung läuft',preview:'Preview wird erstellt',qa:'Qualitätsprüfung läuft',review:'Bereit zur Prüfung',error:'Factory-Fehler',idle:'Bereit'};document.querySelector('#run-state').textContent=`${labels[d.stage]||'Bereit'}${run.status?` · ${run.status}`:''}${run.conclusion?` / ${run.conclusion}`:''}`;return d}catch(err){document.querySelector('#run-state').textContent=`Status nicht verfügbar: ${err.message}`;return null}finally{if(!silent)refresh.textContent='AKTUALISIEREN'}}
 function beginPolling(){clearInterval(pollTimer);refreshStatus(true);pollTimer=setInterval(async()=>{const d=await refreshStatus(true);if(d&&(d.stage==='review'||d.stage==='error')){clearInterval(pollTimer);pollTimer=null}},4000)}
-form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='WIRD ÜBERGEBEN…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>AUFTRAG BLOCKIERT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='NEUESTE FACTORY WIRD GELADEN…';result.hidden=true;try{await refreshStatus(true);button.textContent='WIRD ÜBERGEBEN…';const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.project_name||'RIOSYSTEMS DASHBOARD'} · ${data.factory_version_label||'LEAN'}<br>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>AUFTRAG BLOCKIERT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
 refresh.addEventListener('click',()=>refreshStatus());
 logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
 refreshStatus(true);setInterval(()=>{if(!pollTimer)refreshStatus(true)},15000);
