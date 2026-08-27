@@ -4,6 +4,7 @@ const [projectPath, branch, prUrl, previewUrl] = process.argv.slice(2);
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
 const statePath = 'factory-state/active-project.json';
+const registryPath = 'factory-state/projects.json';
 const controlRef = 'factory-control';
 
 if (!token) throw new Error('GITHUB_TOKEN_REQUIRED');
@@ -29,11 +30,31 @@ const headers = {
   'content-type': 'application/json'
 };
 
-const readResponse = await fetch(`https://api.github.com/repos/${repository}/contents/${statePath}?ref=${encodeURIComponent(controlRef)}`, { headers });
-if (!readResponse.ok) throw new Error(`ACTIVE_STATE_READ_FAILED_${readResponse.status}:${(await readResponse.text()).slice(0, 300)}`);
-const current = await readResponse.json();
-if (!current?.sha) throw new Error('ACTIVE_STATE_SHA_MISSING');
+async function readJson(path, required = true) {
+  const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}?ref=${encodeURIComponent(controlRef)}`, { headers });
+  if (response.status === 404 && !required) return { sha: null, value: null };
+  if (!response.ok) throw new Error(`STATE_READ_FAILED_${response.status}:${path}:${(await response.text()).slice(0, 300)}`);
+  const body = await response.json();
+  if (!body?.sha || !body?.content) throw new Error(`STATE_CONTENT_INVALID:${path}`);
+  return { sha: body.sha, value: JSON.parse(Buffer.from(body.content, 'base64').toString('utf8')) };
+}
 
+async function writeJson(path, value, sha, message) {
+  const payload = {
+    message,
+    content: Buffer.from(`${JSON.stringify(value, null, 2)}\n`).toString('base64'),
+    branch: controlRef
+  };
+  if (sha) payload.sha = sha;
+  const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error(`STATE_WRITE_FAILED_${response.status}:${path}:${(await response.text()).slice(0, 500)}`);
+}
+
+const now = new Date().toISOString();
 const state = {
   version: 1,
   active: true,
@@ -45,19 +66,32 @@ const state = {
   preview_url: previewUrl,
   production_deploy: false,
   mode: 'editing',
-  updated_at: new Date().toISOString()
+  updated_at: now
 };
 
-const writeResponse = await fetch(`https://api.github.com/repos/${repository}/contents/${statePath}`, {
-  method: 'PUT',
-  headers,
-  body: JSON.stringify({
-    message: `Activate Factory project ${projectSlug}`,
-    content: Buffer.from(`${JSON.stringify(state, null, 2)}\n`).toString('base64'),
-    sha: current.sha,
-    branch: controlRef
-  })
-});
-if (!writeResponse.ok) throw new Error(`ACTIVE_STATE_WRITE_FAILED_${writeResponse.status}:${(await writeResponse.text()).slice(0, 500)}`);
+const currentRegistry = await readJson(registryPath, false);
+const registry = currentRegistry.value && typeof currentRegistry.value === 'object'
+  ? currentRegistry.value
+  : { version: 1, projects: {} };
+if (!registry.projects || typeof registry.projects !== 'object' || Array.isArray(registry.projects)) registry.projects = {};
+registry.version = 1;
+registry.projects[projectSlug] = {
+  project_name: projectName,
+  project_slug: projectSlug,
+  source_path: projectPath,
+  branch,
+  pull_request: pullRequest,
+  preview_url: previewUrl,
+  production_deploy: false,
+  mode: 'editing',
+  updated_at: now
+};
+registry.updated_at = now;
 
-console.log(JSON.stringify({ ok: true, active_state_path: statePath, ...state }, null, 2));
+// Registry first is safe: a registry entry is non-active metadata. Active state only moves after that succeeds.
+await writeJson(registryPath, registry, currentRegistry.sha, `Register Factory project ${projectSlug}`);
+
+const currentState = await readJson(statePath, true);
+await writeJson(statePath, state, currentState.sha, `Activate Factory project ${projectSlug}`);
+
+console.log(JSON.stringify({ ok: true, active_state_path: statePath, project_registry_path: registryPath, ...state }, null, 2));
