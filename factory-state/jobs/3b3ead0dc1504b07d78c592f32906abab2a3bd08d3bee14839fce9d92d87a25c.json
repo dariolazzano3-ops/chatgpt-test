@@ -5,8 +5,8 @@
   "max_qa_attempts": 3,
   "qa_attempt": 1,
   "production_deploy": false,
-  "qa_status": "pending",
-  "last_error": null,
+  "qa_status": "failed",
+  "last_error": "desktop: unexplained scroll overflow 96px | mobile: unexplained scroll overflow 96px",
   "failure_stage": null,
   "retry_exhausted": false,
   "qa_result": null,
@@ -17,6 +17,6 @@
   "revision": 8,
   "request_file": "factory-requests/v31-self-heal-overflow-e2e-20260827-1921.json",
   "request_key": "3b3ead0dc1504b07d78c592f32906abab2a3bd08d3bee14839fce9d92d87a25c",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T17:25:02.843Z"
+  "status": "FIXING",
+  "updated_at": "2026-08-27T17:25:06.919Z"
 }
