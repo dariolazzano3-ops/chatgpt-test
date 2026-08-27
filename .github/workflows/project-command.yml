@@ -1,0 +1,44 @@
+name: Project Command
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/project-command.js'
+      - 'config/project-command.json'
+      - 'scripts/project-command.mjs'
+      - 'scripts/project-command-smoke.mjs'
+      - 'docs/PROJECT_COMMAND.md'
+      - '.github/workflows/project-command.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/project-command.js'
+      - 'config/project-command.json'
+      - 'scripts/project-command.mjs'
+      - 'scripts/project-command-smoke.mjs'
+      - 'docs/PROJECT_COMMAND.md'
+      - '.github/workflows/project-command.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: |
+          node --check src/project-command.js
+          node --check scripts/project-command.mjs
+          node --check scripts/project-command-smoke.mjs
+      - name: Smoke test
+        run: node scripts/project-command-smoke.mjs
+      - name: CLI status
+        run: node scripts/project-command.mjs status
+      - name: CLI handoff
+        run: node scripts/project-command.mjs handoff ai-factory
