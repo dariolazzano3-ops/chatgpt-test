@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "command_layer": "project-command-v1",
+  "authority": "human_go_required",
+  "production_deploy": false,
+  "workers": {
+    "project-v": {
+      "label": "Project V / LEAN Core",
+      "status": "RUNNING",
+      "scope": ["lean-core", "automation-factory", "multi-factory-orchestration"],
+      "depends_on": [],
+      "next_action": "continue-current-approved-work"
+    },
+    "ai-factory": {
+      "label": "AI Factory",
+      "status": "DONE",
+      "scope": ["ai-factory"],
+      "depends_on": [],
+      "next_action": "await-integration-go"
+    },
+    "dashboard": {
+      "label": "Factory Control / Dashboard",
+      "status": "RUNNING",
+      "scope": ["factory-control", "dashboard"],
+      "depends_on": [],
+      "next_action": "continue-current-approved-work"
+    }
+  },
+  "policy": {
+    "worker_statuses": ["READY", "RUNNING", "WAITING", "BLOCKED", "DONE", "HOLD"],
+    "go_required_before_new_work": true,
+    "shared_core_changes_require_coordination": true,
+    "worker_chat_is_not_source_of_truth": true,
+    "repository_state_is_source_of_truth": true,
+    "automatic_cross_worker_dispatch": false,
+    "automatic_production_deploy": false
+  }
+}
