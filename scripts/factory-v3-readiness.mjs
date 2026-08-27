@@ -82,6 +82,11 @@ requireText('Production dry-run audit loads canonical active state', productionA
 requireText('Production dry-run audit never deploys production', productionAudit, 'Production deployed: no');
 requireText('Production dry-run audit verifies exact branch tip', productionAudit, 'git rev-parse "origin/$BRANCH"');
 requireText('Production dry-run audit runs the same production gate', productionAudit, 'production-release-gate.mjs');
+requireText('Production dry-run audit requires Cloudflare credentials', productionAudit, 'CLOUDFLARE_API_TOKEN');
+requireText('Production dry-run audit requires configured Cloudflare target', productionAudit, 'CLOUDFLARE_PRODUCTION_PAGES_PROJECT');
+requireText('Production dry-run audit verifies Cloudflare project exists', productionAudit, 'CLOUDFLARE_PROJECT_LOOKUP_FAILED');
+requireText('Production dry-run audit verifies Cloudflare production branch', productionAudit, 'PRODUCTION_BRANCH_MUST_BE_MAIN');
+requireText('Production dry-run audit uses Cloudflare read-only project lookup', productionAudit, 'https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PRODUCTION_PAGES_PROJECT');
 requireText('Production dry-run audit publishes commit status', productionAudit, "factory-production/dry-run-audit");
 requireText('Evolver supports separate source branch', evolver, 'source_branch');
 requireText('Evolver detects existing recovery staging branch', evolver, 'recoveredExistingBranch');
