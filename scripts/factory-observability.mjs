@@ -38,6 +38,9 @@ export function buildObservabilitySnapshot(jobs = [], options = {}) {
   let qaAttemptEvents = 0;
   let qaPassedEvents = 0;
   let qaFailedEvents = 0;
+  let qaCacheReuses = 0;
+  let fulfillmentChecks = 0;
+  let fulfillmentFailures = 0;
   let repairEvents = 0;
   let jobsRecoveredByRepair = 0;
   let jobsWithRepair = 0;
@@ -67,6 +70,12 @@ export function buildObservabilitySnapshot(jobs = [], options = {}) {
         if (Number.isFinite(Number(durations.preview_ms))) { previewMs += Number(durations.preview_ms); previewSamples += 1; }
         if (Number.isFinite(Number(durations.qa_ms))) { qaMs += Number(durations.qa_ms); qaSamples += 1; }
       }
+      if (event?.type === 'QA_CACHE_REUSED') qaCacheReuses += 1;
+      if (event?.type === 'FULFILLMENT_RESULT') {
+        fulfillmentChecks += 1;
+        if (event?.outcome !== 'passed') fulfillmentFailures += 1;
+        for (const code of event?.issue_codes || []) increment(failureCodes, code);
+      }
       if (event?.type === 'REPAIR_RESULT' && event?.outcome === 'committed') {
         repairEvents += 1;
         for (const profile of event?.repair_profiles || []) increment(repairProfiles, profile);
@@ -78,16 +87,19 @@ export function buildObservabilitySnapshot(jobs = [], options = {}) {
   const totalJobs = jobs.length;
   const readyJobs = Number(statusCounts.READY_FOR_REVIEW || 0);
   const failedJobs = Number(statusCounts.FAILED || 0);
+  const workshopJobs = Number(statusCounts.WORKSHOP_REQUIRED || 0);
+  const terminalJobs = readyJobs + failedJobs + workshopJobs;
   return {
-    version: 1,
+    version: 2,
     factory_version: options.factory_version || '3.3',
     generated_at: options.generated_at || new Date().toISOString(),
     production_deploy: false,
     sample: {
       jobs_total: totalJobs,
       jobs_ready_for_review: readyJobs,
+      jobs_workshop_required: workshopJobs,
       jobs_failed: failedJobs,
-      terminal_success_rate_pct: readyJobs + failedJobs > 0 ? round((readyJobs / (readyJobs + failedJobs)) * 100) : 0,
+      terminal_success_rate_pct: terminalJobs > 0 ? round((readyJobs / terminalJobs) * 100) : 0,
       jobs_with_auto_repair: jobsWithRepair,
       jobs_recovered_by_auto_repair: jobsRecoveredByRepair,
       auto_repair_recovery_rate_pct: jobsWithRepair > 0 ? round((jobsRecoveredByRepair / jobsWithRepair) * 100) : 0
@@ -96,8 +108,14 @@ export function buildObservabilitySnapshot(jobs = [], options = {}) {
       attempt_events: qaAttemptEvents,
       passed_attempts: qaPassedEvents,
       nonpassing_attempts: qaFailedEvents,
+      cache_reuses: qaCacheReuses,
       average_preview_ms: average(previewMs, previewSamples),
       average_qa_ms: average(qaMs, qaSamples)
+    },
+    fulfillment: {
+      checks: fulfillmentChecks,
+      failures: fulfillmentFailures,
+      pass_rate_pct: fulfillmentChecks > 0 ? round(((fulfillmentChecks - fulfillmentFailures) / fulfillmentChecks) * 100) : 0
     },
     repair: {
       committed_repairs: repairEvents,
