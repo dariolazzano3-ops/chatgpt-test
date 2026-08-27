@@ -44,7 +44,11 @@ export function prepareMissionTaskDispatch(mission, taskId, approval = {}, optio
   const requestResult = webRequest(contract, authorized.envelope, options);
   if (!requestResult.ok) return requestResult;
   const started = transitionMissionTask(mission, taskId, "start", {
-    inputs: { adapter_id: authorized.envelope.adapter_id, factory_request: requestResult.request },
+    inputs: {
+      adapter_id: authorized.envelope.adapter_id,
+      dispatch_envelope: authorized.envelope,
+      factory_request: requestResult.request
+    },
     external_job_id: options.external_job_id || null
   });
   if (!started.ok) return started;
@@ -106,4 +110,12 @@ export function reconcileMissionTaskResult(mission, taskId, envelope, adapterRes
     message: validated.result.error?.message || null,
     retryable: validated.result.error?.retryable === true
   });
+}
+
+export function reconcileMissionTaskFromWebJob(mission, taskId, job = {}) {
+  const task = mission?.tasks?.find((item) => item.task_id === taskId);
+  if (!task) return { ok: false, error: "MISSION_TASK_NOT_FOUND" };
+  const envelope = task.inputs?.dispatch_envelope;
+  if (!envelope) return { ok: false, error: "MISSION_DISPATCH_ENVELOPE_MISSING" };
+  return reconcileMissionTaskResult(mission, taskId, envelope, webFactoryJobToAdapterResult(job));
 }
