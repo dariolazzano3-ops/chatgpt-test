@@ -56,6 +56,7 @@ function normalizeEvent(event, now, sequence) {
 
 function classifyFailureKind({ error = '', stage = '' } = {}) {
   const text = `${stage} ${error}`.toLowerCase();
+  if (/ambiguous|clarification|no_verified_updates|no verified updates/.test(text)) return 'request_ambiguity';
   if (/visual.?qa|qa_failure|overflow|page_error/.test(text)) return 'project_quality';
   if (/fulfillment|request_fulfillment/.test(text)) return 'request_fulfillment';
   if (/cloudflare|wrangler|github|token|credential|network|timeout|workflow|checkout|fetch|push|api|runner|artifact/.test(text)) return 'infrastructure';
@@ -114,6 +115,9 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
     const { __event, ...publicPatch } = patch || {};
     const recovery = publicPatch.status === 'REQUESTED' ? classifyRecovery(existing, now) : null;
+    if (publicPatch.status === 'REQUESTED' && recovery?.status === 'manual_review') {
+      throw new Error(`RECOVERY_MANUAL_REVIEW_REQUIRED:${recovery.reason}`);
+    }
     const recoveryEvent = recovery?.status === 'resuming' ? { type: 'RECOVERY_STARTED', stage: 'queue', outcome: 'safe_retry', note: recovery.reason } : null;
     const retryReset = publicPatch.status === 'REQUESTED' ? {
       qa_attempt: 0, qa_status: 'pending', last_error: null, failure_stage: null, failure_kind: null, retry_exhausted: false,
@@ -157,8 +161,15 @@ export async function failFactoryJobUnlessTerminal(jobId, patch = {}) {
   const current = await readJson(`factory-state/jobs/${id}.json`, false);
   if (TERMINAL.has(String(current.value?.status || ''))) return current.value;
   const failureKind = patch.failure_kind || classifyFailureKind({ error: patch.last_error, stage: patch.failure_stage });
+  const recoverable = failureKind === 'infrastructure' || failureKind === 'pipeline_unknown';
   return updateFactoryJob(id, {
-    ...patch, failure_kind: failureKind, status: 'FAILED', qa_status: patch.qa_status || current.value?.qa_status || 'not_run', production_deploy: false,
+    ...patch,
+    failure_kind: failureKind,
+    recovery_status: recoverable ? (current.value?.recovery_status || 'retry_available') : 'manual_review',
+    recovery_reason: recoverable ? (current.value?.recovery_reason || `FAILED_${failureKind.toUpperCase()}`) : `FAILED_${failureKind.toUpperCase()}`,
+    status: 'FAILED',
+    qa_status: patch.qa_status || current.value?.qa_status || 'not_run',
+    production_deploy: false,
     __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: failureKind }
   });
 }
