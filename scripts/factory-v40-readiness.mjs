@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
+const workflow = fs.readFileSync('.github/workflows/mission-web-executor.yml', 'utf8');
+const supervisor = fs.readFileSync('scripts/mission-web-supervisor.mjs', 'utf8');
+const bridge = fs.readFileSync('src/mission-execution-bridge.js', 'utf8');
+const adapters = fs.readFileSync('src/execution-adapters.js', 'utf8');
+
+assert.ok(Number(runtime.factory_version) >= 4.0);
+assert.equal(runtime.production_deploy, false);
+assert.equal(runtime.capabilities?.adapter_dispatch_authorization_required, true);
+assert.equal(runtime.capabilities?.automatic_adapter_dispatch, false);
+assert.equal(runtime.capabilities?.supervised_web_mission_execution, true);
+assert.match(workflow, /workflow_dispatch:/);
+assert.match(workflow, /ref: factory-control/);
+assert.match(workflow, /mission-web-supervisor\.mjs/);
+assert.match(workflow, /MISSION_FILE: \$\{\{ inputs\.mission_file \}\}/);
+assert.match(workflow, /Production deploy: disabled/);
+assert.match(supervisor, /fingerprint\(request\)/);
+assert.doesNotMatch(supervisor, /mission_job_id\s*=/);
+assert.match(supervisor, /prepareMissionTaskDispatch/);
+assert.match(supervisor, /reconcileMissionTaskFromWebJob/);
+assert.match(supervisor, /factory-requests\/mission-/);
+assert.match(supervisor, /READY_FOR_REVIEW/);
+assert.match(supervisor, /WORKSHOP_REQUIRED/);
+assert.match(bridge, /automatic_dispatch: false/);
+assert.match(bridge, /production_deploy: false/);
+assert.match(adapters, /ADAPTER_DISPATCH_APPROVAL_REQUIRED/);
+assert.match(adapters, /PRODUCTION_SIDE_EFFECT_REJECTED/);
+console.log('LEAN V4.0 mission web executor readiness passed');
