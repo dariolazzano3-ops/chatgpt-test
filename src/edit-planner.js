@@ -19,6 +19,19 @@ function operation(target, action, value, reason, semantic = null) {
   return { target, action, value, reason, semantic };
 }
 
+function extractHeadline(raw = "") {
+  const patterns = [
+    /(?:ändere|aendere|setze|mach)\s+(?:die\s+)?(?:hero[- ]?)?(?:headline|überschrift|ueberschrift)\s+(?:auf|zu|in)\s+["„“']?([^\n"„“']{2,180})["„“']?[.!]?$/i,
+    /(?:change|set)\s+(?:the\s+)?(?:hero[- ]?)?(?:headline|heading)\s+(?:to|as)\s+["']?([^\n"']{2,180})["']?[.!]?$/i,
+    /(?:headline|überschrift|ueberschrift)\s*:\s*["„“']?([^\n"„“']{2,180})["„“']?/i
+  ];
+  for (const pattern of patterns) {
+    const match = pattern.exec(raw.trim());
+    if (match?.[1]) return clean(match[1].replace(/[.!]+$/, ""), 180);
+  }
+  return "";
+}
+
 export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   const raw = clean(prompt, 4000);
   const text = raw.toLowerCase();
@@ -33,23 +46,23 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
   const mobile = includesAny(text, ["mobil", "mobile", "smartphone", "handy", "responsive"]);
   const containment = includesAny(text, ["overflow", "hinausrag", "innerhalb", "begren", "viewport", "seitenbreite", "horizontal"]);
   const launchScene = rocket || smoke || includesAny(text, ["launch", "startszene", "launch-pad", "launch pad"]);
+  const headline = extractHeadline(raw);
 
   const rocketSelector = resolveSemanticSelector(projectAnalysis, "rocket", ".rocket-system");
   const smokeSelector = resolveSemanticSelector(projectAnalysis, "smoke", ".smoke");
   const heroSelector = resolveSemanticSelector(projectAnalysis, "hero", ".hero");
   const navSelector = resolveSemanticSelector(projectAnalysis, "navigation", ".site-header");
 
+  if (headline) {
+    targets.add("headline");
+    operations.push(operation("h1", "replace_text", headline, "Replace the primary page headline from natural-language instruction", "headline"));
+  }
+
   if (mobile && containment && launchScene) {
     targets.add("hero");
     targets.add("rocket");
     targets.add("responsive");
-    operations.push(operation(
-      heroSelector,
-      "mobile_launch_containment",
-      "strict",
-      "Contain the animated launch scene inside the mobile hero viewport without global page clipping",
-      "hero"
-    ));
+    operations.push(operation(heroSelector, "mobile_launch_containment", "strict", "Contain the animated launch scene inside the mobile hero viewport without global page clipping", "hero"));
   }
 
   if (rocket) {
@@ -62,9 +75,7 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
       operations.push(operation(rocketSelector, "detail_level", "high", "Increase visual realism and structural detail", "rocket"));
       operations.push(operation(rocketSelector, "lighting", "cinematic", "Improve metallic lighting and depth", "rocket"));
     }
-    if (includesAny(text, ["schneller", "langsamer"])) {
-      operations.push(operation(rocketSelector, "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing", "rocket"));
-    }
+    if (includesAny(text, ["schneller", "langsamer"])) operations.push(operation(rocketSelector, "motion_profile", text.includes("langsamer") ? "slower" : "faster", "Adjust launch timing", "rocket"));
   }
 
   if (smoke) {
@@ -74,9 +85,7 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
       operations.push(operation(smokeSelector, "density", density, "Increase launch smoke volume", "smoke"));
       operations.push(operation(smokeSelector, "spread", intensity === "strong" ? "wide" : "medium", "Expand smoke footprint", "smoke"));
     }
-    if (includesAny(text, ["weniger", "reduzier", "leichter"])) {
-      operations.push(operation(smokeSelector, "density", 0.7, "Reduce smoke volume", "smoke"));
-    }
+    if (includesAny(text, ["weniger", "reduzier", "leichter"])) operations.push(operation(smokeSelector, "density", 0.7, "Reduce smoke volume", "smoke"));
   }
 
   if (hero) {
@@ -108,11 +117,6 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
     project_aware: Boolean(projectAnalysis),
     resolved_selectors: projectAnalysis?.semantic || null,
     requires_interpretation: operations.length === 0,
-    safety: {
-      production_deploy: false,
-      active_project_only: true,
-      create_new_project: false,
-      standalone_image_generation: false
-    }
+    safety: { production_deploy: false, active_project_only: true, create_new_project: false, standalone_image_generation: false }
   };
 }
