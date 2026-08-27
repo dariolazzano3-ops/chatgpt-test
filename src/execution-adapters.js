@@ -3,7 +3,7 @@ const clean = (value, max = 1000) => String(value || "").trim().slice(0, max);
 const ADAPTERS = Object.freeze({
   web: Object.freeze({ id: "web-factory-v1", engine: "web", mode: "contract", available: true, automatic_execution: false, production_deploy: false, accepts: ["website", "web_edit", "web_build"] }),
   app: Object.freeze({ id: "app-factory-v1", engine: "app", mode: "planned", available: false, automatic_execution: false, production_deploy: false, accepts: ["app"] }),
-  automation: Object.freeze({ id: "automation-factory-v1", engine: "automation", mode: "dry_run_only", available: true, automatic_execution: false, external_side_effects: false, production_deploy: false, accepts: ["automation", "lead_flow", "workflow", "api_flow", "webhook_flow"] }),
+  automation: Object.freeze({ id: "automation-factory-v1", engine: "automation", mode: "supervised_execution", available: true, automatic_execution: false, safe_internal_execution: true, supervised_external_actions: true, automatic_external_side_effects: false, external_action_types: ["http_request", "webhook"], production_deploy: false, accepts: ["automation", "lead_flow", "workflow", "api_flow", "webhook_flow"] }),
   ai: Object.freeze({ id: "ai-factory-v1", engine: "ai", mode: "planned", available: false, automatic_execution: false, production_deploy: false, accepts: ["ai", "support_ai"] }),
   business: Object.freeze({ id: "business-factory-v1", engine: "business", mode: "planned", available: false, automatic_execution: false, production_deploy: false, accepts: ["business", "crm"] })
 });
