@@ -6,8 +6,8 @@
   "qa_attempt": 1,
   "production_deploy": false,
   "qa_status": "passed",
-  "last_error": "project_delta: no project file changed",
-  "failure_stage": "request_fulfillment",
+  "last_error": "factory_execution_or_workflow_failure",
+  "failure_stage": "pre_review_pipeline",
   "retry_exhausted": false,
   "qa_result": {
     "ok": true,
@@ -22,8 +22,8 @@
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-15-00-000Z-riosystems-workshop-planet-logo.json",
   "request_key": "d6228643efd86408ae8ba69f7484cf12915039ce8e65146ec72e79ec80b25814",
-  "status": "WORKSHOP_REQUIRED",
-  "updated_at": "2026-08-27T19:16:27.217Z",
+  "status": "FAILED",
+  "updated_at": "2026-08-27T19:16:29.923Z",
   "fulfillment_status": "failed",
   "fulfillment_result": {
     "version": 1,
