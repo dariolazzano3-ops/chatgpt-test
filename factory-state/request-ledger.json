@@ -209,6 +209,17 @@
       "preview_url": "https://e8fb3d45.chatgpt-factory-preview.pages.dev",
       "qa_only": false,
       "production_deployed": false
+    },
+    "6c62c7a2a23ddaa1e819ee547d829cb96ce34c50741ac0b9e353fed0eba70ef9": {
+      "request_key": "6c62c7a2a23ddaa1e819ee547d829cb96ce34c50741ac0b9e353fed0eba70ef9",
+      "completed_at": "2026-08-27T17:14:07.252Z",
+      "mode": "project",
+      "project_path": "projects/multiproject-alpha",
+      "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
+      "pr_url": "https://github.com/dariolazzano3-ops/chatgpt-test/pull/128",
+      "preview_url": "https://3c55a89b.chatgpt-factory-preview.pages.dev",
+      "qa_only": false,
+      "production_deployed": false
     }
   }
 }
