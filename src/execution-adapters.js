@@ -13,12 +13,14 @@ export function listExecutionAdapters() {
 }
 
 export function resolveExecutionAdapter(contract = {}) {
-  const engine = clean(contract.engine || contract.domain, 80).toLowerCase();
-  const adapter = ADAPTERS[engine];
-  if (!adapter) return { ok: false, error: "EXECUTION_ADAPTER_NOT_FOUND", engine };
-  if (!adapter.available) return { ok: false, error: "EXECUTION_ADAPTER_UNAVAILABLE", engine, adapter: { ...adapter } };
+  const domain = clean(contract.domain, 80).toLowerCase();
+  const legacyEngine = clean(contract.engine, 80).toLowerCase();
+  const adapterKey = domain && ADAPTERS[domain] ? domain : legacyEngine;
+  const adapter = ADAPTERS[adapterKey];
+  if (!adapter) return { ok: false, error: "EXECUTION_ADAPTER_NOT_FOUND", engine: legacyEngine || domain };
+  if (!adapter.available) return { ok: false, error: "EXECUTION_ADAPTER_UNAVAILABLE", engine: adapterKey, adapter: { ...adapter } };
   if (contract.state !== "READY") return { ok: false, error: "EXECUTION_CONTRACT_NOT_READY", state: contract.state, adapter: { ...adapter } };
-  return { ok: true, adapter: { ...adapter, accepts: [...adapter.accepts] } };
+  return { ok: true, adapter: { ...adapter, accepts: [...adapter.accepts] }, underlying_engine: legacyEngine || null };
 }
 
 export function buildAdapterDispatchEnvelope(contract = {}) {
@@ -29,6 +31,7 @@ export function buildAdapterDispatchEnvelope(contract = {}) {
     envelope_version: 1,
     adapter_id: resolved.adapter.id,
     engine: resolved.adapter.engine,
+    underlying_engine: resolved.underlying_engine,
     mission_id: contract.mission_id,
     task_id: contract.task_id,
     capability: contract.capability,
