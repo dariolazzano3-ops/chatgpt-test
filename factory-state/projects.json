@@ -5,11 +5,11 @@
       "project_name": "RIOSYSTEMS DASHBOARD",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-99c267b07e2a",
-      "previous_branch": "factory/multiproject-alpha-edit-3146df2f59c4",
+      "branch": "factory/riosystems-dashboard-staging",
+      "previous_branch": "factory/multiproject-alpha-edit-99c267b07e2a",
       "edit_revision": 13,
       "pull_request": 157,
-      "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
+      "preview_url": "https://274cafef.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
       "release_readiness": {
         "version": 1,
@@ -40,13 +40,13 @@
         },
         "feedback": {
           "current_stage": "preview_review",
-          "next_action": "review_preview_and_request_manual_approval",
+          "next_action": "repair_regression_then_review_preview",
           "safe_to_continue_editing": true
         },
         "generated_at": "2026-08-27T22:12:16.383Z"
       },
       "mode": "editing",
-      "updated_at": "2026-08-27T22:12:16.383Z"
+      "updated_at": "2026-08-28T00:20:00.000Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -60,5 +60,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T22:12:16.383Z"
+  "updated_at": "2026-08-28T00:20:00.000Z"
 }
