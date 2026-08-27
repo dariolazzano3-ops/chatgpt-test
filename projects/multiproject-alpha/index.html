@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für LEAN V3.">
+<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für LEAN V3.1.">
 <title>RIOSYSTEMS DASHBOARD</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -15,8 +15,8 @@
 </header>
 <main>
   <section class="intro">
-    <div><span class="kicker">LEAN V3 STEUERUNG</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
-    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong>MultiProject Alpha</strong><code id="active-revision">multiproject-alpha</code></div>
+    <div><span class="kicker">LEAN V3.1 STEUERUNG</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
+    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong>RIOSYSTEMS DASHBOARD</strong><code id="active-revision">LEAN V3.1 · Revision 10</code></div>
   </section>
 
   <section class="dashboard-grid">
@@ -25,9 +25,9 @@
       <form id="request-form">
         <label for="prompt">DEIN AUFTRAG</label>
         <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Beschreibe einfach, was geändert werden soll …"></textarea>
-        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field">MultiProject Alpha</div></div></div>
+        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field">RIOSYSTEMS DASHBOARD</div></div></div>
         <button class="primary" type="submit">ÄNDERUNG STARTEN <span>↗</span></button>
-        <p class="micro">Creates and verifies a Factory request on the control branch. Production deployment is hard-coded off.</p>
+        <p class="micro">Der Auftrag wird verifiziert an die Factory übergeben. Production bleibt technisch gesperrt.</p>
       </form>
       <div id="request-result" class="request-result" hidden></div>
     </article>
@@ -37,7 +37,7 @@
       <div class="pipeline">
         <div id="step-prompt" class="step"><span>01</span><div><strong>AUFTRAG</strong><small>Bereit für deinen Auftrag</small></div><i></i></div>
         <div id="step-build" class="step"><span>02</span><div><strong>UMSETZUNG</strong><small>Neue Revision</small></div><i></i></div>
-        <div id="step-preview" class="step"><span>03</span><div><strong>PPRÜFUNG</strong><small>Testversion</small></div><i></i></div>
+        <div id="step-preview" class="step"><span>03</span><div><strong>PREVIEW</strong><small>Testversion</small></div><i></i></div>
         <div id="step-qa" class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobil</small></div><i></i></div>
         <div id="step-review" class="step"><span>05</span><div><strong>PRÜFUNG</strong><small>Deine Entscheidung</small></div><i></i></div>
         <div class="step locked"><span>06</span><div><strong>PRODUCTION</strong><small>Nur mit deiner Freigabe</small></div><b>GESPERRT</b></div>
@@ -45,14 +45,14 @@
     </article>
 
     <article class="panel telemetry">
-      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div></div>
-      <div class="metrics"><div><span>PPRÜFUNG</span><strong id="preview-state">CHECK</strong></div><div><span>QUALITÄTSPRÜFUNG</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">GESPERRT</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
+      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div><span class="badge">LEAN V3.1</span></div>
+      <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">CHECK</strong></div><div><span>QUALITÄTSPRÜFUNG</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">GESPERRT</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
     </article>
 
     <article class="panel preview-panel">
-      <div class="panel-head"><div><span class="label">PRÜFUNG DESTINATION</span><h2>Aktuelle Preview</h2></div><span class="badge">LIVE</span></div>
+      <div class="panel-head"><div><span class="label">PREVIEW</span><h2>Aktuelle Preview</h2></div><span class="badge">LIVE</span></div>
       <a id="preview-link" class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Preview öffnen</span><b>↗</b></a>
-      <p id="run-state" class="micro">Checking the current Factory job…</p>
+      <p id="run-state" class="micro">Aktueller Factory-Status wird geprüft…</p>
     </article>
 
     <article class="panel production-panel">
@@ -62,7 +62,7 @@
     </article>
   </section>
 </main>
-<footer><span>RIOSYSTEMS / LEAN V3</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
+<footer><span>RIOSYSTEMS / LEAN V3.1</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
 <script>
 const form=document.querySelector('#request-form');
 const result=document.querySelector('#request-result');
@@ -81,10 +81,10 @@ async function refreshStatus(silent=false){
   try{
     const d=await api('/api/factory/status');
     paintStage(d.stage);
-    document.querySelector('#preview-state').textContent=d.preview_ready?'READY':(d.stage==='preview'||d.stage==='qa'?'UMSETZUNGING':'CHECK');
+    document.querySelector('#preview-state').textContent=d.preview_ready?'BEREIT':(d.stage==='preview'||d.stage==='qa'?'LÄUFT':'CHECK');
     document.querySelector('#qa-state').textContent=d.qa||'CHECK';
     document.querySelector('#revision-state').textContent=d.revision??'—';
-    document.querySelector('#active-revision').textContent=`multiproject-alpha · revision ${d.revision??'—'}`;
+    document.querySelector('#active-revision').textContent=`LEAN V3.1 · Revision ${d.revision??'—'}`;
     const link=document.querySelector('#preview-link');if(d.preview_url)link.href=d.preview_url;
     const run=d.run||{};
     const labels={prompt:'Auftrag angenommen',build:'Umsetzung läuft',preview:'Preview wird erstellt',qa:'Qualitätsprüfung läuft',review:'Bereit zur Prüfung',error:'Factory-Fehler'};
@@ -94,7 +94,7 @@ async function refreshStatus(silent=false){
   finally{if(!silent)refresh.textContent='AKTUALISIEREN'}
 }
 function beginPolling(){clearInterval(pollTimer);refreshStatus(true);pollTimer=setInterval(async()=>{const d=await refreshStatus(true);if(d&&(d.stage==='review'||d.stage==='error')){clearInterval(pollTimer);pollTimer=null}},4000)}
-form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='WIRD ÜBERGEBEN…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>REQUEST BGESPERRT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='WIRD ÜBERGEBEN…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>AUFTRAG BLOCKIERT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
 refresh.addEventListener('click',()=>refreshStatus());
 logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
 refreshStatus(true);
