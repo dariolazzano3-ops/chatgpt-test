@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { buildOrchestrationPlan } from '../src/orchestration-planner.js';
+import { createMission, buildTaskExecutionContract } from '../src/orchestration-state.js';
+import { listExecutionAdapters, resolveExecutionAdapter, buildAdapterDispatchEnvelope, validateAdapterResult } from '../src/execution-adapters.js';
+
+const adapters = listExecutionAdapters();
+assert.equal(adapters.find((a) => a.engine === 'web')?.available, true);
+assert.equal(adapters.find((a) => a.engine === 'ai')?.available, false);
+assert.equal(adapters.every((a) => a.production_deploy === false), true);
+assert.equal(adapters.every((a) => a.automatic_execution === false), true);
+
+const plan = buildOrchestrationPlan({ prompt: 'Baue eine Website', project: 'adapter-check' });
+assert.equal(plan.ok, true);
+const mission = createMission({ plan });
+assert.equal(mission.ok, true);
+const ready = mission.tasks.find((task) => task.state === 'READY');
+assert.ok(ready);
+const contract = buildTaskExecutionContract(mission, ready.task_id);
+assert.equal(contract.ok, true);
+const resolved = resolveExecutionAdapter(contract);
+assert.equal(resolved.ok, true);
+assert.equal(resolved.adapter.engine, 'web');
+const envelope = buildAdapterDispatchEnvelope(contract);
+assert.equal(envelope.ok, true);
+assert.equal(envelope.execution.dispatch_authorized, false);
+assert.equal(envelope.execution.production_deploy, false);
+assert.equal(validateAdapterResult(envelope, { status: 'COMPLETED', outputs: { preview_url: 'https://example.invalid' } }).ok, true);
+assert.equal(validateAdapterResult(envelope, { status: 'COMPLETED', outputs: {}, production_deploy: true }).error, 'PRODUCTION_SIDE_EFFECT_REJECTED');
+assert.equal(resolveExecutionAdapter({ ...contract, engine: 'ai' }).error, 'EXECUTION_ADAPTER_UNAVAILABLE');
+assert.equal(resolveExecutionAdapter({ ...contract, state: 'RUNNING' }).error, 'EXECUTION_CONTRACT_NOT_READY');
+console.log('execution-adapter-check: ok');
