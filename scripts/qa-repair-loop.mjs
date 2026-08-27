@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, resolveCandidateRevision } from './factory-job-state.mjs';
 import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
 
+// Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
 const sourceBranch = process.argv[3];
 const projectSlug = process.argv[4];
@@ -92,25 +93,13 @@ async function verifyRequestFulfillment() {
   if (asksLogo && asksPlanet) {
     const html = files['index.html'] || '';
     const css = files['styles.css'] || '';
-    checks.push({
-      id: 'planet_logo_present',
-      ok: /data-factory-feature=["']planet-logo["']|class=["'][^"']*planet-logo/i.test(html),
-      detail: 'Expected a semantic planet-logo marker in the rendered project.'
-    });
-    checks.push({
-      id: 'planet_geometry_present',
-      ok: /\.brand-mark\.planet-logo::before|factoryPlanetOrbit|planet-logo/i.test(css),
-      detail: 'Expected planet geometry/styles in styles.css.'
-    });
+    checks.push({ id: 'planet_logo_present', ok: /data-factory-feature=["']planet-logo["']|class=["'][^"']*planet-logo/i.test(html), detail: 'Expected a semantic planet-logo marker in the rendered project.' });
+    checks.push({ id: 'planet_geometry_present', ok: /\.brand-mark\.planet-logo::before|factoryPlanetOrbit|planet-logo/i.test(css), detail: 'Expected planet geometry/styles in styles.css.' });
   }
 
   if (asksRotation) {
     const css = files['styles.css'] || '';
-    checks.push({
-      id: 'requested_rotation_present',
-      ok: /@keyframes\s+factoryPlanetOrbit|animation\s*:[^;]*(?:infinite|linear)|rotate\(360deg\)/i.test(css),
-      detail: 'Expected a continuous CSS rotation for the requested animated element.'
-    });
+    checks.push({ id: 'requested_rotation_present', ok: /@keyframes\s+factoryPlanetOrbit|animation\s*:[^;]*(?:infinite|linear)|rotate\(360deg\)/i.test(css), detail: 'Expected a continuous CSS rotation for the requested animated element.' });
   }
 
   const explicitChecks = checks.filter((c) => c.id !== 'project_delta').length;
@@ -178,8 +167,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         commit_sha: sha, preview_url: finalUrl,
         qa_result: { ok: true, report_version: classified.report.version, failures: [], issues: [] },
         fulfillment_result: fulfillment,
-        last_error: lastError || 'request fulfillment failed', failure_stage: 'request_fulfillment',
-        production_deploy: false
+        last_error: lastError || 'request fulfillment failed', failure_stage: 'request_fulfillment', production_deploy: false
       });
       console.error(JSON.stringify({ ok: false, status: 'WORKSHOP_REQUIRED', job_id: jobId, preview_url: finalUrl, fulfillment }, null, 2));
       throw new Error(`REQUEST_FULFILLMENT_FAILED:${lastError}`);
@@ -188,8 +176,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await updateFactoryJob(jobId, {
       status: 'READY_FOR_REVIEW', qa_status: 'passed', fulfillment_status: 'passed', qa_attempt: attempt, commit_sha: sha,
       preview_url: finalUrl, qa_result: { ok: true, report_version: classified.report.version, failures: [], issues: [] },
-      fulfillment_result: fulfillment,
-      production_deploy: false
+      fulfillment_result: fulfillment, production_deploy: false
     });
     if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `url=${finalUrl}\nqa_attempt=${attempt}\njob_id=${jobId}\n`);
     console.log(JSON.stringify({ ok: true, status: 'READY_FOR_REVIEW', job_id: jobId, attempt, preview_url: finalUrl, fulfillment }, null, 2));
@@ -203,17 +190,13 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       status: 'FAILED', qa_status: 'failed', fulfillment_status: 'not_run', qa_attempt: attempt, preview_url: finalUrl,
       commit_sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
       last_error: lastError || 'visual QA failed', retry_exhausted: retryStopped,
-      qa_result: { ok: false, report_version: classified.report.version, failures: classified.failures, issues: classified.issues },
-      production_deploy: false
+      qa_result: { ok: false, report_version: classified.report.version, failures: classified.failures, issues: classified.issues }, production_deploy: false
     });
     throw new Error(!classified.fixable ? `QA_FAILURE_NOT_SAFE_TO_AUTOFIX:${lastError}` : `QA_RETRY_STOPPED:${lastError}`);
   }
 
   previousFailureSignature = classified.signature;
-  await updateFactoryJob(jobId, {
-    status: 'FIXING', qa_status: 'failed', fulfillment_status: 'not_run', qa_attempt: attempt, preview_url: finalUrl,
-    last_error: lastError, last_repair_profiles: classified.repairProfiles, production_deploy: false
-  });
+  await updateFactoryJob(jobId, { status: 'FIXING', qa_status: 'failed', fulfillment_status: 'not_run', qa_attempt: attempt, preview_url: finalUrl, last_error: lastError, last_repair_profiles: classified.repairProfiles, production_deploy: false });
   const changed = await applySafeRepair(classified.repairProfiles);
   if (!changed) {
     await updateFactoryJob(jobId, { status: 'FAILED', retry_exhausted: true, last_error: 'safe repair produced no new commit', production_deploy: false });
