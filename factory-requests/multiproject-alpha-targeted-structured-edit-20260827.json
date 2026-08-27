@@ -1,0 +1,8 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "changes": {
+    "headline": "MultiProject Alpha is directly addressable."
+  },
+  "production_deploy": false
+}
