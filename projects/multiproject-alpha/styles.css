@@ -24,3 +24,80 @@ textarea{min-height:190px;font-size:1.05rem;line-height:1.6}
 @keyframes factoryPlanetOrbit{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.brand-mark.planet-logo{animation:none}}
 /* Project Factory Planet Logo: END */
+
+/* Project Factory V3 Overrides: START */
+@media(max-width:768px) {
+  body {
+    padding-bottom: 76px;
+  }
+
+  .factory-mobile-quick-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    height: 60px;
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 6px;
+    padding: 6px;
+    z-index: 9999;
+    border-radius: 16px;
+    border: 1px solid rgba(112,255,214,.38);
+    background: rgba(7,18,25,.92);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 -8px 30px rgba(0,0,0,.28);
+  }
+
+  .factory-mobile-quick-nav button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .factory-mobile-quick-nav button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  .factory-mobile-quick-nav small {
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .factory-mobile-quick-nav-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 84px;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(7,18,25,.96);
+    border: 1px solid rgba(112,255,214,.38);
+    z-index: 10000;
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+
+  .factory-mobile-quick-nav-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media(min-width:769px) {
+  .factory-mobile-quick-nav,.factory-mobile-quick-nav-toast {
+    display: none !important;
+  }
+}
+/* Project Factory V3 Overrides: END */
