@@ -5,11 +5,15 @@
   "max_qa_attempts": 3,
   "qa_attempt": 1,
   "production_deploy": false,
-  "qa_status": "pending",
+  "qa_status": "passed",
   "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 4,
+    "failures": []
+  },
   "preview_url": "https://82900e05.chatgpt-factory-preview.pages.dev",
   "commit_sha": "e847c0f2ded5468b64df1a2e7feecc283c8d108f",
   "branch": "factory/multiproject-alpha-edit-85b310322821",
@@ -17,6 +21,6 @@
   "revision": 9,
   "request_file": "factory-requests/2026-08-27T17-58-53-841Z-riosystems-140f87bc.json",
   "request_key": "85b31032282172ea5ac46df89b61cd911f841f231778770c5002c53ddd836880",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T17:59:54.794Z"
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T17:59:58.720Z"
 }
