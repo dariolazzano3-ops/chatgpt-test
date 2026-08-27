@@ -39,6 +39,30 @@ function validateProjectState(state, prefix = "PROJECT") {
   return state;
 }
 
+const canonicalStateFields = [
+  "project_name",
+  "project_slug",
+  "source_path",
+  "branch",
+  "pull_request",
+  "preview_url",
+  "production_deploy",
+  "mode",
+  "updated_at",
+  "previous_branch",
+  "edit_revision"
+];
+
+function assertProjectStatesMatch(active, registered) {
+  for (const field of canonicalStateFields) {
+    const activeValue = active?.[field] ?? null;
+    const registeredValue = registered?.[field] ?? null;
+    if (activeValue !== registeredValue) {
+      throw new Error(`FACTORY_STATE_DRIFT:${field}:active=${JSON.stringify(activeValue)}:registry=${JSON.stringify(registeredValue)}`);
+    }
+  }
+}
+
 async function readRegisteredProject(slug) {
   const registryPath = "factory-state/projects.json";
   const headers = {
@@ -62,7 +86,10 @@ async function readProjectState() {
   const statePath = String(job.active_state_path || "factory-state/active-project.json");
   const state = JSON.parse(await fs.readFile(statePath, "utf8"));
   if (state.active !== true) throw new Error("NO_ACTIVE_PROJECT");
-  return { statePath, state: validateProjectState(state, "ACTIVE_PROJECT"), targeted: false };
+  const activeState = validateProjectState(state, "ACTIVE_PROJECT");
+  const registered = await readRegisteredProject(activeState.project_slug);
+  assertProjectStatesMatch(activeState, registered.state);
+  return { statePath, state: activeState, targeted: false };
 }
 
 let output;
