@@ -11,12 +11,12 @@
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
-  "commit_sha": null,
-  "branch": null,
-  "project_slug": null,
-  "revision": null,
+  "commit_sha": "516c85e2d4b9893d0181b49535b2924a8cd1baae",
+  "branch": "factory/multiproject-alpha-edit-8fa72755f070",
+  "project_slug": "multiproject-alpha",
+  "revision": 10,
   "request_file": "factory-requests/2026-08-27T18-31-00-000Z-riosystems-evolve-dashboard-de-v2.json",
   "request_key": "8fa72755f07022c205f8950d571bee76caf7727f4b3304f7ff61cee080f92593",
   "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T18:24:47.042Z"
+  "updated_at": "2026-08-27T18:25:17.600Z"
 }
