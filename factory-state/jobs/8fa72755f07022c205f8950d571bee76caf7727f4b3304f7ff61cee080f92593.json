@@ -5,11 +5,15 @@
   "max_qa_attempts": 3,
   "qa_attempt": 1,
   "production_deploy": false,
-  "qa_status": "pending",
+  "qa_status": "passed",
   "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 5,
+    "failures": []
+  },
   "preview_url": "https://bd8c5d3e.chatgpt-factory-preview.pages.dev",
   "commit_sha": "516c85e2d4b9893d0181b49535b2924a8cd1baae",
   "branch": "factory/multiproject-alpha-edit-8fa72755f070",
@@ -17,6 +21,6 @@
   "revision": 10,
   "request_file": "factory-requests/2026-08-27T18-31-00-000Z-riosystems-evolve-dashboard-de-v2.json",
   "request_key": "8fa72755f07022c205f8950d571bee76caf7727f4b3304f7ff61cee080f92593",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T18:25:25.764Z"
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T18:25:29.789Z"
 }
