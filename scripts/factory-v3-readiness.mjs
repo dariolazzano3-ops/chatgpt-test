@@ -27,6 +27,7 @@ const autopilot = read('.github/workflows/factory-autopilot.yml');
 const requestContract = read('scripts/factory-request-contract.mjs');
 const requestIdempotency = read('scripts/request-idempotency.mjs');
 const factoryControl = read('scripts/factory-control.mjs');
+const stateValidator = read('scripts/validate-factory-state.mjs');
 const materializer = read('src/materializer.js');
 const evolver = read('src/evolver.js');
 const costGuard = read('scripts/cost-guard.mjs');
@@ -61,6 +62,10 @@ requireText('Factory EVOLVE exposes source branch lineage', factoryControl, 'sou
 requireText('Factory EVOLVE exports source branch lineage', factoryControl, '`source_branch=${output.source_branch || ""}`');
 requireText('Factory EVOLVE does not mutate active branch in place', factoryControl, 'reuse_branch: false');
 requireText('Factory EVOLVE enables retry recovery', factoryControl, 'recover_branch: true');
+requireText('Factory execution compares active state with project registry', factoryControl, 'assertProjectStatesMatch');
+requireText('Factory execution rejects durable state drift', factoryControl, 'FACTORY_STATE_DRIFT');
+requireText('Factory state validator checks active/registry drift', stateValidator, 'active/registry drift');
+requireText('Factory state validator keeps production disabled', stateValidator, 'production_deploy must remain false');
 requireText('Evolver supports separate source branch', evolver, 'source_branch');
 requireText('Evolver detects existing recovery staging branch', evolver, 'recoveredExistingBranch');
 requireText('Evolver reuses existing open staging PR', evolver, 'findOpenPullRequest');
