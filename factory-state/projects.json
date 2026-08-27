@@ -5,11 +5,11 @@
       "project_name": "MultiProject Alpha",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-2783448d8b07",
-      "previous_branch": "factory/multiproject-alpha-edit-865b804b0e30",
-      "edit_revision": 6,
-      "pull_request": 121,
-      "preview_url": "https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev",
+      "branch": "factory/multiproject-alpha-edit-4d44e33df902",
+      "previous_branch": "factory/multiproject-alpha-edit-2783448d8b07",
+      "edit_revision": 7,
+      "pull_request": 127,
+      "preview_url": "https://e8fb3d45.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
       "release_readiness": {
         "version": 1,
@@ -23,7 +23,7 @@
           "manual_production_approval_required"
         ],
         "evidence": {
-          "project_sha": "5d792ab6912c754ec05eeea09aca0ab39085c509",
+          "project_sha": "00fd996c2e384d301461776e893699987f74f2ce",
           "project_path_valid": true,
           "branch_isolated": true,
           "pull_request_present": true,
@@ -31,7 +31,7 @@
           "visual_qa": {
             "ok": true,
             "report_version": 4,
-            "generated_at": "2026-08-27T14:04:12.050Z",
+            "generated_at": "2026-08-27T17:11:53.141Z",
             "viewports": [
               "desktop",
               "mobile"
@@ -43,22 +43,10 @@
           "next_action": "review_preview_and_request_manual_approval",
           "safe_to_continue_editing": true
         },
-        "generated_at": "2026-08-27T14:04:13.068Z"
-      },
-      "production_release": {
-        "version": 1,
-        "deployed": true,
-        "project_slug": "multiproject-alpha",
-        "edit_revision": 6,
-        "project_sha": "5d792ab6912c754ec05eeea09aca0ab39085c509",
-        "branch": "factory/multiproject-alpha-edit-2783448d8b07",
-        "production_url": "https://b40d904b.chatgpt-factory-production.pages.dev",
-        "cloudflare_pages_project": "chatgpt-factory-production",
-        "approved_by": "dariolazzano3-ops",
-        "deployed_at": "2026-08-27T16:13:24.231Z"
+        "generated_at": "2026-08-27T17:11:55.972Z"
       },
       "mode": "editing",
-      "updated_at": "2026-08-27T16:13:24.231Z"
+      "updated_at": "2026-08-27T17:11:55.972Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -72,5 +60,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T16:13:24.231Z"
+  "updated_at": "2026-08-27T17:11:55.972Z"
 }
