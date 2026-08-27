@@ -10,7 +10,7 @@
   "run_number": 1,
   "recovery_status": "fresh",
   "recovery_attempt": 0,
-  "qa_status": "pending",
+  "qa_status": "passed",
   "last_error": null,
   "failure_stage": null,
   "failure_kind": null,
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28-mobile-quick-nav-smoke-01.json",
   "request_key": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
-  "status": "QA_RUNNING",
+  "status": "FULFILLMENT_CHECK",
   "events": [
     {
       "sequence": 1,
@@ -68,9 +68,25 @@
       "durations_ms": {
         "preview_ms": 5203
       }
+    },
+    {
+      "sequence": 6,
+      "at": "2026-08-27T22:12:11.921Z",
+      "type": "QA_ATTEMPT_RESULT",
+      "attempt": 1,
+      "outcome": "passed",
+      "stage": "qa",
+      "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
+      "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
+      "issue_codes": [],
+      "durations_ms": {
+        "preview_ms": 5203,
+        "qa_ms": 3285,
+        "total_ms": 10766
+      }
     }
   ],
-  "event_count": 5,
-  "updated_at": "2026-08-27T22:12:07.475Z",
-  "fulfillment_status": "pending"
+  "event_count": 6,
+  "updated_at": "2026-08-27T22:12:11.921Z",
+  "fulfillment_status": "running"
 }
