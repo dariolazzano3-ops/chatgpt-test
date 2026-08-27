@@ -16,7 +16,7 @@
   "failure_kind": null,
   "retry_exhausted": false,
   "qa_result": null,
-  "preview_url": null,
+  "preview_url": "https://afc3628d.chatgpt-factory-preview.pages.dev",
   "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56",
   "branch": "factory/multiproject-alpha-edit-30c8515dbe52",
   "project_slug": "multiproject-alpha",
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28T00-22-00-riosystems-rio-mobile-repair.json",
   "request_key": "30c8515dbe52d5f8b3b78a67b2465b77607d77a977d8377430ed49731733fc31",
-  "status": "PREVIEW_BUILDING",
+  "status": "QA_RUNNING",
   "events": [
     {
       "sequence": 1,
@@ -55,9 +55,22 @@
       "attempt": 1,
       "stage": "preview",
       "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56"
+    },
+    {
+      "sequence": 5,
+      "at": "2026-08-27T22:23:50.602Z",
+      "type": "PREVIEW_READY",
+      "attempt": 1,
+      "outcome": "success",
+      "stage": "preview",
+      "commit_sha": "9f2926d4bf3ee2406dab34499c7efae4ae3b6b56",
+      "preview_url": "https://afc3628d.chatgpt-factory-preview.pages.dev",
+      "durations_ms": {
+        "preview_ms": 5948
+      }
     }
   ],
-  "event_count": 4,
-  "updated_at": "2026-08-27T22:23:43.372Z",
+  "event_count": 5,
+  "updated_at": "2026-08-27T22:23:50.602Z",
   "fulfillment_status": "pending"
 }
