@@ -8,7 +8,7 @@
   "qa_attempt": 0,
   "production_deploy": false,
   "run_number": 2,
-  "recovery_status": "resuming",
+  "recovery_status": "manual_review",
   "recovery_attempt": 1,
   "qa_status": "pending",
   "last_error": "EVOLVE_NO_VERIFIED_UPDATES",
@@ -22,64 +22,23 @@
   "project_slug": null,
   "revision": null,
   "run_started_at": "2026-08-27T19:52:03.800Z",
-  "recovery_reason": "FAILED_INFRASTRUCTURE",
+  "recovery_reason": "FAILED_REQUEST_AMBIGUITY",
   "recovery_from_status": "FAILED",
   "recovery_previous_updated_at": "2026-08-27T19:47:26.747Z",
   "request_file": "factory-requests/v34-semantic-recovery-verification-20260827.json",
   "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
   "status": "FAILED",
   "events": [
-    {
-      "sequence": 1,
-      "at": "2026-08-27T19:47:23.124Z",
-      "type": "JOB_REQUESTED",
-      "stage": "queue"
-    },
-    {
-      "sequence": 2,
-      "at": "2026-08-27T19:47:24.458Z",
-      "type": "IMPLEMENTATION_STARTED",
-      "stage": "implementation"
-    },
-    {
-      "sequence": 3,
-      "at": "2026-08-27T19:47:26.747Z",
-      "type": "WORKFLOW_FAILURE",
-      "outcome": "failed",
-      "stage": "pre_review_pipeline"
-    },
-    {
-      "sequence": 4,
-      "at": "2026-08-27T19:52:03.800Z",
-      "type": "RECOVERY_STARTED",
-      "outcome": "safe_retry",
-      "stage": "queue",
-      "note": "FAILED_INFRASTRUCTURE"
-    },
-    {
-      "sequence": 5,
-      "at": "2026-08-27T19:52:03.800Z",
-      "type": "JOB_REQUESTED",
-      "stage": "queue"
-    },
-    {
-      "sequence": 6,
-      "at": "2026-08-27T19:52:05.088Z",
-      "type": "IMPLEMENTATION_STARTED",
-      "stage": "implementation"
-    },
-    {
-      "sequence": 7,
-      "at": "2026-08-27T19:52:06.855Z",
-      "type": "SEMANTIC_FAILURE",
-      "outcome": "request_ambiguity",
-      "stage": "request_planning",
-      "note": "EVOLVE_NO_VERIFIED_UPDATES"
-    }
+    { "sequence": 1, "at": "2026-08-27T19:47:23.124Z", "type": "JOB_REQUESTED", "stage": "queue" },
+    { "sequence": 2, "at": "2026-08-27T19:47:24.458Z", "type": "IMPLEMENTATION_STARTED", "stage": "implementation" },
+    { "sequence": 3, "at": "2026-08-27T19:47:26.747Z", "type": "WORKFLOW_FAILURE", "outcome": "failed", "stage": "pre_review_pipeline" },
+    { "sequence": 4, "at": "2026-08-27T19:52:03.800Z", "type": "RECOVERY_STARTED", "outcome": "safe_retry", "stage": "queue", "note": "FAILED_INFRASTRUCTURE" },
+    { "sequence": 5, "at": "2026-08-27T19:52:03.800Z", "type": "JOB_REQUESTED", "stage": "queue" },
+    { "sequence": 6, "at": "2026-08-27T19:52:05.088Z", "type": "IMPLEMENTATION_STARTED", "stage": "implementation" },
+    { "sequence": 7, "at": "2026-08-27T19:52:06.855Z", "type": "SEMANTIC_FAILURE", "outcome": "request_ambiguity", "stage": "request_planning", "note": "EVOLVE_NO_VERIFIED_UPDATES" },
+    { "sequence": 8, "at": "2026-08-27T19:56:00.000Z", "type": "RECOVERY_RECLASSIFIED", "outcome": "manual_review", "stage": "recovery_policy", "note": "FAILED_REQUEST_AMBIGUITY" }
   ],
-  "event_count": 7,
-  "updated_at": "2026-08-27T19:52:06.855Z",
-  "clarification_reasons": [
-    "AMBIGUOUS_REFERENCE"
-  ]
+  "event_count": 8,
+  "updated_at": "2026-08-27T19:56:00.000Z",
+  "clarification_reasons": ["AMBIGUOUS_REFERENCE"]
 }
