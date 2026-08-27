@@ -36,6 +36,10 @@ function validateProjectState(state, prefix = "PROJECT") {
   if (state.source_path !== `projects/${state.project_slug}`) throw new Error(`${prefix}_PATH_MISMATCH`);
   if (!String(state.branch || "").startsWith("factory/")) throw new Error(`${prefix}_BRANCH_INVALID`);
   if (state.production_deploy !== false) throw new Error(`${prefix}_PRODUCTION_MUST_BE_DISABLED`);
+  if (state.release_readiness != null) {
+    if (state.release_readiness?.gate !== "factory-v3-release-readiness") throw new Error(`${prefix}_RELEASE_READINESS_INVALID`);
+    if (state.release_readiness?.production_deploy !== false) throw new Error(`${prefix}_RELEASE_PRODUCTION_MUST_BE_DISABLED`);
+  }
   return state;
 }
 
@@ -50,14 +54,20 @@ const canonicalStateFields = [
   "mode",
   "updated_at",
   "previous_branch",
-  "edit_revision"
+  "edit_revision",
+  "release_readiness"
 ];
+
+function sameStateValue(a, b) {
+  if ((a && typeof a === "object") || (b && typeof b === "object")) return JSON.stringify(stable(a ?? null)) === JSON.stringify(stable(b ?? null));
+  return (a ?? null) === (b ?? null);
+}
 
 function assertProjectStatesMatch(active, registered) {
   for (const field of canonicalStateFields) {
     const activeValue = active?.[field] ?? null;
     const registeredValue = registered?.[field] ?? null;
-    if (activeValue !== registeredValue) {
+    if (!sameStateValue(activeValue, registeredValue)) {
       throw new Error(`FACTORY_STATE_DRIFT:${field}:active=${JSON.stringify(activeValue)}:registry=${JSON.stringify(registeredValue)}`);
     }
   }
@@ -108,6 +118,7 @@ if (mode === "qa" || mode === "recheck") {
     updates: [],
     active_state_path: statePath,
     targeted_project: targeted,
+    release_readiness: state.release_readiness || null,
     production_deployed: false,
     qa_only: true,
     recovery_reused: false
