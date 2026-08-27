@@ -4,13 +4,12 @@
   "project_name": "RIOSYSTEMS DASHBOARD",
   "project_slug": "multiproject-alpha",
   "source_path": "projects/multiproject-alpha",
-  "branch": "factory/multiproject-alpha-edit-8fa72755f070",
-  "previous_branch": "factory/multiproject-alpha-edit-2783448d8b07",
-  "edit_revision": 10,
-  "pull_request": 132,
-  "preview_url": "https://bd8c5d3e.chatgpt-factory-preview.pages.dev",
+  "branch": "factory/multiproject-alpha-edit-79b94c0daa6e",
+  "previous_branch": "factory/multiproject-alpha-edit-8fa72755f070",
+  "edit_revision": 11,
+  "pull_request": 133,
+  "preview_url": "https://a8133182.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
-  "factory_version": "LEAN V3.1",
   "release_readiness": {
     "version": 1,
     "gate": "factory-v3-release-readiness",
@@ -23,7 +22,7 @@
       "manual_production_approval_required"
     ],
     "evidence": {
-      "project_sha": "516c85e2d4b9893d0181b49535b2924a8cd1baae",
+      "project_sha": "92583c7b7e807460702613bfa8b547ec23812cdd",
       "project_path_valid": true,
       "branch_isolated": true,
       "pull_request_present": true,
@@ -31,7 +30,7 @@
       "visual_qa": {
         "ok": true,
         "report_version": 5,
-        "generated_at": "2026-08-27T18:25:29.630Z",
+        "generated_at": "2026-08-27T19:02:24.270Z",
         "viewports": [
           "desktop",
           "mobile"
@@ -43,8 +42,8 @@
       "next_action": "review_preview_and_request_manual_approval",
       "safe_to_continue_editing": true
     },
-    "generated_at": "2026-08-27T18:25:31.430Z"
+    "generated_at": "2026-08-27T19:02:26.430Z"
   },
   "mode": "editing",
-  "updated_at": "2026-08-27T18:25:31.430Z"
+  "updated_at": "2026-08-27T19:02:26.430Z"
 }
