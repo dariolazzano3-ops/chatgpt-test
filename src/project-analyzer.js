@@ -54,10 +54,13 @@ export function analyzeProject({ html = "", css = "" } = {}) {
     smoke: bestSelector(selectors, ["smoke", "exhaust-smoke", "steam"]),
     smoke_field: bestSelector(selectors, ["smoke-field", "smoke-container", "exhaust-field"]),
     hero: bestSelector(selectors, ["hero", "hero-section", "intro", "masthead"]),
+    hero_copy: bestSelector(selectors, ["hero-copy", "hero-content", "hero-text", "intro-copy", "lead"]),
     navigation: bestSelector(selectors, ["site-header", "navbar", "navigation", "header"]),
     cards: bestSelector(selectors, ["card", "cards", "feature-card", "service-card"]),
-    grid: bestSelector(selectors, ["grid", "cards-grid", "services-grid"]),
-    cta: bestSelector(selectors, ["cta", "primary-button", "button-primary"])
+    grid: bestSelector(selectors, ["grid", "cards-grid", "services-grid", "features-grid"]),
+    cta: bestSelector(selectors, ["cta", "primary-button", "button-primary", "hero-cta", "btn-primary"]),
+    section: bestSelector(selectors, ["section", "content-section", "feature-section"]),
+    section_head: bestSelector(selectors, ["section-head", "section-header", "section-title"])
   };
 
   return {
@@ -70,7 +73,10 @@ export function analyzeProject({ html = "", css = "" } = {}) {
       has_smoke: Boolean(semantic.smoke),
       has_hero: Boolean(semantic.hero),
       has_navigation: Boolean(semantic.navigation),
-      has_cards: Boolean(semantic.cards)
+      has_cards: Boolean(semantic.cards),
+      has_grid: Boolean(semantic.grid),
+      has_cta: Boolean(semantic.cta),
+      has_section: Boolean(semantic.section)
     }
   };
 }
