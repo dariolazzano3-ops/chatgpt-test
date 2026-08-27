@@ -1,14 +1,17 @@
+import { resolveTextReference } from './project-analyzer.js';
+
 function clean(value, max = 4000) { return String(value || '').trim().slice(0, max); }
 function hasAny(text, terms) { return terms.some((term) => text.includes(term)); }
 
-export function analyzeEditIntent(prompt = '') {
+export function analyzeEditIntent(prompt = '', projectAnalysis = null) {
   const raw = clean(prompt, 4000);
   const text = raw.toLowerCase();
   const reasons = [];
   const conflicts = [];
   const hasTarget = hasAny(text, ['hero','headline','überschrift','ueberschrift','subheadline','untertitel','button','cta','karte','karten','card','cards','grid','section','sektion','abschnitt','bereich','navigation','navbar','menü','header','rakete','rocket','rauch','smoke','faq','kontakt','leistungen','services','referenzen']);
-  const vagueReference = /\b(das|dies|dieses|es|dort|so)\b/i.test(raw) && !hasTarget;
-  const vagueStyle = hasAny(text, ['schöner','besser','moderner','cooler','hochwertiger','professioneller','irgendwie']) && !hasTarget;
+  const referenceResolution = projectAnalysis ? resolveTextReference(raw, projectAnalysis) : { matched:false, unique:false, best:null, candidates:[] };
+  const vagueReference = /\b(das|dies|dieses|es|dort|so|da)\b/i.test(raw) && !hasTarget && !referenceResolution.unique;
+  const vagueStyle = hasAny(text, ['schöner','besser','moderner','cooler','hochwertiger','professioneller','irgendwie']) && !hasTarget && !referenceResolution.unique;
   if (vagueReference) reasons.push('AMBIGUOUS_REFERENCE');
   if (vagueStyle) reasons.push('AMBIGUOUS_STYLE_DIRECTION');
 
@@ -23,15 +26,17 @@ export function analyzeEditIntent(prompt = '') {
   const needsClarification = reasons.length > 0 || conflicts.length > 0;
   let question = null;
   if (conflicts.length) question = 'Die Anweisung enthält widersprüchliche Änderungen. Welche Variante soll gelten?';
-  else if (vagueReference) question = 'Welches Element oder welcher Bereich soll geändert werden?';
+  else if (vagueReference) question = referenceResolution.candidates.length > 1 ? 'Ich sehe mehrere passende Elemente. Welches davon meinst du?' : 'Welches Element oder welcher Bereich soll geändert werden?';
   else if (vagueStyle) question = 'Welcher Bereich soll geändert werden und was genau bedeutet die gewünschte Stilrichtung?';
 
   return {
-    version: 1,
+    version: 2,
     needs_clarification: needsClarification,
     reasons,
     conflicts,
     question,
-    safe_to_execute: !needsClarification
+    safe_to_execute: !needsClarification,
+    project_context_used: Boolean(projectAnalysis),
+    reference_resolution: referenceResolution
   };
 }

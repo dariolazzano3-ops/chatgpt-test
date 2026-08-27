@@ -46,6 +46,58 @@ function bestSelector(selectors, terms, fallback = null) {
   return ranked[0]?.selector || fallback;
 }
 
+function stripTags(value = "") {
+  return String(value).replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/\s+/g, " ").trim();
+}
+
+function elementSelector(attrs = "") {
+  const id = /\bid=["']([^"']+)["']/i.exec(attrs)?.[1];
+  if (id) return `#${id}`;
+  const classes = /\bclass=["']([^"']+)["']/i.exec(attrs)?.[1]?.split(/\s+/).filter(Boolean) || [];
+  return classes.length ? `.${classes[0]}` : null;
+}
+
+function textAnchors(html = "") {
+  const anchors = [];
+  const seen = new Set();
+  const element = /<(span|small|strong|code|h1|h2|h3|p|button|a|div)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+  for (const match of html.matchAll(element)) {
+    const text = stripTags(match[3]);
+    const selector = elementSelector(match[2]);
+    if (!text || text.length < 2 || text.length > 180 || !selector) continue;
+    const key = `${selector}\u0000${text.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    anchors.push({ selector, tag: match[1].toLowerCase(), text });
+  }
+  return anchors.slice(0, 240);
+}
+
+function normalizedWords(value = "") {
+  return [...new Set(String(value).toLowerCase().normalize("NFKD").replace(/[^a-z0-9äöüß\s-]/gi, " ").split(/\s+/).map((part) => part.trim()).filter((part) => part.length >= 3 && !["aktuell","steht","dort","dieses","diese","einen","einem","einer","rechts","links","neben","schriftzug","kästchen","kasten","version"].includes(part)))];
+}
+
+export function resolveTextReference(prompt = "", analysis = null) {
+  const anchors = Array.isArray(analysis?.text_anchors) ? analysis.text_anchors : [];
+  const promptWords = normalizedWords(prompt);
+  const promptText = String(prompt).toLowerCase();
+  const ranked = anchors.map((anchor) => {
+    const words = normalizedWords(anchor.text);
+    const shared = words.filter((word) => promptWords.includes(word));
+    let score = shared.length * 18;
+    const anchorText = String(anchor.text || "").toLowerCase();
+    if (anchorText.length >= 4 && promptText.includes(anchorText)) score += 120;
+    if (/lean\s+version/i.test(prompt) && /lean\s+version/i.test(anchor.text)) score += 85;
+    if (/riosystems\s+dashboard/i.test(prompt) && /riosystems\s+dashboard/i.test(anchor.text)) score += 85;
+    if (String(anchor.selector || "").startsWith("#")) score += 12;
+    return { ...anchor, score, shared_terms: shared };
+  }).filter((item) => item.score >= 30).sort((a,b) => b.score - a.score || a.selector.length - b.selector.length);
+  const best = ranked[0] || null;
+  const second = ranked[1] || null;
+  const unique = Boolean(best && (!second || best.score - second.score >= 18 || best.score >= 110));
+  return { matched: Boolean(best), unique, best, candidates: ranked.slice(0, 5) };
+}
+
 export function analyzeProject({ html = "", css = "" } = {}) {
   const selectors = uniq([...classNames(html), ...idNames(html), ...cssSelectors(css)]);
   const semantic = {
@@ -62,12 +114,14 @@ export function analyzeProject({ html = "", css = "" } = {}) {
     section: bestSelector(selectors, ["section", "content-section", "feature-section"]),
     section_head: bestSelector(selectors, ["section-head", "section-header", "section-title"])
   };
+  const anchors = textAnchors(html);
 
   return {
-    version: 1,
+    version: 2,
     selector_count: selectors.length,
     selectors,
     semantic,
+    text_anchors: anchors,
     capabilities: {
       has_rocket: Boolean(semantic.rocket),
       has_smoke: Boolean(semantic.smoke),
@@ -76,7 +130,8 @@ export function analyzeProject({ html = "", css = "" } = {}) {
       has_cards: Boolean(semantic.cards),
       has_grid: Boolean(semantic.grid),
       has_cta: Boolean(semantic.cta),
-      has_section: Boolean(semantic.section)
+      has_section: Boolean(semantic.section),
+      has_text_anchors: anchors.length > 0
     }
   };
 }
