@@ -1,0 +1,8 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "changes": {
+    "headline": "Alpha works on command."
+  },
+  "production_deploy": false
+}
