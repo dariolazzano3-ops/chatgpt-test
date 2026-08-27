@@ -5,12 +5,47 @@
       "project_name": "MultiProject Alpha",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-066b6d9bf56e",
-      "pull_request": 103,
-      "preview_url": "https://factory-multiproject-alpha-e-w45o.chatgpt-factory-preview.pages.dev",
+      "branch": "factory/multiproject-alpha-edit-67a0611aa33b",
+      "previous_branch": "factory/multiproject-alpha-edit-066b6d9bf56e",
+      "edit_revision": 1,
+      "pull_request": 113,
+      "preview_url": "https://factory-multiproject-alpha-e-06mc.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
+      "release_readiness": {
+        "version": 1,
+        "gate": "factory-v3-release-readiness",
+        "preview_ready": true,
+        "production_ready": false,
+        "production_deploy": false,
+        "production_approved": false,
+        "status": "PREVIEW_READY_AWAITING_PRODUCTION_APPROVAL",
+        "blockers": [
+          "manual_production_approval_required"
+        ],
+        "evidence": {
+          "project_path_valid": true,
+          "branch_isolated": true,
+          "pull_request_present": true,
+          "preview_https": true,
+          "visual_qa": {
+            "ok": true,
+            "report_version": 4,
+            "generated_at": "2026-08-27T13:16:32.820Z",
+            "viewports": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        },
+        "feedback": {
+          "current_stage": "preview_review",
+          "next_action": "review_preview_and_request_manual_approval",
+          "safe_to_continue_editing": true
+        },
+        "generated_at": "2026-08-27T13:16:34.168Z"
+      },
       "mode": "editing",
-      "updated_at": "2026-08-27T11:52:57.823Z"
+      "updated_at": "2026-08-27T13:16:34.168Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -24,5 +59,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T11:52:57.823Z"
+  "updated_at": "2026-08-27T13:16:34.168Z"
 }
