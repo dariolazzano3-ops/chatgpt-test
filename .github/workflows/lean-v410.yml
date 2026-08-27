@@ -1,0 +1,34 @@
+name: LEAN V4.10
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/mission-compiler.js'
+      - 'scripts/mission-compiler-smoke.mjs'
+      - 'scripts/mission-intake.mjs'
+      - 'scripts/factory-v410-readiness.mjs'
+      - '.github/workflows/mission-intake.yml'
+      - '.github/workflows/lean-v410.yml'
+      - 'scripts/factory-v49-readiness.mjs'
+      - 'factory-state/runtime.json'
+
+jobs:
+  validate-v410:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/mission-compiler.js
+          node --check scripts/mission-compiler-smoke.mjs
+          node --check scripts/mission-intake.mjs
+          node --check scripts/factory-v410-readiness.mjs
+      - name: One-prompt mission compiler smoke
+        run: node scripts/mission-compiler-smoke.mjs
+      - name: V4.10 readiness
+        run: node scripts/factory-v410-readiness.mjs
