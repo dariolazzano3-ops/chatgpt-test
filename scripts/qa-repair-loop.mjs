@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, recordFactoryJobEvent, resolveCandidateRevision } from './factory-job-state.mjs';
 import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
+import { buildEditFeatureRegressionChecks, summarizeProjectFeatureFingerprint } from './edit-feature-fingerprint.mjs';
 
 // Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
@@ -147,6 +148,7 @@ async function verifyRequestFulfillment() {
   const prompt = String(request.prompt || '').trim();
   const files = await readProjectBundle();
   const checks = [];
+  let featureFingerprint = null;
 
   const baselineBranch = resolveActiveBaselineBranch();
   let changedFiles = [];
@@ -161,8 +163,13 @@ async function verifyRequestFulfillment() {
   checks.push({ id: 'project_delta', ok: changedFiles.length > 0, detail: changedFiles.length ? changedFiles : ['no project file changed'] });
 
   if (baselineBranch && baselineBranch !== sourceBranch) {
-    const baselineFiles = readProjectBundleAtBranch(baselineBranch);
+    const baselineFiles = readProjectBundleAtBranch(baselineBranch, Object.keys(files));
     checks.push(...criticalEditFeatureChecks(request, baselineFiles, files));
+    checks.push(...buildEditFeatureRegressionChecks(request, baselineFiles, files));
+    featureFingerprint = {
+      baseline: summarizeProjectFeatureFingerprint(baselineFiles),
+      candidate: summarizeProjectFeatureFingerprint(files)
+    };
   }
 
   const asksLogo = /logo|brand-mark|brand mark|markenzeichen/i.test(prompt);
@@ -184,7 +191,7 @@ async function verifyRequestFulfillment() {
   const explicitChecks = checks.filter((c) => c.id !== 'project_delta').length;
   const failed = checks.filter((c) => !c.ok);
   const report = {
-    version: 3,
+    version: 4,
     generated_at: new Date().toISOString(),
     request_mode: request.mode || null,
     prompt,
@@ -192,6 +199,7 @@ async function verifyRequestFulfillment() {
     baseline_branch: baselineBranch || null,
     candidate_branch: sourceBranch,
     changed_files: changedFiles,
+    feature_fingerprint: featureFingerprint,
     checks,
     ok: failed.length === 0,
     failures: failed.map((c) => ({ code: c.id, message: c.detail }))
