@@ -6,6 +6,7 @@ on:
       - develop
       - staging
       - main
+      - factory-control
       - feature/project-factory-v1-5
       - 'factory-v3/auto/**'
   pull_request:
