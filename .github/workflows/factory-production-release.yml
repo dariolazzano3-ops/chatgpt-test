@@ -1,0 +1,191 @@
+name: Factory Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_slug:
+        description: 'Active Factory project slug'
+        required: true
+        type: string
+      edit_revision:
+        description: 'Exact active edit revision'
+        required: true
+        type: string
+      confirmation:
+        description: 'Type: DEPLOY <slug> REV <revision>'
+        required: true
+        type: string
+      dry_run:
+        description: 'Validate everything without deploying production'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: factory-production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PRODUCTION_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PRODUCTION_PAGES_PROJECT }}
+    steps:
+      - name: Checkout release runtime
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Load canonical active Factory state
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin factory-control
+          git show origin/factory-control:factory-state/active-project.json > /tmp/active-project.json
+          node -e 'const s=require("/tmp/active-project.json"); if(!s.branch||!s.source_path) process.exit(2); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT,`branch=${s.branch}\nproject_path=${s.source_path}\n`)' 
+
+      - name: Checkout exact active project branch
+        shell: bash
+        env:
+          BRANCH: ${{ steps.state.outputs.branch }}
+        run: |
+          set -euo pipefail
+          case "$BRANCH" in factory/*) ;; *) echo "Unsafe Factory branch"; exit 1 ;; esac
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+
+      - name: Validate production approval and QA commit binding
+        id: gate
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ inputs.project_slug }}
+          EDIT_REVISION: ${{ inputs.edit_revision }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          CURRENT_SHA=$(git rev-parse HEAD)
+          node scripts/production-release-gate.mjs /tmp/active-project.json "$PROJECT_SLUG" "$EDIT_REVISION" "$CONFIRMATION" "$CURRENT_SHA"
+
+      - name: Validate release project files
+        shell: bash
+        env:
+          PROJECT_PATH: ${{ steps.gate.outputs.project_path }}
+        run: |
+          set -euo pipefail
+          case "$PROJECT_PATH" in projects/*) ;; *) echo "Unsafe project path"; exit 1 ;; esac
+          test -f "$PROJECT_PATH/index.html"
+          test -f "$PROJECT_PATH/styles.css"
+          test -f "$PROJECT_PATH/project.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$PROJECT_PATH/project.json"
+
+      - name: Production dry-run result
+        if: inputs.dry_run == true
+        shell: bash
+        run: |
+          echo "### Factory Production Release Dry Run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Approval gate: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Exact QA-tested commit: verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Project: ${{ steps.gate.outputs.project_slug }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Revision: ${{ steps.gate.outputs.edit_revision }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ steps.gate.outputs.project_sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Preview: ${{ steps.gate.outputs.preview_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production deployed: no (dry run)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate configured Cloudflare production target
+        if: inputs.dry_run == false
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$CLOUDFLARE_PRODUCTION_PAGES_PROJECT" || { echo "Missing CLOUDFLARE_PRODUCTION_PAGES_PROJECT repository variable"; exit 1; }
+          RESPONSE=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PRODUCTION_PAGES_PROJECT")
+          node -e 'const body=JSON.parse(process.argv[1]); if(body?.success!==true) throw new Error("CLOUDFLARE_PROJECT_LOOKUP_FAILED"); if(body?.result?.production_branch!=="main") throw new Error(`PRODUCTION_BRANCH_MUST_BE_MAIN:${body?.result?.production_branch||"missing"}`);' "$RESPONSE"
+
+      - name: Deploy exact approved project to production
+        if: inputs.dry_run == false
+        id: deploy
+        shell: bash
+        env:
+          PROJECT_PATH: ${{ steps.gate.outputs.project_path }}
+        run: |
+          set -euo pipefail
+          DEPLOY_OUTPUT=$(npx --yes wrangler@4 pages deploy "$PROJECT_PATH" --project-name "$CLOUDFLARE_PRODUCTION_PAGES_PROJECT" --branch main 2>&1 | tee /dev/stderr)
+          PRODUCTION_URL=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -n 's/.*Take a peek over at \(https:\/\/[^ ]*\).*/\1/p' | tail -n 1)
+          if [ -z "$PRODUCTION_URL" ]; then PRODUCTION_URL=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -n 's/.*Deployment alias URL: \(https:\/\/[^ ]*\).*/\1/p' | tail -n 1); fi
+          test -n "$PRODUCTION_URL" || { echo "Could not resolve production URL"; exit 1; }
+          echo "url=$PRODUCTION_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Record successful production release
+        if: inputs.dry_run == false
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ steps.gate.outputs.project_slug }}
+          EDIT_REVISION: ${{ steps.gate.outputs.edit_revision }}
+          PROJECT_SHA: ${{ steps.gate.outputs.project_sha }}
+          BRANCH: ${{ steps.gate.outputs.branch }}
+          PREVIEW_URL: ${{ steps.gate.outputs.preview_url }}
+          PRODUCTION_URL: ${{ steps.deploy.outputs.url }}
+          TARGET_PROJECT: ${{ vars.CLOUDFLARE_PRODUCTION_PAGES_PROJECT }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/factory-release-state
+          git fetch origin factory-control
+          git worktree add --detach /tmp/factory-release-state origin/factory-control
+          cd /tmp/factory-release-state
+          mkdir -p factory-state
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='factory-state/releases.json';
+          let data={version:1,releases:[]};
+          if(fs.existsSync(p)) data=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(!Array.isArray(data.releases)) data.releases=[];
+          data.version=1;
+          data.releases.push({
+            project_slug:process.env.PROJECT_SLUG,
+            edit_revision:Number(process.env.EDIT_REVISION),
+            project_sha:process.env.PROJECT_SHA,
+            branch:process.env.BRANCH,
+            preview_url:process.env.PREVIEW_URL,
+            production_url:process.env.PRODUCTION_URL,
+            cloudflare_pages_project:process.env.TARGET_PROJECT,
+            approved_by:process.env.ACTOR,
+            production_deploy:true,
+            deployed_at:new Date().toISOString()
+          });
+          data.updated_at=new Date().toISOString();
+          fs.writeFileSync(p,JSON.stringify(data,null,2)+'\n');
+          NODE
+          git config user.name "factory-production[bot]"
+          git config user.email "factory-production[bot]@users.noreply.github.com"
+          git add factory-state/releases.json
+          git commit -m "Factory: record production release $PROJECT_SLUG rev $EDIT_REVISION"
+          git push origin HEAD:factory-control
+
+      - name: Publish production release status
+        if: inputs.dry_run == false
+        shell: bash
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/${{ steps.gate.outputs.project_sha }}" -f state=success -f context='factory-production/release' -f description='Manually approved Factory production release' -f target_url='${{ steps.deploy.outputs.url }}' >/dev/null
+          echo "### Factory Production Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Project: ${{ steps.gate.outputs.project_slug }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Revision: ${{ steps.gate.outputs.edit_revision }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ steps.gate.outputs.project_sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Approved by: ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
