@@ -1,0 +1,33 @@
+name: LEAN V4.9
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/mission-supervisor.js'
+      - 'scripts/mission-supervisor.mjs'
+      - 'scripts/mission-supervisor-smoke.mjs'
+      - 'scripts/factory-v49-readiness.mjs'
+      - '.github/workflows/mission-supervisor.yml'
+      - '.github/workflows/lean-v49.yml'
+      - 'factory-state/runtime.json'
+
+jobs:
+  validate-v49:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/mission-supervisor.js
+          node --check scripts/mission-supervisor.mjs
+          node --check scripts/mission-supervisor-smoke.mjs
+          node --check scripts/factory-v49-readiness.mjs
+      - name: Persisted four-factory mission supervisor smoke
+        run: node scripts/mission-supervisor-smoke.mjs
+      - name: V4.9 readiness
+        run: node scripts/factory-v49-readiness.mjs
