@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "3.9",
-  "display_label": "LEAN VERSION 3.9",
+  "factory_version": "4.0",
+  "display_label": "LEAN VERSION 4.0",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -45,6 +45,10 @@
     "persisted_dispatch_envelope": true,
     "adapter_dispatch_authorization_required": true,
     "automatic_adapter_dispatch": false,
+    "supervised_web_mission_execution": true,
+    "mission_job_observation": true,
+    "terminal_job_reconciliation": true,
+    "mission_executor_workflow": true,
     "cross_factory_side_effects_disabled": true,
     "automatic_multi_factory_execution": false,
     "available_factories": ["web"],
