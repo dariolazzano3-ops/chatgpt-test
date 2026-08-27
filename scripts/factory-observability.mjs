@@ -1,0 +1,169 @@
+const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+const repository = process.env.GITHUB_REPOSITORY;
+const controlRef = 'factory-control';
+
+function headers() {
+  if (!token) throw new Error('GITHUB_TOKEN_REQUIRED');
+  if (!repository || !repository.includes('/')) throw new Error('GITHUB_REPOSITORY_REQUIRED');
+  return {
+    authorization: `Bearer ${token}`,
+    accept: 'application/vnd.github+json',
+    'x-github-api-version': '2022-11-28',
+    'content-type': 'application/json'
+  };
+}
+
+function increment(map, key, amount = 1) {
+  if (!key) return;
+  map[key] = Number(map[key] || 0) + amount;
+}
+
+function round(value, digits = 1) {
+  const factor = 10 ** digits;
+  return Math.round(Number(value || 0) * factor) / factor;
+}
+
+function average(total, count) {
+  return count > 0 ? round(total / count) : 0;
+}
+
+function jobEvents(job) {
+  return Array.isArray(job?.events) ? job.events : [];
+}
+
+export function buildObservabilitySnapshot(jobs = [], options = {}) {
+  const statusCounts = {};
+  const failureCodes = {};
+  const repairProfiles = {};
+  let qaAttemptEvents = 0;
+  let qaPassedEvents = 0;
+  let qaFailedEvents = 0;
+  let repairEvents = 0;
+  let jobsRecoveredByRepair = 0;
+  let jobsWithRepair = 0;
+  let previewMs = 0;
+  let qaMs = 0;
+  let repairMs = 0;
+  let previewSamples = 0;
+  let qaSamples = 0;
+  let repairSamples = 0;
+
+  for (const job of jobs) {
+    increment(statusCounts, String(job?.status || 'UNKNOWN'));
+    const events = jobEvents(job);
+    const repairs = events.filter((event) => event?.type === 'REPAIR_RESULT' && event?.outcome === 'committed');
+    if (repairs.length) {
+      jobsWithRepair += 1;
+      if (job?.status === 'READY_FOR_REVIEW') jobsRecoveredByRepair += 1;
+    }
+
+    for (const event of events) {
+      const durations = event?.durations_ms || {};
+      if (event?.type === 'QA_ATTEMPT_RESULT') {
+        qaAttemptEvents += 1;
+        if (event?.outcome === 'passed') qaPassedEvents += 1;
+        else qaFailedEvents += 1;
+        for (const code of event?.issue_codes || []) increment(failureCodes, code);
+        if (Number.isFinite(Number(durations.preview_ms))) { previewMs += Number(durations.preview_ms); previewSamples += 1; }
+        if (Number.isFinite(Number(durations.qa_ms))) { qaMs += Number(durations.qa_ms); qaSamples += 1; }
+      }
+      if (event?.type === 'REPAIR_RESULT' && event?.outcome === 'committed') {
+        repairEvents += 1;
+        for (const profile of event?.repair_profiles || []) increment(repairProfiles, profile);
+        if (Number.isFinite(Number(durations.repair_ms))) { repairMs += Number(durations.repair_ms); repairSamples += 1; }
+      }
+    }
+  }
+
+  const totalJobs = jobs.length;
+  const readyJobs = Number(statusCounts.READY_FOR_REVIEW || 0);
+  const failedJobs = Number(statusCounts.FAILED || 0);
+  return {
+    version: 1,
+    factory_version: options.factory_version || '3.3',
+    generated_at: options.generated_at || new Date().toISOString(),
+    production_deploy: false,
+    sample: {
+      jobs_total: totalJobs,
+      jobs_ready_for_review: readyJobs,
+      jobs_failed: failedJobs,
+      terminal_success_rate_pct: readyJobs + failedJobs > 0 ? round((readyJobs / (readyJobs + failedJobs)) * 100) : 0,
+      jobs_with_auto_repair: jobsWithRepair,
+      jobs_recovered_by_auto_repair: jobsRecoveredByRepair,
+      auto_repair_recovery_rate_pct: jobsWithRepair > 0 ? round((jobsRecoveredByRepair / jobsWithRepair) * 100) : 0
+    },
+    qa: {
+      attempt_events: qaAttemptEvents,
+      passed_attempts: qaPassedEvents,
+      nonpassing_attempts: qaFailedEvents,
+      average_preview_ms: average(previewMs, previewSamples),
+      average_qa_ms: average(qaMs, qaSamples)
+    },
+    repair: {
+      committed_repairs: repairEvents,
+      average_repair_ms: average(repairMs, repairSamples),
+      profiles: Object.fromEntries(Object.entries(repairProfiles).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])))
+    },
+    failures: {
+      codes: Object.fromEntries(Object.entries(failureCodes).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])))
+    },
+    statuses: Object.fromEntries(Object.entries(statusCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])))
+  };
+}
+
+async function github(path, options = {}) {
+  const response = await fetch(`https://api.github.com${path}`, { headers: headers(), ...options });
+  if (!response.ok) throw new Error(`OBSERVABILITY_GITHUB_${response.status}:${(await response.text()).slice(0,360)}`);
+  return response.json();
+}
+
+async function readJobs() {
+  const files = await github(`/repos/${repository}/contents/factory-state/jobs?ref=${encodeURIComponent(controlRef)}`);
+  const jsonFiles = Array.isArray(files) ? files.filter((item) => item.type === 'file' && item.name.endsWith('.json')).slice(0, 200) : [];
+  const jobs = [];
+  for (const file of jsonFiles) {
+    const body = await github(`/repos/${repository}/contents/${file.path}?ref=${encodeURIComponent(controlRef)}`);
+    try {
+      jobs.push(JSON.parse(Buffer.from(body.content, 'base64').toString('utf8')));
+    } catch {
+      // Ignore malformed historical telemetry rather than breaking current Factory execution.
+    }
+  }
+  return jobs;
+}
+
+async function writeSnapshot(snapshot) {
+  const path = 'factory-state/observability.json';
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    let sha = null;
+    const existing = await fetch(`https://api.github.com/repos/${repository}/contents/${path}?ref=${encodeURIComponent(controlRef)}`, { headers: headers() });
+    if (existing.ok) sha = (await existing.json()).sha;
+    else if (existing.status !== 404) throw new Error(`OBSERVABILITY_READ_${existing.status}:${(await existing.text()).slice(0,240)}`);
+    const payload = {
+      message: 'Factory: refresh observability snapshot',
+      branch: controlRef,
+      content: Buffer.from(`${JSON.stringify(snapshot, null, 2)}\n`).toString('base64')
+    };
+    if (sha) payload.sha = sha;
+    const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (response.ok) return;
+    if (response.status !== 409 || attempt === 4) throw new Error(`OBSERVABILITY_WRITE_${response.status}:${(await response.text()).slice(0,360)}`);
+  }
+}
+
+export async function refreshObservabilitySnapshot() {
+  const jobs = await readJobs();
+  const snapshot = buildObservabilitySnapshot(jobs);
+  await writeSnapshot(snapshot);
+  return snapshot;
+}
+
+if (process.argv[1]?.endsWith('factory-observability.mjs')) {
+  const dryRun = process.argv.includes('--dry-run');
+  const jobs = await readJobs();
+  const snapshot = buildObservabilitySnapshot(jobs);
+  if (!dryRun) await writeSnapshot(snapshot);
+  console.log(JSON.stringify(snapshot, null, 2));
+}
