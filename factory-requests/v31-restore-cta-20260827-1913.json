@@ -1,0 +1,6 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "prompt": "Ändere den Button auf Jetzt starten",
+  "production_deploy": false
+}
