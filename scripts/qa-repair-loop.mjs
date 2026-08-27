@@ -5,7 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, recordFactoryJobEvent, resolveCandidateRevision } from './factory-job-state.mjs';
 import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
 
-// Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is now enforced by qa-repair-policy.mjs.
+// Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
 const sourceBranch = process.argv[3];
 const projectSlug = process.argv[4];
@@ -69,15 +69,34 @@ async function readProjectBundle() {
   return Object.fromEntries(entries);
 }
 
+function resolveActiveBaselineBranch() {
+  try {
+    execFileSync('git', ['fetch', 'origin', 'factory-control'], { stdio: 'ignore' });
+    const raw = execFileSync('git', ['show', 'origin/factory-control:factory-state/projects.json'], { encoding: 'utf8' });
+    const state = JSON.parse(raw);
+    const branch = String(state?.projects?.[projectSlug]?.branch || '');
+    return branch.startsWith('factory/') ? branch : '';
+  } catch {
+    return '';
+  }
+}
+
 async function verifyRequestFulfillment() {
   const request = await readRequest();
   const prompt = String(request.prompt || '').trim();
   const files = await readProjectBundle();
   const checks = [];
 
-  try { execFileSync('git', ['fetch', 'origin', sourceBranch], { stdio: 'ignore' }); } catch {}
-  const diff = run('git', ['diff', '--name-only', `origin/${sourceBranch}...HEAD`, '--', projectPath]);
-  const changedFiles = String(diff.stdout || '').split('\n').map((v) => v.trim()).filter(Boolean);
+  const baselineBranch = resolveActiveBaselineBranch();
+  let changedFiles = [];
+  if (baselineBranch && baselineBranch !== sourceBranch) {
+    try { execFileSync('git', ['fetch', 'origin', baselineBranch], { stdio: 'ignore' }); } catch {}
+    const diff = run('git', ['diff', '--name-only', `origin/${baselineBranch}...HEAD`, '--', projectPath]);
+    changedFiles = String(diff.stdout || '').split('\n').map((v) => v.trim()).filter(Boolean);
+  } else {
+    const diff = run('git', ['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD', '--', projectPath]);
+    changedFiles = String(diff.stdout || '').split('\n').map((v) => v.trim()).filter(Boolean);
+  }
   checks.push({ id: 'project_delta', ok: changedFiles.length > 0, detail: changedFiles.length ? changedFiles : ['no project file changed'] });
 
   const asksLogo = /logo|brand-mark|brand mark|markenzeichen/i.test(prompt);
@@ -87,35 +106,25 @@ async function verifyRequestFulfillment() {
   if (asksLogo && asksPlanet) {
     const html = files['index.html'] || '';
     const css = files['styles.css'] || '';
-    checks.push({
-      id: 'planet_logo_present',
-      ok: /data-factory-feature=["']planet-logo["']|class=["'][^"']*planet-logo/i.test(html),
-      detail: 'Expected a semantic planet-logo marker in the rendered project.'
-    });
-    checks.push({
-      id: 'planet_geometry_present',
-      ok: /\.brand-mark\.planet-logo::before|factoryPlanetOrbit|planet-logo/i.test(css),
-      detail: 'Expected planet geometry/styles in styles.css.'
-    });
+    checks.push({ id: 'planet_logo_present', ok: /data-factory-feature=["']planet-logo["']|class=["'][^"']*planet-logo/i.test(html), detail: 'Expected a semantic planet-logo marker in the rendered project.' });
+    checks.push({ id: 'planet_geometry_present', ok: /\.brand-mark\.planet-logo::before|factoryPlanetOrbit|planet-logo/i.test(css), detail: 'Expected planet geometry/styles in styles.css.' });
   }
 
   if (asksRotation) {
     const css = files['styles.css'] || '';
-    checks.push({
-      id: 'requested_rotation_present',
-      ok: /@keyframes\s+factoryPlanetOrbit|animation\s*:[^;]*(?:infinite|linear)|rotate\(360deg\)/i.test(css),
-      detail: 'Expected a continuous CSS rotation for the requested animated element.'
-    });
+    checks.push({ id: 'requested_rotation_present', ok: /@keyframes\s+factoryPlanetOrbit|animation\s*:[^;]*(?:infinite|linear)|rotate\(360deg\)/i.test(css), detail: 'Expected a continuous CSS rotation for the requested animated element.' });
   }
 
   const explicitChecks = checks.filter((c) => c.id !== 'project_delta').length;
   const failed = checks.filter((c) => !c.ok);
   const report = {
-    version: 1,
+    version: 2,
     generated_at: new Date().toISOString(),
     request_mode: request.mode || null,
     prompt,
     verification_level: explicitChecks ? 'deterministic' : 'structural',
+    baseline_branch: baselineBranch || null,
+    candidate_branch: sourceBranch,
     changed_files: changedFiles,
     checks,
     ok: failed.length === 0,
