@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { buildRecoveryPatch, classifyFailureKind } from './factory-recovery.mjs';
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
@@ -38,11 +39,7 @@ function normalizeEvent(event, now, sequence) {
   if (!event || typeof event !== 'object') return null;
   const type = String(event.type || '').trim().toUpperCase();
   if (!/^[A-Z0-9_]{3,48}$/.test(type)) return null;
-  const normalized = {
-    sequence,
-    at: now,
-    type
-  };
+  const normalized = { sequence, at: now, type };
   if (Number.isInteger(Number(event.attempt)) && Number(event.attempt) >= 0) normalized.attempt = Number(event.attempt);
   if (event.outcome) normalized.outcome = String(event.outcome).slice(0, 48);
   if (event.stage) normalized.stage = String(event.stage).slice(0, 64);
@@ -99,11 +96,16 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const now = new Date().toISOString();
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
     const { __event, ...publicPatch } = patch || {};
+    const recoveryPatch = publicPatch.status === 'REQUESTED' ? buildRecoveryPatch(existing, { now }) : {};
+    const recoveryEvent = publicPatch.status === 'REQUESTED' && recoveryPatch.recovery_status === 'resuming'
+      ? { type: 'RECOVERY_STARTED', stage: 'queue', outcome: 'safe_retry', note: recoveryPatch.recovery_reason }
+      : null;
     const retryReset = publicPatch.status === 'REQUESTED' ? {
       qa_attempt: 0,
       qa_status: 'pending',
       last_error: null,
       failure_stage: null,
+      failure_kind: null,
       retry_exhausted: false,
       qa_result: null,
       preview_url: null,
@@ -112,26 +114,34 @@ export async function updateFactoryJob(jobId, patch = {}) {
       project_slug: null,
       revision: null,
       run_started_at: now,
-      run_number: Number(existing.run_number || 0) + 1
+      run_number: Number(existing.run_number || 0) + 1,
+      ...recoveryPatch
     } : {};
     const terminalCleanup = publicPatch.status === 'READY_FOR_REVIEW' ? {
       last_error: null,
       failure_stage: null,
-      retry_exhausted: false
+      failure_kind: null,
+      retry_exhausted: false,
+      recovery_status: existing.recovery_status === 'resuming' ? 'recovered' : (existing.recovery_status || 'not_needed')
     } : {};
     const inferredSha = publicPatch.status === 'READY_FOR_REVIEW' && !publicPatch.commit_sha ? currentGitSha() : null;
     const previousEvents = Array.isArray(existing.events) ? existing.events : [];
-    const normalizedEvent = normalizeEvent(__event, now, Number(previousEvents.at(-1)?.sequence || 0) + 1);
-    const events = normalizedEvent ? [...previousEvents, normalizedEvent].slice(-MAX_EVENTS) : previousEvents.slice(-MAX_EVENTS);
+    const firstEvent = normalizeEvent(recoveryEvent, now, Number(previousEvents.at(-1)?.sequence || 0) + 1);
+    const eventBase = firstEvent ? [...previousEvents, firstEvent] : previousEvents;
+    const normalizedEvent = normalizeEvent(__event, now, Number(eventBase.at(-1)?.sequence || 0) + 1);
+    const events = normalizedEvent ? [...eventBase, normalizedEvent].slice(-MAX_EVENTS) : eventBase.slice(-MAX_EVENTS);
     const next = {
-      version: 2,
-      telemetry_version: 1,
+      version: 3,
+      telemetry_version: 2,
+      recovery_version: 1,
       job_id: id,
       created_at: existing.created_at || now,
       max_qa_attempts: 3,
       qa_attempt: 0,
       production_deploy: false,
       run_number: Number(existing.run_number || 0),
+      recovery_status: existing.recovery_status || 'not_needed',
+      recovery_attempt: Number(existing.recovery_attempt || 0),
       ...existing,
       ...retryReset,
       ...publicPatch,
@@ -160,12 +170,14 @@ export async function failFactoryJobUnlessTerminal(jobId, patch = {}) {
   const id = safeId(jobId);
   const current = await readJson(`factory-state/jobs/${id}.json`, false);
   if (TERMINAL.has(String(current.value?.status || ''))) return current.value;
+  const failureKind = patch.failure_kind || classifyFailureKind({ error: patch.last_error, stage: patch.failure_stage });
   return updateFactoryJob(id, {
     ...patch,
+    failure_kind: failureKind,
     status: 'FAILED',
     qa_status: patch.qa_status || current.value?.qa_status || 'not_run',
     production_deploy: false,
-    __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: 'failed' }
+    __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: failureKind }
   });
 }
 
