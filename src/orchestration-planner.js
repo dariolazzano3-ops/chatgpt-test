@@ -1,0 +1,133 @@
+import crypto from "node:crypto";
+import { routeCapability, listCapabilities } from "./capability-router.js";
+
+const registry = () => new Map(listCapabilities().map((item) => [item.id, item]));
+const clean = (value, max = 4000) => String(value || "").trim().slice(0, max);
+
+function taskId(index, capability) {
+  return `task-${String(index + 1).padStart(2, "0")}-${capability.replace(/_/g, "-")}`;
+}
+
+function capabilityDependencies(capability, selected) {
+  const deps = [];
+  const has = (id) => selected.includes(id);
+  if (capability === "automation_build") {
+    if (has("business_system_build")) deps.push("business_system_build");
+    if (has("ai_system_build")) deps.push("ai_system_build");
+    if (has("web_generate")) deps.push("web_generate");
+    if (has("web_evolve")) deps.push("web_evolve");
+  }
+  if (capability === "ai_system_build" && has("business_system_build")) deps.push("business_system_build");
+  return deps;
+}
+
+function taskGoal(capability, prompt, project) {
+  const prefix = project ? `Project ${project}: ` : "";
+  const goals = {
+    web_generate: `${prefix}create the requested web experience`,
+    web_rebuild: `${prefix}analyze and independently rebuild the requested public website`,
+    web_evolve: `${prefix}apply the requested controlled web changes`,
+    app_build: `${prefix}build the requested application capability`,
+    automation_build: `${prefix}implement the requested workflow and integrations`,
+    ai_system_build: `${prefix}implement the requested AI/assistant capability`,
+    business_system_build: `${prefix}implement the requested business-process system`
+  };
+  return goals[capability] || clean(prompt, 240);
+}
+
+function executionState(capability) {
+  if (capability.status === "available" && capability.engine) return "READY_FOR_ENGINE";
+  return "BLOCKED_CAPABILITY_NOT_IMPLEMENTED";
+}
+
+function stableHash(value) {
+  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+export function buildOrchestrationPlan(input = {}) {
+  const prompt = clean(input.prompt || input.request || input.goal);
+  const project = clean(input.project || input.project_slug, 120) || null;
+  if (!prompt) return { ok: false, error: "ORCHESTRATION_PROMPT_REQUIRED" };
+
+  const route = routeCapability({ ...input, prompt, project });
+  if (!route.ok) return { ok: false, error: route.error || "CAPABILITY_UNRESOLVED", routing: route };
+
+  const selected = route.capability === "multi_capability"
+    ? [...new Set(route.required_capabilities || [])]
+    : [route.capability];
+  const capabilities = registry();
+
+  const tasks = selected.map((capabilityId, index) => {
+    const capability = capabilities.get(capabilityId);
+    const dependsOnCapabilities = capabilityDependencies(capabilityId, selected);
+    return {
+      task_id: taskId(index, capabilityId),
+      capability: capabilityId,
+      domain: capability?.domain || "unknown",
+      engine: capability?.engine || null,
+      capability_status: capability?.status || "unknown",
+      execution_state: executionState(capability || {}),
+      goal: taskGoal(capabilityId, prompt, project),
+      depends_on_capabilities: dependsOnCapabilities,
+      depends_on: [],
+      parallelizable: dependsOnCapabilities.length === 0,
+      production_deploy: false
+    };
+  });
+
+  const taskByCapability = new Map(tasks.map((task) => [task.capability, task.task_id]));
+  for (const task of tasks) task.depends_on = task.depends_on_capabilities.map((id) => taskByCapability.get(id)).filter(Boolean);
+
+  const executable = tasks.filter((task) => task.execution_state === "READY_FOR_ENGINE");
+  const blocked = tasks.filter((task) => task.execution_state !== "READY_FOR_ENGINE");
+  const roots = tasks.filter((task) => task.depends_on.length === 0).map((task) => task.task_id);
+  const planCore = { prompt, project, tasks: tasks.map(({ depends_on_capabilities, ...task }) => task) };
+
+  return {
+    ok: true,
+    version: "3.7",
+    orchestration_id: stableHash(planCore).slice(0, 24),
+    mode: tasks.length > 1 ? "multi_capability" : "single_capability",
+    prompt,
+    project,
+    routing: route,
+    tasks: planCore.tasks,
+    graph: {
+      roots,
+      task_count: tasks.length,
+      executable_count: executable.length,
+      blocked_count: blocked.length,
+      has_dependencies: tasks.some((task) => task.depends_on.length > 0)
+    },
+    execution: {
+      status: blocked.length ? "PARTIALLY_BLOCKED" : "READY",
+      executable_task_ids: executable.map((task) => task.task_id),
+      blocked_task_ids: blocked.map((task) => task.task_id),
+      automatic_execution_enabled: false,
+      reason: "V3.7 plans orchestration only; domain execution remains delegated and bounded"
+    },
+    safeguards: {
+      unavailable_capabilities_never_executed: true,
+      production_deploy: false,
+      manual_production_approval_required: true,
+      dependency_order_required: true,
+      cross_factory_side_effects_disabled: true
+    }
+  };
+}
+
+export function orchestrationCapabilities() {
+  return {
+    version: "3.7",
+    features: [
+      "compound_request_decomposition",
+      "capability_task_graph",
+      "dependency_ordering",
+      "parallel_root_detection",
+      "available_vs_planned_engine_separation",
+      "execution_readiness_summary"
+    ],
+    automatic_execution_enabled: false,
+    production_deploy: false
+  };
+}
