@@ -1,0 +1,115 @@
+import { buildTaskExecutionContract } from './orchestration-state.js';
+import { prepareMissionTaskDispatch } from './mission-execution-bridge.js';
+import { executeAutomationMissionTask } from './automation-mission-bridge.js';
+
+const clone = (value) => structuredClone(value);
+
+export function missionExecutionRouterManifest() {
+  return {
+    version: '4.6',
+    supported_engines: ['web', 'automation'],
+    web_execution: 'supervised_external_dispatch',
+    automation_execution: 'supervised_inline_runner',
+    explicit_dispatch_approval_required: true,
+    automatic_cross_factory_execution: false,
+    production_deploy: false
+  };
+}
+
+export async function executeMissionTask(mission, taskId, approval = {}, options = {}) {
+  const contractResult = buildTaskExecutionContract(mission, taskId);
+  if (!contractResult.ok) return contractResult;
+  const contract = contractResult;
+
+  if (contract.engine === 'web') {
+    const prepared = prepareMissionTaskDispatch(mission, taskId, approval, options.web || options);
+    if (!prepared.ok) return prepared;
+    return {
+      ...prepared,
+      execution_mode: 'supervised_external_dispatch',
+      engine: 'web',
+      pending_external_execution: true,
+      production_deploy: false
+    };
+  }
+
+  if (contract.engine === 'automation') {
+    const automationContract = options.automation_contract || options.automation_contracts?.[taskId];
+    if (!automationContract) return { ok: false, error: 'AUTOMATION_CONTRACT_REQUIRED', task_id: taskId };
+    const executed = await executeAutomationMissionTask(
+      mission,
+      taskId,
+      automationContract,
+      approval,
+      options.automation || options
+    );
+    if (!executed.ok) return executed;
+    return {
+      ...executed,
+      execution_mode: 'supervised_inline_runner',
+      engine: 'automation',
+      pending_external_execution: false,
+      production_deploy: false
+    };
+  }
+
+  return {
+    ok: false,
+    error: 'MISSION_ENGINE_NOT_SUPPORTED',
+    engine: contract.engine,
+    task_id: taskId,
+    supported_engines: ['web', 'automation']
+  };
+}
+
+export async function executeReadyMissionTasks(mission, approvals = {}, options = {}) {
+  let current = clone(mission);
+  const results = [];
+  const maxTasks = Math.max(1, Math.min(Number(options.max_tasks) || 20, 50));
+  let executedCount = 0;
+  let progressed = true;
+
+  while (progressed && executedCount < maxTasks) {
+    progressed = false;
+    const candidates = current.tasks?.filter((task) => task.state === 'READY') || [];
+
+    for (const task of candidates) {
+      if (executedCount >= maxTasks) break;
+      const contract = buildTaskExecutionContract(current, task.task_id);
+      if (!contract.ok) continue;
+
+      const approval = approvals[task.task_id] || approvals[contract.engine] || approvals.default || {};
+      const result = await executeMissionTask(current, task.task_id, approval, {
+        ...options,
+        automation_contract: options.automation_contracts?.[task.task_id] || options.automation_contract
+      });
+
+      if (!result.ok) {
+        results.push({ task_id: task.task_id, engine: contract.engine, ok: false, error: result.error });
+        continue;
+      }
+
+      current = result.mission;
+      results.push({
+        task_id: task.task_id,
+        engine: contract.engine,
+        ok: true,
+        execution_mode: result.execution_mode,
+        pending_external_execution: result.pending_external_execution === true,
+        state: current.tasks.find((item) => item.task_id === task.task_id)?.state || null
+      });
+      executedCount += 1;
+      progressed = true;
+    }
+  }
+
+  return {
+    ok: true,
+    mission: current,
+    results,
+    executed_count: executedCount,
+    pending_external_tasks: results.filter((item) => item.ok && item.pending_external_execution).map((item) => item.task_id),
+    production_deploy: false,
+    automatic_cross_factory_execution: false
+  };
+}
