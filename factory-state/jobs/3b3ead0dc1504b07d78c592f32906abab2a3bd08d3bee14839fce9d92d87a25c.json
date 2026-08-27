@@ -5,11 +5,15 @@
   "max_qa_attempts": 3,
   "qa_attempt": 2,
   "production_deploy": false,
-  "qa_status": "failed",
-  "last_error": "desktop: unexplained scroll overflow 96px | mobile: unexplained scroll overflow 96px",
+  "qa_status": "passed",
+  "last_error": null,
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 4,
+    "failures": []
+  },
   "preview_url": "https://d159bdb9.chatgpt-factory-preview.pages.dev",
   "commit_sha": "1e576515283c957c9bb161841675c191bf4fd68e",
   "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
@@ -17,6 +21,6 @@
   "revision": 8,
   "request_file": "factory-requests/v31-self-heal-overflow-e2e-20260827-1921.json",
   "request_key": "3b3ead0dc1504b07d78c592f32906abab2a3bd08d3bee14839fce9d92d87a25c",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T17:25:16.340Z"
+  "status": "READY_FOR_REVIEW",
+  "updated_at": "2026-08-27T17:25:20.379Z"
 }
