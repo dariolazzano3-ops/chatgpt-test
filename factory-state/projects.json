@@ -5,11 +5,11 @@
       "project_name": "MultiProject Alpha",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
-      "previous_branch": "factory/multiproject-alpha-edit-4d44e33df902",
-      "edit_revision": 8,
-      "pull_request": 128,
-      "preview_url": "https://3c55a89b.chatgpt-factory-preview.pages.dev",
+      "branch": "factory/multiproject-alpha-edit-85b310322821",
+      "previous_branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
+      "edit_revision": 9,
+      "pull_request": 130,
+      "preview_url": "https://82900e05.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
       "release_readiness": {
         "version": 1,
@@ -23,7 +23,7 @@
           "manual_production_approval_required"
         ],
         "evidence": {
-          "project_sha": "694daa0637dab6d81e0bef00554d10ed5f83b95b",
+          "project_sha": "e847c0f2ded5468b64df1a2e7feecc283c8d108f",
           "project_path_valid": true,
           "branch_isolated": true,
           "pull_request_present": true,
@@ -31,7 +31,7 @@
           "visual_qa": {
             "ok": true,
             "report_version": 4,
-            "generated_at": "2026-08-27T17:14:01.043Z",
+            "generated_at": "2026-08-27T17:59:58.533Z",
             "viewports": [
               "desktop",
               "mobile"
@@ -43,10 +43,10 @@
           "next_action": "review_preview_and_request_manual_approval",
           "safe_to_continue_editing": true
         },
-        "generated_at": "2026-08-27T17:14:03.321Z"
+        "generated_at": "2026-08-27T18:00:01.447Z"
       },
       "mode": "editing",
-      "updated_at": "2026-08-27T17:14:03.321Z"
+      "updated_at": "2026-08-27T18:00:01.447Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -60,5 +60,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T17:14:03.321Z"
+  "updated_at": "2026-08-27T18:00:01.447Z"
 }
