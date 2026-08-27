@@ -6,8 +6,8 @@
   "qa_attempt": 0,
   "production_deploy": false,
   "qa_status": "pending",
-  "last_error": null,
-  "failure_stage": null,
+  "last_error": "factory_execution_or_workflow_failure",
+  "failure_stage": "pre_review_pipeline",
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
@@ -17,6 +17,6 @@
   "revision": null,
   "request_file": "factory-requests/2026-08-27T18-26-00-000Z-riosystems-evolve-dashboard-de.json",
   "request_key": "f08a562ec9a00aa1a2798b4e6771f44b801d001e8b51bb49f752de1fb6073431",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T18:22:03.427Z"
+  "status": "FAILED",
+  "updated_at": "2026-08-27T18:22:07.021Z"
 }
