@@ -9,5 +9,9 @@
   "request_key": "6c62c7a2a23ddaa1e819ee547d829cb96ce34c50741ac0b9e353fed0eba70ef9",
   "qa_status": "pending",
   "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T17:13:02.295Z"
+  "updated_at": "2026-08-27T17:13:45.986Z",
+  "project_slug": "multiproject-alpha",
+  "revision": 8,
+  "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
+  "commit_sha": "694daa0637dab6d81e0bef00554d10ed5f83b95b"
 }
