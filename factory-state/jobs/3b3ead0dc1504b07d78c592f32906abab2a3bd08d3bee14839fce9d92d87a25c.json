@@ -10,13 +10,13 @@
   "failure_stage": null,
   "retry_exhausted": false,
   "qa_result": null,
-  "preview_url": "https://497ecdf7.chatgpt-factory-preview.pages.dev",
+  "preview_url": "https://d159bdb9.chatgpt-factory-preview.pages.dev",
   "commit_sha": "1e576515283c957c9bb161841675c191bf4fd68e",
   "branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
   "project_slug": "multiproject-alpha",
   "revision": 8,
   "request_file": "factory-requests/v31-self-heal-overflow-e2e-20260827-1921.json",
   "request_key": "3b3ead0dc1504b07d78c592f32906abab2a3bd08d3bee14839fce9d92d87a25c",
-  "status": "PREVIEW_BUILDING",
-  "updated_at": "2026-08-27T17:25:09.679Z"
+  "status": "QA_RUNNING",
+  "updated_at": "2026-08-27T17:25:16.340Z"
 }
