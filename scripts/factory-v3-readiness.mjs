@@ -76,7 +76,9 @@ requireText('Production release rejects post-QA commit changes', productionGate,
 requireText('Production release requires configured target variable', productionRelease, 'CLOUDFLARE_PRODUCTION_PAGES_PROJECT');
 requireText('Production release verifies Cloudflare production branch', productionRelease, 'PRODUCTION_BRANCH_MUST_BE_MAIN');
 requireText('Production release records successful releases durably', productionRelease, 'factory-state/releases.json');
-requireText('Production dry-run audit follows active project state', productionAudit, "'factory-state/active-project.json'");
+requireText('Production dry-run audit is explicit queue-driven', productionAudit, "'factory-audit-requests/*.json'");
+requireText('Production dry-run audit validates request safety', productionAudit, 'AUDIT_MUST_NOT_DEPLOY_PRODUCTION');
+requireText('Production dry-run audit loads canonical active state', productionAudit, 'factory-state/active-project.json');
 requireText('Production dry-run audit never deploys production', productionAudit, 'Production deployed: no');
 requireText('Production dry-run audit verifies exact branch tip', productionAudit, 'git rev-parse "origin/$BRANCH"');
 requireText('Production dry-run audit runs the same production gate', productionAudit, 'production-release-gate.mjs');
