@@ -10,14 +10,14 @@
   "failure_stage": null,
   "retry_exhausted": false,
   "qa_result": null,
-  "preview_url": null,
+  "preview_url": "https://05cf2f9d.chatgpt-factory-preview.pages.dev",
   "commit_sha": "b7f3b1e205d09a13be5e852a0b6a495080c08c28",
   "branch": "factory/multiproject-alpha-edit-3146df2f59c4",
   "project_slug": "multiproject-alpha",
   "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-23-00-000Z-riosystems-workshop-planet-logo-retest2.json",
   "request_key": "3146df2f59c41226fe91d39b081e5a5f0875349ec9b8e074d104ba82b053d024",
-  "status": "PREVIEW_BUILDING",
-  "updated_at": "2026-08-27T19:23:35.744Z",
+  "status": "QA_RUNNING",
+  "updated_at": "2026-08-27T19:23:44.321Z",
   "fulfillment_status": "pending"
 }
