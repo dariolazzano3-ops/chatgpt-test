@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "3.8",
-  "display_label": "LEAN VERSION 3.8",
+  "factory_version": "3.9",
+  "display_label": "LEAN VERSION 3.9",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -37,6 +37,11 @@
     "dependency_output_handoff": true,
     "bounded_task_attempts": true,
     "mission_resume": true,
+    "execution_adapter_registry": true,
+    "web_factory_execution_adapter": true,
+    "mission_execution_coordinator": true,
+    "adapter_result_validation": true,
+    "explicit_adapter_dispatch_required": true,
     "cross_factory_side_effects_disabled": true,
     "automatic_multi_factory_execution": false,
     "available_factories": ["web"],
@@ -45,5 +50,5 @@
     "max_orchestration_task_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-27T22:50:00+02:00"
+  "updated_at": "2026-08-27T23:20:00+02:00"
 }
