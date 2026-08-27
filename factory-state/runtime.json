@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "4.5",
-  "display_label": "LEAN VERSION 4.5",
+  "factory_version": "4.6",
+  "display_label": "LEAN VERSION 4.6",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -53,6 +53,10 @@
     "automation_mission_execution_bridge": true,
     "automation_mission_dispatch_approval_required": true,
     "automation_mission_result_reconciliation": true,
+    "unified_mission_execution_router": true,
+    "web_automation_mission_routing": true,
+    "bounded_ready_task_execution": true,
+    "dependency_aware_mission_progression": true,
     "mission_to_factory_request_bridge": true,
     "factory_result_to_mission_reconciliation": true,
     "mission_execution_cli": true,
@@ -71,5 +75,5 @@
     "max_orchestration_task_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-28T01:25:00+02:00"
+  "updated_at": "2026-08-28T01:35:00+02:00"
 }
