@@ -23,10 +23,13 @@ need('Evolver analyzes source project before branching', evolver, 'const project
 need('Evolver returns clarification before branch mutation', evolver, 'EVOLVE_NEEDS_CLARIFICATION');
 need('Evolver reports V3.5 plan version', evolver, 'version: "3.5"');
 need('V3.5 keeps production disabled', evolver, 'production_deployed: false');
-need('Package runtime version advanced', pkg, '"version": "1.9.0-alpha.1"');
+const pkgVersion = JSON.parse(pkg || '{}').version || '0.0.0';
+const [major, minor] = pkgVersion.split('.').map((part) => Number.parseInt(part, 10) || 0);
+if (major > 1 || (major === 1 && minor >= 9)) passes.push('Package runtime is V3.5-or-newer generation');
+else failures.push(`Package runtime is V3.5-or-newer generation: got ${pkgVersion}`);
 need('Package executes V3.5 readiness', pkg, 'node scripts/factory-v35-readiness.mjs');
 need('Package executes intent-resolution smoke', pkg, 'node scripts/intent-resolution-smoke.mjs');
 
-const result = { version:'LEAN V3.5', ready:failures.length===0, checks_passed:passes.length, checks_failed:failures.length, passes, failures };
+const result = { version:'LEAN V3.5+', ready:failures.length===0, checks_passed:passes.length, checks_failed:failures.length, passes, failures };
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exit(1);
