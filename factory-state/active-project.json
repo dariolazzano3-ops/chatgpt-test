@@ -1,13 +1,13 @@
 {
   "version": 1,
   "active": true,
-  "project_name": "MultiProject Alpha",
-  "project_slug": "multiproject-alpha",
-  "source_path": "projects/multiproject-alpha",
-  "branch": "factory/multiproject-alpha-76833eec294b",
-  "pull_request": 98,
-  "preview_url": "https://factory-multiproject-alpha-7.chatgpt-factory-preview.pages.dev",
+  "project_name": "MultiProject Beta",
+  "project_slug": "multiproject-beta",
+  "source_path": "projects/multiproject-beta",
+  "branch": "factory/multiproject-beta-a2f01bd3d8f1",
+  "pull_request": 99,
+  "preview_url": "https://factory-multiproject-beta-a2.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
   "mode": "editing",
-  "updated_at": "2026-08-27T11:32:25.987Z"
+  "updated_at": "2026-08-27T11:33:54.302Z"
 }
