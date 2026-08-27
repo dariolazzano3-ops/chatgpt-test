@@ -124,6 +124,13 @@ jobs:
           echo "- New branch/PR/deploy: skipped" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: not deployed" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Mark Factory job implementing
+        if: steps.idempotency.outputs.duplicate != 'true'
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.idempotency.outputs.request_key }}
+        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" IMPLEMENTING '{"qa_status":"pending"}'
+
       - name: Execute Factory request
         if: steps.idempotency.outputs.duplicate != 'true'
         id: factory
@@ -181,6 +188,20 @@ jobs:
           QA_ONLY: ${{ steps.factory.outputs.qa_only }}
         run: node .factory-runtime/cost-guard.mjs "$(git rev-parse HEAD)" .factory-runtime/visual-qa.mjs
 
+      - name: Finalize cached QA job
+        if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate == 'true'
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.idempotency.outputs.request_key }}
+          PROJECT_SLUG: ${{ steps.factory.outputs.project_slug }}
+          SOURCE_BRANCH: ${{ steps.factory.outputs.branch }}
+          PREVIEW_URL: ${{ steps.cost.outputs.existing_url }}
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          PATCH=$(node -e 'process.stdout.write(JSON.stringify({project_slug:process.env.PROJECT_SLUG,branch:process.env.SOURCE_BRANCH,commit_sha:process.env.SHA,preview_url:process.env.PREVIEW_URL,qa_status:"passed_cached",qa_attempt:0,qa_result:{ok:true,cached:true},production_deploy:false}))' SHA="$SHA")
+          node .factory-runtime/factory-job-state.mjs "$JOB_ID" READY_FOR_REVIEW "$PATCH"
+
       - name: Validate preview configuration
         if: steps.idempotency.outputs.duplicate != 'true' && steps.cost.outputs.duplicate != 'true'
         shell: bash
@@ -212,6 +233,14 @@ jobs:
           path: visual-qa/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Finalize failed Factory job
+        if: failure() && steps.idempotency.outputs.duplicate != 'true' && steps.idempotency.outputs.request_key != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          JOB_ID: ${{ steps.idempotency.outputs.request_key }}
+        run: node .factory-runtime/factory-job-state.mjs "$JOB_ID" FAIL_SAFE '{"last_error":"factory_execution_or_workflow_failure","failure_stage":"pre_review_pipeline","production_deploy":false}'
 
       - name: Publish Factory failure
         if: failure() && steps.idempotency.outputs.duplicate != 'true'
