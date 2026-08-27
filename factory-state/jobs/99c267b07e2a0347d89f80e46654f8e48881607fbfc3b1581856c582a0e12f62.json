@@ -16,7 +16,7 @@
   "failure_kind": null,
   "retry_exhausted": false,
   "qa_result": null,
-  "preview_url": null,
+  "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
   "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
   "branch": "factory/multiproject-alpha-edit-99c267b07e2a",
   "project_slug": "multiproject-alpha",
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28-mobile-quick-nav-smoke-01.json",
   "request_key": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
-  "status": "PREVIEW_BUILDING",
+  "status": "QA_RUNNING",
   "events": [
     {
       "sequence": 1,
@@ -55,9 +55,22 @@
       "attempt": 1,
       "stage": "preview",
       "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371"
+    },
+    {
+      "sequence": 5,
+      "at": "2026-08-27T22:12:07.475Z",
+      "type": "PREVIEW_READY",
+      "attempt": 1,
+      "outcome": "success",
+      "stage": "preview",
+      "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
+      "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
+      "durations_ms": {
+        "preview_ms": 5203
+      }
     }
   ],
-  "event_count": 4,
-  "updated_at": "2026-08-27T22:12:01.147Z",
+  "event_count": 5,
+  "updated_at": "2026-08-27T22:12:07.475Z",
   "fulfillment_status": "pending"
 }
