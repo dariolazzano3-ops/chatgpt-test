@@ -5,7 +5,7 @@ const ADAPTERS = Object.freeze({
   app: Object.freeze({ id: "app-factory-v1", engine: "app", mode: "planned", available: false, automatic_execution: false, production_deploy: false, accepts: ["app"] }),
   automation: Object.freeze({ id: "automation-factory-v1", engine: "automation", mode: "supervised", available: true, automatic_execution: false, external_side_effects: "supervised_only", production_deploy: false, accepts: ["automation", "lead_flow", "workflow", "api_flow", "webhook_flow"] }),
   ai: Object.freeze({ id: "ai-factory-v1", engine: "ai", mode: "injected_runner_only", available: true, automatic_execution: false, provider_configured: false, tool_access: false, external_data_access: false, external_side_effects: false, production_deploy: false, accepts: ["ai", "support_ai", "ai_system_build"] }),
-  business: Object.freeze({ id: "business-factory-v1", engine: "business", mode: "planned", available: false, automatic_execution: false, production_deploy: false, accepts: ["business", "crm"] })
+  business: Object.freeze({ id: "business-factory-v1", engine: "business", mode: "bounded_local_configuration", available: true, automatic_execution: false, external_writes: false, production_deploy: false, accepts: ["business", "crm", "business_system_build", "lead_system", "sales_pipeline", "offer_flow"] })
 });
 
 export function listExecutionAdapters() { return Object.values(ADAPTERS).map((adapter) => ({ ...adapter, accepts: [...adapter.accepts] })); }
