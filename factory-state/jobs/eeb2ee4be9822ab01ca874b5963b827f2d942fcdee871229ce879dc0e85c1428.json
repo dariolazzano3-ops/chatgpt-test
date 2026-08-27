@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": "2026-08-27T19:47:26.747Z",
   "request_file": "factory-requests/v34-semantic-recovery-verification-20260827.json",
   "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
@@ -61,8 +61,14 @@
       "at": "2026-08-27T19:52:03.800Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 6,
+      "at": "2026-08-27T19:52:05.088Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 5,
-  "updated_at": "2026-08-27T19:52:03.800Z"
+  "event_count": 6,
+  "updated_at": "2026-08-27T19:52:05.088Z"
 }
