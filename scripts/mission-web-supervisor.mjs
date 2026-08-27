@@ -37,6 +37,19 @@ async function persistMission(file, mission, message) {
   }
 }
 
+async function ensureRequest(file, request, message) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const current = await readRemoteJson(file, false);
+    if (current.value) return { reused: true };
+    try { await writeRemoteJson(file, request, null, message); return { reused: false }; }
+    catch (error) {
+      const conflict = /REMOTE_WRITE_FAILED_(409|422)/.test(String(error.message));
+      if (!conflict || attempt === 3) throw error;
+      await sleep(700);
+    }
+  }
+}
+
 async function waitForJob(jobId, timeoutMs, pollMs) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -70,9 +83,7 @@ const task = mission.tasks.find((item) => item.task_id === taskId);
 task.external_job_id = jobId;
 task.inputs = { ...(task.inputs || {}), factory_request_file: requestFile };
 await persistMission(missionFile, mission, `Mission ${prepared.contract.mission_id}: dispatch ${taskId}`);
-
-const existing = await readRemoteJson(requestFile, false);
-if (!existing.value) await writeRemoteJson(requestFile, request, null, `Mission ${prepared.contract.mission_id}: queue ${taskId}`);
+await ensureRequest(requestFile, request, `Mission ${prepared.contract.mission_id}: queue ${taskId}`);
 
 const job = await waitForJob(jobId, timeoutMs, pollMs);
 if (!job) {
