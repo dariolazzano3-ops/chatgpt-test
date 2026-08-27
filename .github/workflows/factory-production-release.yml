@@ -50,6 +50,10 @@ jobs:
         with:
           node-version: 24
 
+      - name: Stage immutable release gate runtime
+        shell: bash
+        run: cp scripts/production-release-gate.mjs /tmp/production-release-gate.mjs
+
       - name: Load canonical active Factory state
         id: state
         shell: bash
@@ -57,7 +61,7 @@ jobs:
           set -euo pipefail
           git fetch origin factory-control
           git show origin/factory-control:factory-state/active-project.json > /tmp/active-project.json
-          node -e 'const s=require("/tmp/active-project.json"); if(!s.branch||!s.source_path) process.exit(2); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT,`branch=${s.branch}\nproject_path=${s.source_path}\n`)' 
+          node -e 'const s=require("/tmp/active-project.json"); if(!s.branch||!s.source_path) process.exit(2); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT,`branch=${s.branch}\nproject_path=${s.source_path}\n`)'
 
       - name: Checkout exact active project branch
         shell: bash
@@ -79,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           CURRENT_SHA=$(git rev-parse HEAD)
-          node scripts/production-release-gate.mjs /tmp/active-project.json "$PROJECT_SLUG" "$EDIT_REVISION" "$CONFIRMATION" "$CURRENT_SHA"
+          node /tmp/production-release-gate.mjs /tmp/active-project.json "$PROJECT_SLUG" "$EDIT_REVISION" "$CONFIRMATION" "$CURRENT_SHA"
 
       - name: Validate release project files
         shell: bash
@@ -157,18 +161,7 @@ jobs:
           if(fs.existsSync(p)) data=JSON.parse(fs.readFileSync(p,'utf8'));
           if(!Array.isArray(data.releases)) data.releases=[];
           data.version=1;
-          data.releases.push({
-            project_slug:process.env.PROJECT_SLUG,
-            edit_revision:Number(process.env.EDIT_REVISION),
-            project_sha:process.env.PROJECT_SHA,
-            branch:process.env.BRANCH,
-            preview_url:process.env.PREVIEW_URL,
-            production_url:process.env.PRODUCTION_URL,
-            cloudflare_pages_project:process.env.TARGET_PROJECT,
-            approved_by:process.env.ACTOR,
-            production_deploy:true,
-            deployed_at:new Date().toISOString()
-          });
+          data.releases.push({project_slug:process.env.PROJECT_SLUG,edit_revision:Number(process.env.EDIT_REVISION),project_sha:process.env.PROJECT_SHA,branch:process.env.BRANCH,preview_url:process.env.PREVIEW_URL,production_url:process.env.PRODUCTION_URL,cloudflare_pages_project:process.env.TARGET_PROJECT,approved_by:process.env.ACTOR,production_deploy:true,deployed_at:new Date().toISOString()});
           data.updated_at=new Date().toISOString();
           fs.writeFileSync(p,JSON.stringify(data,null,2)+'\n');
           NODE
