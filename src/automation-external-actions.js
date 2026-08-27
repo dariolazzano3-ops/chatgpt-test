@@ -4,9 +4,10 @@ const METHODS = new Set(['GET', 'POST']);
 const SENSITIVE_HEADERS = new Set(['authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'x-api-key']);
 
 const clean = (value, max = 1000) => String(value || '').trim().slice(0, max);
+const byteLength = (value) => new TextEncoder().encode(String(value || '')).byteLength;
 
 function isPrivateHost(hostname = '') {
-  const host = hostname.toLowerCase();
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (!host || host === 'localhost' || host.endsWith('.local')) return true;
   if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return true;
   const match = host.match(/^172\.(\d+)\./);
@@ -29,6 +30,7 @@ export function validateExternalAction(action = {}, policy = {}) {
   let url = null;
   try { url = new URL(clean(action.url, 2000)); } catch { errors.push('EXTERNAL_ACTION_URL_INVALID'); }
   if (url && url.protocol !== 'https:') errors.push('EXTERNAL_ACTION_HTTPS_REQUIRED');
+  if (url && (url.username || url.password)) errors.push('EXTERNAL_ACTION_URL_CREDENTIALS_BLOCKED');
   if (url && isPrivateHost(url.hostname)) errors.push('EXTERNAL_ACTION_PRIVATE_HOST_BLOCKED');
 
   const allowHosts = Array.isArray(policy.allowed_hosts) ? policy.allowed_hosts.map((v) => clean(v, 255).toLowerCase()).filter(Boolean) : [];
@@ -43,7 +45,7 @@ export function validateExternalAction(action = {}, policy = {}) {
 
   const body = action.body == null ? '' : typeof action.body === 'string' ? action.body : JSON.stringify(action.body);
   const maxBodyBytes = Number.isInteger(policy.max_body_bytes) ? Math.min(Math.max(policy.max_body_bytes, 0), 32768) : 8192;
-  if (Buffer.byteLength(body, 'utf8') > maxBodyBytes) errors.push('EXTERNAL_ACTION_BODY_TOO_LARGE');
+  if (byteLength(body) > maxBodyBytes) errors.push('EXTERNAL_ACTION_BODY_TOO_LARGE');
 
   if (policy.authorized !== true) errors.push('EXTERNAL_ACTION_APPROVAL_REQUIRED');
   if (policy.production_deploy === true) errors.push('PRODUCTION_SIDE_EFFECT_REJECTED');
