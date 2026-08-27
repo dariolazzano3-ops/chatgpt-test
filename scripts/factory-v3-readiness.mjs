@@ -38,7 +38,7 @@ requireText('Factory Control has explicit dispatch', control, 'workflow_dispatch
 requireText('Factory Control serializes requests', control, 'factory-control-serial');
 requireText('Factory Control pins push runs to the request event commit', control, "github.sha");
 requireText('Factory Control refreshes durable state after queue wait', control, 'Refresh serialized control state');
-requireText('Factory Control restores event worktree before branch checkout', control, 'Restore event worktree before project checkout');
+requireText('Factory Control restores event worktree before project checkout', control, 'Restore event worktree before project checkout');
 requireText('Factory Control checks request idempotency', control, 'Check request idempotency');
 requireText('Factory Control records successful request fingerprints', control, 'Record successful request');
 requireText('Factory Control can write commit statuses', control, 'statuses: write');
@@ -56,7 +56,9 @@ requireText('Request idempotency persists a ledger', requestIdempotency, 'reques
 requireText('Factory execution derives deterministic SHA-256 recovery key', factoryControl, 'crypto.createHash("sha256")');
 requireText('Factory execution passes recovery key to materializer', factoryControl, 'recovery_key: recoveryKey');
 requireText('Factory EVOLVE derives deterministic staging branch', factoryControl, 'edit-${recoveryKey.slice(0, 12)}');
-requireText('Factory EVOLVE starts staging from prior active branch', factoryControl, 'source_branch: state.branch');
+requireText('Factory EVOLVE starts staging from prior active branch', factoryControl, 'source_branch: sourceBranch');
+requireText('Factory EVOLVE exposes source branch lineage', factoryControl, 'source_branch: sourceBranch');
+requireText('Factory EVOLVE exports source branch lineage', factoryControl, '`source_branch=${output.source_branch || ""}`');
 requireText('Factory EVOLVE does not mutate active branch in place', factoryControl, 'reuse_branch: false');
 requireText('Factory EVOLVE enables retry recovery', factoryControl, 'recover_branch: true');
 requireText('Evolver supports separate source branch', evolver, 'source_branch');
@@ -70,6 +72,11 @@ requireText('Materializer reuses existing open pull request', materializer, 'fin
 requireText('Materializer exposes recovery reuse state', materializer, 'reused_pull_request');
 requireText('Active project promotion keeps production disabled', promoteActive, 'production_deploy: false');
 requireText('Active project promotion writes to control branch', promoteActive, "controlRef = 'factory-control'");
+requireText('Active project promotion detects edit branches', promoteActive, 'isEditBranch');
+requireText('Active project promotion verifies branch ancestry', promoteActive, 'assertBranchContains');
+requireText('Active project promotion rejects stale lineage', promoteActive, 'PROJECT_LINEAGE_STALE');
+requireText('Active project promotion persists previous branch', promoteActive, 'previous_branch');
+requireText('Active project promotion increments edit revision', promoteActive, 'edit_revision');
 requireText('Autopilot is restricted to V3 auto branches', autopilot, 'factory-v3/auto/*');
 requireText('Autopilot requires successful CI', autopilot, "github.event.workflow_run.conclusion == 'success'");
 requireText('Autopilot preserves durable queue/state', autopilot, 'durable queue/state: preserved');
