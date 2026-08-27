@@ -4,11 +4,11 @@
   "project_name": "MultiProject Alpha",
   "project_slug": "multiproject-alpha",
   "source_path": "projects/multiproject-alpha",
-  "branch": "factory/multiproject-alpha-edit-85b310322821",
-  "previous_branch": "factory/multiproject-alpha-edit-6c62c7a2a23d",
-  "edit_revision": 9,
-  "pull_request": 130,
-  "preview_url": "https://82900e05.chatgpt-factory-preview.pages.dev",
+  "branch": "factory/multiproject-alpha-edit-8fa72755f070",
+  "previous_branch": "factory/multiproject-alpha-edit-2783448d8b07",
+  "edit_revision": 10,
+  "pull_request": 132,
+  "preview_url": "https://bd8c5d3e.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
   "release_readiness": {
     "version": 1,
@@ -22,15 +22,15 @@
       "manual_production_approval_required"
     ],
     "evidence": {
-      "project_sha": "e847c0f2ded5468b64df1a2e7feecc283c8d108f",
+      "project_sha": "516c85e2d4b9893d0181b49535b2924a8cd1baae",
       "project_path_valid": true,
       "branch_isolated": true,
       "pull_request_present": true,
       "preview_https": true,
       "visual_qa": {
         "ok": true,
-        "report_version": 4,
-        "generated_at": "2026-08-27T17:59:58.533Z",
+        "report_version": 5,
+        "generated_at": "2026-08-27T18:25:29.630Z",
         "viewports": [
           "desktop",
           "mobile"
@@ -42,8 +42,8 @@
       "next_action": "review_preview_and_request_manual_approval",
       "safe_to_continue_editing": true
     },
-    "generated_at": "2026-08-27T18:00:01.447Z"
+    "generated_at": "2026-08-27T18:25:31.430Z"
   },
   "mode": "editing",
-  "updated_at": "2026-08-27T18:00:01.447Z"
+  "updated_at": "2026-08-27T18:25:31.430Z"
 }
