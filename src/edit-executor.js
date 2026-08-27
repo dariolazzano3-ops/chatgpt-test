@@ -32,8 +32,8 @@ function scopedSectionRegex(scope) {
 function mutateScopedHtml(html, scope, kind, value) {
   if (!scope) return replaceFirstText(html, kind, value);
   if (scope.kind === "ordinal-section") {
-    let count=0, changed=false;
-    return html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi,(section)=>{ count++; if(count!==scope.index) return section; const next=replaceFirstText(section,kind,value); changed ||= next!==section; return next; });
+    let count=0;
+    return html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi,(section)=>{ count++; if(count!==scope.index) return section; return replaceFirstText(section,kind,value); });
   }
   const regex=scopedSectionRegex(scope); if(!regex || regex.ordinal) return html;
   const match=html.match(regex); if(!match) return html;
@@ -44,7 +44,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
   if (!plan || plan.mode!=="natural-edit-plan") return { error:"INVALID_NATURAL_EDIT_PLAN" };
   if (plan?.safety?.production_deploy!==false) return { error:"PRODUCTION_MUST_REMAIN_DISABLED" };
   if (plan?.safety?.active_project_only!==true) return { error:"ACTIVE_PROJECT_ONLY_REQUIRED" };
-  const priorManagedBody=extractFactoryOverrideBody(css), cleanCss=stripFactoryOverrides(css), analysis=analyzeProject({html,css:cleanCss}), resolved=analysis.semantic||{}, cssOverrides=[], applied=[];
+  const priorManagedBody=extractFactoryOverrideBody(css), cleanCss=stripFactoryOverrides(css), analysis=analyzeProject({html,css:cleanCss}), cssOverrides=[], applied=[];
   let nextHtml=String(html||"");
   for (const op of Array.isArray(plan.operations)?plan.operations:[]) {
     const semantic=clean(op.semantic,80), fallbackTarget=clean(op.target,240), target=semantic && !["theme","headline","subheadline"].includes(semantic) ? (op.scope ? fallbackTarget : resolveSemanticSelector(analysis,semantic,fallbackTarget)) : fallbackTarget, action=clean(op.action,120);
@@ -60,6 +60,7 @@ export function executeNaturalEditPlan({ css="", html="", plan }) {
     } else if (semantic==="section" && action==="vertical_spacing") { const value=clean(op.value,32); cssOverrides.push(overrideBlock(target,{"padding-top":value,"padding-bottom":value})); applied.push({target,action,value,semantic});
     } else if (semantic==="navigation" && action==="surface_opacity") { const opacity=Math.max(0,Math.min(1,safeNumber(op.value,.9))); cssOverrides.push(overrideBlock(target,{background:`rgba(6, 9, 18, ${opacity})`,"backdrop-filter":"blur(18px)"})); applied.push({target,action,value:opacity,semantic});
     } else if (target===":root" && action==="accent_color" && /^#[0-9a-f]{3,8}$/i.test(clean(op.value,16))) { const value=clean(op.value,16); cssOverrides.push(overrideBlock(":root",{"--accent":value})); applied.push({target,action,value,semantic:"theme"});
+    }
   }
   if (!applied.length) return { error:"NO_EXECUTABLE_NATURAL_EDIT_OPERATIONS", applied:[], analysis };
   const managedBlock=buildManagedOverrideBlock([priorManagedBody,...cssOverrides]), nextCss=managedBlock?`${cleanCss}\n\n${managedBlock}\n`:`${cleanCss}\n`, changedFiles=[]; if(nextHtml!==html) changedFiles.push("index.html"); if(nextCss!==css) changedFiles.push("styles.css");
