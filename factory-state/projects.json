@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "projects": {
+    "multiproject-alpha": {
+      "project_name": "MultiProject Alpha",
+      "project_slug": "multiproject-alpha",
+      "source_path": "projects/multiproject-alpha",
+      "branch": "factory/multiproject-alpha-76833eec294b",
+      "pull_request": 98,
+      "preview_url": "https://factory-multiproject-alpha-7.chatgpt-factory-preview.pages.dev",
+      "production_deploy": false,
+      "mode": "editing",
+      "updated_at": "2026-08-27T11:32:25.987Z"
+    }
+  },
+  "updated_at": "2026-08-27T11:32:25.987Z"
+}
