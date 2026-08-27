@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "4.7",
-  "display_label": "LEAN VERSION 4.7",
+  "factory_version": "4.8",
+  "display_label": "LEAN VERSION 4.8",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -56,6 +56,7 @@
     "unified_mission_execution_router": true,
     "web_automation_mission_routing": true,
     "web_automation_ai_mission_routing": true,
+    "web_automation_ai_business_mission_routing": true,
     "bounded_ready_task_execution": true,
     "dependency_aware_mission_progression": true,
     "ai_factory_execution_adapter": true,
@@ -64,6 +65,13 @@
     "ai_tools_disabled": true,
     "ai_external_data_disabled": true,
     "ai_external_side_effects_disabled": true,
+    "business_factory_foundation": true,
+    "business_contract_validation": true,
+    "business_bounded_local_execution": true,
+    "business_external_writes_disabled": true,
+    "business_factory_execution_adapter": true,
+    "business_mission_execution_bridge": true,
+    "business_mission_dispatch_approval_required": true,
     "mission_to_factory_request_bridge": true,
     "factory_result_to_mission_reconciliation": true,
     "mission_execution_cli": true,
@@ -76,11 +84,11 @@
     "mission_executor_workflow": true,
     "cross_factory_side_effects_disabled": true,
     "automatic_multi_factory_execution": false,
-    "available_factories": ["web", "automation", "ai"],
-    "planned_factories": ["app", "business"],
+    "available_factories": ["web", "automation", "ai", "business"],
+    "planned_factories": ["app"],
     "max_qa_attempts": 3,
     "max_orchestration_task_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-28T01:40:00+02:00"
+  "updated_at": "2026-08-28T01:55:00+02:00"
 }
