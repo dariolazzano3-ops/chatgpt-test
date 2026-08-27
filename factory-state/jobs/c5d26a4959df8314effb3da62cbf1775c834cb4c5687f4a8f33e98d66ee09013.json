@@ -8,6 +8,8 @@
   "request_file": "factory-requests/v31-failure-lifecycle-retest-20260827-1902.json",
   "request_key": "c5d26a4959df8314effb3da62cbf1775c834cb4c5687f4a8f33e98d66ee09013",
   "qa_status": "pending",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T17:02:07.692Z"
+  "status": "FAILED",
+  "updated_at": "2026-08-27T17:02:09.933Z",
+  "last_error": "factory_execution_or_workflow_failure",
+  "failure_stage": "pre_review_pipeline"
 }
