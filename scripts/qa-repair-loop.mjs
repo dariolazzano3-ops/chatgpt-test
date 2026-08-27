@@ -1,8 +1,11 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, resolveCandidateRevision } from './factory-job-state.mjs';
+import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
 
+// Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is now enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
 const sourceBranch = process.argv[3];
 const projectSlug = process.argv[4];
@@ -21,8 +24,7 @@ let previousFailureSignature = '';
 let finalUrl = '';
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
-  return result;
+  return spawnSync(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
 }
 
 function deployPreview() {
@@ -39,23 +41,23 @@ function deployPreview() {
 
 async function classifyReport() {
   const report = JSON.parse(await fs.readFile('visual-qa/report.json', 'utf8'));
-  const failures = (report.results || []).flatMap((r) => (r.failures || []).map((message) => ({ viewport: r.viewport?.name || 'unknown', message })));
-  const fixable = failures.length > 0 && failures.every((f) => /horizontal overflow|scroll overflow/i.test(f.message));
-  const signature = JSON.stringify(failures.map((f) => `${f.viewport}:${f.message.replace(/\d+(?:\.\d+)?px/g, '<px>')}`).sort());
-  return { report, failures, fixable, signature };
+  return { report, ...classifyQaReport(report) };
 }
 
-async function applySafeRepair() {
+async function applySafeRepair(repairProfiles) {
   const cssPath = path.join(projectPath, 'styles.css');
   let css = await fs.readFile(cssPath, 'utf8');
-  const marker = '/* factory-v3.1:auto-fix-horizontal-overflow */';
+  const repairCss = buildRepairCss(repairProfiles);
+  if (!repairCss.trim()) return false;
+  const repairId = crypto.createHash('sha256').update(JSON.stringify(repairProfiles)).digest('hex').slice(0, 12);
+  const marker = `/* factory-v3.2:auto-repair:${repairId} */`;
   if (css.includes(marker)) return false;
-  css += `\n\n${marker}\nhtml, body { max-width: 100%; overflow-x: clip; }\nimg, video, canvas, svg { max-width: 100%; }\n`;
+  css += `\n\n${marker}\n${repairCss}\n`;
   await fs.writeFile(cssPath, css);
   execFileSync('git', ['config', 'user.name', 'factory-qa-repair[bot]']);
   execFileSync('git', ['config', 'user.email', 'factory-qa-repair[bot]@users.noreply.github.com']);
   execFileSync('git', ['add', cssPath]);
-  execFileSync('git', ['commit', '-m', `Factory: auto-fix visual QA overflow for ${projectSlug}`]);
+  execFileSync('git', ['commit', '-m', `Factory: targeted Visual QA repair for ${projectSlug}`]);
   execFileSync('git', ['push', 'origin', `HEAD:${sourceBranch}`], { stdio: 'inherit' });
   return true;
 }
@@ -78,7 +80,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
     await updateFactoryJob(jobId, {
       status: 'READY_FOR_REVIEW', qa_status: 'passed', qa_attempt: attempt, commit_sha: sha,
-      preview_url: finalUrl, qa_result: { ok: true, report_version: classified.report.version, failures: [] },
+      preview_url: finalUrl, qa_result: { ok: true, report_version: classified.report.version, failures: [], issues: [] },
       production_deploy: false
     });
     if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `url=${finalUrl}\nqa_attempt=${attempt}\njob_id=${jobId}\n`);
@@ -86,20 +88,25 @@ for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     process.exit(0);
   }
 
-  const lastError = classified.failures.map((f) => `${f.viewport}: ${f.message}`).join(' | ').slice(0, 1200);
-  if (!classified.fixable || attempt >= maxAttempts || classified.signature === previousFailureSignature) {
+  const lastError = classified.failures.map((f) => `${f.viewport}:${f.code}: ${f.message}`).join(' | ').slice(0, 1600);
+  const retryStopped = attempt >= maxAttempts || classified.signature === previousFailureSignature;
+  if (!classified.fixable || retryStopped) {
     await updateFactoryJob(jobId, {
       status: 'FAILED', qa_status: 'failed', qa_attempt: attempt, preview_url: finalUrl,
       commit_sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-      last_error: lastError || 'visual QA failed', retry_exhausted: attempt >= maxAttempts || classified.signature === previousFailureSignature,
-      qa_result: { ok: false, report_version: classified.report.version, failures: classified.failures }, production_deploy: false
+      last_error: lastError || 'visual QA failed', retry_exhausted: retryStopped,
+      qa_result: { ok: false, report_version: classified.report.version, failures: classified.failures, issues: classified.issues },
+      production_deploy: false
     });
     throw new Error(!classified.fixable ? `QA_FAILURE_NOT_SAFE_TO_AUTOFIX:${lastError}` : `QA_RETRY_STOPPED:${lastError}`);
   }
 
   previousFailureSignature = classified.signature;
-  await updateFactoryJob(jobId, { status: 'FIXING', qa_status: 'failed', qa_attempt: attempt, preview_url: finalUrl, last_error: lastError, production_deploy: false });
-  const changed = await applySafeRepair();
+  await updateFactoryJob(jobId, {
+    status: 'FIXING', qa_status: 'failed', qa_attempt: attempt, preview_url: finalUrl,
+    last_error: lastError, last_repair_profiles: classified.repairProfiles, production_deploy: false
+  });
+  const changed = await applySafeRepair(classified.repairProfiles);
   if (!changed) {
     await updateFactoryJob(jobId, { status: 'FAILED', retry_exhausted: true, last_error: 'safe repair produced no new commit', production_deploy: false });
     throw new Error('AUTO_FIX_NO_CHANGE');
