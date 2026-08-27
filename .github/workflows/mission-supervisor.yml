@@ -1,0 +1,103 @@
+name: Mission Supervisor
+
+on:
+  workflow_dispatch:
+    inputs:
+      mission_file:
+        description: 'Mission JSON path under factory-state/missions/'
+        required: true
+        type: string
+      contracts_file:
+        description: 'Optional contracts JSON under factory-state/mission-contracts/'
+        required: false
+        type: string
+      approve_web:
+        description: 'Authorize supervised Web task dispatch for this run'
+        required: true
+        default: false
+        type: boolean
+      approve_automation:
+        description: 'Authorize bounded/supervised Automation tasks for this run'
+        required: true
+        default: false
+        type: boolean
+      approve_ai:
+        description: 'Authorize AI tasks for this run; still requires an injected runner module'
+        required: true
+        default: false
+        type: boolean
+      approve_business:
+        description: 'Authorize bounded local Business configuration tasks for this run'
+        required: true
+        default: false
+        type: boolean
+      ai_runner_module:
+        description: 'Optional injected runner under scripts/ai-runners/*.mjs'
+        required: false
+        type: string
+      web_timeout_ms:
+        description: 'Optional supervised Web observation window in ms; 0 means check once'
+        required: false
+        default: '0'
+        type: string
+
+concurrency:
+  group: mission-supervisor-${{ inputs.mission_file }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout canonical Factory runtime
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate V4.9 readiness
+        run: node scripts/factory-v49-readiness.mjs
+      - name: Run supervised mission loop
+        shell: bash
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          CONTRACTS_FILE: ${{ inputs.contracts_file }}
+          APPROVE_WEB: ${{ inputs.approve_web }}
+          APPROVE_AUTOMATION: ${{ inputs.approve_automation }}
+          APPROVE_AI: ${{ inputs.approve_ai }}
+          APPROVE_BUSINESS: ${{ inputs.approve_business }}
+          AI_RUNNER_MODULE: ${{ inputs.ai_runner_module }}
+          WEB_TIMEOUT_MS: ${{ inputs.web_timeout_ms }}
+        run: |
+          set -euo pipefail
+          args=(--mission "$MISSION_FILE" --approve-web "$APPROVE_WEB" --approve-automation "$APPROVE_AUTOMATION" --approve-ai "$APPROVE_AI" --approve-business "$APPROVE_BUSINESS" --web-timeout-ms "$WEB_TIMEOUT_MS")
+          if [ -n "$CONTRACTS_FILE" ]; then args+=(--contracts "$CONTRACTS_FILE"); fi
+          if [ -n "$AI_RUNNER_MODULE" ]; then args+=(--ai-runner-module "$AI_RUNNER_MODULE"); fi
+          set +e
+          node scripts/mission-supervisor.mjs "${args[@]}"
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo 'Mission safely paused/pending; rerun this workflow after dependencies or approvals are available.'
+            exit 0
+          fi
+          exit "$code"
+      - name: Publish safety summary
+        if: always()
+        run: |
+          echo '### LEAN V4.9 Mission Supervisor' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Explicit per-engine authorization: required' >> "$GITHUB_STEP_SUMMARY"
+          echo '- AI provider activation: never implicit' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Business external writes: disabled' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production deploy: disabled' >> "$GITHUB_STEP_SUMMARY"
