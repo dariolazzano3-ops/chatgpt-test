@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "job_id": "4d44e33df902e62e2a774368ffa4a7f10a9ab556e1686d1341aa94c62455601d",
+  "created_at": "2026-08-27T17:02:49.381Z",
+  "max_qa_attempts": 3,
+  "qa_attempt": 0,
+  "production_deploy": false,
+  "request_file": "factory-requests/v31-success-cta-test-20260827-1903.json",
+  "request_key": "4d44e33df902e62e2a774368ffa4a7f10a9ab556e1686d1341aa94c62455601d",
+  "qa_status": "pending",
+  "status": "REQUESTED",
+  "updated_at": "2026-08-27T17:02:49.381Z"
+}
