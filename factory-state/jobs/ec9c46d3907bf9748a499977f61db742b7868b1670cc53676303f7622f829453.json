@@ -20,15 +20,21 @@
   "run_started_at": "2026-08-27T19:35:15.159Z",
   "request_file": "factory-requests/v33-observability-hardening-verification-20260827.json",
   "request_key": "ec9c46d3907bf9748a499977f61db742b7868b1670cc53676303f7622f829453",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
       "at": "2026-08-27T19:35:15.159Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-08-27T19:35:16.582Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 1,
-  "updated_at": "2026-08-27T19:35:15.159Z"
+  "event_count": 2,
+  "updated_at": "2026-08-27T19:35:16.582Z"
 }
