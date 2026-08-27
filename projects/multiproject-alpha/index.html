@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="RIOSYSTEMS Dashboard — LEAN V3 Factory operations interface.">
+<title>RIOSYSTEMS DASHBOARD</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="grid" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"></span><span>RIOSYSTEMS</span><small>DASHBOARD</small></div>
+  <div class="top-actions"><span class="online"><i></i>SYSTEM ONLINE</span><button id="logout" class="ghost small">LOG OUT</button></div>
+</header>
+<main>
+  <section class="intro">
+    <div><span class="kicker">LEAN V3 OPERATIONS</span><h1>„Deine digitale Produktionszentrale.“</h1><p>Send work into the active Factory project, watch the pipeline, review the preview and keep Production behind a human gate.</p></div>
+    <div class="hero-state"><span>ACTIVE PROJECT</span><strong>MultiProject Alpha</strong><code id="active-revision">multiproject-alpha</code></div>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel command-panel">
+      <div class="panel-head"><div><span class="label">NEW FACTORY REQUEST</span><h2>What should the Factory change?</h2></div><span class="badge live">EDIT MODE</span></div>
+      <form id="request-form">
+        <label for="prompt">INSTRUCTION</label>
+        <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Example: Make the hero more cinematic, keep mobile clean and do not touch production."></textarea>
+        <div class="form-row"><div><label for="mode">MODE</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJECT</label><div class="static-field">MultiProject Alpha</div></div></div>
+        <button class="primary" type="submit">SEND TO FACTORY <span>↗</span></button>
+        <p class="micro">Creates and verifies a Factory request on the control branch. Production deployment is hard-coded off.</p>
+      </form>
+      <div id="request-result" class="request-result" hidden></div>
+    </article>
+
+    <article class="panel status-panel">
+      <div class="panel-head"><div><span class="label">FACTORY STATE</span><h2>Current pipeline</h2></div><button id="refresh" class="ghost small">REFRESH</button></div>
+      <div class="pipeline">
+        <div id="step-prompt" class="step"><span>01</span><div><strong>PROMPT</strong><small>Ready for instruction</small></div><i></i></div>
+        <div id="step-build" class="step"><span>02</span><div><strong>BUILD</strong><small>Factory branch</small></div><i></i></div>
+        <div id="step-preview" class="step"><span>03</span><div><strong>PREVIEW</strong><small>Cloudflare Pages</small></div><i></i></div>
+        <div id="step-qa" class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobile</small></div><i></i></div>
+        <div id="step-review" class="step"><span>05</span><div><strong>REVIEW</strong><small>Human decision</small></div><i></i></div>
+        <div class="step locked"><span>06</span><div><strong>PRODUCTION</strong><small>Manual approval only</small></div><b>LOCKED</b></div>
+      </div>
+    </article>
+
+    <article class="panel telemetry">
+      <div class="panel-head"><div><span class="label">TELEMETRY</span><h2>System snapshot</h2></div></div>
+      <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">CHECK</strong></div><div><span>VISUAL QA</span><strong id="qa-state">CHECK</strong></div><div><span>PRODUCTION</span><strong class="danger">LOCKED</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
+    </article>
+
+    <article class="panel preview-panel">
+      <div class="panel-head"><div><span class="label">REVIEW DESTINATION</span><h2>Latest preview</h2></div><span class="badge">LIVE</span></div>
+      <a id="preview-link" class="preview-link" href="https://factory-multiproject-alpha-e-huml.chatgpt-factory-preview.pages.dev" target="_blank" rel="noreferrer"><span>Open MultiProject Alpha Preview</span><b>↗</b></a>
+      <p id="run-state" class="micro">Checking the current Factory job…</p>
+    </article>
+
+    <article class="panel production-panel">
+      <div class="panel-head"><div><span class="label danger-text">PRODUCTION GATE</span><h2>Release control</h2></div><span class="badge danger-badge">LOCKED</span></div>
+      <p>Production cannot be triggered from Dashboard V1. A separate explicit approval flow will be required before this control can ever become active.</p>
+      <button class="production-button" disabled>PRODUCTION DEPLOY DISABLED</button>
+    </article>
+  </section>
+</main>
+<footer><span>RIOSYSTEMS / LEAN V3</span><span>AUTHENTICATED OPERATIONS INTERFACE</span></footer>
+<script>
+const form=document.querySelector('#request-form');
+const result=document.querySelector('#request-result');
+const refresh=document.querySelector('#refresh');
+const logout=document.querySelector('#logout');
+const stageOrder=['prompt','build','preview','qa','review'];
+let pollTimer=null;
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(r.status===401){location.href='/login';throw new Error('AUTH_REQUIRED')}if(!r.ok)throw new Error(data.error||data.detail||`REQUEST_FAILED_${r.status}`);return data}
+function paintStage(stage){
+  stageOrder.forEach(name=>document.querySelector(`#step-${name}`)?.classList.remove('active'));
+  const normalized=stageOrder.includes(stage)?stage:(stage==='error'?'build':'prompt');
+  document.querySelector(`#step-${normalized}`)?.classList.add('active');
+}
+async function refreshStatus(silent=false){
+  if(!silent)refresh.textContent='CHECKING…';
+  try{
+    const d=await api('/api/factory/status');
+    paintStage(d.stage);
+    document.querySelector('#preview-state').textContent=d.preview_ready?'READY':(d.stage==='preview'||d.stage==='qa'?'BUILDING':'CHECK');
+    document.querySelector('#qa-state').textContent=d.qa||'CHECK';
+    document.querySelector('#revision-state').textContent=d.revision??'—';
+    document.querySelector('#active-revision').textContent=`multiproject-alpha · revision ${d.revision??'—'}`;
+    const link=document.querySelector('#preview-link');if(d.preview_url)link.href=d.preview_url;
+    const run=d.run||{};
+    const labels={prompt:'Auftrag angenommen',build:'Umsetzung läuft',preview:'Preview wird erstellt',qa:'Qualitätsprüfung läuft',review:'Bereit zur Prüfung',error:'Factory-Fehler'};
+    document.querySelector('#run-state').textContent=`${labels[d.stage]||'Bereit'}${run.status?` · ${run.status}`:''}${run.conclusion?` / ${run.conclusion}`:''}`;
+    return d;
+  }catch(err){document.querySelector('#run-state').textContent=`Status nicht verfügbar: ${err.message}`;return null}
+  finally{if(!silent)refresh.textContent='REFRESH'}
+}
+function beginPolling(){clearInterval(pollTimer);refreshStatus(true);pollTimer=setInterval(async()=>{const d=await refreshStatus(true);if(d&&(d.stage==='review'||d.stage==='error')){clearInterval(pollTimer);pollTimer=null}},4000)}
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='SENDING…';result.hidden=true;try{const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>REQUEST VERIFIED</strong><span>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>REQUEST BLOCKED</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='SEND TO FACTORY <span>↗</span>'}});
+refresh.addEventListener('click',()=>refreshStatus());
+logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
+refreshStatus(true);
+setInterval(()=>{if(!pollTimer)refreshStatus(true)},15000);
+</script>
+</body>
+</html>
