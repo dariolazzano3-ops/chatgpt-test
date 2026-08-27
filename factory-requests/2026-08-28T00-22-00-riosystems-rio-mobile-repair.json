@@ -1,0 +1,10 @@
+{
+  "mode": "edit",
+  "prompt": "Mobile-only Reparatur für RIOSYSTEMS DASHBOARD. Bestehenden RIO-Assistant vollständig erhalten. Füge auf Smartphones bis 768px eine feste Bottom-Navigation mit vier Buttons hinzu: RIO scrollt zum bestehenden #assistant-form bzw. .assistant-panel, Status zur .status-panel, Preview zur .preview-panel, Werkstatt zu #workshop-panel bzw. #step-workshop. Desktop ab 769px unverändert. Keine Backend-Endpunkte entfernen oder verändern, insbesondere /api/rio/chat muss erhalten bleiben. Bestehende RIO-Chat-Oberfläche, aktueller Auftrag, Werkstatt-UI und Factory-Status dürfen nicht entfernt werden. Production bleibt gesperrt.",
+  "target_project_slug": "multiproject-alpha",
+  "active_state_path": "factory-state/projects.json",
+  "factory_version": "4.1",
+  "factory_version_label": "LEAN VERSION 4.1",
+  "factory_runtime_sha": "1fde4c7f4e5ac779bf4bd6353bab968b0237d9c5",
+  "production_deploy": false
+}
