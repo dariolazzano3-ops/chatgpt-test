@@ -3,7 +3,7 @@
   "job_id": "c6e00d37811aeb0ae5a73e83fd631a725dacf253b88ab4cbd10ef75305e1e937",
   "created_at": "2026-08-27T18:12:46.814Z",
   "max_qa_attempts": 3,
-  "qa_attempt": 0,
+  "qa_attempt": 1,
   "production_deploy": false,
   "qa_status": "pending",
   "last_error": null,
@@ -17,6 +17,6 @@
   "revision": 10,
   "request_file": "factory-requests/2026-08-27T18-12-31-143Z-riosystems-0f0bb3fa.json",
   "request_key": "c6e00d37811aeb0ae5a73e83fd631a725dacf253b88ab4cbd10ef75305e1e937",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T18:13:18.588Z"
+  "status": "PREVIEW_BUILDING",
+  "updated_at": "2026-08-27T18:13:20.056Z"
 }
