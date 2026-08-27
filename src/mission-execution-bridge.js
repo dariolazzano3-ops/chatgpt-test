@@ -13,19 +13,16 @@ function webRequest(contract, envelope, options = {}) {
     mission_task_id: contract.task_id,
     execution_adapter: envelope.adapter_id
   };
-
   if (contract.capability === "web_evolve") {
     const target = slug(contract.project || options.project_slug);
     if (!target) return { ok: false, error: "WEB_PROJECT_SLUG_REQUIRED" };
     return { ok: true, request: { ...base, mode: "edit", target_project_slug: target } };
   }
-
   if (contract.capability === "web_generate") {
     const projectSlug = slug(contract.project || options.project_slug);
     const projectName = text(options.project_name || contract.project || `Mission ${contract.mission_id.slice(-8)}`, 120);
     return { ok: true, request: { ...base, mode: "generate", project_name: projectName, ...(projectSlug ? { project_slug: projectSlug } : {}) } };
   }
-
   if (contract.capability === "web_rebuild") {
     const sourceUrl = text(options.source_url || contract.dependency_outputs?.source_url, 2000);
     if (!sourceUrl) return { ok: false, error: "WEB_REBUILD_SOURCE_URL_REQUIRED" };
@@ -33,7 +30,6 @@ function webRequest(contract, envelope, options = {}) {
     const projectName = text(options.project_name || contract.project || `Mission ${contract.mission_id.slice(-8)}`, 120);
     return { ok: true, request: { ...base, mode: "rebuild", project_name: projectName, source_url: sourceUrl, ...(projectSlug ? { project_slug: projectSlug } : {}) } };
   }
-
   return { ok: false, error: "WEB_CAPABILITY_NOT_SUPPORTED", capability: contract.capability };
 }
 
@@ -47,13 +43,15 @@ export function prepareMissionTaskDispatch(mission, taskId, approval = {}, optio
   if (authorized.envelope.engine !== "web") return { ok: false, error: "ADAPTER_BRIDGE_NOT_IMPLEMENTED", engine: authorized.envelope.engine };
   const requestResult = webRequest(contract, authorized.envelope, options);
   if (!requestResult.ok) return requestResult;
-
   const started = transitionMissionTask(mission, taskId, "start", {
-    inputs: { adapter_id: authorized.envelope.adapter_id, factory_request: requestResult.request },
+    inputs: {
+      adapter_id: authorized.envelope.adapter_id,
+      dispatch_envelope: authorized.envelope,
+      factory_request: requestResult.request
+    },
     external_job_id: options.external_job_id || null
   });
   if (!started.ok) return started;
-
   return {
     ok: true,
     mission: started.mission,
@@ -106,12 +104,18 @@ export function reconcileMissionTaskResult(mission, taskId, envelope, adapterRes
   if (adapterResult?.status === "PENDING") return { ok: true, pending: true, mission };
   const validated = validateAdapterResult(envelope, adapterResult);
   if (!validated.ok) return validated;
-  if (validated.result.status === "COMPLETED") {
-    return transitionMissionTask(mission, taskId, "complete", { outputs: validated.result.outputs });
-  }
+  if (validated.result.status === "COMPLETED") return transitionMissionTask(mission, taskId, "complete", { outputs: validated.result.outputs });
   return transitionMissionTask(mission, taskId, "fail", {
     code: validated.result.error?.code || "ADAPTER_FAILED",
     message: validated.result.error?.message || null,
     retryable: validated.result.error?.retryable === true
   });
+}
+
+export function reconcileMissionTaskFromWebJob(mission, taskId, job = {}) {
+  const task = mission?.tasks?.find((item) => item.task_id === taskId);
+  if (!task) return { ok: false, error: "MISSION_TASK_NOT_FOUND" };
+  const envelope = task.inputs?.dispatch_envelope;
+  if (!envelope) return { ok: false, error: "MISSION_DISPATCH_ENVELOPE_MISSING" };
+  return reconcileMissionTaskResult(mission, taskId, envelope, webFactoryJobToAdapterResult(job));
 }
