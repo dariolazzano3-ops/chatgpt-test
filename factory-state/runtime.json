@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "3.2",
-  "display_label": "LEAN VERSION 3.2",
+  "factory_version": "3.3",
+  "display_label": "LEAN VERSION 3.3",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -10,8 +10,12 @@
     "bounded_qa_repair": true,
     "structured_qa_issues": true,
     "targeted_repair_profiles": true,
+    "request_fulfillment_gate": true,
+    "durable_job_events": true,
+    "failure_intelligence": true,
+    "observability_snapshot": true,
     "max_qa_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-27T19:07:00.000Z"
+  "updated_at": "2026-08-27T19:27:00.000Z"
 }
