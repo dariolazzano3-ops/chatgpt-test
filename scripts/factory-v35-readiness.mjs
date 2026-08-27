@@ -4,6 +4,7 @@ const failures = [];
 const passes = [];
 const read = (path) => fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : (failures.push(`missing ${path}`), '');
 const need = (label, text, expected) => text.includes(expected) ? passes.push(label) : failures.push(`${label}: expected ${JSON.stringify(expected)}`);
+const needBool = (label, condition) => condition ? passes.push(label) : failures.push(label);
 
 const analyzer = read('src/project-analyzer.js');
 const clarifier = read('src/edit-clarifier.js');
@@ -23,10 +24,13 @@ need('Evolver analyzes source project before branching', evolver, 'const project
 need('Evolver returns clarification before branch mutation', evolver, 'EVOLVE_NEEDS_CLARIFICATION');
 need('Evolver reports V3.5 plan version', evolver, 'version: "3.5"');
 need('V3.5 keeps production disabled', evolver, 'production_deployed: false');
-need('Package runtime version advanced', pkg, '"version": "1.9.0-alpha.1"');
+let packageVersion = '0.0.0';
+try { packageVersion = JSON.parse(pkg).version || packageVersion; } catch {}
+const match = packageVersion.match(/^(\d+)\.(\d+)\./);
+needBool('Package runtime is V3.5-era or newer', Boolean(match) && (Number(match[1]) > 1 || (Number(match[1]) === 1 && Number(match[2]) >= 9)));
 need('Package executes V3.5 readiness', pkg, 'node scripts/factory-v35-readiness.mjs');
 need('Package executes intent-resolution smoke', pkg, 'node scripts/intent-resolution-smoke.mjs');
 
-const result = { version:'LEAN V3.5', ready:failures.length===0, checks_passed:passes.length, checks_failed:failures.length, passes, failures };
+const result = { version:'LEAN V3.5+', ready:failures.length===0, checks_passed:passes.length, checks_failed:failures.length, passes, failures };
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exit(1);
