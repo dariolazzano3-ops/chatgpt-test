@@ -18,6 +18,10 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PRODUCTION_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PRODUCTION_PAGES_PROJECT }}
     steps:
       - name: Checkout immutable release runtime
         uses: actions/checkout@v4
@@ -74,6 +78,25 @@ jobs:
           CURRENT_SHA=$(git rev-parse "origin/$BRANCH")
           echo "sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Verify configured Cloudflare production target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "$CLOUDFLARE_PRODUCTION_PAGES_PROJECT" || { echo "Missing CLOUDFLARE_PRODUCTION_PAGES_PROJECT repository variable"; exit 1; }
+          RESPONSE=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PRODUCTION_PAGES_PROJECT")
+          node - <<'NODE' "$RESPONSE"
+          const body=JSON.parse(process.argv[2]);
+          if(body?.success!==true) throw new Error('CLOUDFLARE_PROJECT_LOOKUP_FAILED');
+          const project=body?.result;
+          if(project?.name!==process.env.CLOUDFLARE_PRODUCTION_PAGES_PROJECT) throw new Error('CLOUDFLARE_PROJECT_NAME_MISMATCH');
+          if(project?.production_branch!=='main') throw new Error(`PRODUCTION_BRANCH_MUST_BE_MAIN:${project?.production_branch||'missing'}`);
+          NODE
+          echo "project=$CLOUDFLARE_PRODUCTION_PAGES_PROJECT" >> "$GITHUB_OUTPUT"
+          echo "branch=main" >> "$GITHUB_OUTPUT"
+
       - name: Run production gate dry-run audit
         id: gate
         shell: bash
@@ -94,7 +117,7 @@ jobs:
           PROJECT_SHA: ${{ steps.state.outputs.project_sha }}
         run: |
           set -euo pipefail
-          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$PROJECT_SHA" -f state=success -f context='factory-production/dry-run-audit' -f description='Production release gate dry-run passed; nothing deployed' >/dev/null
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$PROJECT_SHA" -f state=success -f context='factory-production/dry-run-audit' -f description='Release gate and Cloudflare production target verified; nothing deployed' >/dev/null
           echo "### Factory Production Dry-Run Audit" >> "$GITHUB_STEP_SUMMARY"
           echo "- Request: ${{ steps.request.outputs.file }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Project: ${{ steps.state.outputs.project_slug }}" >> "$GITHUB_STEP_SUMMARY"
@@ -102,6 +125,8 @@ jobs:
           echo "- QA commit: $PROJECT_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch tip: ${{ steps.branch.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Release gate: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cloudflare production project: ${{ steps.target.outputs.project }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cloudflare production branch: ${{ steps.target.outputs.branch }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production deployed: no" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish blocked audit summary
@@ -109,5 +134,5 @@ jobs:
         shell: bash
         run: |
           echo "### Factory Production Dry-Run Audit Blocked" >> "$GITHUB_STEP_SUMMARY"
-          echo "- The active Factory state is not eligible for production release." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Active Factory state, release gate, or Cloudflare production target is not eligible." >> "$GITHUB_STEP_SUMMARY"
           echo "- Production deployed: no" >> "$GITHUB_STEP_SUMMARY"
