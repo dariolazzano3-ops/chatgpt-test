@@ -20,15 +20,21 @@
   "run_started_at": "2026-08-27T19:28:29.826Z",
   "request_file": "factory-requests/v33-observability-runtime-verification-20260827.json",
   "request_key": "e5298767b2f26b6fc06f787ebd85c418a823e574553beacc082b10b49d23435e",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
       "at": "2026-08-27T19:28:29.826Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-08-27T19:28:31.276Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 1,
-  "updated_at": "2026-08-27T19:28:29.826Z"
+  "event_count": 2,
+  "updated_at": "2026-08-27T19:28:31.276Z"
 }
