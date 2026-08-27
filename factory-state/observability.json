@@ -1,13 +1,14 @@
 {
-  "version": 1,
+  "version": 2,
   "factory_version": "3.3",
-  "generated_at": "2026-08-27T19:28:45.452Z",
+  "generated_at": "2026-08-27T19:35:29.503Z",
   "production_deploy": false,
   "sample": {
-    "jobs_total": 14,
-    "jobs_ready_for_review": 9,
+    "jobs_total": 15,
+    "jobs_ready_for_review": 10,
+    "jobs_workshop_required": 0,
     "jobs_failed": 5,
-    "terminal_success_rate_pct": 64.3,
+    "terminal_success_rate_pct": 66.7,
     "jobs_with_auto_repair": 0,
     "jobs_recovered_by_auto_repair": 0,
     "auto_repair_recovery_rate_pct": 0
@@ -16,8 +17,14 @@
     "attempt_events": 0,
     "passed_attempts": 0,
     "nonpassing_attempts": 0,
+    "cache_reuses": 2,
     "average_preview_ms": 0,
     "average_qa_ms": 0
+  },
+  "fulfillment": {
+    "checks": 0,
+    "failures": 0,
+    "pass_rate_pct": 0
   },
   "repair": {
     "committed_repairs": 0,
@@ -28,7 +35,7 @@
     "codes": {}
   },
   "statuses": {
-    "READY_FOR_REVIEW": 9,
+    "READY_FOR_REVIEW": 10,
     "FAILED": 5
   }
 }
