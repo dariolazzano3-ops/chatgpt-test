@@ -19,7 +19,7 @@ function replaceFirstText(fragment, kind, value) {
     if (lead.test(fragment)) return fragment.replace(lead, `$1${escaped}$2`);
     return /(<h1\b[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p\b[^>]*>)[\s\S]*?(<\/p>)/i.test(fragment) ? fragment.replace(/(<h1\b[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p\b[^>]*>)[\s\S]*?(<\/p>)/i, `$1${escaped}$2`) : fragment;
   }
-  const cta=/(<a\b[^>]*class=["'][^"']*(?:cta|btn-primary|button-primary|hero-cta)[^"']*["'][^>]*>)[\s\S]*?(<\/a>)/i;
+  const cta=/(<a\b[^>]*class=["'][^"']*(?:cta|btn-primary|button-primary|hero-cta|primary)[^"']*["'][^>]*>)[\s\S]*?(<\/a>)/i;
   if (cta.test(fragment)) return fragment.replace(cta, `$1${escaped}$2`);
   return /(<button\b[^>]*>)[\s\S]*?(<\/button>)/i.test(fragment) ? fragment.replace(/(<button\b[^>]*>)[\s\S]*?(<\/button>)/i, `$1${escaped}$2`) : fragment;
 }
