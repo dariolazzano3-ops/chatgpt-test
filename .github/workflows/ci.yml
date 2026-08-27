@@ -10,6 +10,8 @@ on:
       - 'factory-v3/auto/**'
   pull_request:
     branches: [develop, staging, main]
+    paths-ignore:
+      - 'projects/**'
 
 jobs:
   validate:

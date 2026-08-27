@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 
-const [projectPath, branch, prUrl, previewUrl] = process.argv.slice(2);
+const [projectPath, branch, prUrl, previewUrl, expectedSourceBranch = ''] = process.argv.slice(2);
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
 const statePath = 'factory-state/active-project.json';
@@ -12,6 +12,7 @@ if (!repository || !repository.includes('/')) throw new Error('GITHUB_REPOSITORY
 if (!projectPath || !projectPath.startsWith('projects/')) throw new Error('PROJECT_PATH_INVALID');
 if (!branch || !branch.startsWith('factory/')) throw new Error('PROJECT_BRANCH_INVALID');
 if (!previewUrl || !previewUrl.startsWith('https://')) throw new Error('PREVIEW_URL_INVALID');
+if (expectedSourceBranch && !expectedSourceBranch.startsWith('factory/')) throw new Error('EXPECTED_SOURCE_BRANCH_INVALID');
 
 const projectRaw = await fs.readFile(`${projectPath}/project.json`, 'utf8');
 const projectMeta = JSON.parse(projectRaw);
@@ -54,7 +55,33 @@ async function writeJson(path, value, sha, message) {
   if (!response.ok) throw new Error(`STATE_WRITE_FAILED_${response.status}:${path}:${(await response.text()).slice(0, 500)}`);
 }
 
+async function assertBranchContains(baseBranch, headBranch) {
+  const compareUrl = `https://api.github.com/repos/${repository}/compare/${encodeURIComponent(baseBranch)}...${encodeURIComponent(headBranch)}`;
+  const response = await fetch(compareUrl, { headers });
+  if (!response.ok) throw new Error(`PROJECT_LINEAGE_COMPARE_FAILED_${response.status}:${(await response.text()).slice(0, 300)}`);
+  const comparison = await response.json();
+  if (Number(comparison.behind_by || 0) !== 0 || !['ahead', 'identical'].includes(comparison.status)) {
+    throw new Error(`PROJECT_LINEAGE_STALE:${projectSlug}:base=${baseBranch}:candidate=${headBranch}:status=${comparison.status}:behind=${comparison.behind_by}`);
+  }
+  return comparison;
+}
+
 const now = new Date().toISOString();
+const currentRegistry = await readJson(registryPath, false);
+const registry = currentRegistry.value && typeof currentRegistry.value === 'object'
+  ? currentRegistry.value
+  : { version: 1, projects: {} };
+if (!registry.projects || typeof registry.projects !== 'object' || Array.isArray(registry.projects)) registry.projects = {};
+registry.version = 1;
+
+const priorProject = registry.projects[projectSlug] || null;
+const isEditBranch = branch.startsWith(`factory/${projectSlug}-edit-`);
+const lineageSourceBranch = expectedSourceBranch || (isEditBranch ? String(priorProject?.branch || '') : '');
+if (isEditBranch && !lineageSourceBranch) throw new Error(`PROJECT_LINEAGE_MISSING:${projectSlug}`);
+if (lineageSourceBranch) await assertBranchContains(lineageSourceBranch, branch);
+
+const priorRevision = Number.isInteger(priorProject?.edit_revision) ? priorProject.edit_revision : 0;
+const editRevision = lineageSourceBranch ? priorRevision + 1 : priorRevision;
 const state = {
   version: 1,
   active: true,
@@ -62,6 +89,8 @@ const state = {
   project_slug: projectSlug,
   source_path: projectPath,
   branch,
+  previous_branch: lineageSourceBranch || priorProject?.branch || null,
+  edit_revision: editRevision,
   pull_request: pullRequest,
   preview_url: previewUrl,
   production_deploy: false,
@@ -69,17 +98,13 @@ const state = {
   updated_at: now
 };
 
-const currentRegistry = await readJson(registryPath, false);
-const registry = currentRegistry.value && typeof currentRegistry.value === 'object'
-  ? currentRegistry.value
-  : { version: 1, projects: {} };
-if (!registry.projects || typeof registry.projects !== 'object' || Array.isArray(registry.projects)) registry.projects = {};
-registry.version = 1;
 registry.projects[projectSlug] = {
   project_name: projectName,
   project_slug: projectSlug,
   source_path: projectPath,
   branch,
+  previous_branch: state.previous_branch,
+  edit_revision: editRevision,
   pull_request: pullRequest,
   preview_url: previewUrl,
   production_deploy: false,
