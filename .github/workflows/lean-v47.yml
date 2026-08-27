@@ -1,0 +1,39 @@
+name: LEAN V4.7
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/ai-mission-bridge.js'
+      - 'src/mission-execution-router.js'
+      - 'scripts/ai-mission-bridge-smoke.mjs'
+      - 'scripts/mission-router-ai-smoke.mjs'
+      - 'scripts/factory-v47-readiness.mjs'
+      - 'factory-state/runtime.json'
+      - '.github/workflows/lean-v47.yml'
+
+jobs:
+  validate-v47:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/ai-mission-bridge.js
+          node --check src/mission-execution-router.js
+          node --check scripts/ai-mission-bridge-smoke.mjs
+          node --check scripts/mission-router-ai-smoke.mjs
+          node --check scripts/factory-v47-readiness.mjs
+      - name: AI mission bridge smoke
+        run: node scripts/ai-mission-bridge-smoke.mjs
+      - name: Multi-factory Automation to AI smoke
+        run: node scripts/mission-router-ai-smoke.mjs
+      - name: V4.7 readiness
+        run: node scripts/factory-v47-readiness.mjs
+      - name: Runtime metadata
+        run: |
+          node -e "const r=require('./factory-state/runtime.json'); if(r.factory_version!=='4.7'||r.production_deploy!==false||r.capabilities.ai_mission_execution_bridge!==true||r.capabilities.web_automation_ai_mission_routing!==true||r.capabilities.automatic_multi_factory_execution!==false) process.exit(1)"
