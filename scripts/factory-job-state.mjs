@@ -56,6 +56,7 @@ function normalizeEvent(event, now, sequence) {
 
 function classifyFailureKind({ error = '', stage = '' } = {}) {
   const text = `${stage} ${error}`.toLowerCase();
+  if (/ambiguous|clarification|no_verified_updates|no verified updates/.test(text)) return 'request_ambiguity';
   if (/visual.?qa|qa_failure|overflow|page_error/.test(text)) return 'project_quality';
   if (/fulfillment|request_fulfillment/.test(text)) return 'request_fulfillment';
   if (/cloudflare|wrangler|github|token|credential|network|timeout|workflow|checkout|fetch|push|api|runner|artifact/.test(text)) return 'infrastructure';
@@ -114,6 +115,9 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
     const { __event, ...publicPatch } = patch || {};
     const recovery = publicPatch.status === 'REQUESTED' ? classifyRecovery(existing, now) : null;
+    if (publicPatch.status === 'REQUESTED' && recovery?.status === 'manual_review') {
+      throw new Error(`RECOVERY_MANUAL_REVIEW_REQUIRED:${recovery.reason}`);
+    }
     const recoveryEvent = recovery?.status === 'resuming' ? { type: 'RECOVERY_STARTED', stage: 'queue', outcome: 'safe_retry', note: recovery.reason } : null;
     const retryReset = publicPatch.status === 'REQUESTED' ? {
       qa_attempt: 0, qa_status: 'pending', last_error: null, failure_stage: null, failure_kind: null, retry_exhausted: false,
