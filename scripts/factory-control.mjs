@@ -27,23 +27,48 @@ const request = new Request("https://factory-control.local/run", { headers: { au
 const env = { API_TOKEN: internalToken, GITHUB_TOKEN: process.env.GITHUB_TOKEN, GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY };
 
 if (!env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN_REQUIRED");
+if (!env.GITHUB_REPOSITORY) throw new Error("GITHUB_REPOSITORY_REQUIRED");
 
-async function readActiveProject() {
+function validateProjectState(state, prefix = "PROJECT") {
+  if (!state || typeof state !== "object") throw new Error(`${prefix}_STATE_INVALID`);
+  if (state.mode !== "editing") throw new Error(`${prefix}_NOT_IN_EDITING_MODE`);
+  if (!String(state.project_slug || "").trim()) throw new Error(`${prefix}_SLUG_REQUIRED`);
+  if (state.source_path !== `projects/${state.project_slug}`) throw new Error(`${prefix}_PATH_MISMATCH`);
+  if (!String(state.branch || "").startsWith("factory/")) throw new Error(`${prefix}_BRANCH_INVALID`);
+  if (state.production_deploy !== false) throw new Error(`${prefix}_PRODUCTION_MUST_BE_DISABLED`);
+  return state;
+}
+
+async function readRegisteredProject(slug) {
+  const registryPath = "factory-state/projects.json";
+  const headers = {
+    authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    accept: "application/vnd.github+json",
+    "x-github-api-version": "2022-11-28"
+  };
+  const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${registryPath}?ref=factory-control`, { headers });
+  if (response.status === 404) throw new Error("PROJECT_REGISTRY_NOT_FOUND");
+  if (!response.ok) throw new Error(`PROJECT_REGISTRY_READ_FAILED_${response.status}`);
+  const body = await response.json();
+  const registry = JSON.parse(Buffer.from(body.content, "base64").toString("utf8"));
+  const state = registry?.projects?.[slug];
+  if (!state) throw new Error(`TARGET_PROJECT_NOT_FOUND:${slug}`);
+  return { statePath: registryPath, state: validateProjectState(state, "TARGET_PROJECT"), targeted: true };
+}
+
+async function readProjectState() {
+  if (job.target_project_slug) return readRegisteredProject(job.target_project_slug);
+
   const statePath = String(job.active_state_path || "factory-state/active-project.json");
   const state = JSON.parse(await fs.readFile(statePath, "utf8"));
   if (state.active !== true) throw new Error("NO_ACTIVE_PROJECT");
-  if (state.mode !== "editing") throw new Error("ACTIVE_PROJECT_NOT_IN_EDITING_MODE");
-  if (!String(state.project_slug || "").trim()) throw new Error("ACTIVE_PROJECT_SLUG_REQUIRED");
-  if (state.source_path !== `projects/${state.project_slug}`) throw new Error("ACTIVE_PROJECT_PATH_MISMATCH");
-  if (!String(state.branch || "").startsWith("factory/")) throw new Error("ACTIVE_PROJECT_BRANCH_INVALID");
-  if (state.production_deploy !== false) throw new Error("ACTIVE_PROJECT_PRODUCTION_MUST_BE_DISABLED");
-  return { statePath, state };
+  return { statePath, state: validateProjectState(state, "ACTIVE_PROJECT"), targeted: false };
 }
 
 let output;
 
 if (mode === "qa" || mode === "recheck") {
-  const { statePath, state } = await readActiveProject();
+  const { statePath, state, targeted } = await readProjectState();
   output = {
     ok: true,
     mode: "qa",
@@ -54,12 +79,13 @@ if (mode === "qa" || mode === "recheck") {
     pull_request: state.pull_request ? { number: state.pull_request, url: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${state.pull_request}` } : null,
     updates: [],
     active_state_path: statePath,
+    targeted_project: targeted,
     production_deployed: false,
     qa_only: true,
     recovery_reused: false
   };
 } else if (mode === "edit" || mode === "evolve") {
-  const { statePath, state } = await readActiveProject();
+  const { statePath, state, targeted } = await readProjectState();
   const stagingBranch = `factory/${state.project_slug}-edit-${recoveryKey.slice(0, 12)}`;
   const result = await evolveProjectSafely(request, env, {
     project_slug: state.project_slug,
@@ -73,8 +99,8 @@ if (mode === "qa" || mode === "recheck") {
   });
 
   if (!result?.ok || !Array.isArray(result.updates) || result.updates.length === 0) {
-    console.error(JSON.stringify({ mode, active_state: state, edit: result }, null, 2));
-    throw new Error(result?.error || "ACTIVE_EDIT_NO_VERIFIED_UPDATES");
+    console.error(JSON.stringify({ mode, project_state: state, edit: result }, null, 2));
+    throw new Error(result?.error || "PROJECT_EDIT_NO_VERIFIED_UPDATES");
   }
 
   output = {
@@ -87,6 +113,7 @@ if (mode === "qa" || mode === "recheck") {
     pull_request: result.pull_request,
     updates: result.updates,
     active_state_path: statePath,
+    targeted_project: targeted,
     production_deployed: false,
     qa_only: false,
     recovery_reused: result.recovery_reused === true
@@ -128,6 +155,7 @@ if (mode === "qa" || mode === "recheck") {
     project_path: result.project_path,
     preview_expected: result.preview?.url || null,
     pull_request: result.pull_request,
+    targeted_project: false,
     production_deployed: false,
     qa_only: false,
     recovery_reused: result.recovery?.reused_branch === true || result.recovery?.reused_pull_request === true
@@ -143,6 +171,7 @@ if (process.env.GITHUB_OUTPUT) {
     `project_path=${output.project_path || ""}`,
     `pr_url=${output.pull_request?.url || ""}`,
     `qa_only=${output.qa_only ? "true" : "false"}`,
+    `targeted_project=${output.targeted_project ? "true" : "false"}`,
     `recovery_reused=${output.recovery_reused ? "true" : "false"}`
   ];
   await fs.appendFile(process.env.GITHUB_OUTPUT, `${lines.join("\n")}\n`);
