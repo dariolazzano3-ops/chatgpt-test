@@ -1,0 +1,104 @@
+name: Factory Production Dry-Run Audit
+
+on:
+  push:
+    branches:
+      - factory-control
+    paths:
+      - 'factory-state/active-project.json'
+
+concurrency:
+  group: factory-production-audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout immutable release runtime
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Load canonical active Factory state
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin factory-control
+          git show origin/factory-control:factory-state/active-project.json > /tmp/active-project.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=JSON.parse(fs.readFileSync('/tmp/active-project.json','utf8'));
+          if(!s?.active || !s?.branch || !s?.project_slug || !Number.isInteger(s?.edit_revision)) throw new Error('ACTIVE_STATE_INVALID');
+          const sha=s?.release_readiness?.evidence?.project_sha;
+          if(!/^[0-9a-f]{40}$/i.test(String(sha||''))) throw new Error('QA_PROJECT_SHA_MISSING');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, [
+            `branch=${s.branch}`,
+            `project_slug=${s.project_slug}`,
+            `edit_revision=${s.edit_revision}`,
+            `project_sha=${sha}`
+          ].join('\n')+'\n');
+          NODE
+
+      - name: Resolve current active branch tip
+        id: branch
+        shell: bash
+        env:
+          BRANCH: ${{ steps.state.outputs.branch }}
+        run: |
+          set -euo pipefail
+          case "$BRANCH" in factory/*) ;; *) echo "Unsafe Factory branch"; exit 1 ;; esac
+          git fetch origin "$BRANCH"
+          CURRENT_SHA=$(git rev-parse "origin/$BRANCH")
+          echo "sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Run production gate dry-run audit
+        id: gate
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ steps.state.outputs.project_slug }}
+          EDIT_REVISION: ${{ steps.state.outputs.edit_revision }}
+          CURRENT_SHA: ${{ steps.branch.outputs.sha }}
+        run: |
+          set -euo pipefail
+          CONFIRMATION="DEPLOY $PROJECT_SLUG REV $EDIT_REVISION"
+          node scripts/production-release-gate.mjs /tmp/active-project.json "$PROJECT_SLUG" "$EDIT_REVISION" "$CONFIRMATION" "$CURRENT_SHA"
+
+      - name: Publish dry-run audit status
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROJECT_SHA: ${{ steps.state.outputs.project_sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$PROJECT_SHA" \
+            -f state=success \
+            -f context='factory-production/dry-run-audit' \
+            -f description='Production release gate dry-run passed; nothing deployed' >/dev/null
+          echo "### Factory Production Dry-Run Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Project: ${{ steps.state.outputs.project_slug }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Revision: ${{ steps.state.outputs.edit_revision }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- QA commit: $PROJECT_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch tip: ${{ steps.branch.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release gate: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production deployed: no" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish blocked audit summary
+        if: failure()
+        shell: bash
+        run: |
+          echo "### Factory Production Dry-Run Audit Blocked" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The active Factory state is not eligible for production release." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production deployed: no" >> "$GITHUB_STEP_SUMMARY"
