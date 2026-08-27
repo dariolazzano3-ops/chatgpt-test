@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { missionCompilerManifest } from '../src/mission-compiler.js';
+
+const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
+const manifest = missionCompilerManifest();
+
+assert.equal(runtime.factory_version, '4.10');
+assert.equal(runtime.production_deploy, false);
+assert.equal(runtime.capabilities.single_prompt_mission_compilation, true);
+assert.equal(runtime.capabilities.deterministic_factory_contract_synthesis, true);
+assert.equal(runtime.capabilities.mission_activation_requirements_manifest, true);
+assert.equal(runtime.capabilities.mission_package_persistence, true);
+assert.equal(runtime.capabilities.mission_intake_workflow, true);
+assert.equal(runtime.capabilities.persisted_multi_factory_mission_supervisor, true);
+assert.equal(runtime.capabilities.automatic_adapter_dispatch, false);
+assert.equal(runtime.capabilities.automatic_multi_factory_execution, false);
+assert.equal(runtime.capabilities.business_external_writes_disabled, true);
+assert.equal(runtime.capabilities.ai_injected_runner_required, true);
+
+assert.equal(manifest.version, '4.10');
+assert.equal(manifest.input, 'single_high_level_prompt');
+assert.equal(manifest.output, 'durable_mission_plus_factory_contracts');
+assert.deepEqual(manifest.compiled_engines, ['web', 'automation', 'ai', 'business']);
+assert.equal(manifest.deterministic_safe_contract_synthesis, true);
+assert.equal(manifest.explicit_adapter_approvals_required, true);
+assert.equal(manifest.external_activation_requirements_exposed, true);
+assert.equal(manifest.automatic_multi_factory_execution, false);
+assert.equal(manifest.production_deploy, false);
+
+for (const file of [
+  'src/mission-compiler.js',
+  'scripts/mission-compiler-smoke.mjs',
+  'scripts/mission-intake.mjs',
+  '.github/workflows/mission-intake.yml',
+  'src/mission-supervisor.js',
+  '.github/workflows/mission-supervisor.yml'
+]) assert.equal(fs.existsSync(file), true, `${file} missing`);
+
+console.log('factory-v410-readiness: ok');
