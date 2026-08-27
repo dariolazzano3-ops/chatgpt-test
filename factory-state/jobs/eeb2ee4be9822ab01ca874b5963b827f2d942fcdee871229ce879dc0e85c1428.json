@@ -11,9 +11,9 @@
   "recovery_status": "fresh",
   "recovery_attempt": 0,
   "qa_status": "pending",
-  "last_error": null,
-  "failure_stage": null,
-  "failure_kind": null,
+  "last_error": "factory_execution_or_workflow_failure",
+  "failure_stage": "pre_review_pipeline",
+  "failure_kind": "infrastructure",
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-27T19-47-04-939Z-riosystems-48ce2369.json",
   "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
-  "status": "IMPLEMENTING",
+  "status": "FAILED",
   "events": [
     {
       "sequence": 1,
@@ -40,8 +40,15 @@
       "at": "2026-08-27T19:47:24.458Z",
       "type": "IMPLEMENTATION_STARTED",
       "stage": "implementation"
+    },
+    {
+      "sequence": 3,
+      "at": "2026-08-27T19:47:26.747Z",
+      "type": "WORKFLOW_FAILURE",
+      "outcome": "failed",
+      "stage": "pre_review_pipeline"
     }
   ],
-  "event_count": 2,
-  "updated_at": "2026-08-27T19:47:24.458Z"
+  "event_count": 3,
+  "updated_at": "2026-08-27T19:47:26.747Z"
 }
