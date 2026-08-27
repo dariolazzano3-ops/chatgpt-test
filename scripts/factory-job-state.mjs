@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
@@ -37,6 +38,15 @@ async function writeJson(path, value, sha, message) {
   if (!response.ok) throw new Error(`JOB_STATE_WRITE_FAILED_${response.status}:${(await response.text()).slice(0,360)}`);
 }
 
+function currentGitSha() {
+  try {
+    const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    return /^[0-9a-f]{40}$/i.test(sha) ? sha : null;
+  } catch {
+    return null;
+  }
+}
+
 export function deriveJobId(requestKey, requestFile = '') {
   if (requestKey) return safeId(requestKey);
   return crypto.createHash('sha256').update(String(requestFile)).digest('hex');
@@ -49,6 +59,7 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const current = await readJson(path, false);
     const now = new Date().toISOString();
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
+    const inferredSha = patch.status === 'READY_FOR_REVIEW' && !patch.commit_sha ? currentGitSha() : null;
     const next = {
       version: 1,
       job_id: id,
@@ -58,6 +69,7 @@ export async function updateFactoryJob(jobId, patch = {}) {
       production_deploy: false,
       ...existing,
       ...patch,
+      ...(inferredSha ? { commit_sha: inferredSha } : {}),
       job_id: id,
       production_deploy: false,
       updated_at: now
