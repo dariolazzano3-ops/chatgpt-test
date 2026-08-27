@@ -5,11 +5,11 @@
       "project_name": "MultiProject Alpha",
       "project_slug": "multiproject-alpha",
       "source_path": "projects/multiproject-alpha",
-      "branch": "factory/multiproject-alpha-edit-087233ca0637",
-      "previous_branch": "factory/multiproject-alpha-edit-67a0611aa33b",
-      "edit_revision": 2,
-      "pull_request": 114,
-      "preview_url": "https://factory-multiproject-alpha-e-qhrs.chatgpt-factory-preview.pages.dev",
+      "branch": "factory/multiproject-alpha-edit-1899b6f5f69d",
+      "previous_branch": "factory/multiproject-alpha-edit-087233ca0637",
+      "edit_revision": 3,
+      "pull_request": 116,
+      "preview_url": "https://factory-multiproject-alpha-e-ylew.chatgpt-factory-preview.pages.dev",
       "production_deploy": false,
       "release_readiness": {
         "version": 1,
@@ -23,6 +23,7 @@
           "manual_production_approval_required"
         ],
         "evidence": {
+          "project_sha": "39fd97bf9e4ee437852ae1181b75b313a23bf25a",
           "project_path_valid": true,
           "branch_isolated": true,
           "pull_request_present": true,
@@ -30,7 +31,7 @@
           "visual_qa": {
             "ok": true,
             "report_version": 4,
-            "generated_at": "2026-08-27T13:17:59.974Z",
+            "generated_at": "2026-08-27T13:27:54.857Z",
             "viewports": [
               "desktop",
               "mobile"
@@ -42,10 +43,10 @@
           "next_action": "review_preview_and_request_manual_approval",
           "safe_to_continue_editing": true
         },
-        "generated_at": "2026-08-27T13:18:00.774Z"
+        "generated_at": "2026-08-27T13:27:56.233Z"
       },
       "mode": "editing",
-      "updated_at": "2026-08-27T13:18:00.774Z"
+      "updated_at": "2026-08-27T13:27:56.233Z"
     },
     "multiproject-beta": {
       "project_name": "MultiProject Beta",
@@ -59,5 +60,5 @@
       "updated_at": "2026-08-27T11:33:54.302Z"
     }
   },
-  "updated_at": "2026-08-27T13:18:00.774Z"
+  "updated_at": "2026-08-27T13:27:56.233Z"
 }
