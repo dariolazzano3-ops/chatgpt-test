@@ -1,7 +1,7 @@
 {
   "version": 3,
   "factory_version": "3.4",
-  "generated_at": "2026-08-27T19:52:11.043Z",
+  "generated_at": "2026-08-27T19:56:38.519Z",
   "production_deploy": false,
   "sample": {
     "jobs_total": 16,
@@ -22,7 +22,7 @@
       "request_ambiguity": 1
     },
     "recovery_reasons": {
-      "FAILED_INFRASTRUCTURE": 1
+      "FAILED_REQUEST_AMBIGUITY": 1
     }
   },
   "qa": {
