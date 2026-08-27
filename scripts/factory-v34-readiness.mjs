@@ -8,6 +8,7 @@ const need = (label, text, expected) => text.includes(expected) ? passes.push(la
 const recovery = read('scripts/factory-recovery.mjs');
 const jobs = read('scripts/factory-job-state.mjs');
 const observability = read('scripts/factory-observability.mjs');
+const control = read('scripts/factory-control.mjs');
 const pkg = read('package.json');
 
 need('Recovery policy detects stale jobs', recovery, 'STALE_INCOMPLETE_JOB');
@@ -19,6 +20,10 @@ need('Job state records recovery start', jobs, "type: 'RECOVERY_STARTED'");
 need('Job state tracks recovery attempt', jobs, 'recovery_attempt');
 need('Job state classifies failure kind', jobs, 'failure_kind');
 need('Job state still hard-disables production', jobs, 'production_deploy: false');
+need('Factory Control persists semantic failures before throwing', control, 'persistSemanticFailure');
+need('Factory Control recognizes ambiguity as manual semantic failure', control, "return 'request_ambiguity'");
+need('Factory Control records semantic failure event', control, "type: 'SEMANTIC_FAILURE'");
+need('Factory Control preserves clarification reasons', control, 'clarification_reasons');
 need('Observability exposes resilience section', observability, 'resilience: {');
 need('Observability counts stale jobs', observability, 'stale_nonterminal_jobs');
 need('Observability counts recovery starts', observability, 'recovery_starts');
