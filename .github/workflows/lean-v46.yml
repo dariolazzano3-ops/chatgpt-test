@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/mission-execution-router.js'
       - 'scripts/mission-execution-router-smoke.mjs'
+      - 'scripts/factory-v46-readiness.mjs'
       - 'factory-state/runtime.json'
       - '.github/workflows/lean-v46.yml'
 
@@ -22,8 +23,11 @@ jobs:
         run: |
           node --check src/mission-execution-router.js
           node --check scripts/mission-execution-router-smoke.mjs
+          node --check scripts/factory-v46-readiness.mjs
       - name: Unified mission router smoke
         run: node scripts/mission-execution-router-smoke.mjs
+      - name: V4.6 readiness
+        run: node scripts/factory-v46-readiness.mjs
       - name: Runtime metadata
         run: |
           node -e "const r=require('./factory-state/runtime.json'); if(r.factory_version!=='4.6'||r.production_deploy!==false||r.capabilities.unified_mission_execution_router!==true||r.capabilities.web_automation_mission_routing!==true||r.capabilities.automatic_multi_factory_execution!==false) process.exit(1)"
