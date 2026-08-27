@@ -11,12 +11,13 @@
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
-  "commit_sha": null,
-  "branch": null,
-  "project_slug": null,
-  "revision": null,
+  "commit_sha": "bf81e9afaf4765a79f85082a849c1ce41afd1d2d",
+  "branch": "factory/multiproject-alpha-edit-d6228643efd8",
+  "project_slug": "multiproject-alpha",
+  "revision": 12,
   "request_file": "factory-requests/2026-08-27T19-15-00-000Z-riosystems-workshop-planet-logo.json",
   "request_key": "d6228643efd86408ae8ba69f7484cf12915039ce8e65146ec72e79ec80b25814",
   "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T19:15:37.910Z"
+  "updated_at": "2026-08-27T19:16:12.230Z",
+  "fulfillment_status": "pending"
 }
