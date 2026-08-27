@@ -5,11 +5,24 @@
   "max_qa_attempts": 3,
   "qa_attempt": 1,
   "production_deploy": false,
-  "qa_status": "pending",
-  "last_error": null,
+  "qa_status": "failed",
+  "last_error": "desktop: only 0 visible main sections | mobile: only 0 visible main sections",
   "failure_stage": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": false,
+    "report_version": 4,
+    "failures": [
+      {
+        "viewport": "desktop",
+        "message": "only 0 visible main sections"
+      },
+      {
+        "viewport": "mobile",
+        "message": "only 0 visible main sections"
+      }
+    ]
+  },
   "preview_url": "https://b7578d91.chatgpt-factory-preview.pages.dev",
   "commit_sha": "137c85b8bf29fe47b318eb3cf662e16be1719e02",
   "branch": "factory/multiproject-alpha-edit-c6e00d37811a",
@@ -17,6 +30,6 @@
   "revision": 10,
   "request_file": "factory-requests/2026-08-27T18-12-31-143Z-riosystems-0f0bb3fa.json",
   "request_key": "c6e00d37811aeb0ae5a73e83fd631a725dacf253b88ab4cbd10ef75305e1e937",
-  "status": "QA_RUNNING",
-  "updated_at": "2026-08-27T18:13:27.501Z"
+  "status": "FAILED",
+  "updated_at": "2026-08-27T18:13:30.687Z"
 }
