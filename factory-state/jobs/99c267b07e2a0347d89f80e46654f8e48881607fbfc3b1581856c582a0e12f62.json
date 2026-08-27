@@ -15,7 +15,12 @@
   "failure_stage": null,
   "failure_kind": null,
   "retry_exhausted": false,
-  "qa_result": null,
+  "qa_result": {
+    "ok": true,
+    "report_version": 6,
+    "failures": [],
+    "issues": []
+  },
   "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
   "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
   "branch": "factory/multiproject-alpha-edit-99c267b07e2a",
@@ -27,7 +32,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28-mobile-quick-nav-smoke-01.json",
   "request_key": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
-  "status": "FULFILLMENT_CHECK",
+  "status": "READY_FOR_REVIEW",
   "events": [
     {
       "sequence": 1,
@@ -84,9 +89,55 @@
         "qa_ms": 3285,
         "total_ms": 10766
       }
+    },
+    {
+      "sequence": 7,
+      "at": "2026-08-27T22:12:14.060Z",
+      "type": "FULFILLMENT_RESULT",
+      "attempt": 1,
+      "outcome": "passed",
+      "stage": "request_fulfillment",
+      "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371",
+      "preview_url": "https://4349e25b.chatgpt-factory-preview.pages.dev",
+      "issue_codes": [],
+      "durations_ms": {
+        "total_ms": 915
+      }
     }
   ],
-  "event_count": 6,
-  "updated_at": "2026-08-27T22:12:11.921Z",
-  "fulfillment_status": "running"
+  "event_count": 7,
+  "updated_at": "2026-08-27T22:12:14.060Z",
+  "fulfillment_status": "passed",
+  "fulfillment_result": {
+    "version": 2,
+    "generated_at": "2026-08-27T22:12:13.888Z",
+    "request_mode": "edit",
+    "prompt": "Mobile/Handy: Implementiere eine feste Schnellzugriffsleiste (bottom nav) nur für die Mobilansicht bis 768px. Vier Schnellzugriffe: Chat mit RIO, Aktueller Status, Preview und Werkstatt. Desktop unverändert lassen. Keine Backend- oder Produktionsänderungen. Production nicht deployen.",
+    "verification_level": "structural",
+    "baseline_branch": "factory/multiproject-alpha-edit-3146df2f59c4",
+    "candidate_branch": "factory/multiproject-alpha-edit-99c267b07e2a",
+    "changed_files": [
+      "projects/multiproject-alpha/index.html",
+      "projects/multiproject-alpha/styles.css"
+    ],
+    "checks": [
+      {
+        "id": "project_delta",
+        "ok": true,
+        "detail": [
+          "projects/multiproject-alpha/index.html",
+          "projects/multiproject-alpha/styles.css"
+        ]
+      }
+    ],
+    "ok": true,
+    "failures": []
+  },
+  "qa_metrics": {
+    "total_loop_ms": 14079,
+    "final_attempt_ms": 12956,
+    "final_preview_ms": 5203,
+    "final_qa_ms": 3285,
+    "fulfillment_ms": 915
+  }
 }
