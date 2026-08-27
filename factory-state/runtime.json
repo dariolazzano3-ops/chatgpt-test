@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "factory_name": "LEAN",
+  "factory_version": "3",
+  "display_label": "LEAN VERSION 3",
+  "channel": "development",
+  "production_deploy": false,
+  "updated_at": "2026-08-27T18:52:00.000Z"
+}
