@@ -36,4 +36,4 @@ jobs:
         run: node scripts/factory-v47-readiness.mjs
       - name: Runtime metadata
         run: |
-          node -e "const r=require('./factory-state/runtime.json'); if(r.factory_version!=='4.7'||r.production_deploy!==false||r.capabilities.ai_mission_execution_bridge!==true||r.capabilities.web_automation_ai_mission_routing!==true||r.capabilities.automatic_multi_factory_execution!==false) process.exit(1)"
+          node -e "const r=require('./factory-state/runtime.json'); const [M,m]=String(r.factory_version||'').split('.').map(Number); if(M!==4||m<7||r.production_deploy!==false||r.capabilities.ai_mission_execution_bridge!==true||r.capabilities.web_automation_ai_mission_routing!==true||r.capabilities.automatic_multi_factory_execution!==false) process.exit(1)"

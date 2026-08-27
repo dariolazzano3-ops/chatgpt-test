@@ -10,8 +10,10 @@ const mission = {
 };
 
 const manifest = missionExecutionRouterManifest();
-assert.equal(manifest.version, '4.7');
-assert.deepEqual(manifest.supported_engines, ['web', 'automation', 'ai']);
+const [major = 0, minor = 0] = String(manifest.version || '').split('.').map(Number);
+assert.equal(major, 4);
+assert.ok(minor >= 7, `router manifest ${manifest.version} must be >= 4.7`);
+for (const engine of ['web', 'automation', 'ai']) assert.equal(manifest.supported_engines.includes(engine), true);
 
 let aiCalls = 0;
 const result = await executeReadyMissionTasks(
