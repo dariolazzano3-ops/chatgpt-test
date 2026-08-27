@@ -4,10 +4,10 @@
   "project_name": "Recovery Phoenix",
   "project_slug": "recovery-phoenix",
   "source_path": "projects/recovery-phoenix",
-  "branch": "factory/recovery-phoenix-edit-40a9e8b50b6e",
-  "pull_request": 92,
-  "preview_url": "https://factory-recovery-phoenix-edi-2dhn.chatgpt-factory-preview.pages.dev",
+  "branch": "factory/recovery-phoenix-edit-ed46fcbbc9a3",
+  "pull_request": 96,
+  "preview_url": "https://factory-recovery-phoenix-edi-7boz.chatgpt-factory-preview.pages.dev",
   "production_deploy": false,
   "mode": "editing",
-  "updated_at": "2026-08-26T23:59:33.573Z"
+  "updated_at": "2026-08-27T04:01:38.853Z"
 }
