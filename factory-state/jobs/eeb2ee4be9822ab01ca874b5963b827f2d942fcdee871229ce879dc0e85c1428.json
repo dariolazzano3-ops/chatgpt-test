@@ -27,15 +27,21 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-27T19-47-04-939Z-riosystems-48ce2369.json",
   "request_key": "eeb2ee4be9822ab01ca874b5963b827f2d942fcdee871229ce879dc0e85c1428",
-  "status": "REQUESTED",
+  "status": "IMPLEMENTING",
   "events": [
     {
       "sequence": 1,
       "at": "2026-08-27T19:47:23.124Z",
       "type": "JOB_REQUESTED",
       "stage": "queue"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-08-27T19:47:24.458Z",
+      "type": "IMPLEMENTATION_STARTED",
+      "stage": "implementation"
     }
   ],
-  "event_count": 1,
-  "updated_at": "2026-08-27T19:47:23.124Z"
+  "event_count": 2,
+  "updated_at": "2026-08-27T19:47:24.458Z"
 }
