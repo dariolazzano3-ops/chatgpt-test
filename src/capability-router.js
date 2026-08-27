@@ -3,9 +3,9 @@ const CAPABILITIES = {
   web_rebuild: { domain: "web", engine: "rebuild", status: "available", risk: "bounded", description: "Analyze and independently rebuild a public website." },
   web_evolve: { domain: "web", engine: "evolve", status: "available", risk: "bounded", description: "Modify an existing web project through the controlled Factory pipeline." },
   app_build: { domain: "app", engine: null, status: "planned", risk: "bounded", description: "Build application and internal-tool projects." },
-  automation_build: { domain: "automation", engine: null, status: "planned", risk: "integration", description: "Build workflows, API integrations and business automations." },
-  ai_system_build: { domain: "ai", engine: null, status: "planned", risk: "integration", description: "Build assistants, agents and knowledge systems." },
-  business_system_build: { domain: "business", engine: null, status: "planned", risk: "integration", description: "Build CRM, lead, offer and operational business systems." }
+  automation_build: { domain: "automation", engine: "automation", status: "available", risk: "integration", description: "Build workflows, API integrations and business automations." },
+  ai_system_build: { domain: "ai", engine: "ai", status: "available", risk: "integration", description: "Build assistants, agents and knowledge systems." },
+  business_system_build: { domain: "business", engine: "business", status: "available", risk: "bounded", description: "Build bounded CRM, lead, offer and operational business-system configurations." }
 };
 function text(value) { return String(value || "").trim().toLowerCase(); }
 function hit(value, words) { return words.some((word) => value.includes(word)); }
@@ -27,4 +27,4 @@ export function routeCapability(input = {}) {
   if(multi_domain.length>1&&!project) return {ok:true,capability:"multi_capability",status:"planned",confidence,candidates:ranked.slice(0,4),required_capabilities:multi_domain,reason:"compound_request_requires_orchestration",production_deploy:false};
   return {ok:true,capability:top.id,domain:top.domain,engine:top.engine,status:top.status,risk:top.risk,confidence,reason:top.reasons[0],candidates:ranked.slice(0,3),production_deploy:false};
 }
-export function capabilityRegistry(){ return {version:"3.6",architecture:"multi_factory_capability_registry",capabilities:listCapabilities(),principles:{core_routes_work:true,domain_engines_remain_modular:true,unavailable_capabilities_are_never_faked:true,compound_requests_require_orchestration:true,production_requires_explicit_approval:true}}; }
+export function capabilityRegistry(){ return {version:"4.8",architecture:"multi_factory_capability_registry",capabilities:listCapabilities(),principles:{core_routes_work:true,domain_engines_remain_modular:true,unavailable_capabilities_are_never_faked:true,compound_requests_require_orchestration:true,production_requires_explicit_approval:true}}; }
