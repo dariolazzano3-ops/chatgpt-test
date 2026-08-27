@@ -55,6 +55,17 @@ async function writeJson(path, value, sha, message) {
   if (!response.ok) throw new Error(`STATE_WRITE_FAILED_${response.status}:${path}:${(await response.text()).slice(0, 500)}`);
 }
 
+async function assertBranchContains(baseBranch, headBranch) {
+  const compareUrl = `https://api.github.com/repos/${repository}/compare/${encodeURIComponent(baseBranch)}...${encodeURIComponent(headBranch)}`;
+  const response = await fetch(compareUrl, { headers });
+  if (!response.ok) throw new Error(`PROJECT_LINEAGE_COMPARE_FAILED_${response.status}:${(await response.text()).slice(0, 300)}`);
+  const comparison = await response.json();
+  if (Number(comparison.behind_by || 0) !== 0 || !['ahead', 'identical'].includes(comparison.status)) {
+    throw new Error(`PROJECT_LINEAGE_STALE:${projectSlug}:base=${baseBranch}:candidate=${headBranch}:status=${comparison.status}:behind=${comparison.behind_by}`);
+  }
+  return comparison;
+}
+
 const now = new Date().toISOString();
 const currentRegistry = await readJson(registryPath, false);
 const registry = currentRegistry.value && typeof currentRegistry.value === 'object'
@@ -64,16 +75,13 @@ if (!registry.projects || typeof registry.projects !== 'object' || Array.isArray
 registry.version = 1;
 
 const priorProject = registry.projects[projectSlug] || null;
-if (expectedSourceBranch) {
-  const durableBranch = String(priorProject?.branch || '');
-  if (!durableBranch) throw new Error(`PROJECT_LINEAGE_MISSING:${projectSlug}`);
-  if (durableBranch !== expectedSourceBranch) {
-    throw new Error(`PROJECT_LINEAGE_STALE:${projectSlug}:expected=${expectedSourceBranch}:current=${durableBranch}`);
-  }
-}
+const isEditBranch = branch.startsWith(`factory/${projectSlug}-edit-`);
+const lineageSourceBranch = expectedSourceBranch || (isEditBranch ? String(priorProject?.branch || '') : '');
+if (isEditBranch && !lineageSourceBranch) throw new Error(`PROJECT_LINEAGE_MISSING:${projectSlug}`);
+if (lineageSourceBranch) await assertBranchContains(lineageSourceBranch, branch);
 
 const priorRevision = Number.isInteger(priorProject?.edit_revision) ? priorProject.edit_revision : 0;
-const editRevision = expectedSourceBranch ? priorRevision + 1 : priorRevision;
+const editRevision = lineageSourceBranch ? priorRevision + 1 : priorRevision;
 const state = {
   version: 1,
   active: true,
@@ -81,7 +89,7 @@ const state = {
   project_slug: projectSlug,
   source_path: projectPath,
   branch,
-  previous_branch: expectedSourceBranch || priorProject?.branch || null,
+  previous_branch: lineageSourceBranch || priorProject?.branch || null,
   edit_revision: editRevision,
   pull_request: pullRequest,
   preview_url: previewUrl,
