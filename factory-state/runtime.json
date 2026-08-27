@@ -41,6 +41,8 @@
     "web_factory_execution_adapter": true,
     "mission_to_factory_request_bridge": true,
     "factory_result_to_mission_reconciliation": true,
+    "mission_execution_cli": true,
+    "persisted_dispatch_envelope": true,
     "adapter_dispatch_authorization_required": true,
     "automatic_adapter_dispatch": false,
     "cross_factory_side_effects_disabled": true,
@@ -51,5 +53,5 @@
     "max_orchestration_task_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-27T23:15:00+02:00"
+  "updated_at": "2026-08-27T23:25:00+02:00"
 }
