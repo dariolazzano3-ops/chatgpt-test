@@ -1,15 +1,18 @@
 import { buildTaskExecutionContract } from './orchestration-state.js';
 import { prepareMissionTaskDispatch } from './mission-execution-bridge.js';
 import { executeAutomationMissionTask } from './automation-mission-bridge.js';
+import { executeAIMissionTask } from './ai-mission-bridge.js';
 
 const clone = (value) => structuredClone(value);
+const SUPPORTED_ENGINES = ['web', 'automation', 'ai'];
 
 export function missionExecutionRouterManifest() {
   return {
-    version: '4.6',
-    supported_engines: ['web', 'automation'],
+    version: '4.7',
+    supported_engines: [...SUPPORTED_ENGINES],
     web_execution: 'supervised_external_dispatch',
     automation_execution: 'supervised_inline_runner',
+    ai_execution: 'injected_runner_only',
     explicit_dispatch_approval_required: true,
     automatic_cross_factory_execution: false,
     production_deploy: false
@@ -53,12 +56,28 @@ export async function executeMissionTask(mission, taskId, approval = {}, options
     };
   }
 
+  if (contract.engine === 'ai') {
+    const aiOptions = {
+      ...(options.ai || options),
+      ...(options.ai_contracts?.[taskId] || options.ai_contract || {})
+    };
+    const executed = await executeAIMissionTask(mission, taskId, approval, aiOptions);
+    if (!executed.ok) return executed;
+    return {
+      ...executed,
+      execution_mode: 'injected_runner_only',
+      engine: 'ai',
+      pending_external_execution: false,
+      production_deploy: false
+    };
+  }
+
   return {
     ok: false,
     error: 'MISSION_ENGINE_NOT_SUPPORTED',
     engine: contract.engine,
     task_id: taskId,
-    supported_engines: ['web', 'automation']
+    supported_engines: [...SUPPORTED_ENGINES]
   };
 }
 
@@ -81,7 +100,8 @@ export async function executeReadyMissionTasks(mission, approvals = {}, options 
       const approval = approvals[task.task_id] || approvals[contract.engine] || approvals.default || {};
       const result = await executeMissionTask(current, task.task_id, approval, {
         ...options,
-        automation_contract: options.automation_contracts?.[task.task_id] || options.automation_contract
+        automation_contract: options.automation_contracts?.[task.task_id] || options.automation_contract,
+        ai_contract: options.ai_contracts?.[task.task_id] || options.ai_contract
       });
 
       if (!result.ok) {
