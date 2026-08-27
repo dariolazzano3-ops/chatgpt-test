@@ -5,7 +5,7 @@ on:
     branches:
       - factory-control
     paths:
-      - 'factory-state/active-project.json'
+      - 'factory-audit-requests/*.json'
 
 concurrency:
   group: factory-production-audit
@@ -30,12 +30,28 @@ jobs:
         with:
           node-version: 24
 
+      - name: Resolve audit request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin factory-control
+          REQUEST_FILE=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep -E '^factory-audit-requests/[^/]+\.json$' | head -n 1 || true)
+          test -n "$REQUEST_FILE" || { echo "No production audit request found"; exit 1; }
+          git show "origin/factory-control:$REQUEST_FILE" > /tmp/audit-request.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/audit-request.json','utf8'));
+          if(r?.mode!=='production-dry-run-audit') throw new Error('AUDIT_MODE_INVALID');
+          if(r?.production_deploy!==false) throw new Error('AUDIT_MUST_NOT_DEPLOY_PRODUCTION');
+          NODE
+          echo "file=$REQUEST_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Load canonical active Factory state
         id: state
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin factory-control
           git show origin/factory-control:factory-state/active-project.json > /tmp/active-project.json
           node - <<'NODE'
           const fs=require('fs');
@@ -43,12 +59,7 @@ jobs:
           if(!s?.active || !s?.branch || !s?.project_slug || !Number.isInteger(s?.edit_revision)) throw new Error('ACTIVE_STATE_INVALID');
           const sha=s?.release_readiness?.evidence?.project_sha;
           if(!/^[0-9a-f]{40}$/i.test(String(sha||''))) throw new Error('QA_PROJECT_SHA_MISSING');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, [
-            `branch=${s.branch}`,
-            `project_slug=${s.project_slug}`,
-            `edit_revision=${s.edit_revision}`,
-            `project_sha=${sha}`
-          ].join('\n')+'\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,[`branch=${s.branch}`,`project_slug=${s.project_slug}`,`edit_revision=${s.edit_revision}`,`project_sha=${sha}`].join('\n')+'\n');
           NODE
 
       - name: Resolve current active branch tip
@@ -83,11 +94,9 @@ jobs:
           PROJECT_SHA: ${{ steps.state.outputs.project_sha }}
         run: |
           set -euo pipefail
-          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$PROJECT_SHA" \
-            -f state=success \
-            -f context='factory-production/dry-run-audit' \
-            -f description='Production release gate dry-run passed; nothing deployed' >/dev/null
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$PROJECT_SHA" -f state=success -f context='factory-production/dry-run-audit' -f description='Production release gate dry-run passed; nothing deployed' >/dev/null
           echo "### Factory Production Dry-Run Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Request: ${{ steps.request.outputs.file }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Project: ${{ steps.state.outputs.project_slug }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Revision: ${{ steps.state.outputs.edit_revision }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- QA commit: $PROJECT_SHA" >> "$GITHUB_STEP_SUMMARY"
