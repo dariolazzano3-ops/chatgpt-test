@@ -34,10 +34,11 @@ function scopedTarget(scope, base) {
 }
 
 export function planNaturalEdit(prompt = "", projectAnalysis = null) {
-  const raw = clean(prompt, 4000); const text = raw.toLowerCase(); const operations = []; const targets = new Set(); const scope = detectScope(text); const clarification = analyzeEditIntent(raw);
+  const raw = clean(prompt, 4000); const text = raw.toLowerCase(); const operations = []; const targets = new Set(); const scope = detectScope(text); const clarification = analyzeEditIntent(raw, projectAnalysis);
   const rocket = includesAny(text,["rakete","rocket"]), smoke = includesAny(text,["rauch","smoke","dampf"]), hero = includesAny(text,["hero","startbereich","kopfbereich"]), nav = includesAny(text,["navigation","navbar","menü","header"]), cards = includesAny(text,["card","cards","karte","karten","kachel","kacheln"]), grid = includesAny(text,["grid","spalten","columns","karten","cards"]), section = includesAny(text,["section","sektion","abschnitt","bereich"]);
   const headline = extractHeadline(raw), subheadline = extractSubheadline(raw), ctaText = extractCtaText(raw), columns = extractColumns(raw);
   const heroCopy = resolveSemanticSelector(projectAnalysis,"hero_copy",".hero-copy"), cardSelector = resolveSemanticSelector(projectAnalysis,"cards",".card"), gridSelector = resolveSemanticSelector(projectAnalysis,"grid",".grid"), ctaSelector = resolveSemanticSelector(projectAnalysis,"cta",".cta"), navSelector = resolveSemanticSelector(projectAnalysis,"navigation",".site-header"), rocketSelector = resolveSemanticSelector(projectAnalysis,"rocket",".rocket-system"), smokeSelector = resolveSemanticSelector(projectAnalysis,"smoke",".smoke"), sectionSelector = resolveSemanticSelector(projectAnalysis,"section",".section");
+  const resolvedReference = clarification?.reference_resolution?.unique ? clarification.reference_resolution.best : null;
   if (!clarification.needs_clarification) {
     if (headline) operations.push(operation(scopedTarget(scope,"h1"),"replace_text",headline,"Replace scoped headline","headline",scope));
     if (subheadline) operations.push(operation(scopedTarget(scope,heroCopy),"replace_text",subheadline,"Replace scoped supporting text","subheadline",scope));
@@ -51,8 +52,9 @@ export function planNaturalEdit(prompt = "", projectAnalysis = null) {
     if (nav && includesAny(text,["transparent","durchsichtig"])) operations.push(operation(navSelector,"surface_opacity",0.72,"Increase header transparency","navigation",null));
     if (rocket && includesAny(text,["größer","riesig","massiv"])) operations.push(operation(scopedTarget(scope,rocketSelector),"scale",1.35,"Increase scoped rocket size","rocket",scope));
     if (smoke && includesAny(text,["mehr","dichter","viel"])) operations.push(operation(scopedTarget(scope,smokeSelector),"density",1.45,"Increase scoped smoke","smoke",scope));
+    if (resolvedReference && includesAny(text,["cool","cooles","abgespaced","abgespacet","futuristisch","muster","highlight","hervorheben"])) operations.push(operation(resolvedReference.selector,"context_emphasis","futuristic","Apply contextual visual emphasis to uniquely resolved project element","resolved_reference",null));
     const explicitColor = /#[0-9a-f]{3,8}\b/i.exec(raw); if (explicitColor) operations.push(operation(":root","accent_color",explicitColor[0],"Apply accent color","theme",null));
   }
   for (const op of operations) targets.add(op.semantic || op.target);
-  return { version:3, mode:"natural-edit-plan", prompt:raw, targets:[...targets], operations, scope, clarification, project_aware:Boolean(projectAnalysis), resolved_selectors:projectAnalysis?.semantic || null, requires_interpretation:clarification.needs_clarification || operations.length===0, safety:{ production_deploy:false, active_project_only:true, create_new_project:false, standalone_image_generation:false } };
+  return { version:4, mode:"natural-edit-plan", prompt:raw, targets:[...targets], operations, scope, clarification, project_aware:Boolean(projectAnalysis), resolved_selectors:projectAnalysis?.semantic || null, resolved_reference:resolvedReference, requires_interpretation:clarification.needs_clarification || operations.length===0, safety:{ production_deploy:false, active_project_only:true, create_new_project:false, standalone_image_generation:false } };
 }
