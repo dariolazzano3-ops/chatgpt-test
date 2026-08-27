@@ -1,0 +1,6 @@
+{
+  "mode": "edit",
+  "target_project_slug": "multiproject-alpha",
+  "prompt": "Ändere im Hero die Headline auf Alpha läuft jetzt per Chat",
+  "production_deploy": false
+}
