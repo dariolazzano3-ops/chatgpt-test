@@ -1,8 +1,8 @@
 {
   "version": 1,
   "factory_name": "LEAN",
-  "factory_version": "3.4",
-  "display_label": "LEAN VERSION 3.4",
+  "factory_version": "3.5",
+  "display_label": "LEAN VERSION 3.5",
   "channel": "development",
   "production_deploy": false,
   "capabilities": {
@@ -18,8 +18,12 @@
     "stale_job_detection": true,
     "failure_kind_classification": true,
     "bounded_safe_recovery": true,
+    "project_aware_intent_resolution": true,
+    "text_anchor_resolution": true,
+    "clarify_only_when_ambiguous": true,
+    "pre_branch_intent_gate": true,
     "max_qa_attempts": 3,
     "manual_production_approval_required": true
   },
-  "updated_at": "2026-08-27T19:47:00.000Z"
+  "updated_at": "2026-08-27T20:10:00.000Z"
 }
