@@ -5,7 +5,7 @@
   "job_id": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
   "created_at": "2026-08-27T22:11:18.208Z",
   "max_qa_attempts": 3,
-  "qa_attempt": 0,
+  "qa_attempt": 1,
   "production_deploy": false,
   "run_number": 1,
   "recovery_status": "fresh",
@@ -27,7 +27,7 @@
   "recovery_previous_updated_at": null,
   "request_file": "factory-requests/2026-08-28-mobile-quick-nav-smoke-01.json",
   "request_key": "99c267b07e2a0347d89f80e46654f8e48881607fbfc3b1581856c582a0e12f62",
-  "status": "IMPLEMENTING",
+  "status": "PREVIEW_BUILDING",
   "events": [
     {
       "sequence": 1,
@@ -47,9 +47,17 @@
       "type": "QA_LOOP_STARTED",
       "stage": "qa_pipeline",
       "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371"
+    },
+    {
+      "sequence": 4,
+      "at": "2026-08-27T22:12:01.147Z",
+      "type": "QA_ATTEMPT_STARTED",
+      "attempt": 1,
+      "stage": "preview",
+      "commit_sha": "7a67dbc3c79c2ca4b574d3037c45c83f4c028371"
     }
   ],
-  "event_count": 3,
-  "updated_at": "2026-08-27T22:12:00.082Z",
+  "event_count": 4,
+  "updated_at": "2026-08-27T22:12:01.147Z",
   "fulfillment_status": "pending"
 }
