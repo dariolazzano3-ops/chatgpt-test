@@ -6,16 +6,12 @@ const repository = process.env.GITHUB_REPOSITORY;
 const controlRef = 'factory-control';
 const TERMINAL = new Set(['READY_FOR_REVIEW', 'WORKSHOP_REQUIRED', 'FAILED']);
 const MAX_EVENTS = 80;
+const STALE_JOB_MS = 45 * 60 * 1000;
 
 function headers() {
   if (!token) throw new Error('GITHUB_TOKEN_REQUIRED');
   if (!repository || !repository.includes('/')) throw new Error('GITHUB_REPOSITORY_REQUIRED');
-  return {
-    authorization: `Bearer ${token}`,
-    accept: 'application/vnd.github+json',
-    'x-github-api-version': '2022-11-28',
-    'content-type': 'application/json'
-  };
+  return { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28', 'content-type': 'application/json' };
 }
 
 function safeId(value) {
@@ -38,11 +34,7 @@ function normalizeEvent(event, now, sequence) {
   if (!event || typeof event !== 'object') return null;
   const type = String(event.type || '').trim().toUpperCase();
   if (!/^[A-Z0-9_]{3,48}$/.test(type)) return null;
-  const normalized = {
-    sequence,
-    at: now,
-    type
-  };
+  const normalized = { sequence, at: now, type };
   if (Number.isInteger(Number(event.attempt)) && Number(event.attempt) >= 0) normalized.attempt = Number(event.attempt);
   if (event.outcome) normalized.outcome = String(event.outcome).slice(0, 48);
   if (event.stage) normalized.stage = String(event.stage).slice(0, 64);
@@ -60,6 +52,30 @@ function normalizeEvent(event, now, sequence) {
   if (Object.keys(durations).length) normalized.durations_ms = durations;
   if (event.note) normalized.note = String(event.note).slice(0, 320);
   return normalized;
+}
+
+function classifyFailureKind({ error = '', stage = '' } = {}) {
+  const text = `${stage} ${error}`.toLowerCase();
+  if (/visual.?qa|qa_failure|overflow|page_error/.test(text)) return 'project_quality';
+  if (/fulfillment|request_fulfillment/.test(text)) return 'request_fulfillment';
+  if (/cloudflare|wrangler|github|token|credential|network|timeout|workflow|checkout|fetch|push|api|runner|artifact/.test(text)) return 'infrastructure';
+  return 'pipeline_unknown';
+}
+
+function classifyRecovery(existing, now) {
+  if (!existing?.job_id) return { status: 'fresh', attempt: 0, reason: null, from: null };
+  const updated = Date.parse(String(existing.updated_at || existing.created_at || ''));
+  const stale = Number.isFinite(updated) && Date.parse(now) - updated >= STALE_JOB_MS;
+  const status = String(existing.status || 'UNKNOWN');
+  if (status === 'READY_FOR_REVIEW') return { status: 'complete', attempt: Number(existing.recovery_attempt || 0), reason: 'ALREADY_READY_FOR_REVIEW', from: status };
+  if (status === 'WORKSHOP_REQUIRED') return { status: 'manual_review', attempt: Number(existing.recovery_attempt || 0), reason: 'REQUEST_FULFILLMENT_REQUIRES_WORKSHOP', from: status };
+  if (status === 'FAILED') {
+    const kind = String(existing.failure_kind || classifyFailureKind({ error: existing.last_error, stage: existing.failure_stage }));
+    const recoverable = kind === 'infrastructure' || kind === 'pipeline_unknown';
+    return { status: recoverable ? 'resuming' : 'manual_review', attempt: Number(existing.recovery_attempt || 0) + (recoverable ? 1 : 0), reason: `FAILED_${kind.toUpperCase()}`, from: status };
+  }
+  if (!TERMINAL.has(status) && stale) return { status: 'resuming', attempt: Number(existing.recovery_attempt || 0) + 1, reason: 'STALE_INCOMPLETE_JOB', from: status };
+  return { status: 'in_progress', attempt: Number(existing.recovery_attempt || 0), reason: 'JOB_STILL_ACTIVE', from: status };
 }
 
 async function readJson(path, required = false) {
@@ -81,9 +97,7 @@ function currentGitSha() {
   try {
     const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
     return /^[0-9a-f]{40}$/i.test(sha) ? sha : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 export function deriveJobId(requestKey, requestFile = '') {
@@ -99,49 +113,31 @@ export async function updateFactoryJob(jobId, patch = {}) {
     const now = new Date().toISOString();
     const existing = current.value && typeof current.value === 'object' ? current.value : {};
     const { __event, ...publicPatch } = patch || {};
+    const recovery = publicPatch.status === 'REQUESTED' ? classifyRecovery(existing, now) : null;
+    const recoveryEvent = recovery?.status === 'resuming' ? { type: 'RECOVERY_STARTED', stage: 'queue', outcome: 'safe_retry', note: recovery.reason } : null;
     const retryReset = publicPatch.status === 'REQUESTED' ? {
-      qa_attempt: 0,
-      qa_status: 'pending',
-      last_error: null,
-      failure_stage: null,
-      retry_exhausted: false,
-      qa_result: null,
-      preview_url: null,
-      commit_sha: null,
-      branch: null,
-      project_slug: null,
-      revision: null,
-      run_started_at: now,
-      run_number: Number(existing.run_number || 0) + 1
+      qa_attempt: 0, qa_status: 'pending', last_error: null, failure_stage: null, failure_kind: null, retry_exhausted: false,
+      qa_result: null, preview_url: null, commit_sha: null, branch: null, project_slug: null, revision: null,
+      run_started_at: now, run_number: Number(existing.run_number || 0) + 1,
+      recovery_status: recovery.status, recovery_attempt: recovery.attempt, recovery_reason: recovery.reason,
+      recovery_from_status: recovery.from, recovery_previous_updated_at: existing.updated_at || null
     } : {};
     const terminalCleanup = publicPatch.status === 'READY_FOR_REVIEW' ? {
-      last_error: null,
-      failure_stage: null,
-      retry_exhausted: false
+      last_error: null, failure_stage: null, failure_kind: null, retry_exhausted: false,
+      recovery_status: existing.recovery_status === 'resuming' ? 'recovered' : (existing.recovery_status || 'not_needed')
     } : {};
     const inferredSha = publicPatch.status === 'READY_FOR_REVIEW' && !publicPatch.commit_sha ? currentGitSha() : null;
     const previousEvents = Array.isArray(existing.events) ? existing.events : [];
-    const normalizedEvent = normalizeEvent(__event, now, Number(previousEvents.at(-1)?.sequence || 0) + 1);
-    const events = normalizedEvent ? [...previousEvents, normalizedEvent].slice(-MAX_EVENTS) : previousEvents.slice(-MAX_EVENTS);
+    const firstEvent = normalizeEvent(recoveryEvent, now, Number(previousEvents.at(-1)?.sequence || 0) + 1);
+    const eventBase = firstEvent ? [...previousEvents, firstEvent] : previousEvents;
+    const normalizedEvent = normalizeEvent(__event, now, Number(eventBase.at(-1)?.sequence || 0) + 1);
+    const events = normalizedEvent ? [...eventBase, normalizedEvent].slice(-MAX_EVENTS) : eventBase.slice(-MAX_EVENTS);
     const next = {
-      version: 2,
-      telemetry_version: 1,
-      job_id: id,
-      created_at: existing.created_at || now,
-      max_qa_attempts: 3,
-      qa_attempt: 0,
-      production_deploy: false,
-      run_number: Number(existing.run_number || 0),
-      ...existing,
-      ...retryReset,
-      ...publicPatch,
-      ...terminalCleanup,
-      ...(inferredSha ? { commit_sha: inferredSha } : {}),
-      events,
-      event_count: events.length,
-      job_id: id,
-      production_deploy: false,
-      updated_at: now
+      version: 3, telemetry_version: 2, recovery_version: 1, job_id: id, created_at: existing.created_at || now,
+      max_qa_attempts: 3, qa_attempt: 0, production_deploy: false, run_number: Number(existing.run_number || 0),
+      recovery_status: existing.recovery_status || 'not_needed', recovery_attempt: Number(existing.recovery_attempt || 0),
+      ...existing, ...retryReset, ...publicPatch, ...terminalCleanup, ...(inferredSha ? { commit_sha: inferredSha } : {}),
+      events, event_count: events.length, job_id: id, production_deploy: false, updated_at: now
     };
     try {
       await writeJson(path, next, current.sha, `Factory job ${id.slice(0,12)}: ${next.status || 'update'}`);
@@ -160,12 +156,10 @@ export async function failFactoryJobUnlessTerminal(jobId, patch = {}) {
   const id = safeId(jobId);
   const current = await readJson(`factory-state/jobs/${id}.json`, false);
   if (TERMINAL.has(String(current.value?.status || ''))) return current.value;
+  const failureKind = patch.failure_kind || classifyFailureKind({ error: patch.last_error, stage: patch.failure_stage });
   return updateFactoryJob(id, {
-    ...patch,
-    status: 'FAILED',
-    qa_status: patch.qa_status || current.value?.qa_status || 'not_run',
-    production_deploy: false,
-    __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: 'failed' }
+    ...patch, failure_kind: failureKind, status: 'FAILED', qa_status: patch.qa_status || current.value?.qa_status || 'not_run', production_deploy: false,
+    __event: patch.__event || { type: 'JOB_FAILED', stage: patch.failure_stage || 'workflow', outcome: failureKind }
   });
 }
 
@@ -178,8 +172,6 @@ export async function resolveCandidateRevision(projectSlug, qaOnly = false) {
 if (process.argv[1]?.endsWith('factory-job-state.mjs') && process.argv[2]) {
   const [jobId, status, patchRaw = '{}'] = process.argv.slice(2);
   const patch = JSON.parse(patchRaw);
-  const result = status === 'FAIL_SAFE'
-    ? await failFactoryJobUnlessTerminal(jobId, patch)
-    : await updateFactoryJob(jobId, { ...patch, status });
+  const result = status === 'FAIL_SAFE' ? await failFactoryJobUnlessTerminal(jobId, patch) : await updateFactoryJob(jobId, { ...patch, status });
   console.log(JSON.stringify(result, null, 2));
 }
