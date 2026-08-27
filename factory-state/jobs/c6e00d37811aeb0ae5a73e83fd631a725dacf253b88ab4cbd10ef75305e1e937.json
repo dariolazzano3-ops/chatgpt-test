@@ -11,12 +11,12 @@
   "retry_exhausted": false,
   "qa_result": null,
   "preview_url": null,
-  "commit_sha": null,
-  "branch": null,
-  "project_slug": null,
-  "revision": null,
+  "commit_sha": "137c85b8bf29fe47b318eb3cf662e16be1719e02",
+  "branch": "factory/multiproject-alpha-edit-c6e00d37811a",
+  "project_slug": "multiproject-alpha",
+  "revision": 10,
   "request_file": "factory-requests/2026-08-27T18-12-31-143Z-riosystems-0f0bb3fa.json",
   "request_key": "c6e00d37811aeb0ae5a73e83fd631a725dacf253b88ab4cbd10ef75305e1e937",
   "status": "IMPLEMENTING",
-  "updated_at": "2026-08-27T18:12:48.113Z"
+  "updated_at": "2026-08-27T18:13:18.588Z"
 }
