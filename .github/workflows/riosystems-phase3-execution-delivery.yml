@@ -1,0 +1,34 @@
+name: RIOSYSTEMS Phase 3 Execution Delivery
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/execution-delivery-operations.js'
+      - 'src/phase3-readiness.js'
+      - 'scripts/phase3-execution-delivery-smoke.mjs'
+      - 'docs/RIOSYSTEMS-PHASE-3-COMPLETE.md'
+      - '.github/workflows/riosystems-phase3-execution-delivery.yml'
+
+jobs:
+  validate-phase3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/execution-delivery-operations.js
+          node --check src/phase3-readiness.js
+          node --check scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 3 execution delivery smoke
+        run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 2 readiness regression
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 1 readiness regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
