@@ -1,5 +1,6 @@
 import { createMission } from './orchestration-state.js';
 import { buildOrchestrationPlan } from './orchestration-planner.js';
+import { buildSourceOfTruth } from './source-of-truth.js';
 
 const clean = (value, max = 4000) => String(value || '').trim().slice(0, max);
 const lower = (value) => clean(value).toLowerCase();
@@ -58,13 +59,16 @@ export function compileMissionPackage(input = {}) {
   const prompt = clean(input.prompt || input.request || input.goal);
   if (!prompt) return { ok: false, error: 'MISSION_PROMPT_REQUIRED' };
   const project = clean(input.project || input.project_slug, 120) || null;
+  const sourceOfTruthResult = buildSourceOfTruth(input.source_of_truth || input);
+  if (!sourceOfTruthResult.ok) return sourceOfTruthResult;
+  const sourceOfTruth = sourceOfTruthResult.context;
 
   // Project identity must not collapse a compound mission into a single Web edit.
   // Route/decompose the natural-language mission first, then bind the project identity to the plan.
   const plan = buildOrchestrationPlan({ prompt });
   if (!plan.ok) return plan;
   plan.project = project;
-  const created = createMission({ plan });
+  const created = createMission({ plan, source_of_truth: sourceOfTruth });
   if (!created.ok) return created;
 
   const businessContracts = {};
@@ -80,6 +84,7 @@ export function compileMissionPackage(input = {}) {
     package_version: 'mission.package.v1',
     compiler_version: '4.10',
     mission: created,
+    source_of_truth: sourceOfTruth,
     contracts: {
       business_contracts: businessContracts,
       automation_contracts: automationContracts,
@@ -97,6 +102,7 @@ export function compileMissionPackage(input = {}) {
       business_external_writes: false,
       ai_provider_implicit_activation: false,
       automation_external_transport_implicit: false,
+      stale_revision_execution_blocked: true,
       production_deploy: false
     }
   };
@@ -107,11 +113,14 @@ export function compileMissionPackage(input = {}) {
 export function missionCompilerManifest() {
   return {
     version: '4.10',
+    engine_revision: 'max-source-of-truth-1',
     input: 'single_high_level_prompt',
     output: 'durable_mission_plus_factory_contracts',
     compiled_engines: ['web', 'automation', 'ai', 'business'],
     project_identity_separate_from_routing: true,
     deterministic_safe_contract_synthesis: true,
+    source_of_truth_contract: true,
+    full_sha_revision_binding_supported: true,
     explicit_adapter_approvals_required: true,
     external_activation_requirements_exposed: true,
     automatic_multi_factory_execution: false,

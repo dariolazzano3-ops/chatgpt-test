@@ -1,0 +1,37 @@
+name: MAX Engine Source of Truth
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/source-of-truth.js'
+      - 'src/orchestration-state.js'
+      - 'src/mission-compiler.js'
+      - 'src/mission-pipeline.js'
+      - 'scripts/source-of-truth-smoke.mjs'
+      - '.github/workflows/max-engine-source-of-truth.yml'
+
+jobs:
+  validate-source-of-truth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/source-of-truth.js
+          node --check src/orchestration-state.js
+          node --check src/mission-compiler.js
+          node --check src/mission-pipeline.js
+          node --check scripts/source-of-truth-smoke.mjs
+      - name: Source-of-truth regression guard
+        run: node scripts/source-of-truth-smoke.mjs
+      - name: Existing mission compiler regression
+        run: node scripts/mission-compiler-smoke.mjs
+      - name: Existing V5 mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: Existing V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
