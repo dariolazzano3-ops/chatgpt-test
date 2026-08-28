@@ -1,0 +1,35 @@
+name: RIOSYSTEMS Phase 2 Project Operating Layer
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/project-operating-layer.js'
+      - 'src/project-blueprint.js'
+      - 'src/project-control-plane.js'
+      - 'scripts/phase2-project-operating-layer-smoke.mjs'
+      - '.github/workflows/riosystems-phase2-project-operating-layer.yml'
+
+jobs:
+  validate-phase2-project-layer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/project-operating-layer.js
+          node --check src/project-blueprint.js
+          node --check src/project-control-plane.js
+          node --check scripts/phase2-project-operating-layer-smoke.mjs
+      - name: Phase 2 project layer smoke
+        run: node scripts/phase2-project-operating-layer-smoke.mjs
+      - name: Phase 1 readiness regression
+        run: node scripts/phase1-readiness.mjs
+      - name: Mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
