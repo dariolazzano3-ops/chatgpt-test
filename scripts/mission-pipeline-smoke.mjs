@@ -24,14 +24,19 @@ const result = await runMissionPipeline(
       business: { target_adapter_configured: true, external_write_approved: true },
       production_deploy: false
     },
-    ai_runner: async ({ input }) => ({ ok: true, output: { support_system: 'configured', input }, provider: 'mock', model: 'mock-v1' }),
+    ai_runner: async ({ input }) => ({ ok: true, output: `Support system configured for ${JSON.stringify(input)}`, provider: 'mock', model: 'mock-v1' }),
     dispatch_web: async ({ request }) => ({ job_id: `mock-${request.project_slug || 'web'}`, request_ref: 'mock://web-request', production_deploy: false }),
     observe_web: async ({ job_id }) => ({ status: 'READY_FOR_REVIEW', job_id, preview_url: 'https://preview.invalid/mueller', qa_status: 'passed', production_deploy: false }),
     persist: async () => {}
   }
 );
 if (result.stage !== 'completed') {
-  console.error('mission-pipeline-debug', JSON.stringify({ stage: result.stage, status: result.mission?.status, tasks: result.mission?.tasks?.map(({ task_id, domain, engine, state, last_error }) => ({ task_id, domain, engine, state, last_error })), events: result.supervision?.events }, null, 2));
+  console.error('mission-pipeline-debug', JSON.stringify({
+    stage: result.stage,
+    status: result.mission?.status,
+    tasks: result.mission?.tasks?.map(({ task_id, domain, engine, state, last_error }) => ({ task_id, domain, engine, state, last_error })),
+    events: result.supervision?.events
+  }, null, 2));
 }
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'completed');
