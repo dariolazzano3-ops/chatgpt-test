@@ -115,7 +115,7 @@ export function missionCompilerManifest() {
     version: '4.10',
     engine_revision: 'max-source-of-truth-1',
     input: 'single_high_level_prompt',
-    output: 'durable_revision_bound_mission_plus_factory_contracts',
+    output: 'durable_mission_plus_factory_contracts',
     compiled_engines: ['web', 'automation', 'ai', 'business'],
     project_identity_separate_from_routing: true,
     deterministic_safe_contract_synthesis: true,
