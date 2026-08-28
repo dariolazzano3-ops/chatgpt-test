@@ -30,6 +30,9 @@ const result = await runMissionPipeline(
     persist: async () => {}
   }
 );
+if (result.stage !== 'completed') {
+  console.error('mission-pipeline-debug', JSON.stringify({ stage: result.stage, status: result.mission?.status, tasks: result.mission?.tasks?.map(({ task_id, domain, engine, state, last_error }) => ({ task_id, domain, engine, state, last_error })), events: result.supervision?.events }, null, 2));
+}
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'completed');
 assert.equal(result.completed, true);
