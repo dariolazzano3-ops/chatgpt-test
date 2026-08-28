@@ -1,0 +1,46 @@
+name: Verify Sentry Readonly Auth
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/verify-sentry-readonly-auth.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify protected Sentry diagnostics endpoint
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          ENDPOINT: https://chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics/sentry
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${API_TOKEN:-}" ]; then
+            echo "API_TOKEN repository secret is missing"
+            exit 1
+          fi
+
+          response="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${API_TOKEN}" \
+            "$ENDPOINT")"
+
+          RESPONSE="$response" python - <<'PY'
+          import json, os
+          data = json.loads(os.environ["RESPONSE"])
+          assert data.get("ok") is True, data.get("error", "Sentry diagnostics not healthy")
+          assert data.get("service") == "riosystems-sentry-readonly-bridge"
+          cfg = data.get("configuration", {})
+          assert cfg.get("organization") == "riosystems"
+          assert cfg.get("project") == "riosystems-core"
+          checks = data.get("checks", {})
+          assert checks.get("project_access", {}).get("ok") is True
+          assert checks.get("issue_access", {}).get("ok") is True
+          assert data.get("secrets", {}).get("secret_values_exposed") is False
+          print("Authenticated Sentry read-only bridge verification: PASS")
+          print(f"Returned unresolved issues: {len(data.get('issues', []))}")
+          PY
