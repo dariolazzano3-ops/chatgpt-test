@@ -1,0 +1,37 @@
+name: RIOSYSTEMS Pilot Orchestrator
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/pilot-*.js'
+      - 'scripts/pilot-orchestrator-smoke.mjs'
+      - '.github/workflows/riosystems-pilot-orchestrator.yml'
+jobs:
+  validate-pilot-orchestrator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: node --check src/pilot-environment.js && node --check src/pilot-mock-providers.js && node --check src/pilot-orchestrator.js && node --check scripts/pilot-orchestrator-smoke.mjs
+      - name: Pilot orchestrator smoke
+        run: node scripts/pilot-orchestrator-smoke.mjs
+      - name: Zero cost regression
+        run: node scripts/zero-cost-pilot-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: Phase 5 regression
+        run: node scripts/phase5-command-center-smoke.mjs
+      - name: Phase 4 regression
+        run: node scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 3 regression
+        run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 2 regression
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 1 regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
