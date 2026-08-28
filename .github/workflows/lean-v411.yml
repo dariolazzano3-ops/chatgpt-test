@@ -1,0 +1,34 @@
+name: LEAN V4.11
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/mission-activation-gate.js'
+      - 'scripts/mission-activation-gate-smoke.mjs'
+      - 'scripts/mission-activation-readiness.mjs'
+      - 'scripts/factory-v411-readiness.mjs'
+      - 'scripts/factory-v410-readiness.mjs'
+      - '.github/workflows/mission-activation-readiness.yml'
+      - '.github/workflows/lean-v411.yml'
+      - 'factory-state/runtime.json'
+
+jobs:
+  validate-v411:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/mission-activation-gate.js
+          node --check scripts/mission-activation-gate-smoke.mjs
+          node --check scripts/mission-activation-readiness.mjs
+          node --check scripts/factory-v411-readiness.mjs
+      - name: Activation readiness smoke
+        run: node scripts/mission-activation-gate-smoke.mjs
+      - name: V4.11 readiness
+        run: node scripts/factory-v411-readiness.mjs

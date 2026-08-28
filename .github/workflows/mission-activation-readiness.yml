@@ -1,0 +1,114 @@
+name: Mission Activation Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_file:
+        description: 'Mission package manifest under factory-state/mission-packages/'
+        required: true
+        type: string
+      approve_web:
+        required: true
+        default: false
+        type: boolean
+      approve_automation:
+        required: true
+        default: false
+        type: boolean
+      approve_ai:
+        required: true
+        default: false
+        type: boolean
+      approve_business:
+        required: true
+        default: false
+        type: boolean
+      ai_runner_configured:
+        required: true
+        default: false
+        type: boolean
+      ai_credentials_configured:
+        required: true
+        default: false
+        type: boolean
+      ai_cost_approved:
+        required: true
+        default: false
+        type: boolean
+      automation_transport_configured:
+        required: true
+        default: false
+        type: boolean
+      automation_policy_authorized:
+        required: true
+        default: false
+        type: boolean
+      automation_allowed_hosts:
+        description: 'Comma-separated exact HTTPS host allowlist'
+        required: false
+        type: string
+      business_target_configured:
+        required: true
+        default: false
+        type: boolean
+      business_write_approved:
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical Factory runtime
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate V4.11 readiness
+        run: node scripts/factory-v411-readiness.mjs
+      - name: Evaluate activation blockers
+        shell: bash
+        env:
+          PACKAGE_FILE: ${{ inputs.package_file }}
+          APPROVE_WEB: ${{ inputs.approve_web }}
+          APPROVE_AUTOMATION: ${{ inputs.approve_automation }}
+          APPROVE_AI: ${{ inputs.approve_ai }}
+          APPROVE_BUSINESS: ${{ inputs.approve_business }}
+          AI_RUNNER_CONFIGURED: ${{ inputs.ai_runner_configured }}
+          AI_CREDENTIALS_CONFIGURED: ${{ inputs.ai_credentials_configured }}
+          AI_COST_APPROVED: ${{ inputs.ai_cost_approved }}
+          AUTOMATION_TRANSPORT_CONFIGURED: ${{ inputs.automation_transport_configured }}
+          AUTOMATION_POLICY_AUTHORIZED: ${{ inputs.automation_policy_authorized }}
+          AUTOMATION_ALLOWED_HOSTS: ${{ inputs.automation_allowed_hosts }}
+          BUSINESS_TARGET_CONFIGURED: ${{ inputs.business_target_configured }}
+          BUSINESS_WRITE_APPROVED: ${{ inputs.business_write_approved }}
+        run: |
+          set -euo pipefail
+          args=(--package "$PACKAGE_FILE" --approve-web "$APPROVE_WEB" --approve-automation "$APPROVE_AUTOMATION" --approve-ai "$APPROVE_AI" --approve-business "$APPROVE_BUSINESS" --ai-runner-configured "$AI_RUNNER_CONFIGURED" --ai-credentials-configured "$AI_CREDENTIALS_CONFIGURED" --ai-cost-approved "$AI_COST_APPROVED" --automation-transport-configured "$AUTOMATION_TRANSPORT_CONFIGURED" --automation-policy-authorized "$AUTOMATION_POLICY_AUTHORIZED" --automation-allowed-hosts "$AUTOMATION_ALLOWED_HOSTS" --business-target-configured "$BUSINESS_TARGET_CONFIGURED" --business-write-approved "$BUSINESS_WRITE_APPROVED")
+          set +e
+          node scripts/mission-activation-readiness.mjs "${args[@]}"
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo 'Activation blockers remain. This workflow is read-only and changed nothing.'
+            exit 0
+          fi
+          exit "$code"
+      - name: Publish safety summary
+        if: always()
+        run: |
+          echo '### LEAN V4.11 Activation Readiness' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Read-only: yes' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Provider activation: no' >> "$GITHUB_STEP_SUMMARY"
+          echo '- External transport activation: no' >> "$GITHUB_STEP_SUMMARY"
+          echo '- CRM writes: no' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production deploy: no' >> "$GITHUB_STEP_SUMMARY"
