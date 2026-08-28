@@ -35,15 +35,19 @@ export function authorizeProjectWrite(boundary = {}, request = {}) {
   if (!path) return { ok: false, authorized: false, code: 'PROJECT_WRITE_PATH_INVALID' };
   if (request.customer_id && request.customer_id !== boundary.customer_id) return { ok: true, authorized: false, code: 'CUSTOMER_SCOPE_MISMATCH', path };
   if (request.project_id && request.project_id !== boundary.project_id) return { ok: true, authorized: false, code: 'PROJECT_SCOPE_MISMATCH', path };
+  const actorId = clean(request.actor_id, 160);
+  if (boundary.owner && actorId !== boundary.owner && request.owner_override_approved !== true) {
+    return { ok: true, authorized: false, code: 'CODE_OWNER_APPROVAL_REQUIRED', path, required_owner: boundary.owner };
+  }
   const sharedCore = /^(src|scripts|config|\.github)\//.test(path);
   if (sharedCore && boundary.deny_shared_core_by_default === true && request.shared_core_approved !== true) {
     return { ok: true, authorized: false, code: 'SHARED_CORE_WRITE_APPROVAL_REQUIRED', path };
   }
   const allowed = (boundary.allowed_paths || []).some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
   if (!allowed) return { ok: true, authorized: false, code: 'PROJECT_WRITE_OUTSIDE_BOUNDARY', path };
-  return { ok: true, authorized: true, path, scope_key: boundary.scope_key, production_deploy: false };
+  return { ok: true, authorized: true, path, scope_key: boundary.scope_key, owner: boundary.owner || null, production_deploy: false };
 }
 
 export function runtimeProjectBoundaryManifest() {
-  return { version: 'riosystems.project-boundary.v1', customer_project_isolation: true, shared_core_write_requires_approval: true, production_deploy: false };
+  return { version: 'riosystems.project-boundary.v1', customer_project_isolation: true, code_owner_enforcement: true, shared_core_write_requires_approval: true, production_deploy: false };
 }
