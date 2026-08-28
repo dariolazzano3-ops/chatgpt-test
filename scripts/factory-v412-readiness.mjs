@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { missionDeliveryAggregatorManifest } from '../src/mission-delivery-aggregator.js';
+
+const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
+const manifest = missionDeliveryAggregatorManifest();
+assert.equal(runtime.factory_version, '4.12');
+assert.equal(runtime.production_deploy, false);
+assert.equal(runtime.capabilities.unified_mission_delivery_aggregation, true);
+assert.equal(runtime.capabilities.cross_factory_delivery_evidence, true);
+assert.equal(runtime.capabilities.structural_vs_external_completion_classification, true);
+assert.equal(runtime.capabilities.mission_delivery_report, true);
+assert.equal(runtime.capabilities.automatic_adapter_dispatch, false);
+assert.equal(runtime.capabilities.automatic_multi_factory_execution, false);
+
+assert.equal(manifest.version, '4.12');
+assert.equal(manifest.output, 'unified_mission_delivery_report');
+assert.equal(manifest.aggregates_web_business_ai_automation, true);
+assert.equal(manifest.distinguishes_structural_completion_from_external_activation, true);
+assert.equal(manifest.mutates_external_systems, false);
+assert.equal(manifest.production_deploy, false);
+
+for (const file of ['src/mission-delivery-aggregator.js','scripts/mission-delivery-aggregator-smoke.mjs','scripts/mission-delivery-report.mjs']) assert.equal(fs.existsSync(file), true, `${file} missing`);
+console.log('factory-v412-readiness: ok');
