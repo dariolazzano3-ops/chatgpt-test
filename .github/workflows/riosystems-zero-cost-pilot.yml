@@ -1,0 +1,35 @@
+name: RIOSYSTEMS Zero Cost Pilot
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/zero-cost-pilot.js'
+      - 'scripts/zero-cost-pilot-smoke.mjs'
+      - '.github/workflows/riosystems-zero-cost-pilot.yml'
+jobs:
+  validate-zero-cost-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: node --check src/zero-cost-pilot.js && node --check scripts/zero-cost-pilot-smoke.mjs
+      - name: Zero cost pilot smoke
+        run: node scripts/zero-cost-pilot-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: Phase 5 regression
+        run: node scripts/phase5-command-center-smoke.mjs
+      - name: Phase 4 regression
+        run: node scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 3 regression
+        run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 2 regression
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 1 regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
