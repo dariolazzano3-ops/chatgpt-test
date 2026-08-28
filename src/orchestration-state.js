@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { buildOrchestrationPlan } from "./orchestration-planner.js";
-import { buildSourceOfTruth } from "./source-of-truth.js";
+import { buildSourceOfTruth, validateSourceOfTruth } from "./source-of-truth.js";
+import { assertExpectedRevision, missionRecoveryKey } from "./state-concurrency.js";
 
 const TERMINAL = new Set(["COMPLETED", "BLOCKED", "FAILED", "CANCELLED"]);
 const clean = (value, max = 4000) => String(value || "").trim().slice(0, max);
@@ -52,7 +53,7 @@ export function createMission(input = {}) {
   };
   return {
     ok: true,
-    schema_version: 2,
+    schema_version: 3,
     orchestration_version: "3.8",
     mission_id: `mission-${digest(missionCore).slice(0, 24)}`,
     orchestration_id: plan.orchestration_id,
@@ -62,8 +63,9 @@ export function createMission(input = {}) {
     mission_revision: sourceOfTruth.mission_revision,
     status: tasks.every((task) => task.state === "BLOCKED") ? "BLOCKED" : "READY",
     revision: 1,
+    execution_lease: null,
     tasks,
-    events: [{ type: "MISSION_CREATED", at: createdAt, orchestration_id: plan.orchestration_id, mission_revision: sourceOfTruth.mission_revision }],
+    events: [{ type: "MISSION_CREATED", at: createdAt, orchestration_id: plan.orchestration_id, mission_revision: sourceOfTruth.mission_revision, revision: 1 }],
     created_at: createdAt,
     updated_at: createdAt,
     safeguards: {
@@ -72,7 +74,9 @@ export function createMission(input = {}) {
       manual_production_approval_required: true,
       unavailable_capabilities_never_executed: true,
       task_attempts_bounded: true,
-      stale_revision_execution_blocked: true
+      stale_revision_execution_blocked: true,
+      optimistic_concurrency_control: true,
+      bounded_execution_leases: true
     }
   };
 }
@@ -90,6 +94,8 @@ function refreshMissionStatus(mission) {
 }
 
 export function transitionMissionTask(missionInput, taskId, action, payload = {}) {
+  const revisionCheck = assertExpectedRevision(missionInput || {}, payload.expected_revision);
+  if (!revisionCheck.ok) return { ok: false, error: revisionCheck.code, ...revisionCheck };
   const mission = cloneMission(missionInput || {});
   if (!Array.isArray(mission.tasks)) return { ok: false, error: "INVALID_MISSION" };
   const task = findTask(mission, taskId);
@@ -99,7 +105,7 @@ export function transitionMissionTask(missionInput, taskId, action, payload = {}
     if (task.state !== "READY") return { ok: false, error: "TASK_NOT_READY", state: task.state };
     if (!depsCompleted(mission, task)) return { ok: false, error: "TASK_DEPENDENCIES_INCOMPLETE" };
     if (task.attempt >= task.max_attempts) return { ok: false, error: "TASK_ATTEMPT_LIMIT_REACHED" };
-    task.state = "RUNNING"; task.attempt += 1; task.started_at = at; task.last_error = null; task.inputs = { ...(payload.inputs || {}) }; task.external_job_id = clean(payload.external_job_id, 200) || null;
+    task.state = "RUNNING"; task.attempt += 1; task.started_at = at; task.last_error = null; task.inputs = { ...(payload.inputs || {}) }; task.external_job_id = clean(payload.external_job_id, 200) || null; task.recovery_key = missionRecoveryKey(mission, task);
   } else if (action === "complete") {
     if (task.state !== "RUNNING") return { ok: false, error: "TASK_NOT_RUNNING", state: task.state };
     task.state = "COMPLETED"; task.outputs = { ...(payload.outputs || {}) }; task.completed_at = at; task.last_error = null;
@@ -112,9 +118,9 @@ export function transitionMissionTask(missionInput, taskId, action, payload = {}
     task.state = "CANCELLED";
   } else return { ok: false, error: "UNKNOWN_MISSION_ACTION" };
   refreshReadyStates(mission); refreshMissionStatus(mission); mission.revision = Number(mission.revision || 0) + 1; mission.updated_at = at;
-  mission.events = [...(mission.events || []), { type: `TASK_${action.toUpperCase()}`, at, task_id: taskId, state: task.state }].slice(-200);
-  mission.safeguards = { ...(mission.safeguards || {}), automatic_multi_factory_execution: false, production_deploy: false, manual_production_approval_required: true, stale_revision_execution_blocked: true };
-  return { ok: true, mission };
+  mission.events = [...(mission.events || []), { type: `TASK_${action.toUpperCase()}`, at, task_id: taskId, state: task.state, revision: mission.revision }].slice(-200);
+  mission.safeguards = { ...(mission.safeguards || {}), automatic_multi_factory_execution: false, production_deploy: false, manual_production_approval_required: true, stale_revision_execution_blocked: true, optimistic_concurrency_control: true, bounded_execution_leases: true };
+  return { ok: true, mission, previous_revision: revisionCheck.actual_revision };
 }
 
 export function buildTaskExecutionContract(mission, taskId) {
@@ -124,8 +130,9 @@ export function buildTaskExecutionContract(mission, taskId) {
   for (const dependencyId of task.depends_on || []) dependencyOutputs[dependencyId] = findTask(mission, dependencyId)?.outputs || {};
   return {
     ok: true,
-    contract_version: 2,
+    contract_version: 3,
     mission_id: mission.mission_id,
+    state_revision: Number(mission.revision || 0),
     mission_revision: mission.mission_revision || mission.source_of_truth?.mission_revision || null,
     expected_parent_sha: mission.source_of_truth?.expected_parent_sha || null,
     source_of_truth: cloneMission(mission.source_of_truth || null),
@@ -136,18 +143,27 @@ export function buildTaskExecutionContract(mission, taskId) {
     goal: task.goal,
     state: task.state,
     attempt: task.attempt,
+    recovery_key: task.recovery_key || missionRecoveryKey(mission, task),
     max_attempts: task.max_attempts,
     project: mission.project || null,
     prompt: mission.prompt,
     dependency_outputs: dependencyOutputs,
     required_result: { status: ["COMPLETED", "FAILED"], outputs_object_required_on_success: true, error_object_required_on_failure: true },
-    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true }
+    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, optimistic_concurrency_control: true }
   };
 }
 
-export function resumeMission(missionInput) {
+export function resumeMission(missionInput, options = {}) {
+  const revisionCheck = assertExpectedRevision(missionInput || {}, options.expected_revision);
+  if (!revisionCheck.ok) return { ok: false, error: revisionCheck.code, ...revisionCheck };
+  if (missionInput?.source_of_truth?.bound && options.observed_project_head) {
+    const sourceCheck = validateSourceOfTruth(missionInput.source_of_truth, { project_head: options.observed_project_head });
+    if (!sourceCheck.ok) return { ok: false, error: sourceCheck.code || "STALE_PROJECT_HEAD", source_of_truth: sourceCheck };
+  }
   const mission = cloneMission(missionInput || {});
   if (!Array.isArray(mission.tasks)) return { ok: false, error: "INVALID_MISSION" };
-  for (const task of mission.tasks) if (task.state === "RUNNING") { task.state = task.attempt < task.max_attempts ? "READY" : "FAILED"; task.last_error = { code: "INTERRUPTED_EXECUTION", message: "Recovered from interrupted orchestration state", retryable: task.attempt < task.max_attempts }; }
-  refreshReadyStates(mission); refreshMissionStatus(mission); const at = now(); mission.revision = Number(mission.revision || 0) + 1; mission.updated_at = at; mission.events = [...(mission.events || []), { type: "MISSION_RESUMED", at, mission_revision: mission.mission_revision || null }].slice(-200); mission.safeguards = { ...(mission.safeguards || {}), stale_revision_execution_blocked: true, production_deploy: false, automatic_multi_factory_execution: false }; return { ok: true, mission };
+  const activeLease = mission.execution_lease && Number(mission.execution_lease.expires_at_ms || 0) > Date.now();
+  if (activeLease && options.lease_id !== mission.execution_lease.lease_id) return { ok: false, error: "MISSION_LEASE_HELD", retryable: true, lease: cloneMission(mission.execution_lease) };
+  for (const task of mission.tasks) if (task.state === "RUNNING") { task.state = task.attempt < task.max_attempts ? "READY" : "FAILED"; task.last_error = { code: "INTERRUPTED_EXECUTION", message: "Recovered from interrupted orchestration state", retryable: task.attempt < task.max_attempts }; task.recovery_key = missionRecoveryKey(mission, task); }
+  refreshReadyStates(mission); refreshMissionStatus(mission); const at = now(); mission.revision = Number(mission.revision || 0) + 1; mission.updated_at = at; mission.events = [...(mission.events || []), { type: "MISSION_RESUMED", at, mission_revision: mission.mission_revision || null, revision: mission.revision }].slice(-200); mission.safeguards = { ...(mission.safeguards || {}), stale_revision_execution_blocked: true, production_deploy: false, automatic_multi_factory_execution: false, optimistic_concurrency_control: true, bounded_execution_leases: true }; return { ok: true, mission, previous_revision: revisionCheck.actual_revision };
 }
