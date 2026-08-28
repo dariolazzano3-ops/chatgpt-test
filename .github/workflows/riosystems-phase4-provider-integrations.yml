@@ -1,0 +1,40 @@
+name: RIOSYSTEMS Phase 4 Provider Integrations
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/integration-catalog.js'
+      - 'src/integration-runtime.js'
+      - 'src/factory-integration-bridge.js'
+      - 'src/phase4-readiness.js'
+      - 'scripts/phase4-provider-integrations-smoke.mjs'
+      - 'docs/RIOSYSTEMS-PHASE-4-COMPLETE.md'
+      - '.github/workflows/riosystems-phase4-provider-integrations.yml'
+
+jobs:
+  validate-phase4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/integration-catalog.js
+          node --check src/integration-runtime.js
+          node --check src/factory-integration-bridge.js
+          node --check src/phase4-readiness.js
+          node --check scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 4 integration smoke
+        run: node scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 3 readiness regression
+        run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 2 readiness regression
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 1 readiness regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
