@@ -12,7 +12,7 @@ export default {
       return handleMcp(request, env);
     }
 
-    if (url.pathname === "/factory/diagnostics" || url.pathname === "/factory/diagnostics/github") {
+    if (url.pathname.startsWith("/factory/diagnostics")) {
       const diagnosticsResponse = await handleDiagnostics(request, env);
       if (diagnosticsResponse) return diagnosticsResponse;
     }
