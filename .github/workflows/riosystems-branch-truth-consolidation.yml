@@ -1,0 +1,34 @@
+name: RIOSYSTEMS Branch Truth Consolidation
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/diagnostics.js'
+      - 'src/entry.js'
+      - 'src/staging-provider-bindings.js'
+      - 'scripts/sentry-readonly-bridge-smoke.mjs'
+      - 'scripts/branch-truth-smoke.mjs'
+      - 'scripts/staging-provider-bindings-smoke.mjs'
+      - 'docs/SENTRY_READONLY_BRIDGE.md'
+      - 'docs/RIOSYSTEMS-STAGING-PROVIDER-BINDINGS.md'
+      - '.github/workflows/riosystems-branch-truth-consolidation.yml'
+      - 'package.json'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --check src/diagnostics.js
+      - run: node --check src/entry.js
+      - run: node --check src/staging-provider-bindings.js
+      - run: node scripts/sentry-readonly-bridge-smoke.mjs
+      - run: node scripts/branch-truth-smoke.mjs
+      - run: node scripts/staging-provider-bindings-smoke.mjs
+      - run: node scripts/real-provider-bridge-smoke.mjs
+      - run: node scripts/mission-safety-smoke.mjs
+      - run: node scripts/phase4-provider-integrations-smoke.mjs
+      - run: node scripts/riosystems-phase6-smoke.mjs
