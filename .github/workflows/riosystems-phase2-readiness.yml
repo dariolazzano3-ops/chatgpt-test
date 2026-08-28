@@ -1,0 +1,35 @@
+name: RIOSYSTEMS Phase 2 Readiness
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/project-portfolio.js'
+      - 'src/project-delivery-gate.js'
+      - 'src/phase2-readiness.js'
+      - 'scripts/phase2-readiness.mjs'
+      - '.github/workflows/riosystems-phase2-readiness.yml'
+
+jobs:
+  validate-phase2-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/project-portfolio.js
+          node --check src/project-delivery-gate.js
+          node --check src/phase2-readiness.js
+          node --check scripts/phase2-readiness.mjs
+      - name: Phase 2 readiness
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 2 project layer regression
+        run: node scripts/phase2-project-operating-layer-smoke.mjs
+      - name: Phase 1 readiness regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
