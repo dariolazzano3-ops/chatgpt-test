@@ -156,7 +156,10 @@ export function buildTaskExecutionContract(mission, taskId) {
 export function resumeMission(missionInput, options = {}) {
   const revisionCheck = assertExpectedRevision(missionInput || {}, options.expected_revision);
   if (!revisionCheck.ok) return { ok: false, error: revisionCheck.code, ...revisionCheck };
-  if (missionInput?.source_of_truth?.bound && options.observed_project_head) {
+  if (missionInput?.source_of_truth?.bound && !options.observed_project_head) {
+    return { ok: false, error: 'CURRENT_PROJECT_HEAD_REQUIRED', retryable: true, source_of_truth: cloneMission(missionInput.source_of_truth) };
+  }
+  if (missionInput?.source_of_truth?.bound) {
     const sourceCheck = validateSourceOfTruth(missionInput.source_of_truth, { project_head: options.observed_project_head });
     if (!sourceCheck.ok) return { ok: false, error: sourceCheck.code || "STALE_PROJECT_HEAD", source_of_truth: sourceCheck };
   }

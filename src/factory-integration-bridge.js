@@ -9,10 +9,19 @@ const ENGINE_CAPABILITIES = {
   web: ['web.build', 'web.deploy', 'web.analytics']
 };
 
+const LEGACY_CAPABILITY_ALIASES = {
+  web_generate: 'web.build',
+  web_rebuild: 'web.build',
+  web_evolve: 'web.build',
+  automation_build: 'automation.run',
+  ai_system_build: 'ai.generate',
+  business_system_build: 'business.configure'
+};
+
 export function integrationCapabilityForTask(task = {}) {
   const engine = ['web','automation','ai','business'].includes(task.domain) ? task.domain : clean(task.engine, 80);
   const explicit = clean(task.capability, 120);
-  if (explicit) return explicit;
+  if (explicit) return LEGACY_CAPABILITY_ALIASES[explicit] || explicit;
   const fallback = {
     ai: 'ai.generate',
     automation: 'automation.run',
@@ -31,6 +40,9 @@ export function buildFactoryIntegrationPlan(mission = {}, catalog = {}, context 
       credentials_required: context.credentials_required,
       cost_approved: context.cost_approved === true,
       external_write_approved: context.external_write_approved === true,
+      provider_activation_approved: context.provider_activation_approved === true,
+      supervised_execution_approved: context.supervised_execution_approved === true,
+      provider_requirements: context.provider_requirements?.[capability] || context.provider_requirements?.default || {},
       execution_mode: context.execution_mode || 'dry_run',
       production_deploy: false
     });
@@ -57,6 +69,8 @@ export function factoryIntegrationBridgeManifest() {
     engines: Object.keys(ENGINE_CAPABILITIES),
     capability_matrix: ENGINE_CAPABILITIES,
     supports_supervised_real_integrations: true,
+    legacy_capability_aliases: { ...LEGACY_CAPABILITY_ALIASES },
+    hard_provider_eligibility_supported: true,
     production_deploy: false
   };
 }

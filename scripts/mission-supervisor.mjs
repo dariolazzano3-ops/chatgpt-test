@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { superviseMission } from '../src/mission-supervisor.js';
+import { validateMissionPersistence } from '../src/mission-persistence-guard.js';
+import { resolveAndValidateSourceOfTruth } from '../src/source-of-truth.js';
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
@@ -24,6 +26,14 @@ async function readRemoteJson(file, required = true) {
   return { sha: body.sha, value: JSON.parse(Buffer.from(body.content, 'base64').toString('utf8')) };
 }
 
+async function readBranchHead(branch) {
+  if (!branch) throw new Error('SOURCE_BRANCH_REQUIRED');
+  const response = await fetch(`https://api.github.com/repos/${repository}/git/ref/heads/${encodeURIComponent(branch)}`, { headers: headers() });
+  if (!response.ok) throw new Error(`SOURCE_BRANCH_READ_FAILED_${response.status}`);
+  const body = await response.json();
+  return body.object?.sha || null;
+}
+
 async function writeRemoteJson(file, value, sha, message) {
   const payload = { message, branch: controlRef, content: Buffer.from(`${JSON.stringify(value, null, 2)}\n`).toString('base64') };
   if (sha) payload.sha = sha;
@@ -32,15 +42,23 @@ async function writeRemoteJson(file, value, sha, message) {
   return response.json();
 }
 
-async function persistMission(file, mission, reason) {
+async function persistMission(file, mission, metadata = {}) {
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const current = await readRemoteJson(file, false);
-    try { return await writeRemoteJson(file, mission, current.sha, `Mission ${mission.mission_id}: ${reason}`); }
+    if (!current.value) return { ok: false, code: 'REMOTE_MISSION_NOT_FOUND', retryable: false };
+    const guard = validateMissionPersistence(current.value, mission, metadata);
+    if (!guard.ok) return guard;
+    try {
+      const written = await writeRemoteJson(file, mission, current.sha, `Mission ${mission.mission_id}: ${metadata.reason}:${metadata.task_id || 'mission'}`);
+      return { ok: true, commit_sha: written.commit?.sha || null, content_sha: written.content?.sha || null };
+    }
     catch (error) {
-      if (!String(error.message).includes('409') || attempt === 3) throw error;
+      if (!String(error.message).includes('409')) throw error;
+      if (attempt === 3) return { ok: false, code: 'MISSION_PERSIST_CONFLICT', retryable: true };
       await sleep(700);
     }
   }
+  return { ok: false, code: 'MISSION_PERSIST_CONFLICT', retryable: true };
 }
 
 async function ensureWebRequest(request, contract) {
@@ -81,6 +99,13 @@ if (!missionFile || !/^factory-state\/missions\/[a-zA-Z0-9._-]+\.json$/.test(mis
 if (contractsFile && !/^factory-state\/mission-contracts\/[a-zA-Z0-9._-]+\.json$/.test(contractsFile)) throw new Error('UNSAFE_CONTRACTS_PATH');
 
 const remoteMission = await readRemoteJson(missionFile, true);
+const sourceOfTruth = await resolveAndValidateSourceOfTruth(remoteMission.value.source_of_truth || {}, {
+  resolve_project_head: (context) => readBranchHead(context.canonical_branch || context.baseline_branch)
+});
+if (!sourceOfTruth.ok) {
+  console.log(JSON.stringify({ ok: false, error: sourceOfTruth.code || 'SOURCE_OF_TRUTH_BLOCKED', source_of_truth: sourceOfTruth, production_deploy: false }, null, 2));
+  process.exit(1);
+}
 const config = contractsFile ? (await readRemoteJson(contractsFile, true)).value : {};
 const aiRunner = await loadAIRunner(aiRunnerModule);
 const approvals = {
@@ -99,7 +124,7 @@ const result = await superviseMission(remoteMission.value, approvals, {
   ai: { ...(config.ai || {}), ...(aiRunner ? { runner: aiRunner } : {}) },
   dispatch_web: async ({ request, contract }) => ensureWebRequest({ ...request, production_deploy: false }, contract),
   observe_web: async ({ job_id }) => observeWebJob(job_id, timeoutMs, pollMs),
-  persist: async (mission, metadata) => persistMission(missionFile, mission, `${metadata.reason}:${metadata.task_id || 'mission'}`)
+  persist: async (mission, metadata) => persistMission(missionFile, mission, metadata)
 });
 
 console.log(JSON.stringify({
@@ -111,7 +136,8 @@ console.log(JSON.stringify({
   ready_but_not_executed: result.ready_but_not_executed,
   production_deploy: false,
   automatic_multi_factory_execution: false,
-  supervision_required: true
+  supervision_required: true,
+  source_of_truth: sourceOfTruth
 }, null, 2));
 
 if (!result.ok) process.exit(1);

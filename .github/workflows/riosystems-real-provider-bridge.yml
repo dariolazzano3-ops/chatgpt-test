@@ -1,0 +1,64 @@
+name: RIOSYSTEMS Real Provider Bridge
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/real-provider-bridge.js'
+      - 'src/integration-catalog.js'
+      - 'src/integration-runtime.js'
+      - 'src/factory-integration-bridge.js'
+      - 'src/mission-pipeline.js'
+      - 'src/orchestration-state.js'
+      - 'src/mission-persistence-guard.js'
+      - 'src/github-atomic-json-commit.js'
+      - 'scripts/mission-intake.mjs'
+      - 'scripts/mission-supervisor.mjs'
+      - 'scripts/orchestration-mission-state.mjs'
+      - 'scripts/real-provider-bridge-smoke.mjs'
+      - 'scripts/mission-safety-smoke.mjs'
+      - '.github/workflows/mission-intake.yml'
+      - '.github/workflows/riosystems-real-provider-bridge.yml'
+      - 'docs/RIOSYSTEMS-REAL-PROVIDER-BRIDGE.md'
+      - 'package.json'
+
+jobs:
+  validate-real-provider-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/real-provider-bridge.js
+          node --check src/integration-catalog.js
+          node --check src/integration-runtime.js
+          node --check src/factory-integration-bridge.js
+          node --check src/mission-pipeline.js
+          node --check src/orchestration-state.js
+          node --check src/mission-persistence-guard.js
+          node --check src/github-atomic-json-commit.js
+          node --check scripts/mission-intake.mjs
+          node --check scripts/mission-supervisor.mjs
+          node --check scripts/orchestration-mission-state.mjs
+          node --check scripts/real-provider-bridge-smoke.mjs
+          node --check scripts/mission-safety-smoke.mjs
+      - name: Real provider bridge smoke
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Mission safety smoke
+        run: node scripts/mission-safety-smoke.mjs
+      - name: Phase 4 regression
+        run: node scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 1 control-plane regression
+        run: node scripts/phase1-control-plane-smoke.mjs
+      - name: Mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: Source-of-truth regression
+        run: node scripts/source-of-truth-smoke.mjs
+      - name: State concurrency regression
+        run: node scripts/state-concurrency-smoke.mjs
+      - name: V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs

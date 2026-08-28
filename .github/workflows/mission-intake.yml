@@ -15,6 +15,14 @@ on:
         description: 'Optional human-readable project name'
         required: false
         type: string
+      source_branch:
+        description: 'Canonical project/source branch to bind this mission to'
+        required: true
+        type: string
+      source_revision:
+        description: 'Exact 40-character current project/source commit SHA'
+        required: true
+        type: string
 
 concurrency:
   group: mission-intake-${{ github.actor }}
@@ -48,9 +56,12 @@ jobs:
           MISSION_PROMPT: ${{ inputs.prompt }}
           PROJECT: ${{ inputs.project }}
           PROJECT_NAME: ${{ inputs.project_name }}
+          SOURCE_BRANCH: ${{ inputs.source_branch }}
+          SOURCE_REVISION: ${{ inputs.source_revision }}
         run: |
           set -euo pipefail
-          args=(--prompt "$MISSION_PROMPT")
+          control_head="$(git rev-parse HEAD)"
+          args=(--prompt "$MISSION_PROMPT" --canonical-branch "$SOURCE_BRANCH" --baseline-branch "$SOURCE_BRANCH" --project-head "$SOURCE_REVISION" --expected-parent-sha "$SOURCE_REVISION" --control-head "$control_head")
           if [ -n "$PROJECT" ]; then args+=(--project "$PROJECT"); fi
           if [ -n "$PROJECT_NAME" ]; then args+=(--project-name "$PROJECT_NAME"); fi
           node scripts/mission-intake.mjs "${args[@]}"
