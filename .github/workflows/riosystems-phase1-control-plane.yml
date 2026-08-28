@@ -1,0 +1,43 @@
+name: RIOSYSTEMS Phase 1 Control Plane
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/runtime-governance.js'
+      - 'src/runtime-cost-ledger.js'
+      - 'src/runtime-approvals.js'
+      - 'src/runtime-project-boundary.js'
+      - 'src/provider-runtime.js'
+      - 'src/runtime-control-plane.js'
+      - 'src/mission-pipeline.js'
+      - 'scripts/phase1-control-plane-smoke.mjs'
+      - '.github/workflows/riosystems-phase1-control-plane.yml'
+
+jobs:
+  validate-phase1-control-plane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/runtime-governance.js
+          node --check src/runtime-cost-ledger.js
+          node --check src/runtime-approvals.js
+          node --check src/runtime-project-boundary.js
+          node --check src/provider-runtime.js
+          node --check src/runtime-control-plane.js
+          node --check src/mission-pipeline.js
+          node --check scripts/phase1-control-plane-smoke.mjs
+      - name: Phase 1 control plane smoke
+        run: node scripts/phase1-control-plane-smoke.mjs
+      - name: Runtime foundation regression
+        run: node scripts/runtime-governance-smoke.mjs
+      - name: Existing mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: Existing V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
