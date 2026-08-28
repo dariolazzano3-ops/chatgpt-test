@@ -31,50 +31,12 @@ export async function runMissionPipeline(input = {}, options = {}) {
   const activationConfig = options.activation || {};
   const activation = evaluateMissionActivation(pkg, activationConfig);
   if (!activation.ok) return { ok: false, stage: 'activation_readiness', error: activation.error, package: pkg };
-
   const approvals = activationConfig.adapter_approvals || {};
-  if (!activation.ready_for_supervised_execution) {
-    return {
-      ok: true,
-      stage: 'waiting_for_approval',
-      package: pkg,
-      mission: pkg.mission,
-      activation,
-      delivery: aggregateMissionDelivery(pkg.mission, { activation }),
-      user_action_required: true,
-      production_deploy: false
-    };
-  }
-
+  if (!activation.ready_for_supervised_execution) return { ok: true, stage: 'waiting_for_approval', package: pkg, mission: pkg.mission, activation, delivery: aggregateMissionDelivery(pkg.mission, { activation }), user_action_required: true, production_deploy: false };
   const supervised = await superviseMission(pkg.mission, approvals, supervisorOptions(pkg, options));
   const delivery = aggregateMissionDelivery(supervised.mission, { activation });
   const pending = supervised.pending_web_tasks?.length || supervised.ready_but_not_executed?.length;
-  const stage = delivery.structural_completion ? 'completed' : pending ? 'waiting_for_external_or_resume' : 'stopped';
-
-  return {
-    ok: true,
-    stage,
-    package: pkg,
-    mission: supervised.mission,
-    activation,
-    supervision: supervised,
-    delivery,
-    completed: delivery.structural_completion === true,
-    external_activation_separate: delivery.external_activation_ready !== true,
-    production_deploy: false
-  };
+  return { ok: true, stage: delivery.structural_completion ? 'completed' : pending ? 'waiting_for_external_or_resume' : 'stopped', package: pkg, mission: supervised.mission, activation, supervision: supervised, delivery, completed: delivery.structural_completion === true, external_activation_separate: delivery.external_activation_ready !== true, production_deploy: false };
 }
 
-export function missionPipelineManifest() {
-  return {
-    version: '5.0',
-    input: 'single_high_level_mission',
-    stages: ['compile', 'activation_readiness', 'supervise', 'aggregate_delivery'],
-    engines: ['web', 'automation', 'ai', 'business'],
-    durable_resume_supported: true,
-    explicit_adapter_approvals_required: true,
-    external_activation_separate: true,
-    automatic_production_deploy: false,
-    production_deploy: false
-  };
-}
+export function missionPipelineManifest() { return { version: '5.0', input: 'single_high_level_mission', stages: ['compile','activation_readiness','supervise','aggregate_delivery'], engines: ['web','automation','ai','business'], durable_resume_supported: true, explicit_adapter_approvals_required: true, external_activation_separate: true, automatic_production_deploy: false, production_deploy: false }; }
