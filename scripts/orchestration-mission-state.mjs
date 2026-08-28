@@ -19,7 +19,7 @@ try {
   if (command === "create") { const plan = buildOrchestrationPlan({ prompt: flag("prompt"), project: flag("project") }); const result = createMission({ plan }); if (!result.ok) throw new Error(result.error); output({ ok: true, file: save(result), mission: result }); }
   else if (command === "show") output({ ok: true, mission: load(flag("mission")) });
   else if (command === "transition") { const result = transitionMissionTask(load(flag("mission")), flag("task"), flag("action"), jsonFlag("payload")); if (!result.ok) throw new Error(result.error); output({ ok: true, file: save(result.mission), mission: result.mission }); }
-  else if (command === "resume") { const result = resumeMission(load(flag("mission"))); if (!result.ok) throw new Error(result.error); output({ ok: true, file: save(result.mission), mission: result.mission }); }
+  else if (command === "resume") { const result = resumeMission(load(flag("mission")), { expected_revision: flag("expected-revision"), observed_project_head: flag("observed-project-head") }); if (!result.ok) throw new Error(result.error); output({ ok: true, file: save(result.mission), mission: result.mission }); }
   else if (command === "contract") { const result = buildTaskExecutionContract(load(flag("mission")), flag("task")); if (!result.ok) throw new Error(result.error); output(result); }
   else output({ ok: true, commands: ["create", "show", "transition", "resume", "contract"], mission_root: ROOT, production_deploy: false });
 } catch (error) { output({ ok: false, error: String(error?.message || error), production_deploy: false }); process.exit(1); }

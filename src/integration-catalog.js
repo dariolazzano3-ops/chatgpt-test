@@ -22,6 +22,8 @@ export function createIntegrationCatalog(entries = []) {
       paid: entry.paid === true,
       health: ['healthy','degraded','offline','unknown'].includes(entry.health) ? entry.health : 'unknown',
       runner: typeof entry.runner === 'function' ? entry.runner : null,
+      real_provider: entry.real_provider === true,
+      provider_candidate: entry.real_provider === true && entry.provider_candidate && typeof entry.provider_candidate === 'object' ? clone(entry.provider_candidate) : null,
       production_deploy: false
     });
   }
@@ -55,6 +57,7 @@ export function integrationCatalogManifest() {
     kinds: ['ai_provider','crm','email','automation','cloud_platform','payments','analytics','storage','generic_api'],
     credential_reference_only: true,
     health_aware_selection: true,
+    real_provider_metadata_supported: true,
     production_deploy: false
   };
 }
