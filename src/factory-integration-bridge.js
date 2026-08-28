@@ -1,0 +1,62 @@
+import { prepareIntegrationExecution } from './integration-runtime.js';
+
+const clean = (value, max = 160) => String(value || '').trim().slice(0, max);
+
+const ENGINE_CAPABILITIES = {
+  ai: ['ai.generate', 'ai.analyze', 'ai.classify', 'ai.extract'],
+  automation: ['automation.run', 'automation.webhook', 'automation.email'],
+  business: ['business.configure', 'business.crm.write', 'business.email.send', 'business.payment'],
+  web: ['web.build', 'web.deploy', 'web.analytics']
+};
+
+export function integrationCapabilityForTask(task = {}) {
+  const engine = ['web','automation','ai','business'].includes(task.domain) ? task.domain : clean(task.engine, 80);
+  const explicit = clean(task.capability, 120);
+  if (explicit) return explicit;
+  const fallback = {
+    ai: 'ai.generate',
+    automation: 'automation.run',
+    business: 'business.configure',
+    web: 'web.build'
+  };
+  return fallback[engine] || `${engine || 'unknown'}.execute`;
+}
+
+export function buildFactoryIntegrationPlan(mission = {}, catalog = {}, context = {}) {
+  const tasks = [];
+  const blockers = [];
+  for (const task of mission.tasks || []) {
+    const capability = integrationCapabilityForTask(task);
+    const prepared = prepareIntegrationExecution(catalog, { capability, preferred_integration: context.preferred_integrations?.[capability] }, {
+      credentials_required: context.credentials_required,
+      cost_approved: context.cost_approved === true,
+      external_write_approved: context.external_write_approved === true,
+      execution_mode: context.execution_mode || 'dry_run',
+      production_deploy: false
+    });
+    const safePrepared = prepared.integration ? { ...prepared, integration: { ...prepared.integration, runner: undefined } } : prepared;
+    tasks.push({ task_id: task.task_id, engine: task.domain || task.engine, capability, integration: safePrepared });
+    if (!prepared.ok) blockers.push({ task_id: task.task_id, capability, code: prepared.error });
+    else if (prepared.user_action_required) {
+      for (const item of prepared.activation?.blockers || []) blockers.push({ task_id: task.task_id, capability, code: item.code });
+    }
+  }
+  return {
+    ok: true,
+    plan_version: 'riosystems.factory-integrations.v1',
+    tasks,
+    blockers,
+    ready_for_supervised_integrations: blockers.length === 0,
+    production_deploy: false
+  };
+}
+
+export function factoryIntegrationBridgeManifest() {
+  return {
+    version: 'riosystems.factory-integrations.v1',
+    engines: Object.keys(ENGINE_CAPABILITIES),
+    capability_matrix: ENGINE_CAPABILITIES,
+    supports_supervised_real_integrations: true,
+    production_deploy: false
+  };
+}
