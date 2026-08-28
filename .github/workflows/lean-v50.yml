@@ -1,0 +1,34 @@
+name: LEAN V5.0
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/mission-pipeline.js'
+      - 'src/mission-compiler.js'
+      - 'src/mission-activation-gate.js'
+      - 'src/mission-supervisor.js'
+      - 'src/mission-delivery-aggregator.js'
+      - 'scripts/mission-pipeline-smoke.mjs'
+      - 'scripts/factory-v50-readiness.mjs'
+      - 'factory-state/runtime.json'
+      - '.github/workflows/lean-v50.yml'
+
+jobs:
+  validate-v50:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/mission-pipeline.js
+          node --check scripts/mission-pipeline-smoke.mjs
+          node --check scripts/factory-v50-readiness.mjs
+      - name: One-command mission pipeline smoke
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: V5.0 readiness
+        run: node scripts/factory-v50-readiness.mjs
