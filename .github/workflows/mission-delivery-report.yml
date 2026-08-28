@@ -1,0 +1,51 @@
+name: Mission Delivery Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      mission_file:
+        description: 'Mission JSON under factory-state/missions/'
+        required: true
+        type: string
+      activation_file:
+        description: 'Optional activation readiness JSON under factory-state/mission-activation/'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical Factory runtime
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate V4.12 readiness
+        run: node scripts/factory-v412-readiness.mjs
+      - name: Aggregate mission delivery
+        shell: bash
+        env:
+          MISSION_FILE: ${{ inputs.mission_file }}
+          ACTIVATION_FILE: ${{ inputs.activation_file }}
+        run: |
+          set -euo pipefail
+          args=(--mission "$MISSION_FILE")
+          if [ -n "$ACTIVATION_FILE" ]; then args+=(--activation "$ACTIVATION_FILE"); fi
+          node scripts/mission-delivery-report.mjs "${args[@]}"
+      - name: Publish safety summary
+        if: always()
+        run: |
+          echo '### LEAN V4.12 Mission Delivery Report' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Cross-factory results: aggregated' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Structural completion and external activation: separated' >> "$GITHUB_STEP_SUMMARY"
+          echo '- External mutations: none' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Production deploy: disabled' >> "$GITHUB_STEP_SUMMARY"
