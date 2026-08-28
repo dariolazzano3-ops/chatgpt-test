@@ -1,0 +1,32 @@
+name: RIOSYSTEMS Provider Activation Inventory
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/provider-activation-inventory.js'
+      - 'scripts/provider-activation-inventory-smoke.mjs'
+      - '.github/workflows/riosystems-provider-activation-inventory.yml'
+      - 'docs/RIOSYSTEMS-PROVIDER-ACTIVATION-INVENTORY.md'
+jobs:
+  validate-provider-activation-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: node --check src/provider-activation-inventory.js && node --check scripts/provider-activation-inventory-smoke.mjs
+      - name: Provider activation inventory smoke
+        run: node scripts/provider-activation-inventory-smoke.mjs
+      - name: Real provider bridge regression
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Mission safety regression
+        run: node scripts/mission-safety-smoke.mjs
+      - name: Zero cost pilot regression
+        run: node scripts/zero-cost-pilot-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
