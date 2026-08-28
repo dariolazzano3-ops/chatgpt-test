@@ -6,18 +6,21 @@ import { aggregateMissionDelivery } from './mission-delivery-aggregator.js';
 const clone = (value) => structuredClone(value ?? null);
 
 function supervisorOptions(pkg, options = {}) {
+  const base = options.supervisor || {};
+  const aiRunner = options.ai_runner || base.ai_runner || base.ai?.runner;
+  const automationTransport = options.automation_transport || base.transport || base.automation?.transport;
+  const automationPolicy = options.automation_policy || base.policy || base.automation?.policy;
   return {
-    ...options.supervisor,
+    ...base,
     business_contracts: clone(pkg.contracts?.business_contracts || {}),
     automation_contracts: clone(pkg.contracts?.automation_contracts || {}),
     ai_contracts: clone(pkg.contracts?.ai_contracts || {}),
     project_name: pkg.contracts?.web?.project_name || null,
-    ai_runner: options.ai_runner || options.supervisor?.ai_runner,
-    transport: options.automation_transport || options.supervisor?.transport,
-    policy: options.automation_policy || options.supervisor?.policy,
-    dispatch_web: options.dispatch_web || options.supervisor?.dispatch_web,
-    observe_web: options.observe_web || options.supervisor?.observe_web,
-    persist: options.persist || options.supervisor?.persist
+    ai: { ...(base.ai || {}), runner: aiRunner },
+    automation: { ...(base.automation || {}), transport: automationTransport, policy: automationPolicy },
+    dispatch_web: options.dispatch_web || base.dispatch_web,
+    observe_web: options.observe_web || base.observe_web,
+    persist: options.persist || base.persist
   };
 }
 
