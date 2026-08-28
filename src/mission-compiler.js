@@ -81,8 +81,8 @@ export function compileMissionPackage(input = {}) {
   }
 
   const packageValue = {
-    package_version: 'mission.package.v2',
-    compiler_version: '5.1',
+    package_version: 'mission.package.v1',
+    compiler_version: '4.10',
     mission: created,
     source_of_truth: sourceOfTruth,
     contracts: {
@@ -112,7 +112,8 @@ export function compileMissionPackage(input = {}) {
 
 export function missionCompilerManifest() {
   return {
-    version: '5.1',
+    version: '4.10',
+    engine_revision: 'max-source-of-truth-1',
     input: 'single_high_level_prompt',
     output: 'durable_revision_bound_mission_plus_factory_contracts',
     compiled_engines: ['web', 'automation', 'ai', 'business'],
