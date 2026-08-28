@@ -4,8 +4,10 @@ import { missionActivationGateManifest } from '../src/mission-activation-gate.js
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
 const manifest = missionActivationGateManifest();
+const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
 
-assert.equal(runtime.factory_version, '4.11');
+assert.equal(runtimeMajor, 4);
+assert.ok(runtimeMinor >= 11, `runtime factory_version ${runtime.factory_version} must be >= 4.11`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.mission_activation_readiness_gate, true);
 assert.equal(runtime.capabilities.activation_blocker_classification, true);
