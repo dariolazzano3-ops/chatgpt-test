@@ -20,4 +20,4 @@ jobs:
       - name: Automation mission bridge smoke
         run: node scripts/automation-mission-bridge-smoke.mjs
       - name: Runtime metadata
-        run: node -e "const r=require('./factory-state/runtime.json'); const [maj,min]=String(r.factory_version||'').split('.').map(Number); if(maj!==4||min<5||!r.capabilities.automation_mission_execution_bridge||r.production_deploy!==false) process.exit(1)"
+        run: node -e "const r=require('./factory-state/runtime.json'); const [maj,min]=String(r.factory_version||'').split('.').map(Number); if(!((maj>4)||(maj===4&&min>=5))||!r.capabilities.automation_mission_execution_bridge||r.production_deploy!==false) process.exit(1)"
