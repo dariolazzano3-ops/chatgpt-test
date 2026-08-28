@@ -1,0 +1,35 @@
+name: MAX Engine State CAS
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/state-concurrency.js'
+      - 'src/orchestration-state.js'
+      - 'src/mission-supervisor.js'
+      - 'scripts/state-concurrency-smoke.mjs'
+      - '.github/workflows/max-engine-state-cas.yml'
+
+jobs:
+  validate-state-cas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/state-concurrency.js
+          node --check src/orchestration-state.js
+          node --check src/mission-supervisor.js
+          node --check scripts/state-concurrency-smoke.mjs
+      - name: State CAS and lease regression
+        run: node scripts/state-concurrency-smoke.mjs
+      - name: Existing mission state regression
+        run: node scripts/orchestration-mission-state.mjs
+      - name: Existing mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
+      - name: Existing V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
