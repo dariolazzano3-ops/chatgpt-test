@@ -5,8 +5,7 @@ import { resolveExecutionAdapter } from '../src/execution-adapters.js';
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
 const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
-assert.equal(runtimeMajor, 4);
-assert.ok(runtimeMinor >= 3, `runtime factory_version ${runtime.factory_version} must be >= 4.3`);
+assert.ok(runtimeMajor > 4 || (runtimeMajor === 4 && runtimeMinor >= 3), `runtime factory_version ${runtime.factory_version} must be >= 4.3`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.automation_bounded_execution, true);
 assert.equal(runtime.capabilities.automation_supervised_http, true);

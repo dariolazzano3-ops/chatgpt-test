@@ -4,7 +4,8 @@ import { missionDeliveryAggregatorManifest } from '../src/mission-delivery-aggre
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
 const manifest = missionDeliveryAggregatorManifest();
-assert.equal(runtime.factory_version, '4.12');
+const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
+assert.ok(runtimeMajor > 4 || (runtimeMajor === 4 && runtimeMinor >= 12), `runtime factory_version ${runtime.factory_version} must be >= 4.12`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.unified_mission_delivery_aggregation, true);
 assert.equal(runtime.capabilities.cross_factory_delivery_evidence, true);

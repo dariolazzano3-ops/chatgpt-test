@@ -13,8 +13,7 @@ const capabilities = Object.fromEntries(listCapabilities().map((item) => [item.i
 const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
 const [routerMajor = 0, routerMinor = 0] = String(router.version || '').split('.').map(Number);
 
-assert.equal(runtimeMajor, 4);
-assert.ok(runtimeMinor >= 8, `runtime factory_version ${runtime.factory_version} must be >= 4.8`);
+assert.ok(runtimeMajor > 4 || (runtimeMajor === 4 && runtimeMinor >= 8), `runtime factory_version ${runtime.factory_version} must be >= 4.8`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.business_factory_foundation, true);
 assert.equal(runtime.capabilities.business_contract_validation, true);

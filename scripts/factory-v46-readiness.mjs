@@ -7,8 +7,7 @@ const manifest = missionExecutionRouterManifest();
 const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
 const [manifestMajor = 0, manifestMinor = 0] = String(manifest.version || '').split('.').map(Number);
 
-assert.equal(runtimeMajor, 4);
-assert.ok(runtimeMinor >= 6, `runtime factory_version ${runtime.factory_version} must be >= 4.6`);
+assert.ok(runtimeMajor > 4 || (runtimeMajor === 4 && runtimeMinor >= 6), `runtime factory_version ${runtime.factory_version} must be >= 4.6`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.unified_mission_execution_router, true);
 assert.equal(runtime.capabilities.web_automation_mission_routing, true);
