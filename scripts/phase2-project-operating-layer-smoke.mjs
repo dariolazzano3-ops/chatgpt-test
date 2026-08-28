@@ -31,7 +31,7 @@ const result = await runCustomerProjectMission(active.project, {
   runtime: { enabled: true, providers: [], limit_cost_units: 100 }
 });
 assert.equal(result.ok, true);
-assert.equal(result.mission_result.stage, 'runtime_governance');
+assert.equal(result.mission_result.stage, 'waiting_for_runtime_governance');
 assert.equal(result.mission_result.user_action_required, true);
 assert.equal(result.mission_result.production_deploy, false);
 assert.ok(result.mission_result.runtime.blockers.some((item) => item.code === 'PROVIDER_ROUTE_NOT_FOUND'));
