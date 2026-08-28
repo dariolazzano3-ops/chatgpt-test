@@ -4,8 +4,10 @@ import { missionCompilerManifest } from '../src/mission-compiler.js';
 
 const runtime = JSON.parse(fs.readFileSync('factory-state/runtime.json', 'utf8'));
 const manifest = missionCompilerManifest();
+const [runtimeMajor = 0, runtimeMinor = 0] = String(runtime.factory_version || '').split('.').map(Number);
 
-assert.equal(runtime.factory_version, '4.10');
+assert.equal(runtimeMajor, 4);
+assert.ok(runtimeMinor >= 10, `runtime factory_version ${runtime.factory_version} must be >= 4.10`);
 assert.equal(runtime.production_deploy, false);
 assert.equal(runtime.capabilities.single_prompt_mission_compilation, true);
 assert.equal(runtime.capabilities.deterministic_factory_contract_synthesis, true);
