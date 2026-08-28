@@ -1,0 +1,24 @@
+name: RIOSYSTEMS Staging Provider Bindings
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/staging-provider-bindings.js'
+      - 'scripts/staging-provider-bindings-smoke.mjs'
+      - '.github/workflows/riosystems-staging-provider-bindings.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --check src/staging-provider-bindings.js
+      - run: node scripts/staging-provider-bindings-smoke.mjs
+      - run: node scripts/provider-activation-inventory-smoke.mjs
+      - run: node scripts/real-provider-bridge-smoke.mjs
+      - run: node scripts/zero-cost-pilot-smoke.mjs
+      - run: node scripts/riosystems-phase6-smoke.mjs
+      - run: node scripts/factory-v50-readiness.mjs
