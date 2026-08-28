@@ -1,0 +1,34 @@
+name: LEAN V4.12
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/mission-delivery-aggregator.js'
+      - 'scripts/mission-delivery-aggregator-smoke.mjs'
+      - 'scripts/mission-delivery-report.mjs'
+      - 'scripts/factory-v412-readiness.mjs'
+      - 'scripts/factory-v411-readiness.mjs'
+      - '.github/workflows/mission-delivery-report.yml'
+      - '.github/workflows/lean-v412.yml'
+      - 'factory-state/runtime.json'
+
+jobs:
+  validate-v412:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/mission-delivery-aggregator.js
+          node --check scripts/mission-delivery-aggregator-smoke.mjs
+          node --check scripts/mission-delivery-report.mjs
+          node --check scripts/factory-v412-readiness.mjs
+      - name: Unified mission delivery smoke
+        run: node scripts/mission-delivery-aggregator-smoke.mjs
+      - name: V4.12 readiness
+        run: node scripts/factory-v412-readiness.mjs
