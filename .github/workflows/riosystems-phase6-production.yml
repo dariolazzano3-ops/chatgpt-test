@@ -1,0 +1,40 @@
+name: RIOSYSTEMS Phase 6 Production Readiness
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/production-readiness.js'
+      - 'src/operations-resilience.js'
+      - 'src/productization-boundary.js'
+      - 'scripts/riosystems-phase6-smoke.mjs'
+      - 'docs/RIOSYSTEMS-PHASE6-PRODUCTION.md'
+      - '.github/workflows/riosystems-phase6-production.yml'
+jobs:
+  validate-phase6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/production-readiness.js
+          node --check src/operations-resilience.js
+          node --check src/productization-boundary.js
+          node --check scripts/riosystems-phase6-smoke.mjs
+      - name: Phase 6 smoke
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: Phase 5 regression
+        run: node scripts/phase5-command-center-smoke.mjs
+      - name: Phase 4 regression
+        run: node scripts/phase4-provider-integrations-smoke.mjs
+      - name: Phase 3 regression
+        run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Phase 2 regression
+        run: node scripts/phase2-readiness.mjs
+      - name: Phase 1 regression
+        run: node scripts/phase1-readiness.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
