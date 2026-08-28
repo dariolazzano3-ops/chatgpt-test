@@ -1,0 +1,30 @@
+name: RIOSYSTEMS Phase 1 Runtime Foundation
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/runtime-governance.js'
+      - 'scripts/runtime-governance-smoke.mjs'
+      - 'docs/RIOSYSTEMS-PHASE-1-RUNTIME-FOUNDATION.md'
+      - '.github/workflows/riosystems-phase1-runtime.yml'
+
+jobs:
+  validate-runtime-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax check
+        run: |
+          node --check src/runtime-governance.js
+          node --check scripts/runtime-governance-smoke.mjs
+      - name: Runtime governance smoke
+        run: node scripts/runtime-governance-smoke.mjs
+      - name: Existing V5 readiness regression
+        run: node scripts/factory-v50-readiness.mjs
+      - name: Existing mission pipeline regression
+        run: node scripts/mission-pipeline-smoke.mjs
