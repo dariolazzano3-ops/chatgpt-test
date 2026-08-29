@@ -10,9 +10,17 @@ const plan = planMakeReadOnlyPreflight({
   granted_scopes: ['organization:read', 'scenarios:read']
 });
 assert.equal(plan.state, 'READY_FOR_READ_ONLY_PREFLIGHT');
+assert.equal(plan.pagination.limit, 25);
+const scenarioPlanUrl = new URL(plan.requests[1].url);
+assert.equal(scenarioPlanUrl.searchParams.get('teamId'), '42');
+assert.equal(scenarioPlanUrl.searchParams.get('pg[offset]'), '0');
+assert.equal(scenarioPlanUrl.searchParams.get('pg[limit]'), '25');
+assert.equal(scenarioPlanUrl.searchParams.get('pg[sortBy]'), 'id');
+assert.equal(scenarioPlanUrl.searchParams.get('pg[sortDir]'), 'asc');
 
 const manifest = makeReadOnlyRunnerManifest();
 assert.deepEqual(manifest.methods, ['GET']);
+assert.equal(manifest.max_scenario_page_limit, 50);
 assert.equal(manifest.explicit_read_only_execution_approval_required, true);
 assert.equal(manifest.external_side_effects, false);
 assert.equal(manifest.production_deploy, false);
@@ -26,7 +34,7 @@ const fetchImpl = async (url, options) => {
   seenHeaders.push(options.headers.Authorization);
   const parsed = new URL(url);
   if (parsed.pathname.endsWith('/ping')) return new Response('pong', { status: 200, headers: { 'content-type': 'text/plain' } });
-  return new Response(JSON.stringify({ scenarios: [{ id: 1, name: 'private-name-a' }, { id: 2, name: 'private-name-b' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify({ scenarios: [{ id: 1, name: 'private-name-a' }, { id: 2, name: 'private-name-b' }], pg: { offset: 0, limit: 25 } }), { status: 200, headers: { 'content-type': 'application/json' } });
 };
 const result = await runMakeReadOnlyPreflight(plan, {
   read_only_execution_approved: true,
@@ -38,6 +46,8 @@ assert.equal(result.stage, 'MAKE_READONLY_PREFLIGHT_COMPLETE');
 assert.equal(result.results.length, 2);
 assert.equal(result.results[0].ping, 'pong');
 assert.equal(result.results[1].scenario_count_visible, 2);
+assert.equal(result.results[1].json_parseable, true);
+assert.deepEqual(result.results[1].page, { offset: 0, limit: 25 });
 assert.equal(result.external_side_effect_performed, false);
 assert.equal(result.secrets_returned, false);
 assert.equal(result.authorization_header_returned, false);
@@ -66,6 +76,30 @@ const hostRejected = await runMakeReadOnlyPreflight(hostTamper, {
 });
 assert.equal(hostRejected.ok, false);
 assert.equal(hostRejected.error, 'MAKE_READONLY_HOST_REJECTED');
+
+const oversizedPage = structuredClone(plan);
+const oversizedUrl = new URL(oversizedPage.requests[1].url);
+oversizedUrl.searchParams.set('pg[limit]', '51');
+oversizedPage.requests[1].url = oversizedUrl.toString();
+const oversizedRejected = await runMakeReadOnlyPreflight(oversizedPage, {
+  read_only_execution_approved: true,
+  fetch_impl: fetchImpl,
+  resolve_secret: async () => 'token'
+});
+assert.equal(oversizedRejected.ok, false);
+assert.equal(oversizedRejected.error, 'MAKE_SCENARIO_LIMIT_REJECTED');
+
+const unsupportedQuery = structuredClone(plan);
+const unsupportedUrl = new URL(unsupportedQuery.requests[1].url);
+unsupportedUrl.searchParams.set('folderId', '1');
+unsupportedQuery.requests[1].url = unsupportedUrl.toString();
+const queryRejected = await runMakeReadOnlyPreflight(unsupportedQuery, {
+  read_only_execution_approved: true,
+  fetch_impl: fetchImpl,
+  resolve_secret: async () => 'token'
+});
+assert.equal(queryRejected.ok, false);
+assert.equal(queryRejected.error, 'MAKE_SCENARIO_QUERY_REJECTED');
 
 const production = await runMakeReadOnlyPreflight(plan, { production_deploy: true });
 assert.equal(production.ok, false);
