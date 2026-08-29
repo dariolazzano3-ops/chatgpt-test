@@ -1,0 +1,48 @@
+name: RIOSYSTEMS Cloudflare Live Read-only Preflight
+
+on:
+  pull_request:
+    paths:
+      - 'src/cloudflare-readonly-runner.js'
+      - 'scripts/cloudflare-readonly-runner-smoke.mjs'
+      - 'scripts/cloudflare-live-readonly-preflight.mjs'
+      - '.github/workflows/riosystems-cloudflare-live-readonly-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-cloudflare-live-readonly-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax and guard smoke
+        run: |
+          node --check src/cloudflare-readonly-runner.js
+          node --check scripts/cloudflare-readonly-runner-smoke.mjs
+          node --check scripts/cloudflare-live-readonly-preflight.mjs
+          node scripts/cloudflare-readonly-runner-smoke.mjs
+      - name: Validate Cloudflare secret presence without revealing values
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo 'CLOUDFLARE_API_TOKEN secret is missing' && exit 2)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo 'CLOUDFLARE_ACCOUNT_ID secret is missing' && exit 2)
+      - name: Run guarded Cloudflare GET-only live preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/cloudflare-live-readonly-preflight.mjs
