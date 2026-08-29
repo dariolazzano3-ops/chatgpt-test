@@ -1,3 +1,5 @@
+import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
+
 const clone = (value) => structuredClone(value ?? null);
 const VERIFIED_AT = '2026-08-29';
 
@@ -22,7 +24,7 @@ const PROVIDERS = Object.freeze([
     role: 'primary_external_runtime',
     category: 'workflow_automation_saas',
     capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
-    availability: 'connection_required',
+    availability: 'staging_live_verified',
     account_connection_required: true,
     source_ownership: 'provider_blueprint',
     automation_fit: 'very_high_for_business_connectors',
@@ -31,7 +33,7 @@ const PROVIDERS = Object.freeze([
     external_write: true,
     production_deploy: false,
     selection_reason: 'existing_operator_tool_and_fastest_business_automation_path',
-    evidence: ['operator_decision_2026-08-29','https://www.make.com/en/pricing']
+    evidence: ['operator_decision_2026-08-29','github_actions_run:33258730803','src/make-live-staging-evidence.js','https://www.make.com/en/pricing']
   }),
   Object.freeze({
     id: 'activepieces-cloud-free',
@@ -101,11 +103,14 @@ const PROVIDERS = Object.freeze([
 ]);
 
 export function automationProviderStrategy() {
+  const makeEvidence = makeLiveStagingActivationEvidence();
   return {
     schema: 'riosystems.automation-provider-strategy.v1',
     verified_at: VERIFIED_AT,
     primary_orchestrator: 'riosystems-native-automation',
     primary_external_runtime: 'make-core',
+    primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
+    primary_external_runtime_evidence: makeEvidence,
     strategic_secondary_runtime: 'activepieces-cloud-free',
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
@@ -137,7 +142,7 @@ export function selectAutomationRuntime(input = {}) {
   const connected = new Set(Array.isArray(input.connected_providers) ? input.connected_providers : []);
   let selectedId = 'make-core';
   const blockers = [];
-  const reasons = ['existing_operator_tool','broad_connector_catalog','fast_business_automation','mature_saas_runtime'];
+  const reasons = ['existing_operator_tool','broad_connector_catalog','fast_business_automation','mature_saas_runtime','live_staging_verified'];
 
   if (mode === 'micro') {
     selectedId = 'cloudflare-workers-free';
@@ -166,6 +171,7 @@ export function selectAutomationRuntime(input = {}) {
     reasons,
     ready: blockers.length === 0,
     blockers,
+    staging_live_verified: provider.id === 'make-core' ? isMakeLiveStagingVerified() : false,
     automatic_paid_overflow: false,
     production_deploy: false
   };
@@ -176,6 +182,7 @@ export function automationProviderDecisionManifest() {
     version: 'riosystems.automation-provider-decision.v1',
     primary_control_engine: 'riosystems-native-automation',
     primary_external_runtime: 'make-core',
+    primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
     strategic_secondary_runtime: 'activepieces-cloud-free',
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
