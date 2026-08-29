@@ -13,6 +13,7 @@ const MAKE_TOKEN_REF_RE = /^(?:env|secret):[A-Z][A-Z0-9_]{2,100}$/;
 const WRITE_SCOPES = Object.freeze(['scenarios:write']);
 const RUN_SCOPES = Object.freeze(['scenarios:read', 'scenarios:write', 'scenarios:run']);
 const READ_SCOPES = Object.freeze(['organization:read', 'scenarios:read']);
+const READ_PAGE_LIMIT = 25;
 
 function normalizeZoneUrl(value) {
   const raw = clean(value, 300);
@@ -72,6 +73,8 @@ export function makeStagingActivationManifest() {
     supported_zone_hosts: [...MAKE_ZONE_HOSTS],
     credential_reference_only: true,
     read_only_preflight_supported: true,
+    read_only_page_limit: READ_PAGE_LIMIT,
+    read_only_pagination: 'offset_limit',
     scenario_create_planning_supported: true,
     scenario_run_planning_supported: true,
     real_http_execution_implemented: false,
@@ -120,6 +123,12 @@ export function buildMakeConnectionContract(input = {}) {
 export function planMakeReadOnlyPreflight(input = {}) {
   const contract = buildMakeConnectionContract(input);
   if (!contract.ok) return contract;
+  const scenarioUrl = new URL(`${contract.api_base_url}/scenarios`);
+  scenarioUrl.searchParams.set('teamId', String(contract.team_id));
+  scenarioUrl.searchParams.set('pg[offset]', '0');
+  scenarioUrl.searchParams.set('pg[limit]', String(READ_PAGE_LIMIT));
+  scenarioUrl.searchParams.set('pg[sortBy]', 'id');
+  scenarioUrl.searchParams.set('pg[sortDir]', 'asc');
   return {
     ok: true,
     schema: 'riosystems.make-readonly-preflight.v1',
@@ -129,8 +138,9 @@ export function planMakeReadOnlyPreflight(input = {}) {
     auth: contract.token_ref ? { scheme: 'Token', token_ref: contract.token_ref } : null,
     requests: contract.ready_for_read_only_preflight ? [
       { method: 'GET', url: `${contract.api_base_url}/ping`, required_scopes: ['organization:read'], external_write: false },
-      { method: 'GET', url: `${contract.api_base_url}/scenarios?teamId=${contract.team_id}`, required_scopes: ['scenarios:read'], external_write: false }
+      { method: 'GET', url: scenarioUrl.toString(), required_scopes: ['scenarios:read'], external_write: false }
     ] : [],
+    pagination: { strategy: 'offset_limit', offset: 0, limit: READ_PAGE_LIMIT, sort_by: 'id', sort_dir: 'asc' },
     execute_http: false,
     external_write: false,
     automatic_extra_credit_purchase: false,
