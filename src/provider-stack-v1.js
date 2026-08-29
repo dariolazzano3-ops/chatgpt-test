@@ -79,7 +79,7 @@ export function providerActivationMatrix() {
       { id: 'supabase-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'posthog-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'openai-api', selection: 'selected', activation: 'credential_and_budget_gate_required', paid_execution: 'approval_required' },
-      { id: 'make-core', selection: 'primary_automation_runtime', activation: 'account_connection_and_paid_gate_required', real_write: 'approval_required' },
+      { id: 'make-core', selection: 'primary_automation_runtime', activation: 'staging_bridge_contract_ready_connection_required', read_only_preflight: 'available_after_connection', real_write: 'approval_required', automatic_extra_credit_purchase: false },
       { id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', activation: 'only_if_secondary_path_needed', real_write: 'approval_required' },
       { id: 'n8n-client-owned', selection: 'technical_specialist', activation: 'only_if_complex_workflow_and_client_instance_exists' },
       { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
