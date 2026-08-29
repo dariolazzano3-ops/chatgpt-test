@@ -1,0 +1,41 @@
+name: RIOSYSTEMS Web Provider Selection
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-provider-strategy.js'
+      - 'src/web-provider-router.js'
+      - 'src/execution-adapters.js'
+      - 'scripts/web-provider-selection-smoke.mjs'
+      - 'docs/RIOSYSTEMS-WEB-FACTORY-PROVIDER-DECISION.md'
+      - '.github/workflows/riosystems-web-provider-selection.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/web-provider-strategy.js
+          node --check src/web-provider-router.js
+          node --check src/execution-adapters.js
+          node --check scripts/web-provider-selection-smoke.mjs
+      - name: Web provider selection smoke
+        run: node scripts/web-provider-selection-smoke.mjs
+      - name: Factory v3.9 adapter regression
+        run: node scripts/factory-v39-readiness.mjs
+      - name: Preview staging regression
+        run: node scripts/preview-staging-fullgas-smoke.mjs
+      - name: Staging release budget regression
+        run: node scripts/staging-release-budget-control-smoke.mjs
+      - name: Real provider bridge regression
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
