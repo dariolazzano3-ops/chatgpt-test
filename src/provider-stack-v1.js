@@ -3,6 +3,7 @@ import { automationProviderDecisionManifest } from './automation-provider-strate
 import { aiProviderDecisionManifest } from './ai-provider-strategy.js';
 import { businessProviderDecisionManifest } from './business-provider-strategy.js';
 import { listExecutionAdapters } from './execution-adapters.js';
+import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const ACTIVE_FACTORY_KEYS = Object.freeze(['web','automation','ai','business']);
@@ -22,7 +23,9 @@ export function providerStackV1() {
       adapter: clone(byEngine.get('automation')),
       primary_path: ['riosystems-native-automation','make-core'],
       secondary_path: ['riosystems-native-automation','activepieces-cloud-free'],
-      specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free']
+      specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free'],
+      staging_activation_verified: isMakeLiveStagingVerified(),
+      staging_activation_evidence: makeLiveStagingActivationEvidence()
     },
     ai: {
       decision: aiProviderDecisionManifest(),
@@ -79,7 +82,18 @@ export function providerActivationMatrix() {
       { id: 'supabase-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'posthog-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'openai-api', selection: 'selected', activation: 'credential_and_budget_gate_required', paid_execution: 'approval_required' },
-      { id: 'make-core', selection: 'primary_automation_runtime', activation: 'staging_bridge_contract_ready_connection_required', read_only_preflight: 'available_after_connection', real_write: 'approval_required', automatic_extra_credit_purchase: false },
+      {
+        id: 'make-core',
+        selection: 'primary_automation_runtime',
+        activation: 'live_staging_verified',
+        read_only_preflight: 'verified',
+        scenario_create: 'verified_inactive_staging_only',
+        scenario_run_once: 'verified_synthetic_supervised_and_restored_inactive',
+        evidence_run_id: 33258730803,
+        real_write: 'approval_required_per_execution',
+        production_activation: 'not_authorized',
+        automatic_extra_credit_purchase: false
+      },
       { id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', activation: 'only_if_secondary_path_needed', real_write: 'approval_required' },
       { id: 'n8n-client-owned', selection: 'technical_specialist', activation: 'only_if_complex_workflow_and_client_instance_exists' },
       { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
@@ -109,11 +123,17 @@ export function planProviderStackMission(input = {}) {
       ai: [...stack.factories.ai.free_staging_path],
       business: [...stack.factories.business.primary_path]
     },
+    activation_status: {
+      automation_make_staging_verified: stack.factories.automation.staging_activation_verified === true,
+      web_runtime_verified: false,
+      ai_runtime_verified: false,
+      business_runtime_verified: false
+    },
     execution_authorized: false,
     external_writes: false,
     paid_execution: false,
     automatic_paid_overflow: false,
     production_deploy: false,
-    next_gate: 'RUNTIME_PROVIDER_ACTIVATION_AND_STAGING_APPROVAL'
+    next_gate: 'ACTIVATE_REMAINING_REAL_STAGING_PROVIDERS'
   };
 }
