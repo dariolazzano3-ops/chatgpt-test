@@ -1,0 +1,89 @@
+name: Activate PostHog Telemetry Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-posthog-telemetry-once.yml'
+
+concurrency:
+  group: activate-posthog-telemetry-once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_BASE_URL: https://chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate before activation
+        run: |
+          set -euo pipefail
+          npm run check
+          npx wrangler deploy --dry-run
+
+      - name: Validate Cloudflare credentials
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
+
+      - name: Require PostHog Worker secret
+        run: |
+          set -euo pipefail
+          npx wrangler secret list --name chatgpt-test --format json > /tmp/worker-secrets.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const secrets = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
+          const names = new Set((Array.isArray(secrets) ? secrets : []).map((item) => item?.name));
+          if (!names.has('POSTHOG_PROJECT_TOKEN')) throw new Error('POSTHOG_PROJECT_TOKEN_NOT_CONFIGURED');
+          console.log('Required PostHog Worker secret is configured; value remains hidden.');
+          NODE
+
+      - name: Deploy telemetry-enabled Worker
+        run: npx wrangler deploy --keep-vars
+
+      - name: Verify Worker health
+        run: |
+          set -euo pipefail
+          sleep 3
+          curl -fsS "$WORKER_BASE_URL/factory/diagnostics" -o /tmp/diagnostics.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/diagnostics.json', 'utf8'));
+          if (body?.ok !== true) throw new Error('FACTORY_DIAGNOSTICS_NOT_HEALTHY');
+          if (body?.secrets?.secret_values_exposed !== false) throw new Error('SECRET_EXPOSURE_GUARD_FAILED');
+          console.log('Factory diagnostics healthy; secret values are not exposed.');
+          NODE
+
+      - name: Emit one side-effect-free telemetry verification event
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST "$WORKER_BASE_URL/factory/plan" \
+            -H 'content-type: application/json' \
+            --data '{"mode":"generate","prompt":"RIOSYSTEMS telemetry activation verification","limits":{"max_iterations":0,"api_budget_eur":0,"auto_deploy":false,"require_approval_before_production":true}}' \
+            -o /tmp/plan.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/plan.json', 'utf8'));
+          if (body?.status !== 'PLANNED') throw new Error('SAFE_PLAN_VERIFICATION_FAILED');
+          if (body?.limits?.api_budget_eur !== 0) throw new Error('API_BUDGET_GUARD_FAILED');
+          if (body?.execution?.production_auto_deploy_requested !== false) throw new Error('PRODUCTION_DEPLOY_GUARD_FAILED');
+          console.log('Safe Factory plan succeeded; telemetry verification event should now be queued for PostHog.');
+          NODE
