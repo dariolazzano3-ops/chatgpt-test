@@ -7,13 +7,16 @@ on:
       - 'src/make-real-provider-adapter.js'
       - 'src/make-readonly-runner.js'
       - 'src/make-staging-write-runner.js'
+      - 'src/make-staging-execution-runner.js'
       - 'src/provider-stack-v1.js'
       - 'scripts/make-staging-bridge-smoke.mjs'
       - 'scripts/make-real-provider-adapter-smoke.mjs'
       - 'scripts/make-readonly-runner-smoke.mjs'
       - 'scripts/make-staging-write-runner-smoke.mjs'
+      - 'scripts/make-staging-execution-runner-smoke.mjs'
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
+      - 'scripts/make-live-staging-execution-once.mjs'
       - 'scripts/provider-stack-v1-smoke.mjs'
       - 'docs/RIOSYSTEMS-MAKE-STAGING-ACTIVATION.md'
       - '.github/workflows/riosystems-make-staging-bridge.yml'
@@ -34,12 +37,15 @@ jobs:
           node --check src/make-real-provider-adapter.js
           node --check src/make-readonly-runner.js
           node --check src/make-staging-write-runner.js
+          node --check src/make-staging-execution-runner.js
           node --check scripts/make-staging-bridge-smoke.mjs
           node --check scripts/make-real-provider-adapter-smoke.mjs
           node --check scripts/make-readonly-runner-smoke.mjs
           node --check scripts/make-staging-write-runner-smoke.mjs
+          node --check scripts/make-staging-execution-runner-smoke.mjs
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
+          node --check scripts/make-live-staging-execution-once.mjs
           node --check src/provider-stack-v1.js
       - name: Make staging bridge smoke
         run: node scripts/make-staging-bridge-smoke.mjs
@@ -49,6 +55,8 @@ jobs:
         run: node scripts/make-readonly-runner-smoke.mjs
       - name: Make staging write runner smoke
         run: node scripts/make-staging-write-runner-smoke.mjs
+      - name: Make staging execution runner smoke
+        run: node scripts/make-staging-execution-runner-smoke.mjs
       - name: Provider stack regression
         run: node scripts/provider-stack-v1-smoke.mjs
       - name: Automation provider regression
