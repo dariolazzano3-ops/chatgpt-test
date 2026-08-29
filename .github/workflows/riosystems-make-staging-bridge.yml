@@ -8,6 +8,8 @@ on:
       - 'src/make-readonly-runner.js'
       - 'src/make-staging-write-runner.js'
       - 'src/make-staging-execution-runner.js'
+      - 'src/make-live-staging-evidence.js'
+      - 'src/automation-provider-strategy.js'
       - 'src/provider-stack-v1.js'
       - 'scripts/make-staging-bridge-smoke.mjs'
       - 'scripts/make-real-provider-adapter-smoke.mjs'
@@ -17,6 +19,7 @@ on:
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
       - 'scripts/make-live-staging-execution-once.mjs'
+      - 'scripts/automation-provider-selection-smoke.mjs'
       - 'scripts/provider-stack-v1-smoke.mjs'
       - 'docs/RIOSYSTEMS-MAKE-STAGING-ACTIVATION.md'
       - '.github/workflows/riosystems-make-staging-bridge.yml'
@@ -38,6 +41,8 @@ jobs:
           node --check src/make-readonly-runner.js
           node --check src/make-staging-write-runner.js
           node --check src/make-staging-execution-runner.js
+          node --check src/make-live-staging-evidence.js
+          node --check src/automation-provider-strategy.js
           node --check scripts/make-staging-bridge-smoke.mjs
           node --check scripts/make-real-provider-adapter-smoke.mjs
           node --check scripts/make-readonly-runner-smoke.mjs
@@ -46,6 +51,8 @@ jobs:
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
           node --check scripts/make-live-staging-execution-once.mjs
+          node --check scripts/automation-provider-selection-smoke.mjs
+          node --check scripts/provider-stack-v1-smoke.mjs
           node --check src/provider-stack-v1.js
       - name: Make staging bridge smoke
         run: node scripts/make-staging-bridge-smoke.mjs

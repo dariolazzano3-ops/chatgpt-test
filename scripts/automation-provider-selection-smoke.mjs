@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
 import { automationProviderDecisionManifest, automationProviderStrategy, selectAutomationRuntime } from '../src/automation-provider-strategy.js';
 import { planAutomationProviderRoute } from '../src/automation-provider-router.js';
+import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from '../src/make-live-staging-evidence.js';
+
+const evidence = makeLiveStagingActivationEvidence();
+assert.equal(isMakeLiveStagingVerified(), true);
+assert.equal(evidence.provider_id, 'make-core');
+assert.equal(evidence.scenario.scenario_id, 7149691);
+assert.equal(evidence.execution.github_actions_run_id, 33258730803);
+assert.equal(evidence.execution.scenario_restored_inactive, true);
+assert.equal(evidence.authorization_posture.production_authorized, false);
+assert.equal(evidence.account_binding.secret_value_embedded, false);
 
 const manifest = automationProviderDecisionManifest();
 assert.equal(manifest.primary_control_engine, 'riosystems-native-automation');
 assert.equal(manifest.primary_external_runtime, 'make-core');
+assert.equal(manifest.primary_external_runtime_staging_verified, true);
 assert.equal(manifest.strategic_secondary_runtime, 'activepieces-cloud-free');
 assert.equal(manifest.technical_specialist_runtime, 'n8n-client-owned');
 assert.equal(manifest.production_deploy, false);
@@ -12,19 +23,24 @@ assert.equal(manifest.production_deploy, false);
 const strategy = automationProviderStrategy();
 assert.equal(strategy.automatic_paid_overflow, false);
 assert.equal(strategy.primary_external_runtime, 'make-core');
+assert.equal(strategy.primary_external_runtime_staging_verified, true);
+assert.equal(strategy.primary_external_runtime_evidence.execution.github_actions_run_id, 33258730803);
 assert.equal(strategy.strategic_secondary_runtime, 'activepieces-cloud-free');
 assert.ok(strategy.providers.some((item) => item.id === 'activepieces-community'));
 assert.ok(strategy.providers.some((item) => item.id === 'cloudflare-workers-free'));
+assert.equal(strategy.providers.find((item) => item.id === 'make-core')?.availability, 'staging_live_verified');
 
 const defaultBlocked = selectAutomationRuntime();
 assert.equal(defaultBlocked.provider.id, 'make-core');
 assert.equal(defaultBlocked.ready, false);
+assert.equal(defaultBlocked.staging_live_verified, true);
 assert.ok(defaultBlocked.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED'));
 assert.ok(defaultBlocked.blockers.some((item) => item.code === 'PAID_PROVIDER_APPROVAL_REQUIRED'));
 
 const defaultReady = selectAutomationRuntime({ connected_providers: ['make-core'], paid_provider_approved: true });
 assert.equal(defaultReady.ready, true);
 assert.equal(defaultReady.provider.id, 'make-core');
+assert.equal(defaultReady.staging_live_verified, true);
 
 const secondaryBlocked = selectAutomationRuntime({ mode: 'secondary' });
 assert.equal(secondaryBlocked.provider.id, 'activepieces-cloud-free');
