@@ -37,7 +37,10 @@ assert.equal(externalRun.trace.find((item) => item.step_id === 'crm')?.status, '
 
 const adapter = resolveExecutionAdapter({ domain: 'automation', engine: 'automation', state: 'READY' });
 assert.equal(adapter.ok, true);
-assert.equal(adapter.adapter.mode, 'supervised');
+assert.equal(adapter.adapter.mode, 'provider_routed');
+assert.equal(adapter.adapter.provider_policy, 'riosystems.automation-provider-strategy.v1');
+assert.equal(adapter.adapter.default_runtime_provider, 'activepieces-cloud-free');
+assert.equal(adapter.adapter.fallback_runtime_provider, 'make-core');
 assert.equal(adapter.adapter.external_side_effects, 'supervised_only');
 assert.equal(adapter.adapter.automatic_execution, false);
 assert.equal(adapter.adapter.production_deploy, false);
