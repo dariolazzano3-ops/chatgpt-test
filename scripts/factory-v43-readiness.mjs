@@ -18,7 +18,9 @@ assert.equal(runtime.capabilities.manual_production_approval_required, true);
 
 const adapter = resolveExecutionAdapter({ domain:'automation', state:'READY' });
 assert.equal(adapter.ok, true);
-assert.equal(adapter.adapter.mode, 'supervised');
+assert.equal(adapter.adapter.mode, 'provider_routed');
+assert.equal(adapter.adapter.provider_policy, 'riosystems.automation-provider-strategy.v1');
+assert.equal(adapter.adapter.external_side_effects, 'supervised_only');
 assert.equal(adapter.adapter.automatic_execution, false);
 assert.equal(adapter.adapter.production_deploy, false);
 
