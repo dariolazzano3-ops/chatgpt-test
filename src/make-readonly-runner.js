@@ -1,6 +1,7 @@
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
 const ALLOWED_HOSTS = new Set(['eu1.make.com','eu2.make.com','us1.make.com','us2.make.com','eu1.make.celonis.com','us1.make.celonis.com']);
 const ALLOWED_PATHS = new Set(['/api/v2/ping','/api/v2/scenarios']);
+const MAX_SCENARIO_PAGE_LIMIT = 50;
 
 function validateRequest(request = {}) {
   const method = clean(request.method, 12).toUpperCase();
@@ -12,10 +13,19 @@ function validateRequest(request = {}) {
   if (!ALLOWED_PATHS.has(url.pathname)) return { ok: false, error: 'MAKE_READONLY_PATH_REJECTED', path: url.pathname };
   if (url.pathname === '/api/v2/ping' && url.search) return { ok: false, error: 'MAKE_PING_QUERY_REJECTED' };
   if (url.pathname === '/api/v2/scenarios') {
+    const allowedKeys = new Set(['teamId','pg[offset]','pg[limit]','pg[sortBy]','pg[sortDir]']);
     const keys = [...url.searchParams.keys()];
-    if (keys.some((key) => key !== 'teamId')) return { ok: false, error: 'MAKE_SCENARIO_QUERY_REJECTED' };
+    if (keys.some((key) => !allowedKeys.has(key))) return { ok: false, error: 'MAKE_SCENARIO_QUERY_REJECTED' };
     const teamId = Number(url.searchParams.get('teamId'));
+    const offset = Number(url.searchParams.get('pg[offset]') ?? 0);
+    const limit = Number(url.searchParams.get('pg[limit]') ?? 0);
+    const sortBy = clean(url.searchParams.get('pg[sortBy]'), 20);
+    const sortDir = clean(url.searchParams.get('pg[sortDir]'), 10).toLowerCase();
     if (!Number.isSafeInteger(teamId) || teamId <= 0) return { ok: false, error: 'MAKE_TEAM_ID_QUERY_REQUIRED' };
+    if (!Number.isSafeInteger(offset) || offset < 0) return { ok: false, error: 'MAKE_SCENARIO_OFFSET_REJECTED' };
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_SCENARIO_PAGE_LIMIT) return { ok: false, error: 'MAKE_SCENARIO_LIMIT_REJECTED', max: MAX_SCENARIO_PAGE_LIMIT };
+    if (sortBy !== 'id') return { ok: false, error: 'MAKE_SCENARIO_SORT_REJECTED' };
+    if (!['asc','desc'].includes(sortDir)) return { ok: false, error: 'MAKE_SCENARIO_SORT_DIRECTION_REJECTED' };
   }
   return { ok: true, method, url };
 }
@@ -31,15 +41,22 @@ function responseSummary(url, response, body, maxBodyBytes) {
     content_type: clean(response.headers?.get?.('content-type'), 120) || null
   };
   if (url.pathname.endsWith('/ping')) summary.ping = clean(body, 20).toLowerCase() === 'pong' ? 'pong' : 'unexpected';
-  else {
+  else if (bodyBytes <= maxBodyBytes) {
     try {
-      const parsed = JSON.parse(body.slice(0, maxBodyBytes));
+      const parsed = JSON.parse(body);
       summary.json_top_level_keys = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.keys(parsed).slice(0, 30) : [];
       const scenarios = Array.isArray(parsed?.scenarios) ? parsed.scenarios : Array.isArray(parsed) ? parsed : null;
       summary.scenario_count_visible = scenarios ? scenarios.length : null;
+      summary.page = parsed?.pg && typeof parsed.pg === 'object' ? {
+        offset: Number.isSafeInteger(Number(parsed.pg.offset)) ? Number(parsed.pg.offset) : null,
+        limit: Number.isSafeInteger(Number(parsed.pg.limit)) ? Number(parsed.pg.limit) : null
+      } : null;
+      summary.json_parseable = true;
     } catch {
       summary.json_parseable = false;
     }
+  } else {
+    summary.json_parseable = false;
   }
   return summary;
 }
@@ -109,6 +126,8 @@ export function makeReadOnlyRunnerManifest() {
     schema: 'riosystems.make-readonly-runner.v1',
     methods: ['GET'],
     allowed_paths: [...ALLOWED_PATHS],
+    max_scenario_page_limit: MAX_SCENARIO_PAGE_LIMIT,
+    required_scenario_sort: 'id',
     secret_resolver_required: true,
     explicit_read_only_execution_approval_required: true,
     redirects_allowed: false,
