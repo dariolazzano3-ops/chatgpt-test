@@ -4,6 +4,7 @@ import { aiProviderDecisionManifest } from './ai-provider-strategy.js';
 import { businessProviderDecisionManifest } from './business-provider-strategy.js';
 import { listExecutionAdapters } from './execution-adapters.js';
 import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
+import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWebReadVerified } from './cloudflare-live-read-evidence.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const ACTIVE_FACTORY_KEYS = Object.freeze(['web','automation','ai','business']);
@@ -11,12 +12,16 @@ const ACTIVE_FACTORY_KEYS = Object.freeze(['web','automation','ai','business']);
 export function providerStackV1() {
   const adapters = listExecutionAdapters();
   const byEngine = new Map(adapters.map((item) => [item.engine, item]));
+  const cloudflareEvidence = cloudflareLiveReadEvidence();
   const factories = {
     web: {
       decision: webProviderDecisionManifest(),
       adapter: clone(byEngine.get('web')),
       primary_path: ['riosystems-native-web','cloudflare-workers-free'],
-      optional_specialists: ['lovable-github','framer-server-api','webflow-api']
+      optional_specialists: ['lovable-github','framer-server-api','webflow-api'],
+      provider_read_verified: isCloudflareWebReadVerified(),
+      provider_read_evidence: cloudflareEvidence,
+      staging_deploy_verified: false
     },
     automation: {
       decision: automationProviderDecisionManifest(),
@@ -32,7 +37,9 @@ export function providerStackV1() {
       adapter: clone(byEngine.get('ai')),
       primary_path: ['riosystems-ai-local-policy','openai-api'],
       free_staging_path: ['riosystems-ai-local-policy','cloudflare-workers-ai-free'],
-      model_ladder: ['gpt-5.6-luna','gpt-5.6-terra','gpt-5.6-sol']
+      model_ladder: ['gpt-5.6-luna','gpt-5.6-terra','gpt-5.6-sol'],
+      cloudflare_ai_read_verified: isCloudflareAiReadVerified(),
+      cloudflare_ai_blocker: isCloudflareAiReadVerified() ? null : 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
     },
     business: {
       decision: businessProviderDecisionManifest(),
@@ -74,11 +81,26 @@ export function providerStackV1() {
 }
 
 export function providerActivationMatrix() {
+  const cf = cloudflareLiveReadEvidence();
   return {
     schema: 'riosystems.provider-activation-matrix.v1',
     providers: [
-      { id: 'cloudflare-workers-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
-      { id: 'cloudflare-workers-ai-free', selection: 'selected', activation: 'binding_validation_required', paid_fallback: 'disabled' },
+      {
+        id: 'cloudflare-workers-free',
+        selection: 'selected',
+        activation: 'live_read_verified_staging_deploy_not_authorized',
+        workers_scripts_read: cf.capabilities.workers_scripts_read,
+        pages_projects_read: cf.capabilities.pages_projects_read,
+        evidence_run_id: cf.github_actions_run_id,
+        real_write: 'explicit_deployment_approval_required'
+      },
+      {
+        id: 'cloudflare-workers-ai-free',
+        selection: 'selected',
+        activation: 'permission_required',
+        workers_ai_read: cf.capabilities.workers_ai_read,
+        paid_fallback: 'disabled'
+      },
       { id: 'supabase-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'posthog-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'openai-api', selection: 'selected', activation: 'credential_and_budget_gate_required', paid_execution: 'approval_required' },
@@ -125,8 +147,9 @@ export function planProviderStackMission(input = {}) {
     },
     activation_status: {
       automation_make_staging_verified: stack.factories.automation.staging_activation_verified === true,
-      web_runtime_verified: false,
-      ai_runtime_verified: false,
+      web_cloudflare_read_verified: stack.factories.web.provider_read_verified === true,
+      web_staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
+      ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_read_verified === true,
       business_runtime_verified: false
     },
     execution_authorized: false,
@@ -134,6 +157,6 @@ export function planProviderStackMission(input = {}) {
     paid_execution: false,
     automatic_paid_overflow: false,
     production_deploy: false,
-    next_gate: 'ACTIVATE_REMAINING_REAL_STAGING_PROVIDERS'
+    next_gate: 'WEB_STAGING_DEPLOYMENT_APPROVAL_OR_AI_CREDENTIAL_ACTIVATION'
   };
 }
