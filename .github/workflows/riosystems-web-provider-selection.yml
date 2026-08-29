@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/web-provider-strategy.js'
       - 'src/web-provider-router.js'
+      - 'src/execution-adapters.js'
       - 'scripts/web-provider-selection-smoke.mjs'
       - 'docs/RIOSYSTEMS-WEB-FACTORY-PROVIDER-DECISION.md'
       - '.github/workflows/riosystems-web-provider-selection.yml'
@@ -22,9 +23,12 @@ jobs:
         run: |
           node --check src/web-provider-strategy.js
           node --check src/web-provider-router.js
+          node --check src/execution-adapters.js
           node --check scripts/web-provider-selection-smoke.mjs
       - name: Web provider selection smoke
         run: node scripts/web-provider-selection-smoke.mjs
+      - name: Execution adapter regression
+        run: node scripts/execution-adapter-smoke.mjs
       - name: Preview staging regression
         run: node scripts/preview-staging-fullgas-smoke.mjs
       - name: Staging release budget regression
