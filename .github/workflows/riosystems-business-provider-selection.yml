@@ -1,0 +1,41 @@
+name: RIOSYSTEMS Business Provider Selection
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/business-provider-strategy.js'
+      - 'src/business-provider-router.js'
+      - 'src/execution-adapters.js'
+      - 'scripts/business-provider-selection-smoke.mjs'
+      - 'docs/RIOSYSTEMS-BUSINESS-FACTORY-PROVIDER-DECISION.md'
+      - '.github/workflows/riosystems-business-provider-selection.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/business-provider-strategy.js
+          node --check src/business-provider-router.js
+          node --check src/execution-adapters.js
+          node --check scripts/business-provider-selection-smoke.mjs
+      - name: Business provider selection smoke
+        run: node scripts/business-provider-selection-smoke.mjs
+      - name: AI provider regression
+        run: node scripts/ai-provider-selection-smoke.mjs
+      - name: Automation provider regression
+        run: node scripts/automation-provider-selection-smoke.mjs
+      - name: Web provider regression
+        run: node scripts/web-provider-selection-smoke.mjs
+      - name: Real provider bridge regression
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
