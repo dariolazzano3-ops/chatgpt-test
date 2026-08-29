@@ -39,8 +39,9 @@ const adapter = resolveExecutionAdapter({ domain: 'automation', engine: 'automat
 assert.equal(adapter.ok, true);
 assert.equal(adapter.adapter.mode, 'provider_routed');
 assert.equal(adapter.adapter.provider_policy, 'riosystems.automation-provider-strategy.v1');
-assert.equal(adapter.adapter.default_runtime_provider, 'activepieces-cloud-free');
-assert.equal(adapter.adapter.fallback_runtime_provider, 'make-core');
+assert.equal(adapter.adapter.default_runtime_provider, 'make-core');
+assert.equal(adapter.adapter.secondary_runtime_provider, 'activepieces-cloud-free');
+assert.equal(adapter.adapter.technical_specialist_provider, 'n8n-client-owned');
 assert.equal(adapter.adapter.external_side_effects, 'supervised_only');
 assert.equal(adapter.adapter.automatic_execution, false);
 assert.equal(adapter.adapter.production_deploy, false);
