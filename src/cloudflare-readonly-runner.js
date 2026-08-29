@@ -23,6 +23,7 @@ export function buildCloudflareReadonlyPreflightPlan(input = {}) {
       user_token_verify: request('/client/v4/user/tokens/verify'),
       account_token_verify: request(`/client/v4/accounts/${accountId}/tokens/verify`),
       workers_scripts: request(`/client/v4/accounts/${accountId}/workers/scripts`),
+      pages_projects: request(`/client/v4/accounts/${accountId}/pages/projects?per_page=5`),
       d1_databases: request(`/client/v4/accounts/${accountId}/d1/database?per_page=5`),
       workers_ai_models: request(`/client/v4/accounts/${accountId}/ai/models/search?per_page=1`)
     },
@@ -94,8 +95,9 @@ export async function runCloudflareReadonlyPreflight(plan = {}, runtime = {}) {
     };
   }
 
-  const [workers, d1, ai] = await Promise.all([
+  const [workers, pages, d1, ai] = await Promise.all([
     fetchJson(runtime.fetch_impl, plan.requests.workers_scripts, token, timeoutMs),
+    fetchJson(runtime.fetch_impl, plan.requests.pages_projects, token, timeoutMs),
     fetchJson(runtime.fetch_impl, plan.requests.d1_databases, token, timeoutMs),
     fetchJson(runtime.fetch_impl, plan.requests.workers_ai_models, token, timeoutMs)
   ]);
@@ -108,11 +110,13 @@ export async function runCloudflareReadonlyPreflight(plan = {}, runtime = {}) {
     verification_mode: verifyMode,
     capabilities: {
       workers_scripts_read: capability(workers),
+      pages_projects_read: capability(pages),
       d1_read: capability(d1),
       workers_ai_read: capability(ai)
     },
     resource_presence: {
       worker_scripts_present: workers.ok && Array.isArray(workers.body?.result) ? workers.body.result.length > 0 : null,
+      pages_projects_present: pages.ok && Array.isArray(pages.body?.result) ? pages.body.result.length > 0 : null,
       d1_databases_present: d1.ok && Array.isArray(d1.body?.result) ? d1.body.result.length > 0 : null,
       workers_ai_models_visible: ai.ok && Array.isArray(ai.body?.result) ? ai.body.result.length > 0 : null
     },
@@ -131,6 +135,7 @@ export function cloudflareReadonlyRunnerManifest() {
     api_origin: API_ORIGIN,
     methods: ['GET'],
     token_verification_endpoints: ['user/tokens/verify','accounts/:account_id/tokens/verify'],
+    probed_capabilities: ['workers_scripts_read','pages_projects_read','d1_read','workers_ai_read'],
     token_secret_ref: 'secret:CLOUDFLARE_API_TOKEN',
     account_secret_ref: 'secret:CLOUDFLARE_ACCOUNT_ID',
     external_write: false,
