@@ -3,6 +3,7 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
+import { scheduleFactoryTelemetry } from "./posthog-telemetry.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -24,7 +25,10 @@ export default {
 
     if (url.pathname === "/factory" || url.pathname.startsWith("/factory/")) {
       const response = await handleFactory(request, env, ctx);
-      if (response) return response;
+      if (response) {
+        scheduleFactoryTelemetry(request, response, env, ctx);
+        return response;
+      }
     }
 
     return app.fetch(request, env, ctx);
