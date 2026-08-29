@@ -1,0 +1,63 @@
+name: RIOSYSTEMS Make Live Staging Create
+
+on:
+  workflow_dispatch:
+    inputs:
+      zone_url:
+        description: 'Make zone URL, e.g. https://eu1.make.com'
+        required: true
+        default: 'https://eu1.make.com'
+        type: string
+      team_id:
+        description: 'Make team ID'
+        required: true
+        type: string
+      plan:
+        description: 'Make plan class with API access'
+        required: true
+        default: 'core'
+        type: choice
+        options:
+          - core
+          - pro
+          - teams
+          - enterprise
+      confirm_staging_create:
+        description: 'Type CREATE_STAGING_ONLY to authorize one inactive isolated staging scenario creation'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-make-live-staging-create
+  cancel-in-progress: false
+
+jobs:
+  create-staging-scenario:
+    if: ${{ inputs.confirm_staging_create == 'CREATE_STAGING_ONLY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: factory-control
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate secret presence without revealing it
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+        run: |
+          test -n "$MAKE_API_TOKEN" || (echo 'MAKE_API_TOKEN secret is missing' && exit 2)
+      - name: Create one guarded inactive Make staging scenario
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE_URL: ${{ inputs.zone_url }}
+          MAKE_TEAM_ID: ${{ inputs.team_id }}
+          MAKE_PLAN: ${{ inputs.plan }}
+          RIOSYSTEMS_MAKE_STAGING_CREATE_APPROVED: 'CREATE_STAGING_ONLY'
+        run: node scripts/make-live-staging-scenario-create.mjs
