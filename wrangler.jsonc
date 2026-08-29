@@ -19,5 +19,22 @@
       "database_name": "chatgpt-test-db",
       "database_id": "24bce336-3a04-4517-bd12-c9e713068d58"
     }
-  ]
+  ],
+  "env": {
+    "staging": {
+      "name": "riosystems-staging",
+      "workers_dev": true,
+      "routes": [],
+      "vars": {
+        "RIOSYSTEMS_ENVIRONMENT": "staging",
+        "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",
+        "RIOSYSTEMS_EXTERNAL_WRITES": "false",
+        "FACTORY_CONTROL_BRANCH": "factory-control"
+      },
+      "d1_databases": [],
+      "observability": {
+        "enabled": false
+      }
+    }
+  }
 }
