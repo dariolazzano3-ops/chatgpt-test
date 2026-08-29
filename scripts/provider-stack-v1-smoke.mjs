@@ -9,7 +9,11 @@ for (const key of stack.active_factories) {
   assert.equal(stack.factories[key].adapter.production_deploy, false);
 }
 assert.deepEqual(stack.factories.web.primary_path, ['riosystems-native-web','cloudflare-workers-free']);
-assert.deepEqual(stack.factories.automation.primary_path, ['riosystems-native-automation','activepieces-cloud-free']);
+assert.deepEqual(stack.factories.automation.primary_path, ['riosystems-native-automation','make-core']);
+assert.deepEqual(stack.factories.automation.secondary_path, ['riosystems-native-automation','activepieces-cloud-free']);
+assert.equal(stack.factories.automation.adapter.default_runtime_provider, 'make-core');
+assert.equal(stack.factories.automation.adapter.secondary_runtime_provider, 'activepieces-cloud-free');
+assert.equal(stack.factories.automation.adapter.technical_specialist_provider, 'n8n-client-owned');
 assert.deepEqual(stack.factories.ai.primary_path, ['riosystems-ai-local-policy','openai-api']);
 assert.deepEqual(stack.factories.ai.free_staging_path, ['riosystems-ai-local-policy','cloudflare-workers-ai-free']);
 assert.deepEqual(stack.factories.business.primary_path, ['riosystems-native-business','supabase-free','posthog-free']);
@@ -25,14 +29,16 @@ assert.equal(matrix.secrets_embedded, false);
 assert.equal(matrix.automatic_paid_overflow, false);
 assert.equal(matrix.production_deploy, false);
 assert.equal(matrix.providers.find((item) => item.id === 'openai-api')?.paid_execution, 'approval_required');
-assert.equal(matrix.providers.find((item) => item.id === 'activepieces-cloud-free')?.activation, 'account_connection_required');
+assert.equal(matrix.providers.find((item) => item.id === 'make-core')?.selection, 'primary_automation_runtime');
+assert.equal(matrix.providers.find((item) => item.id === 'activepieces-cloud-free')?.selection, 'strategic_secondary_runtime');
+assert.equal(matrix.providers.find((item) => item.id === 'n8n-client-owned')?.selection, 'technical_specialist');
 assert.equal(matrix.providers.find((item) => item.id === 'lovable-github')?.selection, 'optional_specialist');
 
 const bakery = planProviderStackMission({ project: 'Bäckerei Müller' });
 assert.equal(bakery.ok, true);
 assert.equal(bakery.project, 'Bäckerei Müller');
 assert.deepEqual(bakery.routes.web, ['riosystems-native-web','cloudflare-workers-free']);
-assert.deepEqual(bakery.routes.automation, ['riosystems-native-automation','activepieces-cloud-free']);
+assert.deepEqual(bakery.routes.automation, ['riosystems-native-automation','make-core']);
 assert.deepEqual(bakery.routes.ai, ['riosystems-ai-local-policy','cloudflare-workers-ai-free']);
 assert.deepEqual(bakery.routes.business, ['riosystems-native-business','supabase-free','posthog-free']);
 assert.equal(bakery.execution_authorized, false);

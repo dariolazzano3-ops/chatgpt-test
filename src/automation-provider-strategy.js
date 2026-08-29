@@ -18,8 +18,24 @@ const PROVIDERS = Object.freeze([
     evidence: ['src/automation-factory.js','src/automation-executor.js','src/automation-external-actions.js']
   }),
   Object.freeze({
-    id: 'activepieces-cloud-free',
+    id: 'make-core',
     role: 'primary_external_runtime',
+    category: 'workflow_automation_saas',
+    capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
+    availability: 'connection_required',
+    account_connection_required: true,
+    source_ownership: 'provider_blueprint',
+    automation_fit: 'very_high_for_business_connectors',
+    cost_mode: 'paid_credits',
+    paid_plan_required: true,
+    external_write: true,
+    production_deploy: false,
+    selection_reason: 'existing_operator_tool_and_fastest_business_automation_path',
+    evidence: ['operator_decision_2026-08-29','https://www.make.com/en/pricing']
+  }),
+  Object.freeze({
+    id: 'activepieces-cloud-free',
+    role: 'strategic_secondary_runtime',
     category: 'workflow_automation_cloud',
     capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
     availability: 'connection_required',
@@ -30,6 +46,7 @@ const PROVIDERS = Object.freeze([
     paid_plan_required: false,
     external_write: true,
     production_deploy: false,
+    strategic_value: 'open_source_path_and_future_self_host_control',
     license_posture: 'cloud_service_api_access',
     evidence: 'https://www.activepieces.com/pricing'
   }),
@@ -51,29 +68,14 @@ const PROVIDERS = Object.freeze([
     evidence: 'https://www.activepieces.com/docs/about/license'
   }),
   Object.freeze({
-    id: 'make-core',
-    role: 'fallback_connector_runtime',
-    category: 'workflow_automation_saas',
-    capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
-    availability: 'not_connected',
-    account_connection_required: true,
-    source_ownership: 'provider_blueprint',
-    automation_fit: 'high',
-    cost_mode: 'paid_credits',
-    paid_plan_required: true,
-    external_write: true,
-    production_deploy: false,
-    evidence: 'https://www.make.com/en/pricing'
-  }),
-  Object.freeze({
     id: 'n8n-client-owned',
-    role: 'client_owned_specialist',
+    role: 'technical_specialist_runtime',
     category: 'workflow_automation',
-    capabilities: ['automation.flow.run','automation.webhook','automation.integrations'],
+    capabilities: ['automation.flow.run','automation.webhook','automation.integrations','automation.code_heavy'],
     availability: 'client_instance_required',
     account_connection_required: true,
     source_ownership: 'client_instance',
-    automation_fit: 'high',
+    automation_fit: 'very_high_for_complex_api_and_code_workflows',
     cost_mode: 'client_or_commercial_license',
     paid_plan_required: 'use_case_dependent',
     external_write: true,
@@ -103,17 +105,20 @@ export function automationProviderStrategy() {
     schema: 'riosystems.automation-provider-strategy.v1',
     verified_at: VERIFIED_AT,
     primary_orchestrator: 'riosystems-native-automation',
-    primary_external_runtime: 'activepieces-cloud-free',
+    primary_external_runtime: 'make-core',
+    strategic_secondary_runtime: 'activepieces-cloud-free',
     future_self_hosted_runtime: 'activepieces-community',
-    fallback_connector_runtime: 'make-core',
-    client_owned_specialist: 'n8n-client-owned',
+    technical_specialist_runtime: 'n8n-client-owned',
     micro_automation_runtime: 'cloudflare-workers-free',
     principles: [
       'lean_keeps_workflow_intent_and_policy',
+      'make_is_primary_for_fast_business_automation',
+      'activepieces_preserves_open_source_and_self_host_optionality',
+      'n8n_is_reserved_for_complex_technical_workflows_by_default',
       'external_runtime_is_replaceable',
-      'free_hard_cap_before_paid_overflow',
       'client_credentials_are_never_embedded',
       'external_writes_require_supervision',
+      'paid_execution_requires_explicit_approval',
       'production_requires_separate_explicit_approval'
     ],
     providers: clone(PROVIDERS),
@@ -130,22 +135,22 @@ export function selectAutomationRuntime(input = {}) {
   if (input.production_deploy === true) return { ok: false, error: 'PRODUCTION_DEPLOY_REJECTED', production_deploy: false };
   const mode = String(input.mode || 'default').trim().toLowerCase();
   const connected = new Set(Array.isArray(input.connected_providers) ? input.connected_providers : []);
-  let selectedId = 'activepieces-cloud-free';
+  let selectedId = 'make-core';
   const blockers = [];
-  const reasons = ['api_access_on_free_cloud','hard_cap_instead_of_paid_overflow','broad_workflow_coverage','future_mit_self_host_path'];
+  const reasons = ['existing_operator_tool','broad_connector_catalog','fast_business_automation','mature_saas_runtime'];
 
   if (mode === 'micro') {
     selectedId = 'cloudflare-workers-free';
     reasons.splice(0, reasons.length, 'small_code_flow','repository_owned','already_connected_edge_runtime');
-  } else if (mode === 'connector_fallback') {
-    selectedId = 'make-core';
-    reasons.splice(0, reasons.length, 'broad_connector_catalog','scenario_api');
-  } else if (mode === 'client_owned_n8n') {
+  } else if (mode === 'secondary' || mode === 'strategic_secondary' || mode === 'connector_fallback') {
+    selectedId = 'activepieces-cloud-free';
+    reasons.splice(0, reasons.length, 'open_source_path','free_cloud_option','future_self_host_control');
+  } else if (mode === 'technical_specialist' || mode === 'client_owned_n8n') {
     selectedId = 'n8n-client-owned';
-    reasons.splice(0, reasons.length, 'client_owned_instance','avoid_hosted_client_workflow_license_risk');
+    reasons.splice(0, reasons.length, 'complex_api_and_code_workflow','client_owned_instance','avoid_shared_hosting_license_risk');
   } else if (mode === 'self_hosted') {
     selectedId = 'activepieces-community';
-    reasons.splice(0, reasons.length, 'mit_core','self_host_control','unlimited_community_runs');
+    reasons.splice(0, reasons.length, 'mit_core','self_host_control','community_runtime');
   }
 
   const provider = getAutomationProvider(selectedId);
@@ -170,12 +175,14 @@ export function automationProviderDecisionManifest() {
   return {
     version: 'riosystems.automation-provider-decision.v1',
     primary_control_engine: 'riosystems-native-automation',
-    primary_external_runtime: 'activepieces-cloud-free',
-    fallback_external_runtime: 'make-core',
-    client_owned_n8n_only_by_default: true,
+    primary_external_runtime: 'make-core',
+    strategic_secondary_runtime: 'activepieces-cloud-free',
+    future_self_hosted_runtime: 'activepieces-community',
+    technical_specialist_runtime: 'n8n-client-owned',
     micro_runtime: 'cloudflare-workers-free',
     provider_choice_complete_for_automation_factory_v1: true,
     activation_is_separate_from_selection: true,
+    automatic_paid_overflow: false,
     production_deploy: false
   };
 }
