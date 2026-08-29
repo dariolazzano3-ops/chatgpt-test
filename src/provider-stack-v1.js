@@ -20,9 +20,9 @@ export function providerStackV1() {
     automation: {
       decision: automationProviderDecisionManifest(),
       adapter: clone(byEngine.get('automation')),
-      primary_path: ['riosystems-native-automation','activepieces-cloud-free'],
-      fallback_path: ['riosystems-native-automation','make-core'],
-      specialist_paths: ['activepieces-community','n8n-client-owned','cloudflare-workers-free']
+      primary_path: ['riosystems-native-automation','make-core'],
+      secondary_path: ['riosystems-native-automation','activepieces-cloud-free'],
+      specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free']
     },
     ai: {
       decision: aiProviderDecisionManifest(),
@@ -79,12 +79,13 @@ export function providerActivationMatrix() {
       { id: 'supabase-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'posthog-free', selection: 'selected', activation: 'runtime_discovery_required', real_write: 'approval_required' },
       { id: 'openai-api', selection: 'selected', activation: 'credential_and_budget_gate_required', paid_execution: 'approval_required' },
-      { id: 'activepieces-cloud-free', selection: 'selected', activation: 'account_connection_required', real_write: 'approval_required' },
+      { id: 'make-core', selection: 'primary_automation_runtime', activation: 'account_connection_and_paid_gate_required', real_write: 'approval_required' },
+      { id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', activation: 'only_if_secondary_path_needed', real_write: 'approval_required' },
+      { id: 'n8n-client-owned', selection: 'technical_specialist', activation: 'only_if_complex_workflow_and_client_instance_exists' },
+      { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
       { id: 'lovable-github', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
       { id: 'framer-server-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
-      { id: 'webflow-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
-      { id: 'make-core', selection: 'paid_fallback', activation: 'only_if_primary_insufficient' },
-      { id: 'n8n-client-owned', selection: 'client_owned_specialist', activation: 'only_if_client_instance_exists' }
+      { id: 'webflow-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' }
     ],
     secrets_embedded: false,
     automatic_paid_overflow: false,
