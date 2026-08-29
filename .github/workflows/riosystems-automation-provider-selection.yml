@@ -1,0 +1,43 @@
+name: RIOSYSTEMS Automation Provider Selection
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/automation-provider-strategy.js'
+      - 'src/automation-provider-router.js'
+      - 'src/execution-adapters.js'
+      - 'scripts/automation-provider-selection-smoke.mjs'
+      - 'docs/RIOSYSTEMS-AUTOMATION-FACTORY-PROVIDER-DECISION.md'
+      - '.github/workflows/riosystems-automation-provider-selection.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/automation-provider-strategy.js
+          node --check src/automation-provider-router.js
+          node --check src/execution-adapters.js
+          node --check scripts/automation-provider-selection-smoke.mjs
+      - name: Automation provider selection smoke
+        run: node scripts/automation-provider-selection-smoke.mjs
+      - name: Existing Automation Factory regression
+        run: node scripts/automation-factory-smoke.mjs
+      - name: Automation executor regression
+        run: node scripts/automation-executor-smoke.mjs
+      - name: Automation external actions regression
+        run: node scripts/automation-external-actions-smoke.mjs
+      - name: Web provider regression
+        run: node scripts/web-provider-selection-smoke.mjs
+      - name: Real provider bridge regression
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
