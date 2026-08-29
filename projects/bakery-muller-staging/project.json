@@ -1,0 +1,23 @@
+{
+  "schema": "riosystems.web-staging-project.v1",
+  "project": {
+    "name": "Bäckerei Müller",
+    "slug": "bakery-muller-staging",
+    "reference_mission": true
+  },
+  "generated_by": "riosystems-native-web",
+  "environment": "staging",
+  "synthetic_test_data_only": true,
+  "real_customer_data": false,
+  "external_integrations": false,
+  "forms_enabled": false,
+  "payments_enabled": false,
+  "robots": "noindex,nofollow",
+  "hosting_target": "cloudflare-pages-preview",
+  "expected_pages_project": "chatgpt-factory-preview",
+  "deployment_authorized": false,
+  "custom_domain": false,
+  "dns_change": false,
+  "automatic_paid_overflow": false,
+  "production_deploy": false
+}
