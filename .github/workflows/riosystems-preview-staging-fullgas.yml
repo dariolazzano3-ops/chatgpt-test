@@ -1,0 +1,37 @@
+name: RIOSYSTEMS Preview Staging Fullgas
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/preview-staging.js'
+      - 'src/durable-runtime-store.js'
+      - 'scripts/preview-staging-fullgas-smoke.mjs'
+      - 'package.json'
+      - '.github/workflows/riosystems-preview-staging-fullgas.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/preview-staging.js
+          node --check src/durable-runtime-store.js
+          node --check scripts/preview-staging-fullgas-smoke.mjs
+      - name: Preview staging and durable store smoke
+        run: node scripts/preview-staging-fullgas-smoke.mjs
+      - name: Real provider bridge regression
+        run: node scripts/real-provider-bridge-smoke.mjs
+      - name: Staging provider bindings regression
+        run: node scripts/staging-provider-bindings-smoke.mjs
+      - name: Zero-cost pilot regression
+        run: node scripts/zero-cost-pilot-smoke.mjs
+      - name: Phase 6 regression
+        run: node scripts/riosystems-phase6-smoke.mjs
+      - name: V5 regression
+        run: node scripts/factory-v50-readiness.mjs
