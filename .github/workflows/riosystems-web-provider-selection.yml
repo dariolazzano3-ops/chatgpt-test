@@ -27,8 +27,8 @@ jobs:
           node --check scripts/web-provider-selection-smoke.mjs
       - name: Web provider selection smoke
         run: node scripts/web-provider-selection-smoke.mjs
-      - name: Execution adapter regression
-        run: node scripts/execution-adapter-smoke.mjs
+      - name: Factory v3.9 adapter regression
+        run: node scripts/factory-v39-readiness.mjs
       - name: Preview staging regression
         run: node scripts/preview-staging-fullgas-smoke.mjs
       - name: Staging release budget regression
