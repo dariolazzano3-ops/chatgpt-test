@@ -1,0 +1,24 @@
+name: PostHog Telemetry Check
+
+on:
+  pull_request:
+    paths:
+      - "src/posthog-telemetry.js"
+      - "src/entry.js"
+      - "scripts/posthog-telemetry-smoke.mjs"
+      - "docs/POSTHOG_CORE_TELEMETRY.md"
+      - ".github/workflows/posthog-telemetry-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check telemetry adapter
+        run: node --check src/posthog-telemetry.js
+      - name: Run privacy and failure-isolation smoke test
+        run: node scripts/posthog-telemetry-smoke.mjs
