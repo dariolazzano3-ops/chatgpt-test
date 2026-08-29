@@ -20,7 +20,8 @@ export function buildCloudflareReadonlyPreflightPlan(input = {}) {
     state: 'READ_ONLY_PLAN_READY',
     token_ref: clean(input.token_ref || 'secret:CLOUDFLARE_API_TOKEN', 160),
     requests: {
-      token_verify: request('/client/v4/user/tokens/verify'),
+      user_token_verify: request('/client/v4/user/tokens/verify'),
+      account_token_verify: request(`/client/v4/accounts/${accountId}/tokens/verify`),
       workers_scripts: request(`/client/v4/accounts/${accountId}/workers/scripts`),
       d1_databases: request(`/client/v4/accounts/${accountId}/d1/database?per_page=5`),
       workers_ai_models: request(`/client/v4/accounts/${accountId}/ai/models/search?per_page=1`)
@@ -75,13 +76,17 @@ export async function runCloudflareReadonlyPreflight(plan = {}, runtime = {}) {
   if (!token) return { ok: false, error: 'CLOUDFLARE_SECRET_RESOLUTION_FAILED', production_deploy: false };
   const timeoutMs = Math.min(Math.max(Number(runtime.timeout_ms) || 8000, 1000), 15000);
 
-  const verify = await fetchJson(runtime.fetch_impl, plan.requests.token_verify, token, timeoutMs);
-  if (!verify.ok) {
+  const userVerify = await fetchJson(runtime.fetch_impl, plan.requests.user_token_verify, token, timeoutMs);
+  const accountVerify = userVerify.ok ? null : await fetchJson(runtime.fetch_impl, plan.requests.account_token_verify, token, timeoutMs);
+  const verify = userVerify.ok ? userVerify : accountVerify;
+  const verifyMode = userVerify.ok ? 'user_token_endpoint' : accountVerify?.ok ? 'account_token_endpoint' : 'none';
+  if (!verify?.ok) {
     return {
       ok: false,
       schema: 'riosystems.cloudflare-readonly-preflight-result.v1',
       stage: 'CLOUDFLARE_AUTHENTICATION_FAILED',
       token_status: capability(verify),
+      verification_mode: verifyMode,
       secrets_returned: false,
       authorization_header_returned: false,
       external_side_effect_performed: false,
@@ -100,6 +105,7 @@ export async function runCloudflareReadonlyPreflight(plan = {}, runtime = {}) {
     schema: 'riosystems.cloudflare-readonly-preflight-result.v1',
     stage: 'CLOUDFLARE_READONLY_PREFLIGHT_COMPLETE',
     token_status: 'active',
+    verification_mode: verifyMode,
     capabilities: {
       workers_scripts_read: capability(workers),
       d1_read: capability(d1),
@@ -124,6 +130,7 @@ export function cloudflareReadonlyRunnerManifest() {
     schema: 'riosystems.cloudflare-readonly-runner.v1',
     api_origin: API_ORIGIN,
     methods: ['GET'],
+    token_verification_endpoints: ['user/tokens/verify','accounts/:account_id/tokens/verify'],
     token_secret_ref: 'secret:CLOUDFLARE_API_TOKEN',
     account_secret_ref: 'secret:CLOUDFLARE_ACCOUNT_ID',
     external_write: false,
