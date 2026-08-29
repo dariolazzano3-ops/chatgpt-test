@@ -1,0 +1,74 @@
+name: RIOSYSTEMS Bäckerei Pages Preview
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/riosystems-bakery-pages-preview.yml'
+      - 'projects/bakery-muller-staging/**'
+      - 'scripts/pages-preview-deploy-guard.mjs'
+      - 'scripts/pages-preview-deploy-guard-smoke.mjs'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY_BAKERY_MULLER_PAGES_PREVIEW_ZERO_COST
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-bakery-pages-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate Pages preview safety contract
+        run: node scripts/pages-preview-deploy-guard-smoke.mjs
+      - name: Validate synthetic web artifact
+        run: node scripts/bakery-muller-web-staging-readiness.mjs
+
+  deploy-preview:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: chatgpt-factory-preview
+      RIOSYSTEMS_PAGES_PROJECT_SLUG: bakery-muller-staging
+      RIOSYSTEMS_STAGING_DEPLOY_APPROVED: 'true'
+      RIOSYSTEMS_ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+      RIOSYSTEMS_PAGES_STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Require canonical control branch
+        run: test "$GITHUB_REF" = 'refs/heads/factory-control'
+      - uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enforce staging, approval and zero-cost gates
+        run: node scripts/pages-preview-deploy-guard.mjs --deploy
+      - name: Require configured Cloudflare credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing Cloudflare API token'; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing Cloudflare account ID'; exit 2; }
+      - name: Deploy fixed non-production Pages preview
+        run: |
+          npx --yes wrangler@4 pages deploy "projects/$RIOSYSTEMS_PAGES_PROJECT_SLUG" \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+            --branch riosystems-staging-bakery-muller
