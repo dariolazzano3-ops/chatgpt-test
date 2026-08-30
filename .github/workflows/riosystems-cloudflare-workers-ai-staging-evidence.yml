@@ -1,0 +1,42 @@
+name: RIOSYSTEMS Cloudflare Workers AI Staging Evidence
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/cloudflare-workers-ai-staging-evidence.js'
+      - 'src/provider-stack-v1.js'
+      - 'src/command-center.js'
+      - 'scripts/cloudflare-workers-ai-staging-evidence-smoke.mjs'
+      - 'scripts/provider-stack-v1-smoke.mjs'
+      - 'scripts/phase5-command-center-smoke.mjs'
+      - 'src/ai-factory-v1.js'
+      - 'src/ai-provider-adapters-v1.js'
+      - 'scripts/ai-factory-v1-major-smoke.mjs'
+      - '.github/workflows/riosystems-cloudflare-workers-ai-staging-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/cloudflare-workers-ai-staging-evidence.js
+          node --check scripts/cloudflare-workers-ai-staging-evidence-smoke.mjs
+      - name: Workers AI immutable evidence
+        run: node scripts/cloudflare-workers-ai-staging-evidence-smoke.mjs
+      - name: AI Factory regression
+        run: node scripts/ai-factory-v1-major-smoke.mjs
+      - name: Provider stack regression
+        run: node scripts/provider-stack-v1-smoke.mjs
+      - name: Command center regression
+        run: node scripts/phase5-command-center-smoke.mjs
