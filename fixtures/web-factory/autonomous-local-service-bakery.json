@@ -1,0 +1,56 @@
+{
+  "quality_level": "STANDARD",
+  "use_framer_visual_specialist": false,
+  "mission": {
+    "business_name": "Bäckerei Müller",
+    "project_slug": "bakery-muller-autonomous-staging",
+    "industry": "local bakery service",
+    "country": "Germany",
+    "language": "de",
+    "target_audience": "Menschen aus der Region, die frische Backwaren und einfache Kontaktmöglichkeiten suchen",
+    "primary_goal": "Lokale Besuche und Kontaktanfragen steigern",
+    "conversion_goal": "Kontakt aufnehmen oder Öffnungszeiten und Standort prüfen",
+    "services": ["Brot und Brötchen", "Feingebäck", "Torten auf Bestellung"],
+    "brand_positioning": "Traditionelles lokales Handwerk mit klarer, moderner Kommunikation",
+    "tone": "warm, vertrauenswürdig, bodenständig, klar",
+    "quality_level": "STANDARD",
+    "required_pages": ["home", "services", "about", "contact", "faq"],
+    "visual_references": [
+      {
+        "reference_id": "bakery-trust-reference",
+        "source": "synthetic-local-reference",
+        "role": "global_style",
+        "priority": 70,
+        "instructions": "Use the calm local trust feeling, not brand identity.",
+        "allowed_influence": ["colors", "spacing", "cards"],
+        "excluded_elements": ["logo", "photography", "copy"],
+        "match_strength": 0.6,
+        "analysis": {
+          "visual_style": "warm local trustworthy",
+          "color_palette": {
+            "background": "#fffaf2",
+            "surface": "#ffffff",
+            "text": "#2b2118",
+            "muted": "#766757",
+            "accent": "#6f3f21",
+            "accent_text": "#ffffff",
+            "border": "#e4d7c7"
+          },
+          "spacing_rhythm": {"section": "clamp(3.5rem,8vw,6rem)", "grid_gap": "1.25rem", "component": "1.25rem"},
+          "card_geometry": {"radius": "0.75rem", "padding": "1.5rem"},
+          "section_density": "medium"
+        },
+        "elements": [
+          {"element_id": "warm-palette", "element_type": "generic_design_principle", "rights_status": "unknown", "allowed_for_reimplementation": false}
+        ]
+      }
+    ],
+    "operator_design_intent": {"direction": "more trustworthy, more minimal"},
+    "motion_intent": [
+      {"type": "hover", "purpose": "Confirm button and card interaction", "trigger": "pointer_hover", "duration": 160, "intensity": "low"}
+    ],
+    "localization": {"primary_language": "de", "languages": ["de"], "country": "Germany", "currency": "EUR"},
+    "integration_requirements": {"crm": "business-factory", "automation": "automation-factory", "data": "supabase", "analytics": "posthog"},
+    "synthetic_test_data_only": true
+  }
+}

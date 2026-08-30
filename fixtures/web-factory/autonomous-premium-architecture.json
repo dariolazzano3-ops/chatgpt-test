@@ -1,0 +1,137 @@
+{
+  "quality_level": "PREMIUM",
+  "use_framer_visual_specialist": false,
+  "mission": {
+    "business_name": "Atelier Obsidian Architecture",
+    "project_slug": "atelier-obsidian-autonomous-staging",
+    "industry": "architecture studio",
+    "country": "Germany",
+    "language": "en",
+    "target_audience": "Private and commercial clients seeking high-end contemporary architecture",
+    "primary_goal": "Generate qualified project enquiries",
+    "conversion_goal": "Request a private project consultation",
+    "services": ["Residential architecture", "Hospitality architecture", "Interior architecture"],
+    "brand_positioning": "A restrained architecture studio for materially rich, context-led spaces",
+    "tone": "precise, calm, premium, editorial",
+    "quality_level": "PREMIUM",
+    "required_pages": ["home", "services", "about", "gallery", "contact", "faq"],
+    "existing_brand": {
+      "description": "Quiet luxury, material honesty and architectural clarity",
+      "tone": "editorial and assured",
+      "colors": {
+        "background": "#10100f",
+        "surface": "#191816",
+        "text": "#f5f1e8",
+        "muted": "#b5afa3",
+        "accent": "#d2b48c",
+        "accent_text": "#111111",
+        "border": "#38352f"
+      },
+      "assets": [
+        {
+          "asset_id": "obsidian-wordmark-generated",
+          "source": "synthetic-fixture",
+          "kind": "brand-mark",
+          "license_status": "generated",
+          "ownership": "riosystems-test-fixture",
+          "allowed_for_reimplementation": true,
+          "replacement_required": false
+        }
+      ]
+    },
+    "visual_references": [
+      {
+        "reference_id": "ref-hero-dark-editorial",
+        "source": "synthetic-reference-a",
+        "role": "hero",
+        "priority": 92,
+        "instructions": "Use the spatial restraint and hero proportion, not branding or copy.",
+        "allowed_influence": ["layout", "spacing", "visual_hierarchy"],
+        "excluded_elements": ["logo", "copy", "photography"],
+        "match_strength": 0.9,
+        "analysis": {
+          "visual_style": "dark minimal editorial architecture",
+          "spacing_rhythm": {"section": "clamp(5rem,10vw,9rem)", "grid_gap": "1.75rem", "component": "1.5rem"},
+          "containers": {"content": "80rem", "narrow": "50rem"},
+          "section_density": "low",
+          "visual_hierarchy": "monumental headline > image field > concise proof > CTA",
+          "alignment": "contained editorial grid",
+          "background_style": "near-black layered surfaces"
+        },
+        "elements": [
+          {"element_id": "hero-proportion", "element_type": "generic_design_principle", "rights_status": "unknown", "allowed_for_reimplementation": false},
+          {"element_id": "reference-photography", "element_type": "photography", "rights_status": "unknown", "allowed_for_reimplementation": false}
+        ]
+      },
+      {
+        "reference_id": "ref-type-editorial",
+        "source": "synthetic-reference-b",
+        "role": "typography",
+        "priority": 85,
+        "instructions": "Use the scale relationship only.",
+        "allowed_influence": ["typography"],
+        "excluded_elements": ["font files", "copy"],
+        "match_strength": 0.8,
+        "analysis": {
+          "typography_character": "high contrast editorial hierarchy with restrained body text",
+          "heading_scale": {"2xl": "clamp(3rem,7vw,6.5rem)", "xl": "clamp(2rem,4vw,3.25rem)", "lg": "1.5rem"},
+          "body_scale": {"md": "1rem", "lg": "1.125rem"},
+          "contrast": "high"
+        },
+        "elements": [
+          {"element_id": "scale-ratio", "element_type": "generic_design_principle", "rights_status": "unknown", "allowed_for_reimplementation": false}
+        ]
+      },
+      {
+        "reference_id": "ref-card-system",
+        "source": "synthetic-reference-c",
+        "role": "cards",
+        "priority": 70,
+        "instructions": "Use calm card geometry, not icons.",
+        "allowed_influence": ["cards", "borders", "shadows"],
+        "excluded_elements": ["custom icons"],
+        "match_strength": 0.7,
+        "analysis": {
+          "card_geometry": {"radius": "0.75rem", "padding": "2rem"},
+          "borders": "subtle",
+          "shadows": {"card": "0 24px 70px rgba(0,0,0,.18)"}
+        },
+        "elements": [
+          {"element_id": "icon-set", "element_type": "custom_icon", "rights_status": "unknown", "allowed_for_reimplementation": false}
+        ]
+      }
+    ],
+    "operator_design_intent": {
+      "direction": "more premium, more minimal, more editorial, less futuristic",
+      "overrides": {
+        "card_geometry": {"radius": "0.25rem", "padding": "2.25rem"}
+      }
+    },
+    "competitor_references": [
+      {
+        "reference_id": "competitor-architecture-a",
+        "source": "synthetic-competitor-a",
+        "analysis": {
+          "site_structure": ["home", "projects", "studio", "contact"],
+          "offers": ["architecture", "interiors"],
+          "ctas": ["view projects", "contact studio"],
+          "trust_elements": ["awards", "project photography"],
+          "content_patterns": ["large project imagery", "short studio statements"],
+          "page_depth": 5,
+          "navigation": ["projects", "studio", "contact"],
+          "seo_themes": ["architecture studio", "residential architecture"],
+          "conversion_mechanics": ["contact studio"],
+          "visual_patterns": ["dark editorial", "large whitespace"],
+          "weaknesses": ["unclear project enquiry process"]
+        }
+      }
+    ],
+    "motion_intent": [
+      {"type": "scroll_reveal", "purpose": "Reveal project narrative in reading order", "trigger": "viewport_entry", "duration": 360, "intensity": "low"},
+      {"type": "hover", "purpose": "Confirm project card interactivity", "trigger": "pointer_hover", "duration": 180, "intensity": "low"}
+    ],
+    "localization": {"primary_language": "en", "languages": ["en", "de"], "country": "Germany", "currency": "EUR"},
+    "integration_requirements": {"crm": "business-factory", "automation": "automation-factory", "data": "supabase", "analytics": "posthog"},
+    "synthetic_test_data_only": true
+  }
+}

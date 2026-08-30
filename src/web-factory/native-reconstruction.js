@@ -190,7 +190,7 @@ export function reconstructPremiumWebsite(input = {}, options = {}) {
     environment: 'staging'
   });
 
-  if (route.selected.route_id !== 'framer-design-native-cloudflare') {
+  if (!['framer-design-native-cloudflare', 'native-premium-cloudflare'].includes(route.selected.route_id)) {
     return {
       ok: false,
       status: 'PREMIUM_RECONSTRUCTION_ROUTE_NOT_SELECTED',

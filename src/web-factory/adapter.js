@@ -1,9 +1,10 @@
 import { buildWebsiteProject } from './factory.js';
 import { reconstructPremiumWebsite } from './native-reconstruction.js';
+import { buildAutonomousPremiumWebsite } from './autonomous-premium.js';
 import { webProviderRoleModel } from './provider-roles.js';
 import { selectWebBuildRoute } from './routing.js';
 
-const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web_generate', 'web_rebuild', 'web_evolve']);
+const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web_generate', 'web_rebuild', 'web_evolve']);
 
 export function executeWebFactoryTask(task = {}, options = {}) {
   const capability = String(task.capability || 'web.build');
@@ -12,6 +13,14 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   }
 
   const mission = task.website_mission || task.input || task.mission || {};
+  if (capability === 'web.autonomous.premium.build') {
+    return buildAutonomousPremiumWebsite({
+      ...task,
+      mission,
+      quality_level: task.quality_level || task.routing_context?.quality_level || mission.quality_level || 'PREMIUM'
+    }, options);
+  }
+
   const routingContext = task.routing_context || {};
   const route = selectWebBuildRoute({
     ...routingContext,
@@ -57,7 +66,7 @@ export function webFactoryProviderManifest() {
   return {
     schema: 'riosystems.web-factory-provider.v1',
     provider_id: 'riosystems-native-web-builder',
-    capabilities: ['web.build', 'web.premium.build'],
+    capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build'],
     aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
     roles: {
       'riosystems-native-web-builder': 'native_builder',
@@ -66,6 +75,7 @@ export function webFactoryProviderManifest() {
       lovable: 'rapid_prototyper',
       cloudflare: 'hosting_provider'
     },
+    role_specializations: { framer: 'premium_visual_specialist' },
     role_model: webProviderRoleModel(),
     strategy: {
       primary: ['riosystems-native-web-builder', 'github', 'cloudflare-pages-preview'],
@@ -77,6 +87,7 @@ export function webFactoryProviderManifest() {
       specialists: ['framer', 'webflow']
     },
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'],
+    autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'],
     framer_hosting_default: false,
     deterministic_zero_cost_mode: true,
     ai_provider_required: false,

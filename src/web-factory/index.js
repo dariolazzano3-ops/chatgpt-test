@@ -18,3 +18,11 @@ export { createScreenshotComparisonJob, runScreenshotComparison } from './screen
 export { runVisualRepairLoop } from './visual-repair.js';
 export { selectWebBuildRoute } from './routing.js';
 export { reconstructPremiumWebsite } from './native-reconstruction.js';
+export { normalizeVisualReferences, screenshotToDesignSpecManifest, analyzeVisualReference, fuseVisualReferences, evaluateReferenceOriginality } from './reference-intelligence.js';
+export { getIndustryPattern } from './industry-brain.js';
+export { analyzeCompetitorReferences } from './competitor-intelligence.js';
+export { createDesignIntent, designIntentToVisualContract } from './design-intent-engine.js';
+export { directVisualQuality, reviewCro, applyCroMissionRepairs } from './quality-cro.js';
+export { createMotionDesignContract, createLocalizationArchitecture } from './motion-localization.js';
+export { STANDARD_WEBSITE_EVENTS, createMigrationPlan, createBusinessIntegrationPlan, createExperimentContract } from './migration-integration.js';
+export { AUTONOMOUS_QUALITY_LEVELS, buildAutonomousPremiumWebsite } from './autonomous-premium.js';
