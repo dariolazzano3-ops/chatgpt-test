@@ -1,0 +1,48 @@
+name: RIOSYSTEMS Web Factory Autonomous Premium Intelligence V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'fixtures/web-factory/autonomous-*.json'
+      - 'scripts/web-factory-autonomous-premium-smoke.mjs'
+      - '.github/workflows/riosystems-web-factory-autonomous-premium-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax check autonomous premium intelligence
+        run: |
+          node --check src/web-factory/reference-intelligence.js
+          node --check src/web-factory/industry-brain.js
+          node --check src/web-factory/competitor-intelligence.js
+          node --check src/web-factory/design-intent-engine.js
+          node --check src/web-factory/quality-cro.js
+          node --check src/web-factory/motion-localization.js
+          node --check src/web-factory/migration-integration.js
+          node --check src/web-factory/autonomous-premium.js
+          node --check src/web-factory/contracts.js
+          node --check src/web-factory/routing.js
+          node --check src/web-factory/native-reconstruction.js
+          node --check src/web-factory/visual-fidelity.js
+          node --check src/web-factory/visual-repair.js
+          node --check src/web-factory/adapter.js
+          node --check src/web-factory/index.js
+          node --check scripts/web-factory-autonomous-premium-smoke.mjs
+      - name: Existing Web Factory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+      - name: Existing Framer and visual fidelity regression
+        run: node scripts/web-factory-framer-fidelity-smoke.mjs
+      - name: Autonomous premium intelligence acceptance
+        run: node scripts/web-factory-autonomous-premium-smoke.mjs
