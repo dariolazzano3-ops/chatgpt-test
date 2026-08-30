@@ -1,0 +1,37 @@
+name: RIOSYSTEMS Public Website Live QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      preview_url:
+        description: HTTPS preview URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      RIOSYSTEMS_PREVIEW_URL: ${{ inputs.preview_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install chromium
+      - name: Live responsive QA
+        run: node scripts/riosystems-public-website-live-qa.mjs
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riosystems-public-website-v1-visual-qa
+          path: artifacts/riosystems-public-website-v1/*.png
+          if-no-files-found: warn
