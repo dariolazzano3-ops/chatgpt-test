@@ -6,10 +6,10 @@ import { handleDiagnostics } from "./diagnostics.js";
 import { handleOperatorDashboard } from "./operator-dashboard-http-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 
-function operatorUnavailable(error) {
+function operatorUnavailable() {
   return new Response(JSON.stringify({
     error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY",
-    detail: String(error?.message || error || "runtime unavailable").slice(0, 240),
+    private_operator_access_required: true,
     production_deploy: false
   }), {
     status: 503,
@@ -30,7 +30,7 @@ export default {
       try {
         runtimeService = getDurableOperatorRuntimeService(env);
       } catch (error) {
-        if (String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging") return operatorUnavailable(error);
+        if (String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging") return operatorUnavailable();
         throw error;
       }
       const operatorResponse = await handleOperatorDashboard(
