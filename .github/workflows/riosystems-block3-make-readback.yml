@@ -1,0 +1,69 @@
+name: RIOSYSTEMS Block 3 Make Readback
+
+on:
+  push:
+    branches: [chore/block3-make-readback]
+    paths:
+      - '.github/workflows/riosystems-block3-make-readback.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/block3-make-readback
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Read exact scenario state and latest execution log
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          const token = String(process.env.MAKE_API_TOKEN || '').trim();
+          if (!token) throw new Error('MAKE_API_TOKEN_SECRET_MISSING');
+          const headers = { Authorization: `Token ${token}`, Accept: 'application/json' };
+          const scenarioRes = await fetch('https://eu1.make.com/api/v2/scenarios/7149691', { headers, redirect: 'error' });
+          if (!scenarioRes.ok) throw new Error(`SCENARIO_READ_FAILED_${scenarioRes.status}`);
+          const scenarioJson = await scenarioRes.json();
+          const logsRes = await fetch('https://eu1.make.com/api/v2/scenarios/7149691/logs?pg%5Blimit%5D=1&pg%5BsortBy%5D=imtId&pg%5BsortDir%5D=desc', { headers, redirect: 'error' });
+          if (!logsRes.ok) throw new Error(`LOG_READ_FAILED_${logsRes.status}`);
+          const logsJson = await logsRes.json();
+          const scenario = scenarioJson.scenario || {};
+          const log = Array.isArray(logsJson.scenarioLogs) ? logsJson.scenarioLogs[0] || {} : {};
+          const evidence = {
+            schema: 'riosystems.block3-make-readback.v1',
+            scenario_id: Number(scenario.id) || 7149691,
+            scenario_name: String(scenario.name || '').slice(0, 200),
+            scenario_active: scenario.isActive === true,
+            latest_execution: {
+              execution_id: String(log.id || '').slice(0, 160),
+              status: Number(log.status) || null,
+              timestamp: log.timestamp || null,
+              operations: Number(log.operations) || 0,
+              centicredits: Number(log.centicredits) || 0,
+              transfer_bytes: Number(log.transfer) || 0,
+              type: String(log.type || '').slice(0, 80)
+            },
+            secrets_returned: false,
+            external_write_performed: false,
+            production_deploy: false
+          };
+          if (!evidence.latest_execution.execution_id) throw new Error('LATEST_EXECUTION_ID_MISSING');
+          mkdirSync('staging/evidence', { recursive: true });
+          writeFileSync('staging/evidence/block3-make-readback.json', JSON.stringify(evidence, null, 2) + '\n');
+          NODE
+      - name: Commit sanitized readback evidence
+        run: |
+          git config user.name 'riosystems-evidence-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add staging/evidence/block3-make-readback.json
+          git commit -m 'evidence: record Block 3 Make readback'
+          git push origin HEAD:chore/block3-make-readback
