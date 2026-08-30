@@ -25,6 +25,7 @@ on:
       - 'scripts/make-staging-execution-runner-smoke.mjs'
       - 'scripts/make-supabase-lead-bridge-smoke.mjs'
       - 'scripts/make-supabase-lead-bridge-evidence-smoke.mjs'
+      - 'scripts/make-supabase-lead-payload-smoke.mjs'
       - 'scripts/make-supabase-lead-bridge-executor-smoke.mjs'
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
@@ -67,6 +68,7 @@ jobs:
           node --check scripts/make-staging-execution-runner-smoke.mjs
           node --check scripts/make-supabase-lead-bridge-smoke.mjs
           node --check scripts/make-supabase-lead-bridge-evidence-smoke.mjs
+          node --check scripts/make-supabase-lead-payload-smoke.mjs
           node --check scripts/make-supabase-lead-bridge-executor-smoke.mjs
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
@@ -80,6 +82,8 @@ jobs:
         run: node scripts/make-supabase-lead-bridge-smoke.mjs
       - name: Make to Supabase live bridge evidence smoke
         run: node scripts/make-supabase-lead-bridge-evidence-smoke.mjs
+      - name: Make to Supabase canonical payload smoke
+        run: node scripts/make-supabase-lead-payload-smoke.mjs
       - name: Make to Supabase bridge executor smoke
         run: node scripts/make-supabase-lead-bridge-executor-smoke.mjs
       - name: Make real provider adapter smoke
