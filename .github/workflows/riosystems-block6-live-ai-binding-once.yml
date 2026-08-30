@@ -1,0 +1,76 @@
+name: RIOSYSTEMS Block 6 Live AI Binding Once
+
+on:
+  push:
+    branches: [feature/block6-bakery-live-e2e]
+    paths:
+      - '.github/workflows/riosystems-block6-live-ai-binding-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-block6-live-ai-binding-once
+  cancel-in-progress: false
+
+jobs:
+  workers-ai-binding-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/block6-bakery-live-e2e
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enforce existing zero-cost Workers AI evidence
+        run: |
+          node --input-type=module - <<'NODE'
+          import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerified } from './src/cloudflare-workers-ai-staging-evidence.js';
+          const e = cloudflareWorkersAiStagingEvidence();
+          if (!isCloudflareWorkersAiStagingVerified()) throw new Error('WORKERS_AI_ZERO_COST_EVIDENCE_REQUIRED');
+          if (e.inference.model !== '@cf/zai-org/glm-4.7-flash') throw new Error('WORKERS_AI_MODEL_REJECTED');
+          if (e.cost_guard.zero_cost_verified !== true || e.cost_guard.variable_cost_eur !== 0 || e.cost_guard.automatic_paid_overflow !== false) throw new Error('WORKERS_AI_COST_GUARD_REJECTED');
+          if (e.safety.synthetic_test_data_only !== true || e.safety.production_deploy !== false) throw new Error('WORKERS_AI_SAFETY_REJECTED');
+          console.log(JSON.stringify({ok:true,model:e.inference.model,zero_cost_verified:true,production_deploy:false}));
+          NODE
+      - name: Require Cloudflare management credentials without revealing values
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo CLOUDFLARE_API_TOKEN_MISSING; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo CLOUDFLARE_ACCOUNT_ID_MISSING; exit 2; }
+      - name: Upload AI-binding preview version and invoke exactly once
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 32)"
+          echo "::add-mask::$nonce"
+          printf '{"BLOCK6_AI_NONCE":"%s"}\n' "$nonce" > /tmp/block6-ai-secrets.json
+          npx --yes wrangler@4 versions upload \
+            --config staging/wrangler.block6-ai-preview.jsonc \
+            --preview-alias block6-ai-0830 \
+            --keep-vars \
+            --secrets-file /tmp/block6-ai-secrets.json \
+            2>&1 | tee /tmp/wrangler-ai-upload.txt
+          rm -f /tmp/block6-ai-secrets.json
+          preview_url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/wrangler-ai-upload.txt | tail -n 1)"
+          test -n "$preview_url" || { echo PREVIEW_URL_NOT_FOUND; exit 3; }
+          http_code="$(curl --silent --show-error --max-time 20 --retry 0 \
+            --output /tmp/block6-ai-result.json \
+            --write-out '%{http_code}' \
+            --request POST "$preview_url/__riosystems/block6-ai-once" \
+            --header "Authorization: Bearer $nonce")"
+          test "$http_code" = 200 || { echo "WORKERS_AI_PREVIEW_HTTP_$http_code"; exit 4; }
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/block6-ai-result.json','utf8'));
+          if (body?.ok !== true) throw new Error('WORKERS_AI_BINDING_REJECTED');
+          if (body?.trace_id !== 'block6-e2e-staging-001' || body?.model !== '@cf/zai-org/glm-4.7-flash') throw new Error('WORKERS_AI_TRACE_REJECTED');
+          if (Number(body?.total_tokens) <= 0) throw new Error('WORKERS_AI_USAGE_MISSING');
+          if (body?.synthetic_test_data_only !== true || body?.real_customer_data !== false || body?.openai_fallback_used !== false || body?.secrets_returned !== false || body?.production_deploy !== false) throw new Error('WORKERS_AI_SAFETY_REJECTED');
+          console.log(JSON.stringify({ok:true,http_status:200,api_success:true,trace_id:body.trace_id,model:body.model,prompt_tokens:body.prompt_tokens,completion_tokens:body.completion_tokens,total_tokens:body.total_tokens,neurons:body.neurons,variable_cost_eur:0,automatic_paid_overflow:false,openai_fallback_used:false,secrets_returned:false,production_deploy:false}));
+          NODE
