@@ -3,7 +3,7 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
-import { handleOperatorDashboard } from "./operator-dashboard-http-v1.js";
+import { handleOperatorDashboard } from "./operator-dashboard-completeness-v1.js";
 
 export default {
   async fetch(request, env, ctx) {

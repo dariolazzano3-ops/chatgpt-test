@@ -116,7 +116,7 @@ const stillNoMission = await request('/operator/api/missions');
 assert.equal(stillNoMission.payload.universal.length, 0);
 
 const approvalCenter = await request('/operator/api/approvals');
-assert.equal(approvalCenter.payload.schema, 'riosystems.operator-approval-center.v1');
+assert.equal(approvalCenter.payload.schema, 'riosystems.operator-approval-center.v2');
 assert.equal(approvalCenter.payload.mission_plans.length, 1);
 assert.equal(approvalCenter.payload.mission_plans[0].status, 'APPROVAL_REQUIRED');
 
