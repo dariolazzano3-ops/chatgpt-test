@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "chatgpt-test",
+  "main": "./block6-ai-preview-worker.js",
+  "compatibility_date": "2026-08-25",
+  "preview_urls": true,
+  "ai": {
+    "binding": "AI"
+  },
+  "secrets": {
+    "required": ["BLOCK6_AI_NONCE"]
+  },
+  "observability": {
+    "enabled": false
+  }
+}
