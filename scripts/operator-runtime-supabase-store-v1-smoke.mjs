@@ -43,7 +43,7 @@ function buildRuntime(operatorId = 'operator:test@example.com') {
     operator_id: operatorId,
     portfolio: {
       operator_id: operatorId,
-      projects: [{ customer_id: 'synthetic-customer', project_id: 'synthetic-project', scope_key: 'synthetic-customer:synthetic-project', name: 'Synthetic Project', state: 'READY', blocked: false, production_deploy: false }],
+      projects: [{ customer_id: 'synthetic-customer', project_id: 'synthetic-project', scope_key: 'synthetic-customer:synthetic-project', name: 'Synthetic Project', state: 'READY', blocked: false, priority: 20, budget_cost_units: 0, capability_count: 3, mission_count: 0, delivery_count: 0, production_deploy: false }],
       production_deploy: false
     },
     at: '2026-08-30T11:45:00.000Z'
@@ -63,7 +63,10 @@ const next = structuredClone(runtime);
 next.revision = 2;
 next.selected_project_scope = 'synthetic-customer:synthetic-project';
 assert.equal((await store.compareAndSwap(next, 1)).ok, true);
-const stale = structuredClone(next); stale.revision = 3;
+const stale = structuredClone(runtime);
+stale.revision = 2;
+stale.updated_at = '2026-08-30T11:46:30.000Z';
+stale.audit = [...stale.audit, { event: 'STALE_WRITER', actor: stale.operator_id, at: stale.updated_at }];
 const staleResult = await store.compareAndSwap(stale, 1);
 assert.equal(staleResult.error, 'STORE_REVISION_CONFLICT');
 assert.equal(staleResult.actual_revision, 2);
