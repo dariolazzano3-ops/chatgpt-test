@@ -1,0 +1,92 @@
+name: RIOSYSTEMS Operator Runtime Live Restart Acceptance
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/operator-runtime-v1.js'
+      - 'src/operator-runtime-api-v1.js'
+      - 'src/operator-runtime-bootstrap-v1.js'
+      - 'src/operator-runtime-store-supabase-v1.js'
+      - 'src/command-center.js'
+      - 'scripts/operator-runtime-live-restart-acceptance.mjs'
+      - '.github/workflows/riosystems-operator-runtime-live-restart.yml'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-operator-runtime-live-restart
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/operator-runtime-v1.js
+          node --check src/operator-runtime-api-v1.js
+          node --check src/operator-runtime-bootstrap-v1.js
+          node --check src/operator-runtime-store-supabase-v1.js
+          node --check src/command-center.js
+          node --check scripts/operator-runtime-live-restart-acceptance.mjs
+      - name: Existing durable store regression
+        run: node scripts/operator-runtime-supabase-store-v1-smoke.mjs
+      - name: Exact approval guard remains fail-closed
+        run: |
+          set +e
+          RIOSYSTEMS_RUNTIME_RESTART_APPROVED=WRONG node scripts/operator-runtime-live-restart-acceptance.mjs write > /tmp/restart-guard.log 2>&1
+          code=$?
+          set -e
+          test "$code" -ne 0
+          grep -q 'RUNTIME_RESTART_EXACT_STAGING_APPROVAL_REQUIRED' /tmp/restart-guard.log
+
+  live-restart-acceptance:
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: riosystems-staging
+    env:
+      RIOSYSTEMS_RUNTIME_RESTART_APPROVED: ${{ inputs.confirmation }}
+      RIOSYSTEMS_RUNTIME_RESTART_TEST_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+      RIOSYSTEMS_ENVIRONMENT: staging
+      RIOSYSTEMS_OPERATOR_RUNTIME_STORE: supabase
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL: ${{ secrets.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL }}
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY }}
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE: riosystems_operator_runtime_v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify canonical staging scope and secret presence without revealing values
+        run: |
+          test "$GITHUB_REF_NAME" = "factory-control"
+          test "$RIOSYSTEMS_ENVIRONMENT" = "staging"
+          test "$RIOSYSTEMS_OPERATOR_RUNTIME_STORE" = "supabase"
+          test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL"
+          test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
+          test "$RIOSYSTEMS_RUNTIME_RESTART_APPROVED" = "RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST"
+      - name: Process A creates and mutates isolated synthetic runtime
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs write
+      - name: Process B recovers exact persisted revision after restart
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs read
+      - name: Always remove isolated synthetic runtime row
+        if: always()
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs cleanup
