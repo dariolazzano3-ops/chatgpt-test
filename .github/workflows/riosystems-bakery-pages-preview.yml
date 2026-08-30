@@ -5,6 +5,10 @@ on:
     paths:
       - '.github/workflows/riosystems-bakery-pages-preview.yml'
       - 'projects/bakery-muller-staging/**'
+      - 'src/web-factory/**'
+      - 'fixtures/web-factory/bakery-muller.json'
+      - 'scripts/materialize-web-factory-reference.mjs'
+      - 'scripts/bakery-muller-web-staging-readiness.mjs'
       - 'scripts/pages-preview-deploy-guard.mjs'
       - 'scripts/pages-preview-deploy-guard-smoke.mjs'
   workflow_dispatch:
@@ -32,9 +36,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Materialize Web Factory V1 reference artifact
+        run: node scripts/materialize-web-factory-reference.mjs
       - name: Validate Pages preview safety contract
         run: node scripts/pages-preview-deploy-guard-smoke.mjs
-      - name: Validate synthetic web artifact
+      - name: Validate synthetic Web Factory V1 artifact
         run: node scripts/bakery-muller-web-staging-readiness.mjs
 
   deploy-preview:
@@ -61,6 +67,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Materialize verified Web Factory V1 reference artifact
+        run: node scripts/materialize-web-factory-reference.mjs
+      - name: Validate generated staging artifact
+        run: node scripts/bakery-muller-web-staging-readiness.mjs
       - name: Enforce staging, approval and zero-cost gates
         run: node scripts/pages-preview-deploy-guard.mjs --deploy
       - name: Require configured Cloudflare credentials

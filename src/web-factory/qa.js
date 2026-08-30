@@ -94,6 +94,8 @@ export function runWebsiteQa(artifact) {
     if (externalExecutableResources(source).length) block('security', 'UNAPPROVED_EXTERNAL_RESOURCE', 'External executable/media resources are forbidden by default', file);
     if (secretPatterns(source).length) block('security', 'SECRET_PATTERN_DETECTED', 'Possible secret detected in generated HTML', file);
     if (/<a\b[^>]*href="#"/i.test(source)) warn('content', 'PLACEHOLDER_LINK', 'Placeholder links should be resolved before production', file);
+    const currentLink = source.match(/<a\b[^>]*href="([^"]+)"[^>]*aria-current="page"[^>]*>/i);
+    if (currentLink && currentLink[1] !== './') block('structure', 'ARIA_CURRENT_LINK_INVALID', `Current navigation link must resolve to the current page, received ${currentLink[1]}`, file);
   }
 
   const css = cssText(artifact);
