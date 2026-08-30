@@ -6,6 +6,7 @@ import { listExecutionAdapters } from './execution-adapters.js';
 import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
 import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWebReadVerified } from './cloudflare-live-read-evidence.js';
 import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from './cloudflare-pages-staging-evidence.js';
+import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerified } from './cloudflare-workers-ai-staging-evidence.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
@@ -19,6 +20,7 @@ export function providerStackV1() {
   const byEngine = new Map(adapters.map((item) => [item.engine, item]));
   const cloudflareEvidence = cloudflareLiveReadEvidence();
   const cloudflarePagesEvidence = cloudflarePagesStagingEvidence();
+  const cloudflareAiEvidence = cloudflareWorkersAiStagingEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
@@ -51,7 +53,9 @@ export function providerStackV1() {
       free_staging_path: ['riosystems-ai-local-policy','cloudflare-workers-ai-free'],
       model_ladder: ['gpt-5.6-luna','gpt-5.6-terra','gpt-5.6-sol'],
       cloudflare_ai_read_verified: isCloudflareAiReadVerified(),
-      cloudflare_ai_blocker: isCloudflareAiReadVerified() ? null : 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
+      cloudflare_ai_runtime_verified: isCloudflareWorkersAiStagingVerified(),
+      cloudflare_ai_runtime_evidence: cloudflareAiEvidence,
+      cloudflare_ai_blocker: isCloudflareWorkersAiStagingVerified() ? null : 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
     },
     business: {
       decision: businessProviderDecisionManifest(),
@@ -105,11 +109,13 @@ export function providerStackV1() {
 export function providerActivationMatrix() {
   const cf = cloudflareLiveReadEvidence();
   const pages = cloudflarePagesStagingEvidence();
+  const cloudflareAi = cloudflareWorkersAiStagingEvidence();
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
   const businessWrite = businessStagingWriteEvidence();
   const posthogStaging = posthogStagingEventEvidence();
   const webStagingVerified = isCloudflarePagesStagingVerified();
+  const cloudflareAiStagingVerified = isCloudflareWorkersAiStagingVerified();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
   const posthogStagingVerified = isPostHogStagingAnalyticsVerified();
@@ -131,8 +137,12 @@ export function providerActivationMatrix() {
       {
         id: 'cloudflare-workers-ai-free',
         selection: 'selected',
-        activation: 'permission_required',
-        workers_ai_read: cf.capabilities.workers_ai_read,
+        activation: cloudflareAiStagingVerified ? 'live_staging_inference_verified' : 'permission_required',
+        historical_workers_ai_models_read: cf.capabilities.workers_ai_read,
+        staging_inference_verified: cloudflareAiStagingVerified,
+        staging_inference_evidence: cloudflareAi,
+        zero_cost_verified: cloudflareAi.cost_guard.zero_cost_verified === true,
+        real_inference: 'synthetic_staging_and_explicit_approval_required_per_execution',
         paid_fallback: 'disabled'
       },
       {
@@ -198,7 +208,7 @@ export function planProviderStackMission(input = {}) {
       ? 'BUSINESS_STAGING_WRITE_APPROVAL_REQUIRED'
       : stack.factories.business.analytics_staging_verified !== true
         ? 'POSTHOG_STAGING_ANALYTICS_APPROVAL_REQUIRED'
-        : stack.factories.ai.cloudflare_ai_read_verified !== true
+        : stack.factories.ai.cloudflare_ai_runtime_verified !== true
           ? 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
           : 'STAGING_EXECUTION_APPROVAL_REQUIRED';
 
@@ -216,7 +226,7 @@ export function planProviderStackMission(input = {}) {
       automation_make_staging_verified: stack.factories.automation.staging_activation_verified === true,
       web_cloudflare_read_verified: stack.factories.web.provider_read_verified === true,
       web_staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
-      ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_read_verified === true,
+      ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_runtime_verified === true,
       business_runtime_read_verified: stack.factories.business.provider_read_verified === true,
       business_staging_write_verified: stack.factories.business.staging_write_verified === true,
       business_posthog_staging_analytics_verified: stack.factories.business.analytics_staging_verified === true
@@ -224,6 +234,7 @@ export function planProviderStackMission(input = {}) {
     activation_evidence: {
       web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
       automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
+      ai_cloudflare_staging_runtime: clone(stack.factories.ai.cloudflare_ai_runtime_evidence),
       business_runtime_read: clone(stack.factories.business.provider_read_evidence),
       business_staging_write: clone(stack.factories.business.staging_write_evidence),
       business_posthog_staging_analytics: clone(stack.factories.business.analytics_staging_evidence)
