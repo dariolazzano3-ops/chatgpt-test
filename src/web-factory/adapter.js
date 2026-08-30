@@ -1,10 +1,11 @@
 import { buildWebsiteProject } from './factory.js';
 import { reconstructPremiumWebsite } from './native-reconstruction.js';
 import { buildAutonomousPremiumWebsite } from './autonomous-premium.js';
+import { runWebOperatingSystemV2 } from './operating-system-v2.js';
 import { webProviderRoleModel } from './provider-roles.js';
 import { selectWebBuildRoute } from './routing.js';
 
-const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web_generate', 'web_rebuild', 'web_evolve']);
+const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web_generate', 'web_rebuild', 'web_evolve']);
 
 export function executeWebFactoryTask(task = {}, options = {}) {
   const capability = String(task.capability || 'web.build');
@@ -13,6 +14,13 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   }
 
   const mission = task.website_mission || task.input || task.mission || {};
+  if (capability === 'web.os.v2.build' || capability === 'web.os.v2.proposal') {
+    return runWebOperatingSystemV2({
+      ...task,
+      mission,
+      mode: capability === 'web.os.v2.proposal' ? 'proposal' : task.mode
+    }, options);
+  }
   if (capability === 'web.autonomous.premium.build') {
     return buildAutonomousPremiumWebsite({
       ...task,
@@ -64,9 +72,9 @@ export function executeWebFactoryTask(task = {}, options = {}) {
 
 export function webFactoryProviderManifest() {
   return {
-    schema: 'riosystems.web-factory-provider.v1',
+    schema: 'riosystems.web-factory-provider.v2',
     provider_id: 'riosystems-native-web-builder',
-    capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build'],
+    capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal'],
     aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
     roles: {
       'riosystems-native-web-builder': 'native_builder',
@@ -78,6 +86,7 @@ export function webFactoryProviderManifest() {
     role_specializations: { framer: 'premium_visual_specialist' },
     role_model: webProviderRoleModel(),
     strategy: {
+      operating_system: 'riosystems-web-operating-system-v2',
       primary: ['riosystems-native-web-builder', 'github', 'cloudflare-pages-preview'],
       visual_specialist: ['framer'],
       cms_specialist: ['webflow'],
@@ -88,6 +97,7 @@ export function webFactoryProviderManifest() {
     },
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'],
     autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'],
+    web_os_v2_path: ['business-intent', 'strategy', 'architecture', 'design-intent', 'native-build', 'multi-domain-QA', 'self-healing', 'integration-contracts', 'delivery'],
     framer_hosting_default: false,
     deterministic_zero_cost_mode: true,
     ai_provider_required: false,

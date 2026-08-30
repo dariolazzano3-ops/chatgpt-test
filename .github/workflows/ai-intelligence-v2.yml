@@ -1,0 +1,53 @@
+name: Autonomous AI Intelligence V2
+
+on:
+  pull_request:
+    paths:
+      - 'src/ai-intelligence-v2*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
+      - 'docs/AI_INTELLIGENCE_V2.md'
+      - '.github/workflows/ai-intelligence-v2.yml'
+      - 'src/ai-factory-v1.js'
+      - 'src/ai-prompt-registry-v1.js'
+      - 'src/ai-provider-adapters-v1.js'
+  push:
+    branches:
+      - factory-control
+    paths:
+      - 'src/ai-intelligence-v2*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
+      - 'docs/AI_INTELLIGENCE_V2.md'
+      - '.github/workflows/ai-intelligence-v2.yml'
+      - 'src/ai-factory-v1.js'
+      - 'src/ai-prompt-registry-v1.js'
+      - 'src/ai-provider-adapters-v1.js'
+
+permissions:
+  contents: read
+
+jobs:
+  autonomous-ai-zero-cost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check src/ai-intelligence-v2.js
+          node --check src/ai-intelligence-v2-format.js
+          node --check scripts/ai-intelligence-v2-contracts-smoke.mjs
+          node --check scripts/ai-intelligence-v2-quality-smoke.mjs
+          node --check scripts/ai-intelligence-v2-runtime-smoke.mjs
+          node --check scripts/ai-intelligence-v2-smoke.mjs
+          node --check scripts/ai-intelligence-v2-readiness.mjs
+      - name: AI Intelligence V2 readiness
+        run: node scripts/ai-intelligence-v2-readiness.mjs
+      - name: AI Intelligence V2 deterministic acceptance
+        run: node scripts/ai-intelligence-v2-smoke.mjs
+      - name: AI Factory V1 regression readiness
+        run: node scripts/ai-factory-v1-readiness.mjs
+      - name: AI Factory V1 regression smoke
+        run: node scripts/ai-factory-v1-major-smoke.mjs
