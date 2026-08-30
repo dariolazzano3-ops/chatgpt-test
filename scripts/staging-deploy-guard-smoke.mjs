@@ -3,7 +3,13 @@ import { spawnSync } from 'node:child_process';
 
 const run = (mode, env = {}) => spawnSync(process.execPath, ['scripts/staging-deploy-guard.mjs', mode], {
   cwd: new URL('..', import.meta.url),
-  env: { ...process.env, ...env },
+  env: {
+    ...process.env,
+    RIOSYSTEMS_STAGING_DEPLOY_APPROVED: '',
+    RIOSYSTEMS_ZERO_COST_CONFIRMED: '',
+    RIOSYSTEMS_STAGING_CONFIRMATION: '',
+    ...env
+  },
   encoding: 'utf8'
 });
 
