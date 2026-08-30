@@ -61,11 +61,17 @@ async function cleanup() {
   if (!operatorId.startsWith('operator:runtime-restart-acceptance-') || !operatorId.endsWith('@riosystems.invalid')) {
     throw new Error('RUNTIME_RESTART_CLEANUP_SCOPE_REJECTED');
   }
-  const response = await fetch(rowUrl(), { method: 'DELETE', headers: headers({ prefer: 'return=minimal' }) });
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/riosystems_cleanup_operator_runtime_acceptance`, {
+    method: 'POST',
+    headers: headers({ accept: 'application/json' }),
+    body: JSON.stringify({ p_operator_id: operatorId })
+  });
   if (!response.ok) throw new Error(`RUNTIME_RESTART_CLEANUP_FAILED:${response.status}`);
+  const deletedCount = Number(await response.json());
+  if (!Number.isInteger(deletedCount) || deletedCount < 0 || deletedCount > 1) throw new Error('RUNTIME_RESTART_CLEANUP_RESPONSE_INVALID');
   const remaining = await rawRows();
   assert.equal(remaining.length, 0, 'temporary runtime row must be removed');
-  return { ok: true, cleaned: true };
+  return { ok: true, cleaned: true, deleted_count: deletedCount };
 }
 
 if (phase === 'write') {
