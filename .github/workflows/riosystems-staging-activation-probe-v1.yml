@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 3
+          fetch-depth: 4
           persist-credentials: false
 
       - name: Verify isolated exact baseline
@@ -89,6 +89,18 @@ jobs:
             STATUS="$(curl -sS -o /tmp/runtime-read.json -w '%{http_code}' -H "apikey: $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" -H 'Accept: application/json' "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL/rest/v1/riosystems_operator_runtime_v1?select=revision&limit=1" || true)"
           fi
           echo "runtime_supabase_read_http_status=$STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify public operator route remains fail-closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATUS="$(curl -sS -o /tmp/operator-public.body -w '%{http_code}' --max-time 15 "https://$TARGET_ACCESS_DOMAIN" || true)"
+          echo "public_operator_http_status=$STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$STATUS" = "200" ]; then
+            echo "public_operator_fail_closed=false" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 44
+          fi
+          echo "public_operator_fail_closed=true" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Summarize activation readiness
         shell: bash
