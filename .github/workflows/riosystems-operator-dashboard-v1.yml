@@ -1,0 +1,46 @@
+name: RIOSYSTEMS Private Operator Dashboard V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/operator-dashboard-http-v1.js'
+      - 'src/entry.js'
+      - 'scripts/operator-dashboard-v1-smoke.mjs'
+      - 'docs/RIOSYSTEMS-PRIVATE-OPERATOR-DASHBOARD-V1.md'
+      - 'wrangler.jsonc'
+      - '.github/workflows/riosystems-operator-dashboard-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax
+        run: |
+          node --check src/operator-dashboard-http-v1.js
+          node --check src/entry.js
+          node --check scripts/operator-dashboard-v1-smoke.mjs
+      - name: Private operator dashboard acceptance
+        run: node scripts/operator-dashboard-v1-smoke.mjs
+      - name: Operator Runtime API regression
+        run: node scripts/operator-runtime-api-v1-smoke.mjs
+      - name: Operator Control Plane regression
+        run: node scripts/operator-control-plane-v1-smoke.mjs
+      - name: Universal Mission Run regression
+        run: node scripts/universal-mission-run-v1-smoke.mjs
+      - name: Canonical RIOSYSTEMS regression
+        run: npm run check:riosystems
+      - name: Integrated RIOSYSTEMS regression gate
+        run: node scripts/riosystems-integrated-regression-gate.mjs
+      - name: Cloudflare staging bundle dry-run
+        run: npx wrangler deploy --env staging --dry-run

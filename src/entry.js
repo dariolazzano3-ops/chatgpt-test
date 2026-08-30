@@ -3,10 +3,16 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
+import { handleOperatorDashboard } from "./operator-dashboard-http-v1.js";
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/")) {
+      const operatorResponse = await handleOperatorDashboard(request, env, ctx);
+      if (operatorResponse) return operatorResponse;
+    }
 
     if (url.pathname === "/mcp") {
       return handleMcp(request, env);

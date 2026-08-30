@@ -3,6 +3,14 @@
   "name": "chatgpt-test",
   "main": "src/entry.js",
   "compatibility_date": "2026-08-25",
+  "access": {
+    "dev": {
+      "aud": "riosystems-operator-local",
+      "identity": {
+        "email": "operator@riosystems.local"
+      }
+    }
+  },
   "observability": {
     "enabled": true,
     "logs": {
