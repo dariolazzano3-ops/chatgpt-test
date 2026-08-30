@@ -1,0 +1,32 @@
+name: RIOSYSTEMS Public Website V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'projects/riosystems-public-website-v1/**'
+      - 'scripts/riosystems-public-website-v1-smoke.mjs'
+      - '.github/workflows/riosystems-public-website-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check interactions
+        run: node --check projects/riosystems-public-website-v1/app.js
+      - name: Public Website V1 contract
+        run: node scripts/riosystems-public-website-v1-smoke.mjs
+      - name: Reject production/provider writes
+        run: |
+          ! grep -R "fetch(" projects/riosystems-public-website-v1/app.js
+          grep -q '"production_deploy": false' projects/riosystems-public-website-v1/project.json
+          grep -q '"deployment_cost_limit_eur": 0' projects/riosystems-public-website-v1/project.json
