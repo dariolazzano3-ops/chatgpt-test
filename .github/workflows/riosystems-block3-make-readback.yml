@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Read exact scenario state and latest execution log
+      - name: Read exact scenario state and latest successful execution
         env:
           MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
         run: |
@@ -33,17 +33,18 @@ jobs:
           const scenarioRes = await fetch('https://eu1.make.com/api/v2/scenarios/7149691', { headers, redirect: 'error' });
           if (!scenarioRes.ok) throw new Error(`SCENARIO_READ_FAILED_${scenarioRes.status}`);
           const scenarioJson = await scenarioRes.json();
-          const logsRes = await fetch('https://eu1.make.com/api/v2/scenarios/7149691/logs?pg%5Blimit%5D=1&pg%5BsortBy%5D=imtId&pg%5BsortDir%5D=desc', { headers, redirect: 'error' });
+          const logsRes = await fetch('https://eu1.make.com/api/v2/scenarios/7149691/logs?pg%5Blimit%5D=10&pg%5BsortBy%5D=imtId&pg%5BsortDir%5D=desc', { headers, redirect: 'error' });
           if (!logsRes.ok) throw new Error(`LOG_READ_FAILED_${logsRes.status}`);
           const logsJson = await logsRes.json();
+          const logs = Array.isArray(logsJson.scenarioLogs) ? logsJson.scenarioLogs : [];
+          const log = logs.find((item) => Number(item.status) === 1 && String(item.type || '') !== 'stop' && Number(item.operations) > 0) || {};
           const scenario = scenarioJson.scenario || {};
-          const log = Array.isArray(logsJson.scenarioLogs) ? logsJson.scenarioLogs[0] || {} : {};
           const evidence = {
             schema: 'riosystems.block3-make-readback.v1',
             scenario_id: Number(scenario.id) || 7149691,
             scenario_name: String(scenario.name || '').slice(0, 200),
             scenario_active: scenario.isActive === true,
-            latest_execution: {
+            latest_successful_execution: {
               execution_id: String(log.id || '').slice(0, 160),
               status: Number(log.status) || null,
               timestamp: log.timestamp || null,
@@ -56,7 +57,7 @@ jobs:
             external_write_performed: false,
             production_deploy: false
           };
-          if (!evidence.latest_execution.execution_id) throw new Error('LATEST_EXECUTION_ID_MISSING');
+          if (!evidence.latest_successful_execution.execution_id) throw new Error('SUCCESSFUL_EXECUTION_ID_MISSING');
           mkdirSync('staging/evidence', { recursive: true });
           writeFileSync('staging/evidence/block3-make-readback.json', JSON.stringify(evidence, null, 2) + '\n');
           NODE
@@ -65,5 +66,5 @@ jobs:
           git config user.name 'riosystems-evidence-bot'
           git config user.email 'actions@users.noreply.github.com'
           git add staging/evidence/block3-make-readback.json
-          git commit -m 'evidence: record Block 3 Make readback'
+          git commit -m 'evidence: refine Block 3 Make readback'
           git push origin HEAD:chore/block3-make-readback
