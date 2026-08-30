@@ -1,0 +1,64 @@
+name: RIOSYSTEMS Cloudflare Access Read-only Verification
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/cloudflare-access-readonly-verifier-v1.js'
+      - 'scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs'
+      - 'scripts/cloudflare-access-live-readonly-verify.mjs'
+      - '.github/workflows/riosystems-cloudflare-access-readonly.yml'
+      - 'src/operator-cloudflare-access-evidence-v1.js'
+      - 'src/operator-v1-acceptance-dashboard-v1.js'
+      - 'src/riosystems-v1-acceptance-evidence-v1.js'
+  push:
+    branches: [factory-control]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-cloudflare-access-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax and safety smoke
+        run: |
+          node --check src/cloudflare-access-readonly-verifier-v1.js
+          node --check scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
+          node --check scripts/cloudflare-access-live-readonly-verify.mjs
+          node scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
+
+  verify-access:
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate Cloudflare credential presence without revealing values
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo 'CLOUDFLARE_API_TOKEN secret is missing' && exit 2)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo 'CLOUDFLARE_ACCOUNT_ID secret is missing' && exit 2)
+      - name: Verify private Access application and restrictive policy via GET only
+        run: node scripts/cloudflare-access-live-readonly-verify.mjs

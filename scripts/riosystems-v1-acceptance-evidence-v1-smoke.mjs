@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { buildRiosystemsV1AcceptanceFromEvidence, riosystemsV1AcceptanceEvidenceManifest } from '../src/riosystems-v1-acceptance-evidence-v1.js';
 
-const HEAD = '8eb172c1070194496182127db3c36e44a99ad1e7';
+const HEAD = '8209e599659b73fc4d63bfe2f54eaf483f974b33';
 const gate = (step) => ({ status: 'HEALTHY', head_sha: HEAD, step, conclusion: 'success' });
 const healthySystem = {
   status: 'HEALTHY',
@@ -19,8 +19,10 @@ const healthySystem = {
   }
 };
 const access = {
+  status: 'HEALTHY',
   access_application_configured: true,
-  access_application_evidence: { source: 'cloudflare_access_api', application: 'riosystems-staging-operator' }
+  restrictive_policy_verified: true,
+  source: 'github_actions_cloudflare_access_readonly'
 };
 const deployed = { status: 'HEALTHY', deployed_sha: HEAD, source: 'github_actions_zero_cost_staging_deploy' };
 
@@ -35,17 +37,34 @@ assert.equal(preActivation.staging_activation.items.find((item) => item.id === '
 const accepted = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
   request_context: { server_side_operator_authorized: true },
-  activation_evidence: access,
+  access_evidence: access,
   deployment_evidence: deployed
 });
 assert.equal(accepted.status, 'V1_ACCEPTED');
 assert.equal(accepted.staging_activation.summary.VERIFIED, 5);
 assert.equal(accepted.next_actions.length, 0);
 
+const blockedAccess = buildRiosystemsV1AcceptanceFromEvidence({
+  system_health: healthySystem,
+  request_context: { server_side_operator_authorized: true },
+  access_evidence: { status: 'BLOCKED', access_application_configured: false },
+  deployment_evidence: deployed
+});
+assert.equal(blockedAccess.status, 'CODE_ACCEPTED_EXTERNAL_ACTIVATION_REQUIRED');
+assert.equal(blockedAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status, 'BLOCKED');
+
+const pendingAccess = buildRiosystemsV1AcceptanceFromEvidence({
+  system_health: healthySystem,
+  request_context: { server_side_operator_authorized: true },
+  access_evidence: { status: 'DEGRADED' },
+  deployment_evidence: deployed
+});
+assert.equal(pendingAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status, 'NOT_VERIFIED');
+
 const staleDeploy = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
   request_context: { server_side_operator_authorized: true },
-  activation_evidence: access,
+  access_evidence: access,
   deployment_evidence: { status: 'STALE', deployed_sha: 'old-head' }
 });
 assert.equal(staleDeploy.status, 'CODE_ACCEPTED_EXTERNAL_ACTIVATION_REQUIRED');
@@ -54,14 +73,14 @@ assert.equal(staleDeploy.staging_activation.items.find((item) => item.id === 'la
 const failedDeploy = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
   request_context: { server_side_operator_authorized: true },
-  activation_evidence: access,
+  access_evidence: access,
   deployment_evidence: { status: 'BLOCKED', deployed_sha: HEAD }
 });
 assert.equal(failedDeploy.staging_activation.items.find((item) => item.id === 'latest_factory_control_deployed_to_staging').status, 'BLOCKED');
 
 const staleHealth = structuredClone(healthySystem);
 staleHealth.signals.universal_mission_ci.status = 'STALE';
-const stale = buildRiosystemsV1AcceptanceFromEvidence({ system_health: staleHealth, request_context: { server_side_operator_authorized: true }, activation_evidence: access, deployment_evidence: deployed });
+const stale = buildRiosystemsV1AcceptanceFromEvidence({ system_health: staleHealth, request_context: { server_side_operator_authorized: true }, access_evidence: access, deployment_evidence: deployed });
 assert.equal(stale.status, 'INCOMPLETE');
 assert.notEqual(stale.definition_of_done.items.find((item) => item.id === 'ci_green_exact_head').status, 'VERIFIED');
 
@@ -79,7 +98,7 @@ assert.equal(unauthorized.staging_activation.items.find((item) => item.id === 'a
 const unsafe = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
   request_context: { server_side_operator_authorized: true },
-  activation_evidence: access,
+  access_evidence: access,
   deployment_evidence: deployed,
   safety_overrides: { production_active: true }
 });
@@ -88,6 +107,7 @@ assert.equal(unsafe.safety.ok, false);
 
 const manifest = riosystemsV1AcceptanceEvidenceManifest();
 assert.equal(manifest.unknown_activation_is_not_verified, true);
+assert.ok(manifest.activation_sources.includes('github_actions_cloudflare_access_readonly'));
 assert.ok(manifest.activation_sources.includes('github_actions_zero_cost_staging_deploy'));
 assert.equal(manifest.production_deploy, false);
 
@@ -95,9 +115,11 @@ console.log(JSON.stringify({
   ok: true,
   suite: 'riosystems-v1-acceptance-evidence-v1',
   code_verified: preActivation.definition_of_done.summary.VERIFIED,
-  activation_verified_without_explicit_access_or_deploy: preActivation.staging_activation.summary.VERIFIED,
+  activation_verified_without_access_or_deploy: preActivation.staging_activation.summary.VERIFIED,
   pre_activation_status: preActivation.status,
   fully_accepted_status: accepted.status,
+  blocked_access_gate: blockedAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status,
+  pending_access_gate: pendingAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status,
   stale_deploy_gate: staleDeploy.staging_activation.items.find((item) => item.id === 'latest_factory_control_deployed_to_staging').status,
   failed_deploy_gate: failedDeploy.staging_activation.items.find((item) => item.id === 'latest_factory_control_deployed_to_staging').status,
   stale_status: stale.status,
