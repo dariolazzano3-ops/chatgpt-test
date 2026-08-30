@@ -52,9 +52,17 @@ function contentInputs(input,pageIntents,recipe,mission){
   return { plans, contracts, AI_request:createAiContentRequest(mission,pageIntents.pages,plans), brand_voice:checkBrandVoice(contracts,mission,input.brand_voice_rules||{}), consistency:checkContentConsistency(contracts,{business_name:mission.business_name,phone:input.contact?.phone,email:input.contact?.email,pricing_reference:input.pricing_reference}) };
 }
 
+function componentVariant(component){
+  if(component==='hero')return 'editorial';
+  if(component==='cta')return 'primary';
+  if(component==='form')return 'contact';
+  if(component==='section')return 'contained';
+  return undefined;
+}
+
 function componentAndPages(pageIntents,content,designSystem){
   const pageModels=pageIntents.pages.map((page)=>composePageModel(page,content.contracts.find((c)=>c.page_id===page.page_id),designSystem,content.plans.find((p)=>p.page_id===page.page_id)));
-  const componentSpecs=uniq(pageModels.flatMap((p)=>p.sections.map((s)=>s.component))).map((component)=>({component,variant:component==='hero'?'editorial':component==='cta'?'primary':'contained',semantic_intent:true,responsive:true,accessible:true,content_overflow:false,inline_style:false}));
+  const componentSpecs=uniq(pageModels.flatMap((p)=>p.sections.map((s)=>s.component))).map((component)=>({component,...(componentVariant(component)?{variant:componentVariant(component)}:{}),semantic_intent:true,responsive:true,accessible:true,content_overflow:false,inline_style:false}));
   const quality=componentSpecs.map((spec)=>validateComponentSpec(spec,designSystem));
   return { component_system:componentSystemManifest(), component_specs:componentSpecs, component_quality:quality, page_compositions:pageModels };
 }
