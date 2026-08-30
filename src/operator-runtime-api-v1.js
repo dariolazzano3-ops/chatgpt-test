@@ -391,6 +391,7 @@ export function operatorRuntimeApiManifest() {
     ],
     service_methods: ['recordMissionPlan','listMissionPlans','decideMissionPlan','approveSyntheticMissionPlan','runLiveStaging'],
     mutations_require_runtime_revision: true,
+    supervised_dispatch_preparation_only: true,
     live_staging_two_phase_reservation: true,
     live_staging_idempotency_required: true,
     automatic_dispatch: false,
