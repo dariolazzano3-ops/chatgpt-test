@@ -54,6 +54,101 @@ function providerReadinessSnapshot() {
   };
 }
 
+function normalizeId(value, max = 160) {
+  const id = clean(value, max);
+  return /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,159}$/.test(id) ? id : null;
+}
+
+function normalizeProjectCreate(state = {}, command = {}) {
+  const customerId = normalizeId(command.customer_id);
+  const projectId = normalizeId(command.project_id);
+  if (!customerId || !projectId) return { ok: false, error: 'PROJECT_CREATE_IDS_REQUIRED', production_deploy: false };
+
+  const canonicalScope = `${customerId}:${projectId}`;
+  const requestedScope = clean(command.scope_key, 320);
+  if (requestedScope && requestedScope !== canonicalScope) {
+    return { ok: false, error: 'PROJECT_CREATE_SCOPE_MISMATCH', expected_scope_key: canonicalScope, production_deploy: false };
+  }
+
+  const businessName = clean(command.business_name || command.name, 220);
+  const industry = clean(command.industry, 160);
+  const country = clean(command.country, 80).toUpperCase();
+  const language = clean(command.language, 40).toLowerCase();
+  if (!businessName || !industry || !country || !language) {
+    return { ok: false, error: 'PROJECT_CREATE_BUSINESS_CONTEXT_REQUIRED', production_deploy: false };
+  }
+
+  const allowedEnvironments = Array.isArray(command.allowed_environments) && command.allowed_environments.length
+    ? [...new Set(command.allowed_environments.map((value) => clean(value, 40).toLowerCase()).filter(Boolean))]
+    : ['staging'];
+  if (allowedEnvironments.some((value) => value !== 'staging')) {
+    return { ok: false, error: 'PROJECT_CREATE_STAGING_ONLY', allowed_environments: allowedEnvironments, production_deploy: false };
+  }
+
+  const dataPolicy = {
+    synthetic_only: command.data_policy?.synthetic_only !== false,
+    real_customer_data: command.data_policy?.real_customer_data === true
+  };
+  if (dataPolicy.synthetic_only !== true || dataPolicy.real_customer_data !== false) {
+    return { ok: false, error: 'PROJECT_CREATE_SYNTHETIC_DATA_POLICY_REQUIRED', production_deploy: false };
+  }
+
+  const budgetPolicy = {
+    variable_cost_ceiling_eur: Number(command.budget_policy?.variable_cost_ceiling_eur ?? 0),
+    paid_overflow: command.budget_policy?.paid_overflow === true
+  };
+  if (budgetPolicy.variable_cost_ceiling_eur !== 0 || budgetPolicy.paid_overflow !== false) {
+    return { ok: false, error: 'PROJECT_CREATE_ZERO_COST_POLICY_REQUIRED', production_deploy: false };
+  }
+
+  if (command.production_deploy === true || command.production_authorized === true) {
+    return { ok: false, error: 'PRODUCTION_DEPLOY_REJECTED', production_deploy: false };
+  }
+
+  const project = {
+    customer_id: customerId,
+    project_id: projectId,
+    scope_key: canonicalScope,
+    business_name: businessName,
+    name: businessName,
+    industry,
+    country,
+    language,
+    mission_context: clean(command.mission_context, 4000) || null,
+    allowed_environments: allowedEnvironments,
+    environment: 'staging',
+    data_policy: dataPolicy,
+    budget_policy: budgetPolicy,
+    operator_id: state.operator_id || null,
+    created_at: command.created_at || new Date().toISOString(),
+    state: 'READY',
+    blocked: false,
+    priority: Math.max(0, finite(command.priority, 100)),
+    budget_cost_units: 0,
+    capability_count: 0,
+    mission_count: 0,
+    delivery_count: 0,
+    synthetic: true,
+    real_customer_data: false,
+    production_authorized: false,
+    production_deploy: false
+  };
+
+  const projects = state.portfolio?.projects || [];
+  const sameScope = projects.find((item) => item.scope_key === canonicalScope);
+  if (sameScope) {
+    const comparable = ['customer_id','project_id','scope_key','name','industry','country','language'];
+    const exact = comparable.every((key) => sameScope[key] === project[key]);
+    if (exact) return { ok: true, project: clone(sameScope), idempotent_existing: true, production_deploy: false };
+    return { ok: false, error: 'PROJECT_CREATE_SCOPE_ALREADY_EXISTS', scope_key: canonicalScope, production_deploy: false };
+  }
+
+  const duplicatePair = projects.find((item) => item.customer_id === customerId && item.project_id === projectId);
+  if (duplicatePair) return { ok: false, error: 'PROJECT_CREATE_IDENTITY_ALREADY_EXISTS', scope_key: duplicatePair.scope_key, production_deploy: false };
+
+  return { ok: true, project, idempotent_existing: false, production_deploy: false };
+}
+
 export function createCommandCenterState(input = {}) {
   const operatorId = clean(input.operator_id, 160);
   if (!operatorId) return { ok: false, error: 'COMMAND_CENTER_OPERATOR_REQUIRED', production_deploy: false };
@@ -111,9 +206,26 @@ export function buildCommandCenterSnapshot(state = {}) {
 
 export function evaluateCommand(state = {}, command = {}) {
   const type = clean(command.type, 120);
-  const scopeKey = clean(command.scope_key, 260);
-  const allowed = ['PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','GRANT_APPROVAL','REVOKE_APPROVAL','ACK_ALERT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'];
+  const allowed = ['CREATE_PROJECT','PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','GRANT_APPROVAL','REVOKE_APPROVAL','ACK_ALERT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'];
   if (!allowed.includes(type)) return { ok: false, error: 'COMMAND_TYPE_UNSUPPORTED', production_deploy: false };
+
+  if (type === 'CREATE_PROJECT') {
+    const created = normalizeProjectCreate(state, command);
+    if (!created.ok) return created;
+    return {
+      ok: true,
+      command_id: clean(command.command_id, 180) || `${state.operator_id || 'operator'}:CREATE_PROJECT:${Date.now()}`,
+      type,
+      scope_key: created.project.scope_key,
+      project: created.project,
+      idempotent_existing: created.idempotent_existing === true,
+      requires_explicit_approval: false,
+      ready_for_dispatch: true,
+      production_deploy: false
+    };
+  }
+
+  const scopeKey = clean(command.scope_key, 260);
   const project = (state.portfolio?.projects || []).find((item) => item.scope_key === scopeKey);
   if (['PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'].includes(type) && !project) {
     return { ok: false, error: 'COMMAND_PROJECT_NOT_FOUND', scope_key: scopeKey, production_deploy: false };
@@ -137,6 +249,21 @@ export function applyLocalCommand(state = {}, evaluated = {}) {
   if (!evaluated.ok) return evaluated;
   if (!evaluated.ready_for_dispatch) return { ok: true, state: clone(state), command: evaluated, user_action_required: true, production_deploy: false };
   const next = clone(state);
+
+  if (evaluated.type === 'CREATE_PROJECT') {
+    const existing = (next.portfolio?.projects || []).find((item) => item.scope_key === evaluated.scope_key);
+    if (!existing) next.portfolio.projects = [...(next.portfolio?.projects || []), clone(evaluated.project)];
+    next.audit = [...(next.audit || []), {
+      event: existing ? 'PROJECT_CREATE_IDEMPOTENT_REPLAY' : 'PROJECT_CREATED',
+      command_id: evaluated.command_id,
+      type: evaluated.type,
+      scope_key: evaluated.scope_key,
+      actor: state.operator_id || 'operator',
+      at: new Date().toISOString()
+    }];
+    return { ok: true, state: next, command: evaluated, idempotent_replay: Boolean(existing), external_side_effect_performed: false, production_deploy: false };
+  }
+
   const project = (next.portfolio?.projects || []).find((item) => item.scope_key === evaluated.scope_key);
   if (evaluated.type === 'PRIORITIZE_PROJECT' && project) project.priority = evaluated.priority;
   if (evaluated.type === 'PAUSE_PROJECT' && project) project.state = 'PAUSED';
@@ -149,7 +276,9 @@ export function commandCenterManifest() {
   return {
     version: 'riosystems.command-center.v1',
     surfaces: ['portfolio','priority_queue','approvals','executions','integration_health','provider_readiness','alerts','audit'],
-    commands: ['prioritize','pause','resume','grant_approval','revoke_approval','request_execution','request_qa','request_handoff'],
+    commands: ['create_project','prioritize','pause','resume','grant_approval','revoke_approval','request_execution','request_qa','request_handoff'],
+    project_creation_authoritative: true,
+    project_creation_external_side_effects: false,
     dashboard_contract_ready: true,
     command_dispatch_fail_closed: true,
     external_side_effects_implicit: false,
