@@ -2,12 +2,14 @@ name: RIOSYSTEMS Make Staging Bridge
 
 on:
   pull_request:
+    branches: [factory-control]
     paths:
       - 'src/make-staging-bridge.js'
       - 'src/make-real-provider-adapter.js'
       - 'src/make-readonly-runner.js'
       - 'src/make-staging-write-runner.js'
       - 'src/make-staging-execution-runner.js'
+      - 'src/make-supabase-lead-bridge.js'
       - 'src/make-live-staging-evidence.js'
       - 'src/automation-provider-strategy.js'
       - 'src/provider-stack-v1.js'
@@ -16,6 +18,7 @@ on:
       - 'scripts/make-readonly-runner-smoke.mjs'
       - 'scripts/make-staging-write-runner-smoke.mjs'
       - 'scripts/make-staging-execution-runner-smoke.mjs'
+      - 'scripts/make-supabase-lead-bridge-smoke.mjs'
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
       - 'scripts/make-live-staging-execution-once.mjs'
@@ -41,6 +44,7 @@ jobs:
           node --check src/make-readonly-runner.js
           node --check src/make-staging-write-runner.js
           node --check src/make-staging-execution-runner.js
+          node --check src/make-supabase-lead-bridge.js
           node --check src/make-live-staging-evidence.js
           node --check src/automation-provider-strategy.js
           node --check scripts/make-staging-bridge-smoke.mjs
@@ -48,6 +52,7 @@ jobs:
           node --check scripts/make-readonly-runner-smoke.mjs
           node --check scripts/make-staging-write-runner-smoke.mjs
           node --check scripts/make-staging-execution-runner-smoke.mjs
+          node --check scripts/make-supabase-lead-bridge-smoke.mjs
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
           node --check scripts/make-live-staging-execution-once.mjs
@@ -64,6 +69,8 @@ jobs:
         run: node scripts/make-staging-write-runner-smoke.mjs
       - name: Make staging execution runner smoke
         run: node scripts/make-staging-execution-runner-smoke.mjs
+      - name: Make to Supabase lead bridge smoke
+        run: node scripts/make-supabase-lead-bridge-smoke.mjs
       - name: Provider stack regression
         run: node scripts/provider-stack-v1-smoke.mjs
       - name: Automation provider regression
