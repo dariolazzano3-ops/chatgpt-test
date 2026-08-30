@@ -18,6 +18,8 @@
   "deployment_authorized": true,
   "deployment_scope": "cloudflare_pages_preview_only",
   "approval_source": "GO Provider Garage Vollgas",
+  "zero_cost_confirmation": "repository_variable_required",
+  "deployment_trigger_revision": 2,
   "custom_domain": false,
   "dns_change": false,
   "automatic_paid_overflow": false,
