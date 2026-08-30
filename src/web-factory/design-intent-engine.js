@@ -1,3 +1,5 @@
+import { planWebsite } from './planner.js';
+
 const clone = (v) => v == null ? v : structuredClone(v);
 const text = (v, max = 500) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -69,9 +71,9 @@ export function createDesignIntent({ mission = {}, fusion = {}, industry_pattern
 
 export function designIntentToVisualContract({ mission = {}, design_intent, industry_pattern = {}, references = [], motion = null } = {}) {
   const intent = design_intent?.intent || DEFAULTS;
-  const pages = [...new Set([...(mission.required_pages || []), ...(industry_pattern.recommended_pages || [])])];
-  const normalizedPages = pages.length ? pages : ['home','services','about','contact','faq'];
-  const pageEntries = normalizedPages.map((id) => ({ id, path: id === 'home' ? '/' : `/${id}/`, sections: id === 'home' ? ['hero','proof','services','about','cta'] : ['hero',id,'cta'] }));
+  const missionForPlan = { ...structuredClone(mission), required_pages:[...new Set([...(mission.required_pages || []), ...(industry_pattern.recommended_pages || [])])] };
+  const blueprint = planWebsite(missionForPlan);
+  const pageEntries = blueprint.pages.map((page) => ({ id:page.id, path:page.path, sections:[...page.sections] }));
   const sections = [...new Set(pageEntries.flatMap((page) => page.sections))].map((id, order) => ({ id, type:id, order, layout:{alignment:'contained'}, visual_hierarchy:{role:id === 'hero' ? 'primary' : 'supporting'} }));
   const palette = intent.color_palette || DEFAULTS.color_palette;
   const spacing = intent.spacing_rhythm || DEFAULTS.spacing_rhythm;
