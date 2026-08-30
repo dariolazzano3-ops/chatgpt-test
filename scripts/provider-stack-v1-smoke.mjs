@@ -70,7 +70,11 @@ assert.equal(stack.factories.ai.cloudflare_ai_blocker, 'CLOUDFLARE_WORKERS_AI_PE
 assert.deepEqual(stack.factories.business.primary_path, ['riosystems-native-business','supabase-free','posthog-free']);
 assert.equal(stack.factories.business.standalone_crm_saas_required, false);
 assert.equal(stack.factories.business.provider_read_verified, true);
+assert.equal(stack.factories.business.staging_write_plan_ready, true);
 assert.equal(stack.factories.business.staging_write_verified, false);
+assert.equal(stack.factories.business.staging_write_plan.rls_required, true);
+assert.equal(stack.factories.business.staging_write_plan.data_api_exposure, false);
+assert.equal(stack.factories.business.staging_write_plan.zero_cost_confirmation_required, true);
 assert.equal(stack.activation_policy.external_writes_require_explicit_approval, true);
 assert.equal(stack.activation_policy.paid_execution_requires_explicit_approval, true);
 assert.equal(stack.activation_policy.automatic_paid_overflow, false);
@@ -93,6 +97,7 @@ const cfAi = matrix.providers.find((item) => item.id === 'cloudflare-workers-ai-
 assert.equal(cfAi?.activation, 'permission_required');
 assert.equal(cfAi?.workers_ai_read, 'permission_missing');
 const supabase = matrix.providers.find((item) => item.id === 'supabase-free');
+assert.equal(supabase?.staging_write_plan_ready, true);
 assert.equal(supabase?.activation, 'live_read_verified_staging_write_not_authorized');
 assert.equal(supabase?.schema_read, 'verified');
 const posthog = matrix.providers.find((item) => item.id === 'posthog-free');
