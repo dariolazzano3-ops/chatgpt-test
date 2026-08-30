@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "chatgpt-test",
+  "main": "./block6-posthog-preview-worker.js",
+  "compatibility_date": "2026-08-25",
+  "preview_urls": true,
+  "secrets": {
+    "required": ["POSTHOG_PROJECT_TOKEN", "BLOCK6_RUN_NONCE"]
+  },
+  "observability": {
+    "enabled": false
+  }
+}
