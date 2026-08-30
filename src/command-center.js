@@ -1,4 +1,5 @@
 import { buildOperatorQueue, portfolioSnapshot } from './project-portfolio.js';
+import { providerStackV1 } from './provider-stack-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const clean = (value, max = 240) => String(value || '').trim().slice(0, max);
@@ -14,6 +15,37 @@ function normalizeApproval(item = {}) {
     capability: clean(item.capability, 120) || null,
     granted: item.granted === true,
     expires_at: item.expires_at || null
+  };
+}
+
+function providerReadinessSnapshot() {
+  const stack = providerStackV1();
+  return {
+    status: stack.status,
+    source_of_truth: stack.source_of_truth,
+    factories: {
+      web: {
+        provider_read_verified: stack.factories.web.provider_read_verified === true,
+        staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
+        evidence: clone(stack.factories.web.staging_deploy_evidence)
+      },
+      automation: {
+        staging_activation_verified: stack.factories.automation.staging_activation_verified === true,
+        evidence: clone(stack.factories.automation.staging_activation_evidence)
+      },
+      ai: {
+        cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_read_verified === true,
+        blocker: stack.factories.ai.cloudflare_ai_blocker
+      },
+      business: {
+        provider_read_verified: stack.factories.business.provider_read_verified === true,
+        staging_write_verified: stack.factories.business.staging_write_verified === true,
+        evidence: clone(stack.factories.business.provider_read_evidence)
+      }
+    },
+    paid_execution: false,
+    automatic_paid_overflow: false,
+    production_deploy: false
   };
 }
 
@@ -66,6 +98,7 @@ export function buildCommandCenterSnapshot(state = {}) {
       degraded_count: healthValues.filter((value) => value === 'degraded').length,
       offline_count: healthValues.filter((value) => value === 'offline').length
     },
+    provider_readiness: providerReadinessSnapshot(),
     alerts: clone(state.alerts || []),
     production_deploy: false
   };
@@ -110,7 +143,7 @@ export function applyLocalCommand(state = {}, evaluated = {}) {
 export function commandCenterManifest() {
   return {
     version: 'riosystems.command-center.v1',
-    surfaces: ['portfolio','priority_queue','approvals','executions','integration_health','alerts','audit'],
+    surfaces: ['portfolio','priority_queue','approvals','executions','integration_health','provider_readiness','alerts','audit'],
     commands: ['prioritize','pause','resume','grant_approval','revoke_approval','request_execution','request_qa','request_handoff'],
     dashboard_contract_ready: true,
     command_dispatch_fail_closed: true,
