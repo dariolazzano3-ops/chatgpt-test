@@ -1,0 +1,45 @@
+name: RIOSYSTEMS Web Factory Framer Visual Fidelity V1
+
+on:
+  pull_request:
+    paths:
+      - 'src/web-factory/**'
+      - 'fixtures/web-factory/**'
+      - 'scripts/web-factory-framer-fidelity-smoke.mjs'
+      - 'scripts/web-factory-v1-smoke.mjs'
+      - 'docs/RIOSYSTEMS-WEB-FACTORY-FRAMER-FIDELITY-V1.md'
+      - '.github/workflows/riosystems-web-factory-framer-fidelity-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax check premium bridge
+        run: |
+          node --check src/web-factory/provider-roles.js
+          node --check src/web-factory/framer-provider.js
+          node --check src/web-factory/visual-design-contract.js
+          node --check src/web-factory/interaction-translation.js
+          node --check src/web-factory/design-interpreter.js
+          node --check src/web-factory/visual-style.js
+          node --check src/web-factory/visual-fidelity.js
+          node --check src/web-factory/screenshot-comparison.js
+          node --check src/web-factory/visual-repair.js
+          node --check src/web-factory/routing.js
+          node --check src/web-factory/native-reconstruction.js
+          node --check src/web-factory/adapter.js
+          node --check src/web-factory/index.js
+          node --check scripts/web-factory-framer-fidelity-smoke.mjs
+      - name: Existing Web Factory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+      - name: Framer bridge and visual fidelity acceptance
+        run: node scripts/web-factory-framer-fidelity-smoke.mjs
