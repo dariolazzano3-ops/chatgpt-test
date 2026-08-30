@@ -102,7 +102,7 @@ export function runWebsiteQa(artifact) {
   if (!/@media\(max-width:/i.test(css)) block('responsive', 'BREAKPOINT_RULES_MISSING', 'Responsive breakpoint rules are required');
   if (!/max-width:100%/i.test(css)) block('responsive', 'MEDIA_MAX_WIDTH_MISSING', 'Responsive media max-width baseline is required');
   if (!/min-height:var\(--target\)/i.test(css)) block('responsive', 'CONTROL_TARGET_BASELINE_MISSING', 'Interactive controls need a deterministic minimum target size');
-  if (/width:\s*[1-9]\d{3,}px/i.test(css)) block('responsive', 'FIXED_WIDE_LAYOUT', 'Large fixed widths can cause overflow');
+  if (/(?:^|[;{])\s*width:\s*[1-9]\d{3,}px/i.test(css)) block('responsive', 'FIXED_WIDE_LAYOUT', 'Large fixed widths can cause overflow');
 
   const colors = artifact.design_system?.tokens?.colors || {};
   const textContrast = contrastRatio(colors.text, colors.background);
