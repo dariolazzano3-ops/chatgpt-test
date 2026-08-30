@@ -1,0 +1,37 @@
+name: Automation Factory V2
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/automation-v2/**'
+      - 'scripts/automation-factory-v2-smoke.mjs'
+      - 'docs/AUTOMATION-FACTORY-V2.md'
+      - '.github/workflows/automation-factory-v2.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: V2 syntax
+        run: |
+          for f in src/automation-v2/*.js; do node --check "$f"; done
+          node --check scripts/automation-factory-v2-smoke.mjs
+      - name: Automation Factory V2 acceptance
+        run: node scripts/automation-factory-v2-smoke.mjs
+      - name: Automation Factory V1 regression
+        run: node scripts/automation-factory-v1-smoke.mjs
+      - name: Existing automation regressions
+        run: |
+          node scripts/automation-factory-smoke.mjs
+          node scripts/automation-executor-smoke.mjs
+          node scripts/automation-external-actions-smoke.mjs
+          node scripts/automation-provider-selection-smoke.mjs
+          node scripts/make-staging-bridge-smoke.mjs
+          node scripts/make-staging-execution-runner-smoke.mjs
+          node scripts/make-supabase-lead-bridge-executor-smoke.mjs
