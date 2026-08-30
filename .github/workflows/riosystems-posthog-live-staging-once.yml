@@ -1,0 +1,79 @@
+name: RIOSYSTEMS PostHog Live Staging Once
+
+on:
+  push:
+    branches: [feature/posthog-analytics-staging-v2]
+    paths:
+      - '.github/workflows/riosystems-posthog-live-staging-once.yml'
+
+concurrency:
+  group: riosystems-posthog-live-staging-once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/posthog-analytics-staging-v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Validate Cloudflare staging credentials and PostHog secret name
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CLOUDFLARE_API_TOKEN_MISSING'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'CLOUDFLARE_ACCOUNT_ID_MISSING'; exit 1; }
+          npx wrangler secret list --name chatgpt-test --format json > /tmp/worker-secrets.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const secrets = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json', 'utf8'));
+          const names = new Set((Array.isArray(secrets) ? secrets : []).map((item) => item?.name));
+          if (!names.has('POSTHOG_PROJECT_TOKEN')) throw new Error('POSTHOG_PROJECT_TOKEN_NOT_CONFIGURED');
+          console.log('Required PostHog Worker secret is configured; value remains hidden.');
+          NODE
+      - name: Upload preview version and send exactly one synthetic batch
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 32)"
+          echo "::add-mask::$nonce"
+          printf '{"BLOCK4_RUN_NONCE":"%s"}\n' "$nonce" > /tmp/block4-secrets.json
+
+          npx wrangler versions upload \
+            --config staging/wrangler.posthog-block4-preview.jsonc \
+            --preview-alias block4-posthog-0830 \
+            --keep-vars \
+            --secrets-file /tmp/block4-secrets.json \
+            2>&1 | tee /tmp/wrangler-upload.txt
+
+          rm -f /tmp/block4-secrets.json
+          preview_url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/wrangler-upload.txt | tail -n 1)"
+          test -n "$preview_url" || { echo 'PREVIEW_URL_NOT_FOUND'; exit 1; }
+
+          http_code="$(curl --silent --show-error --max-time 15 --retry 0 \
+            --output /tmp/block4-result.json \
+            --write-out '%{http_code}' \
+            --request POST "$preview_url/__riosystems/block4-posthog-once" \
+            --header "Authorization: Bearer $nonce")"
+
+          test "$http_code" = '200' || { echo "PREVIEW_SEND_HTTP_$http_code"; exit 1; }
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/block4-result.json', 'utf8'));
+          if (body?.ok !== true) throw new Error('POSTHOG_BATCH_NOT_ACCEPTED');
+          if (body?.posthog_status < 200 || body?.posthog_status >= 300) throw new Error('POSTHOG_BATCH_STATUS_REJECTED');
+          if (body?.event_count !== 5) throw new Error('POSTHOG_EVENT_COUNT_REJECTED');
+          if (body?.secrets_returned !== false) throw new Error('SECRET_RETURN_GUARD_FAILED');
+          if (body?.production_deploy !== false) throw new Error('PRODUCTION_GUARD_FAILED');
+          console.log(`Synthetic PostHog batch accepted: ${body.event_count} events; provider status ${body.posthog_status}.`);
+          NODE
