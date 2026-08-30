@@ -16,10 +16,15 @@ const plan = buildMakeSafeStagingExecutionPlan({
 });
 assert.equal(plan.state, 'STAGING_EXECUTION_APPROVED_NOT_EXECUTED');
 assert.equal(plan.scenario_id, 7149691);
+assert.equal(plan.synthetic_payload.scope_key, 'bakery-muller:digital-system-v1');
+assert.equal(plan.synthetic_payload.lead.external_ref, 'block3-lead-001');
+assert.equal(plan.synthetic_payload.lead.email, 'block3-lead-001@example.invalid');
+assert.equal(plan.synthetic_payload.lead.synthetic, true);
 
 const manifest = makeStagingExecutionRunnerManifest();
 assert.equal(manifest.single_supervised_run_only, true);
 assert.equal(manifest.restore_inactive_required, true);
+assert.equal(manifest.synthetic_bridge_payload_supported, true);
 assert.equal(manifest.production_deploy, false);
 
 const calls = [];
@@ -58,6 +63,8 @@ const result = await runMakeStagingScenarioOnce(plan, {
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'MAKE_STAGING_EXECUTION_COMPLETE_AND_INACTIVE');
 assert.equal(result.scenario_restored_inactive, true);
+assert.equal(result.synthetic_payload.lead.external_ref, 'block3-lead-001');
+assert.equal(result.synthetic_payload.lead.email, 'block3-lead-001@example.invalid');
 assert.deepEqual(calls.map((x) => `${x.method} ${x.path}`), [
   'GET /api/v2/scenarios/7149691',
   'GET /api/v2/scenarios/7149691/blueprint',
@@ -71,7 +78,11 @@ assert.equal(JSON.stringify(result).includes('secret-token'), false);
 const patchBody = JSON.parse(calls[2].body);
 const blueprint = JSON.parse(patchBody.blueprint);
 assert.equal(blueprint.flow[0].module, 'json:ParseJSON');
-assert.equal(blueprint.flow[0].mapper.json.includes('synthetic'), true);
+const makePayload = JSON.parse(blueprint.flow[0].mapper.json);
+assert.equal(makePayload.synthetic, true);
+assert.equal(makePayload.scope_key, 'bakery-muller:digital-system-v1');
+assert.equal(makePayload.lead.external_ref, 'block3-lead-001');
+assert.equal(makePayload.lead.email.endsWith('@example.invalid'), true);
 assert.equal(JSON.parse(patchBody.scheduling).type, 'on-demand');
 assert.equal(JSON.parse(calls[4].body).responsive, true);
 
