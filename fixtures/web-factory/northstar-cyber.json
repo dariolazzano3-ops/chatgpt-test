@@ -1,0 +1,32 @@
+{
+  "business_name": "Northstar Cyber Advisory",
+  "industry": "B2B cybersecurity consulting",
+  "country": "Ireland",
+  "language": "en",
+  "target_audience": "European operations and technology leaders at mid-market companies",
+  "primary_goal": "Generate qualified security assessment enquiries",
+  "services": [
+    "Security Assessments",
+    "Cloud Risk Reviews",
+    "Incident Readiness",
+    "Executive Advisory"
+  ],
+  "brand_positioning": "Calm, evidence-led cybersecurity advice for business-critical systems",
+  "tone": "precise, authoritative, restrained",
+  "required_pages": [
+    "home",
+    "services",
+    "about",
+    "contact",
+    "faq",
+    "gallery"
+  ],
+  "required_features": [
+    "responsive navigation",
+    "contact form shell",
+    "structured metadata hooks"
+  ],
+  "seo_location": "European Union",
+  "conversion_goal": "Request a security assessment",
+  "synthetic_test_data_only": true
+}

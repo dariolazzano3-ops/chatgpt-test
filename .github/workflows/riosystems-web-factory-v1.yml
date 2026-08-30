@@ -1,0 +1,48 @@
+name: RIOSYSTEMS Web Factory V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'scripts/web-factory-v1-smoke.mjs'
+      - 'fixtures/web-factory/**'
+      - 'docs/RIOSYSTEMS-WEB-FACTORY-V1.md'
+      - '.github/workflows/riosystems-web-factory-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'scripts/web-factory-v1-smoke.mjs'
+      - 'fixtures/web-factory/**'
+      - '.github/workflows/riosystems-web-factory-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  web-factory-v1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check Web Factory modules
+        run: |
+          node --check src/web-factory/contracts.js
+          node --check src/web-factory/planner.js
+          node --check src/web-factory/design-system.js
+          node --check src/web-factory/content.js
+          node --check src/web-factory/components.js
+          node --check src/web-factory/qa.js
+          node --check src/web-factory/repair.js
+          node --check src/web-factory/factory.js
+          node --check src/web-factory/adapter.js
+          node --check src/web-factory/index.js
+          node --check scripts/web-factory-v1-smoke.mjs
+      - name: Run deterministic zero-cost acceptance suite
+        run: node scripts/web-factory-v1-smoke.mjs
