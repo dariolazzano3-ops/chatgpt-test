@@ -3,15 +3,17 @@ import { spawn } from 'node:child_process';
 
 const port = 8791;
 const origin = `http://127.0.0.1:${port}`;
+const wranglerCli = 'node_modules/wrangler/bin/wrangler.js';
 const args = [
-  'wrangler', 'dev',
+  wranglerCli,
+  'dev',
   '--env', 'staging',
   '--port', String(port),
   '--var', 'RIOSYSTEMS_OPERATOR_EMAIL:operator@riosystems.local',
   '--var', 'RIOSYSTEMS_ACCESS_AUD:riosystems-operator-local'
 ];
 
-const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {
+const child = spawn(process.execPath, args, {
   cwd: process.cwd(),
   env: { ...process.env, NO_COLOR: '1' },
   stdio: ['ignore', 'pipe', 'pipe']
