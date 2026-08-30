@@ -1,0 +1,32 @@
+{
+  "business_name": "Bäckerei Müller",
+  "industry": "artisan bakery and local food retail",
+  "country": "Germany",
+  "language": "de",
+  "target_audience": "Menschen in Saarbrücken, die frische Backwaren, Frühstück und lokale Handwerksqualität suchen",
+  "primary_goal": "Mehr Ladenbesuche und qualifizierte Anfragen für Vorbestellungen erzeugen",
+  "services": [
+    "Frische Backwaren",
+    "Frühstück",
+    "Torten auf Bestellung",
+    "Catering"
+  ],
+  "brand_positioning": "Lokales Backhandwerk mit moderner, verlässlicher Kundenkommunikation",
+  "tone": "warm, klar, hochwertig",
+  "required_pages": [
+    "home",
+    "services",
+    "about",
+    "contact",
+    "faq"
+  ],
+  "required_features": [
+    "responsive navigation",
+    "contact form shell",
+    "local SEO baseline"
+  ],
+  "seo_location": "Saarbrücken",
+  "conversion_goal": "Vorbestellung oder Besuch planen",
+  "synthetic_test_data_only": true,
+  "project_slug": "bakery-muller-staging"
+}
