@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from '../src/business-staging-write-evidence.js';
 
-const foundation = readFileSync('supabase/migrations/20260830014000_riosystems_staging_crm_foundation.sql', 'utf8');
-const indexes = readFileSync('supabase/migrations/20260830014100_riosystems_staging_crm_fk_indexes.sql', 'utf8');
+const foundation = readFileSync('supabase/migrations/20260830013445_riosystems_staging_crm_foundation.sql', 'utf8');
+const indexes = readFileSync('supabase/migrations/20260830013612_riosystems_staging_crm_fk_indexes.sql', 'utf8');
 
 for (const table of ['customer_projects','contacts','leads','lead_events','provider_execution_refs','audit_log']) {
   assert.ok(foundation.includes(`create table public.${table}`), `missing table ${table}`);
