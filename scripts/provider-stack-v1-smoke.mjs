@@ -4,6 +4,7 @@ import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWeb
 import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from '../src/cloudflare-pages-staging-evidence.js';
 import { makeLiveStagingActivationEvidence, isMakeLiveStagingVerified } from '../src/make-live-staging-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from '../src/business-live-read-evidence.js';
+import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from '../src/business-staging-write-evidence.js';
 
 const cfEvidence = cloudflareLiveReadEvidence();
 assert.equal(isCloudflareWebReadVerified(), true);
@@ -41,6 +42,16 @@ assert.equal(businessEvidence.posthog.project_read_verified, true);
 assert.equal(businessEvidence.customer_data_read, false);
 assert.equal(businessEvidence.external_side_effect_performed, false);
 
+const businessWriteEvidence = businessStagingWriteEvidence();
+assert.equal(isBusinessStagingWriteVerified(), true);
+assert.equal(businessWriteEvidence.provider, 'supabase-free');
+assert.equal(businessWriteEvidence.verification.repeated_identical_lead_write_count, 1);
+assert.equal(businessWriteEvidence.verification.project_b_visible_foreign_leads, 0);
+assert.equal(businessWriteEvidence.verification.anon_lead_insert, false);
+assert.equal(businessWriteEvidence.safety.synthetic_data_only, true);
+assert.equal(businessWriteEvidence.safety.variable_cost_eur, 0);
+assert.equal(businessWriteEvidence.safety.production_deploy, false);
+
 const stack = providerStackV1();
 assert.equal(stack.status, 'PROVIDER_SELECTION_COMPLETE');
 assert.equal(stack.source_of_truth, 'github_repository_evidence');
@@ -70,7 +81,9 @@ assert.equal(stack.factories.ai.cloudflare_ai_blocker, 'CLOUDFLARE_WORKERS_AI_PE
 assert.deepEqual(stack.factories.business.primary_path, ['riosystems-native-business','supabase-free','posthog-free']);
 assert.equal(stack.factories.business.standalone_crm_saas_required, false);
 assert.equal(stack.factories.business.provider_read_verified, true);
-assert.equal(stack.factories.business.staging_write_verified, false);
+assert.equal(stack.factories.business.staging_write_verified, true);
+assert.equal(stack.factories.business.staging_write_evidence.verification.project_b_visible_foreign_leads, 0);
+assert.equal(stack.factories.business.staging_write_evidence.safety.variable_cost_eur, 0);
 assert.equal(stack.activation_policy.external_writes_require_explicit_approval, true);
 assert.equal(stack.activation_policy.paid_execution_requires_explicit_approval, true);
 assert.equal(stack.activation_policy.automatic_paid_overflow, false);
@@ -93,8 +106,11 @@ const cfAi = matrix.providers.find((item) => item.id === 'cloudflare-workers-ai-
 assert.equal(cfAi?.activation, 'permission_required');
 assert.equal(cfAi?.workers_ai_read, 'permission_missing');
 const supabase = matrix.providers.find((item) => item.id === 'supabase-free');
-assert.equal(supabase?.activation, 'live_read_verified_staging_write_not_authorized');
+assert.equal(supabase?.activation, 'live_read_and_staging_write_verified');
 assert.equal(supabase?.schema_read, 'verified');
+assert.equal(supabase?.staging_write_verified, true);
+assert.equal(supabase?.staging_write_evidence.verification.audit_entry_count, 1);
+assert.equal(supabase?.staging_write_evidence.safety.public_anonymous_write, false);
 const posthog = matrix.providers.find((item) => item.id === 'posthog-free');
 assert.equal(posthog?.activation, 'live_read_verified_event_ingestion_observed');
 assert.equal(posthog?.project_read, 'verified');
@@ -126,15 +142,17 @@ assert.equal(bakery.activation_status.web_cloudflare_read_verified, true);
 assert.equal(bakery.activation_status.web_staging_deploy_verified, true);
 assert.equal(bakery.activation_status.ai_cloudflare_runtime_verified, false);
 assert.equal(bakery.activation_status.business_runtime_read_verified, true);
-assert.equal(bakery.activation_status.business_staging_write_verified, false);
+assert.equal(bakery.activation_status.business_staging_write_verified, true);
 assert.equal(bakery.activation_evidence.web_staging_deploy.github_actions_run_id, 33285150036);
 assert.equal(bakery.activation_evidence.automation_make_staging.execution.github_actions_run_id, 33258730803);
 assert.equal(bakery.activation_evidence.business_runtime_read.external_side_effect_performed, false);
+assert.equal(bakery.activation_evidence.business_staging_write.verification.project_b_visible_foreign_leads, 0);
+assert.equal(bakery.activation_evidence.business_staging_write.safety.variable_cost_eur, 0);
 assert.equal(bakery.execution_authorized, false);
 assert.equal(bakery.external_writes, false);
 assert.equal(bakery.paid_execution, false);
 assert.equal(bakery.production_deploy, false);
-assert.equal(bakery.next_gate, 'BUSINESS_STAGING_WRITE_APPROVAL_REQUIRED');
+assert.equal(bakery.next_gate, 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED');
 
 const prod = planProviderStackMission({ project: 'Bäckerei Müller', production_deploy: true });
 assert.equal(prod.ok, false);
