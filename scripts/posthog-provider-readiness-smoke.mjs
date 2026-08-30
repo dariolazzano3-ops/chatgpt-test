@@ -28,9 +28,11 @@ assert.equal(posthog?.real_write, 'synthetic_event_approval_required_per_executi
 const mission = planProviderStackMission({ project: 'Bäckerei Müller' });
 assert.equal(mission.ok, true);
 assert.equal(mission.activation_status.business_posthog_staging_analytics_verified, true);
+assert.equal(mission.activation_status.ai_cloudflare_runtime_verified, true);
 assert.equal(mission.activation_evidence.business_posthog_staging_analytics.delivery.github_actions_run_id, 33287690485);
 assert.equal(mission.activation_evidence.business_posthog_staging_analytics.safety.production_deploy, false);
-assert.equal(mission.next_gate, 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED');
+assert.equal(mission.activation_evidence.ai_cloudflare_staging_runtime.inference.http_status, 200);
+assert.equal(mission.next_gate, 'STAGING_EXECUTION_APPROVAL_REQUIRED');
 
 const state = createCommandCenterState({ operator_id: 'operator' });
 assert.equal(state.ok, true);
@@ -40,6 +42,8 @@ assert.equal(snapshot.provider_readiness.factories.business.posthog_staging_anal
 assert.equal(snapshot.provider_readiness.factories.business.posthog_staging_analytics_evidence.verification.automation_failed_count, 0);
 assert.equal(snapshot.provider_readiness.factories.business.posthog_staging_analytics_evidence.verification.email_property_present, false);
 assert.equal(snapshot.provider_readiness.factories.business.posthog_staging_analytics_evidence.safety.variable_cost_eur, 0);
+assert.equal(snapshot.provider_readiness.factories.ai.cloudflare_runtime_verified, true);
+assert.equal(snapshot.provider_readiness.factories.ai.blocker, null);
 assert.equal(snapshot.provider_readiness.production_deploy, false);
 
 console.log('RIOSYSTEMS PostHog provider readiness smoke: OK');
