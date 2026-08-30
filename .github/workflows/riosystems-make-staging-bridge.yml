@@ -2,6 +2,7 @@ name: RIOSYSTEMS Make Staging Bridge
 
 on:
   pull_request:
+    branches: [factory-control]
     paths:
       - 'src/make-staging-bridge.js'
       - 'src/make-real-provider-adapter.js'
@@ -11,6 +12,8 @@ on:
       - 'src/make-live-staging-evidence.js'
       - 'src/make-supabase-lead-bridge.js'
       - 'src/make-supabase-lead-bridge-evidence.js'
+      - 'src/make-supabase-lead-payload.js'
+      - 'src/make-supabase-lead-bridge-executor.js'
       - 'src/business-staging-write-plan.js'
       - 'src/business-staging-write-evidence.js'
       - 'src/automation-provider-strategy.js'
@@ -22,6 +25,8 @@ on:
       - 'scripts/make-staging-execution-runner-smoke.mjs'
       - 'scripts/make-supabase-lead-bridge-smoke.mjs'
       - 'scripts/make-supabase-lead-bridge-evidence-smoke.mjs'
+      - 'scripts/make-supabase-lead-payload-smoke.mjs'
+      - 'scripts/make-supabase-lead-bridge-executor-smoke.mjs'
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
       - 'scripts/make-live-staging-execution-once.mjs'
@@ -51,6 +56,8 @@ jobs:
           node --check src/make-live-staging-evidence.js
           node --check src/make-supabase-lead-bridge.js
           node --check src/make-supabase-lead-bridge-evidence.js
+          node --check src/make-supabase-lead-payload.js
+          node --check src/make-supabase-lead-bridge-executor.js
           node --check src/business-staging-write-plan.js
           node --check src/business-staging-write-evidence.js
           node --check src/automation-provider-strategy.js
@@ -61,6 +68,8 @@ jobs:
           node --check scripts/make-staging-execution-runner-smoke.mjs
           node --check scripts/make-supabase-lead-bridge-smoke.mjs
           node --check scripts/make-supabase-lead-bridge-evidence-smoke.mjs
+          node --check scripts/make-supabase-lead-payload-smoke.mjs
+          node --check scripts/make-supabase-lead-bridge-executor-smoke.mjs
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
           node --check scripts/make-live-staging-execution-once.mjs
@@ -73,6 +82,10 @@ jobs:
         run: node scripts/make-supabase-lead-bridge-smoke.mjs
       - name: Make to Supabase live bridge evidence smoke
         run: node scripts/make-supabase-lead-bridge-evidence-smoke.mjs
+      - name: Make to Supabase canonical payload smoke
+        run: node scripts/make-supabase-lead-payload-smoke.mjs
+      - name: Make to Supabase bridge executor smoke
+        run: node scripts/make-supabase-lead-bridge-executor-smoke.mjs
       - name: Make real provider adapter smoke
         run: node scripts/make-real-provider-adapter-smoke.mjs
       - name: Make read-only runner smoke
