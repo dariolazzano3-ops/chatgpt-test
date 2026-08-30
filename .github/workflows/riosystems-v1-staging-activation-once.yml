@@ -40,9 +40,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "5fd3a316bd8352f188c35002e7ca4473f53e75f3"
+          test "$(git rev-parse HEAD^1)" = "9bb543f37bcc3985054463caf41c628c8f52d0da"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          test "$CHANGED" = ".github/workflows/riosystems-v1-staging-activation-once.yml"
+          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/operator-runtime-live-restart-acceptance.mjs' 'supabase/migrations/20260830152000_operator_runtime_acceptance_cleanup_v1.sql')"
+          test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ENVIRONMENT" = "staging"
           test "$RIOSYSTEMS_OPERATOR_RUNTIME_STORE" = "supabase"
           test "$RIOSYSTEMS_RUNTIME_RESTART_APPROVED" = "RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST"
@@ -82,9 +83,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "5fd3a316bd8352f188c35002e7ca4473f53e75f3"
+          test "$(git rev-parse HEAD^1)" = "9bb543f37bcc3985054463caf41c628c8f52d0da"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          test "$CHANGED" = ".github/workflows/riosystems-v1-staging-activation-once.yml"
+          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/operator-runtime-live-restart-acceptance.mjs' 'supabase/migrations/20260830152000_operator_runtime_acceptance_cleanup_v1.sql')"
+          test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
           test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
           test -n "$CLOUDFLARE_API_TOKEN"
