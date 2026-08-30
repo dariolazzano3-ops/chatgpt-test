@@ -1,0 +1,38 @@
+name: RIOSYSTEMS Public Website Preview Live QA
+
+on:
+  push:
+    branches:
+      - factory/riosystems-public-website-v1-preview
+    paths:
+      - 'projects/riosystems-public-website-v1/**'
+      - 'scripts/riosystems-public-website-live-qa.mjs'
+      - '.github/workflows/riosystems-public-website-preview-live-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      RIOSYSTEMS_PREVIEW_URL: https://factory-riosystems-public-we.chatgpt-factory-preview.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install chromium
+      - name: Live responsive QA
+        run: node scripts/riosystems-public-website-live-qa.mjs
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riosystems-public-website-v1-visual-qa
+          path: artifacts/riosystems-public-website-v1/*.png
+          if-no-files-found: warn
