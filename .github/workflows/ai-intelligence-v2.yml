@@ -3,9 +3,8 @@ name: Autonomous AI Intelligence V2
 on:
   pull_request:
     paths:
-      - 'src/ai-intelligence-v2.js'
-      - 'scripts/ai-intelligence-v2-smoke.mjs'
-      - 'scripts/ai-intelligence-v2-readiness.mjs'
+      - 'src/ai-intelligence-v2*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
       - 'docs/AI_INTELLIGENCE_V2.md'
       - '.github/workflows/ai-intelligence-v2.yml'
       - 'src/ai-factory-v1.js'
@@ -15,9 +14,8 @@ on:
     branches:
       - factory-control
     paths:
-      - 'src/ai-intelligence-v2.js'
-      - 'scripts/ai-intelligence-v2-smoke.mjs'
-      - 'scripts/ai-intelligence-v2-readiness.mjs'
+      - 'src/ai-intelligence-v2*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
       - 'docs/AI_INTELLIGENCE_V2.md'
       - '.github/workflows/ai-intelligence-v2.yml'
       - 'src/ai-factory-v1.js'
@@ -39,6 +37,10 @@ jobs:
       - name: Syntax checks
         run: |
           node --check src/ai-intelligence-v2.js
+          node --check src/ai-intelligence-v2-format.js
+          node --check scripts/ai-intelligence-v2-contracts-smoke.mjs
+          node --check scripts/ai-intelligence-v2-quality-smoke.mjs
+          node --check scripts/ai-intelligence-v2-runtime-smoke.mjs
           node --check scripts/ai-intelligence-v2-smoke.mjs
           node --check scripts/ai-intelligence-v2-readiness.mjs
       - name: AI Intelligence V2 readiness
