@@ -6,8 +6,10 @@ on:
     paths:
       - 'src/riosystems-v1-acceptance-v1.js'
       - 'src/riosystems-v1-acceptance-evidence-v1.js'
+      - 'src/operator-staging-deployment-evidence-v1.js'
       - 'scripts/riosystems-v1-acceptance-v1-smoke.mjs'
       - 'scripts/riosystems-v1-acceptance-evidence-v1-smoke.mjs'
+      - 'scripts/operator-staging-deployment-evidence-v1-smoke.mjs'
       - '.github/workflows/riosystems-v1-acceptance-v1.yml'
       - 'src/entry.js'
       - 'src/operator-runtime-v1.js'
@@ -41,11 +43,15 @@ jobs:
         run: |
           node --check src/riosystems-v1-acceptance-v1.js
           node --check src/riosystems-v1-acceptance-evidence-v1.js
+          node --check src/operator-staging-deployment-evidence-v1.js
           node --check src/operator-v1-acceptance-dashboard-v1.js
           node --check scripts/riosystems-v1-acceptance-v1-smoke.mjs
           node --check scripts/riosystems-v1-acceptance-evidence-v1-smoke.mjs
+          node --check scripts/operator-staging-deployment-evidence-v1-smoke.mjs
       - name: RIOSYSTEMS V1 acceptance contract
         run: node scripts/riosystems-v1-acceptance-v1-smoke.mjs
+      - name: Operator staging deployment evidence
+        run: node scripts/operator-staging-deployment-evidence-v1-smoke.mjs
       - name: RIOSYSTEMS V1 acceptance evidence
         run: node scripts/riosystems-v1-acceptance-evidence-v1-smoke.mjs
       - name: Operator System Health regression
