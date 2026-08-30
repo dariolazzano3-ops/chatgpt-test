@@ -1,0 +1,110 @@
+name: RIOSYSTEMS Block 6 Live PostHog AI Once
+
+on:
+  push:
+    branches: [feature/block6-bakery-live-e2e]
+    paths:
+      - '.github/workflows/riosystems-block6-live-posthog-ai-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-block6-live-posthog-ai-once
+  cancel-in-progress: false
+
+jobs:
+  posthog-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/block6-bakery-live-e2e
+          persist-credentials: false
+      - name: Require Cloudflare credentials without revealing values
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo CLOUDFLARE_API_TOKEN_MISSING; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo CLOUDFLARE_ACCOUNT_ID_MISSING; exit 2; }
+      - name: Validate hidden PostHog Worker secret exists
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 secret list --name chatgpt-test --format json > /tmp/worker-secrets.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const secrets = JSON.parse(fs.readFileSync('/tmp/worker-secrets.json','utf8'));
+          const names = new Set((Array.isArray(secrets) ? secrets : []).map((x) => x?.name));
+          if (!names.has('POSTHOG_PROJECT_TOKEN')) throw new Error('POSTHOG_PROJECT_TOKEN_NOT_CONFIGURED');
+          console.log('POSTHOG_PROJECT_TOKEN configured; value hidden.');
+          NODE
+      - name: Upload preview version and send exactly one Block 6 analytics batch
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 32)"
+          echo "::add-mask::$nonce"
+          printf '{"BLOCK6_RUN_NONCE":"%s"}\n' "$nonce" > /tmp/block6-secrets.json
+          npx --yes wrangler@4 versions upload \
+            --config staging/wrangler.block6-posthog-preview.jsonc \
+            --preview-alias block6-posthog-0830 \
+            --keep-vars \
+            --secrets-file /tmp/block6-secrets.json \
+            2>&1 | tee /tmp/wrangler-upload.txt
+          rm -f /tmp/block6-secrets.json
+          preview_url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.workers\.dev' /tmp/wrangler-upload.txt | tail -n 1)"
+          test -n "$preview_url" || { echo PREVIEW_URL_NOT_FOUND; exit 3; }
+          http_code="$(curl --silent --show-error --max-time 15 --retry 0 \
+            --output /tmp/block6-posthog-result.json \
+            --write-out '%{http_code}' \
+            --request POST "$preview_url/__riosystems/block6-posthog-once" \
+            --header "Authorization: Bearer $nonce")"
+          test "$http_code" = 200 || { echo "POSTHOG_PREVIEW_HTTP_$http_code"; exit 4; }
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/block6-posthog-result.json','utf8'));
+          if (body?.ok !== true || body?.posthog_status < 200 || body?.posthog_status >= 300) throw new Error('POSTHOG_BATCH_REJECTED');
+          if (body?.event_count !== 5 || body?.flow_id !== 'block6-e2e-staging-001') throw new Error('POSTHOG_TRACE_REJECTED');
+          if (body?.make_execution_id !== '889cbc5111364a89b17faa0eba9c4165') throw new Error('POSTHOG_MAKE_CORRELATION_REJECTED');
+          if (body?.retries_performed !== 0 || body?.secrets_returned !== false || body?.production_deploy !== false) throw new Error('POSTHOG_SAFETY_REJECTED');
+          console.log(JSON.stringify({ok:true,posthog_status:body.posthog_status,event_count:5,flow_id:body.flow_id,make_execution_id:body.make_execution_id,retries_performed:0,secrets_returned:false,production_deploy:false}));
+          NODE
+
+  workers-ai-once:
+    needs: posthog-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Run exactly one tiny synthetic Workers AI inference
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo CLOUDFLARE_API_TOKEN_MISSING; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo CLOUDFLARE_ACCOUNT_ID_MISSING; exit 2; }
+          http_code="$(curl --silent --show-error --max-time 20 --retry 0 \
+            --output /tmp/block6-ai.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/ai/run/@cf/zai-org/glm-4.7-flash" \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data '{"messages":[{"role":"system","content":"Synthetic staging connectivity check. Reply OK only."},{"role":"user","content":"Block 6 trace verified?"}],"max_tokens":4}')"
+          test "$http_code" = 200 || { echo "WORKERS_AI_HTTP_$http_code"; exit 4; }
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/block6-ai.json','utf8'));
+          if (body?.success !== true) throw new Error('WORKERS_AI_API_REJECTED');
+          const usage = body?.result?.usage || body?.result?.meta?.usage || {};
+          const prompt = Number(usage.prompt_tokens ?? usage.input_tokens ?? 0);
+          const completion = Number(usage.completion_tokens ?? usage.output_tokens ?? 0);
+          const total = Number(usage.total_tokens ?? (prompt + completion));
+          const neurons = Number(usage.neurons ?? body?.result?.neurons ?? body?.meta?.neurons ?? 0);
+          if (!Number.isFinite(total) || total <= 0) throw new Error('WORKERS_AI_USAGE_MISSING');
+          if (!Number.isFinite(neurons) || neurons <= 0 || neurons >= 10000) throw new Error('WORKERS_AI_NEURON_GUARD_FAILED');
+          console.log(JSON.stringify({ok:true,http_status:200,api_success:true,model:'@cf/zai-org/glm-4.7-flash',prompt_tokens:prompt,completion_tokens:completion,total_tokens:total,neurons,variable_cost_eur:0,automatic_paid_overflow:false,openai_fallback_used:false,secrets_returned:false,production_deploy:false}));
+          NODE
