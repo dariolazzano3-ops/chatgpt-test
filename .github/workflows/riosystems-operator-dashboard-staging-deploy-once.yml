@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "5db0c27176dfedaa8f624d06371ba964e3de74b6"
+          test "$(git rev-parse HEAD^1)" = "643d4f543dfaec6ff35d565387191779f3160f5e"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
           test "$CHANGED" = ".github/workflows/riosystems-operator-dashboard-staging-deploy-once.yml"
           test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
@@ -39,7 +39,12 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
       - run: npm install
       - name: Guard smoke
-        run: node scripts/staging-deploy-guard-smoke.mjs
+        shell: bash
+        run: |
+          env -u RIOSYSTEMS_STAGING_DEPLOY_APPROVED \
+              -u RIOSYSTEMS_ZERO_COST_CONFIRMED \
+              -u RIOSYSTEMS_STAGING_CONFIRMATION \
+              node scripts/staging-deploy-guard-smoke.mjs
       - name: Staging dry-run
         run: npm run deploy:staging:dry-run
       - name: Deploy isolated zero-cost staging worker
