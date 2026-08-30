@@ -37,6 +37,8 @@
         "RIOSYSTEMS_ENVIRONMENT": "staging",
         "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",
         "RIOSYSTEMS_EXTERNAL_WRITES": "false",
+        "RIOSYSTEMS_OPERATOR_RUNTIME_STORE": "supabase",
+        "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE": "riosystems_operator_runtime_v1",
         "FACTORY_CONTROL_BRANCH": "factory-control"
       },
       "d1_databases": [],
