@@ -30,19 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
 
       - name: Verify isolated exact baseline
         shell: bash
         run: |
           set -euo pipefail
+          BASE=8209e599659b73fc4d63bfe2f54eaf483f974b33
           test "$GITHUB_REF_NAME" = "staging-activation-probe-v1"
-          test "$(git rev-parse HEAD^1)" = "8209e599659b73fc4d63bfe2f54eaf483f974b33"
-          CHANGED="$(git diff --name-only HEAD^1 HEAD)"
+          git merge-base --is-ancestor "$BASE" HEAD
+          CHANGED="$(git diff --name-only "$BASE" HEAD)"
           test "$CHANGED" = ".github/workflows/riosystems-staging-activation-probe-v1.yml"
-          echo "canonical_baseline=8209e599659b73fc4d63bfe2f54eaf483f974b33" >> "$GITHUB_STEP_SUMMARY"
-          echo "provider_mutations=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "canonical_baseline=$BASE" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "provider_mutations=false" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Probe secret and policy presence without values
         shell: bash
@@ -56,7 +57,7 @@ jobs:
             present runtime_supabase_url "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL"
             present runtime_supabase_service_role "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
             if [ "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true" ]; then echo "zero_cost_policy=true"; else echo "zero_cost_policy=false"; fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Read-only Cloudflare Access and Worker permission probe
         shell: bash
@@ -67,14 +68,8 @@ jobs:
           ACCESS_ERROR=""
           WORKER_ERROR=""
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            ACCESS_STATUS="$(curl -sS -o /tmp/access-apps.json -w '%{http_code}' \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H 'Content-Type: application/json' \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps?per_page=100" || true)"
-            WORKER_STATUS="$(curl -sS -o /tmp/worker.json -w '%{http_code}' \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H 'Content-Type: application/json' \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/$TARGET_WORKER" || true)"
+            ACCESS_STATUS="$(curl -sS -o /tmp/access-apps.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps?per_page=100" || true)"
+            WORKER_STATUS="$(curl -sS -o /tmp/worker.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/$TARGET_WORKER" || true)"
             if [ "$ACCESS_STATUS" != "200" ]; then ACCESS_ERROR="$(jq -r '[.errors[]? | (.code|tostring) + ":" + (.message|tostring)] | join(",")' /tmp/access-apps.json 2>/dev/null || true)"; fi
             if [ "$WORKER_STATUS" != "200" ]; then WORKER_ERROR="$(jq -r '[.errors[]? | (.code|tostring) + ":" + (.message|tostring)] | join(",")' /tmp/worker.json 2>/dev/null || true)"; fi
           fi
@@ -83,8 +78,7 @@ jobs:
             echo "cloudflare_worker_service_http_status=$WORKER_STATUS"
             [ -z "$ACCESS_ERROR" ] || echo "cloudflare_access_error=$ACCESS_ERROR"
             [ -z "$WORKER_ERROR" ] || echo "cloudflare_worker_error=$WORKER_ERROR"
-            echo "target_access_domain=$TARGET_ACCESS_DOMAIN"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Read-only Supabase runtime credential probe
         shell: bash
@@ -92,19 +86,17 @@ jobs:
           set -euo pipefail
           STATUS="SKIPPED_MISSING_CREDENTIALS"
           if [ -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL" ] && [ -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" ]; then
-            STATUS="$(curl -sS -o /tmp/runtime-read.json -w '%{http_code}' \
-              -H "apikey: $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" \
-              -H 'Accept: application/json' \
-              "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL/rest/v1/riosystems_operator_runtime_v1?select=revision&limit=1" || true)"
+            STATUS="$(curl -sS -o /tmp/runtime-read.json -w '%{http_code}' -H "apikey: $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY" -H 'Accept: application/json' "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL/rest/v1/riosystems_operator_runtime_v1?select=revision&limit=1" || true)"
           fi
-          echo "runtime_supabase_read_http_status=$STATUS" >> "$GITHUB_STEP_SUMMARY"
+          echo "runtime_supabase_read_http_status=$STATUS" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Summarize activation readiness
         shell: bash
         run: |
           set -euo pipefail
-          echo "probe_completed=true" >> "$GITHUB_STEP_SUMMARY"
-          echo "production_deploy=false" >> "$GITHUB_STEP_SUMMARY"
-          echo "variable_cost_eur=0" >> "$GITHUB_STEP_SUMMARY"
-          echo "provider_mutations=false" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "probe_completed=true"
+            echo "production_deploy=false"
+            echo "variable_cost_eur=0"
+            echo "provider_mutations=false"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
