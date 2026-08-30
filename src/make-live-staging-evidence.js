@@ -2,7 +2,7 @@ const EVIDENCE = Object.freeze({
   schema: 'riosystems.make-live-staging-evidence.v1',
   provider_id: 'make-core',
   environment: 'staging',
-  verified_at: '2026-08-29T14:52:28Z',
+  verified_at: '2026-08-30T01:54:15Z',
   verification: Object.freeze({
     read_only_preflight: true,
     scenario_create: true,
@@ -24,7 +24,8 @@ const EVIDENCE = Object.freeze({
   }),
   execution: Object.freeze({
     github_actions_run_id: 33258730803,
-    execution_id: '7ccf3f5109e84bb9b876fd35471824c7',
+    github_actions_job_id: 99191069568,
+    execution_id: 'e3198aaaeed64e7b8380c6e067439ecf',
     completed: true,
     scenario_restored_inactive: true,
     secrets_returned: false,
