@@ -18,6 +18,18 @@ assert.equal(snapshot.portfolio.project_count, 2);
 assert.equal(snapshot.queue[0].scope_key, 'c2:p2');
 assert.equal(snapshot.executions.waiting_count, 1);
 assert.equal(snapshot.integrations.degraded_count, 1);
+assert.equal(snapshot.provider_readiness.status, 'PROVIDER_SELECTION_COMPLETE');
+assert.equal(snapshot.provider_readiness.source_of_truth, 'github_repository_evidence');
+assert.equal(snapshot.provider_readiness.factories.web.provider_read_verified, true);
+assert.equal(snapshot.provider_readiness.factories.web.staging_deploy_verified, true);
+assert.equal(snapshot.provider_readiness.factories.web.evidence.github_actions_run_id, 33285150036);
+assert.equal(snapshot.provider_readiness.factories.automation.staging_activation_verified, true);
+assert.equal(snapshot.provider_readiness.factories.business.provider_read_verified, true);
+assert.equal(snapshot.provider_readiness.factories.business.staging_write_verified, false);
+assert.equal(snapshot.provider_readiness.factories.ai.cloudflare_runtime_verified, false);
+assert.equal(snapshot.provider_readiness.paid_execution, false);
+assert.equal(snapshot.provider_readiness.automatic_paid_overflow, false);
+assert.equal(snapshot.provider_readiness.production_deploy, false);
 
 const prioritize = evaluateCommand(created.state, { type: 'PRIORITIZE_PROJECT', scope_key: 'c1:p1', priority: 1 });
 assert.equal(prioritize.ready_for_dispatch, true);
