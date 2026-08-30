@@ -34,13 +34,20 @@ jobs:
             -H 'Content-Type: application/json' \
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps?per_page=100")"
 
+          echo "ACCESS_APPS_HTTP_STATUS=$STATUS"
           echo "access_apps_http_status=$STATUS" >> "$GITHUB_STEP_SUMMARY"
-          test "$STATUS" = "200"
+          if [ "$STATUS" != "200" ]; then
+            jq -r '.errors[]? | "CLOUDFLARE_ERROR=\(.code):\(.message)"' /tmp/access-apps.json || true
+            exit 1
+          fi
 
           MATCHES="$(jq --arg d "$TARGET_ACCESS_DOMAIN" '[.result[]? | select(.domain == $d)] | length' /tmp/access-apps.json)"
+          echo "MATCHING_ACCESS_APP_COUNT=$MATCHES"
           echo "matching_access_app_count=$MATCHES" >> "$GITHUB_STEP_SUMMARY"
           if [ "$MATCHES" -gt 0 ]; then
-            jq -r --arg d "$TARGET_ACCESS_DOMAIN" '.result[]? | select(.domain == $d) | "existing_access_app_id=" + .id + "\nexisting_access_app_aud=" + (.aud // "")' /tmp/access-apps.json >> "$GITHUB_STEP_SUMMARY"
+            jq -r --arg d "$TARGET_ACCESS_DOMAIN" '.result[]? | select(.domain == $d) | "EXISTING_ACCESS_APP_ID=" + .id + "\nEXISTING_ACCESS_APP_AUD=" + (.aud // "")' /tmp/access-apps.json
           fi
+          echo "OPERATOR_EMAIL_SECRET_PRESENT=true"
           echo "operator_email_secret_present=true" >> "$GITHUB_STEP_SUMMARY"
+          echo "READINESS=READY_FOR_ACCESS_CONFIGURATION"
           echo "readiness=READY_FOR_ACCESS_CONFIGURATION" >> "$GITHUB_STEP_SUMMARY"
