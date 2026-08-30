@@ -9,6 +9,9 @@ on:
       - 'src/make-staging-write-runner.js'
       - 'src/make-staging-execution-runner.js'
       - 'src/make-live-staging-evidence.js'
+      - 'src/make-supabase-lead-bridge.js'
+      - 'src/business-staging-write-plan.js'
+      - 'src/business-staging-write-evidence.js'
       - 'src/automation-provider-strategy.js'
       - 'src/provider-stack-v1.js'
       - 'scripts/make-staging-bridge-smoke.mjs'
@@ -16,12 +19,14 @@ on:
       - 'scripts/make-readonly-runner-smoke.mjs'
       - 'scripts/make-staging-write-runner-smoke.mjs'
       - 'scripts/make-staging-execution-runner-smoke.mjs'
+      - 'scripts/make-supabase-lead-bridge-smoke.mjs'
       - 'scripts/make-live-readonly-preflight.mjs'
       - 'scripts/make-live-staging-scenario-create.mjs'
       - 'scripts/make-live-staging-execution-once.mjs'
       - 'scripts/automation-provider-selection-smoke.mjs'
       - 'scripts/provider-stack-v1-smoke.mjs'
       - 'docs/RIOSYSTEMS-MAKE-STAGING-ACTIVATION.md'
+      - 'docs/RIOSYSTEMS-BUSINESS-STAGING-ACTIVATION.md'
       - '.github/workflows/riosystems-make-staging-bridge.yml'
       - '.github/workflows/riosystems-make-live-readonly-preflight.yml'
   workflow_dispatch:
@@ -42,12 +47,16 @@ jobs:
           node --check src/make-staging-write-runner.js
           node --check src/make-staging-execution-runner.js
           node --check src/make-live-staging-evidence.js
+          node --check src/make-supabase-lead-bridge.js
+          node --check src/business-staging-write-plan.js
+          node --check src/business-staging-write-evidence.js
           node --check src/automation-provider-strategy.js
           node --check scripts/make-staging-bridge-smoke.mjs
           node --check scripts/make-real-provider-adapter-smoke.mjs
           node --check scripts/make-readonly-runner-smoke.mjs
           node --check scripts/make-staging-write-runner-smoke.mjs
           node --check scripts/make-staging-execution-runner-smoke.mjs
+          node --check scripts/make-supabase-lead-bridge-smoke.mjs
           node --check scripts/make-live-readonly-preflight.mjs
           node --check scripts/make-live-staging-scenario-create.mjs
           node --check scripts/make-live-staging-execution-once.mjs
@@ -56,6 +65,8 @@ jobs:
           node --check src/provider-stack-v1.js
       - name: Make staging bridge smoke
         run: node scripts/make-staging-bridge-smoke.mjs
+      - name: Make to Supabase lead bridge smoke
+        run: node scripts/make-supabase-lead-bridge-smoke.mjs
       - name: Make real provider adapter smoke
         run: node scripts/make-real-provider-adapter-smoke.mjs
       - name: Make read-only runner smoke
