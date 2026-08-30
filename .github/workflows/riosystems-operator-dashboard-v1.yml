@@ -8,10 +8,14 @@ on:
       - 'src/operator-dashboard-projections-v1.js'
       - 'src/operator-dashboard-shell-v1.js'
       - 'src/operator-dashboard-completeness-v1.js'
+      - 'src/operator-runtime-store-supabase-v1.js'
+      - 'src/operator-runtime-bootstrap-v1.js'
       - 'src/entry.js'
       - 'scripts/operator-dashboard-v1-smoke.mjs'
       - 'scripts/operator-dashboard-completeness-v1-smoke.mjs'
       - 'scripts/operator-dashboard-local-worker-smoke.mjs'
+      - 'scripts/operator-runtime-supabase-store-v1-smoke.mjs'
+      - 'supabase/migrations/20260830114500_operator_runtime_store_v1.sql'
       - 'docs/RIOSYSTEMS-PRIVATE-OPERATOR-DASHBOARD-V1.md'
       - 'wrangler.jsonc'
       - '.github/workflows/riosystems-operator-dashboard-v1.yml'
@@ -36,10 +40,15 @@ jobs:
           node --check src/operator-dashboard-projections-v1.js
           node --check src/operator-dashboard-shell-v1.js
           node --check src/operator-dashboard-completeness-v1.js
+          node --check src/operator-runtime-store-supabase-v1.js
+          node --check src/operator-runtime-bootstrap-v1.js
           node --check src/entry.js
           node --check scripts/operator-dashboard-v1-smoke.mjs
           node --check scripts/operator-dashboard-completeness-v1-smoke.mjs
           node --check scripts/operator-dashboard-local-worker-smoke.mjs
+          node --check scripts/operator-runtime-supabase-store-v1-smoke.mjs
+      - name: Durable Operator Runtime acceptance
+        run: node scripts/operator-runtime-supabase-store-v1-smoke.mjs
       - name: Private operator dashboard acceptance
         run: node scripts/operator-dashboard-v1-smoke.mjs
       - name: Operator dashboard completeness acceptance

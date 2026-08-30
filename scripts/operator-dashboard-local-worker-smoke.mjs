@@ -9,6 +9,8 @@ const args = [
   'dev',
   '--env', 'staging',
   '--port', String(port),
+  '--var', 'RIOSYSTEMS_ENVIRONMENT:local',
+  '--var', 'RIOSYSTEMS_OPERATOR_RUNTIME_STORE:memory',
   '--var', 'RIOSYSTEMS_OPERATOR_EMAIL:operator@riosystems.local',
   '--var', 'RIOSYSTEMS_ACCESS_AUD:riosystems-operator-local'
 ];
@@ -77,6 +79,8 @@ try {
     suite: 'operator-dashboard-local-worker',
     route: '/operator',
     access_dev_identity: 'verified',
+    runtime_mode: 'local_memory_only',
+    staging_runtime_mode: 'durable_required',
     projects: projects.items.length,
     production_deploy: false
   }, null, 2));
