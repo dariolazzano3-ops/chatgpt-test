@@ -34,7 +34,8 @@ function providerReadinessSnapshot() {
         evidence: clone(stack.factories.automation.staging_activation_evidence)
       },
       ai: {
-        cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_read_verified === true,
+        cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_runtime_verified === true,
+        evidence: clone(stack.factories.ai.cloudflare_ai_runtime_evidence),
         blocker: stack.factories.ai.cloudflare_ai_blocker
       },
       business: {
