@@ -1,0 +1,44 @@
+name: RIOSYSTEMS Business CRM Factory V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/business-crm-**'
+      - 'scripts/business-crm-factory-v1-smoke.mjs'
+      - 'supabase/migrations/*business_crm_factory_v1.sql'
+      - 'docs/RIOSYSTEMS-BUSINESS-CRM-FACTORY-V1.md'
+      - '.github/workflows/riosystems-business-crm-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/business-crm-**'
+      - 'scripts/business-crm-factory-v1-smoke.mjs'
+      - 'supabase/migrations/*business_crm_factory_v1.sql'
+      - 'docs/RIOSYSTEMS-BUSINESS-CRM-FACTORY-V1.md'
+
+jobs:
+  business-crm-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check CRM V1
+        run: |
+          node --check src/business-crm-contract.js
+          node --check src/business-crm-model.js
+          node --check src/business-crm-events.js
+          node --check src/business-crm-contracts.js
+          node --check src/business-crm-adapter.js
+          node --check src/business-crm-qa.js
+          node --check src/business-crm-factory-v1.js
+          node --check scripts/business-crm-factory-v1-smoke.mjs
+      - name: Run zero-cost synthetic CRM E2E
+        run: node scripts/business-crm-factory-v1-smoke.mjs
+      - name: Verify migration safety invariants
+        run: |
+          grep -q "force row level security" supabase/migrations/20260830042000_riosystems_business_crm_factory_v1.sql
+          grep -q "project_id = public.riosystems_current_project_id()" supabase/migrations/20260830042000_riosystems_business_crm_factory_v1.sql
+          if grep -qi "delete from" supabase/migrations/20260830042000_riosystems_business_crm_factory_v1.sql; then exit 1; fi
