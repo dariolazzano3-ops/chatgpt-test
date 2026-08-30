@@ -1,0 +1,43 @@
+name: RIOSYSTEMS Web Factory Operating System V2
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'scripts/web-factory-operating-system-v2-smoke.mjs'
+      - 'fixtures/web-factory/**'
+      - '.github/workflows/riosystems-web-factory-operating-system-v2.yml'
+      - 'docs/RIOSYSTEMS-WEB-FACTORY-OPERATING-SYSTEM-V2.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax check Web OS V2
+        run: |
+          node --check src/web-factory/compiler-strategy-v2.js
+          node --check src/web-factory/composition-system-v2.js
+          node --check src/web-factory/seo-quality-v2.js
+          node --check src/web-factory/lifecycle-governance-v2.js
+          node --check src/web-factory/self-healing-v2.js
+          node --check src/web-factory/operating-system-v2.js
+          node --check src/web-factory/adapter.js
+          node --check src/web-factory/index.js
+          node --check scripts/web-factory-operating-system-v2-smoke.mjs
+      - name: Existing Web Factory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+      - name: Existing Framer / fidelity regression
+        run: node scripts/web-factory-framer-fidelity-smoke.mjs
+      - name: Existing autonomous premium regression
+        run: node scripts/web-factory-autonomous-premium-smoke.mjs
+      - name: Web Operating System V2 twelve-scenario acceptance
+        run: node scripts/web-factory-operating-system-v2-smoke.mjs
