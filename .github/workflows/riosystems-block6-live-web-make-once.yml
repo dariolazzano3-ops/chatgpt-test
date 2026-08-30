@@ -1,0 +1,74 @@
+name: RIOSYSTEMS Block 6 Live Web Make Once
+
+on:
+  push:
+    branches: [feature/block6-bakery-live-e2e]
+    paths:
+      - '.github/workflows/riosystems-block6-live-web-make-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-block6-live-web-make-once
+  cancel-in-progress: false
+
+jobs:
+  web-live-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Require credentials without revealing values
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo CLOUDFLARE_API_TOKEN_MISSING; exit 2; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo CLOUDFLARE_ACCOUNT_ID_MISSING; exit 2; }
+      - name: Verify latest bakery Pages staging deployment and HTTP reachability
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail --max-time 15 --retry 0 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/chatgpt-factory-preview/deployments" > /tmp/pages.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync('/tmp/pages.json','utf8'));
+          const deployments = Array.isArray(body?.result) ? body.result : [];
+          const match = deployments.find((d) => d?.deployment_trigger?.metadata?.branch === 'riosystems-staging-bakery-muller' && d?.latest_stage?.status === 'success');
+          if (!match?.url || !String(match.url).startsWith('https://')) throw new Error('BAKERY_STAGING_DEPLOYMENT_NOT_FOUND');
+          fs.writeFileSync('/tmp/pages-url.txt', String(match.url));
+          console.log(JSON.stringify({ ok:true, branch:'riosystems-staging-bakery-muller', stage:'success', production:false }));
+          NODE
+          url="$(cat /tmp/pages-url.txt)"
+          code="$(curl --silent --show-error --max-time 15 --retry 0 --output /tmp/page.html --write-out '%{http_code}' "$url")"
+          test "$code" = 200 || { echo "BAKERY_STAGING_HTTP_$code"; exit 3; }
+          grep -qi '<html' /tmp/page.html || { echo BAKERY_STAGING_HTML_MISSING; exit 3; }
+          echo '{"ok":true,"http_status":200,"staging":true,"production":false}'
+
+  make-live-once:
+    needs: web-live-read
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: riosystems-staging
+    env:
+      MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+      BLOCK6_LIVE_APPROVED: RUN_BLOCK6_MAKE_ONCE
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/block6-bakery-live-e2e
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax and trace guard
+        run: |
+          node --check src/bakery-muller-live-e2e.js
+          node --check src/block6-make-staging-runner.js
+          node --check scripts/block6-make-live-once.mjs
+          node scripts/bakery-muller-live-e2e-smoke.mjs
+      - name: Run Make scenario exactly once and restore inactive
+        run: node scripts/block6-make-live-once.mjs
