@@ -1,0 +1,58 @@
+name: RIOSYSTEMS Integrated Regression Gate
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/ai-intelligence-v2*.js'
+      - 'src/automation-v2/**'
+      - 'src/business-crm-v2/**'
+      - 'src/web-factory/**'
+      - 'src/growth-v1/**'
+      - 'src/provider-stack-v1.js'
+      - 'src/bakery-muller-live-e2e*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
+      - 'scripts/automation-factory-v2-smoke.mjs'
+      - 'scripts/business-crm-os-v2-smoke.mjs'
+      - 'scripts/web-factory-operating-system-v2-smoke.mjs'
+      - 'scripts/growth-gtm-factory-v1-smoke.mjs'
+      - 'scripts/provider-stack-v1-smoke.mjs'
+      - 'scripts/bakery-muller-live-e2e*.mjs'
+      - 'scripts/riosystems-integrated-regression-gate.mjs'
+      - '.github/workflows/riosystems-integrated-regression-gate.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/ai-intelligence-v2*.js'
+      - 'src/automation-v2/**'
+      - 'src/business-crm-v2/**'
+      - 'src/web-factory/**'
+      - 'src/growth-v1/**'
+      - 'src/provider-stack-v1.js'
+      - 'src/bakery-muller-live-e2e*.js'
+      - 'scripts/ai-intelligence-v2-*.mjs'
+      - 'scripts/automation-factory-v2-smoke.mjs'
+      - 'scripts/business-crm-os-v2-smoke.mjs'
+      - 'scripts/web-factory-operating-system-v2-smoke.mjs'
+      - 'scripts/growth-gtm-factory-v1-smoke.mjs'
+      - 'scripts/provider-stack-v1-smoke.mjs'
+      - 'scripts/bakery-muller-live-e2e*.mjs'
+      - 'scripts/riosystems-integrated-regression-gate.mjs'
+      - '.github/workflows/riosystems-integrated-regression-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax
+        run: node --check scripts/riosystems-integrated-regression-gate.mjs
+      - name: Cross-factory and provider regression
+        run: node scripts/riosystems-integrated-regression-gate.mjs
