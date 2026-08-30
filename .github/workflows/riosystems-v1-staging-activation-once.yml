@@ -40,9 +40,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "2de0e31c2fac1391eaa43b9be17ef01a448ea97b"
+          test "$(git rev-parse HEAD^1)" = "8372a3bf71d262de536443c3dce87311252d7bf3"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/staging-deploy-guard-smoke.mjs')"
+          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/operator-staging-deployment-evidence-v1-smoke.mjs' 'src/operator-staging-deployment-evidence-v1.js')"
           test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ENVIRONMENT" = "staging"
           test "$RIOSYSTEMS_OPERATOR_RUNTIME_STORE" = "supabase"
@@ -83,9 +83,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "2de0e31c2fac1391eaa43b9be17ef01a448ea97b"
+          test "$(git rev-parse HEAD^1)" = "8372a3bf71d262de536443c3dce87311252d7bf3"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/staging-deploy-guard-smoke.mjs')"
+          EXPECTED="$(printf '%s\n' '.github/workflows/riosystems-v1-staging-activation-once.yml' 'scripts/operator-staging-deployment-evidence-v1-smoke.mjs' 'src/operator-staging-deployment-evidence-v1.js')"
           test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
           test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
