@@ -63,6 +63,16 @@ const premium = reconstructPremiumWebsite(fixture, {
   fidelity_level: 'PREMIUM',
   max_visual_repair_attempts: 3
 });
+if (!premium.ok) {
+  console.error(JSON.stringify({
+    diagnostic: 'premium_reconstruction_failed',
+    status: premium.status,
+    base_status: premium.base_build?.status || null,
+    website_qa: premium.website_qa || null,
+    visual_fidelity: premium.visual_fidelity || null,
+    asset_rights: premium.asset_rights || null
+  }, null, 2));
+}
 assert.equal(premium.ok, true);
 assert.equal(premium.status, 'VERIFIED_PREMIUM_WEB_DELIVERABLE');
 assert.equal(premium.website_qa.status, 'PASS');
