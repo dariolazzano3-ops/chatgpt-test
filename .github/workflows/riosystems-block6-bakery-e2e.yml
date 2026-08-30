@@ -1,0 +1,47 @@
+name: RIOSYSTEMS Block 6 Bakery E2E
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/bakery-muller-live-e2e.js'
+      - 'src/block6-make-staging-runner.js'
+      - 'src/make-staging-execution-runner.js'
+      - 'scripts/bakery-muller-live-e2e-smoke.mjs'
+      - 'scripts/bakery-muller-web-staging-readiness.mjs'
+      - 'scripts/make-staging-execution-runner-smoke.mjs'
+      - 'scripts/provider-stack-v1-smoke.mjs'
+      - 'scripts/phase5-command-center-smoke.mjs'
+      - '.github/workflows/riosystems-block6-bakery-e2e.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: |
+          node --check src/bakery-muller-live-e2e.js
+          node --check src/block6-make-staging-runner.js
+          node --check scripts/bakery-muller-live-e2e-smoke.mjs
+      - name: Block 6 contract and safety
+        run: node scripts/bakery-muller-live-e2e-smoke.mjs
+      - name: Materialize current bakery website
+        run: node scripts/materialize-web-factory-reference.mjs
+      - name: Web staging readiness regression
+        run: node scripts/bakery-muller-web-staging-readiness.mjs
+      - name: Make runner regression
+        run: node scripts/make-staging-execution-runner-smoke.mjs
+      - name: Provider stack regression
+        run: node scripts/provider-stack-v1-smoke.mjs
+      - name: Command center regression
+        run: node scripts/phase5-command-center-smoke.mjs
+      - name: Existing simulated pilot regression
+        run: node scripts/pilot-e2e-smoke.mjs
