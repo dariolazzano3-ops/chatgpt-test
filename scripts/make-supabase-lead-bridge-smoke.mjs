@@ -23,7 +23,7 @@ assert.equal(plan.scope.scope_key, 'bakery-muller:digital-system-v1');
 assert.equal(plan.scope.project_uuid, input.project_uuid);
 assert.equal(plan.providers.automation.provider_id, 'make-core');
 assert.equal(plan.providers.automation.verified_scenario_id, 7149691);
-assert.equal(plan.providers.automation.latest_verified_execution_id, '7ccf3f5109e84bb9b876fd35471824c7');
+assert.equal(plan.providers.automation.latest_verified_execution_id, 'e3198aaaeed64e7b8380c6e067439ecf');
 assert.equal(plan.providers.automation.existing_staging_activation_verified, true);
 assert.equal(plan.providers.automation.new_supervised_run_required, true);
 assert.equal(plan.providers.business.provider_id, 'supabase-free');
