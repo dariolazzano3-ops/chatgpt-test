@@ -4,13 +4,41 @@ import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
 import { handleOperatorDashboard } from "./operator-dashboard-http-v1.js";
+import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
+
+function operatorUnavailable(error) {
+  return new Response(JSON.stringify({
+    error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY",
+    detail: String(error?.message || error || "runtime unavailable").slice(0, 240),
+    production_deploy: false
+  }), {
+    status: 503,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    }
+  });
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/")) {
-      const operatorResponse = await handleOperatorDashboard(request, env, ctx);
+      let runtimeService = null;
+      try {
+        runtimeService = getDurableOperatorRuntimeService(env);
+      } catch (error) {
+        if (String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging") return operatorUnavailable(error);
+        throw error;
+      }
+      const operatorResponse = await handleOperatorDashboard(
+        request,
+        env,
+        ctx,
+        runtimeService ? { runtime_service: runtimeService } : {}
+      );
       if (operatorResponse) return operatorResponse;
     }
 
