@@ -3,14 +3,14 @@
   "scenario_id": 7149691,
   "scenario_name": "RIOSYSTEMS STAGING - Bäckerei Müller Lead Intake",
   "scenario_active": false,
-  "latest_execution": {
-    "execution_id": "66338160",
-    "status": null,
-    "timestamp": "2026-08-30T01:57:39.549Z",
-    "operations": 0,
-    "centicredits": 0,
-    "transfer_bytes": 0,
-    "type": "stop"
+  "latest_successful_execution": {
+    "execution_id": "cfc3b2c44bad4131b1923297dd7aaa9d",
+    "status": 1,
+    "timestamp": "2026-08-30T01:57:39.291Z",
+    "operations": 1,
+    "centicredits": 100,
+    "transfer_bytes": 526,
+    "type": "auto"
   },
   "secrets_returned": false,
   "external_write_performed": false,
