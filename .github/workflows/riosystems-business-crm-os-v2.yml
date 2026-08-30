@@ -1,0 +1,46 @@
+name: RIOSYSTEMS Business CRM OS V2
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/business-crm-v2/**'
+      - 'src/business-factory.js'
+      - 'scripts/business-crm-os-v2-smoke.mjs'
+      - 'docs/RIOSYSTEMS-BUSINESS-CRM-OS-V2.md'
+      - '.github/workflows/riosystems-business-crm-os-v2.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/business-crm-v2/**'
+      - 'src/business-factory.js'
+      - 'scripts/business-crm-os-v2-smoke.mjs'
+      - 'docs/RIOSYSTEMS-BUSINESS-CRM-OS-V2.md'
+      - '.github/workflows/riosystems-business-crm-os-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  business-crm-os-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check Business OS V2
+        run: |
+          for file in src/business-crm-v2/*.js; do node --check "$file"; done
+          node --check scripts/business-crm-os-v2-smoke.mjs
+      - name: Run Business OS V2 zero-cost scenarios
+        run: node scripts/business-crm-os-v2-smoke.mjs
+      - name: Run Business CRM V1 regression
+        run: node scripts/business-crm-factory-v1-smoke.mjs
+      - name: Verify hard safety invariants
+        run: |
+          grep -q "variable_development_cost_ceiling_eur: 0" src/business-crm-v2/core.js
+          grep -q "unapproved_external_writes: false" src/business-crm-v2/core.js
+          grep -q "blind_ai_mutation: false" src/business-crm-v2/core.js
+          grep -q "cross_project_data_access: false" src/business-crm-v2/core.js

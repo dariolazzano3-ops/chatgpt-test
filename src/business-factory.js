@@ -31,7 +31,7 @@ export function businessFactoryManifest() {
   return {
     version: '1.0',
     engine: 'business',
-    capabilities: ['crm', 'lead_system', 'sales_pipeline', 'offer_flow', 'business_process'],
+    capabilities: ['crm', 'lead_system', 'sales_pipeline', 'offer_flow', 'business_process', 'business_operating_system'],
     execution: 'bounded_local_configuration',
     external_writes: false,
     automatic_execution: false,
@@ -40,3 +40,4 @@ export function businessFactoryManifest() {
 }
 
 export { businessCrmFactoryV1Manifest, buildBusinessCrmV1, runSyntheticCrmE2E } from './business-crm-factory-v1.js';
+export { businessOperatingSystemV2Manifest, buildBusinessOperatingSystem, buildBusinessDeliveryManifest, runBusinessOsQuality } from './business-crm-v2/factory.js';
