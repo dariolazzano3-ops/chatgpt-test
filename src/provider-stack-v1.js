@@ -6,6 +6,7 @@ import { listExecutionAdapters } from './execution-adapters.js';
 import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
 import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWebReadVerified } from './cloudflare-live-read-evidence.js';
 import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from './cloudflare-pages-staging-evidence.js';
+import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -18,6 +19,7 @@ export function providerStackV1() {
   const cloudflarePagesEvidence = cloudflarePagesStagingEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
+  const businessWriteRunner = supabaseStagingWriteManifest();
   const factories = {
     web: {
       decision: webProviderDecisionManifest(),
@@ -54,6 +56,10 @@ export function providerStackV1() {
       standalone_crm_saas_required: false,
       provider_read_verified: isBusinessLiveReadVerified(),
       provider_read_evidence: businessEvidence,
+      staging_write_plan_ready: businessWriteRunner.explicit_external_write_execution_approval_required === true
+        && businessWriteRunner.exact_scope_approval_required === true
+        && businessWriteRunner.zero_cost_confirmation_required === true,
+      staging_write_plan: businessWriteRunner,
       staging_write_verified: false
     }
   };
@@ -124,6 +130,7 @@ export function providerActivationMatrix() {
         activation: 'live_read_verified_staging_write_not_authorized',
         project_status: business.supabase.project_status,
         schema_read: business.supabase.public_schema_read_verified === true ? 'verified' : 'unverified',
+        staging_write_plan_ready: true,
         real_write: 'isolated_staging_and_explicit_approval_required'
       },
       {

@@ -25,6 +25,7 @@ assert.equal(snapshot.provider_readiness.factories.web.staging_deploy_verified, 
 assert.equal(snapshot.provider_readiness.factories.web.evidence.github_actions_run_id, 33285150036);
 assert.equal(snapshot.provider_readiness.factories.automation.staging_activation_verified, true);
 assert.equal(snapshot.provider_readiness.factories.business.provider_read_verified, true);
+assert.equal(snapshot.provider_readiness.factories.business.staging_write_plan_ready, true);
 assert.equal(snapshot.provider_readiness.factories.business.staging_write_verified, false);
 assert.equal(snapshot.provider_readiness.factories.ai.cloudflare_runtime_verified, false);
 assert.equal(snapshot.provider_readiness.paid_execution, false);
