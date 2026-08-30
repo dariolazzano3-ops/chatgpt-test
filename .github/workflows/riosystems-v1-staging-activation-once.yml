@@ -1,0 +1,118 @@
+name: RIOSYSTEMS V1 Staging Activation Once
+
+on:
+  push:
+    branches: [factory-control]
+    paths:
+      - '.github/workflows/riosystems-v1-staging-activation-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-v1-staging-activation-once
+  cancel-in-progress: false
+
+jobs:
+  runtime-restart-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: riosystems-staging
+    env:
+      RIOSYSTEMS_RUNTIME_RESTART_APPROVED: 'RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST'
+      RIOSYSTEMS_RUNTIME_RESTART_TEST_ID: gha-once-${{ github.run_id }}-${{ github.run_attempt }}
+      RIOSYSTEMS_ENVIRONMENT: staging
+      RIOSYSTEMS_OPERATOR_RUNTIME_STORE: supabase
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL: ${{ secrets.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL }}
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY }}
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE: riosystems_operator_runtime_v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify exact approved baseline and isolated staging scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "factory-control"
+          test "$(git rev-parse HEAD^1)" = "5fd3a316bd8352f188c35002e7ca4473f53e75f3"
+          CHANGED="$(git diff --name-only HEAD^1 HEAD)"
+          test "$CHANGED" = ".github/workflows/riosystems-v1-staging-activation-once.yml"
+          test "$RIOSYSTEMS_ENVIRONMENT" = "staging"
+          test "$RIOSYSTEMS_OPERATOR_RUNTIME_STORE" = "supabase"
+          test "$RIOSYSTEMS_RUNTIME_RESTART_APPROVED" = "RUN_OPERATOR_RUNTIME_RESTART_STAGING_ZERO_COST"
+          test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL"
+          test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
+      - name: Existing durable store regression
+        run: node scripts/operator-runtime-supabase-store-v1-smoke.mjs
+      - name: Process A creates and mutates isolated synthetic runtime
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs write
+      - name: Process B recovers exact persisted revision after restart
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs read
+      - name: Always remove isolated synthetic runtime row
+        if: always()
+        run: node scripts/operator-runtime-live-restart-acceptance.mjs cleanup
+
+  deploy-staging:
+    needs: runtime-restart-acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RIOSYSTEMS_STAGING_DEPLOY_APPROVED: 'true'
+      RIOSYSTEMS_ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+      RIOSYSTEMS_STAGING_CONFIRMATION: 'DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify exact approved baseline and zero-cost deploy scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "factory-control"
+          test "$(git rev-parse HEAD^1)" = "5fd3a316bd8352f188c35002e7ca4473f53e75f3"
+          CHANGED="$(git diff --name-only HEAD^1 HEAD)"
+          test "$CHANGED" = ".github/workflows/riosystems-v1-staging-activation-once.yml"
+          test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
+          test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - run: npm install
+      - name: Guard smoke
+        run: node scripts/staging-deploy-guard-smoke.mjs
+      - name: Staging dry-run
+        run: npm run deploy:staging:dry-run
+      - name: Deploy exact-head isolated zero-cost staging worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run deploy:staging 2>&1 | tee /tmp/riosystems-deploy.log
+          npx wrangler deployments list --env staging 2>&1 | tee /tmp/riosystems-deployments.log
+          URL="$(grep -Eo 'https://[^[:space:]]+workers\.dev' /tmp/riosystems-deploy.log | tail -n 1 || true)"
+          test -n "$URL"
+          STATUS="$(curl -sS -L --max-redirs 0 -o /tmp/operator-response -w '%{http_code}' "$URL/operator" || true)"
+          test "$STATUS" != "000"
+          test "$STATUS" != "200"
+          {
+            echo "### RIOSYSTEMS V1 staging activation"
+            echo "- Deployed SHA: $GITHUB_SHA"
+            echo "- Worker URL: $URL"
+            echo "- /operator unauthenticated HTTP status: $STATUS"
+            echo "- Public operator exposure: blocked"
+            echo "- Runtime restart acceptance: passed"
+            echo "- Production deploy: false"
+            echo "- External customer data: false"
+            echo "- Variable cost: 0 EUR"
+          } >> "$GITHUB_STEP_SUMMARY"
