@@ -11,6 +11,7 @@ on:
       - 'src/command-center.js'
       - 'scripts/posthog-staging-event-smoke.mjs'
       - 'scripts/posthog-staging-event-evidence-smoke.mjs'
+      - 'scripts/posthog-provider-readiness-smoke.mjs'
       - 'scripts/provider-stack-v1-smoke.mjs'
       - 'scripts/phase5-command-center-smoke.mjs'
       - '.github/workflows/riosystems-posthog-staging.yml'
@@ -31,10 +32,13 @@ jobs:
           node --check src/posthog-staging-event-evidence.js
           node --check scripts/posthog-staging-event-smoke.mjs
           node --check scripts/posthog-staging-event-evidence-smoke.mjs
+          node --check scripts/posthog-provider-readiness-smoke.mjs
       - name: PostHog staging event guards
         run: node scripts/posthog-staging-event-smoke.mjs
       - name: PostHog staging evidence
         run: node scripts/posthog-staging-event-evidence-smoke.mjs
+      - name: PostHog provider readiness
+        run: node scripts/posthog-provider-readiness-smoke.mjs
       - name: Provider stack regression
         run: node scripts/provider-stack-v1-smoke.mjs
       - name: Command center regression
