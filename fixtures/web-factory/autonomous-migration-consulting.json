@@ -1,0 +1,71 @@
+{
+  "quality_level": "PREMIUM",
+  "use_framer_visual_specialist": false,
+  "mission": {
+    "business_name": "Northline Advisory",
+    "project_slug": "northline-advisory-migration-staging",
+    "industry": "consulting",
+    "country": "France",
+    "language": "fr",
+    "target_audience": "PME européennes qui modernisent leurs opérations commerciales",
+    "primary_goal": "Générer des demandes de diagnostic qualifiées",
+    "conversion_goal": "Demander un diagnostic stratégique",
+    "services": ["Diagnostic opérationnel", "Transformation commerciale", "Systèmes de croissance"],
+    "brand_positioning": "Conseil opérationnel clair et pragmatique pour PME européennes",
+    "tone": "premium, direct, calm, corporate",
+    "quality_level": "PREMIUM",
+    "required_pages": ["home", "services", "about", "contact", "faq"],
+    "existing_brand": {
+      "description": "European advisory brand with restrained corporate presentation",
+      "tone": "clear and authoritative",
+      "colors": {
+        "background": "#f6f7f5",
+        "surface": "#ffffff",
+        "text": "#17201d",
+        "muted": "#65706b",
+        "accent": "#28594a",
+        "accent_text": "#ffffff",
+        "border": "#dbe1dd"
+      }
+    },
+    "operator_design_intent": {"direction": "more corporate, more premium, more minimal"},
+    "motion_intent": [
+      {"type": "fade", "purpose": "Support calm section transitions", "trigger": "viewport_entry", "duration": 260, "intensity": "low"}
+    ],
+    "localization": {"primary_language": "fr", "languages": ["fr", "en", "de", "it"], "country": "France", "currency": "EUR"},
+    "existing_website": {
+      "existing_website_url": "https://legacy.example.invalid",
+      "screenshots": [
+        {"reference_id": "legacy-home-screenshot", "rights_status": "owned"}
+      ],
+      "structured_content_dump": {
+        "pages": [
+          {"content_id": "legacy-home", "source_path": "/", "title": "Northline Advisory", "content_type": "page", "migrate_copy": true, "rights_status": "owned", "asset_ids": []},
+          {"content_id": "legacy-services", "source_path": "/services", "title": "Services", "content_type": "page", "migrate_copy": true, "rights_status": "owned", "asset_ids": []},
+          {"content_id": "legacy-contact", "source_path": "/contact", "title": "Contact", "content_type": "page", "migrate_copy": true, "rights_status": "owned", "asset_ids": []}
+        ]
+      }
+    },
+    "competitor_references": [
+      {
+        "reference_id": "consulting-market-reference",
+        "source": "synthetic-competitor-consulting",
+        "analysis": {
+          "site_structure": ["home", "services", "insights", "about", "contact"],
+          "offers": ["strategy", "operations"],
+          "ctas": ["book a call", "contact"],
+          "trust_elements": ["case studies", "expert bios"],
+          "content_patterns": ["outcome-led service pages", "insights"],
+          "page_depth": 7,
+          "navigation": ["services", "insights", "about", "contact"],
+          "seo_themes": ["business consulting", "operational transformation"],
+          "conversion_mechanics": ["diagnostic call"],
+          "visual_patterns": ["clean corporate", "editorial proof"],
+          "weaknesses": ["generic claims without concrete process"]
+        }
+      }
+    ],
+    "integration_requirements": {"crm": "business-factory", "automation": "automation-factory", "data": "supabase", "analytics": "posthog", "qualification": "ai-factory"},
+    "synthetic_test_data_only": true
+  }
+}
