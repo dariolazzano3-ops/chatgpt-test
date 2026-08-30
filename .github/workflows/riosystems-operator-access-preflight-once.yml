@@ -27,22 +27,23 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "24e3f6d024197c8aff152dda25408c186892a982"
+          test "$(git rev-parse HEAD^1)" = "ad7bbd1a3b14566ee1961e76c6ed32e19fb13c4c"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
           test "$CHANGED" = ".github/workflows/riosystems-operator-access-preflight-once.yml"
-      - name: Read-only Cloudflare Access preflight
+      - name: Read-only Cloudflare Access permission preflight
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
 
+          MISSING_EMAIL=0
           if [ -z "${RIOSYSTEMS_OPERATOR_EMAIL:-}" ]; then
+            MISSING_EMAIL=1
             echo "operator_email_secret_present=false" >> "$GITHUB_STEP_SUMMARY"
-            echo "RIOSYSTEMS_OPERATOR_EMAIL secret is missing" >&2
-            exit 42
+          else
+            echo "operator_email_secret_present=true" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "operator_email_secret_present=true" >> "$GITHUB_STEP_SUMMARY"
 
           STATUS="$(curl -sS -o /tmp/access-apps.json -w '%{http_code}' \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
@@ -60,3 +61,9 @@ jobs:
           if [ "$MATCHES" -gt 0 ]; then
             jq -r --arg d "$TARGET_ACCESS_DOMAIN" '.result[]? | select(.domain == $d) | "existing_access_app_id=" + .id + "\nexisting_access_app_aud=" + (.aud // "")' /tmp/access-apps.json >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          if [ "$MISSING_EMAIL" = "1" ]; then
+            echo "preflight_result=OPERATOR_EMAIL_REQUIRED" >> "$GITHUB_STEP_SUMMARY"
+            exit 42
+          fi
+          echo "preflight_result=READY_FOR_ACCESS_WRITE" >> "$GITHUB_STEP_SUMMARY"
