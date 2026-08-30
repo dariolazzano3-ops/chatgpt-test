@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { buildCloudflareAccessReadonlyPlan, runCloudflareAccessReadonlyVerification, cloudflareAccessReadonlyVerifierManifest } from '../src/cloudflare-access-readonly-verifier-v1.js';
+
+const ACCOUNT = '0123456789abcdef0123456789abcdef';
+const APP_ID = 'f174e90a-fafe-4643-bbbc-4a0ed4fc8415';
+const plan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT });
+assert.equal(plan.ok, true);
+assert.equal(plan.read_only, true);
+assert.equal(plan.external_write, false);
+assert.equal(plan.applications_request.method, 'GET');
+
+function response(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+}
+
+function fetchFor({ apps = [], policies = [], appStatus = 200, policyStatus = 200 } = {}) {
+  return async (url, options = {}) => {
+    assert.equal(options.method, 'GET');
+    assert.ok(String(url).startsWith('https://api.cloudflare.com/client/v4/'));
+    if (String(url).includes('/access/apps?')) return response({ success: appStatus < 400, result: apps }, appStatus);
+    if (String(url).includes(`/access/apps/${APP_ID}/policies`)) return response({ success: policyStatus < 400, result: policies }, policyStatus);
+    return response({ success: false }, 404);
+  };
+}
+
+const runtime = (fetch_impl) => ({ fetch_impl, resolve_secret: async () => 'test-token', timeout_ms: 1000, production_deploy: false });
+const app = { id: APP_ID, type: 'self_hosted', domain: 'riosystems-staging.example.workers.dev/operator' };
+const restrictive = { id: 'p1', decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] };
+
+const verified = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [restrictive] })));
+assert.equal(verified.ok, true);
+assert.equal(verified.stage, 'PRIVATE_ACCESS_VERIFIED');
+assert.equal(verified.restrictive_policy_verified, true);
+assert.equal(verified.resource_names_returned, false);
+assert.equal(verified.external_side_effect_performed, false);
+
+const missing = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [] })));
+assert.equal(missing.ok, false);
+assert.equal(missing.stage, 'ACCESS_APPLICATION_NOT_FOUND');
+
+const ambiguous = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app, { ...app, id: 'a174e90a-fafe-4643-bbbc-4a0ed4fc8416' }] })));
+assert.equal(ambiguous.stage, 'ACCESS_APPLICATION_AMBIGUOUS');
+
+const everyone = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [{ decision: 'allow', include: [{ everyone: {} }] }] })));
+assert.equal(everyone.ok, false);
+assert.equal(everyone.stage, 'ACCESS_BROAD_ALLOW_POLICY_REJECTED');
+
+const loginOnly = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [{ decision: 'allow', include: [{ login_method: { id: 'otp' } }] }] })));
+assert.equal(loginOnly.stage, 'ACCESS_BROAD_ALLOW_POLICY_REJECTED');
+
+const bypass = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [restrictive, { decision: 'bypass', include: [{ email: { email: 'x@example.invalid' } }] }] })));
+assert.equal(bypass.stage, 'ACCESS_BYPASS_POLICY_REJECTED');
+
+const noAllow = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [{ decision: 'block', include: [{ everyone: {} }] }] })));
+assert.equal(noAllow.stage, 'ACCESS_RESTRICTIVE_ALLOW_POLICY_MISSING');
+
+const permission = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [], appStatus: 403 })));
+assert.equal(permission.error, 'ACCESS_READ_PERMISSION_MISSING');
+
+const wrongTarget = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [{ ...app, domain: 'other-worker.example.workers.dev' }] })));
+assert.equal(wrongTarget.stage, 'ACCESS_APPLICATION_NOT_FOUND');
+
+const manifest = cloudflareAccessReadonlyVerifierManifest();
+assert.deepEqual(manifest.methods, ['GET']);
+assert.equal(manifest.restrictive_allow_required, true);
+assert.equal(manifest.bypass_policy_rejected, true);
+assert.equal(manifest.external_write, false);
+assert.equal(manifest.production_deploy, false);
+
+console.log(JSON.stringify({
+  ok: true,
+  suite: 'cloudflare-access-readonly-verifier-v1',
+  verified: verified.stage,
+  missing: missing.stage,
+  ambiguous: ambiguous.stage,
+  everyone: everyone.stage,
+  bypass: bypass.stage,
+  permission: permission.error,
+  read_only: true,
+  external_write: false,
+  production_deploy: false,
+  variable_cost_eur: 0
+}, null, 2));
