@@ -1,7 +1,8 @@
 const cleanSlug = (value) => String(value || '').trim().toLowerCase();
 const SCOPE_PART = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
-const SCHEMA = 'riosystems_staging';
-const TABLE = 'crm_leads';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SCHEMA = 'public';
+const TABLES = Object.freeze(['customer_projects','contacts','leads','lead_events','provider_execution_refs','audit_log']);
 const CONFIRMATION = 'APPLY_SUPABASE_STAGING_CRM_ONCE';
 
 function validScopePart(value) {
@@ -12,104 +13,183 @@ function literal(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-function schemaSql(scope) {
-  const externalRef = `${scope.customer_id}-${scope.project_id}-lead-001`;
+function uuidLiteral(value) {
+  return `${literal(value)}::uuid`;
+}
+
+function identifiers(scope) {
+  const base = `${scope.customer_id}-${scope.project_id}`;
+  return {
+    project_slug: `${base}-staging`,
+    contact_ref: `${base}-synthetic-contact-001`,
+    lead_key: `${base}-synthetic-lead-001`,
+    event_key: `${base}-synthetic-lead-event-001`,
+    provider_key: `${base}-synthetic-provider-ref-001`,
+    audit_key: `${base}-synthetic-audit-001`
+  };
+}
+
+function relationalUpsertSql(scope) {
+  const ids = identifiers(scope);
   return `begin;
-create schema if not exists ${SCHEMA};
-revoke all on schema ${SCHEMA} from public;
-
-create table if not exists ${SCHEMA}.${TABLE} (
-  id bigint generated always as identity primary key,
-  customer_id text not null,
-  project_id text not null,
-  external_ref text not null,
-  lead_name text not null,
-  email text not null,
-  status text not null default 'new' check (status in ('new', 'qualified', 'contacted', 'closed')),
-  synthetic_test_data boolean not null default false check (synthetic_test_data = true),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (customer_id, project_id, external_ref)
-);
-
-alter table ${SCHEMA}.${TABLE} enable row level security;
-alter table ${SCHEMA}.${TABLE} force row level security;
-revoke all on ${SCHEMA}.${TABLE} from public, anon, authenticated;
-
-create index if not exists crm_leads_scope_status_idx
-  on ${SCHEMA}.${TABLE} (customer_id, project_id, status);
-
-insert into ${SCHEMA}.${TABLE} (
-  customer_id, project_id, external_ref, lead_name, email, status, synthetic_test_data
-) values (
-  ${literal(scope.customer_id)},
-  ${literal(scope.project_id)},
-  ${literal(externalRef)},
-  'Synthetic Bakery Lead',
-  'lead-001@example.invalid',
-  'new',
-  true
+insert into public.customer_projects (id, slug, display_name, environment, source, audit_meta)
+values (
+  ${uuidLiteral(scope.project_uuid)},
+  ${literal(ids.project_slug)},
+  'Synthetic Staging Project',
+  'staging',
+  'riosystems-staging-write-plan',
+  '{"synthetic":true,"source":"business-staging-write-plan"}'::jsonb
 )
-on conflict (customer_id, project_id, external_ref)
+on conflict (slug) do update set
+  updated_at = now()
+where public.customer_projects.id = excluded.id
+  and public.customer_projects.environment = 'staging';
+
+insert into public.contacts (project_id, external_ref, email, full_name, source, attributes, audit_meta)
+values (
+  ${uuidLiteral(scope.project_uuid)},
+  ${literal(ids.contact_ref)},
+  'synthetic.lead@example.invalid',
+  'Synthetic Bakery Lead',
+  'synthetic-website',
+  '{"synthetic":true,"consent":false}'::jsonb,
+  '{"synthetic":true,"source":"business-staging-write-plan"}'::jsonb
+)
+on conflict (project_id, external_ref) where external_ref is not null
 do update set
-  lead_name = excluded.lead_name,
-  email = excluded.email,
+  full_name = excluded.full_name,
+  attributes = excluded.attributes,
+  audit_meta = excluded.audit_meta;
+
+insert into public.leads (project_id, contact_id, idempotency_key, status, source, source_ref, payload, audit_meta)
+values (
+  ${uuidLiteral(scope.project_uuid)},
+  (select id from public.contacts where project_id = ${uuidLiteral(scope.project_uuid)} and external_ref = ${literal(ids.contact_ref)}),
+  ${literal(ids.lead_key)},
+  'validated',
+  'synthetic-website',
+  'business-staging-write-plan',
+  '{"message":"Synthetic staging lead only","synthetic":true}'::jsonb,
+  '{"synthetic":true,"source":"business-staging-write-plan"}'::jsonb
+)
+on conflict (project_id, idempotency_key)
+do update set
   status = excluded.status,
-  synthetic_test_data = true,
+  payload = excluded.payload,
+  audit_meta = excluded.audit_meta,
   updated_at = now();
+
+insert into public.lead_events (project_id, lead_id, event_type, idempotency_key, source, event_payload, audit_meta)
+select
+  ${uuidLiteral(scope.project_uuid)},
+  id,
+  'lead_persisted',
+  ${literal(ids.event_key)},
+  'riosystems-staging-write-plan',
+  '{"synthetic":true}'::jsonb,
+  '{"synthetic":true}'::jsonb
+from public.leads
+where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.lead_key)}
+on conflict (project_id, idempotency_key)
+do update set event_payload = excluded.event_payload;
+
+insert into public.provider_execution_refs (project_id, lead_id, provider, capability, external_execution_ref, idempotency_key, execution_state, cost_eur, metadata, audit_meta)
+select
+  ${uuidLiteral(scope.project_uuid)},
+  id,
+  'supabase-free',
+  'crm-persist',
+  'business-staging-write-plan',
+  ${literal(ids.provider_key)},
+  'succeeded',
+  0,
+  '{"synthetic":true}'::jsonb,
+  '{"synthetic":true}'::jsonb
+from public.leads
+where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.lead_key)}
+on conflict (project_id, provider, idempotency_key)
+do update set execution_state = excluded.execution_state, cost_eur = excluded.cost_eur;
+
+insert into public.audit_log (project_id, entity_type, entity_id, action, actor_type, actor_ref, request_id, idempotency_key, metadata)
+select
+  ${uuidLiteral(scope.project_uuid)},
+  'lead',
+  id,
+  'synthetic_staging_write_verified',
+  'riosystems-operator',
+  'business-staging-write-plan',
+  ${literal(`${ids.audit_key}-request`)},
+  ${literal(ids.audit_key)},
+  '{"synthetic":true,"production":false,"external_paid_cost_eur":0}'::jsonb
+from public.leads
+where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.lead_key)}
+on conflict (project_id, idempotency_key) where idempotency_key is not null
+do update set metadata = excluded.metadata;
 commit;`;
 }
 
 function verificationSql(scope) {
+  const ids = identifiers(scope);
   return `select
   count(*)::int as synthetic_row_count,
-  bool_and(synthetic_test_data) as synthetic_only
-from ${SCHEMA}.${TABLE}
-where customer_id = ${literal(scope.customer_id)}
-  and project_id = ${literal(scope.project_id)}
-  and external_ref = ${literal(`${scope.customer_id}-${scope.project_id}-lead-001`)};`;
+  coalesce(bool_and((payload ->> 'synthetic') = 'true'), false) as synthetic_only,
+  (select count(*)::int from public.audit_log where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.audit_key)}) as audit_count
+from public.leads
+where project_id = ${uuidLiteral(scope.project_uuid)}
+  and idempotency_key = ${literal(ids.lead_key)};`;
 }
 
 function cleanupSql(scope) {
-  return `delete from ${SCHEMA}.${TABLE}
-where customer_id = ${literal(scope.customer_id)}
-  and project_id = ${literal(scope.project_id)}
-  and external_ref = ${literal(`${scope.customer_id}-${scope.project_id}-lead-001`)}
-  and synthetic_test_data = true;`;
+  const ids = identifiers(scope);
+  return `begin;
+delete from public.provider_execution_refs where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.provider_key)};
+delete from public.lead_events where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.event_key)};
+delete from public.audit_log where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.audit_key)};
+delete from public.leads where project_id = ${uuidLiteral(scope.project_uuid)} and idempotency_key = ${literal(ids.lead_key)} and (payload ->> 'synthetic') = 'true';
+delete from public.contacts where project_id = ${uuidLiteral(scope.project_uuid)} and external_ref = ${literal(ids.contact_ref)} and (attributes ->> 'synthetic') = 'true';
+commit;`;
 }
 
 export function buildSupabaseStagingCrmWritePlan(input = {}) {
   if (input.production_deploy === true) return { ok: false, error: 'PRODUCTION_DEPLOY_REJECTED', production_deploy: false };
   const customerId = cleanSlug(input.customer_id);
   const projectId = cleanSlug(input.project_id);
-  if (!validScopePart(customerId) || !validScopePart(projectId)) {
+  const projectUuid = String(input.project_uuid || '').trim().toLowerCase();
+  if (!validScopePart(customerId) || !validScopePart(projectId) || !UUID.test(projectUuid)) {
     return { ok: false, error: 'STAGING_PROJECT_SCOPE_INVALID', production_deploy: false };
   }
   if (input.staging_only !== true || input.synthetic_test_data_only !== true || input.real_customer_data === true) {
     return { ok: false, error: 'SYNTHETIC_ISOLATED_STAGING_REQUIRED', production_deploy: false };
   }
-  const scope = { customer_id: customerId, project_id: projectId, scope_key: `${customerId}:${projectId}` };
+  const scope = {
+    customer_id: customerId,
+    project_id: projectId,
+    project_uuid: projectUuid,
+    scope_key: `${customerId}:${projectId}`
+  };
   return {
     ok: true,
-    schema: 'riosystems.supabase-staging-crm-write-plan.v1',
+    schema: 'riosystems.supabase-staging-crm-write-plan.v2',
     provider_id: 'supabase-free',
     capability: 'business.crm.write',
-    state: 'WRITE_PLAN_READY_NOT_EXECUTED',
+    state: 'WRITE_PLAN_READY_EXISTING_FOUNDATION',
     scope,
     database: {
       schema_name: SCHEMA,
-      table_name: TABLE,
-      exposed_via_data_api: false,
+      tables: [...TABLES],
+      foundation_migrations_required: ['20260830013445','20260830013612'],
+      data_api_exposure: 'not_relied_upon',
       rls_enabled: true,
       rls_forced: true,
       anon_access: false,
-      authenticated_access: false,
-      upsert_conflict_key: ['customer_id', 'project_id', 'external_ref']
+      authenticated_access: 'project_claim_scoped',
+      idempotency_scope: 'project_id_plus_idempotency_key'
     },
     statements: {
-      apply: schemaSql(scope),
+      apply: relationalUpsertSql(scope),
       verify: verificationSql(scope),
-      cleanup_synthetic_row: cleanupSql(scope)
+      cleanup_synthetic_rows: cleanupSql(scope)
     },
     confirmation: CONFIRMATION,
     staging_only: true,
@@ -130,23 +210,24 @@ function resultRows(result) {
 }
 
 function validateCanonicalPlan(plan = {}) {
-  if (plan.schema !== 'riosystems.supabase-staging-crm-write-plan.v1' || plan.state !== 'WRITE_PLAN_READY_NOT_EXECUTED' || plan.provider_id !== 'supabase-free') {
+  if (plan.schema !== 'riosystems.supabase-staging-crm-write-plan.v2' || plan.state !== 'WRITE_PLAN_READY_EXISTING_FOUNDATION' || plan.provider_id !== 'supabase-free') {
     return { ok: false, error: 'SUPABASE_STAGING_WRITE_PLAN_REQUIRED' };
   }
   const canonical = buildSupabaseStagingCrmWritePlan({
     customer_id: plan.scope?.customer_id,
     project_id: plan.scope?.project_id,
+    project_uuid: plan.scope?.project_uuid,
     staging_only: true,
     synthetic_test_data_only: true,
     real_customer_data: false,
     production_deploy: false
   });
   if (!canonical.ok) return { ok: false, error: 'SUPABASE_STAGING_WRITE_PLAN_REQUIRED' };
-  const sameScope = plan.scope?.scope_key === canonical.scope.scope_key;
+  const sameScope = JSON.stringify(plan.scope) === JSON.stringify(canonical.scope);
   const sameDatabase = JSON.stringify(plan.database) === JSON.stringify(canonical.database);
   const sameStatements = plan.statements?.apply === canonical.statements.apply
     && plan.statements?.verify === canonical.statements.verify
-    && plan.statements?.cleanup_synthetic_row === canonical.statements.cleanup_synthetic_row;
+    && plan.statements?.cleanup_synthetic_rows === canonical.statements.cleanup_synthetic_rows;
   const sameSafety = plan.confirmation === canonical.confirmation
     && plan.staging_only === true
     && plan.synthetic_test_data_only === true
@@ -174,7 +255,7 @@ export async function runSupabaseStagingCrmWrite(plan = {}, runtime = {}) {
 
   let applied;
   try {
-    applied = await runtime.execute_sql({ provider_id: 'supabase-free', operation: 'staging_schema_and_synthetic_upsert', sql: checked.canonical.statements.apply });
+    applied = await runtime.execute_sql({ provider_id: 'supabase-free', operation: 'staging_relational_synthetic_upsert', sql: checked.canonical.statements.apply });
   } catch (error) {
     return { ok: false, error: 'SUPABASE_STAGING_WRITE_FAILED', message: String(error?.message || '').slice(0, 300), external_side_effect_state: 'UNKNOWN_REQUIRES_READ_VERIFICATION', production_deploy: false };
   }
@@ -187,16 +268,18 @@ export async function runSupabaseStagingCrmWrite(plan = {}, runtime = {}) {
     return { ok: false, error: 'SUPABASE_STAGING_VERIFY_FAILED', message: String(error?.message || '').slice(0, 300), external_side_effect_performed: true, production_deploy: false };
   }
   const row = resultRows(verified)[0] || {};
-  if (Number(row.synthetic_row_count) !== 1 || row.synthetic_only !== true) {
+  if (Number(row.synthetic_row_count) !== 1 || row.synthetic_only !== true || Number(row.audit_count) !== 1) {
     return { ok: false, error: 'SUPABASE_STAGING_VERIFY_MISMATCH', external_side_effect_performed: true, production_deploy: false };
   }
   return {
     ok: true,
-    schema: 'riosystems.supabase-staging-crm-write-result.v1',
+    schema: 'riosystems.supabase-staging-crm-write-result.v2',
     stage: 'SUPABASE_STAGING_CRM_WRITE_VERIFIED',
     provider_id: 'supabase-free',
     scope_key: plan.scope.scope_key,
+    project_uuid: plan.scope.project_uuid,
     synthetic_row_count: 1,
+    audit_count: 1,
     synthetic_test_data_only: true,
     cleanup_available: true,
     secrets_returned: false,
@@ -208,13 +291,16 @@ export async function runSupabaseStagingCrmWrite(plan = {}, runtime = {}) {
 
 export function supabaseStagingWriteManifest() {
   return {
-    schema: 'riosystems.supabase-staging-write-runner.v1',
+    schema: 'riosystems.supabase-staging-write-runner.v2',
     provider_id: 'supabase-free',
     capability: 'business.crm.write',
-    isolated_schema: SCHEMA,
+    foundation_schema: SCHEMA,
+    foundation_tables: [...TABLES],
+    foundation_migrations: ['20260830013445','20260830013612'],
     rls_required: true,
-    public_roles_revoked: true,
-    data_api_exposure: false,
+    public_anonymous_access: false,
+    authenticated_access: 'project_claim_scoped',
+    data_api_exposure: 'not_relied_upon',
     synthetic_test_data_only: true,
     exact_scope_approval_required: true,
     explicit_external_write_execution_approval_required: true,

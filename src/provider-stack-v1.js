@@ -7,6 +7,7 @@ import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './
 import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWebReadVerified } from './cloudflare-live-read-evidence.js';
 import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from './cloudflare-pages-staging-evidence.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
+import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -20,6 +21,7 @@ export function providerStackV1() {
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
+  const businessWriteEvidence = businessStagingWriteEvidence();
   const factories = {
     web: {
       decision: webProviderDecisionManifest(),
@@ -60,7 +62,8 @@ export function providerStackV1() {
         && businessWriteRunner.exact_scope_approval_required === true
         && businessWriteRunner.zero_cost_confirmation_required === true,
       staging_write_plan: businessWriteRunner,
-      staging_write_verified: false
+      staging_write_verified: isBusinessStagingWriteVerified(),
+      staging_write_evidence: businessWriteEvidence
     }
   };
 
@@ -100,8 +103,10 @@ export function providerActivationMatrix() {
   const pages = cloudflarePagesStagingEvidence();
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
+  const businessWrite = businessStagingWriteEvidence();
   const webStagingVerified = isCloudflarePagesStagingVerified();
   const makeStagingVerified = isMakeLiveStagingVerified();
+  const businessStagingWriteVerified = isBusinessStagingWriteVerified();
   return {
     schema: 'riosystems.provider-activation-matrix.v1',
     providers: [
@@ -127,11 +132,13 @@ export function providerActivationMatrix() {
       {
         id: 'supabase-free',
         selection: 'selected',
-        activation: 'live_read_verified_staging_write_not_authorized',
+        activation: businessStagingWriteVerified ? 'live_read_and_staging_write_verified' : 'live_read_verified_staging_write_not_authorized',
         project_status: business.supabase.project_status,
         schema_read: business.supabase.public_schema_read_verified === true ? 'verified' : 'unverified',
         staging_write_plan_ready: true,
-        real_write: 'isolated_staging_and_explicit_approval_required'
+        staging_write_verified: businessStagingWriteVerified,
+        staging_write_evidence: businessWrite,
+        real_write: 'isolated_staging_and_explicit_approval_required_per_execution'
       },
       {
         id: 'posthog-free',
@@ -206,7 +213,8 @@ export function planProviderStackMission(input = {}) {
     activation_evidence: {
       web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
       automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
-      business_runtime_read: clone(stack.factories.business.provider_read_evidence)
+      business_runtime_read: clone(stack.factories.business.provider_read_evidence),
+      business_staging_write: clone(stack.factories.business.staging_write_evidence)
     },
     execution_authorized: false,
     external_writes: false,

@@ -41,7 +41,8 @@ function providerReadinessSnapshot() {
         provider_read_verified: stack.factories.business.provider_read_verified === true,
         staging_write_plan_ready: stack.factories.business.staging_write_plan_ready === true,
         staging_write_verified: stack.factories.business.staging_write_verified === true,
-        evidence: clone(stack.factories.business.provider_read_evidence)
+        evidence: clone(stack.factories.business.provider_read_evidence),
+        staging_write_evidence: clone(stack.factories.business.staging_write_evidence)
       }
     },
     paid_execution: false,
