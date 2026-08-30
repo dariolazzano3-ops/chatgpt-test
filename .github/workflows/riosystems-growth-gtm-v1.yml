@@ -1,0 +1,45 @@
+name: RIOSYSTEMS Growth GTM Factory V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/growth-v1/**'
+      - 'scripts/growth-gtm-factory-v1-smoke.mjs'
+      - 'fixtures/growth-gtm-v1.json'
+      - 'docs/RIOSYSTEMS-GROWTH-GTM-FACTORY-V1.md'
+      - '.github/workflows/riosystems-growth-gtm-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/growth-v1/**'
+      - 'scripts/growth-gtm-factory-v1-smoke.mjs'
+      - 'fixtures/growth-gtm-v1.json'
+      - 'docs/RIOSYSTEMS-GROWTH-GTM-FACTORY-V1.md'
+      - '.github/workflows/riosystems-growth-gtm-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  growth-gtm-v1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          for f in src/growth-v1/*.js; do node --check "$f"; done
+          node --check scripts/growth-gtm-factory-v1-smoke.mjs
+          node -e "JSON.parse(require('fs').readFileSync('fixtures/growth-gtm-v1.json','utf8'))"
+      - name: Zero-cost synthetic acceptance
+        run: node scripts/growth-gtm-factory-v1-smoke.mjs
+      - name: Safety invariants
+        run: |
+          grep -R "variable_development_cost_ceiling_eur: 0" src/growth-v1/contracts.js
+          grep -R "production: false" src/growth-v1/contracts.js
+          grep -R "real_customer_data: false" src/growth-v1/contracts.js
+          grep -R "automatic_paid_ads: false" src/growth-v1/contracts.js
