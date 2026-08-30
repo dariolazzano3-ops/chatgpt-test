@@ -17,31 +17,30 @@ jobs:
   web-live-read:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: staging
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Require credentials without revealing values
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/block6-bakery-live-e2e
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Resolve only canonical verified Pages staging URL
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo CLOUDFLARE_API_TOKEN_MISSING; exit 2; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo CLOUDFLARE_ACCOUNT_ID_MISSING; exit 2; }
-      - name: Verify latest bakery Pages staging deployment and HTTP reachability
+          node --input-type=module - <<'NODE'
+          import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from './src/cloudflare-pages-staging-evidence.js';
+          const e = cloudflarePagesStagingEvidence();
+          if (!isCloudflarePagesStagingVerified()) throw new Error('PAGES_STAGING_EVIDENCE_NOT_VERIFIED');
+          if (e.pages_project !== 'chatgpt-factory-preview') throw new Error('PAGES_PROJECT_REJECTED');
+          if (e.source_branch !== 'factory/bakery-mueller-staging-v1') throw new Error('PAGES_SOURCE_BRANCH_REJECTED');
+          if (!String(e.preview_url || '').startsWith('https://')) throw new Error('PAGES_PREVIEW_URL_REJECTED');
+          if (e.production_deploy !== false || e.custom_domain !== false || e.dns_change !== false) throw new Error('PAGES_SAFETY_REJECTED');
+          await import('node:fs').then(({writeFileSync}) => writeFileSync('/tmp/pages-url.txt', e.preview_url));
+          console.log(JSON.stringify({ ok:true, project:e.pages_project, source_branch:e.source_branch, staging:true, production:false }));
+          NODE
+      - name: Verify live staging HTML reachability
         run: |
           set -euo pipefail
-          curl --silent --show-error --fail --max-time 15 --retry 0 \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H 'Accept: application/json' \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/chatgpt-factory-preview/deployments" > /tmp/pages.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const body = JSON.parse(fs.readFileSync('/tmp/pages.json','utf8'));
-          const deployments = Array.isArray(body?.result) ? body.result : [];
-          const match = deployments.find((d) => d?.deployment_trigger?.metadata?.branch === 'riosystems-staging-bakery-muller' && d?.latest_stage?.status === 'success');
-          if (!match?.url || !String(match.url).startsWith('https://')) throw new Error('BAKERY_STAGING_DEPLOYMENT_NOT_FOUND');
-          fs.writeFileSync('/tmp/pages-url.txt', String(match.url));
-          console.log(JSON.stringify({ ok:true, branch:'riosystems-staging-bakery-muller', stage:'success', production:false }));
-          NODE
           url="$(cat /tmp/pages-url.txt)"
           code="$(curl --silent --show-error --max-time 15 --retry 0 --output /tmp/page.html --write-out '%{http_code}' "$url")"
           test "$code" = 200 || { echo "BAKERY_STAGING_HTTP_$code"; exit 3; }
