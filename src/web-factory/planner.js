@@ -33,6 +33,16 @@ const PAGE_LIBRARY = {
   }
 };
 
+const PAGE_LABELS = {
+  de: { home: 'Startseite', services: 'Leistungen', about: 'Über uns', contact: 'Kontakt', faq: 'FAQ', gallery: 'Galerie', 'legal-notice': 'Impressum', privacy: 'Datenschutz' },
+  en: { home: 'Home', services: 'Services', about: 'About', contact: 'Contact', faq: 'FAQ', gallery: 'Gallery', 'legal-notice': 'Legal Notice', privacy: 'Privacy' }
+};
+
+function localizedPageLabel(id, language, fallback) {
+  const locale = String(language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en';
+  return PAGE_LABELS[locale][id] || fallback;
+}
+
 const normalizePage = (page) => {
   const slug = String(page || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
   const aliases = { leistungen: 'services', services: 'services', uber: 'about', 'ueber-uns': 'about', about: 'about', kontakt: 'contact', contact: 'contact', faq: 'faq', home: 'home', start: 'home', galerie: 'gallery', gallery: 'gallery', impressum: 'legal-notice', datenschutz: 'privacy' };
@@ -60,7 +70,7 @@ export function planWebsite(mission) {
     return {
       id,
       path: pagePath(id),
-      label: base.label,
+      label: localizedPageLabel(id, mission.language, base.label),
       purpose: base.purpose,
       target_audience: mission.target_audience,
       conversion_goal: base.cta === 'none' ? 'Inform only' : mission.conversion_goal,

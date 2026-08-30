@@ -58,6 +58,10 @@ for (const build of [bakeryBuild, cyberBuild]) {
 assert.notEqual(bakeryBuild.artifact.project.slug, cyberBuild.artifact.project.slug);
 assert.notDeepEqual(bakeryBuild.design_system.tokens.colors, cyberBuild.design_system.tokens.colors);
 assert.notEqual(bakeryBuild.blueprint.strategy.target_audience, cyberBuild.blueprint.strategy.target_audience);
+assert.ok(bakeryBuild.blueprint.navigation.some((item) => item.label === 'Leistungen'));
+assert.match(bakeryBuild.artifact.files['projects/bakery-muller-staging/about/index.html'], /href="\.\/" aria-current="page"/);
+assert.match(bakeryBuild.artifact.files['projects/bakery-muller-staging/index.html'], />Leistungen<\/a>/);
+assert.match(bakeryBuild.artifact.files['projects/bakery-muller-staging/index.html'], />Über uns<\/a>/);
 
 const bakeryProject = JSON.parse(bakeryBuild.artifact.files['projects/bakery-muller-staging/project.json']);
 assert.equal(bakeryProject.schema, 'riosystems.web-staging-project.v1');

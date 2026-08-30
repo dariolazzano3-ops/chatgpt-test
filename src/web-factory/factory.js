@@ -66,7 +66,7 @@ function renderPage({ mission, blueprint, page, content, canonical }) {
   const title = page.id === 'home' ? mission.business_name : `${page.label} · ${mission.business_name}`;
   const description = String(content.subheadline || mission.brand_positioning).slice(0, 155);
   const canonicalHref = `${canonical.base}${page.path === '/' ? '/' : page.path}`.replace(/([^:]\/)\/+?/g, '$1');
-  const body = renderComponents(page, content);
+  const body = renderComponents(page, content, mission);
   return `<!doctype html>
 <html lang="${esc(mission.language)}">
 <head>

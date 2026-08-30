@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'projects/bakery-muller-staging/**'
+      - 'src/web-factory/**'
+      - 'fixtures/web-factory/bakery-muller.json'
+      - 'scripts/materialize-web-factory-reference.mjs'
       - 'scripts/bakery-muller-web-staging-readiness.mjs'
       - '.github/workflows/riosystems-bakery-web-staging-readiness.yml'
   workflow_dispatch:
@@ -16,8 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Validate synthetic staging artifact
+      - name: Materialize Web Factory V1 reference artifact
+        run: node scripts/materialize-web-factory-reference.mjs
+      - name: Validate synthetic Web Factory V1 staging artifact
         run: node scripts/bakery-muller-web-staging-readiness.mjs
