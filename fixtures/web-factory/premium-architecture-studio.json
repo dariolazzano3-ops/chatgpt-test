@@ -1,0 +1,132 @@
+{
+  "mission": {
+    "business_name": "Atelier North Architecture",
+    "project_slug": "atelier-north-premium-staging",
+    "industry": "Premium architecture and interior design studio",
+    "country": "Germany",
+    "language": "en",
+    "target_audience": "Property owners and boutique developers seeking high-end residential and hospitality architecture",
+    "primary_goal": "Generate qualified consultation enquiries",
+    "services": [
+      "Residential Architecture",
+      "Hospitality Design",
+      "Interior Architecture",
+      "Design Direction"
+    ],
+    "brand_positioning": "Quiet architectural authority with editorial restraint and tactile material focus",
+    "tone": "premium, calm, editorial, precise",
+    "required_pages": [
+      "home",
+      "services",
+      "about",
+      "gallery",
+      "contact",
+      "faq"
+    ],
+    "seo_location": "Berlin, Germany",
+    "conversion_goal": "Request a private project consultation",
+    "synthetic_test_data_only": true
+  },
+  "design_contract": {
+    "schema": "riosystems.visual-design-contract.v1",
+    "design_id": "design-atelier-north-premium-v1",
+    "project_id": "atelier-north-premium-staging",
+    "source_provider": "framer",
+    "source_kind": "synthetic-provider-neutral-framer-handoff-fixture",
+    "pages": [
+      {"id":"home","path":"/","sections":["hero","feature_grid","services","about","stats","testimonials","cta"]},
+      {"id":"services","path":"/services/","sections":["hero","services","feature_grid","faq","cta"]},
+      {"id":"about","path":"/about/","sections":["hero","about","stats","testimonials","cta"]},
+      {"id":"gallery","path":"/gallery/","sections":["hero","gallery","cta"]},
+      {"id":"contact","path":"/contact/","sections":["hero","contact","faq"]},
+      {"id":"faq","path":"/faq/","sections":["hero","faq","cta"]},
+      {"id":"legal-notice","path":"/legal-notice/","sections":["legal_placeholder"]},
+      {"id":"privacy","path":"/privacy/","sections":["legal_placeholder"]}
+    ],
+    "sections": [
+      {"id":"hero","type":"hero","order":0,"layout":{"mode":"editorial_split"},"visual_hierarchy":{"priority":"highest"}},
+      {"id":"feature_grid","type":"feature_grid","order":1,"layout":{"columns":3}},
+      {"id":"services","type":"services","order":2,"layout":{"columns":3}},
+      {"id":"about","type":"about","order":3,"layout":{"mode":"split"}},
+      {"id":"stats","type":"stats","order":4,"layout":{"columns":3}},
+      {"id":"testimonials","type":"testimonials","order":5,"layout":{"mode":"cards"}},
+      {"id":"gallery","type":"gallery","order":6,"layout":{"mode":"editorial_grid"},"image_treatment":"large quiet crops"},
+      {"id":"faq","type":"faq","order":7,"layout":{"mode":"stack"}},
+      {"id":"contact","type":"contact","order":8,"layout":{"mode":"narrow"}},
+      {"id":"cta","type":"cta","order":9,"layout":{"mode":"band"}},
+      {"id":"legal_placeholder","type":"legal","order":10,"layout":{"mode":"narrow"}}
+    ],
+    "layout_system": {
+      "container_width": "80rem",
+      "narrow_container_width": "52rem",
+      "hero_min_height": "72vh",
+      "grid_columns": 12,
+      "grid_gap": "1.75rem",
+      "section_alignment": "contained",
+      "navigation_behavior": "sticky"
+    },
+    "color_tokens": {
+      "background": "#f4f1ea",
+      "surface": "#ebe6db",
+      "text": "#171714",
+      "muted": "#666158",
+      "accent": "#6c4f35",
+      "accent_text": "#ffffff",
+      "border": "#cfc7b8",
+      "focus": "#215c8f"
+    },
+    "typography_tokens": {
+      "body_family": "system-ui, sans-serif",
+      "heading_family": "ui-serif, serif",
+      "heading_scale": {"2xl":"clamp(2.75rem,7vw,6.5rem)","xl":"1.5rem"},
+      "body_scale": {"base":"1rem","lead":"1.25rem"},
+      "line_height_body": 1.7,
+      "line_height_heading": 0.98
+    },
+    "spacing_tokens": {
+      "section": "clamp(5rem,10vw,9rem)",
+      "grid_gap": "1.75rem",
+      "card_padding": "2rem",
+      "rhythm": "generous"
+    },
+    "radius_tokens": {
+      "card": "0.25rem",
+      "button": "999px"
+    },
+    "shadow_tokens": {
+      "card": "0 20px 60px rgba(23, 23, 20, 0.08)"
+    },
+    "component_specs": [
+      {"component":"Hero","geometry":{"content_max_width":"14ch","text_align":"left"},"variants":{"home":"editorial"},"responsive":{"stack_on_mobile":true}},
+      {"component":"Card","geometry":{"padding":"2rem"},"variants":{"default":"quiet-border"},"responsive":{"single_column_mobile":true}}
+    ],
+    "interaction_specs": [
+      {"id":"nav-sticky","type":"sticky_section","target":"site-header"},
+      {"id":"hover-lift","type":"hover_transition","target":"cards-and-buttons"}
+    ],
+    "animation_specs": [
+      {"id":"section-reveal","type":"scroll_reveal","target":"content-sections","intent":"subtle progressive reveal"}
+    ],
+    "responsive_rules": [
+      {"id":"tablet","breakpoint":1024,"behavior":{"grid_columns":2,"container_gutter":"2rem","hero_min_height":"64vh"}},
+      {"id":"mobile","breakpoint":768,"behavior":{"grid_columns":1,"container_gutter":"1.25rem","hero_min_height":"auto"}}
+    ],
+    "asset_manifest": [
+      {"asset_id":"brand-mark-placeholder","kind":"brand-mark","source":"synthetic-fixture","license_status":"generated","ownership":"riosystems-test-fixture","allowed_for_reimplementation":true,"replacement_required":false}
+    ],
+    "visual_references": [
+      {"id":"framer-handoff-structured-reference","type":"structured_reference","source":"synthetic-fixture","pixel_reference_available":false}
+    ],
+    "implementation_notes": [
+      "Synthetic premium reference only; no real Framer provider call occurred.",
+      "Use Framer as visual design specialist only. Reconstruct in owned HTML/CSS/JS.",
+      "Do not activate Framer hosting by default."
+    ]
+  },
+  "routing_context": {
+    "premium_visual": true,
+    "quality_level": "PREMIUM",
+    "synthetic_test_data_only": true,
+    "environment": "staging"
+  }
+}
