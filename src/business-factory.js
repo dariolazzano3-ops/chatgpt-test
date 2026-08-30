@@ -38,3 +38,5 @@ export function businessFactoryManifest() {
     production_deploy: false
   };
 }
+
+export { businessCrmFactoryV1Manifest, buildBusinessCrmV1, runSyntheticCrmE2E } from './business-crm-factory-v1.js';
