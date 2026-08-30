@@ -35,7 +35,7 @@ function scopeMatches(scope) {
     && scope.scope_key === SCOPE.scope_key;
 }
 
-function canonicalSyntheticLead() {
+export function canonicalMakeSupabaseSyntheticLead() {
   return {
     schema: 'riosystems.synthetic-lead-envelope.v1',
     source: 'make-core',
@@ -115,7 +115,7 @@ export function buildMakeSupabaseLeadBridgePlan(input = {}) {
       }
     },
     bridge_contract: {
-      input: canonicalSyntheticLead(),
+      input: canonicalMakeSupabaseSyntheticLead(),
       make_output_required: {
         synthetic: true,
         environment: 'staging',
