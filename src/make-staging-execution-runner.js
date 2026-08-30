@@ -1,11 +1,14 @@
 import { planMakeScenarioRun } from './make-staging-bridge.js';
+import { canonicalMakeSupabaseSyntheticLead } from './make-supabase-lead-bridge.js';
 
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
+const clone = (value) => structuredClone(value ?? null);
 const ALLOWED_HOSTS = new Set(['eu1.make.com','eu2.make.com','us1.make.com','us2.make.com','eu1.make.celonis.com','us1.make.celonis.com']);
 const STAGING_PREFIX = 'RIOSYSTEMS STAGING - ';
 const ALLOWED_MODULES = new Set(['json:ParseJSON']);
 
 function safeExecutableBlueprint(name) {
+  const payload = canonicalMakeSupabaseSyntheticLead();
   return {
     name,
     flow: [{
@@ -13,14 +16,14 @@ function safeExecutableBlueprint(name) {
       module: 'json:ParseJSON',
       version: 1,
       parameters: { type: '' },
-      mapper: { json: '{"source":"riosystems","environment":"staging","project":"bakery-muller","synthetic":true}' },
-      metadata: { designer: { x: 0, y: 0, name: 'RIOSYSTEMS Synthetic Staging Input' }, parameters: [{ name: 'type', type: 'udt', label: 'Data structure' }] }
+      mapper: { json: JSON.stringify(payload) },
+      metadata: { designer: { x: 0, y: 0, name: 'RIOSYSTEMS Synthetic Make to Supabase Lead' }, parameters: [{ name: 'type', type: 'udt', label: 'Data structure' }] }
     }],
     metadata: {
       version: 1,
       scenario: { roundtrips: 1, maxErrors: 1, autoCommit: true, autoCommitTriggerLast: true, sequential: true, confidential: false, dataloss: false, dlq: false, freshVariables: false },
       designer: { orphans: [] },
-      riosystems: { environment: 'staging', project: 'bakery-muller', synthetic_test_data_only: true, external_connections: false }
+      riosystems: { environment: 'staging', project: 'bakery-muller', scope_key: payload.project_scope, synthetic_test_data_only: true, external_connections: false }
     }
   };
 }
@@ -81,6 +84,7 @@ export function buildMakeSafeStagingExecutionPlan(input = {}) {
       stop: buildUrl(origin, `/api/v2/scenarios/${scenarioId}/stop`)
     },
     required_scopes: ['scenarios:read','scenarios:write','scenarios:run'],
+    synthetic_payload: canonicalMakeSupabaseSyntheticLead(),
     synthetic_test_data_only: true,
     external_connections_allowed: false,
     activate_only_for_single_supervised_run: true,
@@ -169,6 +173,7 @@ export async function runMakeStagingScenarioOnce(plan = {}, runtime = {}) {
     scenario_id: plan.scenario_id,
     execution_id: clean(runResult.json?.executionId, 120) || null,
     execution_status: clean(runResult.json?.status, 40) || null,
+    synthetic_payload: clone(plan.synthetic_payload),
     scenario_restored_inactive: true,
     synthetic_test_data_only: true,
     secrets_returned: false,
@@ -184,6 +189,7 @@ export function makeStagingExecutionRunnerManifest() {
     staging_prefix: STAGING_PREFIX,
     allowed_modules: [...ALLOWED_MODULES],
     required_scopes: ['scenarios:read','scenarios:write','scenarios:run'],
+    synthetic_bridge_payload_supported: true,
     synthetic_test_data_only: true,
     external_connections_allowed: false,
     single_supervised_run_only: true,
