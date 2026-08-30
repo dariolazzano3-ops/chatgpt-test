@@ -72,7 +72,7 @@ function buildCodeEvidence({ system_health = {}, request_context = {} } = {}) {
   return facts;
 }
 
-function buildActivationEvidence({ system_health = {}, request_context = {}, deployment_evidence = {}, activation_evidence = {} } = {}) {
+function buildActivationEvidence({ system_health = {}, request_context = {}, deployment_evidence = {}, access_evidence = {} } = {}) {
   const activation = {};
   const persistence = system_health.signals?.runtime_persistence;
   const staging = system_health.signals?.staging_availability;
@@ -81,7 +81,16 @@ function buildActivationEvidence({ system_health = {}, request_context = {}, dep
 
   setFact(activation, 'durable_runtime_schema_applied', evidence(persistenceHealthy, 'live Supabase-backed runtime snapshot', { runtime_revision: persistence?.runtime_revision ?? null }));
   setFact(activation, 'durable_runtime_secrets_configured', evidence(persistenceHealthy, 'successful server-side Supabase runtime probe', { store_mode: persistence?.store_mode || null }));
-  setFact(activation, 'access_application_configured', evidence(activation_evidence.access_application_configured === true ? true : undefined, 'explicit Cloudflare Access configuration evidence', clone(activation_evidence.access_application_evidence || {})));
+
+  const accessStatus = String(access_evidence.status || '').toUpperCase();
+  const accessVerified = accessStatus === 'HEALTHY' && access_evidence.access_application_configured === true && access_evidence.restrictive_policy_verified === true
+    ? true
+    : accessStatus === 'BLOCKED' ? false : undefined;
+  setFact(activation, 'access_application_configured', evidence(
+    accessVerified,
+    'authoritative GitHub Cloudflare Access read-only evidence',
+    clone(access_evidence)
+  ));
 
   const deploymentStatus = String(deployment_evidence.status || '').toUpperCase();
   const deployedSha = deployment_evidence.deployed_sha || null;
@@ -119,7 +128,7 @@ export function buildRiosystemsV1AcceptanceFromEvidence(input = {}) {
       schema: 'riosystems.v1-acceptance-evidence.v1',
       exact_head_sha: input.system_health?.branch_truth?.head_sha || null,
       no_inferred_activation_success: true,
-      access_requires_explicit_evidence: true,
+      access_requires_authoritative_readonly_evidence: true,
       deployment_requires_exact_sha_evidence: true,
       production_deploy: false
     }
@@ -130,7 +139,7 @@ export function riosystemsV1AcceptanceEvidenceManifest() {
   return {
     schema: 'riosystems.v1-acceptance-evidence.v1',
     code_sources: ['operator-runtime-v1','operator-dashboard-v1','operator-dashboard-completeness-v1','operator-project-create-dashboard-v1','operator-system-health-v1','operator-dashboard-shell-v1','operator-dashboard-http-v1','github_actions_exact_factory_control_head'],
-    activation_sources: ['live_supabase_runtime_snapshot','explicit_cloudflare_access_evidence','github_actions_zero_cost_staging_deploy','current_authenticated_staging_operator_request'],
+    activation_sources: ['live_supabase_runtime_snapshot','github_actions_cloudflare_access_readonly','github_actions_zero_cost_staging_deploy','current_authenticated_staging_operator_request'],
     unknown_activation_is_not_verified: true,
     production_deploy: false
   };
