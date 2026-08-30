@@ -28,9 +28,7 @@ function costMetadata(route, request = {}) {
     customer_monthly_price: null,
     estimated_margin: null,
     currency: 'EUR',
-    estimate_basis: request.synthetic_test_data_only === true
-      ? 'zero-cost synthetic staging policy'
-      : 'operator quote required before paid or production activation',
+    estimate_basis: request.synthetic_test_data_only === true ? 'zero-cost synthetic staging policy' : 'operator quote required before paid or production activation',
     automatic_paid_overflow: false
   };
 }
@@ -43,6 +41,14 @@ const ROUTES = {
     hosting_provider: 'cloudflare',
     stages: ['native_design_system', 'native_build', 'web_qa', 'cloudflare_staging_candidate'],
     metrics: { design_quality: 4, build_speed: 5, hosting_cost: 5, recurring_cost: 5, margin: 5, lock_in: 5, exportability: 5, maintenance: 5 }
+  },
+  nativePremium: {
+    route_id: 'native-premium-cloudflare',
+    design_provider: 'riosystems-native-web-builder',
+    build_provider: 'riosystems-native-web-builder',
+    hosting_provider: 'cloudflare',
+    stages: ['autonomous_design_intelligence', 'provider_neutral_design_spec', 'native_reconstruction', 'visual_fidelity_qa', 'cro_qa', 'cloudflare_staging_candidate'],
+    metrics: { design_quality: 5, build_speed: 4, hosting_cost: 5, recurring_cost: 5, margin: 5, lock_in: 5, exportability: 5, maintenance: 5 }
   },
   premium: {
     route_id: 'framer-design-native-cloudflare',
@@ -74,8 +80,9 @@ export function selectWebBuildRoute(request = {}) {
   const complexCms = request.complex_cms === true || Number(request.cms_complexity || 0) >= 4;
   const rapid = request.rapid_experiment === true;
   const premium = request.premium_visual === true || ['premium', 'high_fidelity'].includes(String(request.quality_level || '').toLowerCase());
+  const nativePremium = request.native_premium === true;
 
-  const selected = complexCms ? ROUTES.cms : rapid ? ROUTES.rapid : premium ? ROUTES.premium : ROUTES.native;
+  const selected = complexCms ? ROUTES.cms : rapid ? ROUTES.rapid : premium && !nativePremium ? ROUTES.premium : nativePremium ? ROUTES.nativePremium : ROUTES.native;
   const route = structuredClone(selected);
   route.score = routeScore(route, request);
   route.provider_roles = {
@@ -100,9 +107,11 @@ export function selectWebBuildRoute(request = {}) {
       ? 'Complex CMS requirement selects Webflow as a specialist candidate and requires operator review.'
       : rapid
         ? 'Rapid experimental request selects Lovable as a prototype candidate and requires operator review.'
-        : premium
+        : premium && !nativePremium
           ? 'Premium visual request uses Framer only for design direction, then reconstructs in RIOSYSTEMS-owned code and prefers Cloudflare hosting.'
-          : 'Simple scalable repeatable request stays on the native RIOSYSTEMS builder and prefers Cloudflare.',
+          : nativePremium
+            ? 'Autonomous premium design intelligence stays native, produces an owned design specification and implementation, and prefers Cloudflare hosting.'
+            : 'Simple scalable repeatable request stays on the native RIOSYSTEMS builder and prefers Cloudflare.',
     alternatives: Object.values(ROUTES).filter((item) => item.route_id !== route.route_id).map((item) => item.route_id)
   };
 }
