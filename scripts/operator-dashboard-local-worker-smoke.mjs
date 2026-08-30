@@ -18,22 +18,32 @@ const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {
 });
 
 let output = '';
+let childExit = null;
 child.stdout.on('data', (chunk) => { output += chunk.toString(); });
 child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+child.once('exit', (code, signal) => { childExit = { code, signal }; });
 
 async function waitFor(url, timeoutMs = 25000) {
   const started = Date.now();
   let lastError = null;
   while (Date.now() - started < timeoutMs) {
+    if (childExit) {
+      throw new Error(`local Worker exited before readiness: code=${childExit.code} signal=${childExit.signal || 'none'}\n${output}`);
+    }
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(1500) });
       if (response.status < 500) return response;
+      lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       lastError = error;
     }
     await new Promise((resolve) => setTimeout(resolve, 350));
   }
   throw new Error(`local Worker did not become ready: ${lastError?.message || 'timeout'}\n${output}`);
+}
+
+async function fetchChecked(url) {
+  return fetch(url, { signal: AbortSignal.timeout(3000) });
 }
 
 try {
@@ -48,14 +58,14 @@ try {
   assert.match(shell, /delivery_ready/);
   assert.match(shellResponse.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
 
-  const projectsResponse = await fetch(`${origin}/operator/api/projects`);
+  const projectsResponse = await fetchChecked(`${origin}/operator/api/projects`);
   assert.equal(projectsResponse.status, 200, output);
   const projects = await projectsResponse.json();
   assert.equal(projects.schema, 'riosystems.operator-projects-view.v2');
   assert.equal(projects.items.length, 3);
   assert.ok(projects.items.every((item) => item.production_deploy === false));
 
-  const dashboardResponse = await fetch(`${origin}/operator/api/dashboard`);
+  const dashboardResponse = await fetchChecked(`${origin}/operator/api/dashboard`);
   assert.equal(dashboardResponse.status, 200, output);
   const dashboard = await dashboardResponse.json();
   assert.equal(dashboard.safety_panel.production, 'LOCKED');
@@ -69,8 +79,9 @@ try {
     production_deploy: false
   }, null, 2));
 } finally {
-  child.kill('SIGTERM');
+  if (!childExit) child.kill('SIGTERM');
   await new Promise((resolve) => {
+    if (childExit) return resolve();
     const timer = setTimeout(resolve, 3000);
     child.once('exit', () => { clearTimeout(timer); resolve(); });
   });
