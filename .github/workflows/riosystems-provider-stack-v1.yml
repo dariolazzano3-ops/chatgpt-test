@@ -5,7 +5,10 @@ on:
     branches: [factory-control]
     paths:
       - 'src/provider-stack-v1.js'
+      - 'src/business-staging-write-evidence.js'
       - 'scripts/provider-stack-v1-smoke.mjs'
+      - 'scripts/business-staging-crm-foundation-smoke.mjs'
+      - 'supabase/migrations/**'
       - 'docs/RIOSYSTEMS-PROVIDER-STACK-V1.md'
       - '.github/workflows/riosystems-provider-stack-v1.yml'
       - 'src/web-provider-strategy.js'
@@ -25,9 +28,13 @@ jobs:
       - name: Syntax
         run: |
           node --check src/provider-stack-v1.js
+          node --check src/business-staging-write-evidence.js
           node --check scripts/provider-stack-v1-smoke.mjs
+          node --check scripts/business-staging-crm-foundation-smoke.mjs
       - name: Provider stack v1 smoke
         run: node scripts/provider-stack-v1-smoke.mjs
+      - name: Supabase staging CRM foundation smoke
+        run: node scripts/business-staging-crm-foundation-smoke.mjs
       - name: Web provider regression
         run: node scripts/web-provider-selection-smoke.mjs
       - name: Automation provider regression
