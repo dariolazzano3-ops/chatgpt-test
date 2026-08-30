@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { planProviderStackMission, providerActivationMatrix, providerStackV1 } from '../src/provider-stack-v1.js';
+import { planProviderStackMission, providerActivationMatrix, providerActivationReadiness, providerStackV1 } from '../src/provider-stack-v1.js';
 import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWebReadVerified } from '../src/cloudflare-live-read-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from '../src/business-live-read-evidence.js';
+import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from '../src/cloudflare-pages-staging-evidence.js';
 
 const cfEvidence = cloudflareLiveReadEvidence();
 assert.equal(isCloudflareWebReadVerified(), true);
@@ -12,6 +13,15 @@ assert.equal(cfEvidence.capabilities.pages_projects_read, 'verified');
 assert.equal(cfEvidence.capabilities.workers_ai_read, 'permission_missing');
 assert.equal(cfEvidence.safety.external_side_effect_performed, false);
 assert.equal(cfEvidence.safety.production_deploy, false);
+
+const pagesEvidence = cloudflarePagesStagingEvidence();
+assert.equal(isCloudflarePagesStagingVerified(), true);
+assert.equal(pagesEvidence.github_actions_run_id, 33285150036);
+assert.equal(pagesEvidence.project_slug, 'bakery-muller-staging');
+assert.equal(pagesEvidence.zero_cost_confirmation, true);
+assert.equal(pagesEvidence.custom_domain, false);
+assert.equal(pagesEvidence.dns_change, false);
+assert.equal(pagesEvidence.production_deploy, false);
 
 const businessEvidence = businessLiveReadEvidence();
 assert.equal(isBusinessLiveReadVerified(), true);
@@ -30,8 +40,10 @@ for (const key of stack.active_factories) {
 }
 assert.deepEqual(stack.factories.web.primary_path, ['riosystems-native-web','cloudflare-workers-free']);
 assert.equal(stack.factories.web.provider_read_verified, true);
-assert.equal(stack.factories.web.staging_deploy_verified, false);
+assert.equal(stack.factories.web.staging_deploy_verified, true);
 assert.equal(stack.factories.web.provider_read_evidence.github_actions_run_id, 33259245919);
+assert.equal(stack.factories.web.staging_deploy_evidence.github_actions_run_id, 33285150036);
+assert.equal(stack.factories.web.staging_deploy_evidence.zero_cost_confirmation, true);
 assert.deepEqual(stack.factories.automation.primary_path, ['riosystems-native-automation','make-core']);
 assert.deepEqual(stack.factories.automation.secondary_path, ['riosystems-native-automation','activepieces-cloud-free']);
 assert.equal(stack.factories.automation.adapter.default_runtime_provider, 'make-core');
@@ -59,10 +71,14 @@ assert.equal(matrix.secrets_embedded, false);
 assert.equal(matrix.automatic_paid_overflow, false);
 assert.equal(matrix.production_deploy, false);
 const cfWeb = matrix.providers.find((item) => item.id === 'cloudflare-workers-free');
-assert.equal(cfWeb?.activation, 'live_read_verified_staging_deploy_zero_cost_confirmation_required');
+assert.equal(cfWeb?.activation, 'live_read_and_zero_cost_staging_deploy_verified');
 assert.equal(cfWeb?.workers_scripts_read, 'verified');
 assert.equal(cfWeb?.pages_projects_read, 'verified');
-assert.equal(cfWeb?.evidence_run_id, 33259245919);
+assert.equal(cfWeb?.read_evidence_run_id, 33259245919);
+assert.equal(cfWeb?.staging_deploy_verified, true);
+assert.equal(cfWeb?.staging_deploy_evidence_run_id, 33285150036);
+assert.equal(cfWeb?.zero_cost_confirmation, true);
+assert.equal(cfWeb?.production_deploy, false);
 const cfAi = matrix.providers.find((item) => item.id === 'cloudflare-workers-ai-free');
 assert.equal(cfAi?.activation, 'permission_required');
 assert.equal(cfAi?.workers_ai_read, 'permission_missing');
@@ -87,6 +103,18 @@ assert.equal(matrix.providers.find((item) => item.id === 'activepieces-cloud-fre
 assert.equal(matrix.providers.find((item) => item.id === 'n8n-client-owned')?.selection, 'technical_specialist');
 assert.equal(matrix.providers.find((item) => item.id === 'lovable-github')?.selection, 'optional_specialist');
 
+const readiness = providerActivationReadiness();
+assert.equal(readiness.status, 'PARTIALLY_ACTIVATED');
+assert.equal(readiness.checks.web_staging_deploy_verified, true);
+assert.equal(readiness.checks.automation_make_staging_verified, true);
+assert.equal(readiness.checks.business_runtime_read_verified, true);
+assert.equal(readiness.checks.business_staging_write_verified, false);
+assert.equal(readiness.checks.ai_cloudflare_runtime_verified, false);
+assert.deepEqual(readiness.blockers, ['BUSINESS_STAGING_WRITE_NOT_VERIFIED','CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED']);
+assert.equal(readiness.next_gate, 'BUSINESS_STAGING_WRITE_OR_AI_CREDENTIAL_ACTIVATION');
+assert.equal(readiness.external_execution_authorized, false);
+assert.equal(readiness.production_deploy, false);
+
 const bakery = planProviderStackMission({ project: 'Bäckerei Müller' });
 assert.equal(bakery.ok, true);
 assert.equal(bakery.project, 'Bäckerei Müller');
@@ -96,7 +124,7 @@ assert.deepEqual(bakery.routes.ai, ['riosystems-ai-local-policy','cloudflare-wor
 assert.deepEqual(bakery.routes.business, ['riosystems-native-business','supabase-free','posthog-free']);
 assert.equal(bakery.activation_status.automation_make_staging_verified, true);
 assert.equal(bakery.activation_status.web_cloudflare_read_verified, true);
-assert.equal(bakery.activation_status.web_staging_deploy_verified, false);
+assert.equal(bakery.activation_status.web_staging_deploy_verified, true);
 assert.equal(bakery.activation_status.ai_cloudflare_runtime_verified, false);
 assert.equal(bakery.activation_status.business_runtime_read_verified, true);
 assert.equal(bakery.activation_status.business_staging_write_verified, false);
@@ -104,7 +132,7 @@ assert.equal(bakery.execution_authorized, false);
 assert.equal(bakery.external_writes, false);
 assert.equal(bakery.paid_execution, false);
 assert.equal(bakery.production_deploy, false);
-assert.equal(bakery.next_gate, 'CLOUDFLARE_ZERO_COST_CONFIRMATION_OR_AI_CREDENTIAL_ACTIVATION');
+assert.equal(bakery.next_gate, 'BUSINESS_STAGING_WRITE_OR_AI_CREDENTIAL_ACTIVATION');
 
 const prod = planProviderStackMission({ project: 'Bäckerei Müller', production_deploy: true });
 assert.equal(prod.ok, false);

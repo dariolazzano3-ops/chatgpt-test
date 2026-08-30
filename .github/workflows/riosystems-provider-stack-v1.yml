@@ -5,6 +5,9 @@ on:
     branches: [factory-control]
     paths:
       - 'src/provider-stack-v1.js'
+      - 'src/cloudflare-pages-staging-evidence.js'
+      - 'src/cloudflare-live-read-evidence.js'
+      - 'src/business-live-read-evidence.js'
       - 'scripts/provider-stack-v1-smoke.mjs'
       - 'docs/RIOSYSTEMS-PROVIDER-STACK-V1.md'
       - '.github/workflows/riosystems-provider-stack-v1.yml'

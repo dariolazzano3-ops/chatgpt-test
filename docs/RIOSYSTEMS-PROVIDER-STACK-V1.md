@@ -21,9 +21,18 @@ The default Web path keeps code in GitHub rather than making a SaaS visual build
 
 Selection complete does not mean external execution is authorized. Runtime provider connections, credentials and real staging actions are activated behind existing RIOSYSTEMS gates.
 
-The next activation boundary is the first real staging run. It may require one or more of the following depending on the mission: Cloudflare staging deployment, Make account/API connection and cost gate, OpenAI API credential and mission budget, Supabase schema/data write, or PostHog event ingestion. Activepieces and n8n are not required for the first default path.
+Web and Make staging have now been verified. The next activation boundary is the first isolated Supabase staging write or the separately controlled AI credential/runtime activation. Activepieces and n8n are not required for the first default path.
 
 All such external writes and paid actions remain explicitly approval-gated. Custom domains and production deployment remain separate approvals. Automatic paid overflow remains disabled.
+
+## Verified staging activation state
+
+- Web: Cloudflare account reads and the Bäckerei Müller zero-cost Pages staging deployment are verified by repository evidence.
+- Automation: Make read-only access, inactive staging scenario creation and one supervised synthetic run with inactive restoration are verified.
+- Business: Supabase and PostHog live reads are verified; the first isolated Supabase staging write is still pending.
+- AI: Cloudflare Workers AI remains permission-gated; OpenAI remains credential-, budget- and approval-gated.
+
+`providerActivationReadiness()` exposes this state for mission and dashboard consumers. Evidence proves completed staging actions but never grants future execution authorization. The next gate is `BUSINESS_STAGING_WRITE_OR_AI_CREDENTIAL_ACTIVATION`.
 
 ## Current core completion boundary
 
