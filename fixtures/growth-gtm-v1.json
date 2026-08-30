@@ -1,0 +1,21 @@
+{
+  "schema": "riosystems.growth-fixtures.v1",
+  "synthetic": true,
+  "production": false,
+  "real_customer_data": false,
+  "variable_cost_eur": 0,
+  "scenarios": [
+    {"id":"A","name":"bakery_local_gtm","goal":"local customer acquisition"},
+    {"id":"B","name":"consulting_gtm","goal":"qualified B2B leads"},
+    {"id":"C","name":"competitor_differentiation","competitors":3},
+    {"id":"D","name":"weak_conversion","visits":10000,"cta_clicks":500,"forms":40,"qualified":10},
+    {"id":"E","name":"channel_strategy","channels":["SEO","paid search","organic social","referrals"]},
+    {"id":"F","name":"zero_budget_gtm","budget_eur":0},
+    {"id":"G","name":"paid_readiness","missing":["tracking","landing_page","CRM_followup"]},
+    {"id":"H","name":"reputation","signals":["rating_decline","negative_theme","slow_responses"]},
+    {"id":"I","name":"seo_cluster","search_volume_provided":false},
+    {"id":"J","name":"cross_factory_flow","factories":["web","business_crm","ai","automation","analytics"]},
+    {"id":"K","name":"experiment","type":"headline"},
+    {"id":"L","name":"strategy_blast_radius","change":"primary_ICP"}
+  ]
+}
