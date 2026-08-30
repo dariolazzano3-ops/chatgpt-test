@@ -1,0 +1,64 @@
+name: RIOSYSTEMS Public Website Lighthouse QA
+
+on:
+  push:
+    branches:
+      - factory/riosystems-public-website-v1-preview
+    paths:
+      - '.github/workflows/riosystems-public-website-lighthouse.yml'
+      - 'projects/riosystems-public-website-v1/**'
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      URL: https://factory-riosystems-public-we.chatgpt-factory-preview.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Lighthouse
+        run: |
+          npx -y lighthouse@12 "$URL" \
+            --chrome-flags="--headless --no-sandbox" \
+            --only-categories=performance,accessibility,seo,best-practices \
+            --output=json \
+            --output-path=/tmp/lighthouse.json
+      - name: Enforce release-candidate thresholds
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const report = JSON.parse(await readFile('/tmp/lighthouse.json', 'utf8'));
+          const score = (name) => Math.round((report.categories[name]?.score ?? 0) * 100);
+          const values = {
+            performance: score('performance'),
+            accessibility: score('accessibility'),
+            seo: score('seo'),
+            bestPractices: score('best-practices')
+          };
+          console.log(values);
+          if (values.performance < 90) throw new Error(`Performance ${values.performance} < 90`);
+          if (values.accessibility < 95) throw new Error(`Accessibility ${values.accessibility} < 95`);
+          if (values.seo < 90) throw new Error(`SEO ${values.seo} < 90`);
+          if (values.bestPractices < 90) throw new Error(`Best Practices ${values.bestPractices} < 90`);
+          const audits = report.audits;
+          const lcp = audits['largest-contentful-paint']?.numericValue ?? Infinity;
+          const cls = audits['cumulative-layout-shift']?.numericValue ?? Infinity;
+          const tbt = audits['total-blocking-time']?.numericValue ?? Infinity;
+          console.log({ lcp, cls, tbt });
+          if (lcp >= 2500) throw new Error(`LCP ${lcp}ms >= 2500ms`);
+          if (cls >= 0.1) throw new Error(`CLS ${cls} >= 0.1`);
+          if (tbt >= 200) throw new Error(`TBT ${tbt}ms >= 200ms`);
+          NODE
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riosystems-public-website-v1-lighthouse
+          path: /tmp/lighthouse.json
+          if-no-files-found: warn
