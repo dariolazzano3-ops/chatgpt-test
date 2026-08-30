@@ -1,0 +1,41 @@
+name: RIOSYSTEMS Block 3 Make Live Run Once
+
+on:
+  push:
+    branches: [chore/block3-make-live-run-once]
+    paths:
+      - '.github/workflows/riosystems-block3-make-live-run-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riosystems-block3-make-live-run-once
+  cancel-in-progress: false
+
+jobs:
+  run-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: feature/make-supabase-lead-bridge-live
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate secret presence without revealing it
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+        run: test -n "$MAKE_API_TOKEN" || (echo 'MAKE_API_TOKEN secret is missing' && exit 2)
+      - name: Run exactly one synthetic Make staging execution and restore inactive
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE_URL: 'https://eu1.make.com'
+          MAKE_TEAM_ID: '939128'
+          MAKE_SCENARIO_ID: '7149691'
+          MAKE_PLAN: 'core'
+          RIOSYSTEMS_MAKE_STAGING_RUN_APPROVED: 'RUN_STAGING_ONCE'
+        run: node scripts/make-live-staging-execution-once.mjs
