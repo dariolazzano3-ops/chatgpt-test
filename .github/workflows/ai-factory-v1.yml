@@ -1,0 +1,42 @@
+name: AI Factory V1
+
+on:
+  pull_request:
+    paths:
+      - 'src/ai-factory-v1.js'
+      - 'src/ai-provider-adapters-v1.js'
+      - 'src/ai-prompt-registry-v1.js'
+      - 'scripts/ai-factory-v1-major-smoke.mjs'
+      - 'docs/AI_FACTORY_V1.md'
+      - '.github/workflows/ai-factory-v1.yml'
+  push:
+    branches:
+      - factory-control
+    paths:
+      - 'src/ai-factory-v1.js'
+      - 'src/ai-provider-adapters-v1.js'
+      - 'src/ai-prompt-registry-v1.js'
+      - 'scripts/ai-factory-v1-major-smoke.mjs'
+      - 'docs/AI_FACTORY_V1.md'
+      - '.github/workflows/ai-factory-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  zero-cost-ai-factory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check src/ai-prompt-registry-v1.js
+          node --check src/ai-provider-adapters-v1.js
+          node --check src/ai-factory-v1.js
+          node --check scripts/ai-factory-v1-major-smoke.mjs
+      - name: Deterministic zero-cost E2E
+        run: node scripts/ai-factory-v1-major-smoke.mjs
