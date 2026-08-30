@@ -9,6 +9,7 @@ import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
+import { posthogStagingEventEvidence, isPostHogStagingAnalyticsVerified } from './posthog-staging-event-evidence.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const ACTIVE_FACTORY_KEYS = Object.freeze(['web','automation','ai','business']);
@@ -22,6 +23,7 @@ export function providerStackV1() {
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
   const businessWriteEvidence = businessStagingWriteEvidence();
+  const posthogStagingEvidence = posthogStagingEventEvidence();
   const factories = {
     web: {
       decision: webProviderDecisionManifest(),
@@ -63,7 +65,9 @@ export function providerStackV1() {
         && businessWriteRunner.zero_cost_confirmation_required === true,
       staging_write_plan: businessWriteRunner,
       staging_write_verified: isBusinessStagingWriteVerified(),
-      staging_write_evidence: businessWriteEvidence
+      staging_write_evidence: businessWriteEvidence,
+      analytics_staging_verified: isPostHogStagingAnalyticsVerified(),
+      analytics_staging_evidence: posthogStagingEvidence
     }
   };
 
@@ -104,9 +108,11 @@ export function providerActivationMatrix() {
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
   const businessWrite = businessStagingWriteEvidence();
+  const posthogStaging = posthogStagingEventEvidence();
   const webStagingVerified = isCloudflarePagesStagingVerified();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
+  const posthogStagingVerified = isPostHogStagingAnalyticsVerified();
   return {
     schema: 'riosystems.provider-activation-matrix.v1',
     providers: [
@@ -143,10 +149,12 @@ export function providerActivationMatrix() {
       {
         id: 'posthog-free',
         selection: 'selected',
-        activation: 'live_read_verified_event_ingestion_observed',
+        activation: posthogStagingVerified ? 'live_read_and_staging_analytics_verified' : 'live_read_verified_event_ingestion_observed',
         project_read: business.posthog.project_read_verified === true ? 'verified' : 'unverified',
         event_ingestion_observed: business.posthog.ingested_event_observed,
-        real_write: 'synthetic_event_approval_required'
+        staging_analytics_verified: posthogStagingVerified,
+        staging_analytics_evidence: posthogStaging,
+        real_write: 'synthetic_event_approval_required_per_execution'
       },
       { id: 'openai-api', selection: 'selected', activation: 'credential_and_budget_gate_required', paid_execution: 'approval_required' },
       {
@@ -188,9 +196,11 @@ export function planProviderStackMission(input = {}) {
     ? 'CLOUDFLARE_ZERO_COST_CONFIRMATION_REQUIRED'
     : stack.factories.business.staging_write_verified !== true
       ? 'BUSINESS_STAGING_WRITE_APPROVAL_REQUIRED'
-      : stack.factories.ai.cloudflare_ai_read_verified !== true
-        ? 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
-        : 'STAGING_EXECUTION_APPROVAL_REQUIRED';
+      : stack.factories.business.analytics_staging_verified !== true
+        ? 'POSTHOG_STAGING_ANALYTICS_APPROVAL_REQUIRED'
+        : stack.factories.ai.cloudflare_ai_read_verified !== true
+          ? 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
+          : 'STAGING_EXECUTION_APPROVAL_REQUIRED';
 
   return {
     ok: true,
@@ -208,13 +218,15 @@ export function planProviderStackMission(input = {}) {
       web_staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
       ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_read_verified === true,
       business_runtime_read_verified: stack.factories.business.provider_read_verified === true,
-      business_staging_write_verified: stack.factories.business.staging_write_verified === true
+      business_staging_write_verified: stack.factories.business.staging_write_verified === true,
+      business_posthog_staging_analytics_verified: stack.factories.business.analytics_staging_verified === true
     },
     activation_evidence: {
       web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
       automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
       business_runtime_read: clone(stack.factories.business.provider_read_evidence),
-      business_staging_write: clone(stack.factories.business.staging_write_evidence)
+      business_staging_write: clone(stack.factories.business.staging_write_evidence),
+      business_posthog_staging_analytics: clone(stack.factories.business.analytics_staging_evidence)
     },
     execution_authorized: false,
     external_writes: false,
