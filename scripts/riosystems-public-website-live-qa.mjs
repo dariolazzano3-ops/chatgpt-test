@@ -10,15 +10,14 @@ const browser = await chromium.launch({ headless: true });
 const sizes = [['desktop-large',1440,1000],['desktop',1200,900],['tablet-wide',1024,900],['tablet',768,900],['mobile-large',430,900],['mobile',390,844],['mobile-375',375,812],['mobile-small',320,760]];
 
 async function revealWholePage(page) {
-  await page.evaluate(async () => {
-    const step = Math.max(280, Math.floor(window.innerHeight * 0.65));
-    for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
-      window.scrollTo(0, y);
-      await new Promise((resolve) => setTimeout(resolve, 70));
-    }
-    window.scrollTo(0, 0);
-  });
-  await page.waitForTimeout(180);
+  const reveals = page.locator('.reveal');
+  const count = await reveals.count();
+  for (let index = 0; index < count; index += 1) {
+    await reveals.nth(index).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(55);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(160);
 }
 
 for (const [name,width,height] of sizes) {
@@ -33,7 +32,7 @@ for (const [name,width,height] of sizes) {
   assert.ok(overflow <= 1, `${name}: horizontal overflow ${overflow}px`);
   await revealWholePage(page);
   const hiddenRevealCount = await page.locator('.reveal:not(.is-visible)').count();
-  assert.equal(hiddenRevealCount, 0, `${name}: ${hiddenRevealCount} reveal blocks remained hidden after scroll`);
+  assert.equal(hiddenRevealCount, 0, `${name}: ${hiddenRevealCount} reveal blocks remained hidden after traversal`);
   await page.screenshot({ path: `artifacts/riosystems-public-website-v1/${name}.png`, fullPage: true });
   await page.close();
 }
