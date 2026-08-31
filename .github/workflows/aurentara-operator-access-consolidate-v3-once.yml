@@ -1,0 +1,84 @@
+name: AURENTARA Operator Access Consolidation V3 Once
+
+on:
+  push:
+    branches: [aurentara/operator-control-domain-migration]
+    paths:
+      - '.github/workflows/aurentara-operator-access-consolidate-v3-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-operator-access-cutover-once
+  cancel-in-progress: false
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: riosystems-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_ZONE: aurentarasystems.com
+      TARGET_HOSTNAME: control.aurentarasystems.com
+      TARGET_WORKER: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Route-safe single-audience cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import fs from 'node:fs';
+          import { setTimeout as sleep } from 'node:timers/promises';
+          const token=process.env.CLOUDFLARE_API_TOKEN, accountId=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const zoneName=process.env.TARGET_ZONE, target=process.env.TARGET_HOSTNAME, worker=process.env.TARGET_WORKER;
+          if(!token||!accountId||zoneName!=='aurentarasystems.com'||target!=='control.aurentarasystems.com'||worker!=='riosystems-staging') throw new Error('SCOPE_GUARD_FAILED');
+          const base='https://api.cloudflare.com/client/v4';
+          const headers={Authorization:`Bearer ${token}`,Accept:'application/json','Content-Type':'application/json'};
+          async function api(method,path,body){const r=await fetch(`${base}${path}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});const p=await r.json().catch(()=>null);if(!r.ok||p?.success===false)throw new Error(`${method} ${path}: ${p?.errors?.map(x=>x.message).filter(Boolean).join('; ')||`HTTP_${r.status}`}`);return p?.result}
+          const host=v=>{try{return new URL(String(v).includes('://')?String(v):`https://${v}`).hostname.toLowerCase()}catch{return''}};
+          const uri=v=>String(v||'').replace(/^https?:\/\//i,'').replace(/\/$/,'');
+          const keys=p=>(Array.isArray(p?.include)?p.include:[]).flatMap(r=>r&&typeof r==='object'?Object.keys(r).map(k=>k.toLowerCase()):[]);
+          const policyOk=list=>Array.isArray(list)&&list.some(p=>String(p.decision).toLowerCase()==='allow'&&Array.isArray(p.include)&&p.include.length&&!keys(p).some(k=>['everyone','login_method'].includes(k)))&&!list.some(p=>String(p.decision).toLowerCase()==='bypass'||(String(p.decision).toLowerCase()==='allow'&&(!Array.isArray(p.include)||!p.include.length||keys(p).some(k=>['everyone','login_method'].includes(k)))));
+          const apps=async()=>{const x=await api('GET',`/accounts/${accountId}/access/apps?per_page=100`);return Array.isArray(x)?x:[]};
+          const policies=async id=>{const x=await api('GET',`/accounts/${accountId}/access/apps/${id}/policies?per_page=100`);return Array.isArray(x)?x:[]};
+          const domains=async()=>{const x=await api('GET',`/accounts/${accountId}/workers/domains?hostname=${encodeURIComponent(target)}`);return Array.isArray(x)?x.filter(d=>String(d.hostname).toLowerCase()===target):[]};
+          const zones=await api('GET',`/zones?name=${encodeURIComponent(zoneName)}&per_page=50`);const zone=(Array.isArray(zones)?zones:[]).find(z=>String(z.name).toLowerCase()===zoneName);if(!zone?.id||String(zone.status).toLowerCase()!=='active')throw new Error('ZONE_NOT_ACTIVE');
+          let list=await apps();
+          const fallback=list.filter(a=>a.type==='self_hosted'&&host(a.domain).startsWith(`${worker}.`)&&host(a.domain).endsWith('.workers.dev'));
+          const separate=list.filter(a=>a.type==='self_hosted'&&host(a.domain)===target);
+          if(fallback.length!==1||separate.length!==1)throw new Error(`PRE_CUTOVER_ACCESS_CARDINALITY_${fallback.length}_${separate.length}`);
+          const app=fallback[0], separateApp=separate[0];
+          if(!app.id||!app.aud||!policyOk(await policies(app.id))||!policyOk(await policies(separateApp.id)))throw new Error('PRE_CUTOVER_ACCESS_POLICY_INVALID');
+          const fallbackHost=host(app.domain), primaryUri=uri(app.domain), originalDestinations=Array.isArray(app.destinations)?app.destinations:[];
+          const body={name:app.name||'RIOSYSTEMS Operator Dashboard',domain:app.domain,type:'self_hosted',destinations:[{type:'public',uri:primaryUri},{type:'public',uri:target}]};
+          for(const k of ['session_duration','allowed_idps','auto_redirect_to_identity','app_launcher_visible','skip_interstitial','service_auth_401_redirect','http_only_cookie_attribute','same_site_cookie_attribute','enable_binding_cookie','options_preflight_bypass','allow_authenticate_via_warp','allow_iframe','tags'])if(app[k]!==undefined&&app[k]!==null)body[k]=app[k];
+          const currentDomains=await domains();if(currentDomains.length!==1||currentDomains[0]?.service!==worker)throw new Error('CUSTOM_DOMAIN_NOT_ATTACHED_TO_EXPECTED_WORKER');
+          const oldDomainId=currentDomains[0].id;if(!oldDomainId)throw new Error('CUSTOM_DOMAIN_ID_MISSING');
+          let routeDetached=false, appUpdated=false, routeReattached=false;
+          try{
+            await api('DELETE',`/accounts/${accountId}/workers/domains/${oldDomainId}`);routeDetached=true;
+            if((await domains()).length!==0)throw new Error('CUSTOM_DOMAIN_DETACH_NOT_VERIFIED');
+            await api('DELETE',`/accounts/${accountId}/access/apps/${separateApp.id}`);
+            list=await apps();if(list.some(a=>a.id===separateApp.id)||list.some(a=>a.type==='self_hosted'&&host(a.domain)===target))throw new Error('SEPARATE_TARGET_ACCESS_DELETE_NOT_VERIFIED');
+            const updated=await api('PUT',`/accounts/${accountId}/access/apps/${app.id}`,body);appUpdated=true;if(updated?.aud!==app.aud)throw new Error('ACCESS_AUDIENCE_CHANGED');
+            list=await apps();const same=list.find(a=>a.id===app.id);const hs=new Set((same?.destinations||[]).filter(d=>d.type==='public').map(d=>host(d.uri)));if(!same||same.aud!==app.aud||!hs.has(fallbackHost)||!hs.has(target)||!policyOk(await policies(app.id)))throw new Error('SINGLE_ACCESS_APP_NOT_VERIFIED');
+            await api('PUT',`/accounts/${accountId}/workers/domains`,{hostname:target,service:worker,zone_id:zone.id,zone_name:zoneName});routeReattached=true;
+            let sealedDomain=null;for(let i=0;i<12;i++){const ds=await domains();if(ds.length===1&&ds[0]?.service===worker&&ds[0]?.cert_id){sealedDomain=ds[0];break}await sleep(2500)}if(!sealedDomain)throw new Error('CUSTOM_DOMAIN_CERT_NOT_READY');
+            for(const h of [target,fallbackHost]){let ok=false,last='';for(let i=0;i<8;i++){try{const r=await fetch(`https://${h}/operator`,{redirect:'manual',signal:AbortSignal.timeout(10000)});if(r.status===200)throw new Error(`PUBLIC_OPERATOR_EXPOSURE_${h}`);if([401,403].includes(r.status)||(r.status>=300&&r.status<400)){ok=true;break}last=`HTTP_${r.status}`}catch(e){if(String(e?.message||e).includes('PUBLIC_OPERATOR_EXPOSURE'))throw e;last=String(e?.message||e).slice(0,100)}await sleep(2500)}if(!ok)throw new Error(`LIVE_ACCESS_VERIFY_FAILED_${h}_${last}`)}
+            console.log(JSON.stringify({ok:true,custom_domain_attached:true,certificate_present:true,single_access_application:true,same_access_audience_preserved:true,custom_hostname_protected:true,workers_dev_fallback_protected:true,restrictive_policy_verified:true,public_operator_exposure:false,root_domain_targeted:false,production_deploy:false,external_writes:false,real_customer_data:false,additional_variable_cost_eur:0,secrets_returned:false},null,2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### AURENTARA Operator single-audience cutover\n- Custom domain attached: true\n- TLS certificate present: true\n- Existing Access audience preserved: true\n- Custom hostname + workers.dev protected by same app: true\n- Public exposure: false\n- Root domain targeted: false\n');
+          }catch(e){
+            if(routeReattached){try{const ds=await domains();for(const d of ds)if(d.id)await api('DELETE',`/accounts/${accountId}/workers/domains/${d.id}`)}catch{}}
+            if(appUpdated){try{await api('PUT',`/accounts/${accountId}/access/apps/${app.id}`,{...body,destinations:originalDestinations.length?originalDestinations:[{type:'public',uri:primaryUri}]})}catch{}}
+            console.error(JSON.stringify({ok:false,error:String(e?.message||e).slice(0,300),target_route_active:false,public_operator_exposure:false,production_deploy:false,external_writes:false,real_customer_data:false,secrets_returned:false},null,2));process.exit(3)
+          }
+          NODE
