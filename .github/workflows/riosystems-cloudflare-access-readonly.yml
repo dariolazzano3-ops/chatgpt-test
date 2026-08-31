@@ -7,6 +7,7 @@ on:
       - 'src/cloudflare-access-readonly-verifier-v1.js'
       - 'scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs'
       - 'scripts/cloudflare-access-live-readonly-verify.mjs'
+      - 'scripts/aurentara-operator-custom-domain-readonly-verify.mjs'
       - '.github/workflows/riosystems-cloudflare-access-readonly.yml'
       - 'src/operator-cloudflare-access-evidence-v1.js'
       - 'src/operator-v1-acceptance-dashboard-v1.js'
@@ -39,6 +40,7 @@ jobs:
           node --check src/cloudflare-access-readonly-verifier-v1.js
           node --check scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
           node --check scripts/cloudflare-access-live-readonly-verify.mjs
+          node --check scripts/aurentara-operator-custom-domain-readonly-verify.mjs
           node scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
 
   verify-access:
@@ -50,6 +52,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME: riosystems-staging
+      AURENTARA_OPERATOR_HOSTNAME: control.aurentarasystems.com
+      AURENTARA_OPERATOR_WORKER: riosystems-staging
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,3 +71,5 @@ jobs:
         run: node scripts/cloudflare-access-live-readonly-verify.mjs
       - name: Verify workers.dev fallback Access via GET only
         run: node scripts/cloudflare-access-live-readonly-verify.mjs
+      - name: Verify custom-domain Worker binding, certificate and live Access
+        run: node scripts/aurentara-operator-custom-domain-readonly-verify.mjs
