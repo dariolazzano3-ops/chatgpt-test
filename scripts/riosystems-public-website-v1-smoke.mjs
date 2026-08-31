@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const root = new URL('../projects/riosystems-public-website-v1/', import.meta.url);
-const [html, css, js, projectRaw] = await Promise.all([
+const [html, css, visualCss, js, projectRaw] = await Promise.all([
   readFile(new URL('index.html', root), 'utf8'),
   readFile(new URL('styles.css', root), 'utf8'),
+  readFile(new URL('visual-v2.css', root), 'utf8'),
   readFile(new URL('app.js', root), 'utf8'),
   readFile(new URL('project.json', root), 'utf8')
 ]);
@@ -25,6 +26,7 @@ assert.ok(!html.includes('Warum RIOSYSTEMS'), 'legacy operative brand remains vi
 assert.ok(!html.includes('>RIOSYSTEMS<'), 'legacy operative brand remains visible in page text');
 assert.ok(!html.includes('SYNTROPIC'), 'superseded operative brand remains visible');
 assert.ok(html.includes('<span class="core-r">A</span>'), 'public Core visual must use AURENTARA initial');
+assert.ok(html.includes('href="./visual-v2.css"'), 'AURENTARA Visual Upgrade V2 overlay is not loaded');
 
 for (const capability of ['Websites','Sales & CRM','AI & Automation','Growth','Operations','Analytics']) {
   assert.ok(html.includes(capability), `missing capability: ${capability}`);
@@ -40,8 +42,21 @@ for (const locale of ['de','en','fr','it','es','nl','pl','pt']) {
 
 assert.ok(html.includes('class="skip-link"'), 'skip link missing');
 assert.ok(html.includes('aria-live="polite"'), 'form live region missing');
-assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'), 'reduced motion missing');
-for (const width of ['1199px','899px','767px','360px']) assert.ok(css.includes(width), `responsive breakpoint missing: ${width}`);
+assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'), 'base reduced motion missing');
+assert.ok(visualCss.includes('@media(prefers-reduced-motion:reduce)'), 'visual overlay reduced motion missing');
+for (const width of ['1199px','899px','767px','360px']) {
+  assert.ok(css.includes(width), `responsive breakpoint missing in base CSS: ${width}`);
+  assert.ok(visualCss.includes(width), `responsive breakpoint missing in visual overlay: ${width}`);
+}
+
+for (const visualToken of [
+  '.core-stage:before',
+  '.core-stage:after',
+  '.core-lines path:nth-child(2)',
+  '.section-problem:after',
+  'FRAGMENTED  →  CONNECTED',
+  '.connected-map:after'
+]) assert.ok(visualCss.includes(visualToken), `missing visual-upgrade contract token: ${visualToken}`);
 
 assert.equal(project.project.name, 'AURENTARA SYSTEMS Public Website V1');
 assert.equal(project.project.slug, 'riosystems-public-website-v1');
@@ -77,4 +92,4 @@ assert.ok(html.includes('meta name="description"'), 'SEO description missing');
 assert.ok(html.includes('meta property="og:title"'), 'OpenGraph title missing');
 assert.ok(html.includes('meta property="og:site_name"'), 'OpenGraph site name missing');
 
-console.log('AURENTARA SYSTEMS Public Website V1 smoke: PASS');
+console.log('AURENTARA SYSTEMS Public Website V1 + Visual Upgrade V2 smoke: PASS');
