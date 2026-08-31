@@ -3,13 +3,11 @@
 ## Status
 Canonical visual execution brief for the public AURENTARA SYSTEMS website.
 
-The earlier isolated visual-refinement branch is superseded by this copy because this file is based on the current `factory-control` brand architecture.
-
 Framer remains a visual design laboratory. GitHub / Cloudflare remain the technical source of truth.
 
 ## Canonical brand architecture
 
-YSRIO
+YSRIO GROUP
 → strategic umbrella / ownership brand in the background
 
 AURENTARA SYSTEMS
@@ -18,7 +16,7 @@ AURENTARA SYSTEMS
 RIOSYSTEMS
 → internal technical foundation where renaming would add risk without functional value
 
-Public endorsement may use **A YSRIO Company** discreetly. It must not imply a legally incorporated multi-company group unless separately verified.
+A compact public endorsement may use **A YSRIO Company** discreetly. This is shorthand for the YSRIO GROUP ownership layer and must not compete with AURENTARA SYSTEMS or imply an unverified legally incorporated multi-company group.
 
 ## North Star
 
@@ -43,9 +41,11 @@ Target feeling:
 - precise
 - premium
 - trustworthy
+- harmonious
 - international
 - technologically strong
 - sovereign
+- credible for substantial companies
 
 Avoid:
 - generic AI-agency aesthetics
@@ -54,6 +54,7 @@ Avoid:
 - overloaded dashboards
 - decorative science-fiction
 - uncontrolled glow
+- cheap SaaS presentation
 
 Retain and refine:
 - near-black / graphite surfaces

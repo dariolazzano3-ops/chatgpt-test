@@ -7,18 +7,18 @@ Canonical brand / ownership source of truth: [`../../docs/BRAND_OWNERSHIP_ARCHIT
 
 ## Brand architecture
 
-`YSRIO → AURENTARA SYSTEMS → connected Business Systems`
+`YSRIO GROUP → AURENTARA SYSTEMS → connected Business Systems`
 
-YSRIO is the strategic umbrella / ownership brand in the background.
+YSRIO GROUP is the strategic umbrella / ownership brand in the background.
 
-- **YSRIO**: intended future holding / group level without implying an unverified legal multi-company structure.
+- **YSRIO GROUP**: intended parent / holding / group level without implying an unverified legally incorporated multi-company structure.
 - **AURENTARA SYSTEMS**: visible operative customer brand.
 - **RIOSYSTEMS**: existing internal technical foundation where stable technical identifiers should remain unchanged.
-- Public endorsement may use **A YSRIO Company** discreetly. It is a brand architecture statement and must not be used to imply an unverified legal group structure.
+- Public endorsement may use **A YSRIO Company** discreetly as an approved compact brand shorthand. It must not be used to imply an unverified legal group structure or compete with AURENTARA SYSTEMS.
 
 Reserved domains:
 - AURENTARA SYSTEMS: `aurentarasystems.com`
-- YSRIO: `ysrio.com`
+- YSRIO GROUP: `ysrio.com`
 
 Reservation does not authorize Production, DNS, custom-domain binding or traffic migration.
 
@@ -27,7 +27,7 @@ Reservation does not authorize Production, DNS, custom-domain binding or traffic
 - 20% premium authority
 - 10% wow
 
-Desired impression: trustworthy, sovereign, premium, calm, technically competent and international.
+Desired impression: trustworthy, sovereign, premium, calm, technically competent, harmonious, internationally credible and capable of serving substantial companies.
 
 Avoid: aggressive styling, cyberpunk, generic AI-agency language, excessive glow, overloaded dashboards and technology-first messaging without business context.
 
@@ -78,6 +78,7 @@ The Core should communicate connected company architecture, not a sci-fi cockpit
 Static, dependency-free V1:
 - `index.html`: semantic homepage and staging-only project intake
 - `styles.css`: design tokens, responsive system and reduced-motion rules
+- `visual-v2.css`: reversible premium presentation layer
 - `app.js`: progressive enhancement, mobile navigation, reveal motion, locale preference and privacy-safe analytics event hooks
 - `robots.txt`, `sitemap.xml`: SEO readiness placeholders
 
