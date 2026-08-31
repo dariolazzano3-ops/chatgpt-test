@@ -15,9 +15,7 @@ const FINAL_SCRIPT = String.raw`<script id="aurentara-human-ux-final-v1-script">
     'cloudflare-workers-free':'Cloudflare',
     'openai-api':'OpenAI',
     'posthog-free':'PostHog',
-    'supabase-free':'Supabase',
-    'activepieces-cloud-free':'Activepieces',
-    'make-core':'Make'
+    'supabase-free':'Supabase'
   };
   let functionalHydration=null;
   function humanize(root){if(!root)return;root.querySelectorAll('strong,td').forEach(el=>{const raw=(el.textContent||'').trim();if(el.dataset.humanEvent==='true'||!/^[A-Z][A-Z0-9_]{3,}$/.test(raw)||!raw.includes('_'))return;el.dataset.humanEvent='true';el.innerHTML='<span>'+h(eventTitle(raw))+'</span><div class="human-meta"><code>'+h(raw)+'</code></div>'})}
