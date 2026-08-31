@@ -12,11 +12,16 @@ const [html, css, js, projectRaw] = await Promise.all([
 const project = JSON.parse(projectRaw);
 
 for (const token of [
+  'AURENTARA SYSTEMS',
   'WE BUILD', 'THE SYSTEMS', 'BEHIND YOUR', 'BUSINESS.',
   'DAS PROBLEM', 'DIE LÖSUNG', 'WAS WIR BAUEN', 'SO ARBEITEN WIR',
-  'DEMOPROJEKT · SYNTHETISCH', 'WARUM RIOSYSTEMS',
+  'DEMOPROJEKT · SYNTHETISCH', 'WARUM AURENTARA SYSTEMS',
   'YOU RUN THE BUSINESS.', 'WE BUILD WHAT MAKES IT RUN.'
 ]) assert.ok(html.includes(token), `missing homepage contract token: ${token}`);
+
+assert.ok(!html.includes('Warum RIOSYSTEMS'), 'legacy operative brand remains visible');
+assert.ok(!html.includes('>RIOSYSTEMS<'), 'legacy operative brand remains visible in page text');
+assert.ok(html.includes('<span class="core-r">A</span>'), 'public Core visual must use AURENTARA initial');
 
 for (const capability of ['Branding','Websites','Sales & CRM','AI & Automation','Operations','Analytics']) {
   assert.ok(html.includes(capability), `missing capability: ${capability}`);
@@ -35,6 +40,10 @@ assert.ok(html.includes('aria-live="polite"'), 'form live region missing');
 assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'), 'reduced motion missing');
 for (const width of ['1199px','899px','767px','360px']) assert.ok(css.includes(width), `responsive breakpoint missing: ${width}`);
 
+assert.equal(project.project.name, 'AURENTARA SYSTEMS Public Website V1');
+assert.equal(project.project.slug, 'riosystems-public-website-v1');
+assert.equal(project.schema, 'riosystems.web-staging-project.v1');
+assert.equal(project.generated_by, 'riosystems-native-web');
 assert.equal(project.environment, 'staging');
 assert.equal(project.real_customer_data, false);
 assert.equal(project.production_deploy, false);
@@ -42,6 +51,7 @@ assert.equal(project.deployment_cost_limit_eur, 0);
 assert.equal(project.forms_mode, 'local-validation-only');
 assert.ok(js.includes('preventDefault()'), 'staging form must prevent network submission');
 assert.ok(!js.includes('fetch('), 'public website V1 app must not perform provider/network writes');
+assert.ok(js.includes("'riosystems:analytics'"), 'internal RIOSYSTEMS analytics namespace must remain stable');
 
 const prohibitedClaims = [
   '+320', '+180', '1,860H', '1.860H', '1,243', '99.98%', '99,98%',
@@ -55,4 +65,4 @@ assert.ok(html.includes('<footer'), 'semantic footer missing');
 assert.ok(html.includes('meta name="description"'), 'SEO description missing');
 assert.ok(html.includes('meta property="og:title"'), 'OpenGraph title missing');
 
-console.log('RIOSYSTEMS Public Website V1 smoke: PASS');
+console.log('AURENTARA SYSTEMS Public Website V1 smoke: PASS');
