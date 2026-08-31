@@ -71,7 +71,10 @@ try {
   const projectButtons = page.locator('#projects .project-open');
   assert.ok(await projectButtons.count() > 0, 'at least one project detail must exist');
   await projectButtons.first().click();
-  await page.locator('#project-detail [data-human-project-priority]').waitFor();
+  await page.waitForFunction(() => {
+    const root = document.getElementById('project-detail');
+    return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
+  });
   const projectText = await page.locator('#project-detail').innerText();
   for (const label of ['Projektstatus','Aktueller Zustand','Capabilities','Ergebnisse','Nächste Aktion']) assert.match(projectText, new RegExp(label));
   const projectRaw = page.locator('#project-detail details.human-raw');
