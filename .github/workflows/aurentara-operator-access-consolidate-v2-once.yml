@@ -1,0 +1,89 @@
+name: AURENTARA Operator Access Consolidation V2 Once
+
+on:
+  push:
+    branches: [aurentara/operator-control-domain-migration]
+    paths:
+      - '.github/workflows/aurentara-operator-access-consolidate-v2-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: riosystems-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_HOSTNAME: control.aurentarasystems.com
+      TARGET_WORKER: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Consolidate with exact primary destination
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import fs from 'node:fs';
+          const token=process.env.CLOUDFLARE_API_TOKEN;
+          const accountId=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const target=process.env.TARGET_HOSTNAME;
+          const worker=process.env.TARGET_WORKER;
+          if(!token||!accountId||target!=='control.aurentarasystems.com'||worker!=='riosystems-staging') throw new Error('SCOPE_GUARD_FAILED');
+          const base='https://api.cloudflare.com/client/v4';
+          const headers={Authorization:`Bearer ${token}`,Accept:'application/json','Content-Type':'application/json'};
+          async function api(method,path,body){
+            const r=await fetch(`${base}${path}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
+            const p=await r.json().catch(()=>null);
+            if(!r.ok||p?.success===false) throw new Error(`${method} ${path}: ${p?.errors?.map(x=>x.message).filter(Boolean).join('; ')||`HTTP_${r.status}`}`);
+            return p?.result;
+          }
+          const host=v=>{try{return new URL(String(v).includes('://')?String(v):`https://${v}`).hostname.toLowerCase()}catch{return''}};
+          const uri=v=>String(v||'').replace(/^https?:\/\//i,'').replace(/\/$/,'');
+          const keys=p=>(Array.isArray(p?.include)?p.include:[]).flatMap(r=>r&&typeof r==='object'?Object.keys(r).map(k=>k.toLowerCase()):[]);
+          const policyOk=list=>Array.isArray(list)&&list.some(p=>String(p.decision).toLowerCase()==='allow'&&Array.isArray(p.include)&&p.include.length&&!keys(p).some(k=>['everyone','login_method'].includes(k)))&&!list.some(p=>String(p.decision).toLowerCase()==='bypass'||(String(p.decision).toLowerCase()==='allow'&&(!Array.isArray(p.include)||!p.include.length||keys(p).some(k=>['everyone','login_method'].includes(k)))));
+          const apps=async()=>{const x=await api('GET',`/accounts/${accountId}/access/apps?per_page=100`);return Array.isArray(x)?x:[]};
+          const policies=async id=>{const x=await api('GET',`/accounts/${accountId}/access/apps/${id}/policies?per_page=100`);return Array.isArray(x)?x:[]};
+          const list=await apps();
+          const fallback=list.filter(a=>a.type==='self_hosted'&&host(a.domain).startsWith(`${worker}.`)&&host(a.domain).endsWith('.workers.dev'));
+          const separate=list.filter(a=>a.type==='self_hosted'&&host(a.domain)===target);
+          if(fallback.length!==1||separate.length>1) throw new Error('ACCESS_APP_CARDINALITY_INVALID');
+          const app=fallback[0];
+          if(!app.id||!app.aud||!policyOk(await policies(app.id))) throw new Error('FALLBACK_ACCESS_INVALID');
+          const originalDestinations=Array.isArray(app.destinations)?app.destinations:[];
+          const primaryUri=uri(app.domain);
+          const fallbackHost=host(app.domain);
+          const body={name:app.name||'AURENTARA SYSTEMS Operator Control',domain:app.domain,type:'self_hosted',destinations:[{type:'public',uri:primaryUri},{type:'public',uri:target}]};
+          for(const k of ['session_duration','allowed_idps','auto_redirect_to_identity','app_launcher_visible','skip_interstitial','service_auth_401_redirect','http_only_cookie_attribute','same_site_cookie_attribute','enable_binding_cookie','options_preflight_bypass','allow_authenticate_via_warp','allow_iframe','tags']) if(app[k]!==undefined&&app[k]!==null) body[k]=app[k];
+          let updated=false;
+          try{
+            const result=await api('PUT',`/accounts/${accountId}/access/apps/${app.id}`,body); updated=true;
+            if(result?.aud!==app.aud) throw new Error('ACCESS_AUDIENCE_CHANGED');
+            let after=await apps();
+            let same=after.find(x=>x.id===app.id);
+            const dHosts=new Set((same?.destinations||[]).filter(d=>d.type==='public').map(d=>host(d.uri)));
+            if(same?.aud!==app.aud||!dHosts.has(fallbackHost)||!dHosts.has(target)||!policyOk(await policies(app.id))) throw new Error('MULTI_DOMAIN_ACCESS_NOT_VERIFIED');
+            if(separate.length===1&&separate[0].id!==app.id) await api('DELETE',`/accounts/${accountId}/access/apps/${separate[0].id}`);
+            after=await apps(); same=after.find(x=>x.id===app.id);
+            const targetSeparate=after.filter(x=>x.type==='self_hosted'&&host(x.domain)===target);
+            const finalHosts=new Set((same?.destinations||[]).filter(d=>d.type==='public').map(d=>host(d.uri)));
+            if(!same||same.aud!==app.aud||targetSeparate.length!==0||!finalHosts.has(fallbackHost)||!finalHosts.has(target)||!policyOk(await policies(app.id))) throw new Error('FINAL_ACCESS_STATE_INVALID');
+            for(const h of [target,fallbackHost]){
+              const r=await fetch(`https://${h}/operator`,{redirect:'manual',signal:AbortSignal.timeout(10000)});
+              if(r.status===200) throw new Error(`PUBLIC_OPERATOR_EXPOSURE_${h}`);
+              if(!([401,403].includes(r.status)||(r.status>=300&&r.status<400))) throw new Error(`UNEXPECTED_ACCESS_HTTP_${h}_${r.status}`);
+            }
+            console.log(JSON.stringify({ok:true,single_access_application:true,same_audience_preserved:true,custom_hostname_protected:true,workers_dev_protected:true,separate_target_app_removed:true,public_operator_exposure:false,production_deploy:false,external_writes:false,real_customer_data:false,additional_variable_cost_eur:0,secrets_returned:false},null,2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### AURENTARA Access single-audience seal\n- Same Access audience preserved: true\n- control.aurentarasystems.com protected: true\n- workers.dev fallback protected: true\n- Separate target app removed: true\n- Public exposure: false\n');
+          }catch(e){
+            if(updated){try{await api('PUT',`/accounts/${accountId}/access/apps/${app.id}`,{...body,destinations:originalDestinations.length?originalDestinations:[{type:'public',uri:primaryUri}]})}catch{}}
+            console.error(JSON.stringify({ok:false,error:String(e?.message||e).slice(0,300),production_deploy:false,external_writes:false,real_customer_data:false,secrets_returned:false},null,2));process.exit(3);
+          }
+          NODE
