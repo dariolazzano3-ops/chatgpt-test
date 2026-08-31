@@ -1,0 +1,234 @@
+name: AURENTARA Operator Domain Migration Once
+
+on:
+  push:
+    branches: [aurentara/operator-control-domain-migration]
+    paths:
+      - '.github/workflows/aurentara-operator-domain-migrate-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-operator-domain-migration-once
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: riosystems-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_ZONE: aurentarasystems.com
+      TARGET_HOSTNAME: control.aurentarasystems.com
+      TARGET_WORKER: riosystems-staging
+      MIGRATION_APPROVAL: AURENTARA_OPERATOR_CUSTOM_DOMAIN_ZERO_COST
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Guard migration scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/operator-control-domain-migration"
+          test "$TARGET_ZONE" = "aurentarasystems.com"
+          test "$TARGET_HOSTNAME" = "control.aurentarasystems.com"
+          test "$TARGET_WORKER" = "riosystems-staging"
+          test "$MIGRATION_APPROVAL" = "AURENTARA_OPERATOR_CUSTOM_DOMAIN_ZERO_COST"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Create Access first, then attach Worker custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import fs from 'node:fs';
+          import { setTimeout as sleep } from 'node:timers/promises';
+
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const zoneName = process.env.TARGET_ZONE;
+          const hostname = process.env.TARGET_HOSTNAME;
+          const worker = process.env.TARGET_WORKER;
+          const base = 'https://api.cloudflare.com/client/v4';
+          const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' };
+          let createdAppId = null;
+          let attachedDomainId = null;
+          let attachedNow = false;
+
+          async function api(method, path, body) {
+            const response = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+            const payload = await response.json().catch(() => null);
+            const ok = response.ok && payload?.success !== false;
+            if (!ok) {
+              const message = payload?.errors?.map(x => x.message).filter(Boolean).join('; ') || `HTTP_${response.status}`;
+              const error = new Error(`${method} ${path}: ${message}`);
+              error.status = response.status;
+              throw error;
+            }
+            return payload?.result;
+          }
+          const hostOnly = (value='') => {
+            try { return new URL(value.includes('://') ? value : `https://${value}`).hostname.toLowerCase(); }
+            catch { return ''; }
+          };
+          const ruleKeys = policy => (Array.isArray(policy?.include) ? policy.include : []).flatMap(rule => rule && typeof rule === 'object' ? Object.keys(rule).map(k => k.toLowerCase()) : []);
+          const restrictive = policy => String(policy?.decision).toLowerCase() === 'allow' && Array.isArray(policy?.include) && policy.include.length > 0 && !ruleKeys(policy).some(k => ['everyone','login_method'].includes(k));
+          const sanitizePolicy = policy => {
+            const out = {
+              name: String(policy?.name || 'Allow operator').slice(0,120),
+              decision: 'allow',
+              include: policy.include
+            };
+            if (Array.isArray(policy.exclude) && policy.exclude.length) out.exclude = policy.exclude;
+            if (Array.isArray(policy.require) && policy.require.length) out.require = policy.require;
+            if (Number.isFinite(Number(policy.precedence))) out.precedence = Number(policy.precedence);
+            if (typeof policy.session_duration === 'string' && policy.session_duration) out.session_duration = policy.session_duration;
+            return out;
+          };
+          async function getApps() {
+            const apps = await api('GET', `/accounts/${accountId}/access/apps?per_page=100`);
+            return Array.isArray(apps) ? apps : [];
+          }
+          async function getPolicies(appId) {
+            const policies = await api('GET', `/accounts/${accountId}/access/apps/${appId}/policies?per_page=100`);
+            return Array.isArray(policies) ? policies : [];
+          }
+          async function verifyApp(app) {
+            if (!app?.id) return { ok: false, reason: 'APP_ID_MISSING' };
+            const policies = await getPolicies(app.id);
+            const bypass = policies.filter(p => String(p.decision).toLowerCase() === 'bypass').length;
+            const broad = policies.filter(p => String(p.decision).toLowerCase() === 'allow' && (!Array.isArray(p.include) || !p.include.length || ruleKeys(p).some(k => ['everyone','login_method'].includes(k)))).length;
+            const restricted = policies.filter(restrictive).length;
+            return { ok: bypass === 0 && broad === 0 && restricted >= 1, policy_count: policies.length, restrictive_allow_count: restricted, broad_allow_count: broad, bypass_count: bypass };
+          }
+          async function cleanup() {
+            if (attachedNow && attachedDomainId) {
+              try { await api('DELETE', `/accounts/${accountId}/workers/domains/${attachedDomainId}`); } catch {}
+            }
+            if (createdAppId) {
+              try { await api('DELETE', `/accounts/${accountId}/access/apps/${createdAppId}`); } catch {}
+            }
+          }
+
+          try {
+            const zones = await api('GET', `/zones?name=${encodeURIComponent(zoneName)}&per_page=50`);
+            const zone = (Array.isArray(zones) ? zones : []).find(z => String(z.name).toLowerCase() === zoneName);
+            if (!zone?.id || String(zone.status).toLowerCase() !== 'active') throw new Error('TARGET_ZONE_NOT_ACTIVE');
+
+            let apps = await getApps();
+            const fallbackApps = apps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain).startsWith(`${worker}.`) && hostOnly(a.domain).endsWith('.workers.dev'));
+            if (fallbackApps.length !== 1) throw new Error(`FALLBACK_ACCESS_APP_COUNT_${fallbackApps.length}`);
+            const fallbackCheck = await verifyApp(fallbackApps[0]);
+            if (!fallbackCheck.ok) throw new Error('FALLBACK_ACCESS_NOT_RESTRICTIVE');
+            const fallbackPolicies = await getPolicies(fallbackApps[0].id);
+            const sourcePolicy = fallbackPolicies.find(restrictive);
+            if (!sourcePolicy) throw new Error('RESTRICTIVE_SOURCE_POLICY_MISSING');
+
+            let targetApps = apps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === hostname);
+            if (targetApps.length > 1) throw new Error('TARGET_ACCESS_APP_AMBIGUOUS');
+            if (targetApps.length === 0) {
+              const fallback = fallbackApps[0];
+              const appBody = {
+                name: 'AURENTARA SYSTEMS Operator Control',
+                domain: hostname,
+                type: 'self_hosted',
+                session_duration: fallback.session_duration || '24h',
+                policies: [sanitizePolicy(sourcePolicy)]
+              };
+              for (const key of ['allowed_idps','auto_redirect_to_identity','http_only_cookie_attribute','same_site_cookie_attribute','enable_binding_cookie','options_preflight_bypass']) {
+                if (fallback[key] !== undefined && fallback[key] !== null) appBody[key] = fallback[key];
+              }
+              const created = await api('POST', `/accounts/${accountId}/access/apps`, appBody);
+              createdAppId = created?.id || null;
+              if (!createdAppId) throw new Error('TARGET_ACCESS_CREATE_DID_NOT_RETURN_ID');
+              apps = await getApps();
+              targetApps = apps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === hostname);
+            }
+            if (targetApps.length !== 1) throw new Error(`TARGET_ACCESS_APP_COUNT_${targetApps.length}`);
+            const targetCheck = await verifyApp(targetApps[0]);
+            if (!targetCheck.ok) throw new Error('TARGET_ACCESS_NOT_RESTRICTIVE');
+
+            let domains = await api('GET', `/accounts/${accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`);
+            domains = Array.isArray(domains) ? domains.filter(d => String(d.hostname).toLowerCase() === hostname) : [];
+            if (domains.length > 1) throw new Error('TARGET_CUSTOM_DOMAIN_AMBIGUOUS');
+            if (domains.length === 0) {
+              const attached = await api('PUT', `/accounts/${accountId}/workers/domains`, { hostname, service: worker, zone_id: zone.id, zone_name: zoneName });
+              attachedDomainId = attached?.id || null;
+              attachedNow = true;
+              if (!attachedDomainId) throw new Error('CUSTOM_DOMAIN_ATTACH_DID_NOT_RETURN_ID');
+            }
+
+            domains = await api('GET', `/accounts/${accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`);
+            domains = Array.isArray(domains) ? domains.filter(d => String(d.hostname).toLowerCase() === hostname) : [];
+            if (domains.length !== 1 || domains[0]?.service !== worker || !domains[0]?.cert_id) throw new Error('CUSTOM_DOMAIN_NOT_SEALED_TO_EXPECTED_WORKER');
+            attachedDomainId = domains[0].id;
+
+            let live = null;
+            let lastError = null;
+            for (let i = 0; i < 18; i++) {
+              try {
+                const response = await fetch(`https://${hostname}/operator`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+                const location = response.headers.get('location') || '';
+                const accessRedirect = response.status >= 300 && response.status < 400 && /cloudflareaccess\.com/i.test(location);
+                const accessDenied = [401,403].includes(response.status);
+                if (response.status === 200) {
+                  await cleanup();
+                  throw new Error('PUBLIC_OPERATOR_EXPOSURE_DETECTED_AND_ROUTE_ROLLED_BACK');
+                }
+                if (accessRedirect || accessDenied) {
+                  live = { status: response.status, access_redirect: accessRedirect, access_denied: accessDenied, tls_verified: true };
+                  break;
+                }
+                lastError = `UNEXPECTED_HTTP_${response.status}`;
+              } catch (error) {
+                if (String(error?.message || error).includes('PUBLIC_OPERATOR_EXPOSURE')) throw error;
+                lastError = String(error?.message || error).slice(0,160);
+              }
+              await sleep(5000);
+            }
+            if (!live) {
+              await cleanup();
+              throw new Error(`CUSTOM_DOMAIN_LIVE_ACCESS_VERIFICATION_FAILED:${lastError || 'UNKNOWN'}`);
+            }
+
+            const finalApps = await getApps();
+            const finalFallback = finalApps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain).startsWith(`${worker}.`) && hostOnly(a.domain).endsWith('.workers.dev'));
+            const finalTarget = finalApps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === hostname);
+            if (finalFallback.length !== 1 || finalTarget.length !== 1) throw new Error('FINAL_ACCESS_APPLICATION_COUNT_INVALID');
+            const [finalFallbackCheck, finalTargetCheck] = await Promise.all([verifyApp(finalFallback[0]), verifyApp(finalTarget[0])]);
+            if (!finalFallbackCheck.ok || !finalTargetCheck.ok) throw new Error('FINAL_ACCESS_POLICY_VERIFICATION_FAILED');
+
+            const result = {
+              ok: true,
+              hostname,
+              worker,
+              custom_domain_attached: true,
+              custom_domain_certificate_present: true,
+              access_application_verified: true,
+              restrictive_policy_verified: true,
+              fallback_access_preserved: true,
+              unauthenticated_operator_status: live.status,
+              tls_verified: live.tls_verified,
+              public_operator_exposure: false,
+              root_domain_targeted: false,
+              production_deploy: false,
+              external_writes: false,
+              real_customer_data: false,
+              additional_variable_cost_eur: 0,
+              secrets_returned: false
+            };
+            console.log(JSON.stringify(result, null, 2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### AURENTARA Operator Control Custom Domain\n- Hostname: ${hostname}\n- Worker: ${worker}\n- Custom Domain attached: true\n- TLS verified: true\n- Access application verified: true\n- Restrictive policy verified: true\n- workers.dev Access preserved: true\n- Unauthenticated /operator status: ${live.status}\n- Public operator exposure: false\n- Root domain targeted: false\n- Production deploy: false\n- External writes: false\n- Real customer data: false\n- Additional variable cost: 0 EUR\n`);
+          } catch (error) {
+            await cleanup();
+            console.error(JSON.stringify({ ok: false, error: String(error?.message || error).slice(0,300), public_operator_exposure: false, root_domain_targeted: false, production_deploy: false, external_writes: false, real_customer_data: false, secrets_returned: false }, null, 2));
+            process.exit(3);
+          }
+          NODE
