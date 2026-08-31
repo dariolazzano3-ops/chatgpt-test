@@ -5,6 +5,13 @@
     "slug": "riosystems-public-website-v1",
     "reference_mission": false
   },
+  "brand": {
+    "public_brand": "AURENTARA SYSTEMS",
+    "parent_brand": "YSRIO",
+    "endorsement": "A YSRIO Company",
+    "public_domain_reserved": "aurentarasystems.com",
+    "parent_domain_reserved": "ysrio.com"
+  },
   "generated_by": "riosystems-native-web",
   "environment": "staging",
   "synthetic_test_data_only": true,
@@ -20,6 +27,7 @@
   "deployment_cost_limit_eur": 0,
   "custom_domain": false,
   "dns_change": false,
+  "domain_activation_authorized": false,
   "automatic_paid_overflow": false,
   "production_deploy": false
 }
