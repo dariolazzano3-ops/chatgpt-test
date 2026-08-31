@@ -3,13 +3,13 @@
 Status: CANONICAL
 Effective: 2026-08-31
 
-This document is the repository source of truth for brand, ownership, and naming boundaries. If an older document or comment conflicts with this document on brand positioning, this document wins.
+This document is the repository source of truth for brand, ownership, and naming boundaries. If an older document, PR, branch, comment, or artifact conflicts with this document on brand positioning, this document wins.
 
 ## Canonical structure
 
-YSRIO
+YSRIO GROUP
 → strategic umbrella / ownership brand in the background
-→ intended future holding / group level
+→ intended parent / holding / group layer for AURENTARA SYSTEMS and possible future companies or investments
 
 AURENTARA SYSTEMS
 → visible operative Business Systems brand
@@ -17,7 +17,7 @@ AURENTARA SYSTEMS
 → website and public brand
 → offers and sales material
 → operative communication
-→ private Operator Dashboard / Control Plane
+→ private Operator Dashboard / Control Plane presentation
 
 Business Systems / customers / projects
 → delivered and operated through AURENTARA SYSTEMS
@@ -26,17 +26,19 @@ AURENTARA SYSTEMS uses the existing RIOSYSTEMS technical foundation.
 
 The canonical architecture is:
 
-`YSRIO → AURENTARA SYSTEMS → existing RIOSYSTEMS Technical Core`
+`YSRIO GROUP → AURENTARA SYSTEMS → existing RIOSYSTEMS Technical Core`
 
 ## Layer boundaries
 
 ### Parent / ownership
 
-**YSRIO** is the strategic umbrella and ownership brand in the background. It is intended as the future holding / group level for AURENTARA SYSTEMS and possible future companies or investments.
+**YSRIO GROUP** is the strategic umbrella and ownership brand in the background. It is the intended parent / holding / group level for AURENTARA SYSTEMS and possible future companies or investments.
 
-YSRIO is currently a strategic brand and ownership architecture. This repository must not claim that a legally incorporated multi-company group or holding structure already exists unless that legal structure has actually been established and separately verified.
+This repository must not claim that a legally incorporated multi-company holding or group structure already exists unless that legal structure has actually been established and separately verified.
 
 Canonical domain reserved for this layer: `ysrio.com`.
+
+The compact wording **YSRIO** may be used only as a deliberate shorthand in a discreet endorsement or domain context, for example **A YSRIO Company**. It does not replace **YSRIO GROUP** as the canonical parent-brand name and must not compete with AURENTARA SYSTEMS for public attention.
 
 ### Operative brand
 
@@ -78,13 +80,11 @@ A public or operator-facing surface may present AURENTARA SYSTEMS while still us
 
 ## Superseded strategic naming
 
-**SYNTROPIC is not the canonical operative main brand.**
-
-Older references that position SYNTROPIC as the selected operative brand are superseded by this document and must not be used for new public, customer-facing, offer, website, branding, or Operator Control Plane material.
+**SYNTROPIC is not the canonical operative main brand.** Older references that position SYNTROPIC as the selected operative brand are superseded and must not be used for new public, customer-facing, offer, website, branding, or Operator Control Plane material.
 
 **RIOSYSTEMS is not the canonical visible customer brand.** It remains valid as internal technology terminology.
 
-**YSRIO GROUP is superseded as the canonical parent-brand wording.** The canonical strategic umbrella / ownership name is **YSRIO**. The word "group" may describe a future structure when context requires it, but it must not imply that a legally existing multi-company group already exists.
+Older repository statements that made **YSRIO** the canonical parent-brand wording and treated **YSRIO GROUP** as superseded are themselves superseded by this document. The canonical parent-brand name is **YSRIO GROUP**.
 
 Historical technical records do not need destructive rewriting solely to erase superseded names, provided they are not presented as current canonical brand guidance.
 
@@ -96,7 +96,7 @@ Change when the name is visible to customers or the operator as business identit
 
 The rule is:
 
-`YSRIO → AURENTARA SYSTEMS → Business Systems / Customers / Projects`
+`YSRIO GROUP → AURENTARA SYSTEMS → Business Systems / Customers / Projects`
 
 with
 
