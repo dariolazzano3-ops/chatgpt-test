@@ -7,8 +7,9 @@ This document is the repository source of truth for brand, ownership, and naming
 
 ## Canonical structure
 
-YSRIO GROUP
-→ strategic parent / ownership brand
+YSRIO
+→ strategic umbrella / ownership brand in the background
+→ intended future holding / group level
 
 AURENTARA SYSTEMS
 → visible operative Business Systems brand
@@ -23,13 +24,17 @@ Business Systems / customers / projects
 
 AURENTARA SYSTEMS uses the existing RIOSYSTEMS technical foundation.
 
+The canonical architecture is:
+
+`YSRIO → AURENTARA SYSTEMS → existing RIOSYSTEMS Technical Core`
+
 ## Layer boundaries
 
 ### Parent / ownership
 
-**YSRIO GROUP** is the strategic parent and ownership brand in the background. It is intended as the umbrella for AURENTARA SYSTEMS and possible future companies or investments.
+**YSRIO** is the strategic umbrella and ownership brand in the background. It is intended as the future holding / group level for AURENTARA SYSTEMS and possible future companies or investments.
 
-YSRIO GROUP is currently a strategic brand and ownership architecture. This repository must not claim that a legally incorporated multi-company group or holding structure already exists unless that legal structure has actually been established and separately verified.
+YSRIO is currently a strategic brand and ownership architecture. This repository must not claim that a legally incorporated multi-company group or holding structure already exists unless that legal structure has actually been established and separately verified.
 
 Canonical domain reserved for this layer: `ysrio.com`.
 
@@ -71,13 +76,17 @@ Keep existing technical identifiers unless a separate technical migration has a 
 
 A public or operator-facing surface may present AURENTARA SYSTEMS while still using RIOSYSTEMS identifiers internally.
 
-## SYNTROPIC status
+## Superseded strategic naming
 
-SYNTROPIC is not the canonical operative main brand.
+**SYNTROPIC is not the canonical operative main brand.**
 
 Older references that position SYNTROPIC as the selected operative brand are superseded by this document and must not be used for new public, customer-facing, offer, website, branding, or Operator Control Plane material.
 
-Historical technical records do not need destructive rewriting solely to erase the old name, provided they are not presented as current canonical brand guidance.
+**RIOSYSTEMS is not the canonical visible customer brand.** It remains valid as internal technology terminology.
+
+**YSRIO GROUP is superseded as the canonical parent-brand wording.** The canonical strategic umbrella / ownership name is **YSRIO**. The word "group" may describe a future structure when context requires it, but it must not imply that a legally existing multi-company group already exists.
+
+Historical technical records do not need destructive rewriting solely to erase superseded names, provided they are not presented as current canonical brand guidance.
 
 ## Migration policy
 
@@ -87,7 +96,7 @@ Change when the name is visible to customers or the operator as business identit
 
 The rule is:
 
-`YSRIO GROUP → AURENTARA SYSTEMS → Business Systems / Customers / Projects`
+`YSRIO → AURENTARA SYSTEMS → Business Systems / Customers / Projects`
 
 with
 
