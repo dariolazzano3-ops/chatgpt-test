@@ -4,7 +4,7 @@
 
 The repository currently separates business identity from technical identity:
 
-- **YSRIO GROUP**: strategic parent / ownership brand in the background. This does not assert that a legally incorporated multi-company group already exists.
+- **YSRIO**: strategic umbrella / ownership brand in the background and intended future holding / group level. This does not assert that a legally incorporated multi-company group already exists.
 - **AURENTARA SYSTEMS**: visible operative Business Systems brand for customers, website, offers, communication, and the private Operator Control Plane.
 - **RIOSYSTEMS**: existing internal technology foundation, including stable schemas, APIs, workflows, Factories, routers, approvals, execution, quality, cost and delivery layers.
 

@@ -24,7 +24,7 @@ const untouched = await applyOperatorBranding(json);
 assert.deepEqual(await untouched.json(), { schema: 'riosystems.operator-runtime.v1', label: 'RIOSYSTEMS internal' });
 
 const manifest = operatorBrandingManifest();
-assert.equal(manifest.parent_brand, 'YSRIO GROUP');
+assert.equal(manifest.parent_brand, 'YSRIO');
 assert.equal(manifest.operative_brand, 'AURENTARA SYSTEMS');
 assert.equal(manifest.operator_surface, 'Operator Control');
 assert.equal(manifest.browser_title, 'AURENTARA SYSTEMS | Operator Control');

@@ -27,7 +27,7 @@ The central Core visual is CSS + SVG. No WebGL dependency is required for V1.
 ## Naming boundary
 Customer-facing presentation uses **AURENTARA SYSTEMS**. Existing internal identifiers such as `riosystems:analytics`, the folder/slug, schemas and RIOSYSTEMS runtime terminology remain technical implementation details until a separate technical migration has a concrete benefit.
 
-YSRIO GROUP is the strategic parent / ownership brand and is not presented here as a legally incorporated multi-company group.
+YSRIO is the strategic umbrella / ownership brand and intended future holding / group level. It is not presented here as a legally incorporated multi-company group.
 
 ## Localization
 Locale architecture is prepared for `de`, `en`, `fr`, `it`, `es`, `nl`, `pl`, `pt`. The German copy is authoritative in this first build. Manual choice is stored locally and overrides browser preference. Currency remains EUR (€).
