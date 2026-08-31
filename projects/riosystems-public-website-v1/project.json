@@ -1,8 +1,8 @@
 {
   "schema": "riosystems.web-staging-project.v1",
   "project": {
-    "name": "RIOSYSTEMS Public Website V1",
-    "slug": "riosystems-public-website-v1",
+    "name": "AURENTARA SYSTEMS Public Website V1",
+    "slug": "aurentara-systems-public-website-v1",
     "reference_mission": false
   },
   "generated_by": "riosystems-native-web",
@@ -16,6 +16,8 @@
   "robots": "noindex,nofollow",
   "hosting_target": "cloudflare-pages-preview",
   "expected_pages_project": "chatgpt-factory-preview",
+  "future_primary_domain": "aurentarasystems.com",
+  "group_domain": "ysrio.com",
   "deployment_authorized": true,
   "deployment_cost_limit_eur": 0,
   "custom_domain": false,
