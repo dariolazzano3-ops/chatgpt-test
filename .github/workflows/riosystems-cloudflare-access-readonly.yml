@@ -11,6 +11,7 @@ on:
       - 'src/operator-cloudflare-access-evidence-v1.js'
       - 'src/operator-v1-acceptance-dashboard-v1.js'
       - 'src/riosystems-v1-acceptance-evidence-v1.js'
+      - 'wrangler.jsonc'
   push:
     branches: [factory-control]
   workflow_dispatch:
@@ -60,5 +61,9 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || (echo 'CLOUDFLARE_API_TOKEN secret is missing' && exit 2)
           test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo 'CLOUDFLARE_ACCOUNT_ID secret is missing' && exit 2)
-      - name: Verify private Access application and restrictive policy via GET only
+      - name: Verify canonical custom-domain Access via GET only
+        env:
+          RIOSYSTEMS_ACCESS_EXPECTED_HOSTNAME: control.aurentarasystems.com
+        run: node scripts/cloudflare-access-live-readonly-verify.mjs
+      - name: Verify workers.dev fallback Access via GET only
         run: node scripts/cloudflare-access-live-readonly-verify.mjs
