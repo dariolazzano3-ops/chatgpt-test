@@ -1,0 +1,50 @@
+{
+  "synthetic_only": true,
+  "tenants": [
+    {
+      "tenant_id": "tenant-nordlicht",
+      "owner_user_id": "synthetic-user-nordlicht",
+      "name": "Nordlicht Café Tenant",
+      "business": {
+        "business_id": "business-nordlicht-cafe",
+        "name": "Nordlicht Café GmbH",
+        "industry": "gastronomy",
+        "business_type": "cafe",
+        "country": "DE",
+        "region": "Hamburg",
+        "locations": ["Hamburg Altona", "Hamburg Eimsbüttel"]
+      },
+      "facts": {
+        "employee_count": 12,
+        "marketing_budget_eur_month": 1000,
+        "weekday_workload": "high breakfast peaks",
+        "personnel_cost_eur_month": 28500,
+        "logo_color": "navy",
+        "website_font": "Inter"
+      },
+      "goal": "Increase weekday breakfast revenue by 15%",
+      "decision": "Test a breakfast bundle before expanding delivery"
+    },
+    {
+      "tenant_id": "tenant-alpenwerk",
+      "owner_user_id": "synthetic-user-alpenwerk",
+      "name": "AlpenWerk Service Tenant",
+      "business": {
+        "business_id": "business-alpenwerk-service",
+        "name": "AlpenWerk Service GmbH",
+        "industry": "local_services",
+        "business_type": "service_company",
+        "country": "DE",
+        "region": "Munich",
+        "locations": ["Munich"]
+      },
+      "facts": {
+        "employee_count": 7,
+        "marketing_budget_eur_month": 800,
+        "second_location": false
+      },
+      "goal": "Reduce lead response time",
+      "decision": "Introduce standardized lead qualification"
+    }
+  ]
+}
