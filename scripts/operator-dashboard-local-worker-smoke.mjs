@@ -56,7 +56,7 @@ try {
   assert.equal(shellResponse.status, 200, output);
   assert.match(shell, /AURENTARA SYSTEMS/);
   assert.doesNotMatch(shell, /<title>RIOSYSTEMS Operator Control Plane<\/title>/);
-  assert.match(shell, /Private Operator Control Plane/);
+  assert.match(shell, /<meta name="application-name" content="AURENTARA SYSTEMS Operator Control">/);
   assert.match(shell, /Mission Studio/);
   assert.match(shell, /CONFIRM_SYNTHETIC_STAGING/);
   assert.match(shell, /approval_required/);
