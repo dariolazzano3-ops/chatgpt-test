@@ -33,7 +33,12 @@
     "staging": {
       "name": "riosystems-staging",
       "workers_dev": true,
-      "routes": [],
+      "routes": [
+        {
+          "pattern": "control.aurentarasystems.com",
+          "custom_domain": true
+        }
+      ],
       "vars": {
         "RIOSYSTEMS_ENVIRONMENT": "staging",
         "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",

@@ -22,14 +22,24 @@ function safeHostname(domain = '') {
   }
 }
 
+function applicationHostnames(app = {}) {
+  const values = [safeHostname(app.domain)];
+  const destinations = Array.isArray(app.destinations) ? app.destinations : [];
+  for (const destination of destinations) {
+    if (clean(destination?.type, 80).toLowerCase() !== 'public') continue;
+    values.push(safeHostname(destination?.uri));
+  }
+  return [...new Set(values.filter(Boolean))];
+}
+
 function targetApp(app = {}, expectedWorkerName = 'riosystems-staging', expectedHostname = '') {
   if (clean(app.type, 80).toLowerCase() !== 'self_hosted') return false;
-  const hostname = safeHostname(app.domain);
-  if (!hostname) return false;
-  const explicit = clean(expectedHostname, 500).toLowerCase();
-  if (explicit) return hostname === explicit;
+  const hostnames = applicationHostnames(app);
+  if (!hostnames.length) return false;
+  const explicit = safeHostname(expectedHostname);
+  if (explicit) return hostnames.includes(explicit);
   const worker = clean(expectedWorkerName, 120).toLowerCase();
-  return Boolean(worker) && hostname.startsWith(`${worker}.`) && hostname.endsWith('.workers.dev');
+  return Boolean(worker) && hostnames.some((hostname) => hostname.startsWith(`${worker}.`) && hostname.endsWith('.workers.dev'));
 }
 
 function includeRuleKeys(rule = {}) {
@@ -210,6 +220,7 @@ export function cloudflareAccessReadonlyVerifierManifest() {
     policy_endpoint: 'accounts/:account_id/access/apps/:app_id/policies',
     expected_worker_name: 'riosystems-staging',
     required_application_type: 'self_hosted',
+    multi_domain_destinations_supported: true,
     broad_include_selectors_rejected: ['everyone', 'login_method'],
     bypass_policy_rejected: true,
     restrictive_allow_required: true,

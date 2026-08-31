@@ -19,6 +19,10 @@ const dryRunResult = JSON.parse(dryRun.stdout);
 assert.equal(dryRunResult.worker, 'riosystems-staging');
 assert.equal(dryRunResult.production_deploy, false);
 assert.equal(dryRunResult.external_writes, false);
+assert.equal(dryRunResult.custom_routes, 1);
+assert.equal(dryRunResult.canonical_private_hostname, 'control.aurentarasystems.com');
+assert.equal(dryRunResult.workers_dev_fallback, true);
+assert.deepEqual(dryRunResult.blockers, []);
 
 const unapproved = run('--deploy');
 assert.notEqual(unapproved.status, 0);
@@ -31,6 +35,10 @@ const approved = run('--deploy', {
   RIOSYSTEMS_STAGING_CONFIRMATION: 'DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST'
 });
 assert.equal(approved.status, 0, approved.stderr || approved.stdout);
+const approvedResult = JSON.parse(approved.stdout);
+assert.equal(approvedResult.canonical_private_hostname, 'control.aurentarasystems.com');
+assert.equal(approvedResult.production_deploy, false);
+assert.equal(approvedResult.external_writes, false);
 
 const production = run('--production');
 assert.notEqual(production.status, 0);
@@ -40,7 +48,10 @@ console.log(JSON.stringify({
   ok: true,
   suite: 'staging-deploy-guard',
   staging_worker: 'riosystems-staging',
+  canonical_private_hostname: 'control.aurentarasystems.com',
+  workers_dev_fallback: true,
   approval_required: true,
   zero_cost_confirmation_required: true,
-  production_deploy: false
+  production_deploy: false,
+  external_writes: false
 }, null, 2));

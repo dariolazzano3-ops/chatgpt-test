@@ -25,7 +25,15 @@ function fetchFor({ apps = [], policies = [], appStatus = 200, policyStatus = 20
 }
 
 const runtime = (fetch_impl) => ({ fetch_impl, resolve_secret: async () => 'test-token', timeout_ms: 1000, production_deploy: false });
-const app = { id: APP_ID, type: 'self_hosted', domain: 'riosystems-staging.example.workers.dev/operator' };
+const app = {
+  id: APP_ID,
+  type: 'self_hosted',
+  domain: 'riosystems-staging.example.workers.dev/operator',
+  destinations: [
+    { type: 'public', uri: 'riosystems-staging.example.workers.dev/operator' },
+    { type: 'public', uri: 'control.aurentarasystems.com' }
+  ]
+};
 const restrictive = { id: 'p1', decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] };
 
 const verified = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [restrictive] })));
@@ -34,6 +42,13 @@ assert.equal(verified.stage, 'PRIVATE_ACCESS_VERIFIED');
 assert.equal(verified.restrictive_policy_verified, true);
 assert.equal(verified.resource_names_returned, false);
 assert.equal(verified.external_side_effect_performed, false);
+
+const customPlan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT, expected_hostname: 'control.aurentarasystems.com' });
+assert.equal(customPlan.ok, true);
+const customVerified = await runCloudflareAccessReadonlyVerification(customPlan, runtime(fetchFor({ apps: [app], policies: [restrictive] })));
+assert.equal(customVerified.ok, true);
+assert.equal(customVerified.stage, 'PRIVATE_ACCESS_VERIFIED');
+assert.equal(customVerified.matching_application_count, 1);
 
 const missing = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [] })));
 assert.equal(missing.ok, false);
@@ -58,11 +73,15 @@ assert.equal(noAllow.stage, 'ACCESS_RESTRICTIVE_ALLOW_POLICY_MISSING');
 const permission = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [], appStatus: 403 })));
 assert.equal(permission.error, 'ACCESS_READ_PERMISSION_MISSING');
 
-const wrongTarget = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [{ ...app, domain: 'other-worker.example.workers.dev' }] })));
+const wrongTarget = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [{ ...app, domain: 'other-worker.example.workers.dev', destinations: [] }] })));
 assert.equal(wrongTarget.stage, 'ACCESS_APPLICATION_NOT_FOUND');
+
+const wrongCustom = await runCloudflareAccessReadonlyVerification(customPlan, runtime(fetchFor({ apps: [{ ...app, destinations: [{ type: 'public', uri: 'other.example.com' }] }] })));
+assert.equal(wrongCustom.stage, 'ACCESS_APPLICATION_NOT_FOUND');
 
 const manifest = cloudflareAccessReadonlyVerifierManifest();
 assert.deepEqual(manifest.methods, ['GET']);
+assert.equal(manifest.multi_domain_destinations_supported, true);
 assert.equal(manifest.restrictive_allow_required, true);
 assert.equal(manifest.bypass_policy_rejected, true);
 assert.equal(manifest.external_write, false);
@@ -72,6 +91,7 @@ console.log(JSON.stringify({
   ok: true,
   suite: 'cloudflare-access-readonly-verifier-v1',
   verified: verified.stage,
+  custom_hostname_verified: customVerified.stage,
   missing: missing.stage,
   ambiguous: ambiguous.stage,
   everyone: everyone.stage,

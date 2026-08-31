@@ -4,11 +4,19 @@ const mode = process.argv[2] || '--dry-run';
 const config = JSON.parse(fs.readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
 const staging = config.env?.staging;
 const blockers = [];
+const EXPECTED_CUSTOM_DOMAIN = 'control.aurentarasystems.com';
 
 if (config.name !== 'chatgpt-test') blockers.push('ROOT_WORKER_NAME_UNEXPECTED');
 if (!staging || staging.name !== 'riosystems-staging') blockers.push('STAGING_WORKER_NOT_ISOLATED');
 if (staging?.workers_dev !== true) blockers.push('STAGING_WORKERS_DEV_REQUIRED');
-if (!Array.isArray(staging?.routes) || staging.routes.length !== 0) blockers.push('STAGING_CUSTOM_ROUTES_FORBIDDEN');
+
+const routes = Array.isArray(staging?.routes) ? staging.routes : null;
+const routeAllowed = routes?.length === 1
+  && routes[0]?.pattern === EXPECTED_CUSTOM_DOMAIN
+  && routes[0]?.custom_domain === true
+  && Object.keys(routes[0]).every((key) => ['pattern', 'custom_domain'].includes(key));
+if (!routeAllowed) blockers.push('STAGING_ROUTE_MUST_BE_CANONICAL_PRIVATE_OPERATOR_DOMAIN_ONLY');
+
 if (!Array.isArray(staging?.d1_databases) || staging.d1_databases.length !== 0) blockers.push('STAGING_D1_BINDING_FORBIDDEN');
 if (staging?.observability?.enabled !== false) blockers.push('STAGING_OBSERVABILITY_MUST_BE_DISABLED');
 
@@ -42,7 +50,9 @@ const result = {
   mode,
   worker: staging?.name || null,
   environment: staging?.vars?.RIOSYSTEMS_ENVIRONMENT || null,
-  custom_routes: staging?.routes?.length || 0,
+  custom_routes: routes?.length || 0,
+  canonical_private_hostname: routeAllowed ? EXPECTED_CUSTOM_DOMAIN : null,
+  workers_dev_fallback: staging?.workers_dev === true,
   persistent_bindings: 0,
   external_writes: false,
   production_deploy: false,
