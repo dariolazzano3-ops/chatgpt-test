@@ -24,7 +24,7 @@ for (const [name,width,height] of sizes) {
   const page = await browser.newPage({ viewport: { width, height } });
   const response = await page.goto(url, { waitUntil: 'networkidle' });
   assert.ok(response?.ok(), `${name}: live page response is not OK`);
-  assert.match(await page.title(), /RIOSYSTEMS/, `${name}: title missing`);
+  assert.match(await page.title(), /AURENTARA SYSTEMS/, `${name}: operative brand missing from title`);
   await page.locator('h1').waitFor({ state: 'visible' });
   assert.ok((await page.locator('h1').innerText()).includes('BUSINESS.'), `${name}: hero copy missing`);
   assert.ok(await page.getByRole('link', { name: /Projekt starten/i }).first().isVisible(), `${name}: primary CTA not visible`);
@@ -45,4 +45,4 @@ await motionPage.locator('dialog[open]').waitFor();
 assert.ok(await motionPage.getByText(/keine Daten an einen externen Provider/i).isVisible(), 'staging form safety note missing');
 await motionPage.close();
 await browser.close();
-console.log('RIOSYSTEMS Public Website live responsive QA: PASS');
+console.log('AURENTARA SYSTEMS Public Website live responsive QA: PASS');
