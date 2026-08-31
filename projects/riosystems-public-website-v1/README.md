@@ -9,7 +9,9 @@ Canonical brand / ownership source of truth: [`../../docs/BRAND_OWNERSHIP_ARCHIT
 
 `YSRIO → AURENTARA SYSTEMS → connected Business Systems`
 
-- **YSRIO**: strategic umbrella / ownership brand in the background.
+YSRIO is the strategic umbrella / ownership brand in the background.
+
+- **YSRIO**: intended future holding / group level without implying an unverified legal multi-company structure.
 - **AURENTARA SYSTEMS**: visible operative customer brand.
 - **RIOSYSTEMS**: existing internal technical foundation where stable technical identifiers should remain unchanged.
 - Public endorsement may use **A YSRIO Company** discreetly. It is a brand architecture statement and must not be used to imply an unverified legal group structure.
