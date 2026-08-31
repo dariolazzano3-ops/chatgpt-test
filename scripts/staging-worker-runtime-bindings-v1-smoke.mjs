@@ -5,7 +5,7 @@ import { deriveStagingOperatorBindings } from './staging-worker-runtime-bindings
 const app = {
   id: '11111111-2222-3333-4444-555555555555',
   type: 'self_hosted',
-  domain: 'riosystems-staging.example.workers.dev',
+  domain: 'https://riosystems-staging.example.workers.dev/operator',
   aud: 'access-audience-test'
 };
 
@@ -59,6 +59,7 @@ assert.equal(bypass.error, 'ACCESS_BYPASS_POLICY_REJECTED');
 console.log(JSON.stringify({
   ok: true,
   schema: 'riosystems.staging-worker-runtime-bindings-smoke.v1',
+  access_domain_path_normalized: true,
   sensitive_values_returned: false,
   production_deploy: false,
   external_customer_data: false,
