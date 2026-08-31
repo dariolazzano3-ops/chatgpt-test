@@ -10,6 +10,7 @@ export { executeWebFactoryTask, executeWebFactoryTaskWithVisualProvider, webFact
 export { WEB_PROVIDER_ROLES, WEB_PROVIDER_REGISTRY, webProviderRoleModel } from './provider-roles.js';
 export { deriveFramerProviderStatus, assertFramerProviderStatus, framerFreeActivationChecklist } from './framer-provider.js';
 export { validateFramerVisualProviderRequest, inspectFramerProject, framerSnapshotToVisualDesignContract, runFramerVisualProvider, framerLiveProviderManifest } from './framer-live-provider.js';
+export { connectTrackedFramer, wrapFramerConnectionForTrackedInsertions, framerTrackedConnectionManifest } from './framer-server-connection.js';
 export { validateAssetRights, validateVisualDesignContract, visualDesignContractManifest } from './visual-design-contract.js';
 export { classifyInteraction, translateInteractions } from './interaction-translation.js';
 export { interpretVisualDesign } from './design-interpreter.js';
