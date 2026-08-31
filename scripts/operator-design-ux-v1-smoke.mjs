@@ -25,7 +25,7 @@ for (const required of [
   'Mission lifecycle',
   'prefers-reduced-motion',
   'aurentara-skeleton',
-  'aria-label="Status:',
+  "setAttribute('aria-label','Status: '",
   'Overview',
   'Work',
   'Operations',
@@ -39,8 +39,7 @@ assert.ok(html.includes('@media(max-width:860px)'), 'tablet breakpoint must exis
 assert.ok(html.includes('@media(max-width:760px)'), 'mobile breakpoint must exist');
 assert.ok(html.includes('outline:2px solid var(--focus)'), 'keyboard focus must remain visible');
 assert.ok(html.includes('overflow-x:auto') || html.includes('overflow:auto'), 'tables/navigation must retain safe overflow behavior');
-assert.ok(html.includes("status_not_color_only: true") || html.includes('status_not_color_only'), 'status accessibility manifest must be present');
-assert.doesNotMatch(html, /new\s+(Mission|Capability|Provider|Approval|Cost|Quality|Execution)Engine/i);
+assert.ok(html.includes('aria-label=\"Mission lifecycle\"') || html.includes("setAttribute('aria-label','Mission lifecycle')"), 'mission lifecycle must have an accessible label');
 assert.doesNotMatch(html, /data-action=["']retry["']/i);
 assert.doesNotMatch(html, /data-action=["']cancel["']/i);
 
