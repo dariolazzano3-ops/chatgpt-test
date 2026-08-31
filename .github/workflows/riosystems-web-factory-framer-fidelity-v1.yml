@@ -4,10 +4,14 @@ on:
   pull_request:
     paths:
       - 'src/web-factory/**'
+      - 'src/execution-adapters.js'
       - 'fixtures/web-factory/**'
       - 'scripts/web-factory-framer-fidelity-smoke.mjs'
+      - 'scripts/web-factory-framer-live-provider-smoke.mjs'
       - 'scripts/web-factory-v1-smoke.mjs'
       - 'docs/RIOSYSTEMS-WEB-FACTORY-FRAMER-FIDELITY-V1.md'
+      - 'docs/web-factory-framer-live-visual-provider-v1.md'
+      - 'package.json'
       - '.github/workflows/riosystems-web-factory-framer-fidelity-v1.yml'
   workflow_dispatch:
 
@@ -27,6 +31,8 @@ jobs:
         run: |
           node --check src/web-factory/provider-roles.js
           node --check src/web-factory/framer-provider.js
+          node --check src/web-factory/framer-live-provider.js
+          node --check src/web-factory/framer-server-connection.js
           node --check src/web-factory/visual-design-contract.js
           node --check src/web-factory/interaction-translation.js
           node --check src/web-factory/design-interpreter.js
@@ -38,8 +44,12 @@ jobs:
           node --check src/web-factory/native-reconstruction.js
           node --check src/web-factory/adapter.js
           node --check src/web-factory/index.js
+          node --check src/execution-adapters.js
           node --check scripts/web-factory-framer-fidelity-smoke.mjs
+          node --check scripts/web-factory-framer-live-provider-smoke.mjs
       - name: Existing Web Factory V1 regression
         run: node scripts/web-factory-v1-smoke.mjs
       - name: Framer bridge and visual fidelity acceptance
         run: node scripts/web-factory-framer-fidelity-smoke.mjs
+      - name: Guarded live Framer visual provider acceptance
+        run: node scripts/web-factory-framer-live-provider-smoke.mjs
