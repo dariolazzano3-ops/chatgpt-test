@@ -45,58 +45,67 @@ jobs:
           const worker = process.env.TARGET_WORKER;
           const base = 'https://api.cloudflare.com/client/v4';
           const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
-          const get = async (path) => {
+          const call = async (path) => {
             const response = await fetch(`${base}${path}`, { headers });
             const body = await response.json().catch(() => null);
-            if (!response.ok || body?.success === false) {
-              const msg = body?.errors?.map(x => x.message).filter(Boolean).join('; ') || `HTTP_${response.status}`;
-              throw new Error(`${path}: ${msg}`);
-            }
-            return body?.result;
+            const ok = response.ok && body?.success !== false;
+            const error = ok ? null : (body?.errors?.map(x => x.message).filter(Boolean).join('; ') || `HTTP_${response.status}`);
+            return { ok, status: response.status, result: ok ? body?.result : null, error };
           };
           const hostOnly = (value='') => {
             try { return new URL(value.includes('://') ? value : `https://${value}`).hostname.toLowerCase(); }
             catch { return ''; }
           };
-          const zones = await get(`/zones?name=${encodeURIComponent(zoneName)}&per_page=50`);
-          const zone = Array.isArray(zones) ? zones.find(z => String(z.name).toLowerCase() === zoneName) : null;
-          if (!zone?.id) throw new Error('TARGET_ZONE_NOT_FOUND_OR_NOT_READABLE');
-          const [dns, domains, apps] = await Promise.all([
-            get(`/zones/${zone.id}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`),
-            get(`/accounts/${accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`),
-            get(`/accounts/${accountId}/access/apps?per_page=100`)
+          const zonesResult = await call(`/zones?name=${encodeURIComponent(zoneName)}&per_page=50`);
+          const zones = Array.isArray(zonesResult.result) ? zonesResult.result : [];
+          const zone = zones.find(z => String(z.name).toLowerCase() === zoneName);
+          if (!zonesResult.ok || !zone?.id) throw new Error('TARGET_ZONE_NOT_FOUND_OR_NOT_READABLE');
+
+          const [dnsResult, domainsResult, appsResult, rootDnsResult] = await Promise.all([
+            call(`/zones/${zone.id}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`),
+            call(`/accounts/${accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`),
+            call(`/accounts/${accountId}/access/apps?per_page=100`),
+            call(`/zones/${zone.id}/dns_records?name=${encodeURIComponent(zoneName)}&per_page=100`)
           ]);
-          const rootDns = await get(`/zones/${zone.id}/dns_records?name=${encodeURIComponent(zoneName)}&per_page=100`);
-          const appList = Array.isArray(apps) ? apps : [];
-          const customApps = appList.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === hostname);
-          const fallbackApps = appList.filter(a => a.type === 'self_hosted' && hostOnly(a.domain).startsWith(`${worker}.`) && hostOnly(a.domain).endsWith('.workers.dev'));
+
+          const apps = Array.isArray(appsResult.result) ? appsResult.result : [];
+          const customApps = apps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === hostname);
+          const fallbackApps = apps.filter(a => a.type === 'self_hosted' && hostOnly(a.domain).startsWith(`${worker}.`) && hostOnly(a.domain).endsWith('.workers.dev'));
           async function policySummary(app) {
             if (!app?.id) return null;
-            const policies = await get(`/accounts/${accountId}/access/apps/${app.id}/policies?per_page=100`);
-            const list = Array.isArray(policies) ? policies : [];
-            const keySet = p => (Array.isArray(p.include) ? p.include : []).flatMap(r => r && typeof r === 'object' ? Object.keys(r).map(k => k.toLowerCase()) : []);
+            const r = await call(`/accounts/${accountId}/access/apps/${app.id}/policies?per_page=100`);
+            if (!r.ok) return { readable: false, error: r.error };
+            const list = Array.isArray(r.result) ? r.result : [];
+            const keySet = p => (Array.isArray(p.include) ? p.include : []).flatMap(rule => rule && typeof rule === 'object' ? Object.keys(rule).map(k => k.toLowerCase()) : []);
             const bypass = list.filter(p => String(p.decision).toLowerCase() === 'bypass').length;
             const broad = list.filter(p => String(p.decision).toLowerCase() === 'allow' && (!Array.isArray(p.include) || !p.include.length || keySet(p).some(k => ['everyone','login_method'].includes(k)))).length;
             const restrictive = list.filter(p => String(p.decision).toLowerCase() === 'allow' && Array.isArray(p.include) && p.include.length && !keySet(p).some(k => ['everyone','login_method'].includes(k))).length;
-            return { policy_count: list.length, restrictive_allow_count: restrictive, broad_allow_count: broad, bypass_count: bypass };
+            return { readable: true, policy_count: list.length, restrictive_allow_count: restrictive, broad_allow_count: broad, bypass_count: bypass };
           }
           const fallbackPolicy = fallbackApps.length === 1 ? await policySummary(fallbackApps[0]) : null;
           const customPolicy = customApps.length === 1 ? await policySummary(customApps[0]) : null;
-          const domainList = Array.isArray(domains) ? domains : [];
+          const domainList = Array.isArray(domainsResult.result) ? domainsResult.result : [];
           const exactDomains = domainList.filter(d => String(d.hostname).toLowerCase() === hostname);
           const result = {
             ok: true,
             zone_active: String(zone.status).toLowerCase() === 'active',
             target_hostname: hostname,
-            target_dns_record_count: Array.isArray(dns) ? dns.length : 0,
-            target_custom_domain_count: exactDomains.length,
-            target_custom_domain_worker_match: exactDomains.length === 1 && exactDomains[0]?.service === worker,
-            target_custom_domain_has_certificate_id: exactDomains.length === 1 && Boolean(exactDomains[0]?.cert_id),
-            target_access_application_count: customApps.length,
+            dns_readable: dnsResult.ok,
+            dns_read_error: dnsResult.ok ? null : dnsResult.error,
+            target_dns_record_count: dnsResult.ok && Array.isArray(dnsResult.result) ? dnsResult.result.length : null,
+            workers_domains_readable: domainsResult.ok,
+            workers_domains_read_error: domainsResult.ok ? null : domainsResult.error,
+            target_custom_domain_count: domainsResult.ok ? exactDomains.length : null,
+            target_custom_domain_worker_match: domainsResult.ok && exactDomains.length === 1 && exactDomains[0]?.service === worker,
+            target_custom_domain_has_certificate_id: domainsResult.ok && exactDomains.length === 1 && Boolean(exactDomains[0]?.cert_id),
+            access_apps_readable: appsResult.ok,
+            access_apps_read_error: appsResult.ok ? null : appsResult.error,
+            target_access_application_count: appsResult.ok ? customApps.length : null,
             target_access_policy: customPolicy,
-            fallback_access_application_count: fallbackApps.length,
+            fallback_access_application_count: appsResult.ok ? fallbackApps.length : null,
             fallback_access_policy: fallbackPolicy,
-            root_domain_dns_record_count: Array.isArray(rootDns) ? rootDns.length : 0,
+            root_dns_readable: rootDnsResult.ok,
+            root_domain_dns_record_count: rootDnsResult.ok && Array.isArray(rootDnsResult.result) ? rootDnsResult.result.length : null,
             root_domain_mutated: false,
             external_write: false,
             production_deploy: false,
@@ -104,9 +113,7 @@ jobs:
             secrets_returned: false
           };
           console.log(JSON.stringify(result, null, 2));
-          const summary = process.env.GITHUB_STEP_SUMMARY;
-          if (summary) {
-            const fs = await import('node:fs');
-            fs.appendFileSync(summary, `### AURENTARA Operator Domain Preflight\n- Zone active: ${result.zone_active}\n- Target DNS records: ${result.target_dns_record_count}\n- Existing Worker custom domain: ${result.target_custom_domain_count}\n- Existing target Access app: ${result.target_access_application_count}\n- Existing workers.dev Access app: ${result.fallback_access_application_count}\n- Root-domain DNS records observed: ${result.root_domain_dns_record_count}\n- External write: false\n- Production deploy: false\n`);
-          }
+          const fs = await import('node:fs');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### AURENTARA Operator Domain Preflight\n- Zone active: ${result.zone_active}\n- DNS readable: ${result.dns_readable}\n- Worker domains readable: ${result.workers_domains_readable}\n- Existing Worker custom domain: ${result.target_custom_domain_count ?? 'UNKNOWN'}\n- Access apps readable: ${result.access_apps_readable}\n- Existing target Access app: ${result.target_access_application_count ?? 'UNKNOWN'}\n- Existing workers.dev Access app: ${result.fallback_access_application_count ?? 'UNKNOWN'}\n- Root DNS readable: ${result.root_dns_readable}\n- Root domain mutated: false\n- External write: false\n- Production deploy: false\n`);
+          if (!domainsResult.ok || !appsResult.ok) process.exit(3);
           NODE
