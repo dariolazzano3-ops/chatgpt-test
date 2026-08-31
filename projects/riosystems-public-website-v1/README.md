@@ -1,7 +1,9 @@
-# RIOSYSTEMS Public Website V1
+# AURENTARA SYSTEMS Public Website V1
 
 ## Status
-Implementation branch for the public RIOSYSTEMS website. This project is intentionally isolated from the private Operator Dashboard and RIOSYSTEMS runtime.
+Implementation branch for the public AURENTARA SYSTEMS website. The legacy project path `projects/riosystems-public-website-v1` is intentionally retained as an internal technical identifier to avoid a disruptive rename. This project is isolated from the private Operator Dashboard and RIOSYSTEMS runtime.
+
+Canonical brand / ownership source of truth: [`../../docs/BRAND_OWNERSHIP_ARCHITECTURE.md`](../../docs/BRAND_OWNERSHIP_ARCHITECTURE.md).
 
 ## North Star
 - 70% clarity and trust
@@ -22,6 +24,11 @@ Static, dependency-free V1:
 
 The central Core visual is CSS + SVG. No WebGL dependency is required for V1.
 
+## Naming boundary
+Customer-facing presentation uses **AURENTARA SYSTEMS**. Existing internal identifiers such as `riosystems:analytics`, the folder/slug, schemas and RIOSYSTEMS runtime terminology remain technical implementation details until a separate technical migration has a concrete benefit.
+
+YSRIO GROUP is the strategic parent / ownership brand and is not presented here as a legally incorporated multi-company group.
+
 ## Localization
 Locale architecture is prepared for `de`, `en`, `fr`, `it`, `es`, `nl`, `pl`, `pt`. The German copy is authoritative in this first build. Manual choice is stored locally and overrides browser preference. Currency remains EUR (€).
 
@@ -38,4 +45,4 @@ Target: WCAG 2.2 AA. Includes semantic landmarks, skip link, focus states, reduc
 No framework, no autoplay video, no remote fonts, no heavy animation library. Visuals use CSS/SVG and progressive enhancement.
 
 ## Production
-Production deployment is explicitly out of scope until user approval.
+Production deployment, custom-domain binding, DNS changes and traffic migration are explicitly out of scope until separately approved.

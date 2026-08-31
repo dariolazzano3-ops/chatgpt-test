@@ -1,5 +1,15 @@
 # ChatGPT Test Worker
 
+## Canonical brand & ownership identity
+
+The repository currently separates business identity from technical identity:
+
+- **YSRIO GROUP**: strategic parent / ownership brand in the background. This does not assert that a legally incorporated multi-company group already exists.
+- **AURENTARA SYSTEMS**: visible operative Business Systems brand for customers, website, offers, communication, and the private Operator Control Plane.
+- **RIOSYSTEMS**: existing internal technology foundation, including stable schemas, APIs, workflows, Factories, routers, approvals, execution, quality, cost and delivery layers.
+
+Canonical naming and migration rules: [`docs/BRAND_OWNERSHIP_ARCHITECTURE.md`](docs/BRAND_OWNERSHIP_ARCHITECTURE.md).
+
 Version 1 is the ChatGPT Plus-compatible operating path for this project.
 
 ## Architecture

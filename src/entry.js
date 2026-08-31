@@ -5,6 +5,7 @@ import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
 import { handleOperatorDashboard } from "./operator-v1-acceptance-dashboard-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
+import { applyOperatorBranding } from "./operator-branding-v1.js";
 
 function operatorUnavailable() {
   return new Response(JSON.stringify({ error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY", private_operator_access_required: true, production_deploy: false }), {
@@ -26,7 +27,7 @@ export default {
         throw error;
       }
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, runtimeService ? { runtime_service: runtimeService } : {});
-      if (operatorResponse) return operatorResponse;
+      if (operatorResponse) return applyOperatorBranding(operatorResponse);
     }
 
     if (url.pathname === "/mcp") return handleMcp(request, env);
