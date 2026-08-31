@@ -1,0 +1,203 @@
+name: AURENTARA Operator Access Consolidation Once
+
+on:
+  push:
+    branches: [aurentara/operator-control-domain-migration]
+    paths:
+      - '.github/workflows/aurentara-operator-access-consolidate-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-operator-access-consolidation-once
+  cancel-in-progress: false
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: riosystems-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_HOSTNAME: control.aurentarasystems.com
+      TARGET_WORKER: riosystems-staging
+      CONSOLIDATION_APPROVAL: AURENTARA_OPERATOR_SINGLE_ACCESS_AUDIENCE
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Guard consolidation scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/operator-control-domain-migration"
+          test "$TARGET_HOSTNAME" = "control.aurentarasystems.com"
+          test "$TARGET_WORKER" = "riosystems-staging"
+          test "$CONSOLIDATION_APPROVAL" = "AURENTARA_OPERATOR_SINGLE_ACCESS_AUDIENCE"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Consolidate custom domain and workers.dev into existing Access app
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          import fs from 'node:fs';
+          import { setTimeout as sleep } from 'node:timers/promises';
+
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const targetHostname = process.env.TARGET_HOSTNAME;
+          const worker = process.env.TARGET_WORKER;
+          const base = 'https://api.cloudflare.com/client/v4';
+          const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' };
+
+          async function api(method, path, body) {
+            const response = await fetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success === false) {
+              const message = payload?.errors?.map(x => x.message).filter(Boolean).join('; ') || `HTTP_${response.status}`;
+              throw new Error(`${method} ${path}: ${message}`);
+            }
+            return payload?.result;
+          }
+          const hostOnly = (value='') => {
+            try { return new URL(value.includes('://') ? value : `https://${value}`).hostname.toLowerCase(); }
+            catch { return ''; }
+          };
+          const destinationHosts = app => (Array.isArray(app?.destinations) ? app.destinations : [])
+            .filter(d => String(d?.type || '').toLowerCase() === 'public')
+            .map(d => hostOnly(d?.uri || ''))
+            .filter(Boolean);
+          const ruleKeys = policy => (Array.isArray(policy?.include) ? policy.include : []).flatMap(rule => rule && typeof rule === 'object' ? Object.keys(rule).map(k => k.toLowerCase()) : []);
+          const policySummary = policies => {
+            const list = Array.isArray(policies) ? policies : [];
+            const bypass = list.filter(p => String(p.decision).toLowerCase() === 'bypass').length;
+            const broad = list.filter(p => String(p.decision).toLowerCase() === 'allow' && (!Array.isArray(p.include) || !p.include.length || ruleKeys(p).some(k => ['everyone','login_method'].includes(k)))).length;
+            const restrictive = list.filter(p => String(p.decision).toLowerCase() === 'allow' && Array.isArray(p.include) && p.include.length && !ruleKeys(p).some(k => ['everyone','login_method'].includes(k))).length;
+            return { ok: bypass === 0 && broad === 0 && restrictive >= 1, count: list.length, restrictive, broad, bypass };
+          };
+          async function apps() {
+            const result = await api('GET', `/accounts/${accountId}/access/apps?per_page=100`);
+            return Array.isArray(result) ? result : [];
+          }
+          async function policies(appId) {
+            const result = await api('GET', `/accounts/${accountId}/access/apps/${appId}/policies?per_page=100`);
+            return Array.isArray(result) ? result : [];
+          }
+          function updateBody(app, destinations) {
+            const out = {
+              name: app.name || 'AURENTARA SYSTEMS Operator Control',
+              domain: app.domain,
+              type: 'self_hosted',
+              destinations
+            };
+            const optional = [
+              'session_duration','allowed_idps','auto_redirect_to_identity','app_launcher_visible',
+              'skip_interstitial','service_auth_401_redirect','http_only_cookie_attribute',
+              'same_site_cookie_attribute','enable_binding_cookie','options_preflight_bypass',
+              'allow_authenticate_via_warp','allow_iframe','logo_url','custom_deny_message',
+              'custom_deny_url','custom_non_identity_deny_url','custom_pages','tags',
+              'use_clientless_isolation_app_launcher_url'
+            ];
+            for (const key of optional) if (app[key] !== undefined && app[key] !== null) out[key] = app[key];
+            return out;
+          }
+
+          let list = await apps();
+          const fallback = list.filter(a => a.type === 'self_hosted' && hostOnly(a.domain).startsWith(`${worker}.`) && hostOnly(a.domain).endsWith('.workers.dev'));
+          const targetSeparate = list.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === targetHostname);
+          if (fallback.length !== 1) throw new Error(`FALLBACK_ACCESS_APP_COUNT_${fallback.length}`);
+          if (targetSeparate.length > 1) throw new Error('TARGET_ACCESS_APP_AMBIGUOUS');
+          const fallbackApp = fallback[0];
+          if (!fallbackApp.id || !fallbackApp.aud) throw new Error('FALLBACK_ACCESS_ID_OR_AUD_MISSING');
+          const originalDestinations = Array.isArray(fallbackApp.destinations) ? fallbackApp.destinations : [];
+          const fallbackHostname = hostOnly(fallbackApp.domain);
+          if (!fallbackHostname) throw new Error('FALLBACK_HOSTNAME_INVALID');
+          const originalPolicy = policySummary(await policies(fallbackApp.id));
+          if (!originalPolicy.ok) throw new Error('FALLBACK_ACCESS_POLICY_NOT_RESTRICTIVE');
+
+          const destinations = [
+            { type: 'public', uri: fallbackHostname },
+            { type: 'public', uri: targetHostname }
+          ];
+          let fallbackUpdated = false;
+          try {
+            const updated = await api('PUT', `/accounts/${accountId}/access/apps/${fallbackApp.id}`, updateBody(fallbackApp, destinations));
+            fallbackUpdated = true;
+            if (!updated?.aud || updated.aud !== fallbackApp.aud) throw new Error('ACCESS_AUDIENCE_CHANGED_UNEXPECTEDLY');
+
+            list = await apps();
+            const refreshedFallback = list.find(a => a.id === fallbackApp.id);
+            if (!refreshedFallback || refreshedFallback.aud !== fallbackApp.aud) throw new Error('FALLBACK_ACCESS_APP_REFRESH_FAILED');
+            const hosts = new Set(destinationHosts(refreshedFallback));
+            if (!hosts.has(fallbackHostname) || !hosts.has(targetHostname)) throw new Error('MULTI_DOMAIN_DESTINATIONS_NOT_ACTIVE');
+            const refreshedPolicy = policySummary(await policies(refreshedFallback.id));
+            if (!refreshedPolicy.ok) throw new Error('FALLBACK_POLICY_CHANGED_DURING_CONSOLIDATION');
+
+            if (targetSeparate.length === 1 && targetSeparate[0].id !== fallbackApp.id) {
+              await api('DELETE', `/accounts/${accountId}/access/apps/${targetSeparate[0].id}`);
+            }
+
+            list = await apps();
+            const afterFallback = list.find(a => a.id === fallbackApp.id);
+            const afterTargetSeparate = list.filter(a => a.type === 'self_hosted' && hostOnly(a.domain) === targetHostname);
+            const afterHosts = new Set(destinationHosts(afterFallback));
+            if (!afterFallback || afterFallback.aud !== fallbackApp.aud || afterTargetSeparate.length !== 0 || !afterHosts.has(targetHostname) || !afterHosts.has(fallbackHostname)) {
+              throw new Error('FINAL_SINGLE_ACCESS_APP_STATE_INVALID');
+            }
+            const finalPolicy = policySummary(await policies(afterFallback.id));
+            if (!finalPolicy.ok) throw new Error('FINAL_ACCESS_POLICY_NOT_RESTRICTIVE');
+
+            for (const hostname of [targetHostname, fallbackHostname]) {
+              let sealed = false;
+              let last = null;
+              for (let i = 0; i < 8; i++) {
+                try {
+                  const response = await fetch(`https://${hostname}/operator`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+                  if (response.status === 200) throw new Error(`PUBLIC_OPERATOR_EXPOSURE_${hostname}`);
+                  if ([401,403].includes(response.status) || (response.status >= 300 && response.status < 400)) { sealed = true; break; }
+                  last = `HTTP_${response.status}`;
+                } catch (error) {
+                  if (String(error?.message || error).includes('PUBLIC_OPERATOR_EXPOSURE')) throw error;
+                  last = String(error?.message || error).slice(0,120);
+                }
+                await sleep(2500);
+              }
+              if (!sealed) throw new Error(`ACCESS_LIVE_VERIFY_FAILED_${hostname}:${last || 'UNKNOWN'}`);
+            }
+
+            const result = {
+              ok: true,
+              single_access_application: true,
+              same_audience_preserved: true,
+              custom_hostname_destination: true,
+              workers_dev_destination: true,
+              separate_target_access_app_removed: true,
+              restrictive_policy_verified: true,
+              broad_allow_count: finalPolicy.broad,
+              bypass_count: finalPolicy.bypass,
+              public_operator_exposure: false,
+              production_deploy: false,
+              external_writes: false,
+              real_customer_data: false,
+              additional_variable_cost_eur: 0,
+              secrets_returned: false
+            };
+            console.log(JSON.stringify(result, null, 2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### AURENTARA Operator Access Consolidation\n- Single Access application: true\n- Existing Access audience preserved: true\n- Custom hostname protected by same audience: true\n- workers.dev protected by same audience: true\n- Restrictive policy verified: true\n- Broad allow: 0\n- Bypass: 0\n- Public operator exposure: false\n- Production deploy: false\n- External writes: false\n- Additional variable cost: 0 EUR\n`);
+          } catch (error) {
+            if (fallbackUpdated) {
+              try {
+                const rollbackDestinations = originalDestinations.length ? originalDestinations : [{ type: 'public', uri: fallbackHostname }];
+                await api('PUT', `/accounts/${accountId}/access/apps/${fallbackApp.id}`, updateBody(fallbackApp, rollbackDestinations));
+              } catch {}
+            }
+            console.error(JSON.stringify({ ok: false, error: String(error?.message || error).slice(0,300), production_deploy: false, external_writes: false, real_customer_data: false, secrets_returned: false }, null, 2));
+            process.exit(3);
+          }
+          NODE
