@@ -5,11 +5,22 @@ import { fileURLToPath } from 'node:url';
 const API_ORIGIN = 'https://api.cloudflare.com';
 const clean = (value, max = 1200) => String(value ?? '').trim().slice(0, max);
 
+function safeHostname(domain = '') {
+  const value = clean(domain, 500);
+  if (!value) return '';
+  try {
+    const url = new URL(value.includes('://') ? value : `https://${value}`);
+    return url.hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 function targetApplication(app = {}, expectedWorkerName = 'riosystems-staging') {
   if (clean(app.type, 80).toLowerCase() !== 'self_hosted') return false;
-  const domain = clean(app.domain, 500).toLowerCase();
+  const hostname = safeHostname(app.domain);
   const worker = clean(expectedWorkerName, 120).toLowerCase();
-  return Boolean(worker) && domain.startsWith(`${worker}.`) && domain.endsWith('.workers.dev');
+  return Boolean(worker) && hostname.startsWith(`${worker}.`) && hostname.endsWith('.workers.dev');
 }
 
 function selectorKeys(rule = {}) {
@@ -118,7 +129,6 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   });
   if (!derived.ok) throw new Error(derived.error);
 
-  // Prevent operator identity and Access audience from appearing in Actions logs.
   console.log(`::add-mask::${derived.operator_email}`);
   console.log(`::add-mask::${derived.audience}`);
 
