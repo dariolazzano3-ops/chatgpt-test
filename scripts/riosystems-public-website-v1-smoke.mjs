@@ -63,7 +63,7 @@ assert.equal(project.project.slug, 'riosystems-public-website-v1');
 assert.equal(project.schema, 'riosystems.web-staging-project.v1');
 assert.equal(project.generated_by, 'riosystems-native-web');
 assert.equal(project.brand.public_brand, 'AURENTARA SYSTEMS');
-assert.equal(project.brand.parent_brand, 'YSRIO');
+assert.equal(project.brand.parent_brand, 'YSRIO GROUP');
 assert.equal(project.brand.endorsement, 'A YSRIO Company');
 assert.equal(project.brand.public_domain_reserved, 'aurentarasystems.com');
 assert.equal(project.brand.parent_domain_reserved, 'ysrio.com');
