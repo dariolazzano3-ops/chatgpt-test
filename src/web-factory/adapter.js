@@ -5,6 +5,7 @@ import { runWebOperatingSystemV2 } from './operating-system-v2.js';
 import { webProviderRoleModel } from './provider-roles.js';
 import { selectWebBuildRoute } from './routing.js';
 import { runFramerVisualProvider } from './framer-live-provider.js';
+import { connectTrackedFramer } from './framer-server-connection.js';
 
 const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web_generate', 'web_rebuild', 'web_evolve']);
 
@@ -99,7 +100,10 @@ export async function executeWebFactoryTaskWithVisualProvider(task = {}, options
     };
   }
 
-  const providerOptions = options.framer || options.visualProvider || {};
+  const rawProviderOptions = options.framer || options.visualProvider || {};
+  const providerOptions = { ...rawProviderOptions };
+  if (typeof providerOptions.connectFn !== 'function') providerOptions.connectFn = connectTrackedFramer;
+
   const visualProvider = await runFramerVisualProvider(task.framer_visual_request, providerOptions);
   if (!visualProvider.ok) {
     return {
@@ -176,6 +180,7 @@ export function webFactoryProviderManifest() {
       transport: 'framer-server-api',
       credential_policy: 'runtime-secret-only',
       visual_writes_guarded: true,
+      tracked_insertions: ['TextNode', 'SVGNode'],
       native_reconstruction_required: true,
       publish_allowed: false,
       deploy_allowed: false,
