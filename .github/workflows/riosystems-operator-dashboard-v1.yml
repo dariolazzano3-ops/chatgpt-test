@@ -12,6 +12,9 @@ on:
       - 'src/operator-project-create-dashboard-v1.js'
       - 'src/operator-system-health-v1.js'
       - 'src/operator-system-health-dashboard-v1.js'
+      - 'src/operator-functional-completion-dashboard-v1.js'
+      - 'src/operator-functional-seal-v1.js'
+      - 'src/operator-design-ux-v1.js'
       - 'src/operator-runtime-api-v1.js'
       - 'src/operator-finalization-runtime-v1.js'
       - 'src/operator-runtime-store-supabase-v1.js'
@@ -19,6 +22,9 @@ on:
       - 'src/entry.js'
       - 'scripts/operator-dashboard-v1-smoke.mjs'
       - 'scripts/operator-dashboard-completeness-v1-smoke.mjs'
+      - 'scripts/operator-functional-completion-v1-smoke.mjs'
+      - 'scripts/operator-functional-seal-v1-smoke.mjs'
+      - 'scripts/operator-design-ux-v1-smoke.mjs'
       - 'scripts/operator-dashboard-local-worker-smoke.mjs'
       - 'scripts/operator-runtime-supabase-store-v1-smoke.mjs'
       - 'scripts/operator-live-staging-bridge-v1-smoke.mjs'
@@ -54,6 +60,9 @@ jobs:
           node --check src/operator-project-create-dashboard-v1.js
           node --check src/operator-system-health-v1.js
           node --check src/operator-system-health-dashboard-v1.js
+          node --check src/operator-functional-completion-dashboard-v1.js
+          node --check src/operator-functional-seal-v1.js
+          node --check src/operator-design-ux-v1.js
           node --check src/operator-runtime-api-v1.js
           node --check src/operator-finalization-runtime-v1.js
           node --check src/operator-runtime-store-supabase-v1.js
@@ -61,6 +70,9 @@ jobs:
           node --check src/entry.js
           node --check scripts/operator-dashboard-v1-smoke.mjs
           node --check scripts/operator-dashboard-completeness-v1-smoke.mjs
+          node --check scripts/operator-functional-completion-v1-smoke.mjs
+          node --check scripts/operator-functional-seal-v1-smoke.mjs
+          node --check scripts/operator-design-ux-v1-smoke.mjs
           node --check scripts/operator-dashboard-local-worker-smoke.mjs
           node --check scripts/operator-runtime-supabase-store-v1-smoke.mjs
           node --check scripts/operator-live-staging-bridge-v1-smoke.mjs
@@ -76,6 +88,12 @@ jobs:
         run: node scripts/operator-system-health-v1-smoke.mjs
       - name: Private operator dashboard acceptance
         run: node scripts/operator-dashboard-v1-smoke.mjs
+      - name: Operator functional completion acceptance
+        run: |
+          node scripts/operator-functional-completion-v1-smoke.mjs
+          node scripts/operator-functional-seal-v1-smoke.mjs
+      - name: Operator design UX acceptance
+        run: node scripts/operator-design-ux-v1-smoke.mjs
       - name: Operator dashboard completeness acceptance
         run: node scripts/operator-dashboard-completeness-v1-smoke.mjs
       - name: Local Cloudflare Worker acceptance
