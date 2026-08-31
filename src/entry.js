@@ -3,7 +3,7 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
-import { handleOperatorDashboard } from "./operator-functional-seal-v1.js";
+import { handleOperatorDashboard } from "./operator-design-ux-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 
