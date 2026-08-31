@@ -10,20 +10,36 @@ const FINAL_SCRIPT = String.raw`<script id="aurentara-human-ux-final-v1-script">
   const show=v=>v===null||v===undefined||v===''?'Nicht verifiziert':String(v);
   const kv=(k,v)=>'<div class="human-kv"><b>'+h(k)+'</b><span>'+h(show(v))+'</span></div>';
   const eventTitle=key=>window.aurentaraHumanEventTitleV1?window.aurentaraHumanEventTitleV1(key):String(key||'Event').toLowerCase().split('_').join(' ');
+  let functionalHydration=null;
   function humanize(root){if(!root)return;root.querySelectorAll('strong,td').forEach(el=>{const raw=(el.textContent||'').trim();if(el.dataset.humanEvent==='true'||!/^[A-Z][A-Z0-9_]{3,}$/.test(raw)||!raw.includes('_'))return;el.dataset.humanEvent='true';el.innerHTML='<span>'+h(eventTitle(raw))+'</span><div class="human-meta"><code>'+h(raw)+'</code></div>'})}
   function wrapProjectCreate(){const root=document.getElementById('projects');if(!root)return;const form=root.querySelector('[data-project-create]');if(!form||form.closest('.human-create'))return;const d=document.createElement('details');d.className='human-create';d.dataset.humanProjectCreate='true';const s=document.createElement('summary');s.textContent='Neues Projekt anlegen';form.parentNode.insertBefore(d,form);d.append(s,form)}
   function clearStaleProjectPriority(){if(state?.detail)return;document.querySelector('#project-detail [data-human-project-priority]')?.remove()}
   function ensureFactoryProjection(){const base=state?.data?.factories?.items;if(!rows(base).length)return;state.data.functional=state.data.functional||{};const current=state.data.functional.factories||{};if(rows(current.items).length)return;state.data.functional.factories={...(state.data.factories||{}),...current,items:base}}
-  function providerEvidenceRows(matrix,path=[],depth=0){if(depth>5||matrix===null||matrix===undefined)return[];if(Array.isArray(matrix))return matrix.flatMap((item,index)=>providerEvidenceRows(item,[...path,String(index)],depth+1));if(typeof matrix!=='object')return[];const keys=Object.keys(matrix),providerish=['status','state','health','readiness','availability','credentials_state','cost_mode','environment','capabilities','restrictions','blockers','gate'],out=[];if(keys.some(key=>providerish.includes(key)))out.push({name:matrix.name||matrix.provider||path.at(-1)||'unknown',...matrix});for(const [key,value] of Object.entries(matrix))if(value&&typeof value==='object')out.push(...providerEvidenceRows(value,[...path,key],depth+1));return out}
-  function ensureProviderProjection(){if(rows(state?.data?.functional?.providers).length)return;const base=state?.data?.providers||{},projected=providerEvidenceRows(base.activation_matrix||{});if(!projected.length)return;state.data.functional=state.data.functional||{};state.data.functional.providers=projected}
+  async function hydrateFunctionalProjection(){
+    if(rows(state?.data?.functional?.providers).length)return state.data.functional;
+    if(functionalHydration)return functionalHydration;
+    functionalHydration=(async()=>{
+      while(document.body.classList.contains('loading'))await new Promise(resolve=>setTimeout(resolve,25));
+      if(rows(state?.data?.functional?.providers).length)return state.data.functional;
+      try{
+        const projection=await api('/functional-completion');
+        state.data.functional=projection;
+        if(typeof rebuildQuickJump==='function')rebuildQuickJump();
+        const current=state.section||'hq';
+        render(current);
+        return projection;
+      }catch(error){setError(error);return null}finally{functionalHydration=null}
+    })();
+    return functionalHydration;
+  }
   function nextAction(p={}){const s=up(p.mission_status||p.status);if(['BLOCKED','FAILED'].includes(s))return'Blocker und letzte Evidence prüfen';if(['COMPLETED','DONE','SUCCESS'].includes(s))return'Keine unmittelbare Aktion erforderlich';if(['ACTIVE','RUNNING'].includes(s))return'Aktuellen Missions- und Freigabestatus prüfen';return'Mission und nächsten verifizierten Schritt prüfen'}
   function humanProjectDetail(d={}){const root=document.getElementById('project-detail');if(!root)return;root.querySelector('[data-human-project-priority]')?.remove();root.querySelector('[data-human-project-delivery]')?.remove();const p=d.project||{},caps=rows(d.capabilities),results=d.results||{};const summary=document.createElement('div');summary.className='card human-section';summary.dataset.humanProjectPriority='true';summary.innerHTML='<div class="human-head"><div><h2>Projekt auf einen Blick</h2><p>Status, aktueller Zustand, Capabilities, Ergebnis und nächste Aktion zuerst.</p></div></div><div class="human-grid">'+kv('Projektstatus',p.mission_status||p.status)+kv('Aktueller Zustand',p.current_state||p.current_phase||p.environment)+kv('Capabilities',caps.length)+kv('Ergebnisse',results.delivery?'Vorhanden':'Noch kein Ergebnis')+kv('Nächste Aktion',nextAction(p))+'</div>';root.prepend(summary);humanize(root);const raw=[...root.querySelectorAll('details')].find(x=>{const t=x.querySelector('summary')?.textContent||'';return t.includes('Unified Delivery')||t.includes('Raw Evidence')});if(raw&&results.delivery){const human=document.createElement('div');human.className='human-summary';human.dataset.humanProjectDelivery='true';const quality=results.quality||{},evidence=results.execution_evidence||{};human.innerHTML='<div class="human-head"><div><h3>Unified Delivery Summary</h3><p>Operator-relevantes Ergebnis vor technischer Evidence.</p></div></div><div class="human-grid">'+kv('Projekt',p.name||p.project_id)+kv('Status',p.mission_status)+kv('Finaler Delivery-Status',results.delivery.final_delivery_status||results.delivery.status)+kv('Qualität',quality.quality_score??quality.status)+kv('Execution Evidence',evidence.mode||evidence.execution_id||'Nicht verifiziert')+kv('Delivery / Result Reference',results.delivery.mission_id||results.delivery.delivery_id||p.project_id)+'</div>';raw.parentNode.insertBefore(human,raw);raw.classList.add('human-raw');const rs=raw.querySelector('summary');if(rs)rs.textContent='Technische Details / Raw Evidence'} }
   function finalPolish(id){if(id==='projects'){wrapProjectCreate();clearStaleProjectPriority()}if(id==='audit')humanize(document.getElementById('audit'));if(state?.detail&&document.getElementById('project-detail')?.children.length)humanProjectDetail(state.detail)}
   if(typeof renderProjects==='function'){const prev=renderProjects;renderProjects=function(){prev();wrapProjectCreate();clearStaleProjectPriority()}}
   if(typeof renderProjectDetail==='function'){const prev=renderProjectDetail;renderProjectDetail=function(d){prev(d);humanProjectDetail(d)}}
   if(typeof renderAudit==='function'){const prev=renderAudit;renderAudit=function(){prev();humanize(document.getElementById('audit'))}}
-  if(typeof render==='function'){const prev=render;render=function(id){if(id==='factories')ensureFactoryProjection();if(id==='providers')ensureProviderProjection();prev(id);requestAnimationFrame(()=>finalPolish(id))}}
-  requestAnimationFrame(()=>finalPolish(state?.section||'hq'));
+  if(typeof render==='function'){const prev=render;render=function(id){if(id==='factories')ensureFactoryProjection();prev(id);requestAnimationFrame(()=>finalPolish(id));if(!rows(state?.data?.functional?.providers).length)void hydrateFunctionalProjection()}}
+  requestAnimationFrame(()=>{finalPolish(state?.section||'hq');void hydrateFunctionalProjection()});
 })();
 </script>`;
 
