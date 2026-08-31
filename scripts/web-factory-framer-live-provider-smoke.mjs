@@ -7,10 +7,11 @@ import {
   framerSnapshotToVisualDesignContract,
   runFramerVisualProvider,
   validateFramerVisualProviderRequest,
-  validateVisualDesignContract
+  validateVisualDesignContract,
+  wrapFramerConnectionForTrackedInsertions
 } from '../src/web-factory/index.js';
 
-function createFakeFramer() {
+function createFakeFramer({ voidInsertions = false } = {}) {
   let id = 0;
   let disconnected = false;
   const byId = new Map();
@@ -57,6 +58,7 @@ function createFakeFramer() {
     },
     async getCanvasRoot() { return root; },
     async getNode(targetId) { return byId.get(String(targetId)) || null; },
+    async getNodesWithType(type) { return [...byId.values()].filter((candidate) => candidate.type === type); },
     async createFrameNode(attributes = {}, parentId) {
       const created = node({ ...attributes, type: 'FrameNode' });
       const parent = parentId ? byId.get(String(parentId)) : root;
@@ -66,12 +68,12 @@ function createFakeFramer() {
     async addText(value) {
       const created = node({ type: 'TextNode', name: 'Text', text: String(value), width: 500, height: 80 });
       root.children.push(created);
-      return created;
+      return voidInsertions ? undefined : created;
     },
     async addSVG({ name }) {
       const created = node({ type: 'SVGNode', name: name || 'SVG', width: 160, height: 160 });
       root.children.push(created);
-      return created;
+      return voidInsertions ? undefined : created;
     },
     async disconnect() { disconnected = true; }
   };
@@ -123,6 +125,22 @@ const noCredential = await runFramerVisualProvider({ project_url: projectUrl, op
 assert.equal(noCredential.ok, false);
 assert.equal(noCredential.status, 'FRAMER_API_KEY_REQUIRED');
 assert.equal(noCredential.credentials_in_repo, false);
+
+// Framer's insertion helpers can return void. The tracked wrapper must recover the inserted node
+// from the Server API node inventory so later scoped visual edits can reference it safely.
+const voidInsertionCore = createFakeFramer({ voidInsertions: true });
+const tracked = wrapFramerConnectionForTrackedInsertions(voidInsertionCore);
+const recoveredText = await tracked.addText('AURENTARA SYSTEMS');
+assert.equal(recoveredText?.type, 'TextNode');
+assert.ok(recoveredText?.id);
+const recoveredSvg = await tracked.addSVG({
+  name: 'aurentara-core.svg',
+  svg: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><path d="M16 2 30 30H2Z"/></svg>'
+});
+assert.equal(recoveredSvg?.type, 'SVGNode');
+assert.ok(recoveredSvg?.id);
+await tracked.disconnect();
+assert.equal(voidInsertionCore.disconnected, true);
 
 const fake = createFakeFramer();
 let disconnectObserved = null;
@@ -243,6 +261,7 @@ console.log(JSON.stringify({
   suite: 'web-factory-framer-live-visual-provider-v1',
   provider: manifest.provider_id,
   inspected_project: inspect.provider.project_name,
+  tracked_void_insertions: true,
   safe_visual_edit_operations: edit.operations.length,
   design_contract_status: inspect.design_contract_validation.status,
   integrated_native_reconstruction: integrated.ok,
