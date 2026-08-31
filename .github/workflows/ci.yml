@@ -35,7 +35,10 @@ jobs:
       - name: Integrated RIOSYSTEMS regression gate
         run: node scripts/riosystems-integrated-regression-gate.mjs
       - name: Private Operator Dashboard V1 acceptance
-        run: node scripts/operator-dashboard-v1-smoke.mjs
+        run: |
+          node scripts/operator-dashboard-v1-smoke.mjs
+          node scripts/operator-functional-completion-v1-smoke.mjs
+          node scripts/operator-functional-seal-v1-smoke.mjs
       - name: Universal Mission V1 acceptance
         run: |
           node scripts/universal-mission-run-v1-smoke.mjs
