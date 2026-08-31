@@ -14,16 +14,19 @@ const project = JSON.parse(projectRaw);
 for (const token of [
   'AURENTARA SYSTEMS',
   'WE BUILD', 'THE SYSTEMS', 'BEHIND YOUR', 'BUSINESS.',
+  'Web. CRM. AI. Automation. Growth. Analytics. Operations.',
   'DAS PROBLEM', 'DIE LÖSUNG', 'WAS WIR BAUEN', 'SO ARBEITEN WIR',
   'DEMOPROJEKT · SYNTHETISCH', 'WARUM AURENTARA SYSTEMS',
-  'YOU RUN THE BUSINESS.', 'WE BUILD WHAT MAKES IT RUN.'
+  'YOU RUN THE BUSINESS.', 'WE BUILD WHAT MAKES IT RUN.',
+  'A YSRIO Company'
 ]) assert.ok(html.includes(token), `missing homepage contract token: ${token}`);
 
 assert.ok(!html.includes('Warum RIOSYSTEMS'), 'legacy operative brand remains visible');
 assert.ok(!html.includes('>RIOSYSTEMS<'), 'legacy operative brand remains visible in page text');
+assert.ok(!html.includes('SYNTROPIC'), 'superseded operative brand remains visible');
 assert.ok(html.includes('<span class="core-r">A</span>'), 'public Core visual must use AURENTARA initial');
 
-for (const capability of ['Branding','Websites','Sales & CRM','AI & Automation','Operations','Analytics']) {
+for (const capability of ['Websites','Sales & CRM','AI & Automation','Growth','Operations','Analytics']) {
   assert.ok(html.includes(capability), `missing capability: ${capability}`);
 }
 
@@ -44,9 +47,17 @@ assert.equal(project.project.name, 'AURENTARA SYSTEMS Public Website V1');
 assert.equal(project.project.slug, 'riosystems-public-website-v1');
 assert.equal(project.schema, 'riosystems.web-staging-project.v1');
 assert.equal(project.generated_by, 'riosystems-native-web');
+assert.equal(project.brand.public_brand, 'AURENTARA SYSTEMS');
+assert.equal(project.brand.parent_brand, 'YSRIO');
+assert.equal(project.brand.endorsement, 'A YSRIO Company');
+assert.equal(project.brand.public_domain_reserved, 'aurentarasystems.com');
+assert.equal(project.brand.parent_domain_reserved, 'ysrio.com');
 assert.equal(project.environment, 'staging');
 assert.equal(project.real_customer_data, false);
 assert.equal(project.production_deploy, false);
+assert.equal(project.custom_domain, false);
+assert.equal(project.dns_change, false);
+assert.equal(project.domain_activation_authorized, false);
 assert.equal(project.deployment_cost_limit_eur, 0);
 assert.equal(project.forms_mode, 'local-validation-only');
 assert.ok(js.includes('preventDefault()'), 'staging form must prevent network submission');
@@ -64,5 +75,6 @@ assert.ok(html.includes('<nav'), 'semantic nav missing');
 assert.ok(html.includes('<footer'), 'semantic footer missing');
 assert.ok(html.includes('meta name="description"'), 'SEO description missing');
 assert.ok(html.includes('meta property="og:title"'), 'OpenGraph title missing');
+assert.ok(html.includes('meta property="og:site_name"'), 'OpenGraph site name missing');
 
 console.log('AURENTARA SYSTEMS Public Website V1 smoke: PASS');
