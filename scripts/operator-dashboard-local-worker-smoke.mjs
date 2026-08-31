@@ -54,7 +54,8 @@ try {
   const shellResponse = await waitFor(`${origin}/operator`);
   const shell = await shellResponse.text();
   assert.equal(shellResponse.status, 200, output);
-  assert.match(shell, /RIOSYSTEMS/);
+  assert.match(shell, /AURENTARA SYSTEMS/);
+  assert.doesNotMatch(shell, /<title>RIOSYSTEMS Operator Control Plane<\/title>/);
   assert.match(shell, /Private Operator Control Plane/);
   assert.match(shell, /Mission Studio/);
   assert.match(shell, /CONFIRM_SYNTHETIC_STAGING/);
@@ -72,12 +73,15 @@ try {
   const dashboardResponse = await fetchChecked(`${origin}/operator/api/dashboard`);
   assert.equal(dashboardResponse.status, 200, output);
   const dashboard = await dashboardResponse.json();
+  assert.equal(dashboard.schema, 'riosystems.operator-dashboard-view.v1');
   assert.equal(dashboard.safety_panel.production, 'LOCKED');
 
   console.log(JSON.stringify({
     ok: true,
     suite: 'operator-dashboard-local-worker',
     route: '/operator',
+    operative_brand: 'AURENTARA SYSTEMS',
+    internal_api_namespace: 'riosystems.*',
     access_dev_identity: 'verified',
     runtime_mode: 'local_memory_only',
     staging_runtime_mode: 'durable_required',
