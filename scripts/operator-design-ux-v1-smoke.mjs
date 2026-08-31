@@ -34,6 +34,10 @@ for (const required of [
   assert.ok(html.includes(required), `missing design/UX contract marker: ${required}`);
 }
 
+const designScriptMatch = html.match(/<script id="aurentara-operator-design-v1-script">([\s\S]*?)<\/script>/);
+assert.ok(designScriptMatch, 'design browser script must be emitted once');
+assert.doesNotThrow(() => new Function(designScriptMatch[1]), 'injected design browser script must parse as JavaScript');
+
 assert.ok(html.includes('@media(max-width:1180px)'), 'laptop breakpoint must exist');
 assert.ok(html.includes('@media(max-width:860px)'), 'tablet breakpoint must exist');
 assert.ok(html.includes('@media(max-width:760px)'), 'mobile breakpoint must exist');
@@ -82,6 +86,7 @@ console.log(JSON.stringify({
   grouped_navigation: true,
   overview_hierarchy: true,
   mission_lifecycle: true,
+  browser_script_parse: true,
   responsive: true,
   accessibility: true,
   canonical_api_preserved: true,
