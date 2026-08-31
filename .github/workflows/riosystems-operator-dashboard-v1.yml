@@ -49,7 +49,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -110,8 +110,6 @@ jobs:
         run: node scripts/operator-dashboard-completeness-v1-smoke.mjs
       - name: Local Cloudflare Worker acceptance
         run: node scripts/operator-dashboard-local-worker-smoke.mjs
-      - name: Install Chromium for human operator flow
-        run: npx playwright install --with-deps chromium
       - name: Browser-based human operator flow
         run: node scripts/operator-human-ux-browser-v1.mjs
       - name: Operator Runtime API regression
