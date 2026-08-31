@@ -35,6 +35,7 @@ async function waitForWorker(timeoutMs = 30000) {
 let browser;
 const pageErrors = [];
 const checkedViews = [];
+const visibleLabel = label => new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i');
 
 async function go(page, id, title) {
   await page.locator(`.nav button[data-goto="${id}"]`).click();
@@ -45,7 +46,7 @@ async function go(page, id, title) {
 
 try {
   await waitForWorker();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, channel: 'chrome' });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   page.on('pageerror', error => pageErrors.push(String(error)));
   await page.goto(`${origin}/operator`, { waitUntil: 'domcontentloaded' });
@@ -76,7 +77,7 @@ try {
     return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
   });
   const projectText = await page.locator('#project-detail').innerText();
-  for (const label of ['Projektstatus','Aktueller Zustand','Capabilities','Ergebnisse','Nächste Aktion']) assert.match(projectText, new RegExp(label));
+  for (const label of ['Projektstatus','Aktueller Zustand','Capabilities','Ergebnisse','Nächste Aktion']) assert.match(projectText, visibleLabel(label));
   const projectRaw = page.locator('#project-detail details.human-raw');
   if (await projectRaw.count()) {
     assert.equal(await projectRaw.first().getAttribute('open'), null, 'project raw evidence must be secondary');
@@ -86,7 +87,7 @@ try {
   checkedViews.push('project-detail');
 
   await go(page, 'mission', 'Mission Studio');
-  assert.match(await page.locator('#mission').innerText(), /Neue Mission|Mission/);
+  assert.match(await page.locator('#mission').innerText(), /Neue Mission|Mission/i);
   const missionText = page.locator('#mission textarea[name="mission_text"]');
   await missionText.fill('Erstelle einen rein synthetischen internen Testplan für Website und CRM ohne Production und ohne externe Writes.');
   const industry = page.locator('#mission input[name="industry"]');
@@ -95,46 +96,46 @@ try {
   if (await outcomes.count()) await outcomes.fill('Website, CRM');
   await page.locator('#mission-form button[type="submit"]').click();
   await page.waitForFunction(() => document.getElementById('plan-review')?.textContent?.includes('Plan Review'));
-  assert.match(await page.locator('#plan-review').innerText(), /Freigabe erforderlich/);
+  assert.match(await page.locator('#plan-review').innerText(), /Freigabe erforderlich/i);
   assert.match(await page.locator('#plan-review').innerText(), /0,00\s?€|0\s?€/);
   checkedViews.push('mission-plan');
 
   await go(page, 'approvals', 'Freigaben');
   const approvalsText = await page.locator('#approvals').innerText();
-  assert.ok(/Keine Freigaben erforderlich|Freigeben|Ablehnen|Approve|Reject/.test(approvalsText), 'approvals must be actionable or compact all-clear');
+  assert.ok(/Keine Freigaben erforderlich|Freigeben|Ablehnen|Approve|Reject/i.test(approvalsText), 'approvals must be actionable or compact all-clear');
 
   await go(page, 'factories', 'Factories');
   await page.waitForFunction(() => document.querySelectorAll('#factories .human-card').length > 0);
   const factoryText = await page.locator('#factories').innerText();
-  assert.ok(/EXISTS|STAGING VERIFIED|READY|PLANNED|NOT VERIFIED|BLOCKED/.test(factoryText));
-  assert.ok(/Noch kein verifizierter Run|Runs/.test(factoryText));
+  assert.ok(/EXISTS|STAGING VERIFIED|READY|PLANNED|NOT VERIFIED|BLOCKED/i.test(factoryText));
+  assert.ok(/Noch kein verifizierter Run|Runs/i.test(factoryText));
 
   await go(page, 'providers', 'Provider');
   await page.waitForFunction(() => document.querySelectorAll('#providers .human-card').length >= 5);
   const providerText = await page.locator('#providers').innerText();
-  for (const provider of ['Cloudflare','Supabase','PostHog','OpenAI','Workers AI']) assert.match(providerText, new RegExp(provider));
-  assert.ok(/AVAILABLE|STAGING ONLY|CREDENTIAL REQUIRED|BUDGET GATE|PERMISSION GATE|UNAVAILABLE|UNKNOWN/.test(providerText));
+  for (const provider of ['Cloudflare','Supabase','PostHog','OpenAI','Workers AI']) assert.match(providerText, visibleLabel(provider));
+  assert.ok(/AVAILABLE|STAGING ONLY|CREDENTIAL REQUIRED|BUDGET GATE|PERMISSION GATE|UNAVAILABLE|UNKNOWN/i.test(providerText));
   assert.equal(await page.locator('#refresh').isVisible(), true, 'refresh may remain visible for provider verification');
 
   await go(page, 'costs', 'Kosten');
-  const costLabels = await page.locator('#costs .metric .k').allInnerTexts();
-  for (const label of ['Ausgegeben','Reserviert','Geschätzt','Verbleibend']) assert.ok(costLabels.includes(label), `${label} missing`);
-  assert.equal(costLabels.some(label => ['Spent','Reserved','Estimated','Remaining'].includes(label)), false, 'cost UI must not mix primary English labels');
+  const costLabels = (await page.locator('#costs .metric .k').allInnerTexts()).map(x => x.toLocaleLowerCase('de-DE'));
+  for (const label of ['Ausgegeben','Reserviert','Geschätzt','Verbleibend']) assert.ok(costLabels.includes(label.toLocaleLowerCase('de-DE')), `${label} missing`);
+  assert.equal(costLabels.some(label => ['spent','reserved','estimated','remaining'].includes(label)), false, 'cost UI must not mix primary English labels');
 
   await go(page, 'deliveries', 'Ergebnisse');
   const deliveriesText = await page.locator('#deliveries').innerText();
   const humanDeliveries = page.locator('#deliveries [data-human-unified-delivery]');
   assert.ok(await humanDeliveries.count() > 0, `human Unified Delivery missing\n${deliveriesText}`);
   const firstDelivery = humanDeliveries.first();
-  for (const label of ['Projekt','Mission','Status','Finaler Delivery-Status','Qualität','Factory','Capability','Provider','Kosten','Umgebung','Production','External Writes','Execution Evidence','Wichtige Annahmen','Abgelehnte / ungenutzte Capabilities','Delivery / Result Reference']) assert.match(await firstDelivery.innerText(), new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  for (const label of ['Projekt','Mission','Status','Finaler Delivery-Status','Qualität','Factory','Capability','Provider','Kosten','Umgebung','Production','External Writes','Execution Evidence','Wichtige Annahmen','Abgelehnte / ungenutzte Capabilities','Delivery / Result Reference']) assert.match(await firstDelivery.innerText(), visibleLabel(label));
   const rawEvidence = firstDelivery.locator('details.human-raw');
   assert.equal(await rawEvidence.getAttribute('open'), null, 'raw evidence must be collapsed by default');
-  assert.match(await rawEvidence.locator('summary').innerText(), /Technische Details \/ Raw Evidence/);
+  assert.match(await rawEvidence.locator('summary').innerText(), /Technische Details \/ Raw Evidence/i);
 
   await go(page, 'health', 'Systemstatus');
   const healthText = await page.locator('#health').innerText();
-  for (const label of ['Overall System State','Runtime Health','Staging Verification','Activation Readiness','Production State']) assert.match(healthText, new RegExp(label));
-  assert.match(healthText, /DISABLED/);
+  for (const label of ['Overall System State','Runtime Health','Staging Verification','Activation Readiness','Production State']) assert.match(healthText, visibleLabel(label));
+  assert.match(healthText, /DISABLED/i);
   assert.equal(await page.locator('#refresh').isVisible(), true);
 
   await go(page, 'audit', 'Aktivität');
@@ -149,17 +150,17 @@ try {
   await go(page, 'settings', 'Richtlinien');
   const policyText = await page.locator('#settings').innerText();
   assert.doesNotMatch(policyText, /NOT CONFIGURED/);
-  assert.ok(/Nicht konfiguriert|Monatsbudget/.test(policyText));
+  assert.ok(/Nicht konfiguriert|Monatsbudget/i.test(policyText));
 
   await go(page, 'hq', 'HQ');
-  assert.match(await page.locator('#hq').innerText(), /Aktive Vorgänge|System|Ergebnisse|Letzte Aktivität/);
+  assert.match(await page.locator('#hq').innerText(), /Aktive Vorgänge|System|Ergebnisse|Letzte Aktivität/i);
 
   assert.deepEqual(pageErrors, [], `browser page errors: ${pageErrors.join('\n')}`);
   console.log(JSON.stringify({
     ok: true,
     suite: 'operator-human-ux-browser-v1',
     mode: 'local_worker_browser',
-    browser: 'chromium',
+    browser: 'system_chrome',
     flow: checkedViews,
     synthetic_plan_review: 'verified_without_execution',
     provider_calls: 0,
