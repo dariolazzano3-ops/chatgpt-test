@@ -40,15 +40,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "f3040122f88b74f8c6673c4bdab562c1ca040c5a"
+          test "$(git rev-parse HEAD^1)" = "b4f1861cb25b4fe9bb7ebca25102f205dc896ba8"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
           EXPECTED="$(cat <<'EOF'
-          .github/workflows/riosystems-staging-deploy.yml
           .github/workflows/riosystems-v1-staging-activation-once.yml
-          scripts/operator-dashboard-local-worker-smoke.mjs
           scripts/staging-worker-runtime-bindings-v1-smoke.mjs
           scripts/staging-worker-runtime-bindings-v1.mjs
-          wrangler.jsonc
           EOF
           )"
           test "$CHANGED" = "$EXPECTED"
@@ -95,15 +92,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "f3040122f88b74f8c6673c4bdab562c1ca040c5a"
+          test "$(git rev-parse HEAD^1)" = "b4f1861cb25b4fe9bb7ebca25102f205dc896ba8"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
           EXPECTED="$(cat <<'EOF'
-          .github/workflows/riosystems-staging-deploy.yml
           .github/workflows/riosystems-v1-staging-activation-once.yml
-          scripts/operator-dashboard-local-worker-smoke.mjs
           scripts/staging-worker-runtime-bindings-v1-smoke.mjs
           scripts/staging-worker-runtime-bindings-v1.mjs
-          wrangler.jsonc
           EOF
           )"
           test "$CHANGED" = "$EXPECTED"
