@@ -1,7 +1,14 @@
-# RIOSYSTEMS Public Website V1
+# AURENTARA SYSTEMS Public Website V1
 
 ## Status
-Implementation branch for the public RIOSYSTEMS website. This project is intentionally isolated from the private Operator Dashboard and RIOSYSTEMS runtime.
+Implementation branch for the public AURENTARA SYSTEMS website. The public brand is intentionally isolated from the private Operator Dashboard and the underlying RIOSYSTEMS runtime.
+
+## Brand architecture
+- YSRIO GROUP: ownership / holding brand in the background
+- AURENTARA SYSTEMS: visible operating and customer brand
+- Existing RIOSYSTEMS technical infrastructure may remain internally as implementation substrate
+
+The public website must not expose internal RIOSYSTEMS architecture unless it creates clear customer value.
 
 ## North Star
 - 70% clarity and trust
@@ -9,6 +16,7 @@ Implementation branch for the public RIOSYSTEMS website. This project is intenti
 - 10% wow
 
 Primary positioning: **WE BUILD THE SYSTEMS BEHIND YOUR BUSINESS.**
+Secondary positioning: **YOU RUN THE BUSINESS. WE BUILD WHAT MAKES IT RUN.**
 
 ## Public flow
 Understand → Plan → Build → Connect → Validate → Launch → Improve.
@@ -18,18 +26,23 @@ Static, dependency-free V1:
 - `index.html`: semantic homepage and staging-only project intake
 - `styles.css`: design tokens, responsive system and reduced-motion rules
 - `app.js`: progressive enhancement, mobile navigation, reveal motion, locale preference and privacy-safe analytics event hooks
-- `robots.txt`, `sitemap.xml`: SEO readiness placeholders
+- `robots.txt`: staging indexing guard
 
-The central Core visual is CSS + SVG. No WebGL dependency is required for V1.
+The central systems visual is CSS + SVG. No WebGL dependency is required for V1.
 
 ## Localization
 Locale architecture is prepared for `de`, `en`, `fr`, `it`, `es`, `nl`, `pl`, `pt`. The German copy is authoritative in this first build. Manual choice is stored locally and overrides browser preference. Currency remains EUR (€).
+
+## Domain direction
+Future public primary domain: `aurentarasystems.com`.
+Group / ownership domain: `ysrio.com`.
+No production domain, DNS or traffic switch is authorized by this project.
 
 ## Intake safety
 The V1 staging form validates locally only. It deliberately performs no provider write and sends no personal data anywhere. A real backend/provider integration is a separate user gate.
 
 ## Analytics
-The page emits local `riosystems:analytics` CustomEvents with allowlisted event names. No analytics SDK is loaded by this project. Existing RIOSYSTEMS/PostHog infrastructure can attach a privacy-safe adapter later instead of duplicating analytics infrastructure.
+The page currently emits the existing local `riosystems:analytics` CustomEvents. This namespace is intentionally treated as internal technical infrastructure and is not customer-facing. No analytics SDK is loaded by this project. Existing RIOSYSTEMS/PostHog infrastructure can attach a privacy-safe adapter later instead of duplicating analytics infrastructure.
 
 ## Accessibility
 Target: WCAG 2.2 AA. Includes semantic landmarks, skip link, focus states, reduced motion, keyboard-operable dialog/navigation, accessible labels and non-color-only communication.
@@ -38,4 +51,4 @@ Target: WCAG 2.2 AA. Includes semantic landmarks, skip link, focus states, reduc
 No framework, no autoplay video, no remote fonts, no heavy animation library. Visuals use CSS/SVG and progressive enhancement.
 
 ## Production
-Production deployment is explicitly out of scope until user approval.
+Production deployment is explicitly out of scope until separate user approval.
