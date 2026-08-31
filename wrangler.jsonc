@@ -3,6 +3,7 @@
   "name": "chatgpt-test",
   "main": "src/entry.js",
   "compatibility_date": "2026-08-25",
+  "keep_vars": true,
   "access": {
     "dev": {
       "aud": "riosystems-operator-local",
@@ -38,6 +39,7 @@
         "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",
         "RIOSYSTEMS_EXTERNAL_WRITES": "false",
         "RIOSYSTEMS_OPERATOR_RUNTIME_STORE": "supabase",
+        "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL": "https://pgzayxpqiakuvibhonwh.supabase.co",
         "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE": "riosystems_operator_runtime_v1",
         "FACTORY_CONTROL_BRANCH": "factory-control"
       },
