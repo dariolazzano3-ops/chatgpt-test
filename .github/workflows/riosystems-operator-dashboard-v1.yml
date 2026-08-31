@@ -1,6 +1,8 @@
 name: RIOSYSTEMS Private Operator Dashboard V1
 
 on:
+  push:
+    branches: [factory-control]
   pull_request:
     branches: [factory-control]
     paths:
