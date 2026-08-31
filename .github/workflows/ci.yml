@@ -28,6 +28,10 @@ jobs:
         run: npm install
       - name: Validate JavaScript
         run: npm run check
+      - name: Canonical brand and ownership contract
+        run: |
+          node scripts/brand-ownership-v1-smoke.mjs
+          node scripts/operator-branding-v1-smoke.mjs
       - name: Integrated RIOSYSTEMS regression gate
         run: node scripts/riosystems-integrated-regression-gate.mjs
       - name: Private Operator Dashboard V1 acceptance
