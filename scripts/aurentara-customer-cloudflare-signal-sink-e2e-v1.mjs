@@ -35,7 +35,12 @@ await access(wrangler);
 let stdout = '';
 let stderr = '';
 let tailClosed = false;
-const tail = spawn(wrangler, ['tail', scriptName, '--format', 'json'], {
+const tail = spawn(wrangler, [
+  'tail', scriptName,
+  '--format', 'json',
+  '--sampling-rate', '1',
+  '--search', 'aurentara.customer.observability'
+], {
   env: {
     ...process.env,
     CLOUDFLARE_API_TOKEN: token,
@@ -53,13 +58,13 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const combined = () => `${stdout}\n${stderr}`;
 const readyPattern = /tail created|successfully created tail|connected to .*tail|listening for logs|waiting for logs/i;
 let tailReady = false;
-for (let i = 0; i < 20; i += 1) {
+for (let i = 0; i < 30; i += 1) {
   if (readyPattern.test(combined())) { tailReady = true; break; }
   if (tailClosed) break;
   await sleep(500);
 }
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_BEFORE_PROBE');
-if (!tailReady) await sleep(1500);
+if (!tailReady) await sleep(2000);
 
 const probeUrl = new URL(`https://${scriptName}.${subdomain}.workers.dev/customer/api/manifest`);
 assert.equal(probeUrl.protocol, 'https:');
@@ -67,7 +72,7 @@ assert.equal(probeUrl.hostname, `${scriptName}.${subdomain}.workers.dev`);
 
 const probeStatuses = [];
 let surfaceRemainedOff = true;
-for (let i = 0; i < 3; i += 1) {
+for (let i = 0; i < 12; i += 1) {
   const response = await fetch(probeUrl, {
     method: 'GET',
     redirect: 'error',
@@ -81,13 +86,13 @@ for (let i = 0; i < 3; i += 1) {
   let body = null;
   try { body = await response.json(); } catch {}
   if (body?.public_active === true || response.status < 400) surfaceRemainedOff = false;
-  await sleep(350);
+  await sleep(250);
 }
 assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
 
 let signalSeen = false;
 let requestEventSeen = false;
-for (let i = 0; i < 30; i += 1) {
+for (let i = 0; i < 60; i += 1) {
   const text = combined();
   signalSeen = text.includes('aurentara.customer.observability');
   requestEventSeen = text.includes('customer.request.completed')
@@ -115,6 +120,8 @@ const evidence = {
   observed_at: new Date().toISOString(),
   status: 'PASS',
   worker_tail_connected: true,
+  tail_sampling_rate: 1,
+  tail_channel_filter_applied: true,
   tail_ready_banner_seen: tailReady,
   probe_route_class: 'closed_customer_manifest',
   probe_request_count: probeStatuses.length,
