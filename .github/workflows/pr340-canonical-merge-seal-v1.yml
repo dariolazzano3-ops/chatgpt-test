@@ -1,0 +1,103 @@
+name: PR340 Canonical Merge Seal V1
+
+on:
+  push:
+    branches:
+      - qa/pr340-canonical-seal-4861dec
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-seal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact canonical merge SHA
+        uses: actions/checkout@v4
+        with:
+          ref: 4861dec17f080f6f715989be74a7022816b65f29
+          fetch-depth: 1
+      - name: Verify exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4861dec17f080f6f715989be74a7022816b65f29"
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Customer Product Surface
+        run: |
+          node --check src/customer-product/shell-v1.js
+          node --check src/customer-product/surface-v1.js
+          node --check src/entry.js
+          node --check scripts/aurentara-customer-product-surface-v1-smoke.mjs
+          node scripts/aurentara-customer-product-surface-v1-smoke.mjs
+
+      - name: Economics and Trial vs Compute Separation
+        run: |
+          node --check src/customer-product/economics-v1.js
+          node --check scripts/aurentara-customer-economics-v1-smoke.mjs
+          node scripts/aurentara-customer-economics-v1-smoke.mjs
+
+      - name: Customer Red Team
+        run: |
+          node --check src/customer-ai/context-v1.js
+          node --check src/customer-product/abuse-guard-v1.js
+          node --check src/customer-product/red-team-v1.js
+          node --check scripts/aurentara-customer-red-team-v1.mjs
+          node scripts/aurentara-customer-red-team-v1.mjs
+
+      - name: Controlled Launch
+        run: |
+          node --check src/customer-product/launch-readiness-v1.js
+          node --check scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs
+          node scripts/aurentara-customer-red-team-v1.mjs
+          node scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs
+
+      - name: HAMYREN Public Readiness
+        run: |
+          node --check src/customer-product/production-account-surface-v1.js
+          node --check src/customer-product/hamyren-public-surface-readiness-v1.js
+          node --check scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs
+          node scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs
+          node scripts/hamyren-legal-privacy-readiness-v1-smoke.mjs
+          node scripts/aurentara-customer-product-surface-v1-smoke.mjs
+          node scripts/aurentara-customer-red-team-v1.mjs
+
+      - name: HAMYREN Private Preview
+        run: |
+          node --check projects/riosystems-public-website-v1/hamyren/hamyren.js
+          node --check scripts/hamyren-private-preview-v1-smoke.mjs
+          node scripts/hamyren-private-preview-v1-smoke.mjs
+
+      - name: Public Website Regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check projects/riosystems-public-website-v1/app.js
+          node scripts/riosystems-public-website-v1-smoke.mjs
+          ! grep -R "fetch(" projects/riosystems-public-website-v1/app.js
+          grep -q '"production_deploy": false' projects/riosystems-public-website-v1/project.json
+          grep -q '"deployment_cost_limit_eur": 0' projects/riosystems-public-website-v1/project.json
+
+      - name: Install Chromium for Browser QA
+        run: npx playwright install --with-deps chromium
+      - name: Start local private preview server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory projects/riosystems-public-website-v1 >/tmp/hamyren-preview-http.log 2>&1 &
+          echo $! > /tmp/hamyren-preview-http.pid
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4173/hamyren/index.html >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/hamyren-preview-http.log
+          exit 1
+      - name: HAMYREN Browser Visual QA and Dual-Site Journey
+        run: node scripts/hamyren-private-preview-visual-qa.mjs
