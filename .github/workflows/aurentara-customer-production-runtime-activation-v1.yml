@@ -1,0 +1,35 @@
+name: AURENTARA Customer Production Runtime Activation V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/customer-product/customer-rate-limit-do-v1.js'
+      - 'src/entry.js'
+      - 'wrangler.jsonc'
+      - 'scripts/aurentara-customer-production-runtime-activation-v1-smoke.mjs'
+      - 'migrations/20260901_aurentara_customer_rls_performance_hardening_v1.sql'
+      - 'docs/AURENTARA_CUSTOMER_PRODUCTION_RUNTIME_ACTIVATION_EVIDENCE_V1.md'
+      - '.github/workflows/aurentara-customer-production-runtime-activation-v1.yml'
+
+jobs:
+  production-runtime-activation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax
+        run: |
+          node --check src/customer-product/customer-rate-limit-do-v1.js
+          node --check src/entry.js
+          node --check scripts/aurentara-customer-production-runtime-activation-v1-smoke.mjs
+      - name: Runtime activation contract acceptance
+        run: node scripts/aurentara-customer-production-runtime-activation-v1-smoke.mjs
+      - name: Customer Red Team regression
+        run: node scripts/aurentara-customer-red-team-v1.mjs
+      - name: Cloudflare bundle dry-run
+        run: npx wrangler deploy --dry-run
