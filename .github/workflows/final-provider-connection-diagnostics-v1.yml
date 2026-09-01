@@ -1,0 +1,24 @@
+name: Final Provider Connection Diagnostics V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/final-provider-connection-diagnostics-v1.js'
+      - 'src/entry.js'
+      - 'scripts/final-provider-connection-diagnostics-smoke.mjs'
+      - '.github/workflows/final-provider-connection-diagnostics-v1.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node --check src/final-provider-connection-diagnostics-v1.js
+      - run: node --check src/entry.js
+      - run: node scripts/final-provider-connection-diagnostics-smoke.mjs
