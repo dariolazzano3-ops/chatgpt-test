@@ -5,6 +5,7 @@ on:
     branches: [factory-control]
     paths:
       - 'scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs'
       - '.github/workflows/aurentara-customer-observability-capability-audit-v1.yml'
 
 permissions:
@@ -24,6 +25,10 @@ jobs:
         with:
           node-version: 24
       - name: Syntax
-        run: node --check scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs
+        run: |
+          node --check scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
       - name: Cloudflare alert capability GET-only audit
         run: node scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs
+      - name: Activate and verify native Workers Observability notification routing
+        run: node scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
