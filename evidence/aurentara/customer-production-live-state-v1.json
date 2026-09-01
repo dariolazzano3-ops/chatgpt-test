@@ -1,0 +1,39 @@
+{
+  "schema": "aurentara.customer.production-live-state.v1",
+  "observed_at": "2026-09-01T02:17:46Z",
+  "source": "supabase-management-connector",
+  "synthetic_only": true,
+  "real_customer_data": false,
+  "variable_cost_eur": 0,
+  "operator_project_ref": "pgzayxpqiakuvibhonwh",
+  "customer_project_ref": "pqmbtfzjcdnihovvppjr",
+  "customer_project_region": "eu-central-1",
+  "project_separation_verified": true,
+  "security_advisor_findings": 0,
+  "performance_blockers": 0,
+  "tenant_isolation_verified": true,
+  "conversation_owner_isolation_verified": true,
+  "authenticated_delete_policy_absent": true,
+  "hosted_auth_user_flow_verified": false,
+  "jwt_to_rls_membership_e2e_verified": false,
+  "applied_migrations": [
+    "aurentara_customer_ai_foundation_v1",
+    "aurentara_customer_chat_runtime_v1",
+    "aurentara_customer_rls_performance_hardening_v1",
+    "aurentara_customer_production_deletion_v1",
+    "aurentara_customer_deletion_receipt_policy_v1",
+    "aurentara_customer_auth_bootstrap_v1",
+    "aurentara_customer_consent_v1",
+    "aurentara_customer_privacy_export_v1"
+  ],
+  "delete_edge_function": {
+    "slug": "aurentara-delete-account-v1",
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "synthetic_hard_delete_verified": true
+  },
+  "customer_surface_active": false,
+  "real_customer_ai_processing_approved": false,
+  "legal_privacy_review_complete": false,
+  "public_customer_surface_active": false
+}
