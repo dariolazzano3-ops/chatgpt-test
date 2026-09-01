@@ -39,6 +39,8 @@ jobs:
           node scripts/operator-dashboard-v1-smoke.mjs
           node scripts/operator-functional-completion-v1-smoke.mjs
           node scripts/operator-functional-seal-v1-smoke.mjs
+          node scripts/provider-preflight-v1-smoke.mjs
+          node scripts/operator-provider-preflight-v1-smoke.mjs
           node scripts/operator-design-ux-v1-smoke.mjs
       - name: Universal Mission V1 acceptance
         run: |
