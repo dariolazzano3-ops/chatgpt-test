@@ -6,7 +6,7 @@ import { handleDiagnostics } from "./diagnostics.js";
 import { handleOperatorDashboard } from "./operator-human-ux-final-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
-import { handleCustomerProductSurface } from "./customer-product/surface-v1.js";
+import { handleHardenedCustomerProductSurface } from "./customer-product/abuse-guard-v1.js";
 
 function operatorUnavailable() {
   return new Response(JSON.stringify({ error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY", private_operator_access_required: true, production_deploy: false }), {
@@ -32,9 +32,9 @@ export default {
       if (operatorResponse) return applyOperatorBranding(operatorResponse);
     }
 
-    // Customer Product has its own namespace and cannot receive /operator requests.
+    // Customer Product has its own namespace, public abuse guard and no /operator capability.
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
-      const customerResponse = await handleCustomerProductSurface(request, env, ctx);
+      const customerResponse = await handleHardenedCustomerProductSurface(request, env, ctx);
       if (customerResponse) return customerResponse;
     }
 
