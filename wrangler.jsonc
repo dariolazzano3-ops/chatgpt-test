@@ -7,6 +7,8 @@
   "vars": {
     "AURENTARA_CUSTOMER_SURFACE_MODE": "off",
     "AURENTARA_CUSTOMER_DISTRIBUTED_RATE_ACTIVE": "true",
+    "AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE": "true",
+    "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "true",
     "AURENTARA_CUSTOMER_SUPABASE_URL": "https://pqmbtfzjcdnihovvppjr.supabase.co",
     "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
     "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh"
@@ -72,9 +74,19 @@
         "FACTORY_CONTROL_BRANCH": "factory-control",
         "AURENTARA_CUSTOMER_SURFACE_MODE": "off",
         "AURENTARA_CUSTOMER_DISTRIBUTED_RATE_ACTIVE": "true",
+        "AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE": "true",
+        "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "true",
         "AURENTARA_CUSTOMER_SUPABASE_URL": "https://pqmbtfzjcdnihovvppjr.supabase.co",
         "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
         "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh"
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CUSTOMER_RATE_LIMITER",
+            "class_name": "AurentaraCustomerRateLimiter"
+          }
+        ]
       },
       "d1_databases": [],
       "observability": {
