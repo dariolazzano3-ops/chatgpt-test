@@ -78,8 +78,10 @@ assert.equal(webById.get('framer-server-api').availability, 'connected_staging_r
 assert.equal(webById.get('framer-server-api').staging_write_verified, false);
 assert.equal(webById.get('framer-server-api').publish_verified, false);
 assert.equal(webById.get('lovable-github').central_connection_required, false);
+assert.equal(webById.get('lovable-github').account_connection_required, true);
 assert.equal(webById.get('webflow-api').availability, 'operator_gate');
-assert.equal(webById.get('webflow-api').paid_plan_required, false);
+assert.equal(webById.get('webflow-api').paid_plan_required, true);
+assert.equal(webById.get('webflow-api').read_only_connection_paid_plan_required, false);
 
 const automation = automationProviderStrategy();
 assert.equal(automation.primary_external_runtime, 'make-core');
