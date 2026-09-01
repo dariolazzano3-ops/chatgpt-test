@@ -1,0 +1,48 @@
+{
+  "schema": "aurentara.hamyren-private-preview.v1",
+  "product": {
+    "name": "HAMYREN",
+    "tagline": "Your Personal Business AI",
+    "maker": "AURENTARA SYSTEMS",
+    "customer_scope": "B2B_ONLY_V1_REVIEW_PENDING"
+  },
+  "purpose": "protected-private-prelaunch-productization-preview",
+  "environment": "private-preview",
+  "technical_source_of_truth": "factory-control-existing-customer-product-architecture",
+  "runtime_rebuilt": false,
+  "operator_control_plane_rebuilt": false,
+  "synthetic_demo_data_only": true,
+  "browser_demo_persistence": "memory-only-no-local-storage",
+  "external_network_requests": false,
+  "real_customer_data": false,
+  "real_customer_ai_processing": false,
+  "public_customer_surface_active": false,
+  "billing_active": false,
+  "stripe_active": false,
+  "checkout_active": false,
+  "paid_provider_calls": false,
+  "production_deploy": false,
+  "domain_or_dns_change": false,
+  "variable_cost_limit_eur": 0,
+  "free_business_question_limit": 5,
+  "automatic_account_creation": false,
+  "automatic_subscription_activation": false,
+  "legal_privacy_review_complete": false,
+  "pricing_reference": {
+    "free_starter_eur_month": 0,
+    "founder_launch_reference_eur_month": 19.9,
+    "standard_candidate_eur_month": 24.9,
+    "currently_sold": false
+  },
+  "preview_surfaces": [
+    "product-presentation",
+    "minimal-business-intake",
+    "five-free-questions",
+    "account-handoff",
+    "memory-goals-decisions",
+    "usage-and-plan",
+    "pricing-and-upgrade-gate",
+    "trust-and-privacy",
+    "b2b-eligibility-review-surface"
+  ]
+}

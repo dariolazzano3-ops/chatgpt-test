@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="theme-color" content="#090a0e" />
+  <meta name="description" content="Protected synthetic product experience for HAMYREN by AURENTARA SYSTEMS." />
+  <title>HAMYREN · Product Experience · Private Preview</title>
+  <link rel="stylesheet" href="./hamyren.css" />
+</head>
+<body class="product-body">
+  <div class="product-shell">
+    <aside class="product-side">
+      <a class="product-brand" href="./index.html"><strong>HAMYREN</strong><small>YOUR PERSONAL BUSINESS AI</small></a>
+      <nav class="product-nav" data-product-nav aria-label="HAMYREN Product Navigation">
+        <button class="active" data-view-target="home"><span>01</span>Overview</button>
+        <button data-view-target="ask"><span>02</span>Business AI</button>
+        <button data-view-target="memory"><span>03</span>Memory</button>
+        <button data-view-target="goals"><span>04</span>Goals</button>
+        <button data-view-target="decisions"><span>05</span>Decisions</button>
+        <button data-view-target="usage"><span>06</span>Usage & Plan</button>
+        <button data-view-target="privacy"><span>07</span>Privacy & Trust</button>
+      </nav>
+      <div class="side-bottom"><strong>PRIVATE PRELAUNCH</strong><p>Local synthetic simulation. No provider call, no persistence, no billing.</p></div>
+    </aside>
+
+    <main class="product-main">
+      <header class="product-topbar"><div class="trail"><b>HAMYREN</b> / <span data-current-view>Overview</span></div><div style="display:flex;align-items:center;gap:10px"><span class="mode-pill"><i></i>Public mode off</span><button class="mobile-product-menu" type="button" data-mobile-product-menu>Menu</button></div></header>
+      <nav class="product-mobile-nav" data-mobile-nav aria-label="Mobile HAMYREN Navigation">
+        <button class="active" data-view-target="home">Overview</button><button data-view-target="ask">Business AI</button><button data-view-target="memory">Memory</button><button data-view-target="goals">Goals</button><button data-view-target="decisions">Decisions</button><button data-view-target="usage">Usage & Plan</button><button data-view-target="privacy">Privacy & Trust</button>
+      </nav>
+
+      <div class="product-content">
+        <section class="view active" data-view="home">
+          <div class="product-hero"><p class="eyebrow">PRIVATE PRODUCT EXPERIENCE</p><h1>Your business, remembered.</h1><p>Diese Preview übersetzt die bestehende HAMYREN-Architektur in die Kundenerfahrung. Sie simuliert nur lokale, synthetische Zustände und sendet keine Daten.</p></div>
+          <div class="snapshot-grid"><div class="snapshot"><span>Business context</span><strong data-snapshot-business>No business loaded</strong></div><div class="snapshot"><span>Free questions</span><strong><b data-snapshot-remaining>5</b> remaining</strong></div><div class="snapshot"><span>Current plan</span><strong>Free · Starter</strong></div><div class="snapshot"><span>Processing mode</span><strong>Local preview only</strong></div></div>
+          <div class="workspace-card"><span class="eyebrow">START HERE</span><h2 style="font-size:30px;letter-spacing:-.04em;margin:9px 0">Give HAMYREN just enough context to be useful.</h2><p style="color:#8f95a1;max-width:680px;font-size:12px">Der echte Journey-Contract verlangt nur vier Pflichtangaben plus eine optionale Region. In dieser Preview bleiben alle Eingaben im Arbeitsspeicher des Browsers.</p><div class="hero-actions"><button class="button button-primary" type="button" data-go-ask>Start 5 free questions →</button><button class="button" type="button" data-load-synthetic>Load synthetic example</button></div></div>
+        </section>
+
+        <section class="view" data-view="ask">
+          <div class="product-hero"><p class="eyebrow">BUSINESS AI</p><h1>Frag HAMYREN.</h1><p>Dein Business-Kontext bleibt sichtbar. Die Preview simuliert Antworten deterministisch und lokal, damit der Produktfluss ohne echte AI-Verarbeitung getestet werden kann.</p></div>
+
+          <div class="onboarding-card" data-intake-panel>
+            <div class="stepper"><i class="current"></i><i></i><i></i></div>
+            <span class="eyebrow">STEP 01 · MINIMAL BUSINESS INTAKE</span><h2 style="font-size:28px;letter-spacing:-.035em;margin:8px 0 20px">Woran arbeitest du gerade?</h2>
+            <form data-intake-form>
+              <div class="form-grid">
+                <div class="field"><label for="preview-name">Dein Name</label><input id="preview-name" name="name" maxlength="120" placeholder="Mara" required /><span class="field-hint">Synthetic preview data only.</span></div>
+                <div class="field"><label for="preview-business">Unternehmen oder Idee</label><input id="preview-business" name="business" maxlength="240" placeholder="Studio Nord" required /></div>
+                <div class="field"><label for="preview-industry">Branche</label><input id="preview-industry" name="industry" maxlength="160" placeholder="Creative Services" required /></div>
+                <div class="field"><label for="preview-region">Land / Region · optional</label><input id="preview-region" name="region" maxlength="160" placeholder="Deutschland" /></div>
+                <div class="field full"><label for="preview-objective">Aktuelles Business-Ziel</label><textarea id="preview-objective" name="objective" maxlength="600" placeholder="Mehr qualifizierte Anfragen gewinnen, ohne den Vertrieb unnötig kompliziert zu machen." required></textarea></div>
+              </div>
+              <div class="form-actions"><span class="local-note">Nothing is uploaded, persisted or sent. Do not enter real customer information.</span><div style="display:flex;gap:8px"><button class="button" type="button" data-fill-synthetic>Use synthetic example</button><button class="button button-primary" type="submit">Continue →</button></div></div>
+            </form>
+          </div>
+
+          <div data-question-panel hidden>
+            <div class="question-layout">
+              <div class="question-stage">
+                <div class="question-count"><span>Free business questions</span><strong><span data-question-used>0</span> / 5</strong></div><div class="question-meter"><span data-question-meter></span></div>
+                <div class="conversation" data-conversation><div class="bubble ai"><span class="meta">HAMYREN · Preview Simulation</span><span data-welcome-copy>Business context loaded. What would you like to work on first?</span></div></div>
+                <div class="prompt-row"><button class="prompt-chip" type="button" data-prompt="Was wäre für mein aktuelles Ziel der sinnvollste erste Schritt?">First priority</button><button class="prompt-chip" type="button" data-prompt="Welche Schwachstelle sollte ich zuerst prüfen?">Find a bottleneck</button><button class="prompt-chip" type="button" data-prompt="Welche Entscheidung sollte ich diese Woche treffen?">Next decision</button></div>
+                <form class="question-composer" data-question-form><textarea maxlength="700" name="question" placeholder="Ask about your business…" required></textarea><button class="button button-primary" type="submit">Ask HAMYREN ↑</button></form>
+              </div>
+              <aside class="context-rail"><div class="rail-card"><span>Business</span><strong data-context-business>—</strong></div><div class="rail-card"><span>Industry</span><strong data-context-industry>—</strong></div><div class="rail-card"><span>Current goal</span><strong data-context-objective>—</strong></div><div class="rail-card"><span>Remaining</span><strong><b data-context-remaining>5</b> free questions</strong></div></aside>
+            </div>
+          </div>
+
+          <div class="handoff" data-handoff hidden>
+            <span class="eyebrow">5 / 5 COMPLETE · EXPLICIT HANDOFF</span><h2>Keep the context. Build the workspace.</h2><p>Der freie Einstieg ist abgeschlossen. Ein echtes HAMYREN-Konto würde jetzt erst nach einer bewussten Account- und Persistent-Memory-Entscheidung entstehen. Diese Preview erstellt kein Konto.</p>
+            <div style="margin-top:20px"><span class="review-flag">B2B eligibility · review copy</span></div>
+            <div class="eligibility">
+              <label class="checkline"><input type="checkbox" data-eligibility /> <span>Ich handle für ein Unternehmen bzw. in Ausübung einer gewerblichen oder selbstständigen beruflichen Tätigkeit. <b>Finale juristische Formulierung ausstehend.</b></span></label>
+              <label class="checkline"><input type="checkbox" data-eligibility /> <span>HAMYREN wird ausschließlich für geschäftliche Zwecke genutzt. <b>Finale juristische Formulierung ausstehend.</b></span></label>
+              <label class="checkline"><input type="checkbox" data-eligibility /> <span>Ich möchte den Übergang in einen persistenten Business-Workspace ausdrücklich starten. <b>Preview only.</b></span></label>
+            </div>
+            <div class="hero-actions"><button class="button button-primary" type="button" data-account-gate disabled>Continue to account setup →</button><button class="button" type="button" data-view-shortcut="memory">Review what HAMYREN knows</button></div>
+          </div>
+        </section>
+
+        <section class="view" data-view="memory">
+          <div class="product-hero"><p class="eyebrow">TRANSPARENCY</p><h1>Was weiß HAMYREN?</h1><p>Memory wird als sichtbarer Produktbereich behandelt. Die Preview zeigt nur synthetische, lokal erzeugte Business-Fakten.</p></div>
+          <div class="memory-list" data-memory-list><div class="memory-item"><span class="meta">No context yet</span><h3>Start the 5-question experience</h3><p>Nach dem Minimal Intake erscheinen hier die synthetischen Preview-Fakten.</p></div></div>
+        </section>
+
+        <section class="view" data-view="goals">
+          <div class="product-hero"><p class="eyebrow">DIRECTION</p><h1>Goals.</h1><p>Ziele geben Business-Fragen Richtung. Das aktuelle Ziel aus dem Intake wird in der Preview transparent als Context-Objekt gezeigt.</p></div>
+          <div class="memory-list" data-goal-list><div class="memory-item"><span class="meta">No goal loaded</span><h3>Your current objective will appear here.</h3><p>Use the synthetic onboarding to populate this view.</p></div></div>
+        </section>
+
+        <section class="view" data-view="decisions">
+          <div class="product-hero"><p class="eyebrow">DECISION MEMORY</p><h1>Decisions.</h1><p>Eine persönliche Business AI sollte nachvollziehen können, welche Entscheidungen bereits gefallen sind. In V1 ist dieser Bereich als eigene Customer Surface vorgesehen.</p></div>
+          <div class="memory-list" data-decision-list><div class="memory-item"><span class="meta">Preview state</span><h3>No confirmed decisions yet.</h3><p>In der Simulation wird nach dem Fragen-Flow ein Beispiel für eine bewusste Business-Entscheidung gezeigt.</p></div></div>
+        </section>
+
+        <section class="view" data-view="usage">
+          <div class="product-hero"><p class="eyebrow">FAIR USE · PLAN ARCHITECTURE</p><h1>Usage & Plan.</h1><p>Compute Units sind Produkt-Fair-Use-Einheiten, nicht Euro-Beträge. Billing und Checkout sind in diesem Preview-Stand geschlossen.</p></div>
+          <div class="usage-grid"><div class="usage-card"><span class="eyebrow">FREE · STARTER</span><div class="big-number"><span data-usage-spent>0</span><small style="font-size:12px;color:#6f7682"> / 20 units</small></div><div class="usage-bar"><span data-usage-bar></span></div><p style="font-size:11px;color:#858b97">Preview questions used: <b data-usage-questions>0</b> · Variable provider cost: <b>€0.00</b></p></div><div class="usage-card"><span class="eyebrow">UPGRADE PATH</span><h2 style="font-size:25px;letter-spacing:-.035em">Founder · €19,90/month</h2><p style="font-size:11px;color:#858b97">Launch reference. Planned, not currently sold. 400 fair-use Compute Units plus premium entitlement family.</p><button class="button button-blue" type="button" data-gated-upgrade>Preview upgrade →</button></div></div>
+          <div class="pricing-grid" style="margin-top:14px"><article class="plan"><span class="plan-label">Free · Starter</span><div class="price">€0</div><div class="plan-note">20 units · starter feature family.</div><ul class="features"><li>Chat & history</li><li>Memory correction</li><li>Goals & decisions</li></ul></article><article class="plan featured"><span class="plan-label">Founder</span><div class="price">€19,90 <small>/ month</small></div><div class="plan-note">Launch reference · not currently sold · 400 units.</div><ul class="features"><li>Longitudinal memory</li><li>Trusted research eligibility</li><li>Priority context</li></ul><button class="button" type="button" data-gated-upgrade>Upgrade preview</button></article><article class="plan"><span class="plan-label">Standard Candidate</span><div class="price">€24,90 <small>/ month</small></div><div class="plan-note">Long-term candidate · not a public launch plan · 500 units.</div><ul class="features"><li>Premium feature family</li><li>Bounded fair use</li><li>No unlimited compute claim</li></ul></article></div>
+        </section>
+
+        <section class="view" data-view="privacy">
+          <div class="product-hero"><p class="eyebrow">PRIVACY & TRUST</p><h1>Trust should be inspectable.</h1><p>Diese Preview zeigt Produktzustände, keine Compliance-Zertifizierung. Finale Legal/Privacy-Abnahme bleibt ein separater Human Gate.</p></div>
+          <div class="privacy-grid"><article class="privacy-card"><span class="eyebrow">MEMORY CONTROL</span><h3>Know what is remembered.</h3><p>Der Customer Surface Contract sieht einen sichtbaren Memory-Bereich und explizit bestätigte Korrekturen vor.</p><button class="button" type="button" data-view-shortcut="memory">Open Memory</button></article><article class="privacy-card"><span class="eyebrow">SEPARATION</span><h3>Customer ≠ Operator.</h3><p>Die private AURENTARA Operator Control Plane ist eine getrennte Runtime- und Namespace-Grenze und gehört nicht in diese Experience.</p></article><article class="privacy-card"><span class="eyebrow">THIS PREVIEW</span><h3>No network, no persistence.</h3><p>Die statische Preview nutzt keine Fetch-Aufrufe, kein LocalStorage, keine Cookies und keine externen APIs. Die Parent-CSP setzt zusätzlich connect-src 'none'.</p></article><article class="privacy-card"><span class="eyebrow">LEGAL STATUS</span><h3>Review prepared, not approved.</h3><p>B2B-only V1 ist dokumentierter Produktscope. Finale Legal/Privacy-Abnahme, Retention, Provider-Verträge und exakte Eligibility-Copy bleiben Human-Review-Themen.</p></article></div>
+          <div class="state-table"><div class="state-row"><span>public_customer_surface_active</span><b class="false">FALSE</b></div><div class="state-row"><span>real_customer_ai_processing_active</span><b class="false">FALSE</b></div><div class="state-row"><span>real_customer_data</span><b class="false">FALSE</b></div><div class="state-row"><span>billing_active / stripe_active</span><b class="false">FALSE</b></div><div class="state-row"><span>legal_privacy_review_complete</span><b class="false">FALSE</b></div><div class="state-row"><span>operator_access</span><b class="false">FALSE</b></div><div class="state-row"><span>variable provider cost</span><b>€0</b></div></div>
+          <div class="hero-actions"><a class="button" href="./index.html">Back to product presentation</a></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <script src="./hamyren.js"></script>
+</body>
+</html>
