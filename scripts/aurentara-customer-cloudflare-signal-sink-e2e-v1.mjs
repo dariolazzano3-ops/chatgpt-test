@@ -36,11 +36,7 @@ await access(wrangler);
 let stdout = '';
 let stderr = '';
 let tailClosed = false;
-const tail = spawn(wrangler, [
-  'tail', scriptName,
-  '--format', 'json',
-  '--search', 'aurentara.customer.observability'
-], {
+const tail = spawn(wrangler, ['tail', scriptName, '--format', 'json'], {
   env: {
     ...process.env,
     CLOUDFLARE_API_TOKEN: token,
@@ -50,7 +46,7 @@ const tail = spawn(wrangler, [
 });
 tail.stdout.setEncoding('utf8');
 tail.stderr.setEncoding('utf8');
-tail.stdout.on('data', (chunk) => { stdout += chunk; if (stdout.length > 500000) stdout = stdout.slice(-500000); });
+tail.stdout.on('data', (chunk) => { stdout += chunk; if (stdout.length > 1000000) stdout = stdout.slice(-1000000); });
 tail.stderr.on('data', (chunk) => { stderr += chunk; if (stderr.length > 200000) stderr = stderr.slice(-200000); });
 tail.on('close', () => { tailClosed = true; });
 
@@ -64,11 +60,7 @@ for (let i = 0; i < 30; i += 1) {
   await sleep(500);
 }
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_BEFORE_PROBE');
-
-// Keep the narrow console filter active long enough for Cloudflare's realtime tail
-// to leave any temporary sampling mode before the synthetic canary burst.
-await sleep(60000);
-assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_DURING_FILTER_SETTLE');
+await sleep(1500);
 
 const probeUrl = new URL(`https://${scriptName}.${subdomain}.workers.dev/customer/api/manifest`);
 assert.equal(probeUrl.protocol, 'https:');
@@ -76,6 +68,7 @@ assert.equal(probeUrl.hostname, `${scriptName}.${subdomain}.workers.dev`);
 
 const statusCounts = new Map();
 let surfaceRemainedOff = true;
+let exactClosedWorkerResponses = 0;
 for (let i = 0; i < probeCount; i += 1) {
   const response = await fetch(probeUrl, {
     method: 'GET',
@@ -89,10 +82,14 @@ for (let i = 0; i < probeCount; i += 1) {
   statusCounts.set(response.status, (statusCounts.get(response.status) || 0) + 1);
   let body = null;
   try { body = await response.json(); } catch {}
+  if (body?.error === 'CUSTOMER_SURFACE_NOT_ACTIVATED' && body?.mode === 'off' && body?.public_active === false) {
+    exactClosedWorkerResponses += 1;
+  }
   if (body?.public_active === true || response.status < 400) surfaceRemainedOff = false;
   if ((i + 1) % 50 === 0) await sleep(100);
 }
 assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
+assert.equal(exactClosedWorkerResponses > 0, true, 'CUSTOMER_WORKER_CLOSED_RESPONSE_NOT_PROVEN');
 
 let signalSeen = false;
 let requestEventSeen = false;
@@ -116,20 +113,39 @@ if (!tailClosed) {
   if (!tailClosed) tail.kill('SIGKILL');
 }
 
+const diagnostic = {
+  schema: 'aurentara.customer.cloudflare-signal-sink-diagnostic.v1',
+  probe_request_count: probeCount,
+  probe_status_counts: Object.fromEntries([...statusCounts.entries()].sort(([a], [b]) => a - b)),
+  exact_closed_worker_response_count: exactClosedWorkerResponses,
+  customer_surface_remained_off: surfaceRemainedOff,
+  worker_tail_connected: true,
+  tail_ready_banner_seen: tailReady,
+  observability_channel_seen: signalSeen,
+  customer_request_event_seen: requestEventSeen,
+  raw_tail_returned: false,
+  request_headers_returned: false,
+  account_id_returned: false,
+  token_returned: false,
+  real_customer_data: false,
+  variable_cost_eur: 0
+};
+console.log(JSON.stringify(diagnostic, null, 2));
+
 assert.equal(signalSeen, true, 'CLOUDFLARE_OBSERVABILITY_CHANNEL_NOT_SEEN_IN_LIVE_TAIL');
 assert.equal(requestEventSeen, true, 'CLOUDFLARE_CUSTOMER_REQUEST_EVENT_NOT_SEEN_IN_LIVE_TAIL');
 
-const evidence = {
+console.log(JSON.stringify({
   schema: 'aurentara.customer.cloudflare-signal-sink-e2e.v1',
   observed_at: new Date().toISOString(),
   status: 'PASS',
   worker_tail_connected: true,
-  tail_console_search_filter_applied: true,
-  tail_sampling_settle_seconds: 60,
+  tail_filtering: 'local_only',
   tail_ready_banner_seen: tailReady,
   probe_route_class: 'closed_customer_manifest',
   probe_request_count: probeCount,
-  probe_status_counts: Object.fromEntries([...statusCounts.entries()].sort(([a], [b]) => a - b)),
+  probe_status_counts: diagnostic.probe_status_counts,
+  exact_closed_worker_response_count: exactClosedWorkerResponses,
   customer_surface_remained_off: true,
   observability_channel_seen: true,
   customer_request_event_seen: true,
@@ -142,5 +158,4 @@ const evidence = {
   paid_provider_calls: false,
   production_deploy: false,
   variable_cost_eur: 0
-};
-console.log(JSON.stringify(evidence, null, 2));
+}, null, 2));
