@@ -1,5 +1,41 @@
 const clean = (value, max = 240) => String(value || '').trim().slice(0, max);
 
+export const HAMYREN_AURENTARA_CAPABILITY_BOUNDARY_V1 = Object.freeze({
+  schema_version: 'aurentara.hamyren-capability-boundary.v1',
+  hamyren: Object.freeze({
+    role: 'personal_business_ai',
+    responsibilities: Object.freeze([
+      'business_understanding',
+      'business_memory',
+      'analysis',
+      'diagnosis',
+      'strategy',
+      'planning',
+      'decision_support',
+      'requirements',
+      'implementation_specification'
+    ])
+  }),
+  self_service: Object.freeze({
+    role: 'standardized_low_complexity_execution',
+    eligibility_separate_from_customer_availability: true,
+    customer_activation_implicit: false
+  }),
+  aurentara_systems: Object.freeze({
+    role: 'professional_implementation_and_business_systems_engine',
+    responsibilities: Object.freeze([
+      'complex_systems',
+      'custom_architecture',
+      'integration',
+      'migration',
+      'critical_production_execution',
+      'multi_system_transformation'
+    ])
+  }),
+  evolution_rule: 'move_capabilities_upward_through_policy_metadata_maturity_and_risk_thresholds_not_duplicate_architecture',
+  production_deploy: false
+});
+
 export function defineTenantPlan(input = {}) {
   const tenantId = clean(input.tenant_id, 160);
   if (!tenantId) return { ok: false, error: 'TENANT_ID_REQUIRED' };
