@@ -1,0 +1,68 @@
+name: RIOSYSTEMS Zero-Cost Staging Deploy
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'wrangler.jsonc'
+      - 'scripts/staging-deploy-guard.mjs'
+      - 'scripts/staging-deploy-guard-smoke.mjs'
+      - 'scripts/staging-worker-runtime-bindings-v1.mjs'
+      - 'scripts/staging-worker-runtime-bindings-v1-smoke.mjs'
+      - '.github/workflows/riosystems-staging-deploy.yml'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Exact confirmation for isolated zero-cost staging'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node scripts/staging-deploy-guard-smoke.mjs
+      - run: node scripts/staging-worker-runtime-bindings-v1-smoke.mjs
+      - run: npm run deploy:staging:dry-run
+
+  deploy-staging:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: riosystems-staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY }}
+      RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME: riosystems-staging
+      RIOSYSTEMS_STAGING_BINDINGS_APPROVED: 'true'
+      RIOSYSTEMS_STAGING_DEPLOY_APPROVED: 'true'
+      RIOSYSTEMS_ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+      RIOSYSTEMS_STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: factory-control
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Verify canonical ref and zero-cost approval
+        run: |
+          test "$GITHUB_REF_NAME" = "factory-control"
+          test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
+          test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
+          test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
+      - run: node scripts/staging-worker-runtime-bindings-v1-smoke.mjs
+      - run: npm run deploy:staging:dry-run
+      - run: npm run deploy:staging
+      - name: Restore private operator and durable runtime bindings without logging values
+        run: node scripts/staging-worker-runtime-bindings-v1.mjs
