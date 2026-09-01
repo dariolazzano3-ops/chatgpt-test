@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createGermanyEuOfficialRetrievalBinding } from '../src/customer-product/production-live-bindings-v1.js';
-import { verifyAlertSignalPathEvidence } from '../src/customer-product/launch-gate-audit-v1.js';
+import {
+  verifyAlertSignalPathEvidence,
+  verifyObservabilityNotificationEvidence
+} from '../src/customer-product/launch-gate-audit-v1.js';
 
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
@@ -72,10 +75,15 @@ try {
 }
 
 let signalEvidence = {};
+let notificationEvidence = {};
 try {
   signalEvidence = JSON.parse(await readFile('/tmp/aurentara-customer-observability-evidence.json', 'utf8'));
 } catch {}
+try {
+  notificationEvidence = JSON.parse(await readFile('/tmp/aurentara-observability-notification.json', 'utf8'));
+} catch {}
 const signalVerification = verifyAlertSignalPathEvidence(signalEvidence);
+const notificationVerification = verifyObservabilityNotificationEvidence(notificationEvidence);
 
 const evidence = {
   schema: 'aurentara.customer.cloudflare-live-gate-evidence.v1',
@@ -95,9 +103,12 @@ const evidence = {
   official_source_count: officialSourceCount,
   observability_binding_live: settings.ok && observabilityFlagLive && workerObservabilityEnabled,
   alert_signal_path_verified: signalVerification.ok,
+  notification_policy_verified: notificationVerification.ok,
   alert_signal_path_evidence_available: Object.keys(signalEvidence).length > 0,
-  alert_signal_path_evidence_freshness_required: signalVerification.freshness_required,
+  notification_policy_evidence_available: Object.keys(notificationEvidence).length > 0,
+  observability_evidence_freshness_required: true,
   alert_signal_path_evidence_failure_count: signalVerification.failures.length,
+  notification_policy_evidence_failure_count: notificationVerification.failures.length,
   binding_values_returned: false,
   authorization_header_returned: false,
   account_id_returned: false,
