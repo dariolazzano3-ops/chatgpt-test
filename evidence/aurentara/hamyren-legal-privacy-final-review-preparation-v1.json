@@ -1,0 +1,31 @@
+{
+  "schema": "hamyren.legal-privacy.final-review-preparation-evidence.v1",
+  "prepared_at": "2026-09-01T00:00:00Z",
+  "source_commit": "e5ca8b05eb6d45fc77be83feaedb1fde1058b333",
+  "product": {
+    "name": "HAMYREN",
+    "descriptor": "Your Personal Business AI",
+    "byline": "by AURENTARA SYSTEMS"
+  },
+  "jurisdiction_baseline": [
+    "European Union",
+    "Germany"
+  ],
+  "artifacts": [
+    "docs/HAMYREN_LEGAL_PRIVACY_FINAL_REVIEW_PREPARATION_V1.md",
+    "docs/legal/HAMYREN_DATENSCHUTZERKLAERUNG_REVIEW_DRAFT_V1.md",
+    "docs/legal/HAMYREN_NUTZUNGSBEDINGUNGEN_REVIEW_DRAFT_V1.md",
+    "src/customer-product/hamyren-legal-privacy-final-review-preparation-v1.js"
+  ],
+  "preparation_complete": true,
+  "unresolved_human_decision_count": 16,
+  "qualified_human_review_required": true,
+  "final_legal_acceptance_recorded": false,
+  "legal_privacy_review_complete": false,
+  "customer_surface_active": false,
+  "public_customer_surface_active": false,
+  "real_customer_ai_processing_approved": false,
+  "real_customer_data": false,
+  "paid_provider_calls": 0,
+  "variable_cost_eur": 0
+}
