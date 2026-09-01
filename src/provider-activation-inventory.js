@@ -1,10 +1,13 @@
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
+import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 
 const VERIFIED_AT = '2026-08-28';
 const OPENAI_CONNECTION_EVIDENCE = openAiStagingConnectionEvidence();
 const OPENAI_CONNECTED_STAGING = isOpenAiStagingConnected();
+const FRAMER_CONNECTION_EVIDENCE = framerStagingConnectionEvidence();
+const FRAMER_CONNECTED_STAGING = isFramerStagingConnected();
 
 const strategic = (input = {}) => ({
   strategic_state: 'SELECTED',
@@ -23,14 +26,37 @@ const strategic = (input = {}) => ({
 });
 
 const PROVIDERS = [
-  strategic({
+  {
     id: 'framer-server-api',
     name: 'Framer',
     category: 'web_design',
     role: 'PRIMARY VISUAL DESIGN / EXPERIENCE',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: FRAMER_CONNECTED_STAGING ? 'CONNECTION_VERIFIED_STAGING' : 'NOT_CONNECTED',
+    connection_state: FRAMER_CONNECTED_STAGING ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+    account_state: FRAMER_CONNECTED_STAGING ? 'READY' : 'NOT_VERIFIED',
+    project_binding_state: FRAMER_CONNECTED_STAGING ? 'PRESENT' : 'NOT_VERIFIED',
+    credential_state: FRAMER_CONNECTED_STAGING ? 'PRESENT_VALID' : 'NOT_VERIFIED',
+    restrictions: ['SPECIALIST_ONLY', 'MUTATING_EXECUTION_APPROVAL_REQUIRED', 'STAGING_WRITE_NOT_VERIFIED', 'PUBLISH_NOT_VERIFIED', 'PRODUCTION_DISABLED'],
+    runtime_eligible: FRAMER_CONNECTED_STAGING,
     roles: ['visual_design', 'web_experience'],
-    capabilities: ['web.design', 'web.experience', 'web.publish']
-  }),
+    capabilities: ['web.design', 'web.experience', 'web.publish'],
+    external_write: true,
+    credentials_required: true,
+    account_binding_required: true,
+    cost_mode: 'pricing_reverification_required',
+    free_tier_confirmed: true,
+    connection_evidence: FRAMER_CONNECTION_EVIDENCE,
+    staging_write_verified: false,
+    publish_verified: false,
+    routing_scope: 'specialist_only',
+    mutating_execution_approval_required: true,
+    automatic_paid_actions: false,
+    production_eligible: false,
+    pricing_evidence: 'https://www.framer.com/developers/server-api-faq',
+    verified_at: '2026-09-01'
+  },
   strategic({
     id: 'base44',
     name: 'Base44',
