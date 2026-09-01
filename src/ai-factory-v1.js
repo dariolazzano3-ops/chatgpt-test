@@ -58,6 +58,8 @@ export function aiFactoryV1Manifest() {
     privacy_routing: true,
     observability: 'redacted_metadata_only',
     deterministic_zero_cost_provider: true,
+    explicit_customer_processing_runtime_authorization: true,
+    customer_processing_default_off: true,
     automation_capability: 'automation.ai_step',
     web_capabilities: ['web.site_architecture', 'web.copy', 'web.seo_metadata', 'web.faq', 'web.service_descriptions', 'web.content_refinement'],
     business_capabilities: ['business.lead_classification', 'business.crm_enrichment', 'business.summary', 'business.next_action'],
@@ -233,8 +235,10 @@ function estimateTokens(task) {
   return { input_tokens: inputTokens, output_tokens: outputTokens };
 }
 
-function privacyCompatible(provider, task) {
-  if (['customer', 'sensitive'].includes(task.data_sensitivity) && AI_FACTORY_V1_SAFETY.real_customer_data === false) return false;
+function privacyCompatible(provider, task, runtimePolicy = {}) {
+  if (['customer', 'sensitive'].includes(task.data_sensitivity)
+    && AI_FACTORY_V1_SAFETY.real_customer_data === false
+    && runtimePolicy.real_customer_data_approved !== true) return false;
   return Array.isArray(provider.data_classes) && provider.data_classes.includes(task.data_sensitivity);
 }
 
@@ -245,7 +249,7 @@ function providerReady(provider, task, logicalModel, runtimePolicy = {}) {
   if (!provider?.capabilities?.includes(task.task_type)) blockers.push('AI_PROVIDER_CAPABILITY_MISMATCH');
   if (!provider?.logical_models?.includes(logicalModel)) blockers.push('AI_PROVIDER_MODEL_MISMATCH');
   if (!provider?.latency_classes?.includes(task.latency_class)) blockers.push('AI_PROVIDER_LATENCY_MISMATCH');
-  if (!privacyCompatible(provider, task)) blockers.push('AI_PROVIDER_PRIVACY_MISMATCH');
+  if (!privacyCompatible(provider, task, runtimePolicy)) blockers.push('AI_PROVIDER_PRIVACY_MISMATCH');
   if (provider.requires_credential && !provider.credential_present) blockers.push('AI_PROVIDER_CREDENTIAL_REQUIRED');
   if (provider.paid && !provider.paid_execution_approved) blockers.push('AI_PROVIDER_PAID_APPROVAL_REQUIRED');
   if (provider.paid && runtimePolicy.variable_cost_ceiling_eur <= 0) blockers.push('AI_VARIABLE_COST_CEILING_ZERO');
@@ -259,7 +263,10 @@ export function routeAIModelAndProvider(task, providers = [], runtimePolicy = {}
     Number.isFinite(runtimePolicy.variable_cost_ceiling_eur) ? Math.max(0, runtimePolicy.variable_cost_ceiling_eur) : AI_FACTORY_V1_SAFETY.variable_cost_ceiling_eur,
     task.cost_limit
   );
-  const policy = { variable_cost_ceiling_eur: variableCostCeiling };
+  const policy = {
+    variable_cost_ceiling_eur: variableCostCeiling,
+    real_customer_data_approved: runtimePolicy.real_customer_data_approved === true
+  };
   const preferred = task.preferred_provider;
   let candidates = providers.map((provider) => ({ provider, readiness: providerReady(provider, task, logicalModel, policy) }));
   if (preferred) candidates = [...candidates].sort((a, b) => (a.provider.id === preferred ? -1 : b.provider.id === preferred ? 1 : 0));
@@ -396,13 +403,30 @@ export async function runAIFactoryTask(input = {}, options = {}) {
   const trace = [];
   if (!validation.ok) return { ok: false, ai_run_id: aiRunId, status: 'FAILED', error: 'AI_TASK_CONTRACT_INVALID', validation_errors: validation.errors, trace, production: false };
   const task = validation.normalized;
-  if (options.production === true) return { ok: false, ai_run_id: aiRunId, status: 'BLOCKED', error: 'PRODUCTION_EXECUTION_DISABLED', trace, production: false };
-  if (['customer', 'sensitive'].includes(task.data_sensitivity) && AI_FACTORY_V1_SAFETY.real_customer_data === false) {
+  const runtimePolicy = options.runtime_policy && typeof options.runtime_policy === 'object' ? options.runtime_policy : {};
+  const customerData = ['customer', 'sensitive'].includes(task.data_sensitivity);
+  const realCustomerDataApproved = runtimePolicy.real_customer_data_approved === true;
+  const productionExecutionApproved = runtimePolicy.production_execution_approved === true;
+  const paidExecutionApproved = runtimePolicy.paid_execution_approved === true;
+  const runtimeCostCeiling = paidExecutionApproved && Number.isFinite(runtimePolicy.variable_cost_ceiling_eur)
+    ? Math.max(0, Number(runtimePolicy.variable_cost_ceiling_eur))
+    : AI_FACTORY_V1_SAFETY.variable_cost_ceiling_eur;
+
+  if (options.production === true && productionExecutionApproved !== true) {
+    return { ok: false, ai_run_id: aiRunId, status: 'BLOCKED', error: 'PRODUCTION_EXECUTION_DISABLED', trace, production: false };
+  }
+  if (customerData && AI_FACTORY_V1_SAFETY.real_customer_data === false && realCustomerDataApproved !== true) {
+    return { ok: false, ai_run_id: aiRunId, status: 'BLOCKED', error: 'REAL_CUSTOMER_DATA_DISABLED', trace, production: false };
+  }
+  if (options.production === true && customerData && realCustomerDataApproved !== true) {
     return { ok: false, ai_run_id: aiRunId, status: 'BLOCKED', error: 'REAL_CUSTOMER_DATA_DISABLED', trace, production: false };
   }
 
   const providers = Array.isArray(options.providers) ? options.providers : [];
-  const route = routeAIModelAndProvider(task, providers, { variable_cost_ceiling_eur: AI_FACTORY_V1_SAFETY.variable_cost_ceiling_eur });
+  const route = routeAIModelAndProvider(task, providers, {
+    variable_cost_ceiling_eur: runtimeCostCeiling,
+    real_customer_data_approved: realCustomerDataApproved
+  });
   if (!route.ok) return { ok: false, ai_run_id: aiRunId, status: 'BLOCKED', error: route.error, route, trace, production: false };
 
   const providerQueue = [route.provider, ...route.fallback_candidates];
@@ -456,7 +480,7 @@ export async function runAIFactoryTask(input = {}, options = {}) {
         output: execution.output,
         trace,
         redaction: { input_logged: false, prompt_content_logged: false, secrets_logged: false },
-        production: false
+        production: options.production === true
       };
     }
     previousProvider = provider.id;
@@ -474,7 +498,7 @@ export async function runAIFactoryTask(input = {}, options = {}) {
     cost: { actual_provider_cost_eur: totalActualCost, budget_consumed_eur: totalActualCost, budget_remaining_eur: budgetRemaining, variable_cost_ceiling_eur: route.variable_cost_ceiling_eur },
     trace,
     redaction: { input_logged: false, prompt_content_logged: false, secrets_logged: false },
-    production: false
+    production: options.production === true
   };
 }
 
