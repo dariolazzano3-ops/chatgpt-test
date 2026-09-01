@@ -1,0 +1,54 @@
+name: AURENTARA Customer Observability Capability Audit V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs'
+      - '.github/workflows/aurentara-customer-observability-capability-audit-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs'
+      - '.github/workflows/aurentara-customer-observability-capability-audit-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      AURENTARA_CUSTOMER_WORKER_SCRIPT: aurentara-customer-runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install zero-cost test tooling
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax
+        run: |
+          node --check scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs
+      - name: Cloudflare alert capability GET-only audit
+        run: node scripts/aurentara-customer-cloudflare-alert-capability-audit-v1.mjs
+      - name: Read-only active deployment truth and serving route verification
+        run: node scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs
+      - name: Activate and verify native Workers Observability notification routing
+        run: node scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
+      - name: Live Signal to Sink verification
+        run: node scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs
