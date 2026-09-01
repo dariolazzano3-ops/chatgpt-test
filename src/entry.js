@@ -7,7 +7,8 @@ import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
-import { handlePrelaunchCustomerProductSurface } from "./customer-product/prelaunch-security-privacy-v1.js";
+import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
+import { createProductionCustomerAccountSurface } from "./customer-product/production-account-surface-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
 import { createCloudflareCustomerObservabilityBinding } from "./customer-product/production-live-bindings-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
@@ -15,6 +16,12 @@ export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-l
 // The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
 // Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
 void operatorHumanUxFinalManifest;
+
+const productionCustomerAccountSurface = createProductionCustomerAccountSurface();
+const customerLaunchShield = createCustomerLaunchShield({
+  production_surface: productionCustomerAccountSurface,
+  production_runtime_active: true
+});
 
 function operatorUnavailable() {
   return new Response(JSON.stringify({ error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY", private_operator_access_required: true, production_deploy: false }), {
@@ -104,7 +111,7 @@ export default {
         });
         return response;
       }
-      const customerResponse = await handlePrelaunchCustomerProductSurface(request, env, ctx);
+      const customerResponse = await customerLaunchShield.handle(request, env, ctx);
       if (customerResponse) {
         recordCustomerEvent(ctx, env, {
           event_name: customerResponse.status >= 500 ? "customer.request.failed" : "customer.request.completed",
