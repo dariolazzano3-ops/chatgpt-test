@@ -2,9 +2,65 @@ const clone = (value) => structuredClone(value ?? null);
 
 const VERIFIED_AT = '2026-08-28';
 
+const strategic = (input = {}) => ({
+  strategic_state: 'SELECTED',
+  availability: 'AVAILABLE',
+  verification: 'NOT_CONNECTED',
+  restrictions: ['NO_RUNTIME_EVIDENCE', 'NO_PAID_ACTIVATION_DURING_CATALOG_BUILD'],
+  runtime_eligible: false,
+  external_write: false,
+  credentials_required: true,
+  account_binding_required: true,
+  cost_mode: 'pricing_reverification_required',
+  free_tier_confirmed: false,
+  pricing_evidence: null,
+  verified_at: null,
+  ...input
+});
+
 const PROVIDERS = [
+  strategic({
+    id: 'framer-server-api',
+    name: 'Framer',
+    category: 'web_design',
+    role: 'PRIMARY VISUAL DESIGN / EXPERIENCE',
+    roles: ['visual_design', 'web_experience'],
+    capabilities: ['web.design', 'web.experience', 'web.publish']
+  }),
+  strategic({
+    id: 'base44',
+    name: 'Base44',
+    category: 'web_app',
+    role: 'FULL-STACK APP / PORTAL SPECIALIST',
+    roles: ['full_stack_app', 'portal_specialist'],
+    capabilities: ['app.build', 'portal.build', 'web.full_stack']
+  }),
+  strategic({
+    id: 'lovable-github',
+    name: 'Lovable',
+    category: 'web_app',
+    role: 'RAPID BUILD ACCELERATOR',
+    roles: ['rapid_build', 'web_acceleration'],
+    capabilities: ['web.build', 'app.prototype']
+  }),
+  strategic({
+    id: 'webflow-api',
+    name: 'Webflow',
+    category: 'web_design',
+    role: 'WEB SPECIALIST',
+    roles: ['web_specialist'],
+    capabilities: ['web.design', 'web.cms', 'web.publish']
+  }),
   {
     id: 'cloudflare-workers-free',
+    name: 'Cloudflare',
+    category: 'deployment_edge_runtime',
+    role: 'DEPLOYMENT / EDGE / RUNTIME',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'EVIDENCE_DRIVEN',
+    restrictions: ['PRODUCTION_DISABLED', 'EXTERNAL_WRITE_APPROVAL_REQUIRED'],
+    runtime_eligible: true,
     roles: ['staging_compute','web_host','automation_runtime'],
     capabilities: ['web.deploy','automation.run'],
     cost_mode: 'free_tier_hard_fail',
@@ -16,7 +72,54 @@ const PROVIDERS = [
     verified_at: VERIFIED_AT
   },
   {
+    id: 'make-core',
+    name: 'Make',
+    category: 'automation',
+    role: 'PRIMARY AUTOMATION',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'EVIDENCE_DRIVEN',
+    restrictions: ['STAGING_ONLY_UNLESS_SEPARATELY_APPROVED', 'EXTERNAL_WRITE_APPROVAL_REQUIRED'],
+    runtime_eligible: true,
+    roles: ['primary_automation'],
+    capabilities: ['automation.run', 'automation.orchestrate'],
+    cost_mode: 'pricing_reverification_required',
+    free_tier_confirmed: false,
+    external_write: true,
+    credentials_required: true,
+    account_binding_required: true,
+    pricing_evidence: null,
+    verified_at: null
+  },
+  strategic({
+    id: 'activepieces-cloud-free',
+    name: 'Activepieces',
+    category: 'automation',
+    role: 'SECONDARY AUTOMATION',
+    roles: ['secondary_automation'],
+    capabilities: ['automation.run', 'automation.orchestrate'],
+    external_write: true
+  }),
+  strategic({
+    id: 'n8n-client-owned',
+    name: 'n8n',
+    category: 'automation',
+    role: 'SPECIALIST / SELF-HOSTED AUTOMATION',
+    roles: ['specialist_automation', 'self_hosted_automation'],
+    capabilities: ['automation.run', 'automation.self_hosted'],
+    external_write: true,
+    restrictions: ['CLIENT_OWNED_INSTANCE_REQUIRED', 'NO_RUNTIME_EVIDENCE', 'NO_PAID_ACTIVATION_DURING_CATALOG_BUILD']
+  }),
+  {
     id: 'cloudflare-workers-ai-free',
+    name: 'Cloudflare Workers AI',
+    category: 'ai',
+    role: 'LOW-COST / STAGING AI',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'EVIDENCE_DRIVEN',
+    restrictions: ['STAGING_ONLY', 'PAID_FALLBACK_DISABLED'],
+    runtime_eligible: true,
     roles: ['staging_ai'],
     capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'],
     cost_mode: 'free_tier_hard_fail',
@@ -28,7 +131,35 @@ const PROVIDERS = [
     verified_at: VERIFIED_AT
   },
   {
+    id: 'openai-api',
+    name: 'OpenAI',
+    category: 'ai',
+    role: 'PRIMARY QUALITY AI',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'NOT_CONNECTED',
+    restrictions: ['CREDENTIAL_AND_BUDGET_GATE', 'PAID_EXECUTION_APPROVAL_REQUIRED'],
+    runtime_eligible: false,
+    roles: ['premium_ai'],
+    capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'],
+    cost_mode: 'paid_usage',
+    free_tier_confirmed: false,
+    external_write: false,
+    credentials_required: true,
+    account_binding_required: true,
+    pricing_evidence: 'https://openai.com/api/',
+    verified_at: VERIFIED_AT
+  },
+  {
     id: 'supabase-free',
+    name: 'Supabase',
+    category: 'business',
+    role: 'PRIMARY BUSINESS BACKEND / CRM',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'EVIDENCE_DRIVEN',
+    restrictions: ['EXTERNAL_WRITE_APPROVAL_REQUIRED', 'PRODUCTION_DISABLED'],
+    runtime_eligible: true,
     roles: ['database','business_backend','crm_store'],
     capabilities: ['business.configure','business.crm.write','storage.data'],
     cost_mode: 'free_tier_hard_fail',
@@ -41,6 +172,14 @@ const PROVIDERS = [
   },
   {
     id: 'posthog-free',
+    name: 'PostHog',
+    category: 'business_analytics',
+    role: 'PRIMARY ANALYTICS',
+    strategic_state: 'SELECTED',
+    availability: 'AVAILABLE',
+    verification: 'EVIDENCE_DRIVEN',
+    restrictions: ['SYNTHETIC_EVENT_APPROVAL_REQUIRED', 'PRODUCTION_DISABLED'],
+    runtime_eligible: true,
     roles: ['analytics','observability'],
     capabilities: ['web.analytics','business.analytics'],
     cost_mode: 'free_tier_hard_fail',
@@ -50,18 +189,6 @@ const PROVIDERS = [
     account_binding_required: true,
     pricing_evidence: 'https://posthog.com/',
     verified_at: VERIFIED_AT
-  },
-  {
-    id: 'openai-api',
-    roles: ['premium_ai'],
-    capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'],
-    cost_mode: 'paid_usage',
-    free_tier_confirmed: false,
-    external_write: false,
-    credentials_required: true,
-    account_binding_required: true,
-    pricing_evidence: 'https://openai.com/api/',
-    verified_at: VERIFIED_AT
   }
 ];
 
@@ -70,6 +197,7 @@ export function providerActivationInventory() {
     schema: 'riosystems.provider-activation-inventory.v1',
     verified_at: VERIFIED_AT,
     providers: clone(PROVIDERS),
+    strategic_selection_is_not_runtime_connection: true,
     pricing_must_be_reverified_before_activation: true,
     secrets_embedded: false,
     production_deploy: false
@@ -77,7 +205,9 @@ export function providerActivationInventory() {
 }
 
 export function candidatesForCapability(capability, options = {}) {
-  const candidates = PROVIDERS.filter((item) => item.capabilities.includes(capability));
+  const includeStrategicOnly = options.include_strategic_only === true;
+  const candidates = PROVIDERS.filter((item) => item.capabilities.includes(capability))
+    .filter((item) => includeStrategicOnly || item.runtime_eligible !== false);
   const filtered = options.zero_cost_only === true
     ? candidates.filter((item) => item.free_tier_confirmed === true && item.cost_mode === 'free_tier_hard_fail')
     : candidates;
@@ -129,6 +259,8 @@ export function evaluateProviderActivationInventory(input = {}) {
 export function providerActivationInventoryManifest() {
   return {
     version: 'riosystems.provider-activation-inventory.v1',
+    provider_ecosystem_catalog: true,
+    strategic_selection_is_not_runtime_connection: true,
     zero_cost_first: true,
     pricing_reverification_required: true,
     paid_overflow_disabled: true,
