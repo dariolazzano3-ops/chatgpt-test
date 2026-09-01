@@ -7,7 +7,7 @@ import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
-import { handleHardenedCustomerProductSurface } from "./customer-product/abuse-guard-v1.js";
+import { handlePrelaunchCustomerProductSurface } from "./customer-product/prelaunch-security-privacy-v1.js";
 
 // The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
 // Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
@@ -37,9 +37,9 @@ export default {
       if (operatorResponse) return applyOperatorBranding(operatorResponse);
     }
 
-    // Customer Product has its own namespace, public abuse guard and no /operator capability.
+    // Customer Product remains isolated and now passes through the explicit prelaunch/public activation shield.
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
-      const customerResponse = await handleHardenedCustomerProductSurface(request, env, ctx);
+      const customerResponse = await handlePrelaunchCustomerProductSurface(request, env, ctx);
       if (customerResponse) return customerResponse;
     }
 

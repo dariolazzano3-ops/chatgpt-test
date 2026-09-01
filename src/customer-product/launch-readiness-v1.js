@@ -8,6 +8,7 @@ import { customerRedTeamManifest } from './red-team-v1.js';
 import { productionActivationContractsManifest } from './production-activation-contracts-v1.js';
 import { paymentLifecycleManifest } from './payment-lifecycle-v1.js';
 import { dedicatedRuntimeBindingsManifest } from './dedicated-runtime-bindings-v1.js';
+import { customerPrelaunchSecurityPrivacyManifest } from './prelaunch-security-privacy-v1.js';
 
 export const CONTROLLED_LAUNCH_PROFILES_V1 = Object.freeze({
   FREE_CONTROLLED_PILOT: 'FREE_CONTROLLED_PILOT',
@@ -48,6 +49,7 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   const activation = productionActivationContractsManifest();
   const payment = paymentLifecycleManifest();
   const dedicated = dedicatedRuntimeBindingsManifest();
+  const securityPrivacy = customerPrelaunchSecurityPrivacyManifest();
   const contractReady = (inputKey, manifest, manifestKey) => input[inputKey] === undefined ? bool(manifest[manifestKey]) : bool(input[inputKey]);
 
   const gates = [
@@ -80,6 +82,8 @@ export function evaluateControlledLaunchReadiness(input = {}) {
       'Production monitoring needs a redacted event/metric contract before an external sink is connected.', 'Build and test redacted Customer observability events and alert-signal contracts.', activation.version),
     gate('dedicated_customer_runtime_bindings', dedicated.identity_binding_contract_ready && dedicated.durable_store_binding_contract_ready && dedicated.operator_project_reuse_forbidden ? PASS : PREPROD_REQUIRED,
       'Production Customer identity and persistence need provider-specific bindings that enforce a dedicated Customer project and reject Operator data-plane reuse.', 'Build and test dedicated Customer identity/store bindings with explicit Operator-project collision rejection.', dedicated.version),
+    gate('prelaunch_security_privacy_contracts', securityPrivacy.sql_security_contract_verifier_ready && securityPrivacy.consent_ledger_contract_ready && securityPrivacy.business_export_contract_ready && securityPrivacy.deletion_plan_contract_ready && securityPrivacy.launch_shield_contract_ready ? PASS : PREPROD_REQUIRED,
+      'Launch requires technical RLS verification, consent/export/deletion controls and an explicit OFF/prelaunch/public surface shield before external activation.', 'Build and test the Customer prelaunch security/privacy controller and launch shield with synthetic data only.', securityPrivacy.version),
 
     gate('production_customer_identity', bool(input.production_customer_identity_active) ? PASS : OPERATOR_GATE,
       'Guest synthetic identity cannot protect real customer accounts and the dedicated Customer identity project is not activated.', 'Provision/approve the dedicated Customer identity project, configure its credentials/JWKS, then activate and verify authenticated tenant membership. Do not reuse the Operator Supabase project.', null),
@@ -96,9 +100,9 @@ export function evaluateControlledLaunchReadiness(input = {}) {
     gate('production_observability', bool(input.production_observability_active) ? PASS : OPERATOR_GATE,
       'Public operation requires durable error, abuse, cost and availability visibility.', 'Activate the approved Production observability/alert path with customer-data redaction and verify alerts.', null),
     gate('legal_privacy_review', bool(input.legal_privacy_review_complete) ? PASS : OPERATOR_GATE,
-      'Public customer data processing requires reviewed privacy/terms/retention disclosures.', 'Complete the required legal/privacy review for the actual launch configuration and customer data flows.', null),
+      'Technical privacy controls exist, but public customer data processing still requires reviewed privacy/terms/retention disclosures for the actual configuration.', 'Complete the legal/privacy review and approve the final retention/disclosure values for the real launch data flows.', securityPrivacy.version),
     gate('public_customer_surface', bool(input.public_customer_surface_active) ? PASS : OPERATOR_GATE,
-      'The integrated Customer Surface is deliberately dormant by default.', 'Authorize and activate the Customer Surface in Production, including any required domain/DNS/access changes.', null)
+      'The Customer launch shield defaults to OFF and PUBLIC requires explicit activation plus a bound Production runtime.', 'Authorize the PUBLIC Customer mode only after all Production runtime/data/privacy gates pass, including any required domain/DNS/access changes.', securityPrivacy.version)
   ];
 
   if (profile === CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH) {
