@@ -8,7 +8,7 @@ on:
       - 'scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs'
       - 'scripts/hamyren-legal-privacy-readiness-v1-smoke.mjs'
       - 'scripts/aurentara-customer-product-surface-v1-smoke.mjs'
-      - 'scripts/aurentara-customer-red-team-v1-smoke.mjs'
+      - 'scripts/aurentara-customer-red-team-v1.mjs'
       - 'docs/HAMYREN_PUBLIC_CUSTOMER_SURFACE_READINESS_V1.md'
       - '.github/workflows/hamyren-public-customer-surface-readiness-v1.yml'
 
@@ -35,4 +35,4 @@ jobs:
       - name: Existing customer surface regression
         run: node scripts/aurentara-customer-product-surface-v1-smoke.mjs
       - name: Customer red team regression
-        run: node scripts/aurentara-customer-red-team-v1-smoke.mjs
+        run: node scripts/aurentara-customer-red-team-v1.mjs
