@@ -9,6 +9,11 @@ on:
       - 'scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs'
       - 'scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs'
       - 'scripts/aurentara-customer-live-closure-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs'
+      - 'scripts/aurentara-customer-cloudflare-live-gate-audit-v1.mjs'
+      - 'scripts/aurentara-customer-launch-gate-audit-v1.mjs'
       - 'customer-runtime-activation-requests/aurentara-customer-runtime-v1.json'
       - '.github/workflows/aurentara-customer-zero-cost-runtime-live-v1.yml'
   push:
@@ -27,6 +32,7 @@ env:
   REQUEST_FILE: customer-runtime-activation-requests/aurentara-customer-runtime-v1.json
   CUSTOMER_WORKER_NAME: aurentara-customer-runtime
   CUSTOMER_WORKER_URL: https://aurentara-customer-runtime.gelato-donatello-dario-a5a5376c.workers.dev
+  AURENTARA_NOTIFICATION_WRITE_ALLOWED: 'false'
 
 jobs:
   validate:
@@ -43,6 +49,9 @@ jobs:
           node --check scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs
           node --check scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
           node --check scripts/aurentara-customer-live-closure-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
+          node --check scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs
           node scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs "$REQUEST_FILE"
       - name: Dedicated Customer Worker routing isolation
         run: node scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
@@ -60,7 +69,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -70,6 +79,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install zero-cost verification tooling
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify active deployment truth and closed route
+        run: node scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs
+      - name: Verify native notification policy read-only
+        run: node scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
+      - name: Verify live Signal to Sink
+        run: node scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs
       - name: Verify current dedicated Worker live bindings
         run: node scripts/aurentara-customer-cloudflare-live-gate-audit-v1.mjs
       - name: Propagation-safe live closure proof
@@ -81,7 +98,7 @@ jobs:
     if: github.event_name == 'push'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -91,6 +108,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install zero-cost verification tooling
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Verify activation credentials and guard again
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
@@ -100,7 +119,13 @@ jobs:
         run: node scripts/aurentara-customer-cloudflare-live-gate-audit-v1.mjs
       - name: Deploy dedicated Customer Worker with Surface OFF
         run: npx --yes wrangler@4 deploy --config wrangler.customer-production.jsonc
-      - name: Post-activation Cloudflare read-only evidence
+      - name: Post-activation active deployment truth and closed route
+        run: node scripts/aurentara-customer-cloudflare-deployment-truth-v1.mjs
+      - name: Verify native notification policy read-only
+        run: node scripts/aurentara-customer-cloudflare-observability-notification-v1.mjs
+      - name: Post-activation live Signal to Sink
+        run: node scripts/aurentara-customer-cloudflare-signal-sink-e2e-v1.mjs
+      - name: Post-activation Cloudflare evidence aggregation
         run: node scripts/aurentara-customer-cloudflare-live-gate-audit-v1.mjs
       - name: Verify live bindings without exposing values
         run: |
@@ -115,7 +140,10 @@ jobs:
             'operator_customer_project_separation_live',
             'distributed_rate_binding_live',
             'official_retrieval_binding_live',
-            'official_source_fetch_verified'
+            'official_source_fetch_verified',
+            'observability_binding_live',
+            'alert_signal_path_verified',
+            'notification_policy_verified'
           ];
           for (const key of required) if (e[key] !== true) throw new Error(`LIVE_BINDING_NOT_VERIFIED:${key}`);
           if (e.external_write !== false || e.binding_values_returned !== false || e.token_returned !== false) throw new Error('LIVE_EVIDENCE_REDACTION_FAILED');
