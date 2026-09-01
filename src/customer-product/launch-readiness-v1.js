@@ -59,6 +59,19 @@ export function evaluateControlledLaunchReadiness(input = {}) {
     gate('local_abuse_guard', abuse.local_burst_guard_active ? PASS : PREPROD_REQUIRED,
       'A local pre-inference abuse guard must exist before launch configuration work.', null, abuse.version),
 
+    gate('identity_adapter_contract', bool(input.identity_adapter_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Production identity activation needs a provider-neutral principal/session/tenant contract before credentials are connected.', 'Build and test the Production identity adapter contract without activating a provider.', null),
+    gate('durable_store_contract', bool(input.durable_store_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Production persistence needs a verified Customer runtime-store adapter contract before migrations are applied.', 'Build and test the durable Customer data-store contract against synthetic storage.', null),
+    gate('trusted_retrieval_adapter_contract', bool(input.trusted_retrieval_adapter_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Live Trusted Research activation needs a retrieval-adapter contract that feeds Block 03 without bypassing source policy.', 'Build and test a provider-neutral trusted retrieval adapter contract with deterministic fixtures.', null),
+    gate('distributed_rate_adapter_contract', bool(input.distributed_rate_adapter_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'The local abuse guard needs an external/distributed enforcement adapter boundary before Production configuration.', 'Build and test a distributed rate-limit adapter contract without activating an external service.', null),
+    gate('deletion_executor_contract', bool(input.deletion_executor_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Production hard deletion needs an auditable purge executor contract before it can touch durable customer data.', 'Build and test the purge executor contract on synthetic tenant/business data.', null),
+    gate('observability_contract', bool(input.observability_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Production monitoring needs a redacted event/metric contract before an external sink is connected.', 'Build and test redacted Customer observability events and alert-signal contracts.', null),
+
     gate('production_customer_identity', bool(input.production_customer_identity_active) ? PASS : OPERATOR_GATE,
       'Guest synthetic identity cannot protect real customer accounts.', 'Activate and verify the approved Production customer authentication/session system with tenant membership enforcement.', null),
     gate('durable_customer_data_plane', bool(input.durable_customer_data_plane_active) ? PASS : OPERATOR_GATE,
@@ -80,16 +93,17 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   ];
 
   if (profile === CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH) {
+    gates.push(gate('payment_adapter_contract', bool(input.payment_adapter_contract_ready) ? PASS : PREPROD_REQUIRED,
+      'Paid launch needs a subscription-state adapter contract before Stripe/payment credentials are connected.', 'Build and test a provider-neutral payment lifecycle adapter contract using synthetic events.', null));
     gates.push(gate('payment_provider', bool(input.payment_provider_active) ? PASS : OPERATOR_GATE,
       'Paid Founder launch requires real subscription/payment lifecycle.', 'Approve and activate Stripe/payment provider, checkout/webhooks and billing lifecycle for the €19.90 Founder plan.', null));
   }
 
-  const required = gates;
-  const blockers = required.filter((item) => item.status !== PASS);
+  const blockers = gates.filter((item) => item.status !== PASS);
   const operatorGates = blockers.filter((item) => item.status === OPERATOR_GATE);
   const preprod = blockers.filter((item) => item.status === PREPROD_REQUIRED);
-  const passed = required.filter((item) => item.status === PASS);
-  const percent = Math.round((passed.length / required.length) * 100);
+  const passed = gates.filter((item) => item.status === PASS);
+  const percent = Math.round((passed.length / gates.length) * 100);
 
   return {
     ok: blockers.length === 0,
@@ -98,7 +112,7 @@ export function evaluateControlledLaunchReadiness(input = {}) {
     evaluated_at: new Date().toISOString(),
     readiness_percent: percent,
     passed_gates: passed.length,
-    total_gates: required.length,
+    total_gates: gates.length,
     gates,
     blocker_ids: blockers.map((item) => item.id),
     preproduction_required_ids: preprod.map((item) => item.id),
