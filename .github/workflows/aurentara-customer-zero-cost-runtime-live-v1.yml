@@ -8,6 +8,7 @@ on:
       - 'wrangler.customer-production.jsonc'
       - 'scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs'
       - 'scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs'
+      - 'scripts/aurentara-customer-live-closure-v1.mjs'
       - 'customer-runtime-activation-requests/aurentara-customer-runtime-v1.json'
       - '.github/workflows/aurentara-customer-zero-cost-runtime-live-v1.yml'
   push:
@@ -41,6 +42,7 @@ jobs:
           node --check src/customer-product/customer-runtime-entry-v1.js
           node --check scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs
           node --check scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
+          node --check scripts/aurentara-customer-live-closure-v1.mjs
           node scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs "$REQUEST_FILE"
       - name: Dedicated Customer Worker routing isolation
         run: node scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
@@ -53,6 +55,27 @@ jobs:
           node scripts/aurentara-production-account-surface-v1-smoke.mjs
       - name: Dedicated Customer Worker bundle dry-run
         run: npx --yes wrangler@4 deploy --dry-run --config wrangler.customer-production.jsonc
+
+  verify-current-live:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      AURENTARA_CUSTOMER_WORKER_SCRIPT: aurentara-customer-runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify current dedicated Worker live bindings
+        run: node scripts/aurentara-customer-cloudflare-live-gate-audit-v1.mjs
+      - name: Propagation-safe live closure proof
+        run: node scripts/aurentara-customer-live-closure-v1.mjs
+      - name: Recompute evidence-based launch readiness
+        run: node scripts/aurentara-customer-launch-gate-audit-v1.mjs
 
   live-activate:
     if: github.event_name == 'push'
@@ -98,15 +121,6 @@ jobs:
           if (e.external_write !== false || e.binding_values_returned !== false || e.token_returned !== false) throw new Error('LIVE_EVIDENCE_REDACTION_FAILED');
           NODE
       - name: Verify dedicated runtime remains closed
-        run: |
-          set -euo pipefail
-          CUSTOMER_STATUS=$(curl -sS -o /tmp/customer.json -w '%{http_code}' "$CUSTOMER_WORKER_URL/customer/api/manifest")
-          test "$CUSTOMER_STATUS" = "404"
-          node -e "const b=JSON.parse(require('fs').readFileSync('/tmp/customer.json','utf8')); if(b.error!=='CUSTOMER_SURFACE_NOT_ACTIVATED'||b.public_active!==false) process.exit(1)"
-          FACTORY_STATUS=$(curl -sS -o /tmp/factory.json -w '%{http_code}' "$CUSTOMER_WORKER_URL/factory/diagnostics")
-          test "$FACTORY_STATUS" = "404"
-          node -e "const b=JSON.parse(require('fs').readFileSync('/tmp/factory.json','utf8')); if(b.error!=='AURENTARA_CUSTOMER_RUNTIME_ROUTE_NOT_FOUND'||b.public_active!==false) process.exit(1)"
-          OPERATOR_STATUS=$(curl -sS -o /tmp/operator.json -w '%{http_code}' "$CUSTOMER_WORKER_URL/operator")
-          test "$OPERATOR_STATUS" = "404"
+        run: node scripts/aurentara-customer-live-closure-v1.mjs
       - name: Recompute evidence-based launch readiness
         run: node scripts/aurentara-customer-launch-gate-audit-v1.mjs
