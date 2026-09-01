@@ -22,8 +22,28 @@ function intentBoost(query, category) {
   return rules.some((rule) => rule.words.some((word) => q.includes(word)) && rule.categories.includes(c)) ? 18 : 0;
 }
 
-export function resolveCurrentFacts(facts = []) {
-  const candidates = facts.filter((fact) => !fact.deleted_at && ![MEMORY_STATUSES.HISTORICAL_FACT, MEMORY_STATUSES.OUTDATED_INFORMATION].includes(fact.status));
+function parsedTime(value) {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function memoryFactIsTemporallyCurrent(fact = {}, referenceTimeMs = Date.now()) {
+  const reference = Number.isFinite(Number(referenceTimeMs)) ? Number(referenceTimeMs) : Date.now();
+  const validFrom = parsedTime(fact.valid_from);
+  const validUntil = parsedTime(fact.valid_until);
+  if (validFrom !== null && validFrom > reference) return false;
+  if (validUntil !== null && validUntil <= reference) return false;
+  return true;
+}
+
+export function resolveCurrentFacts(facts = [], options = {}) {
+  const referenceTimeMs = Number.isFinite(Number(options.reference_time_ms)) ? Number(options.reference_time_ms) : Date.now();
+  const candidates = facts.filter((fact) =>
+    !fact.deleted_at &&
+    ![MEMORY_STATUSES.HISTORICAL_FACT, MEMORY_STATUSES.OUTDATED_INFORMATION].includes(fact.status) &&
+    memoryFactIsTemporallyCurrent(fact, referenceTimeMs)
+  );
   const byKey = new Map();
   for (const fact of candidates) {
     const key = String(fact.fact_key || fact.subject || fact.id || 'unknown');
@@ -44,8 +64,9 @@ export function rankRelevantContext(input = {}) {
   const maxGoals = Math.max(0, Math.min(Number(input.max_goals || 5), 20));
   const maxDecisions = Math.max(0, Math.min(Number(input.max_decisions || 5), 20));
   const includeHistorical = input.include_historical === true;
+  const referenceTimeMs = Number.isFinite(Number(input.reference_time_ms)) ? Number(input.reference_time_ms) : Date.now();
 
-  const currentFacts = resolveCurrentFacts(input.facts || []);
+  const currentFacts = resolveCurrentFacts(input.facts || [], { reference_time_ms: referenceTimeMs });
   const historical = includeHistorical ? (input.facts || []).filter((fact) => !fact.deleted_at && fact.status === MEMORY_STATUSES.HISTORICAL_FACT) : [];
   const rankedFacts = [...currentFacts, ...historical].map((fact) => {
     const relevance = overlapScore(queryTokens, `${fact.fact_key} ${fact.subject} ${text(fact.value)} ${fact.category}`) + intentBoost(query, fact.category);
@@ -80,6 +101,7 @@ export function buildContextPackage(input = {}) {
       tenant_scoped_before_query: true,
       business_scoped_before_query: true,
       bounded: true,
+      temporally_valid_current_facts_only: true,
       max_facts: Number(input.max_facts || 12),
       includes_historical: input.include_historical === true
     }

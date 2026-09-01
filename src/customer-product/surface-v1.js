@@ -1,5 +1,6 @@
 import { createCustomerAiFoundation } from '../customer-ai/foundation-v1.js';
 import { createTrustedBusinessAiRuntime } from '../customer-ai/trusted-runtime-v1.js';
+import { createCustomerEconomicsRuntime } from './economics-v1.js';
 import { renderCustomerProductShell } from './shell-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -111,6 +112,7 @@ export function customerProductSurfaceManifest() {
     goals_read: true,
     decisions_read: true,
     usage_view: true,
+    economics: { entitlements: true, fair_use_compute: true, unlimited_compute: false },
     billing_active: false,
     live_research_adapter_active: false,
     customer_supplied_research_accepted: false,
@@ -126,6 +128,7 @@ export function createCustomerProductSurface(options = {}) {
     store: options.chat_store,
     providers: Array.isArray(options.providers) ? options.providers : []
   });
+  const economics = options.economics || createCustomerEconomicsRuntime({ store: options.economics_store });
   const sessions = options.sessions || new Map();
 
   function pruneSessions() {
@@ -171,6 +174,8 @@ export function createCustomerProductSurface(options = {}) {
       source_type: 'structured_business_input', confirmed_by_user: true, confidence: 1
     });
     if (!memoryCreated.ok) return memoryCreated;
+    const entitlementCreated = await economics.ensureDefaultEntitlement(ctx);
+    if (!entitlementCreated.ok) return entitlementCreated;
     const conversationCreated = await runtime.createConversation(ctx, businessId, {
       conversation_id: conversationId,
       title: 'Personal Business AI',
@@ -205,6 +210,11 @@ export function createCustomerProductSurface(options = {}) {
     return session ? { ok: true, session } : { ok: false, response: json({ ok: false, error: 'CUSTOMER_SESSION_REQUIRED' }, 401) };
   }
 
+  async function featureAllowed(customerCtx, feature) {
+    const gate = await economics.authorizeFeature(customerCtx, feature);
+    return gate.ok ? { ok: true, gate } : { ok: false, response: json({ ok: false, error: gate.error, feature, plan: gate.plan }, 403) };
+  }
+
   async function handle(request, env = {}, _ctx = null) {
     const url = new URL(request.url);
     if (!(url.pathname === '/customer' || url.pathname === '/customer/' || url.pathname.startsWith('/customer/api/'))) return null;
@@ -219,7 +229,10 @@ export function createCustomerProductSurface(options = {}) {
     if ((url.pathname === '/customer' || url.pathname === '/customer/') && method === 'GET') {
       return html(renderCustomerProductShell({ brand: 'AURENTARA SYSTEMS' }));
     }
-    if (url.pathname === '/customer/api/manifest' && method === 'GET') return json({ ok: true, manifest: customerProductSurfaceManifest() });
+    if (url.pathname === '/customer/api/manifest' && method === 'GET') return json({ ok: true, manifest: customerProductSurfaceManifest(), economics: economics.manifest() });
+    if (url.pathname === '/customer/api/plans' && method === 'GET') {
+      return json({ ok: true, plans: economics.listPlans(), payment_provider_active: false, checkout_active: false });
+    }
     if (url.pathname === '/customer/api/account' && ['GET', 'POST'].includes(method)) {
       return json({ ok: false, error: 'CUSTOMER_ACCOUNT_AUTH_NOT_ACTIVATED', operator_access: false, production_active: false }, 501);
     }
@@ -239,7 +252,23 @@ export function createCustomerProductSurface(options = {}) {
     const customerCtx = ctxFor(session);
 
     if (url.pathname === '/customer/api/session' && method === 'GET') return json({ ok: true, session: safeSession(session) });
+    if (url.pathname === '/customer/api/entitlement' && method === 'GET') {
+      const result = await economics.getEntitlement(customerCtx);
+      return json(result, result.ok ? 200 : 403);
+    }
+    if (url.pathname === '/customer/api/upgrade' && method === 'POST') {
+      return json({
+        ok: false,
+        error: 'PAYMENT_PROVIDER_NOT_ACTIVATED',
+        requested_plan_id: clean((await readJson(request, 4000)).value?.plan_id, 120) || null,
+        stripe_active: false,
+        checkout_active: false,
+        operator_gate_required: true
+      }, 501);
+    }
     if (url.pathname === '/customer/api/history' && method === 'GET') {
+      const gate = await featureAllowed(customerCtx, 'conversation_history');
+      if (!gate.ok) return gate.response;
       const result = await runtime.getMessages(customerCtx, session.business_id, session.conversation_id, { limit: 100 });
       return json(result, result.ok ? 200 : 403);
     }
@@ -252,12 +281,36 @@ export function createCustomerProductSurface(options = {}) {
       }
       const message = clean(input.message, 12_000);
       if (!message) return json({ ok: false, error: 'CUSTOMER_MESSAGE_REQUIRED' }, 400);
-      const result = await runtime.submitTrustedTurn(customerCtx, session.business_id, session.conversation_id, { message });
+      const operationId = randomId('chat-usage');
+      const reserved = await economics.reserveCompute(customerCtx, {
+        operation_id: operationId,
+        usage_class: 'customer_chat_turn',
+        feature: 'business_ai_chat',
+        compute_units: 1
+      });
+      if (!reserved.ok) {
+        const status = reserved.error === 'FAIR_USE_COMPUTE_BUDGET_EXCEEDED' ? 429 : 403;
+        return json({ ...reserved, operator_access: false }, status);
+      }
+      let result;
+      try {
+        result = await runtime.submitTrustedTurn(customerCtx, session.business_id, session.conversation_id, { message });
+      } catch (error) {
+        await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: 'runtime_exception' });
+        return json({ ok: false, error: 'CUSTOMER_CHAT_RUNTIME_FAILED', detail: clean(error?.message, 240), operator_access: false }, 500);
+      }
       if (!result.ok) {
+        await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: result.error || 'turn_blocked' });
         const trustedResearchRequired = Boolean(result.risk_classification?.trusted_research_required || result.trusted_research?.risk?.trusted_research_required);
         const status = trustedResearchRequired ? 409 : result.error === 'CHAT_AI_PROVIDER_NOT_CONFIGURED' ? 503 : 400;
         return json({ ...result, trusted_research_required: trustedResearchRequired, operator_access: false }, status);
       }
+      const settled = await economics.settleCompute(customerCtx, {
+        period: reserved.period,
+        reservation_id: reserved.reservation_id,
+        actual_compute_units: 1
+      });
+      if (!settled.ok) return json({ ok: false, error: 'FAIR_USE_SETTLEMENT_FAILED', cause: settled.error, operator_access: false }, 500);
       return json({
         ok: true,
         answer: result.answer,
@@ -265,16 +318,21 @@ export function createCustomerProductSurface(options = {}) {
         risk_classification: result.risk_classification,
         trusted_research: result.trusted_research,
         memory_candidate_ids: result.memory_candidate_ids || [],
+        compute: { period: reserved.period, used_units: 1 },
         action_executed: false,
         operator_access: false,
         production: false
       });
     }
     if (url.pathname === '/customer/api/memory' && method === 'GET') {
+      const gate = await featureAllowed(customerCtx, 'memory_view');
+      if (!gate.ok) return gate.response;
       const result = await foundation.searchMemory(customerCtx, session.business_id, { query: '', include_historical: url.searchParams.get('history') === '1' });
       return json(result, result.ok ? 200 : 403);
     }
     if (url.pathname === '/customer/api/memory/correct' && method === 'POST') {
+      const gate = await featureAllowed(customerCtx, 'memory_correction');
+      if (!gate.ok) return gate.response;
       const parsed = await readJson(request, 10_000);
       if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400);
       if (parsed.value?.user_confirmed !== true) return json({ ok: false, error: 'MEMORY_CORRECTION_REQUIRES_USER_CONFIRMATION' }, 400);
@@ -291,25 +349,34 @@ export function createCustomerProductSurface(options = {}) {
       return json(result, result.ok ? 200 : 400);
     }
     if (url.pathname === '/customer/api/goals' && method === 'GET') {
+      const gate = await featureAllowed(customerCtx, 'goals_view');
+      if (!gate.ok) return gate.response;
       const result = await foundation.getGoals(customerCtx, session.business_id);
       return json(result, result.ok ? 200 : 403);
     }
     if (url.pathname === '/customer/api/decisions' && method === 'GET') {
+      const gate = await featureAllowed(customerCtx, 'decisions_view');
+      if (!gate.ok) return gate.response;
       const result = await foundation.getDecisions(customerCtx, session.business_id);
       return json(result, result.ok ? 200 : 403);
     }
     if (url.pathname === '/customer/api/usage' && method === 'GET') {
       const conversation = await runtime.getConversation(customerCtx, session.business_id, session.conversation_id);
       if (!conversation.ok) return json(conversation, 403);
+      const economicsSnapshot = await economics.usageSnapshot(customerCtx);
+      if (!economicsSnapshot.ok) return json(economicsSnapshot, 403);
       const attribution = Object.values(conversation.conversation.cost_state?.attribution || {});
       const variableCost = attribution.reduce((sum, item) => sum + Math.max(0, Number(item.actual_cost_units || 0)), 0);
       return json({
         ok: true,
         plan: {
-          id: 'guest-starter-v1',
-          label: 'Free · Synthetic Starter Experience',
-          description: 'V1 preview entitlement. Billing and paid compute are not active.',
+          ...economicsSnapshot.plan,
+          description: economicsSnapshot.plan.payment_required
+            ? 'Personal Business AI entitlement preview. Production billing is not active.'
+            : 'Starter entitlement with a bounded monthly fair-use compute budget.',
           upgrade_available: false,
+          upgrade_preview_available: economicsSnapshot.plan.plan_id === 'free-starter-v1',
+          founder_reference_price_eur_month: 19.90,
           production_billing_active: false
         },
         usage: {
@@ -317,8 +384,14 @@ export function createCustomerProductSurface(options = {}) {
           messages: Number(conversation.conversation.message_count || 0),
           variable_cost_eur: variableCost,
           compute_budget_enforced: true,
-          variable_cost_ceiling_eur: 0
+          compute_unit_budget: economicsSnapshot.usage.compute_unit_budget,
+          spent_compute_units: economicsSnapshot.usage.spent_compute_units,
+          reserved_compute_units: economicsSnapshot.usage.reserved_compute_units,
+          remaining_compute_units: economicsSnapshot.usage.remaining_compute_units,
+          variable_cost_ceiling_eur: 0,
+          unlimited_compute: false
         },
+        payment: economicsSnapshot.payment,
         operator_access: false
       });
     }
@@ -329,6 +402,7 @@ export function createCustomerProductSurface(options = {}) {
     manifest: customerProductSurfaceManifest,
     handle,
     session_count: () => sessions.size,
+    economics,
     _unsafe_test_sessions: options.expose_test_state === true ? sessions : undefined
   };
 }
