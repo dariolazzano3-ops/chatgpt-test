@@ -1,0 +1,31 @@
+name: HAMYREN Private Preview V1
+
+on:
+  pull_request:
+    paths:
+      - 'projects/riosystems-public-website-v1/hamyren/**'
+      - 'projects/riosystems-public-website-v1/_headers'
+      - 'scripts/hamyren-private-preview-v1-smoke.mjs'
+      - '.github/workflows/hamyren-private-preview-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check preview JavaScript syntax
+        run: node --check projects/riosystems-public-website-v1/hamyren/hamyren.js
+      - name: Check smoke script syntax
+        run: node --check scripts/hamyren-private-preview-v1-smoke.mjs
+      - name: Verify fail-closed productization contract
+        run: node scripts/hamyren-private-preview-v1-smoke.mjs
