@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: aurentara-customer-hosted-identity-e2e-v1
@@ -20,8 +21,6 @@ jobs:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      AURENTARA_IDENTITY_E2E_EMAIL: aurentara.identity.e2e.${{ github.run_id }}.${{ github.run_attempt }}@example.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,4 +33,10 @@ jobs:
       - name: Customer Red Team regression
         run: node scripts/aurentara-customer-red-team-v1.mjs
       - name: Hosted Supabase Auth JWT RLS E2E with synthetic cleanup
-        run: node scripts/aurentara-customer-hosted-identity-e2e-v1.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OIDC_JSON=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=aurentara-identity-e2e-v1")
+          OIDC_TOKEN=$(printf '%s' "$OIDC_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const x=JSON.parse(d);if(!x.value)process.exit(1);process.stdout.write(x.value)})")
+          RESULT=$(curl -fsS -X POST -H "Authorization: Bearer $OIDC_TOKEN" "https://pqmbtfzjcdnihovvppjr.supabase.co/functions/v1/aurentara-identity-e2e-860c0efc1b02ef7b")
+          printf '%s' "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const x=JSON.parse(d);if(x.status!=='PASS'||x.jwt_to_rls_membership_e2e_verified!==true||x.production_delete_function_cleanup_verified!==true||x.synthetic_auth_user_retained!==false)process.exit(1);console.log(JSON.stringify(x,null,2))})"
