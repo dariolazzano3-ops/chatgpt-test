@@ -46,7 +46,7 @@ const tail = spawn(wrangler, ['tail', scriptName, '--format', 'json'], {
 tail.stdout.setEncoding('utf8');
 tail.stderr.setEncoding('utf8');
 tail.stdout.on('data', (chunk) => { stdout += chunk; if (stdout.length > 500000) stdout = stdout.slice(-500000); });
-tail.stderr.on('data', (chunk) => { stderr += chunk; if (stderr.length > 100000) stderr = stderr.slice(-100000); });
+tail.stderr.on('data', (chunk) => { stderr += chunk; if (stderr.length > 200000) stderr = stderr.slice(-200000); });
 tail.on('close', () => { tailClosed = true; });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -88,7 +88,7 @@ assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
 let signalSeen = false;
 let requestEventSeen = false;
 for (let i = 0; i < 30; i += 1) {
-  const text = stdout;
+  const text = combined();
   signalSeen = text.includes('aurentara.customer.observability');
   requestEventSeen = text.includes('customer.request.completed')
     || text.includes('customer.request.failed')
@@ -115,6 +115,7 @@ const evidence = {
   observed_at: new Date().toISOString(),
   status: 'PASS',
   worker_tail_connected: true,
+  tail_ready_banner_seen: tailReady,
   probe_route_class: 'closed_customer_manifest',
   probe_request_count: probeStatuses.length,
   probe_statuses: probeStatuses,
