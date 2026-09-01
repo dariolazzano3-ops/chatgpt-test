@@ -98,12 +98,14 @@ async function openPage(pathname, viewport, label) {
 
 async function ask(page, question) {
   await page.locator('#message').fill(question);
+  const responsePromise = page.waitForResponse((response) => response.url().includes('/customer/api/chat') && response.request().method() === 'POST');
   await page.locator('#send').click();
-  await page.waitForFunction(() => document.querySelector('#chatstatus')?.textContent?.trim().length > 0);
+  const response = await responsePromise;
+  await page.waitForFunction(() => document.querySelector('#chatstatus')?.textContent !== 'Business Context wird geprüft …');
+  return response;
 }
 
 try {
-  // Desktop dual-site chain: AURENTARA -> HAMYREN -> bridge -> canonical /customer.
   {
     const page = await openPage('/index.html', { width: 1440, height: 1000 }, 'dual-site-desktop');
     assert.match(await page.title(), /AURENTARA SYSTEMS/);
@@ -135,18 +137,17 @@ try {
     await assertNoHorizontalOverflow(page, 'canonical-customer-desktop');
     await screenshot(page, '04-canonical-hamyren-desktop');
 
-    // Failed/high-risk attempt must not consume a question.
     const callsBeforeBlocked = inferenceCalls;
     await ask(page, 'What is the current Mindestlohn and what must I pay an employee?');
     assert.equal(await page.locator('#trialremaining').textContent(), '5');
     assert.equal(inferenceCalls, callsBeforeBlocked);
-    assert.match(await page.locator('#chatstatus').textContent(), /trusted|research|question/i);
+    assert.match(await page.locator('#chatstatus').textContent(), /research|evidence|required/i);
     report.functional.failed_turn_consumed_free_question = false;
 
-    // Five successful turns. Fifth answer is delivered, then handoff becomes visible.
     const remaining = [4, 3, 2, 1, 0];
     for (let index = 0; index < remaining.length; index += 1) {
-      await ask(page, `Synthetic low-risk business question ${index + 1}: what is one measurable next step?`);
+      const response = await ask(page, `Synthetic low-risk business question ${index + 1}: what is one measurable next step?`);
+      assert.equal(response.status(), 200);
       assert.equal(await page.locator('#trialremaining').textContent(), String(remaining[index]));
     }
     assert.equal(inferenceCalls, callsBeforeBlocked + 5);
@@ -157,7 +158,6 @@ try {
     report.functional.remaining_after_fifth = 0;
     await screenshot(page, '05-account-handoff-desktop');
 
-    // Sixth direct guest request must be rejected by the canonical runtime before inference.
     const sixth = await page.evaluate(async () => {
       const response = await fetch('/customer/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: 'sixth turn must not execute' }) });
       return { status: response.status, body: await response.json() };
@@ -169,12 +169,11 @@ try {
     assert.equal(inferenceCalls, callsBeforeBlocked + 5);
     report.functional.sixth_turn_blocked = true;
 
-    // Existing Account Core handoff stays closed in synthetic QA, without fake auth.
     await page.locator('#accountgate').click();
+    await page.waitForFunction(() => document.querySelector('#accountstatus')?.textContent?.trim().length > 0);
     assert.match(await page.locator('#accountstatus').textContent(), /Account-Core erkannt|Auth bleibt/i);
     report.functional.account_handoff_existing_core = true;
 
-    // Memory / Goals / Decisions regression on the same canonical Product Surface.
     for (const view of ['memory', 'goals', 'decisions']) {
       await page.locator(`#nav [data-view="${view}"]`).click();
       await page.locator(`#view-${view}`).waitFor({ state: 'visible' });
@@ -182,7 +181,6 @@ try {
     }
     report.functional.memory_goals_decisions = true;
 
-    // Pricing and Entitlement come from the existing runtime catalog, not static preview values.
     await page.locator('#nav [data-view="usage"]').click();
     await page.locator('#plans .plan').first().waitFor({ state: 'visible' });
     const usageText = await page.locator('#view-usage').innerText();
@@ -200,10 +198,10 @@ try {
 
     const founderUpgrade = page.locator('#plans [data-upgrade="personal-business-ai-founder-v1"]');
     await founderUpgrade.click();
+    await page.waitForFunction(() => document.querySelector('#accountstatus')?.textContent?.includes('Payment Provider'));
     assert.match(await page.locator('#accountstatus').textContent(), /Payment Provider \/ Checkout ist nicht aktiviert/);
     report.functional.upgrade_handoff_closed = true;
 
-    // HAMYREN -> AURENTARA return path.
     await page.locator('[data-return-aurentara]').click();
     await page.waitForURL(`${baseUrl}/`);
     assert.match(await page.title(), /AURENTARA SYSTEMS/);
@@ -211,7 +209,6 @@ try {
     await page.close();
   }
 
-  // Mobile responsive chain and canonical Product Surface navigation.
   {
     const page = await openPage('/index.html', { width: 390, height: 844 }, 'dual-site-mobile');
     await assertNoHorizontalOverflow(page, 'aurentara-mobile');
