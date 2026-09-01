@@ -61,6 +61,8 @@ try {
   {
     const page = await openPage('/hamyren/experience.html', { width: 1440, height: 1000 }, 'experience-home-desktop');
     assert.equal(await page.title(), 'HAMYREN · Product Experience · Private Preview');
+    assert.equal(await page.locator('[data-mobile-nav]').isVisible(), false, 'Desktop must not show the mobile product navigation');
+    assert.equal(await page.locator('[data-mobile-product-menu]').isVisible(), false, 'Desktop must not show the mobile menu trigger');
     await assertNoHorizontalOverflow(page, 'experience-home-desktop');
     await screenshot(page, '03-experience-home-desktop');
 
@@ -104,6 +106,12 @@ try {
   {
     const page = await openPage('/hamyren/experience.html', { width: 390, height: 844 }, 'experience-mobile');
     await assertNoHorizontalOverflow(page, 'experience-mobile-home');
+    assert.equal(await page.locator('[data-mobile-product-menu]').isVisible(), true, 'Mobile must show the menu trigger');
+    assert.equal(await page.locator('[data-mobile-nav]').isVisible(), false, 'Mobile navigation must start closed');
+    await page.locator('[data-mobile-product-menu]').click();
+    assert.equal(await page.locator('[data-mobile-nav]').isVisible(), true, 'Mobile menu trigger must open navigation');
+    await page.locator('[data-mobile-product-menu]').click();
+    assert.equal(await page.locator('[data-mobile-nav]').isVisible(), false, 'Mobile menu trigger must close navigation');
     await page.locator('[data-load-synthetic]').click();
     await page.locator('[data-question-panel]').waitFor({ state: 'visible' });
     await assertNoHorizontalOverflow(page, 'experience-mobile-question');
