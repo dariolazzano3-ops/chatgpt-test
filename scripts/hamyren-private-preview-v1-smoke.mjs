@@ -81,7 +81,7 @@ assert(experienceHtml.includes('bestehende Account-Core'), 'Existing Account Cor
 assert(js.includes('data-canonical-pricing-bridge'), 'Static HAMYREN overview must replace duplicate pricing with canonical runtime bridge');
 assert(js.includes("href=\"/customer\""), 'Canonical pricing bridge must target /customer');
 assert(aurentaraApp.includes("const hamyrenHref = './hamyren/index.html';"), 'AURENTARA → HAMYREN entry point missing');
-assert(aurentaraApp.includes('data.hamyrenEntry'), 'AURENTARA HAMYREN entry marker missing');
+assert(aurentaraApp.includes('dataset.hamyrenEntry'), 'AURENTARA HAMYREN entry marker missing');
 assert(indexHtml.includes('./experience.html'), 'HAMYREN overview must retain separate Test Experience bridge');
 assert(indexHtml.includes('../index.html'), 'HAMYREN → AURENTARA return path missing');
 assert(css.includes('@media(max-width:720px)'), 'Dedicated mobile product treatment missing');
