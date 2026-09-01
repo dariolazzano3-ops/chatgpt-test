@@ -139,7 +139,7 @@ const PROVIDERS = [
     availability: 'AVAILABLE',
     verification: 'NOT_CONNECTED',
     restrictions: ['CREDENTIAL_AND_BUDGET_GATE', 'PAID_EXECUTION_APPROVAL_REQUIRED'],
-    runtime_eligible: false,
+    runtime_eligible: true,
     roles: ['premium_ai'],
     capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'],
     cost_mode: 'paid_usage',
