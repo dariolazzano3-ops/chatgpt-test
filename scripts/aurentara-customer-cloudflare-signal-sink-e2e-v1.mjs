@@ -5,6 +5,7 @@ import { access } from 'node:fs/promises';
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'chatgpt-test').trim();
+const probeCount = 1000;
 
 assert.match(accountId, /^[a-f0-9]{32}$/i, 'CLOUDFLARE_ACCOUNT_ID_INVALID');
 assert.ok(token.length >= 20, 'CLOUDFLARE_API_TOKEN_MISSING');
@@ -64,8 +65,8 @@ for (let i = 0; i < 30; i += 1) {
 }
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_BEFORE_PROBE');
 
-// Cloudflare documents that a filtered tail can take up to 60 seconds to leave sampling mode.
-// Keep the filter active before emitting the synthetic closed-surface canary requests.
+// Keep the narrow console filter active long enough for Cloudflare's realtime tail
+// to leave any temporary sampling mode before the synthetic canary burst.
 await sleep(60000);
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_DURING_FILTER_SETTLE');
 
@@ -73,9 +74,9 @@ const probeUrl = new URL(`https://${scriptName}.${subdomain}.workers.dev/custome
 assert.equal(probeUrl.protocol, 'https:');
 assert.equal(probeUrl.hostname, `${scriptName}.${subdomain}.workers.dev`);
 
-const probeStatuses = [];
+const statusCounts = new Map();
 let surfaceRemainedOff = true;
-for (let i = 0; i < 20; i += 1) {
+for (let i = 0; i < probeCount; i += 1) {
   const response = await fetch(probeUrl, {
     method: 'GET',
     redirect: 'error',
@@ -85,17 +86,17 @@ for (let i = 0; i < 20; i += 1) {
     },
     signal: AbortSignal.timeout(10000)
   });
-  probeStatuses.push(response.status);
+  statusCounts.set(response.status, (statusCounts.get(response.status) || 0) + 1);
   let body = null;
   try { body = await response.json(); } catch {}
   if (body?.public_active === true || response.status < 400) surfaceRemainedOff = false;
-  await sleep(200);
+  if ((i + 1) % 50 === 0) await sleep(100);
 }
 assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
 
 let signalSeen = false;
 let requestEventSeen = false;
-for (let i = 0; i < 60; i += 1) {
+for (let i = 0; i < 120; i += 1) {
   const text = combined();
   signalSeen = text.includes('aurentara.customer.observability');
   requestEventSeen = text.includes('customer.request.completed')
@@ -127,8 +128,8 @@ const evidence = {
   tail_sampling_settle_seconds: 60,
   tail_ready_banner_seen: tailReady,
   probe_route_class: 'closed_customer_manifest',
-  probe_request_count: probeStatuses.length,
-  probe_statuses: probeStatuses,
+  probe_request_count: probeCount,
+  probe_status_counts: Object.fromEntries([...statusCounts.entries()].sort(([a], [b]) => a - b)),
   customer_surface_remained_off: true,
   observability_channel_seen: true,
   customer_request_event_seen: true,
