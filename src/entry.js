@@ -3,6 +3,7 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
+import { handleOpenAiSecretPresence } from "./openai-secret-presence-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
@@ -126,6 +127,10 @@ export default {
     }
 
     if (url.pathname === "/mcp") return handleMcp(request, env);
+    if (url.pathname === "/factory/diagnostics/openai-secret-presence") {
+      const presenceResponse = handleOpenAiSecretPresence(request, env);
+      if (presenceResponse) return presenceResponse;
+    }
     if (url.pathname.startsWith("/factory/diagnostics")) {
       const diagnosticsResponse = await handleDiagnostics(request, env);
       if (diagnosticsResponse) return diagnosticsResponse;
