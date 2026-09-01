@@ -38,7 +38,6 @@ let tailClosed = false;
 const tail = spawn(wrangler, [
   'tail', scriptName,
   '--format', 'json',
-  '--sampling-rate', '1',
   '--search', 'aurentara.customer.observability'
 ], {
   env: {
@@ -64,7 +63,11 @@ for (let i = 0; i < 30; i += 1) {
   await sleep(500);
 }
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_BEFORE_PROBE');
-if (!tailReady) await sleep(2000);
+
+// Cloudflare documents that a filtered tail can take up to 60 seconds to leave sampling mode.
+// Keep the filter active before emitting the synthetic closed-surface canary requests.
+await sleep(60000);
+assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_DURING_FILTER_SETTLE');
 
 const probeUrl = new URL(`https://${scriptName}.${subdomain}.workers.dev/customer/api/manifest`);
 assert.equal(probeUrl.protocol, 'https:');
@@ -72,7 +75,7 @@ assert.equal(probeUrl.hostname, `${scriptName}.${subdomain}.workers.dev`);
 
 const probeStatuses = [];
 let surfaceRemainedOff = true;
-for (let i = 0; i < 12; i += 1) {
+for (let i = 0; i < 20; i += 1) {
   const response = await fetch(probeUrl, {
     method: 'GET',
     redirect: 'error',
@@ -86,7 +89,7 @@ for (let i = 0; i < 12; i += 1) {
   let body = null;
   try { body = await response.json(); } catch {}
   if (body?.public_active === true || response.status < 400) surfaceRemainedOff = false;
-  await sleep(250);
+  await sleep(200);
 }
 assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
 
@@ -120,8 +123,8 @@ const evidence = {
   observed_at: new Date().toISOString(),
   status: 'PASS',
   worker_tail_connected: true,
-  tail_sampling_rate: 1,
-  tail_channel_filter_applied: true,
+  tail_console_search_filter_applied: true,
+  tail_sampling_settle_seconds: 60,
   tail_ready_banner_seen: tailReady,
   probe_route_class: 'closed_customer_manifest',
   probe_request_count: probeStatuses.length,
