@@ -1,0 +1,49 @@
+name: HAMYREN Private Preview Visual QA V1
+
+on:
+  pull_request:
+    paths:
+      - 'projects/riosystems-public-website-v1/hamyren/**'
+      - 'scripts/hamyren-private-preview-visual-qa.mjs'
+      - '.github/workflows/hamyren-private-preview-visual-qa-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Start local private preview server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory projects/riosystems-public-website-v1 >/tmp/hamyren-preview-http.log 2>&1 &
+          echo $! > /tmp/hamyren-preview-http.pid
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4173/hamyren/index.html >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/hamyren-preview-http.log
+          exit 1
+      - name: Render and verify HAMYREN product surfaces
+        run: node scripts/hamyren-private-preview-visual-qa.mjs
+      - name: Upload private preview review pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamyren-private-preview-v1
+          path: artifacts/hamyren-private-preview-v1/
+          if-no-files-found: warn
+          retention-days: 7
