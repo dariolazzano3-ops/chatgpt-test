@@ -5,52 +5,22 @@ import { access } from 'node:fs/promises';
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'chatgpt-test').trim();
+const verifiedBaseUrl = String(process.env.AURENTARA_LIVE_PROBE_BASE_URL || '').trim();
 const probeCount = 1000;
 
 assert.match(accountId, /^[a-f0-9]{32}$/i, 'CLOUDFLARE_ACCOUNT_ID_INVALID');
 assert.ok(token.length >= 20, 'CLOUDFLARE_API_TOKEN_MISSING');
 assert.match(scriptName, /^[a-z0-9][a-z0-9_-]{0,62}$/i, 'CLOUDFLARE_WORKER_SCRIPT_INVALID');
+assert.ok(verifiedBaseUrl, 'DEPLOYMENT_TRUTH_VERIFIED_ROUTE_REQUIRED');
 
-async function cfGet(path) {
-  const url = new URL(path, 'https://api.cloudflare.com');
-  assert.equal(url.origin, 'https://api.cloudflare.com');
-  const response = await fetch(url, {
-    method: 'GET',
-    redirect: 'error',
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    signal: AbortSignal.timeout(10000)
-  });
-  let body = null;
-  try { body = await response.json(); } catch {}
-  return { ok: response.ok && body?.success !== false, status: response.status, body };
-}
+const probeBase = new URL(verifiedBaseUrl);
+assert.equal(probeBase.protocol, 'https:', 'DEPLOYMENT_TRUTH_ROUTE_MUST_BE_HTTPS');
+assert.equal(probeBase.username, '', 'DEPLOYMENT_TRUTH_ROUTE_USERINFO_FORBIDDEN');
+assert.equal(probeBase.password, '', 'DEPLOYMENT_TRUTH_ROUTE_USERINFO_FORBIDDEN');
+assert.equal(probeBase.search, '', 'DEPLOYMENT_TRUTH_ROUTE_QUERY_FORBIDDEN');
+assert.equal(probeBase.hash, '', 'DEPLOYMENT_TRUTH_ROUTE_FRAGMENT_FORBIDDEN');
 
-const accountSubdomainResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/subdomain`);
-assert.equal(accountSubdomainResponse.ok, true, `CLOUDFLARE_WORKERS_SUBDOMAIN_READ_FAILED:${accountSubdomainResponse.status}`);
-const accountSubdomain = String(accountSubdomainResponse.body?.result?.subdomain || '').trim();
-assert.match(accountSubdomain, /^[a-z0-9-]+$/i, 'CLOUDFLARE_WORKERS_SUBDOMAIN_INVALID');
-
-const scriptSubdomainResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/subdomain`);
-assert.equal(scriptSubdomainResponse.ok, true, `CLOUDFLARE_SCRIPT_SUBDOMAIN_READ_FAILED:${scriptSubdomainResponse.status}`);
-const workersDevEnabled = scriptSubdomainResponse.body?.result?.enabled === true;
-
-const domainsResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/domains`);
-assert.equal(domainsResponse.ok, true, `CLOUDFLARE_WORKER_DOMAINS_READ_FAILED:${domainsResponse.status}`);
-const domains = Array.isArray(domainsResponse.body?.result) ? domainsResponse.body.result : [];
-const customDomain = domains.find((item) => String(item?.service || '') === scriptName && typeof item?.hostname === 'string' && item.hostname.trim()) || null;
-
-let probeUrl = null;
-let routeKind = null;
-if (workersDevEnabled) {
-  probeUrl = new URL(`https://${scriptName}.${accountSubdomain}.workers.dev/customer/api/manifest`);
-  routeKind = 'workers_dev';
-} else if (customDomain) {
-  probeUrl = new URL(`https://${String(customDomain.hostname).trim()}/customer/api/manifest`);
-  routeKind = 'custom_domain';
-}
-assert.ok(probeUrl, 'CLOUDFLARE_CUSTOMER_WORKER_HAS_NO_ACTIVE_HTTP_ROUTE');
-assert.equal(probeUrl.protocol, 'https:');
-
+const probeUrl = new URL('/customer/api/manifest', probeBase);
 const wrangler = './node_modules/.bin/wrangler';
 await access(wrangler);
 
@@ -99,10 +69,13 @@ for (let i = 0; i < probeCount; i += 1) {
   statusCounts.set(response.status, (statusCounts.get(response.status) || 0) + 1);
   let body = null;
   try { body = await response.json(); } catch {}
-  if (body?.error === 'CUSTOMER_SURFACE_NOT_ACTIVATED' && body?.mode === 'off' && body?.public_active === false) {
+  if (response.status === 404
+      && body?.error === 'CUSTOMER_SURFACE_NOT_ACTIVATED'
+      && body?.mode === 'off'
+      && body?.public_active === false) {
     exactClosedWorkerResponses += 1;
   }
-  if (body?.public_active === true || response.status < 400) surfaceRemainedOff = false;
+  if (body?.public_active === true || (response.status >= 200 && response.status < 400)) surfaceRemainedOff = false;
   if ((i + 1) % 50 === 0) await sleep(100);
 }
 assert.equal(surfaceRemainedOff, true, 'CUSTOMER_SURFACE_UNEXPECTEDLY_ACTIVE');
@@ -132,9 +105,7 @@ if (!tailClosed) {
 
 const diagnostic = {
   schema: 'aurentara.customer.cloudflare-signal-sink-diagnostic.v1',
-  route_kind: routeKind,
-  workers_dev_enabled: workersDevEnabled,
-  custom_domain_bound: Boolean(customDomain),
+  verified_route_from_deployment_truth: true,
   hostname_returned: false,
   probe_request_count: probeCount,
   probe_status_counts: Object.fromEntries([...statusCounts.entries()].sort(([a], [b]) => a - b)),
@@ -160,7 +131,7 @@ console.log(JSON.stringify({
   schema: 'aurentara.customer.cloudflare-signal-sink-e2e.v1',
   observed_at: new Date().toISOString(),
   status: 'PASS',
-  route_kind: routeKind,
+  verified_route_from_deployment_truth: true,
   worker_tail_connected: true,
   tail_filtering: 'local_only',
   tail_ready_banner_seen: tailReady,
