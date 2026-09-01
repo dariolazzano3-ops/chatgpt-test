@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'projects/riosystems-public-website-v1/hamyren/**'
+      - 'projects/riosystems-public-website-v1/app.js'
+      - 'src/customer-product/surface-v1.js'
+      - 'src/customer-product/shell-v1.js'
       - 'scripts/hamyren-private-preview-visual-qa.mjs'
       - '.github/workflows/hamyren-private-preview-visual-qa-v1.yml'
   workflow_dispatch:
