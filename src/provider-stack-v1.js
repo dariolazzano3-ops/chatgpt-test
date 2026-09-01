@@ -9,6 +9,7 @@ import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from
 import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerified } from './cloudflare-workers-ai-staging-evidence.js';
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
+import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
@@ -44,7 +45,10 @@ export function providerStackV1() {
       framer_connection_evidence: framerEvidence,
       framer_staging_write_verified: false,
       framer_publish_verified: false,
-      framer_routing_scope: 'specialist_only'
+      framer_routing_scope: 'specialist_only',
+      lovable_resolution: remainingProviderResolution('lovable-github'),
+      webflow_resolution: remainingProviderResolution('webflow-api'),
+      base44_resolution: remainingProviderResolution('base44')
     },
     automation: {
       decision: automationProviderDecisionManifest(),
@@ -53,7 +57,9 @@ export function providerStackV1() {
       secondary_path: ['riosystems-native-automation','activepieces-cloud-free'],
       specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free'],
       staging_activation_verified: isMakeLiveStagingVerified(),
-      staging_activation_evidence: makeEvidence
+      staging_activation_evidence: makeEvidence,
+      activepieces_resolution: remainingProviderResolution('activepieces-cloud-free'),
+      n8n_resolution: remainingProviderResolution('n8n-client-owned')
     },
     ai: {
       decision: aiProviderDecisionManifest(),
@@ -137,105 +143,112 @@ export function providerActivationMatrix() {
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
   const posthogStagingVerified = isPostHogStagingAnalyticsVerified();
+  const base44 = remainingProviderResolution('base44');
+  const activepieces = remainingProviderResolution('activepieces-cloud-free');
+  const webflow = remainingProviderResolution('webflow-api');
+  const lovable = remainingProviderResolution('lovable-github');
+  const n8n = remainingProviderResolution('n8n-client-owned');
   return {
     schema: 'riosystems.provider-activation-matrix.v1',
     providers: [
       {
-        id: 'cloudflare-workers-free',
-        selection: 'selected',
+        id: 'cloudflare-workers-free', selection: 'selected',
         activation: webStagingVerified ? 'live_read_and_staging_deploy_verified' : 'live_read_verified_staging_deploy_zero_cost_confirmation_required',
-        workers_scripts_read: cf.capabilities.workers_scripts_read,
-        pages_projects_read: cf.capabilities.pages_projects_read,
-        evidence_run_id: cf.github_actions_run_id,
-        staging_deploy_verified: webStagingVerified,
-        staging_evidence_run_id: pages.github_actions_run_id,
-        staging_deploy_evidence: pages,
+        workers_scripts_read: cf.capabilities.workers_scripts_read, pages_projects_read: cf.capabilities.pages_projects_read,
+        evidence_run_id: cf.github_actions_run_id, staging_deploy_verified: webStagingVerified,
+        staging_evidence_run_id: pages.github_actions_run_id, staging_deploy_evidence: pages,
         real_write: 'explicit_staging_approval_required_per_new_deployment'
       },
       {
-        id: 'cloudflare-workers-ai-free',
-        selection: 'selected',
+        id: 'cloudflare-workers-ai-free', selection: 'selected',
         activation: cloudflareAiStagingVerified ? 'live_staging_inference_verified' : 'permission_required',
         historical_workers_ai_models_read: cf.capabilities.workers_ai_read,
-        staging_inference_verified: cloudflareAiStagingVerified,
-        staging_inference_evidence: cloudflareAi,
+        staging_inference_verified: cloudflareAiStagingVerified, staging_inference_evidence: cloudflareAi,
         zero_cost_verified: cloudflareAi.cost_guard.zero_cost_verified === true,
-        real_inference: 'synthetic_staging_and_explicit_approval_required_per_execution',
-        paid_fallback: 'disabled'
+        real_inference: 'synthetic_staging_and_explicit_approval_required_per_execution', paid_fallback: 'disabled'
       },
       {
-        id: 'supabase-free',
-        selection: 'selected',
+        id: 'supabase-free', selection: 'selected',
         activation: businessStagingWriteVerified ? 'live_read_and_staging_write_verified' : 'live_read_verified_staging_write_not_authorized',
         project_status: business.supabase.project_status,
         schema_read: business.supabase.public_schema_read_verified === true ? 'verified' : 'unverified',
-        staging_write_plan_ready: true,
-        staging_write_verified: businessStagingWriteVerified,
-        staging_write_evidence: businessWrite,
-        real_write: 'isolated_staging_and_explicit_approval_required_per_execution'
+        staging_write_plan_ready: true, staging_write_verified: businessStagingWriteVerified,
+        staging_write_evidence: businessWrite, real_write: 'isolated_staging_and_explicit_approval_required_per_execution'
       },
       {
-        id: 'posthog-free',
-        selection: 'selected',
+        id: 'posthog-free', selection: 'selected',
         activation: posthogStagingVerified ? 'live_read_and_staging_analytics_verified' : 'live_read_verified_event_ingestion_observed',
         project_read: business.posthog.project_read_verified === true ? 'verified' : 'unverified',
         event_ingestion_observed: business.posthog.ingested_event_observed,
-        staging_analytics_verified: posthogStagingVerified,
-        staging_analytics_evidence: posthogStaging,
+        staging_analytics_verified: posthogStagingVerified, staging_analytics_evidence: posthogStaging,
         real_write: 'synthetic_event_approval_required_per_execution'
       },
       {
-        id: 'openai-api',
-        selection: 'selected',
+        id: 'openai-api', selection: 'selected',
         connection_state: openAiConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
         activation: openAiConnectedStaging ? 'connected_staging_budget_gate' : 'credential_and_budget_gate_required',
-        credential: openAiConnectedStaging ? 'present_valid' : 'not_verified',
-        connection_evidence: openAi,
-        inference_verified: false,
-        routing_ready: false,
-        paid_execution: 'approval_required',
-        paid_execution_approved: false,
-        automatic_paid_overflow: false,
-        production_eligible: false
+        credential: openAiConnectedStaging ? 'present_valid' : 'not_verified', connection_evidence: openAi,
+        inference_verified: false, routing_ready: false, paid_execution: 'approval_required',
+        paid_execution_approved: false, automatic_paid_overflow: false, production_eligible: false
       },
       {
-        id: 'make-core',
-        selection: 'primary_automation_runtime',
+        id: 'make-core', selection: 'primary_automation_runtime',
         activation: makeStagingVerified ? 'live_staging_verified' : 'staging_verification_incomplete',
         read_only_preflight: make.verification.read_only_preflight === true ? 'verified' : 'unverified',
         scenario_create: make.verification.scenario_create === true ? 'verified_inactive_staging_only' : 'unverified',
         scenario_run_once: make.verification.scenario_run_once === true && make.verification.scenario_restored_inactive === true
-          ? 'verified_synthetic_supervised_and_restored_inactive'
-          : 'unverified',
-        evidence_run_id: make.execution.github_actions_run_id,
-        scenario_id: make.scenario.scenario_id,
+          ? 'verified_synthetic_supervised_and_restored_inactive' : 'unverified',
+        evidence_run_id: make.execution.github_actions_run_id, scenario_id: make.scenario.scenario_id,
         real_write: 'approval_required_per_execution',
         production_activation: make.authorization_posture.production_authorized === true ? 'authorized' : 'not_authorized',
         automatic_extra_credit_purchase: make.authorization_posture.automatic_paid_overflow === true
       },
-      { id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', activation: 'only_if_secondary_path_needed', real_write: 'approval_required' },
-      { id: 'n8n-client-owned', selection: 'technical_specialist', activation: 'only_if_complex_workflow_and_client_instance_exists' },
-      { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
-      { id: 'lovable-github', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
       {
-        id: 'framer-server-api',
-        selection: 'optional_specialist',
+        id: 'base44', selection: 'app_portal_specialist', connection_state: 'NOT_CONNECTED',
+        activation: 'intentionally_not_centrally_connected', maturity_level: base44.maturity_level,
+        final_classification: base44.final_classification, central_connection_required: false,
+        routing_eligibility: 'mission_specific_supervised_only', provider_requests: 0, provider_writes: 0,
+        production_eligible: false, resolution_evidence: base44
+      },
+      {
+        id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', connection_state: 'NOT_CONNECTED',
+        activation: 'operator_gate_account_api_key_required', maturity_level: activepieces.maturity_level,
+        final_classification: activepieces.final_classification, operator_gate: activepieces.operator_gate,
+        routing_eligibility: 'not_until_connected', real_write: 'approval_required', provider_requests: 0,
+        provider_writes: 0, production_eligible: false, resolution_evidence: activepieces
+      },
+      {
+        id: 'n8n-client-owned', selection: 'technical_specialist', connection_state: 'NOT_CONNECTED',
+        activation: 'intentionally_customer_owned_per_instance', maturity_level: n8n.maturity_level,
+        final_classification: n8n.final_classification, central_connection_required: false,
+        customer_owned_strategy: true, routing_eligibility: 'per_customer_instance_when_mission_requires',
+        provider_requests: 0, provider_writes: 0, production_eligible: false, resolution_evidence: n8n
+      },
+      { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
+      {
+        id: 'lovable-github', selection: 'optional_specialist', connection_state: 'NOT_CONNECTED',
+        activation: 'intentionally_not_centrally_connected_supervised_builder', maturity_level: lovable.maturity_level,
+        final_classification: lovable.final_classification, central_connection_required: false,
+        routing_eligibility: 'mission_specific_supervised_github_handoff', provider_requests: 0,
+        provider_writes: 0, production_eligible: false, resolution_evidence: lovable
+      },
+      {
+        id: 'framer-server-api', selection: 'optional_specialist',
         connection_state: framerConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
         activation: framerConnectedStaging ? 'live_staging_verified_read_only_connection' : 'only_if_mission_requires',
-        account: framerConnectedStaging ? 'ready' : 'not_verified',
-        project_binding: framerConnectedStaging ? 'present' : 'not_verified',
-        credential: framerConnectedStaging ? 'present_valid' : 'not_verified',
-        connection_evidence: framer,
-        project_metadata_read: framerConnectedStaging,
-        provider_writes: 0,
-        staging_write_verified: false,
-        publish_verified: false,
-        publish_performed: false,
-        deploy_performed: false,
-        routing_eligibility: 'specialist_only_mutations_approval_gated',
-        production_eligible: false
+        account: framerConnectedStaging ? 'ready' : 'not_verified', project_binding: framerConnectedStaging ? 'present' : 'not_verified',
+        credential: framerConnectedStaging ? 'present_valid' : 'not_verified', connection_evidence: framer,
+        project_metadata_read: framerConnectedStaging, provider_writes: 0, staging_write_verified: false,
+        publish_verified: false, publish_performed: false, deploy_performed: false,
+        routing_eligibility: 'specialist_only_mutations_approval_gated', production_eligible: false
       },
-      { id: 'webflow-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' }
+      {
+        id: 'webflow-api', selection: 'optional_specialist', connection_state: 'NOT_CONNECTED',
+        activation: 'operator_gate_read_only_site_token_required', maturity_level: webflow.maturity_level,
+        final_classification: webflow.final_classification, operator_gate: webflow.operator_gate,
+        routing_eligibility: 'not_until_connected', provider_requests: 0, provider_writes: 0,
+        production_eligible: false, resolution_evidence: webflow
+      }
     ],
     secrets_embedded: false,
     automatic_paid_overflow: false,
@@ -288,7 +301,12 @@ export function planProviderStackMission(input = {}) {
     activation_evidence: {
       web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
       web_framer_connection: clone(stack.factories.web.framer_connection_evidence),
+      web_lovable_resolution: clone(stack.factories.web.lovable_resolution),
+      web_webflow_resolution: clone(stack.factories.web.webflow_resolution),
+      web_base44_resolution: clone(stack.factories.web.base44_resolution),
       automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
+      automation_activepieces_resolution: clone(stack.factories.automation.activepieces_resolution),
+      automation_n8n_resolution: clone(stack.factories.automation.n8n_resolution),
       ai_cloudflare_staging_runtime: clone(stack.factories.ai.cloudflare_ai_runtime_evidence),
       ai_openai_connection: clone(stack.factories.ai.openai_connection_evidence),
       business_runtime_read: clone(stack.factories.business.provider_read_evidence),
