@@ -27,8 +27,7 @@ test('CASE 3 standardized CRM build never lies about Self-Service availability',
     activity: 'implementation',
     capability: 'crm',
     customer_goal: 'Build the simple standardized CRM we just planned.',
-    complexity: 'low',
-    integration_count: 0
+    requirements: { complexity: 'low', integration_count: 0 }
   });
   assert.equal(journey.capability_path.decision.implementation_execution_class, 'SELF_SERVICE');
   assert.equal(journey.capability_path.decision.implementation_availability, 'CUSTOMER_DISABLED');
@@ -44,13 +43,16 @@ test('CASE 4 large CRM migration routes to AURENTARA with structured brief', () 
     capability: 'crm',
     customer_goal: 'Migrate our existing CRM with 50,000 contacts and integrations.',
     problem_statement: 'Legacy CRM with 50,000 contacts and connected systems.',
-    complexity: 'high',
-    migration_required: true,
-    integration_count: 4,
-    customer_data_required: true,
-    production_required: true,
+    requirements: {
+      complexity: 'high',
+      migration_required: true,
+      integration_count: 4,
+      customer_data_required: true,
+      production_required: true
+    },
     existing_systems: ['Synthetic Legacy CRM'],
     integration_requirements: ['Synthetic ERP', 'Synthetic email platform'],
+    migration_requirements: ['Preserve synthetic history and mapping'],
     data_requirements: ['50,000 synthetic-contact equivalent records'],
     success_criteria: ['History preserved', 'Pipeline works after migration']
   });
@@ -66,8 +68,7 @@ test('CASE 5 simple landing page is Self-Service eligible but not falsely activa
     activity: 'implementation',
     capability: 'web',
     customer_goal: 'Create a simple landing page.',
-    complexity: 'low',
-    integration_count: 0
+    requirements: { complexity: 'low', integration_count: 0 }
   });
   assert.equal(journey.capability_path.decision.implementation_execution_class, 'SELF_SERVICE');
   assert.equal(journey.outcome, 'SELF_SERVICE_NOT_AVAILABLE');
@@ -81,10 +82,13 @@ test('CASE 6 website plus CRM plus automations becomes professional multi-capabi
     customer_goal: 'Replace our website, CRM and automations.',
     message: 'Replace our website, CRM and automations.',
     required_capabilities: ['web', 'crm', 'automation'],
-    complexity: 'high',
-    integration_count: 3,
     scope: 'transformation',
-    business_critical: true
+    requirements: {
+      complexity: 'high',
+      integration_count: 3,
+      scope: 'transformation',
+      business_critical: true
+    }
   });
   assert.equal(journey.outcome, 'AURENTARA_PROFESSIONAL');
   assert.ok(journey.implementation_brief.required_capabilities.length >= 3);
@@ -96,9 +100,7 @@ test('CASE 7 prior HAMYREN context is reused without needless re-questioning', (
     activity: 'implementation',
     capability: 'crm',
     customer_goal: 'Migrate the CRM we already planned.',
-    complexity: 'high',
-    migration_required: true,
-    integration_count: 3,
+    requirements: { complexity: 'high', migration_required: true, integration_count: 3 },
     business_context: {
       sales_process: 'Synthetic B2B sales process already defined',
       target_pipeline: ['new', 'qualified', 'proposal', 'won'],
@@ -118,9 +120,7 @@ test('professional journey can prepare existing mission package only after expli
     capability: 'crm',
     customer_goal: 'Migrate CRM and preserve sales history.',
     problem_statement: 'Synthetic legacy CRM migration.',
-    complexity: 'high',
-    migration_required: true,
-    integration_count: 3,
+    requirements: { complexity: 'high', migration_required: true, integration_count: 3 },
     success_criteria: ['Sales history preserved']
   });
   const blocked = prepareAurentaraMissionHandoffV1({ journey, approvals: {} });
@@ -148,9 +148,7 @@ test('CASE 8 delivered AURENTARA result prepares HAMYREN continuation without du
     capability: 'crm',
     customer_goal: 'Migrate CRM.',
     problem_statement: 'Synthetic migration.',
-    complexity: 'high',
-    migration_required: true,
-    integration_count: 3,
+    requirements: { complexity: 'high', migration_required: true, integration_count: 3 },
     success_criteria: ['Pipeline operational']
   });
 
