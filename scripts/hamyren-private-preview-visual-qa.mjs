@@ -8,6 +8,7 @@ import { createCustomerProductSurface } from '../src/customer-product/surface-v1
 
 const baseUrl = process.env.HAMYREN_PREVIEW_BASE_URL || 'http://localhost:4173';
 const outDir = path.resolve(process.env.HAMYREN_VISUAL_QA_DIR || 'artifacts/hamyren-private-preview-v1');
+const EXPECTED_FAIL_CLOSED_CONSOLE_STATUSES = Object.freeze([401, 409, 501]);
 await fs.mkdir(outDir, { recursive: true });
 
 let inferenceCalls = 0;
@@ -39,11 +40,20 @@ const report = {
   captures: [],
   external_requests: [],
   console_errors: [],
+  expected_fail_closed_console_statuses: [...EXPECTED_FAIL_CLOSED_CONSOLE_STATUSES],
+  expected_fail_closed_console_events: [],
   desktop: {},
   mobile: {},
   functional: {},
   ok: false
 };
+
+function expectedFailClosedConsoleStatus(text = '') {
+  const match = String(text).match(/Failed to load resource: the server responded with a status of (\d{3})/i);
+  if (!match) return null;
+  const status = Number(match[1]);
+  return EXPECTED_FAIL_CLOSED_CONSOLE_STATUSES.includes(status) ? status : null;
+}
 
 function attachGuards(page, label) {
   page.on('request', (request) => {
@@ -51,7 +61,14 @@ function attachGuards(page, label) {
     if (!['127.0.0.1', 'localhost'].includes(url.hostname)) report.external_requests.push({ label, url: request.url() });
   });
   page.on('console', (message) => {
-    if (message.type() === 'error') report.console_errors.push({ label, text: message.text() });
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    const expectedStatus = expectedFailClosedConsoleStatus(text);
+    if (expectedStatus) {
+      report.expected_fail_closed_console_events.push({ label, status: expectedStatus, text });
+      return;
+    }
+    report.console_errors.push({ label, text });
   });
   page.on('pageerror', (error) => report.console_errors.push({ label, text: error.message }));
 }
@@ -239,6 +256,7 @@ try {
 
   assert.deepEqual(report.external_requests, [], 'Private QA made external browser requests');
   assert.deepEqual(report.console_errors, [], 'Browser console/page errors detected');
+  assert.ok(report.expected_fail_closed_console_events.every((event) => EXPECTED_FAIL_CLOSED_CONSOLE_STATUSES.includes(event.status)), 'Unexpected fail-closed console status classification');
   assert.equal(inferenceCalls, 5, 'Only the five successful desktop trial questions may invoke deterministic inference');
   report.functional.paid_provider_calls = 0;
   report.functional.real_customer_data = false;
