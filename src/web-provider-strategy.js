@@ -45,8 +45,8 @@ const PROVIDERS = Object.freeze([
     role: 'optional_visual_accelerator',
     category: 'ai_builder',
     capabilities: ['web.build.prototype','web.design.accelerate','web.export.github'],
-    availability: 'intentional_supervised_only',
-    account_connection_required: false,
+    availability: 'connection_optional_supervised_only',
+    account_connection_required: true,
     central_connection_required: false,
     final_classification: LOVABLE_RESOLUTION.final_classification,
     code_ownership: 'github_two_way_sync',
@@ -91,9 +91,9 @@ const PROVIDERS = Object.freeze([
     code_ownership: 'partial_export_with_cms_limits',
     hosting_lock_in: 'cms_dependent',
     automation_fit: 'high',
-    cost_mode: 'free_starter_read_only_api_possible_paid_features_separate',
-    paid_plan_required: false,
-    paid_plan_required_for_production_features: 'feature_dependent',
+    cost_mode: 'workspace_and_site_plans',
+    paid_plan_required: true,
+    read_only_connection_paid_plan_required: false,
     external_write: true,
     production_deploy: false,
     operator_gate: WEBFLOW_RESOLUTION.operator_gate,
@@ -152,10 +152,9 @@ export function selectWebBuildProvider(input = {}) {
   const provider = getWebProvider(selectedId);
   if (!provider) return { ok: false, error: 'WEB_PROVIDER_NOT_FOUND', production_deploy: false };
 
-  if (provider.central_connection_required !== false && provider.account_connection_required && !connected.has(provider.id) && provider.id !== 'cloudflare-workers-free') {
+  if (provider.account_connection_required && !connected.has(provider.id) && provider.id !== 'cloudflare-workers-free') {
     blockers.push({ code: 'WEB_PROVIDER_CONNECTION_REQUIRED', provider_id: provider.id });
   }
-  if (provider.id === 'lovable-github') blockers.push({ code: 'SUPERVISED_BUILDER_ONLY', provider_id: provider.id });
   if (provider.paid_plan_required === true && input.paid_provider_approved !== true) {
     blockers.push({ code: 'PAID_PROVIDER_APPROVAL_REQUIRED', provider_id: provider.id });
   }
@@ -185,6 +184,7 @@ export function webProviderDecisionManifest() {
     framer_connected_staging: FRAMER_CONNECTED,
     lovable_central_connection_required: false,
     webflow_operator_connection_gate: true,
+    webflow_read_only_connection_paid_plan_required: false,
     provider_choice_complete_for_web_factory_v1: true,
     activation_is_separate_from_selection: true,
     production_deploy: false
