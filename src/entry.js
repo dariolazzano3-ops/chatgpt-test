@@ -8,7 +8,7 @@ import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.j
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
-import { createProductionCustomerAccountSurface } from "./customer-product/production-account-surface-v1.js";
+import { createProductionCustomerAccountPrivacySurface } from "./customer-product/production-account-privacy-surface-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
 import { createCloudflareCustomerObservabilityBinding } from "./customer-product/production-live-bindings-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
@@ -17,7 +17,7 @@ export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-l
 // Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
 void operatorHumanUxFinalManifest;
 
-const productionCustomerAccountSurface = createProductionCustomerAccountSurface();
+const productionCustomerAccountSurface = createProductionCustomerAccountPrivacySurface();
 const customerLaunchShield = createCustomerLaunchShield({
   production_surface: productionCustomerAccountSurface,
   production_runtime_active: true
