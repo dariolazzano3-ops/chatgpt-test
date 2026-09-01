@@ -9,6 +9,7 @@ import { productionActivationContractsManifest } from './production-activation-c
 import { paymentLifecycleManifest } from './payment-lifecycle-v1.js';
 import { dedicatedRuntimeBindingsManifest } from './dedicated-runtime-bindings-v1.js';
 import { customerPrelaunchSecurityPrivacyManifest } from './prelaunch-security-privacy-v1.js';
+import { externalCapabilityBindingsManifest } from './external-capability-bindings-v1.js';
 
 export const CONTROLLED_LAUNCH_PROFILES_V1 = Object.freeze({
   FREE_CONTROLLED_PILOT: 'FREE_CONTROLLED_PILOT',
@@ -50,6 +51,7 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   const payment = paymentLifecycleManifest();
   const dedicated = dedicatedRuntimeBindingsManifest();
   const securityPrivacy = customerPrelaunchSecurityPrivacyManifest();
+  const externalBindings = externalCapabilityBindingsManifest();
   const contractReady = (inputKey, manifest, manifestKey) => input[inputKey] === undefined ? bool(manifest[manifestKey]) : bool(input[inputKey]);
 
   const gates = [
@@ -84,6 +86,8 @@ export function evaluateControlledLaunchReadiness(input = {}) {
       'Production Customer identity and persistence need provider-specific bindings that enforce a dedicated Customer project and reject Operator data-plane reuse.', 'Build and test dedicated Customer identity/store bindings with explicit Operator-project collision rejection.', dedicated.version),
     gate('prelaunch_security_privacy_contracts', securityPrivacy.sql_security_contract_verifier_ready && securityPrivacy.consent_ledger_contract_ready && securityPrivacy.business_export_contract_ready && securityPrivacy.deletion_plan_contract_ready && securityPrivacy.launch_shield_contract_ready ? PASS : PREPROD_REQUIRED,
       'Launch requires technical RLS verification, consent/export/deletion controls and an explicit OFF/prelaunch/public surface shield before external activation.', 'Build and test the Customer prelaunch security/privacy controller and launch shield with synthetic data only.', securityPrivacy.version),
+    gate('external_capability_bindings', externalBindings.trusted_retrieval_binding_ready && externalBindings.distributed_abuse_binding_ready && externalBindings.auxiliary_purge_binding_ready && externalBindings.observability_binding_ready && externalBindings.all_external_callbacks_require_activation ? PASS : PREPROD_REQUIRED,
+      'External Customer capabilities need concrete activation-locked bindings for trusted retrieval, distributed abuse, auxiliary purge and redacted observability before live providers are enabled.', 'Build and test activation-locked external Customer capability bindings with synthetic fixtures only.', externalBindings.version),
 
     gate('production_customer_identity', bool(input.production_customer_identity_active) ? PASS : OPERATOR_GATE,
       'Guest synthetic identity cannot protect real customer accounts and the dedicated Customer identity project is not activated.', 'Provision/approve the dedicated Customer identity project, configure its credentials/JWKS, then activate and verify authenticated tenant membership. Do not reuse the Operator Supabase project.', null),
@@ -92,13 +96,13 @@ export function evaluateControlledLaunchReadiness(input = {}) {
     gate('real_customer_ai_processing', bool(input.real_customer_ai_processing_approved) ? PASS : OPERATOR_GATE,
       'Block 02 intentionally rejects customer/sensitive data before provider inference.', 'Approve the chosen existing AI provider configuration for real customer data, privacy terms and bounded Production cost policy.', null),
     gate('live_trusted_retrieval', bool(input.live_trusted_retrieval_active) ? PASS : OPERATOR_GATE,
-      'Trusted Research policy exists but live retrieval is intentionally inactive.', 'Activate an approved trusted retrieval path/provider and verify freshness/source/citation behavior with Production privacy and cost controls.', null),
+      'Trusted Research policy and activation-locked binding exist, but live retrieval is intentionally inactive.', 'Select/approve and activate the live trusted retrieval provider/path, then verify freshness/source/citation behavior with Production privacy and cost controls.', externalBindings.version),
     gate('distributed_rate_limit', bool(input.distributed_rate_limit_active) ? PASS : OPERATOR_GATE,
-      'The V1 abuse guard is isolate-local and cannot enforce a global public limit.', 'Enable and verify a distributed edge/runtime rate limit for Customer routes before public traffic.', null),
+      'Distributed abuse binding exists and fails closed, but no live edge/runtime enforcement provider is active.', 'Enable and verify the approved distributed edge/runtime rate-limit provider for Customer routes before public traffic.', externalBindings.version),
     gate('production_deletion_executor', bool(input.production_deletion_executor_active) ? PASS : OPERATOR_GATE,
-      'Foundation has export/deletion planning, but no Production hard-delete executor.', 'Activate and verify audited Production deletion across customer records, conversation data, caches/vector scopes and storage.', null),
+      'Audited deletion plus cache/vector/object-storage purge binding exists, but destructive Production execution is inactive.', 'Activate and verify audited Production deletion against the dedicated Customer store plus cache, vector and object-storage scopes.', externalBindings.version),
     gate('production_observability', bool(input.production_observability_active) ? PASS : OPERATOR_GATE,
-      'Public operation requires durable error, abuse, cost and availability visibility.', 'Activate the approved Production observability/alert path with customer-data redaction and verify alerts.', null),
+      'Redacted observability binding and event allowlist exist, but no durable Production sink/alerts are active.', 'Activate the approved Production observability/alert sink and verify redaction, error, abuse, cost and availability signals.', externalBindings.version),
     gate('legal_privacy_review', bool(input.legal_privacy_review_complete) ? PASS : OPERATOR_GATE,
       'Technical privacy controls exist, but public customer data processing still requires reviewed privacy/terms/retention disclosures for the actual configuration.', 'Complete the legal/privacy review and approve the final retention/disclosure values for the real launch data flows.', securityPrivacy.version),
     gate('public_customer_surface', bool(input.public_customer_surface_active) ? PASS : OPERATOR_GATE,
