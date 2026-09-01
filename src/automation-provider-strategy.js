@@ -1,7 +1,10 @@
 import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
+import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
-const VERIFIED_AT = '2026-08-29';
+const VERIFIED_AT = '2026-09-01';
+const ACTIVEPIECES_RESOLUTION = remainingProviderResolution('activepieces-cloud-free');
+const N8N_RESOLUTION = remainingProviderResolution('n8n-client-owned');
 
 const PROVIDERS = Object.freeze([
   Object.freeze({
@@ -40,17 +43,21 @@ const PROVIDERS = Object.freeze([
     role: 'strategic_secondary_runtime',
     category: 'workflow_automation_cloud',
     capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
-    availability: 'connection_required',
+    availability: 'operator_gate',
     account_connection_required: true,
+    central_connection_required: true,
+    final_classification: ACTIVEPIECES_RESOLUTION.final_classification,
     source_ownership: 'provider_flow_definition',
     automation_fit: 'high',
     cost_mode: 'free_daily_credits_hard_cap',
     paid_plan_required: false,
     external_write: true,
+    routing_ready: false,
+    operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
     production_deploy: false,
     strategic_value: 'open_source_path_and_future_self_host_control',
     license_posture: 'cloud_service_api_access',
-    evidence: 'https://www.activepieces.com/pricing'
+    evidence: ACTIVEPIECES_RESOLUTION
   }),
   Object.freeze({
     id: 'activepieces-community',
@@ -74,16 +81,20 @@ const PROVIDERS = Object.freeze([
     role: 'technical_specialist_runtime',
     category: 'workflow_automation',
     capabilities: ['automation.flow.run','automation.webhook','automation.integrations','automation.code_heavy'],
-    availability: 'client_instance_required',
-    account_connection_required: true,
+    availability: 'client_instance_required_intentionally_not_central',
+    account_connection_required: false,
+    central_connection_required: false,
+    customer_owned_strategy: true,
+    final_classification: N8N_RESOLUTION.final_classification,
     source_ownership: 'client_instance',
     automation_fit: 'very_high_for_complex_api_and_code_workflows',
-    cost_mode: 'client_or_commercial_license',
+    cost_mode: 'customer_or_instance_specific',
     paid_plan_required: 'use_case_dependent',
     external_write: true,
+    routing_ready: false,
     production_deploy: false,
-    license_posture: 'commercial_license_may_be_required_for_hosting_client_workflows',
-    evidence: 'https://support.n8n.io/article/can-i-use-your-license-for-my-use-case'
+    license_posture: 'central_hosting_client_workflows_or_credentials_can_require_commercial_license',
+    evidence: N8N_RESOLUTION
   }),
   Object.freeze({
     id: 'cloudflare-workers-free',
@@ -112,14 +123,17 @@ export function automationProviderStrategy() {
     primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
     primary_external_runtime_evidence: makeEvidence,
     strategic_secondary_runtime: 'activepieces-cloud-free',
+    strategic_secondary_runtime_operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
+    technical_specialist_central_connection_required: false,
+    technical_specialist_customer_owned_strategy: true,
     micro_automation_runtime: 'cloudflare-workers-free',
     principles: [
       'lean_keeps_workflow_intent_and_policy',
       'make_is_primary_for_fast_business_automation',
-      'activepieces_preserves_open_source_and_self_host_optionality',
-      'n8n_is_reserved_for_complex_technical_workflows_by_default',
+      'activepieces_is_secondary_and_connection_gated',
+      'n8n_is_customer_owned_or_per_instance_for_complex_technical_workflows',
       'external_runtime_is_replaceable',
       'client_credentials_are_never_embedded',
       'external_writes_require_supervision',
@@ -149,7 +163,7 @@ export function selectAutomationRuntime(input = {}) {
     reasons.splice(0, reasons.length, 'small_code_flow','repository_owned','already_connected_edge_runtime');
   } else if (mode === 'secondary' || mode === 'strategic_secondary' || mode === 'connector_fallback') {
     selectedId = 'activepieces-cloud-free';
-    reasons.splice(0, reasons.length, 'open_source_path','free_cloud_option','future_self_host_control');
+    reasons.splice(0, reasons.length, 'open_source_path','free_cloud_option','future_self_host_control','operator_connection_gate');
   } else if (mode === 'technical_specialist' || mode === 'client_owned_n8n') {
     selectedId = 'n8n-client-owned';
     reasons.splice(0, reasons.length, 'complex_api_and_code_workflow','client_owned_instance','avoid_shared_hosting_license_risk');
@@ -160,10 +174,10 @@ export function selectAutomationRuntime(input = {}) {
 
   const provider = getAutomationProvider(selectedId);
   if (!provider) return { ok: false, error: 'AUTOMATION_PROVIDER_NOT_FOUND', production_deploy: false };
-  if (provider.account_connection_required && !connected.has(provider.id)) blockers.push({ code: 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED', provider_id: provider.id });
+  if (provider.central_connection_required !== false && provider.account_connection_required && !connected.has(provider.id)) blockers.push({ code: 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED', provider_id: provider.id });
   if (provider.paid_plan_required === true && input.paid_provider_approved !== true) blockers.push({ code: 'PAID_PROVIDER_APPROVAL_REQUIRED', provider_id: provider.id });
   if (provider.availability === 'not_deployed') blockers.push({ code: 'SELF_HOSTED_RUNTIME_NOT_DEPLOYED', provider_id: provider.id });
-  if (provider.availability === 'client_instance_required' && input.client_instance_approved !== true) blockers.push({ code: 'CLIENT_INSTANCE_REQUIRED', provider_id: provider.id });
+  if (provider.id === 'n8n-client-owned' && input.client_instance_approved !== true) blockers.push({ code: 'CLIENT_INSTANCE_REQUIRED', provider_id: provider.id });
 
   return {
     ok: true,
@@ -184,8 +198,11 @@ export function automationProviderDecisionManifest() {
     primary_external_runtime: 'make-core',
     primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
     strategic_secondary_runtime: 'activepieces-cloud-free',
+    activepieces_operator_gate: true,
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
+    n8n_central_connection_required: false,
+    n8n_customer_owned_strategy: true,
     micro_runtime: 'cloudflare-workers-free',
     provider_choice_complete_for_automation_factory_v1: true,
     activation_is_separate_from_selection: true,
