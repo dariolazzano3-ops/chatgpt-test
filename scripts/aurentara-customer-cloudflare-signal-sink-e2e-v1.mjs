@@ -25,10 +25,31 @@ async function cfGet(path) {
   return { ok: response.ok && body?.success !== false, status: response.status, body };
 }
 
-const subdomainResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/subdomain`);
-assert.equal(subdomainResponse.ok, true, `CLOUDFLARE_WORKERS_SUBDOMAIN_READ_FAILED:${subdomainResponse.status}`);
-const subdomain = String(subdomainResponse.body?.result?.subdomain || '').trim();
-assert.match(subdomain, /^[a-z0-9-]+$/i, 'CLOUDFLARE_WORKERS_SUBDOMAIN_INVALID');
+const accountSubdomainResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/subdomain`);
+assert.equal(accountSubdomainResponse.ok, true, `CLOUDFLARE_WORKERS_SUBDOMAIN_READ_FAILED:${accountSubdomainResponse.status}`);
+const accountSubdomain = String(accountSubdomainResponse.body?.result?.subdomain || '').trim();
+assert.match(accountSubdomain, /^[a-z0-9-]+$/i, 'CLOUDFLARE_WORKERS_SUBDOMAIN_INVALID');
+
+const scriptSubdomainResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/subdomain`);
+assert.equal(scriptSubdomainResponse.ok, true, `CLOUDFLARE_SCRIPT_SUBDOMAIN_READ_FAILED:${scriptSubdomainResponse.status}`);
+const workersDevEnabled = scriptSubdomainResponse.body?.result?.enabled === true;
+
+const domainsResponse = await cfGet(`/client/v4/accounts/${accountId}/workers/domains`);
+assert.equal(domainsResponse.ok, true, `CLOUDFLARE_WORKER_DOMAINS_READ_FAILED:${domainsResponse.status}`);
+const domains = Array.isArray(domainsResponse.body?.result) ? domainsResponse.body.result : [];
+const customDomain = domains.find((item) => String(item?.service || '') === scriptName && typeof item?.hostname === 'string' && item.hostname.trim()) || null;
+
+let probeUrl = null;
+let routeKind = null;
+if (workersDevEnabled) {
+  probeUrl = new URL(`https://${scriptName}.${accountSubdomain}.workers.dev/customer/api/manifest`);
+  routeKind = 'workers_dev';
+} else if (customDomain) {
+  probeUrl = new URL(`https://${String(customDomain.hostname).trim()}/customer/api/manifest`);
+  routeKind = 'custom_domain';
+}
+assert.ok(probeUrl, 'CLOUDFLARE_CUSTOMER_WORKER_HAS_NO_ACTIVE_HTTP_ROUTE');
+assert.equal(probeUrl.protocol, 'https:');
 
 const wrangler = './node_modules/.bin/wrangler';
 await access(wrangler);
@@ -61,10 +82,6 @@ for (let i = 0; i < 30; i += 1) {
 }
 assert.equal(tailClosed, false, 'CLOUDFLARE_TAIL_CLOSED_BEFORE_PROBE');
 await sleep(1500);
-
-const probeUrl = new URL(`https://${scriptName}.${subdomain}.workers.dev/customer/api/manifest`);
-assert.equal(probeUrl.protocol, 'https:');
-assert.equal(probeUrl.hostname, `${scriptName}.${subdomain}.workers.dev`);
 
 const statusCounts = new Map();
 let surfaceRemainedOff = true;
@@ -115,6 +132,10 @@ if (!tailClosed) {
 
 const diagnostic = {
   schema: 'aurentara.customer.cloudflare-signal-sink-diagnostic.v1',
+  route_kind: routeKind,
+  workers_dev_enabled: workersDevEnabled,
+  custom_domain_bound: Boolean(customDomain),
+  hostname_returned: false,
   probe_request_count: probeCount,
   probe_status_counts: Object.fromEntries([...statusCounts.entries()].sort(([a], [b]) => a - b)),
   exact_closed_worker_response_count: exactClosedWorkerResponses,
@@ -139,6 +160,7 @@ console.log(JSON.stringify({
   schema: 'aurentara.customer.cloudflare-signal-sink-e2e.v1',
   observed_at: new Date().toISOString(),
   status: 'PASS',
+  route_kind: routeKind,
   worker_tail_connected: true,
   tail_filtering: 'local_only',
   tail_ready_banner_seen: tailReady,
@@ -151,6 +173,7 @@ console.log(JSON.stringify({
   customer_request_event_seen: true,
   raw_tail_returned: false,
   request_headers_returned: false,
+  hostname_returned: false,
   account_id_returned: false,
   token_returned: false,
   real_customer_data: false,
