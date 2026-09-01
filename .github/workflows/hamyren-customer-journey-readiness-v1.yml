@@ -1,0 +1,31 @@
+name: HAMYREN Customer Journey Readiness V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/customer-product/hamyren-customer-journey-readiness-v1.js'
+      - 'scripts/hamyren-customer-journey-readiness-v1-smoke.mjs'
+      - 'docs/HAMYREN_CUSTOMER_JOURNEY_READINESS_V1.md'
+      - '.github/workflows/hamyren-customer-journey-readiness-v1.yml'
+
+jobs:
+  customer-journey-readiness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax
+        run: |
+          node --check src/customer-product/hamyren-customer-journey-readiness-v1.js
+          node --check scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
+      - name: HAMYREN customer journey readiness
+        run: node scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
+      - name: Public surface readiness regression
+        run: node scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs
+      - name: Legal privacy readiness regression
+        run: node scripts/hamyren-legal-privacy-readiness-v1-smoke.mjs
