@@ -20,6 +20,18 @@ async function cloudflareGet(path) {
   return { ok: response.ok && body?.success !== false, status: response.status, body };
 }
 
+function sanitize(value) {
+  if (Array.isArray(value)) return value.map(sanitize);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, sanitize(item)]));
+  }
+  if (typeof value === 'string') {
+    if (value.includes('@') || /^https?:\/\//i.test(value) || /^[a-f0-9]{32}$/i.test(value)) return '[redacted]';
+    return value.slice(0, 240);
+  }
+  return value;
+}
+
 const verifyUser = await cloudflareGet('/client/v4/user/tokens/verify');
 const verifyAccount = verifyUser.ok ? null : await cloudflareGet(`/client/v4/accounts/${accountId}/tokens/verify`);
 assert.ok(verifyUser.ok || verifyAccount?.ok, 'CLOUDFLARE_TOKEN_VERIFICATION_FAILED');
@@ -28,18 +40,17 @@ const available = await cloudflareGet(`/client/v4/accounts/${accountId}/alerting
 const eligible = await cloudflareGet(`/client/v4/accounts/${accountId}/alerting/v3/destinations/eligible`);
 const policies = await cloudflareGet(`/client/v4/accounts/${accountId}/alerting/v3/policies`);
 
-const flattenAvailable = (input) => Object.values(input && typeof input === 'object' ? input : {})
-  .flatMap((items) => Array.isArray(items) ? items : [])
-  .map((item) => ({
-    type: String(item?.type || ''),
-    display_name: String(item?.display_name || ''),
-    description: String(item?.description || '').slice(0, 240),
-    filter_options_present: Array.isArray(item?.filter_options) && item.filter_options.length > 0
-  }))
-  .filter((item) => item.type);
-
-const alertTypes = available.ok ? flattenAvailable(available.body?.result) : [];
+const rawAlerts = Object.values(available.ok && available.body?.result && typeof available.body.result === 'object' ? available.body.result : {})
+  .flatMap((items) => Array.isArray(items) ? items : []);
+const alertTypes = rawAlerts.map((item) => ({
+  type: String(item?.type || ''),
+  display_name: String(item?.display_name || ''),
+  description: String(item?.description || '').slice(0, 240),
+  filter_options_present: Array.isArray(item?.filter_options) && item.filter_options.length > 0
+})).filter((item) => item.type);
 const workerAlerts = alertTypes.filter((item) => /worker|script|serverless|usage|error|health|traffic|origin/i.test(`${item.type} ${item.display_name} ${item.description}`));
+const workersObservabilityRaw = rawAlerts.find((item) => String(item?.type || '') === 'workers_observability_alert') || null;
+const workersObservabilityFilterOptions = sanitize(workersObservabilityRaw?.filter_options || []);
 const existingPolicies = Array.isArray(policies.body?.result)
   ? policies.body.result.map((item) => ({
       id_present: Boolean(item?.id),
@@ -71,6 +82,7 @@ const evidence = {
   policies_readable: policies.ok,
   alert_type_count: alertTypes.length,
   worker_related_alerts: workerAlerts,
+  workers_observability_filter_options: workersObservabilityFilterOptions,
   eligible_destinations: eligibleDestinations,
   existing_policies: existingPolicies,
   email_addresses_returned: false,
