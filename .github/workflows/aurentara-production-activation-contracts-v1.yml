@@ -1,0 +1,35 @@
+name: AURENTARA Production Activation Contracts V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/customer-product/production-activation-contracts-v1.js'
+      - 'src/customer-product/launch-readiness-v1.js'
+      - 'scripts/aurentara-production-activation-contracts-v1-smoke.mjs'
+      - 'scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs'
+      - 'docs/AURENTARA_PERSONAL_BUSINESS_AI_PRODUCTION_ACTIVATION_CONTRACTS_V1.md'
+      - '.github/workflows/aurentara-production-activation-contracts-v1.yml'
+
+jobs:
+  activation-contracts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax
+        run: |
+          node --check src/customer-product/production-activation-contracts-v1.js
+          node --check src/customer-product/launch-readiness-v1.js
+          node --check scripts/aurentara-production-activation-contracts-v1-smoke.mjs
+          node --check scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs
+      - name: Production activation contracts acceptance
+        run: node scripts/aurentara-production-activation-contracts-v1-smoke.mjs
+      - name: Launch readiness regression
+        run: node scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs
+      - name: Mandatory customer red team regression
+        run: node scripts/aurentara-customer-red-team-v1.mjs
