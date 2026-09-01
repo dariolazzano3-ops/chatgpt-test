@@ -7,6 +7,7 @@ import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
+import { handleCustomerProductSurface } from "./customer-product/surface-v1.js";
 
 // The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
 // Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
@@ -23,6 +24,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // Private Operator Control is resolved first and remains a completely separate surface.
     if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/")) {
       let runtimeService = null;
       try {
@@ -33,6 +35,12 @@ export default {
       }
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, runtimeService ? { runtime_service: runtimeService } : {});
       if (operatorResponse) return applyOperatorBranding(operatorResponse);
+    }
+
+    // Customer Product has its own namespace and cannot receive /operator requests.
+    if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
+      const customerResponse = await handleCustomerProductSurface(request, env, ctx);
+      if (customerResponse) return customerResponse;
     }
 
     if (url.pathname === "/mcp") return handleMcp(request, env);
