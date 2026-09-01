@@ -7,6 +7,9 @@ on:
       - 'src/customer-product/hamyren-customer-journey-readiness-v1.js'
       - 'scripts/hamyren-customer-journey-readiness-v1-smoke.mjs'
       - 'docs/HAMYREN_CUSTOMER_JOURNEY_READINESS_V1.md'
+      - 'src/customer-ai/customer-journey-commercial-routing-v1.js'
+      - 'scripts/customer-journey-commercial-routing-v1.test.mjs'
+      - 'docs/hamyren-aurentara-customer-journey-commercial-routing-v1.md'
       - '.github/workflows/hamyren-customer-journey-readiness-v1.yml'
 
 jobs:
@@ -23,8 +26,12 @@ jobs:
         run: |
           node --check src/customer-product/hamyren-customer-journey-readiness-v1.js
           node --check scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
+          node --check src/customer-ai/customer-journey-commercial-routing-v1.js
+          node --check scripts/customer-journey-commercial-routing-v1.test.mjs
       - name: HAMYREN customer journey readiness
         run: node scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
+      - name: HAMYREN AURENTARA customer journey and commercial routing
+        run: node scripts/customer-journey-commercial-routing-v1.test.mjs
       - name: Public surface readiness regression
         run: node scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs
       - name: Legal privacy readiness regression
