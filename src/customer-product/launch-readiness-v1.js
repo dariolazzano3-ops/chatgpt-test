@@ -6,6 +6,7 @@ import { customerEconomicsManifest } from './economics-v1.js';
 import { customerAbuseGuardManifest } from './abuse-guard-v1.js';
 import { customerRedTeamManifest } from './red-team-v1.js';
 import { productionActivationContractsManifest } from './production-activation-contracts-v1.js';
+import { paymentLifecycleManifest } from './payment-lifecycle-v1.js';
 
 export const CONTROLLED_LAUNCH_PROFILES_V1 = Object.freeze({
   FREE_CONTROLLED_PILOT: 'FREE_CONTROLLED_PILOT',
@@ -44,7 +45,8 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   const abuse = customerAbuseGuardManifest();
   const redTeam = customerRedTeamManifest();
   const activation = productionActivationContractsManifest();
-  const contractReady = (inputKey, manifestKey) => input[inputKey] === undefined ? bool(activation[manifestKey]) : bool(input[inputKey]);
+  const payment = paymentLifecycleManifest();
+  const contractReady = (inputKey, manifest, manifestKey) => input[inputKey] === undefined ? bool(manifest[manifestKey]) : bool(input[inputKey]);
 
   const gates = [
     gate('foundation_tenant_memory', foundation.customer_data_plane === 'separate_from_operator_control_plane' && foundation.privacy?.memory_correction ? PASS : PREPROD_REQUIRED,
@@ -62,17 +64,17 @@ export function evaluateControlledLaunchReadiness(input = {}) {
     gate('local_abuse_guard', abuse.local_burst_guard_active ? PASS : PREPROD_REQUIRED,
       'A local pre-inference abuse guard must exist before launch configuration work.', null, abuse.version),
 
-    gate('identity_adapter_contract', contractReady('identity_adapter_contract_ready', 'identity_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('identity_adapter_contract', contractReady('identity_adapter_contract_ready', activation, 'identity_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Production identity activation needs a provider-neutral principal/session/tenant contract before credentials are connected.', 'Build and test the Production identity adapter contract without activating a provider.', activation.version),
-    gate('durable_store_contract', contractReady('durable_store_contract_ready', 'durable_store_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('durable_store_contract', contractReady('durable_store_contract_ready', activation, 'durable_store_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Production persistence needs a verified Customer runtime-store adapter contract before migrations are applied.', 'Build and test the durable Customer data-store contract against synthetic storage.', activation.version),
-    gate('trusted_retrieval_adapter_contract', contractReady('trusted_retrieval_adapter_contract_ready', 'trusted_retrieval_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('trusted_retrieval_adapter_contract', contractReady('trusted_retrieval_adapter_contract_ready', activation, 'trusted_retrieval_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Live Trusted Research activation needs a retrieval-adapter contract that feeds Block 03 without bypassing source policy.', 'Build and test a provider-neutral trusted retrieval adapter contract with deterministic fixtures.', activation.version),
-    gate('distributed_rate_adapter_contract', contractReady('distributed_rate_adapter_contract_ready', 'distributed_rate_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('distributed_rate_adapter_contract', contractReady('distributed_rate_adapter_contract_ready', activation, 'distributed_rate_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
       'The local abuse guard needs an external/distributed enforcement adapter boundary before Production configuration.', 'Build and test a distributed rate-limit adapter contract without activating an external service.', activation.version),
-    gate('deletion_executor_contract', contractReady('deletion_executor_contract_ready', 'deletion_executor_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('deletion_executor_contract', contractReady('deletion_executor_contract_ready', activation, 'deletion_executor_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Production hard deletion needs an auditable purge executor contract before it can touch durable customer data.', 'Build and test the purge executor contract on synthetic tenant/business data.', activation.version),
-    gate('observability_contract', contractReady('observability_contract_ready', 'observability_contract_ready') ? PASS : PREPROD_REQUIRED,
+    gate('observability_contract', contractReady('observability_contract_ready', activation, 'observability_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Production monitoring needs a redacted event/metric contract before an external sink is connected.', 'Build and test redacted Customer observability events and alert-signal contracts.', activation.version),
 
     gate('production_customer_identity', bool(input.production_customer_identity_active) ? PASS : OPERATOR_GATE,
@@ -96,8 +98,8 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   ];
 
   if (profile === CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH) {
-    gates.push(gate('payment_adapter_contract', bool(input.payment_adapter_contract_ready) ? PASS : PREPROD_REQUIRED,
-      'Paid launch needs a subscription-state adapter contract before Stripe/payment credentials are connected.', 'Build and test a provider-neutral payment lifecycle adapter contract using synthetic events.', null));
+    gates.push(gate('payment_adapter_contract', contractReady('payment_adapter_contract_ready', payment, 'payment_adapter_contract_ready') ? PASS : PREPROD_REQUIRED,
+      'Paid launch needs a subscription-state adapter contract before Stripe/payment credentials are connected.', 'Build and test a provider-neutral payment lifecycle adapter contract using synthetic events.', payment.version));
     gates.push(gate('payment_provider', bool(input.payment_provider_active) ? PASS : OPERATOR_GATE,
       'Paid Founder launch requires real subscription/payment lifecycle.', 'Approve and activate Stripe/payment provider, checkout/webhooks and billing lifecycle for the €19.90 Founder plan.', null));
   }
