@@ -1,6 +1,10 @@
+import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
+
 const clone = (value) => structuredClone(value ?? null);
 
 const VERIFIED_AT = '2026-08-28';
+const OPENAI_CONNECTION_EVIDENCE = openAiStagingConnectionEvidence();
+const OPENAI_CONNECTED_STAGING = isOpenAiStagingConnected();
 
 const strategic = (input = {}) => ({
   strategic_state: 'SELECTED',
@@ -137,8 +141,10 @@ const PROVIDERS = [
     role: 'PRIMARY QUALITY AI',
     strategic_state: 'SELECTED',
     availability: 'AVAILABLE',
-    verification: 'NOT_CONNECTED',
-    restrictions: ['CREDENTIAL_AND_BUDGET_GATE', 'PAID_EXECUTION_APPROVAL_REQUIRED'],
+    verification: OPENAI_CONNECTED_STAGING ? 'CONNECTION_VERIFIED_STAGING' : 'NOT_CONNECTED',
+    connection_state: OPENAI_CONNECTED_STAGING ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+    credential_state: OPENAI_CONNECTED_STAGING ? 'PRESENT_VALID' : 'NOT_VERIFIED',
+    restrictions: ['BUDGET_GATE', 'PAID_EXECUTION_APPROVAL_REQUIRED', 'INFERENCE_NOT_VERIFIED', 'PRODUCTION_DISABLED'],
     runtime_eligible: true,
     roles: ['premium_ai'],
     capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'],
@@ -147,8 +153,14 @@ const PROVIDERS = [
     external_write: false,
     credentials_required: true,
     account_binding_required: true,
+    inference_verified: false,
+    routing_ready: false,
+    paid_execution_approved: false,
+    automatic_paid_overflow: false,
+    production_eligible: false,
+    connection_evidence: OPENAI_CONNECTION_EVIDENCE,
     pricing_evidence: 'https://openai.com/api/',
-    verified_at: VERIFIED_AT
+    verified_at: '2026-09-01'
   },
   {
     id: 'supabase-free',

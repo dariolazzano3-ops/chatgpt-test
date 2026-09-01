@@ -36,10 +36,47 @@ async function readHistory(request, env, ctx, options) {
   }
 }
 
+export function reconcileOpenAiConnectionTruth(provider = {}) {
+  if (provider.id !== 'openai-api') return clone(provider);
+  const matrix = provider.evidence || {};
+  const evidence = matrix.connection_evidence || {};
+  const connection = evidence.connection || {};
+  const execution = evidence.execution || {};
+  const costGuard = evidence.cost_guard || {};
+  const safety = evidence.safety || {};
+  const connected = matrix.connection_state === 'CONNECTED_STAGING'
+    && connection.credential_present === true
+    && connection.credential_valid === true
+    && connection.connected_staging === true
+    && connection.http_status === 200
+    && connection.authenticated === true
+    && execution.inference_performed === false
+    && execution.paid_execution_approved === false
+    && costGuard.variable_cost_eur === 0
+    && costGuard.automatic_paid_overflow === false
+    && safety.secret_value_exposed === false
+    && safety.production_deploy === false;
+  if (!connected) return clone(provider);
+  return {
+    ...clone(provider),
+    connection_state: 'CONNECTED_STAGING',
+    verification: 'CONNECTION_VERIFIED_STAGING',
+    credential_state: 'PRESENT_VALID',
+    inference_verified: false,
+    routing_ready: false,
+    paid_execution_approved: false,
+    automatic_paid_overflow: false,
+    production_eligible: false,
+    secrets_exposed: false,
+    production_deploy: false
+  };
+}
+
 function strictProviderRuntimeTruth(body = {}) {
   const providers = asArray(body.provider_ecosystem).map((provider) => {
-    const active = provider.runtime_eligible !== false && provider.connection_state === 'CONNECTED_STAGING';
-    return { ...clone(provider), active_runtime: active };
+    const reconciled = reconcileOpenAiConnectionTruth(provider);
+    const active = reconciled.runtime_eligible !== false && reconciled.connection_state === 'CONNECTED_STAGING';
+    return { ...reconciled, active_runtime: active };
   });
   return {
     ...clone(body),
@@ -93,6 +130,9 @@ export function operatorProviderPreflightSealManifest() {
     governed_auto_deep_preflight: true,
     read_only_evidence_is_not_active_runtime: true,
     not_connected_never_runtime_eligible: true,
+    openai_connection_evidence_reconciled: true,
+    openai_inference_verification_not_implied: true,
+    openai_paid_execution_remains_gated: true,
     same_existing_control_plane: true,
     production_deploy: false,
     external_writes: false,
