@@ -1,5 +1,6 @@
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
+import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 
@@ -8,6 +9,11 @@ const OPENAI_CONNECTION_EVIDENCE = openAiStagingConnectionEvidence();
 const OPENAI_CONNECTED_STAGING = isOpenAiStagingConnected();
 const FRAMER_CONNECTION_EVIDENCE = framerStagingConnectionEvidence();
 const FRAMER_CONNECTED_STAGING = isFramerStagingConnected();
+const BASE44_RESOLUTION = remainingProviderResolution('base44');
+const LOVABLE_RESOLUTION = remainingProviderResolution('lovable-github');
+const WEBFLOW_RESOLUTION = remainingProviderResolution('webflow-api');
+const ACTIVEPIECES_RESOLUTION = remainingProviderResolution('activepieces-cloud-free');
+const N8N_RESOLUTION = remainingProviderResolution('n8n-client-owned');
 
 const strategic = (input = {}) => ({
   strategic_state: 'SELECTED',
@@ -63,7 +69,20 @@ const PROVIDERS = [
     category: 'web_app',
     role: 'FULL-STACK APP / PORTAL SPECIALIST',
     roles: ['full_stack_app', 'portal_specialist'],
-    capabilities: ['app.build', 'portal.build', 'web.full_stack']
+    capabilities: ['app.build', 'portal.build', 'web.full_stack'],
+    connection_state: 'NOT_CONNECTED',
+    maturity_level: BASE44_RESOLUTION.maturity_level,
+    final_classification: BASE44_RESOLUTION.final_classification,
+    central_connection_required: BASE44_RESOLUTION.central_connection_required,
+    account_state: BASE44_RESOLUTION.account_state,
+    credential_state: BASE44_RESOLUTION.credential_state,
+    routing_ready: false,
+    runtime_eligible: false,
+    free_tier_confirmed: true,
+    cost_mode: 'free_credits_usage_limited',
+    restrictions: ['SPECIALIST_ONLY', 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED', 'EXTERNAL_SERVICE_ROLE_UNAVAILABLE', 'PRODUCTION_DISABLED'],
+    resolution_evidence: BASE44_RESOLUTION,
+    verified_at: '2026-09-01'
   }),
   strategic({
     id: 'lovable-github',
@@ -71,7 +90,20 @@ const PROVIDERS = [
     category: 'web_app',
     role: 'RAPID BUILD ACCELERATOR',
     roles: ['rapid_build', 'web_acceleration'],
-    capabilities: ['web.build', 'app.prototype']
+    capabilities: ['web.build', 'app.prototype'],
+    connection_state: 'NOT_CONNECTED',
+    maturity_level: LOVABLE_RESOLUTION.maturity_level,
+    final_classification: LOVABLE_RESOLUTION.final_classification,
+    central_connection_required: LOVABLE_RESOLUTION.central_connection_required,
+    account_state: LOVABLE_RESOLUTION.account_state,
+    credential_state: LOVABLE_RESOLUTION.credential_state,
+    routing_ready: false,
+    runtime_eligible: false,
+    free_tier_confirmed: true,
+    cost_mode: 'credit_based_free_grant_available',
+    restrictions: ['SPECIALIST_ONLY', 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED', 'WRITE_ORIENTED_BUILD_API', 'MCP_RESEARCH_PREVIEW', 'PRODUCTION_DISABLED'],
+    resolution_evidence: LOVABLE_RESOLUTION,
+    verified_at: '2026-09-01'
   }),
   strategic({
     id: 'webflow-api',
@@ -79,7 +111,21 @@ const PROVIDERS = [
     category: 'web_design',
     role: 'WEB SPECIALIST',
     roles: ['web_specialist'],
-    capabilities: ['web.design', 'web.cms', 'web.publish']
+    capabilities: ['web.design', 'web.cms', 'web.publish'],
+    connection_state: 'NOT_CONNECTED',
+    maturity_level: WEBFLOW_RESOLUTION.maturity_level,
+    final_classification: WEBFLOW_RESOLUTION.final_classification,
+    central_connection_required: WEBFLOW_RESOLUTION.central_connection_required,
+    account_state: WEBFLOW_RESOLUTION.account_state,
+    credential_state: WEBFLOW_RESOLUTION.credential_state,
+    routing_ready: false,
+    runtime_eligible: false,
+    free_tier_confirmed: true,
+    cost_mode: 'free_starter_read_only_api_possible_paid_features_separate',
+    restrictions: ['SPECIALIST_ONLY', 'OPERATOR_ACCOUNT_SITE_TOKEN_GATE', 'READ_ONLY_SITE_TOKEN_REQUIRED', 'PRODUCTION_DISABLED'],
+    operator_gate: WEBFLOW_RESOLUTION.operator_gate,
+    resolution_evidence: WEBFLOW_RESOLUTION,
+    verified_at: '2026-09-01'
   }),
   {
     id: 'cloudflare-workers-free',
@@ -128,7 +174,21 @@ const PROVIDERS = [
     role: 'SECONDARY AUTOMATION',
     roles: ['secondary_automation'],
     capabilities: ['automation.run', 'automation.orchestrate'],
-    external_write: true
+    external_write: true,
+    connection_state: 'NOT_CONNECTED',
+    maturity_level: ACTIVEPIECES_RESOLUTION.maturity_level,
+    final_classification: ACTIVEPIECES_RESOLUTION.final_classification,
+    central_connection_required: ACTIVEPIECES_RESOLUTION.central_connection_required,
+    account_state: ACTIVEPIECES_RESOLUTION.account_state,
+    credential_state: ACTIVEPIECES_RESOLUTION.credential_state,
+    routing_ready: false,
+    runtime_eligible: false,
+    free_tier_confirmed: true,
+    cost_mode: 'free_daily_credits_hard_cap',
+    restrictions: ['SECONDARY_ONLY', 'OPERATOR_ACCOUNT_API_KEY_GATE', 'NO_RUNTIME_EVIDENCE', 'PRODUCTION_DISABLED'],
+    operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
+    resolution_evidence: ACTIVEPIECES_RESOLUTION,
+    verified_at: '2026-09-01'
   }),
   strategic({
     id: 'n8n-client-owned',
@@ -138,7 +198,19 @@ const PROVIDERS = [
     roles: ['specialist_automation', 'self_hosted_automation'],
     capabilities: ['automation.run', 'automation.self_hosted'],
     external_write: true,
-    restrictions: ['CLIENT_OWNED_INSTANCE_REQUIRED', 'NO_RUNTIME_EVIDENCE', 'NO_PAID_ACTIVATION_DURING_CATALOG_BUILD']
+    connection_state: 'NOT_CONNECTED',
+    maturity_level: N8N_RESOLUTION.maturity_level,
+    final_classification: N8N_RESOLUTION.final_classification,
+    central_connection_required: N8N_RESOLUTION.central_connection_required,
+    customer_owned_strategy: true,
+    account_state: N8N_RESOLUTION.account_state,
+    credential_state: N8N_RESOLUTION.credential_state,
+    routing_ready: false,
+    runtime_eligible: false,
+    cost_mode: 'customer_or_instance_specific',
+    restrictions: ['CLIENT_OWNED_INSTANCE_REQUIRED', 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED', 'LICENSE_BOUNDARY_PRESERVED', 'PRODUCTION_DISABLED'],
+    resolution_evidence: N8N_RESOLUTION,
+    verified_at: '2026-09-01'
   }),
   {
     id: 'cloudflare-workers-ai-free',
