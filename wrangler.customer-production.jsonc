@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aurentara-customer-runtime",
+  "main": "src/customer-product/customer-runtime-entry-v1.js",
+  "compatibility_date": "2026-08-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "keep_vars": true,
+  "vars": {
+    "AURENTARA_CUSTOMER_SURFACE_MODE": "off",
+    "AURENTARA_CUSTOMER_DISTRIBUTED_RATE_ACTIVE": "true",
+    "AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE": "true",
+    "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "true",
+    "AURENTARA_CUSTOMER_SUPABASE_URL": "https://pqmbtfzjcdnihovvppjr.supabase.co",
+    "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
+    "AURENTARA_CUSTOMER_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_APgisjLicxi_l60r_CFcQQ_-UE-C_sh",
+    "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    },
+    "traces": {
+      "enabled": false
+    }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CUSTOMER_RATE_LIMITER",
+        "class_name": "AurentaraCustomerRateLimiter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "aurentara_customer_rate_limit_v1",
+      "new_sqlite_classes": ["AurentaraCustomerRateLimiter"]
+    }
+  ]
+}
