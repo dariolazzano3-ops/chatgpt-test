@@ -127,7 +127,9 @@ export function paymentLifecycleManifest() {
     currency: 'EUR',
     allowed_event_types: [...PAYMENT_EVENT_TYPES_V1],
     idempotent_event_ids: true,
+    resumable_received_events: true,
     ordered_event_sequences: true,
+    one_live_subscription_per_tenant_v1: true,
     tenant_bound_verified_events: true,
     paid_entitlement_requires_verified_event: true,
     past_due_restricts_to_free: true,
@@ -157,6 +159,16 @@ export function createPaymentLifecycleAdapter(options = {}) {
     return result.ok ? { ok: true, value: clone(result.value) } : result;
   }
 
+  async function finalizeRecoveredEvent(scope, event, current) {
+    const projection = projectEntitlement(current);
+    const projectionWrite = await write(scope, 'projection', 'current', projection);
+    if (!projectionWrite.ok) return projectionWrite;
+    const finalRecord = { event, fingerprint: fingerprint(event), disposition: 'APPLIED', subscription_snapshot: clone(current), recorded_at: now(), recovered: true };
+    const eventWrite = await write(scope, 'events', event.event_id, finalRecord);
+    if (!eventWrite.ok) return eventWrite;
+    return { ok: true, duplicate: true, recovered: true, event, subscription: current, entitlement_projection: projection };
+  }
+
   async function ingest(input = {}) {
     if (!verify) return { ok: false, error: 'PAYMENT_PROVIDER_VERIFIER_NOT_CONFIGURED' };
     if (!providerInvocationAllowed(options, verify)) return { ok: false, error: 'PAYMENT_PROVIDER_ACTIVATION_REQUIRED' };
@@ -172,13 +184,26 @@ export function createPaymentLifecycleAdapter(options = {}) {
     const existingEvent = await read(scope, 'events', event.event_id);
     if (existingEvent) {
       if (existingEvent.fingerprint !== fingerprint(event)) return { ok: false, error: 'PAYMENT_EVENT_REPLAY_CONFLICT', event_id: event.event_id };
-      const projection = await read(scope, 'projection', 'current');
-      return { ok: true, duplicate: true, event: clone(existingEvent.event), subscription: clone(existingEvent.subscription_snapshot), entitlement_projection: projection };
+      if (existingEvent.disposition === 'APPLIED') {
+        return { ok: true, duplicate: true, event: clone(existingEvent.event), subscription: clone(existingEvent.subscription_snapshot), entitlement_projection: await read(scope, 'projection', 'current') };
+      }
+      if (existingEvent.disposition === 'IGNORED_OUT_OF_ORDER') {
+        return { ok: true, duplicate: true, ignored: true, reason: 'PAYMENT_EVENT_OUT_OF_ORDER', event: clone(existingEvent.event), subscription: clone(existingEvent.subscription_snapshot), entitlement_projection: await read(scope, 'projection', 'current') };
+      }
+    }
+
+    const currentProjection = await read(scope, 'projection', 'current');
+    if (currentProjection?.subscription_id && currentProjection.subscription_id !== event.subscription_id && !['CANCELED', 'NONE'].includes(currentProjection.billing_state)) {
+      return { ok: false, error: 'PAYMENT_TENANT_SUBSCRIPTION_CONFLICT', active_subscription_id: currentProjection.subscription_id };
     }
 
     const current = await read(scope, 'subscriptions', event.subscription_id);
     if (current && current.tenant_id !== event.tenant_id) return { ok: false, error: 'PAYMENT_SUBSCRIPTION_TENANT_MISMATCH' };
+    if (current && current.provider_customer_id !== event.provider_customer_id) return { ok: false, error: 'PAYMENT_PROVIDER_CUSTOMER_MISMATCH' };
     if (current && current.plan_id !== event.plan_id) return { ok: false, error: 'PAYMENT_SUBSCRIPTION_PLAN_MISMATCH' };
+    if (current && current.last_event_id === event.event_id && event.sequence === Number(current.last_sequence)) {
+      return finalizeRecoveredEvent(scope, event, current);
+    }
     if (current && event.sequence < Number(current.last_sequence)) {
       const ignored = { event, fingerprint: fingerprint(event), disposition: 'IGNORED_OUT_OF_ORDER', subscription_snapshot: clone(current), recorded_at: now() };
       await write(scope, 'events', event.event_id, ignored);
@@ -189,6 +214,11 @@ export function createPaymentLifecycleAdapter(options = {}) {
     const nextState = targetState(event.type);
     if (!transitionAllowed(current?.state || null, nextState)) {
       return { ok: false, error: current?.state === 'CANCELED' ? 'PAYMENT_SUBSCRIPTION_TERMINAL' : 'PAYMENT_SUBSCRIPTION_TRANSITION_INVALID', from_state: current?.state || null, to_state: nextState };
+    }
+
+    if (!existingEvent) {
+      const received = await write(scope, 'events', event.event_id, { event, fingerprint: fingerprint(event), disposition: 'RECEIVED', subscription_snapshot: clone(current), recorded_at: now() });
+      if (!received.ok) return received;
     }
 
     const subscription = {
@@ -210,12 +240,11 @@ export function createPaymentLifecycleAdapter(options = {}) {
       production_billing_active: false
     };
     const projection = projectEntitlement(subscription);
-    const eventRecord = { event, fingerprint: fingerprint(event), disposition: 'APPLIED', subscription_snapshot: clone(subscription), recorded_at: now() };
     const writtenSubscription = await write(scope, 'subscriptions', event.subscription_id, subscription);
     if (!writtenSubscription.ok) return writtenSubscription;
     const writtenProjection = await write(scope, 'projection', 'current', projection);
     if (!writtenProjection.ok) return writtenProjection;
-    const writtenEvent = await write(scope, 'events', event.event_id, eventRecord);
+    const writtenEvent = await write(scope, 'events', event.event_id, { event, fingerprint: fingerprint(event), disposition: 'APPLIED', subscription_snapshot: clone(subscription), recorded_at: now() });
     if (!writtenEvent.ok) return writtenEvent;
     return { ok: true, duplicate: false, event, subscription, entitlement_projection: projection };
   }
