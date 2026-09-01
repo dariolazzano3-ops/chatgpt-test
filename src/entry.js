@@ -5,6 +5,7 @@ import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
 import { handleOpenAiSecretPresence } from "./openai-secret-presence-v1.js";
 import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic-v1.js";
+import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
@@ -135,6 +136,10 @@ export default {
     if (url.pathname === "/factory/diagnostics/framer-connection") {
       const framerResponse = await handleFramerConnectionDiagnostic(request, env);
       if (framerResponse) return framerResponse;
+    }
+    if (url.pathname === "/factory/diagnostics/webflow-connection" || url.pathname === "/factory/diagnostics/activepieces-connection") {
+      const providerResponse = await handleFinalProviderConnectionDiagnostic(request, env);
+      if (providerResponse) return providerResponse;
     }
     if (url.pathname.startsWith("/factory/diagnostics")) {
       const diagnosticsResponse = await handleDiagnostics(request, env);
