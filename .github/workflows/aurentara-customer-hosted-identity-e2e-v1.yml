@@ -1,0 +1,36 @@
+name: AURENTARA Customer Hosted Identity E2E V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'scripts/aurentara-customer-hosted-identity-e2e-v1.mjs'
+      - 'evidence/aurentara/customer-production-live-state-v1.json'
+      - '.github/workflows/aurentara-customer-hosted-identity-e2e-v1.yml'
+      - 'scripts/staging-provider-bindings-smoke.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-customer-hosted-identity-e2e-v1
+  cancel-in-progress: false
+
+jobs:
+  hosted-identity-e2e:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Syntax
+        run: node --check scripts/aurentara-customer-hosted-identity-e2e-v1.mjs
+      - name: Parallel staging-provider binding regression
+        run: node scripts/staging-provider-bindings-smoke.mjs
+      - name: Customer Red Team regression
+        run: node scripts/aurentara-customer-red-team-v1.mjs
+      - name: Hosted Identity live policy and E2E evidence regression
+        run: node scripts/aurentara-customer-hosted-identity-e2e-v1.mjs
