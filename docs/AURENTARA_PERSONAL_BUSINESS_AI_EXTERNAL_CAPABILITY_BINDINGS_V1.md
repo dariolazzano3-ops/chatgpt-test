@@ -66,6 +66,10 @@ The remaining items are genuine activation gates because they require real infra
 - PUBLIC Customer Surface activation,
 - payment provider for Paid Founder launch.
 
+## Verification requirement
+
+The block must pass its dedicated acceptance plus Production Activation, Prelaunch Security/Privacy, Controlled Launch Readiness, mandatory Customer Red Team and canonical repository regression workflows on the same pull-request merge candidate before integration.
+
 ## Safety
 
 - no live retrieval provider call,
