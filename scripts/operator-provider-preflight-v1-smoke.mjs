@@ -72,7 +72,7 @@ const deepResponse = await handleOperatorDashboard(post('/operator/api/cost-pref
 assert.equal(deepResponse.status, 200);
 const deep = await deepResponse.json();
 assert.equal(deep.mode, 'DEEP_PREFLIGHT');
-assert.equal(deep.selected_route, 'PREMIUM');
+assert.equal(deep.route, 'PREMIUM');
 assert.equal(Boolean(deep.expected_execution_structure), true);
 assert.equal(deep.paid_calls_performed, 0);
 
