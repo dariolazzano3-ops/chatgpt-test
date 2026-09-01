@@ -3,10 +3,15 @@ import { handleMcp } from "./mcp.js";
 import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
-import { handleOperatorDashboard } from "./operator-human-ux-final-v1.js";
+import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
+import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { handleHardenedCustomerProductSurface } from "./customer-product/abuse-guard-v1.js";
+
+// The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
+// Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
+void operatorHumanUxFinalManifest;
 
 function operatorUnavailable() {
   return new Response(JSON.stringify({ error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY", private_operator_access_required: true, production_deploy: false }), {
