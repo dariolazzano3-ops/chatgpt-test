@@ -5,3 +5,4 @@ export * from './foundation-v1.js';
 export * from './chat-contracts-v1.js';
 export * from './chat-context-v1.js';
 export * from './chat-runtime-v1.js';
+export * from './trusted-runtime-v1.js';
