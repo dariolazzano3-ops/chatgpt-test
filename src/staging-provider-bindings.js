@@ -4,6 +4,19 @@ const clean = (value, max = 240) => String(value || '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 const REF = /^(?:account|project|env|secret|binding|vault):\/\/[a-z0-9][a-z0-9._:/-]*$/i;
 
+export const OPENAI_STAGING_CREDENTIAL_CONTRACT = Object.freeze({
+  schema: 'aurentara.openai-staging-credential-contract.v1',
+  provider_id: 'openai-api',
+  runtime: 'riosystems-staging',
+  secret_name: 'OPENAI_API_KEY',
+  credential_ref: 'env://OPENAI_API_KEY',
+  secret_value_in_repo: false,
+  credential_presence_only: true,
+  connection_verified: false,
+  paid_execution_approved: false,
+  production_deploy: false
+});
+
 const DISCOVERED = [
   {
     provider_id: 'supabase-free',
@@ -35,6 +48,14 @@ const DISCOVERED = [
     project_ref: 'project://cloudflare/riosystems-staging',
     credential_ref: 'binding://cloudflare/workers-ai',
     discovery: 'project_required',
+    external_write: false
+  },
+  {
+    provider_id: OPENAI_STAGING_CREDENTIAL_CONTRACT.provider_id,
+    account_ref: 'account://openai/operator-managed',
+    project_ref: 'project://openai/aurentara-staging',
+    credential_ref: OPENAI_STAGING_CREDENTIAL_CONTRACT.credential_ref,
+    discovery: 'manual_reference',
     external_write: false
   }
 ];
@@ -120,6 +141,7 @@ export function stagingProviderBindingsManifest() {
     account_connected_read_only: ['cloudflare-workers-free','cloudflare-workers-ai-free'],
     staging_project_required: ['cloudflare-workers-free','cloudflare-workers-ai-free'],
     connection_required: [],
+    manual_credential_reference: ['openai-api'],
     credential_references_only: true,
     secret_values_present: false,
     external_writes_approval_gated: true,
