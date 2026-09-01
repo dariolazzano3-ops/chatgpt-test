@@ -1,5 +1,39 @@
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const hamyrenHref = './hamyren/index.html';
+function installHamyrenEntryPoints() {
+  const desktopNav = document.querySelector('.desktop-nav');
+  if (desktopNav && !desktopNav.querySelector('[data-hamyren-entry]')) {
+    const link = document.createElement('a');
+    link.href = hamyrenHref;
+    link.dataset.hamyrenEntry = '';
+    link.textContent = 'HAMYREN';
+    desktopNav.append(link);
+  }
+
+  const mobile = document.querySelector('[data-mobile-menu]');
+  if (mobile && !mobile.querySelector('[data-hamyren-entry]')) {
+    const link = document.createElement('a');
+    link.href = hamyrenHref;
+    link.dataset.hamyrenEntry = '';
+    link.textContent = 'HAMYREN · Business AI';
+    const project = mobile.querySelector('.button');
+    if (project) mobile.insertBefore(link, project); else mobile.append(link);
+  }
+
+  const heroActions = document.querySelector('.hero .cta-row');
+  if (heroActions && !heroActions.querySelector('[data-hamyren-entry]')) {
+    const link = document.createElement('a');
+    link.className = 'button button-ghost';
+    link.href = hamyrenHref;
+    link.dataset.hamyrenEntry = '';
+    link.dataset.event = 'hamyren_entry_click';
+    link.innerHTML = 'HAMYREN testen <span aria-hidden="true">→</span>';
+    heroActions.append(link);
+  }
+}
+installHamyrenEntryPoints();
+
 document.querySelector('[data-year]').textContent = new Date().getFullYear();
 
 const menuButton = document.querySelector('[data-menu-button]');

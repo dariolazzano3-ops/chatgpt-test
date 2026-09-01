@@ -1,6 +1,7 @@
 import { createCustomerAiFoundation } from '../customer-ai/foundation-v1.js';
 import { createTrustedBusinessAiRuntime } from '../customer-ai/trusted-runtime-v1.js';
 import { createCustomerEconomicsRuntime } from './economics-v1.js';
+import { HAMYREN_FREE_QUESTION_LIMIT_V1 } from './hamyren-customer-journey-readiness-v1.js';
 import { renderCustomerProductShell } from './shell-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -67,6 +68,18 @@ function modeActive(env = {}, options = {}) {
   return options.force_synthetic === true || clean(env.AURENTARA_CUSTOMER_SURFACE_MODE, 40).toLowerCase() === 'synthetic-staging';
 }
 
+function trialState(session = {}) {
+  const used = Math.max(0, Math.min(HAMYREN_FREE_QUESTION_LIMIT_V1, Number(session.successful_free_questions || 0)));
+  const remaining = Math.max(0, HAMYREN_FREE_QUESTION_LIMIT_V1 - used);
+  return {
+    successful_free_questions: used,
+    remaining_free_questions: remaining,
+    free_question_limit: HAMYREN_FREE_QUESTION_LIMIT_V1,
+    may_ask_free_question: remaining > 0,
+    next_step: remaining > 0 ? 'ASK_BUSINESS_QUESTION' : 'ACCOUNT_OR_PERSISTENT_CONTEXT_HANDOFF'
+  };
+}
+
 function safeSession(session = {}) {
   return {
     session_id: session.session_id,
@@ -77,6 +90,7 @@ function safeSession(session = {}) {
     business_name: session.business_name,
     synthetic: session.synthetic === true,
     expires_at: session.expires_at,
+    ...trialState(session),
     customer_surface: true,
     operator_access: false
   };
@@ -103,7 +117,15 @@ export function customerProductSurfaceManifest() {
     operator_route_exposed: false,
     operator_modules_imported: false,
     customer_operator_plane_separation: true,
-    guest_session: { implemented: true, synthetic_only: true, durable: false, ttl_seconds: SESSION_TTL_SECONDS },
+    guest_session: {
+      implemented: true,
+      synthetic_only: true,
+      durable: false,
+      ttl_seconds: SESSION_TTL_SECONDS,
+      free_business_question_limit: HAMYREN_FREE_QUESTION_LIMIT_V1,
+      successful_answers_only_count: true,
+      separate_from_entitlement_compute_budget: true
+    },
     account_auth: { production_active: false, provider_active: false },
     business_ai_chat: true,
     conversation_history: true,
@@ -192,6 +214,8 @@ export function createCustomerProductSurface(options = {}) {
       business_id: businessId,
       business_name: businessCreated.business.name,
       conversation_id: conversationId,
+      successful_free_questions: 0,
+      trial_turn_in_flight: false,
       synthetic: true,
       created_at: createdAt,
       last_seen_at: createdAt,
@@ -281,48 +305,82 @@ export function createCustomerProductSurface(options = {}) {
       }
       const message = clean(input.message, 12_000);
       if (!message) return json({ ok: false, error: 'CUSTOMER_MESSAGE_REQUIRED' }, 400);
-      const operationId = randomId('chat-usage');
-      const reserved = await economics.reserveCompute(customerCtx, {
-        operation_id: operationId,
-        usage_class: 'customer_chat_turn',
-        feature: 'business_ai_chat',
-        compute_units: 1
-      });
-      if (!reserved.ok) {
-        const status = reserved.error === 'FAIR_USE_COMPUTE_BUDGET_EXCEEDED' ? 429 : 403;
-        return json({ ...reserved, operator_access: false }, status);
+      const beforeTrial = trialState(session);
+      if (!beforeTrial.may_ask_free_question) {
+        return json({
+          ok: false,
+          error: 'HAMYREN_FREE_QUESTION_TRIAL_COMPLETE',
+          ...beforeTrial,
+          account_handoff: {
+            route: '/customer/api/account',
+            account_core: 'existing_customer_account_core',
+            account_auth_active: false,
+            real_customer_data_required_for_activation: true,
+            automatic_account_creation: false
+          },
+          operator_access: false
+        }, 409);
       }
-      let result;
+      if (session.trial_turn_in_flight === true) {
+        return json({ ok: false, error: 'HAMYREN_FREE_QUESTION_TURN_IN_PROGRESS', ...beforeTrial, operator_access: false }, 409);
+      }
+      session.trial_turn_in_flight = true;
       try {
-        result = await runtime.submitTrustedTurn(customerCtx, session.business_id, session.conversation_id, { message });
-      } catch (error) {
-        await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: 'runtime_exception' });
-        return json({ ok: false, error: 'CUSTOMER_CHAT_RUNTIME_FAILED', detail: clean(error?.message, 240), operator_access: false }, 500);
+        const operationId = randomId('chat-usage');
+        const reserved = await economics.reserveCompute(customerCtx, {
+          operation_id: operationId,
+          usage_class: 'customer_chat_turn',
+          feature: 'business_ai_chat',
+          compute_units: 1
+        });
+        if (!reserved.ok) {
+          const status = reserved.error === 'FAIR_USE_COMPUTE_BUDGET_EXCEEDED' ? 429 : 403;
+          return json({ ...reserved, ...trialState(session), operator_access: false }, status);
+        }
+        let result;
+        try {
+          result = await runtime.submitTrustedTurn(customerCtx, session.business_id, session.conversation_id, { message });
+        } catch (error) {
+          await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: 'runtime_exception' });
+          return json({ ok: false, error: 'CUSTOMER_CHAT_RUNTIME_FAILED', detail: clean(error?.message, 240), ...trialState(session), operator_access: false }, 500);
+        }
+        if (!result.ok) {
+          await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: result.error || 'turn_blocked' });
+          const trustedResearchRequired = Boolean(result.risk_classification?.trusted_research_required || result.trusted_research?.risk?.trusted_research_required);
+          const status = trustedResearchRequired ? 409 : result.error === 'CHAT_AI_PROVIDER_NOT_CONFIGURED' ? 503 : 400;
+          return json({ ...result, ...trialState(session), trusted_research_required: trustedResearchRequired, operator_access: false }, status);
+        }
+        const settled = await economics.settleCompute(customerCtx, {
+          period: reserved.period,
+          reservation_id: reserved.reservation_id,
+          actual_compute_units: 1
+        });
+        if (!settled.ok) return json({ ok: false, error: 'FAIR_USE_SETTLEMENT_FAILED', cause: settled.error, ...trialState(session), operator_access: false }, 500);
+        session.successful_free_questions = Math.min(HAMYREN_FREE_QUESTION_LIMIT_V1, Number(session.successful_free_questions || 0) + 1);
+        const afterTrial = trialState(session);
+        return json({
+          ok: true,
+          answer: result.answer,
+          intent: result.intent,
+          risk_classification: result.risk_classification,
+          trusted_research: result.trusted_research,
+          memory_candidate_ids: result.memory_candidate_ids || [],
+          compute: { period: reserved.period, used_units: 1 },
+          ...afterTrial,
+          account_handoff: afterTrial.remaining_free_questions === 0 ? {
+            route: '/customer/api/account',
+            account_core: 'existing_customer_account_core',
+            account_auth_active: false,
+            real_customer_data_required_for_activation: true,
+            automatic_account_creation: false
+          } : null,
+          action_executed: false,
+          operator_access: false,
+          production: false
+        });
+      } finally {
+        session.trial_turn_in_flight = false;
       }
-      if (!result.ok) {
-        await economics.releaseCompute(customerCtx, { period: reserved.period, reservation_id: reserved.reservation_id, reason: result.error || 'turn_blocked' });
-        const trustedResearchRequired = Boolean(result.risk_classification?.trusted_research_required || result.trusted_research?.risk?.trusted_research_required);
-        const status = trustedResearchRequired ? 409 : result.error === 'CHAT_AI_PROVIDER_NOT_CONFIGURED' ? 503 : 400;
-        return json({ ...result, trusted_research_required: trustedResearchRequired, operator_access: false }, status);
-      }
-      const settled = await economics.settleCompute(customerCtx, {
-        period: reserved.period,
-        reservation_id: reserved.reservation_id,
-        actual_compute_units: 1
-      });
-      if (!settled.ok) return json({ ok: false, error: 'FAIR_USE_SETTLEMENT_FAILED', cause: settled.error, operator_access: false }, 500);
-      return json({
-        ok: true,
-        answer: result.answer,
-        intent: result.intent,
-        risk_classification: result.risk_classification,
-        trusted_research: result.trusted_research,
-        memory_candidate_ids: result.memory_candidate_ids || [],
-        compute: { period: reserved.period, used_units: 1 },
-        action_executed: false,
-        operator_access: false,
-        production: false
-      });
     }
     if (url.pathname === '/customer/api/memory' && method === 'GET') {
       const gate = await featureAllowed(customerCtx, 'memory_view');
@@ -379,6 +437,7 @@ export function createCustomerProductSurface(options = {}) {
           founder_reference_price_eur_month: 19.90,
           production_billing_active: false
         },
+        trial: trialState(session),
         usage: {
           ai_turns: Number(conversation.conversation.turn_count || 0),
           messages: Number(conversation.conversation.message_count || 0),

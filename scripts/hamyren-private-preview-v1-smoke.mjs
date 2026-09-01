@@ -10,13 +10,14 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const [indexHtml, experienceHtml, css, js, projectRaw, parentHeaders] = await Promise.all([
+const [indexHtml, experienceHtml, css, js, projectRaw, parentHeaders, aurentaraApp] = await Promise.all([
   read('index.html'),
   read('experience.html'),
   read('hamyren.css'),
   read('hamyren.js'),
   read('project.json'),
-  fs.readFile(path.join(root, 'projects/riosystems-public-website-v1/_headers'), 'utf8')
+  fs.readFile(path.join(root, 'projects/riosystems-public-website-v1/_headers'), 'utf8'),
+  fs.readFile(path.join(root, 'projects/riosystems-public-website-v1/app.js'), 'utf8')
 ]);
 
 const project = JSON.parse(projectRaw);
@@ -37,13 +38,13 @@ assert(project.paid_provider_calls === false, 'Paid provider calls must remain f
 assert(project.production_deploy === false, 'Production deploy must remain false');
 assert(project.domain_or_dns_change === false, 'Domain/DNS changes must remain false');
 assert(project.variable_cost_limit_eur === 0, 'Variable cost limit must remain EUR 0');
-assert(project.free_business_question_limit === 5, 'Free business question limit must remain exactly five');
+assert(project.free_business_question_limit === 5, 'Documented free-question limit must remain exactly five');
 assert(project.automatic_account_creation === false, 'Automatic account creation must remain false');
 assert(project.automatic_subscription_activation === false, 'Automatic subscription activation must remain false');
 assert(project.legal_privacy_review_complete === false, 'Legal/privacy review must not be represented as complete');
 
 assert(parentHeaders.includes('X-Robots-Tag: noindex, nofollow'), 'Parent noindex header missing');
-assert(parentHeaders.includes("connect-src 'none'"), 'Parent CSP must deny network connections');
+assert(parentHeaders.includes("connect-src 'none'"), 'Parent CSP must deny network connections for static preview');
 assert(parentHeaders.includes('payment=()'), 'Payment browser permission must remain denied');
 
 for (const [name, html] of [['index.html', indexHtml], ['experience.html', experienceHtml]]) {
@@ -53,7 +54,7 @@ for (const [name, html] of [['index.html', indexHtml], ['experience.html', exper
   assert(!/<form[^>]+action=/i.test(html), `${name} must not submit forms to a server`);
 }
 
-const forbiddenRuntimePatterns = [
+const forbiddenPreviewRuntimePatterns = [
   /\bfetch\s*\(/,
   /\bXMLHttpRequest\b/,
   /\bWebSocket\b/,
@@ -63,23 +64,26 @@ const forbiddenRuntimePatterns = [
   /\bsessionStorage\b/,
   /\bindexedDB\b/,
   /document\.cookie/,
-  /\bStripe\s*\(/
+  /\bStripe\s*\(/,
+  /QUESTION_LIMIT/,
+  /questionsUsed/,
+  /simulatedAnswer/,
+  /activateJourney\s*\(/,
+  /completeJourney\s*\(/
 ];
-for (const pattern of forbiddenRuntimePatterns) {
-  assert(!pattern.test(js), `Forbidden preview runtime capability detected: ${pattern}`);
+for (const pattern of forbiddenPreviewRuntimePatterns) {
+  assert(!pattern.test(js), `Static preview must not contain a duplicate product/trial engine: ${pattern}`);
 }
 
-assert(js.includes('const QUESTION_LIMIT = 5;'), 'Interactive preview must enforce exactly five questions');
-assert(js.includes("Payment provider not activated"), 'Closed payment gate feedback missing');
-assert(js.includes("Account creation is not activated"), 'Closed account gate feedback missing');
-assert(experienceHtml.includes('data-question-used>0</span> / 5'), 'Five-question counter missing');
-assert(experienceHtml.includes('B2B eligibility · review copy'), 'B2B review-copy boundary missing');
-assert(experienceHtml.includes('legal_privacy_review_complete'), 'Legal review state surface missing');
-assert(experienceHtml.includes('real_customer_ai_processing_active'), 'Real-customer AI gate surface missing');
-assert(indexHtml.includes('€19,90'), 'Founder launch reference price missing');
-assert(indexHtml.includes('aktuell nicht verkauft'), 'Founder not-currently-sold qualifier missing');
-assert(indexHtml.includes('kein öffentlicher Launch-Plan'), 'Standard Candidate qualifier missing');
-assert(indexHtml.includes('./experience.html'), 'Product presentation must link to separate HAMYREN experience');
+assert(experienceHtml.includes('href="/customer"'), 'Bridge must point to canonical /customer Product Surface');
+assert(experienceHtml.includes('No duplicate trial engine'), 'Bridge must explicitly preserve one-engine architecture');
+assert(experienceHtml.includes('bestehende Account-Core'), 'Existing Account Core handoff statement missing');
+assert(js.includes('data-canonical-pricing-bridge'), 'Static HAMYREN overview must replace duplicate pricing with canonical runtime bridge');
+assert(js.includes("href=\"/customer\""), 'Canonical pricing bridge must target /customer');
+assert(aurentaraApp.includes("const hamyrenHref = './hamyren/index.html';"), 'AURENTARA → HAMYREN entry point missing');
+assert(aurentaraApp.includes('dataset.hamyrenEntry'), 'AURENTARA HAMYREN entry marker missing');
+assert(indexHtml.includes('./experience.html'), 'HAMYREN overview must retain separate Test Experience bridge');
+assert(indexHtml.includes('../index.html'), 'HAMYREN → AURENTARA return path missing');
 assert(css.includes('@media(max-width:720px)'), 'Dedicated mobile product treatment missing');
 assert(css.includes('@media(prefers-reduced-motion:reduce)'), 'Reduced-motion treatment missing');
 
@@ -87,6 +91,11 @@ console.log('HAMYREN private preview smoke: PASS');
 console.log(JSON.stringify({
   product: project.product.name,
   environment: project.environment,
+  static_trial_engine_present: false,
+  static_pricing_source_of_truth: false,
+  canonical_product_route: '/customer',
+  aurentara_to_hamyren: true,
+  hamyren_to_aurentara: true,
   free_business_question_limit: project.free_business_question_limit,
   public_customer_surface_active: project.public_customer_surface_active,
   real_customer_ai_processing: project.real_customer_ai_processing,
