@@ -146,7 +146,8 @@ assert.ok(freeReadiness.operator_gate_ids.includes('public_customer_surface'));
 const paidReadiness = evaluateControlledLaunchReadiness({
   profile: CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH,
   red_team_passed: true,
-  red_team_passed_cases: 22
+  red_team_passed_cases: 22,
+  payment_adapter_contract_ready: false
 });
 assert.deepEqual(paidReadiness.preproduction_required_ids, ['payment_adapter_contract']);
 assert.equal(paidReadiness.next_state, 'CONTINUE_PREPRODUCTION_BUILD');
@@ -168,7 +169,7 @@ console.log(JSON.stringify({
   observability_redaction_before_sink_verified: true,
   free_pilot_preproduction_contracts_remaining: freeReadiness.preproduction_required_ids.length,
   free_pilot_next_state: freeReadiness.next_state,
-  paid_founder_preproduction_remaining: paidReadiness.preproduction_required_ids,
+  historical_paid_founder_preproduction_remaining: paidReadiness.preproduction_required_ids,
   production_changes: false,
   real_customer_data: false,
   paid_api_calls: 0,

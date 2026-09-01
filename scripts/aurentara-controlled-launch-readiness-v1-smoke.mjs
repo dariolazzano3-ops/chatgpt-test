@@ -67,22 +67,22 @@ assert.equal(freeReady.ok, true);
 assert.equal(freeReady.next_state, 'CONTROLLED_LAUNCH_READY');
 assert.equal(freeReady.readiness_percent, 100);
 
-const paidPreprod = evaluateControlledLaunchReadiness({
+const historicalPaidPreprod = evaluateControlledLaunchReadiness({
+  profile: CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH,
+  ...redTeamEvidence,
+  payment_adapter_contract_ready: false
+});
+assert.deepEqual(historicalPaidPreprod.preproduction_required_ids, ['payment_adapter_contract']);
+assert.ok(historicalPaidPreprod.operator_gate_ids.includes('payment_provider'));
+assert.equal(historicalPaidPreprod.next_state, 'CONTINUE_PREPRODUCTION_BUILD');
+
+const currentPaidGate = evaluateControlledLaunchReadiness({
   profile: CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH,
   ...redTeamEvidence
 });
-assert.deepEqual(paidPreprod.preproduction_required_ids, ['payment_adapter_contract']);
-assert.ok(paidPreprod.operator_gate_ids.includes('payment_provider'));
-assert.equal(paidPreprod.next_state, 'CONTINUE_PREPRODUCTION_BUILD');
-
-const paidActivationGate = evaluateControlledLaunchReadiness({
-  profile: CONTROLLED_LAUNCH_PROFILES_V1.PAID_FOUNDER_LAUNCH,
-  ...redTeamEvidence,
-  payment_adapter_contract_ready: true
-});
-assert.equal(paidActivationGate.preproduction_required_ids.length, 0);
-assert.ok(paidActivationGate.operator_gate_ids.includes('payment_provider'));
-assert.equal(paidActivationGate.next_state, 'OPERATOR_ACTIVATION_REQUIRED');
+assert.equal(currentPaidGate.preproduction_required_ids.length, 0);
+assert.ok(currentPaidGate.operator_gate_ids.includes('payment_provider'));
+assert.equal(currentPaidGate.next_state, 'OPERATOR_ACTIVATION_REQUIRED');
 
 console.log(JSON.stringify({
   suite: 'AURENTARA PERSONAL BUSINESS AI CONTROLLED PUBLIC LAUNCH READINESS V1',
@@ -91,8 +91,9 @@ console.log(JSON.stringify({
   historical_buildable_contracts: historicalPreprodState.preproduction_required_ids,
   current_free_pilot_next_state: current.next_state,
   current_free_pilot_preproduction_remaining: current.preproduction_required_ids,
-  operator_gates_after_preproduction: current.operator_gate_ids,
-  paid_founder_requires_payment_contract: true,
+  historical_paid_payment_contract_required: historicalPaidPreprod.preproduction_required_ids,
+  current_paid_preproduction_remaining: currentPaidGate.preproduction_required_ids,
+  current_paid_next_state: currentPaidGate.next_state,
   paid_founder_requires_payment_activation: true,
   production_changes: false,
   paid_api_calls: 0,
