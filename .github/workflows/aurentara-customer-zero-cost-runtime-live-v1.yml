@@ -7,6 +7,7 @@ on:
       - 'src/customer-product/customer-runtime-entry-v1.js'
       - 'wrangler.customer-production.jsonc'
       - 'scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs'
+      - 'scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs'
       - 'customer-runtime-activation-requests/aurentara-customer-runtime-v1.json'
       - '.github/workflows/aurentara-customer-zero-cost-runtime-live-v1.yml'
   push:
@@ -39,7 +40,10 @@ jobs:
         run: |
           node --check src/customer-product/customer-runtime-entry-v1.js
           node --check scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs
+          node --check scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
           node scripts/aurentara-customer-zero-cost-runtime-live-v1-guard.mjs "$REQUEST_FILE"
+      - name: Dedicated Customer Worker routing isolation
+        run: node scripts/aurentara-customer-dedicated-worker-v1-smoke.mjs
       - name: Customer Red Team regression
         run: node scripts/aurentara-customer-red-team-v1.mjs
       - name: Production runtime contract regression
