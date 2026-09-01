@@ -10,5 +10,8 @@
     "deploy:staging": "node scripts/staging-deploy-guard.mjs --deploy && wrangler deploy --env staging",
     "dev": "wrangler dev"
   },
+  "dependencies": {
+    "framer-api": "0.1.30"
+  },
   "devDependencies": { "playwright": "^1.55.0", "wrangler": "^4.0.0" }
 }

@@ -58,10 +58,20 @@ for (const [id, role] of requiredCatalog) {
   assert.equal(byId.get(id).strategic_state, 'SELECTED');
   assert.equal(byId.get(id).availability, 'AVAILABLE');
 }
-for (const id of ['framer-server-api', 'base44', 'activepieces-cloud-free', 'n8n-client-owned', 'lovable-github', 'webflow-api']) {
+for (const id of ['base44', 'activepieces-cloud-free', 'n8n-client-owned', 'lovable-github', 'webflow-api']) {
   assert.equal(byId.get(id).verification, 'NOT_CONNECTED');
   assert.equal(byId.get(id).runtime_eligible, false);
 }
+const framerCatalog = byId.get('framer-server-api');
+assert.equal(framerCatalog.verification, 'CONNECTION_VERIFIED_STAGING');
+assert.equal(framerCatalog.connection_state, 'CONNECTED_STAGING');
+assert.equal(framerCatalog.credential_state, 'PRESENT_VALID');
+assert.equal(framerCatalog.runtime_eligible, true);
+assert.equal(framerCatalog.routing_scope, 'specialist_only');
+assert.equal(framerCatalog.staging_write_verified, false);
+assert.equal(framerCatalog.publish_verified, false);
+assert.equal(framerCatalog.production_eligible, false);
+assert.equal(framerCatalog.mutating_execution_approval_required, true);
 assert.equal(inventory.strategic_selection_is_not_runtime_connection, true);
 
 // A) Small known mission: quick estimate, no deep preflight required.
@@ -143,6 +153,19 @@ const ecosystem = buildProviderEcosystemProjection();
 for (const provider of ecosystem.provider_ecosystem.filter((item) => item.connection_state === 'NOT_CONNECTED')) {
   assert.equal(provider.active_runtime, false, `${provider.id} cannot be active while NOT_CONNECTED`);
 }
+const framerEcosystem = ecosystem.provider_ecosystem.find((item) => item.id === 'framer-server-api');
+assert.ok(framerEcosystem);
+assert.equal(framerEcosystem.connection_state, 'CONNECTED_STAGING');
+assert.equal(framerEcosystem.verification, 'VERIFIED_STAGING');
+assert.equal(framerEcosystem.active_runtime, true);
+assert.equal(framerEcosystem.restrictions.includes('SPECIALIST_ONLY'), true);
+assert.equal(framerEcosystem.restrictions.includes('MUTATING_EXECUTION_APPROVAL_REQUIRED'), true);
+assert.equal(framerEcosystem.evidence.provider_writes, 0);
+assert.equal(framerEcosystem.evidence.staging_write_verified, false);
+assert.equal(framerEcosystem.evidence.publish_verified, false);
+assert.equal(framerEcosystem.evidence.production_eligible, false);
+assert.equal(framerEcosystem.secrets_exposed, false);
+assert.equal(framerEcosystem.production_deploy, false);
 
 // F) Cheapest provider may be selected when it satisfies quality/reliability/safety/governance.
 const routeF = selectCostAwareProvider({
@@ -209,5 +232,8 @@ console.log(JSON.stringify({
   balanced_confidence_score: quickB.routes.balanced.confidence_score,
   provider_catalog_count: inventory.providers.length,
   historical_calibration_factor: calibration.calibration_factor,
+  framer_connected_staging: true,
+  framer_write_verified: false,
+  framer_publish_verified: false,
   safety: { production: false, external_writes: false, paid_provider_activation: false, additional_variable_cost_eur: 0 }
 }, null, 2));

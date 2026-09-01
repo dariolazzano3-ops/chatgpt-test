@@ -8,6 +8,7 @@ import { cloudflareLiveReadEvidence, isCloudflareAiReadVerified, isCloudflareWeb
 import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from './cloudflare-pages-staging-evidence.js';
 import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerified } from './cloudflare-workers-ai-staging-evidence.js';
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
+import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 import { businessLiveReadEvidence, isBusinessLiveReadVerified } from './business-live-read-evidence.js';
@@ -23,6 +24,7 @@ export function providerStackV1() {
   const cloudflarePagesEvidence = cloudflarePagesStagingEvidence();
   const cloudflareAiEvidence = cloudflareWorkersAiStagingEvidence();
   const openAiEvidence = openAiStagingConnectionEvidence();
+  const framerEvidence = framerStagingConnectionEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
@@ -37,7 +39,12 @@ export function providerStackV1() {
       provider_read_verified: isCloudflareWebReadVerified(),
       provider_read_evidence: cloudflareEvidence,
       staging_deploy_verified: isCloudflarePagesStagingVerified(),
-      staging_deploy_evidence: cloudflarePagesEvidence
+      staging_deploy_evidence: cloudflarePagesEvidence,
+      framer_connected_staging: isFramerStagingConnected(),
+      framer_connection_evidence: framerEvidence,
+      framer_staging_write_verified: false,
+      framer_publish_verified: false,
+      framer_routing_scope: 'specialist_only'
     },
     automation: {
       decision: automationProviderDecisionManifest(),
@@ -118,6 +125,7 @@ export function providerActivationMatrix() {
   const pages = cloudflarePagesStagingEvidence();
   const cloudflareAi = cloudflareWorkersAiStagingEvidence();
   const openAi = openAiStagingConnectionEvidence();
+  const framer = framerStagingConnectionEvidence();
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
   const businessWrite = businessStagingWriteEvidence();
@@ -125,6 +133,7 @@ export function providerActivationMatrix() {
   const webStagingVerified = isCloudflarePagesStagingVerified();
   const cloudflareAiStagingVerified = isCloudflareWorkersAiStagingVerified();
   const openAiConnectedStaging = isOpenAiStagingConnected();
+  const framerConnectedStaging = isFramerStagingConnected();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
   const posthogStagingVerified = isPostHogStagingAnalyticsVerified();
@@ -208,7 +217,24 @@ export function providerActivationMatrix() {
       { id: 'n8n-client-owned', selection: 'technical_specialist', activation: 'only_if_complex_workflow_and_client_instance_exists' },
       { id: 'activepieces-community', selection: 'future_self_hosted_option', activation: 'only_if_self_hosting_is_intentional' },
       { id: 'lovable-github', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
-      { id: 'framer-server-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' },
+      {
+        id: 'framer-server-api',
+        selection: 'optional_specialist',
+        connection_state: framerConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+        activation: framerConnectedStaging ? 'live_staging_verified_read_only_connection' : 'only_if_mission_requires',
+        account: framerConnectedStaging ? 'ready' : 'not_verified',
+        project_binding: framerConnectedStaging ? 'present' : 'not_verified',
+        credential: framerConnectedStaging ? 'present_valid' : 'not_verified',
+        connection_evidence: framer,
+        project_metadata_read: framerConnectedStaging,
+        provider_writes: 0,
+        staging_write_verified: false,
+        publish_verified: false,
+        publish_performed: false,
+        deploy_performed: false,
+        routing_eligibility: 'specialist_only_mutations_approval_gated',
+        production_eligible: false
+      },
       { id: 'webflow-api', selection: 'optional_specialist', activation: 'only_if_mission_requires' }
     ],
     secrets_embedded: false,
@@ -248,6 +274,9 @@ export function planProviderStackMission(input = {}) {
       automation_make_staging_verified: stack.factories.automation.staging_activation_verified === true,
       web_cloudflare_read_verified: stack.factories.web.provider_read_verified === true,
       web_staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
+      web_framer_connected_staging: stack.factories.web.framer_connected_staging === true,
+      web_framer_staging_write_verified: stack.factories.web.framer_staging_write_verified === true,
+      web_framer_publish_verified: stack.factories.web.framer_publish_verified === true,
       ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_runtime_verified === true,
       ai_openai_connected_staging: stack.factories.ai.openai_connected_staging === true,
       ai_openai_inference_verified: stack.factories.ai.openai_inference_verified === true,
@@ -258,6 +287,7 @@ export function planProviderStackMission(input = {}) {
     },
     activation_evidence: {
       web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
+      web_framer_connection: clone(stack.factories.web.framer_connection_evidence),
       automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
       ai_cloudflare_staging_runtime: clone(stack.factories.ai.cloudflare_ai_runtime_evidence),
       ai_openai_connection: clone(stack.factories.ai.openai_connection_evidence),

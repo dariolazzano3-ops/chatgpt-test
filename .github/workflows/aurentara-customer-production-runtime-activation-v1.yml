@@ -30,6 +30,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install runtime dependencies
+        run: npm install
       - name: Syntax
         run: |
           node --check src/customer-product/customer-rate-limit-do-v1.js
