@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { access } from 'node:fs/promises';
+import { access, writeFile } from 'node:fs/promises';
 
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
-const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'chatgpt-test').trim();
+const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'aurentara-customer-runtime').trim();
 const verifiedBaseUrl = String(process.env.AURENTARA_LIVE_PROBE_BASE_URL || '').trim();
 const probeCount = 1000;
 
@@ -127,7 +127,7 @@ console.log(JSON.stringify(diagnostic, null, 2));
 assert.equal(signalSeen, true, 'CLOUDFLARE_OBSERVABILITY_CHANNEL_NOT_SEEN_IN_LIVE_TAIL');
 assert.equal(requestEventSeen, true, 'CLOUDFLARE_CUSTOMER_REQUEST_EVENT_NOT_SEEN_IN_LIVE_TAIL');
 
-console.log(JSON.stringify({
+const evidence = {
   schema: 'aurentara.customer.cloudflare-signal-sink-e2e.v1',
   observed_at: new Date().toISOString(),
   status: 'PASS',
@@ -152,4 +152,7 @@ console.log(JSON.stringify({
   paid_provider_calls: false,
   production_deploy: false,
   variable_cost_eur: 0
-}, null, 2));
+};
+
+await writeFile('/tmp/aurentara-customer-observability-evidence.json', JSON.stringify(evidence, null, 2) + '\n', 'utf8');
+console.log(JSON.stringify(evidence, null, 2));

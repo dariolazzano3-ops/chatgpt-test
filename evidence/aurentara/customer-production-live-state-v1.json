@@ -1,7 +1,7 @@
 {
   "schema": "aurentara.customer.production-live-state.v1",
-  "observed_at": "2026-09-01T03:04:23Z",
-  "source": "supabase-management-connector+cloudflare-live-readonly-audit+hosted-identity-e2e",
+  "observed_at": "2026-09-01T11:47:52Z",
+  "source": "supabase-management-connector+cloudflare-deployment-truth+live-signal-sink+notification-policy+hosted-identity-e2e",
   "synthetic_only": true,
   "real_customer_data": false,
   "variable_cost_eur": 0,
@@ -52,15 +52,16 @@
     "official_retrieval_binding_live": true,
     "official_source_fetch_verified": true,
     "observability_binding_live": true,
-    "alert_signal_path_verified": false,
+    "alert_signal_path_verified": true,
+    "notification_policy_verified": true,
+    "deployment_truth_verified": true,
+    "closed_serving_route_verified": true,
     "operator_route_exposed": false,
     "factory_route_exposed": false,
     "live_closure_verified": true
   },
-  "readiness_percent": 84,
-  "zero_cost_technical_remaining": [
-    "production_observability"
-  ],
+  "readiness_percent": 88,
+  "zero_cost_technical_remaining": [],
   "customer_surface_active": false,
   "real_customer_ai_processing_approved": false,
   "legal_privacy_review_complete": false,

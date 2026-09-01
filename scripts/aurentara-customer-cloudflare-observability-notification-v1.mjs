@@ -4,6 +4,7 @@ import { writeFile } from 'node:fs/promises';
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const policyName = 'AURENTARA Customer Runtime Observability Failure';
+const writeAllowed = String(process.env.AURENTARA_NOTIFICATION_WRITE_ALLOWED || '').toLowerCase() === 'true';
 
 assert.match(accountId, /^[a-f0-9]{32}$/i, 'CLOUDFLARE_ACCOUNT_ID_INVALID');
 assert.ok(token.length >= 20, 'CLOUDFLARE_API_TOKEN_MISSING');
@@ -34,6 +35,7 @@ let target = before.find((item) => item?.name === policyName && item?.alert_type
 let created = false;
 
 if (!target) {
+  assert.equal(writeAllowed, true, 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_POLICY_MISSING_WRITE_NOT_ALLOWED');
   const emailId = before
     .flatMap((item) => Array.isArray(item?.mechanisms?.email) ? item.mechanisms.email : [])
     .map((item) => String(item?.id || '').trim())
@@ -76,6 +78,8 @@ const evidence = {
   firing_failed_filter: true,
   email_mechanism_ready: true,
   policy_created_this_run: created,
+  notification_write_allowed: writeAllowed,
+  external_write: created,
   cloudflare_notifications_write_required: false,
   permission_http_status: 200,
   email_address_returned: false,

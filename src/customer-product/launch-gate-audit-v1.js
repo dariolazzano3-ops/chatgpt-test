@@ -6,6 +6,89 @@ import {
 const yes = (value) => value === true;
 const text = (value) => String(value ?? '').trim();
 
+function verifyFreshTimestamp(evidence = {}, options = {}, failures = [], prefix = 'EVIDENCE') {
+  const nowMs = Number.isFinite(Number(options.now_ms)) ? Number(options.now_ms) : Date.now();
+  const maxAgeMs = Number.isFinite(Number(options.max_age_ms)) ? Number(options.max_age_ms) : 15 * 60 * 1000;
+  const observedMs = Date.parse(String(evidence?.observed_at || ''));
+  if (!Number.isFinite(observedMs)) {
+    failures.push(`${prefix}_TIMESTAMP_INVALID`);
+  } else {
+    const ageMs = nowMs - observedMs;
+    if (ageMs < -60_000) failures.push(`${prefix}_TIMESTAMP_IN_FUTURE`);
+    if (ageMs > maxAgeMs) failures.push(`${prefix}_STALE`);
+  }
+  return maxAgeMs;
+}
+
+export function verifyAlertSignalPathEvidence(evidence = {}, options = {}) {
+  const failures = [];
+  const maxAgeMs = verifyFreshTimestamp(evidence, options, failures, 'SIGNAL_EVIDENCE');
+
+  if (text(evidence?.schema) !== 'aurentara.customer.cloudflare-signal-sink-e2e.v1') failures.push('SIGNAL_EVIDENCE_SCHEMA_INVALID');
+  if (text(evidence?.status) !== 'PASS') failures.push('SIGNAL_EVIDENCE_STATUS_NOT_PASS');
+  if (!yes(evidence?.verified_route_from_deployment_truth)) failures.push('SIGNAL_EVIDENCE_ROUTE_NOT_VERIFIED');
+  if (!yes(evidence?.worker_tail_connected)) failures.push('SIGNAL_EVIDENCE_TAIL_NOT_CONNECTED');
+  if (Number(evidence?.probe_request_count || 0) < 1) failures.push('SIGNAL_EVIDENCE_PROBE_MISSING');
+  if (Number(evidence?.exact_closed_worker_response_count || 0) < 1) failures.push('SIGNAL_EVIDENCE_CLOSED_RESPONSE_MISSING');
+  if (!yes(evidence?.customer_surface_remained_off)) failures.push('SIGNAL_EVIDENCE_SURFACE_NOT_PROVEN_OFF');
+  if (!yes(evidence?.observability_channel_seen)) failures.push('SIGNAL_EVIDENCE_CHANNEL_NOT_SEEN');
+  if (!yes(evidence?.customer_request_event_seen)) failures.push('SIGNAL_EVIDENCE_REQUEST_EVENT_NOT_SEEN');
+  if (evidence?.raw_tail_returned !== false) failures.push('SIGNAL_EVIDENCE_RAW_TAIL_POLICY_INVALID');
+  if (evidence?.request_headers_returned !== false) failures.push('SIGNAL_EVIDENCE_HEADER_POLICY_INVALID');
+  if (evidence?.account_id_returned !== false) failures.push('SIGNAL_EVIDENCE_ACCOUNT_POLICY_INVALID');
+  if (evidence?.token_returned !== false) failures.push('SIGNAL_EVIDENCE_TOKEN_POLICY_INVALID');
+  if (evidence?.real_customer_data !== false) failures.push('SIGNAL_EVIDENCE_REAL_DATA_POLICY_INVALID');
+  if (evidence?.customer_content_transmitted !== false) failures.push('SIGNAL_EVIDENCE_CUSTOMER_CONTENT_POLICY_INVALID');
+  if (evidence?.paid_provider_calls !== false) failures.push('SIGNAL_EVIDENCE_PAID_CALL_POLICY_INVALID');
+  if (evidence?.production_deploy !== false) failures.push('SIGNAL_EVIDENCE_DEPLOY_POLICY_INVALID');
+  if (Number(evidence?.variable_cost_eur) !== 0) failures.push('SIGNAL_EVIDENCE_COST_POLICY_INVALID');
+
+  return {
+    ok: failures.length === 0,
+    schema: 'aurentara.customer.alert-signal-path-evidence-verification.v1',
+    failures,
+    freshness_required: true,
+    max_age_ms: maxAgeMs,
+    route_truth_required: true,
+    closed_surface_required: true,
+    live_tail_signal_required: true,
+    zero_cost_required: true,
+    real_customer_data_forbidden: true
+  };
+}
+
+export function verifyObservabilityNotificationEvidence(evidence = {}, options = {}) {
+  const failures = [];
+  const maxAgeMs = verifyFreshTimestamp(evidence, options, failures, 'NOTIFICATION_EVIDENCE');
+
+  if (text(evidence?.schema) !== 'aurentara.customer.cloudflare-observability-notification-policy.v1') failures.push('NOTIFICATION_EVIDENCE_SCHEMA_INVALID');
+  if (text(evidence?.status) !== 'PASS') failures.push('NOTIFICATION_EVIDENCE_STATUS_NOT_PASS');
+  if (text(evidence?.alert_type) !== 'workers_observability_alert') failures.push('NOTIFICATION_EVIDENCE_ALERT_TYPE_INVALID');
+  if (!yes(evidence?.enabled)) failures.push('NOTIFICATION_EVIDENCE_POLICY_DISABLED');
+  if (!yes(evidence?.firing_failed_filter)) failures.push('NOTIFICATION_EVIDENCE_FAILURE_FILTER_MISSING');
+  if (!yes(evidence?.email_mechanism_ready)) failures.push('NOTIFICATION_EVIDENCE_DESTINATION_NOT_READY');
+  if (evidence?.email_address_returned !== false) failures.push('NOTIFICATION_EVIDENCE_EMAIL_REDACTION_INVALID');
+  if (evidence?.webhook_url_returned !== false) failures.push('NOTIFICATION_EVIDENCE_WEBHOOK_REDACTION_INVALID');
+  if (evidence?.account_id_returned !== false) failures.push('NOTIFICATION_EVIDENCE_ACCOUNT_REDACTION_INVALID');
+  if (evidence?.token_returned !== false) failures.push('NOTIFICATION_EVIDENCE_TOKEN_REDACTION_INVALID');
+  if (evidence?.customer_surface_activated !== false) failures.push('NOTIFICATION_EVIDENCE_SURFACE_POLICY_INVALID');
+  if (evidence?.real_customer_data !== false) failures.push('NOTIFICATION_EVIDENCE_REAL_DATA_POLICY_INVALID');
+  if (evidence?.paid_provider_calls !== false) failures.push('NOTIFICATION_EVIDENCE_PAID_CALL_POLICY_INVALID');
+  if (Number(evidence?.variable_cost_eur) !== 0) failures.push('NOTIFICATION_EVIDENCE_COST_POLICY_INVALID');
+
+  return {
+    ok: failures.length === 0,
+    schema: 'aurentara.customer.observability-notification-evidence-verification.v1',
+    failures,
+    freshness_required: true,
+    max_age_ms: maxAgeMs,
+    failure_filter_required: true,
+    ready_destination_required: true,
+    zero_cost_required: true,
+    real_customer_data_forbidden: true
+  };
+}
+
 export function evaluateLaunchGateEvidence(input = {}) {
   const supabase = input.supabase || {};
   const cloudflare = input.cloudflare || {};
@@ -34,7 +117,8 @@ export function evaluateLaunchGateEvidence(input = {}) {
 
   const productionObservabilityActive = yes(cloudflare.worker_settings_verified)
     && yes(cloudflare.observability_binding_live)
-    && yes(cloudflare.alert_signal_path_verified);
+    && yes(cloudflare.alert_signal_path_verified)
+    && yes(cloudflare.notification_policy_verified);
 
   const readiness = evaluateControlledLaunchReadiness({
     profile: CONTROLLED_LAUNCH_PROFILES_V1.FREE_CONTROLLED_PILOT,
@@ -90,6 +174,10 @@ export function launchGateAuditManifest() {
     hosted_auth_e2e_required_for_identity_pass: true,
     trusted_retrieval_requires_live_binding_and_live_official_fetch: true,
     observability_requires_live_binding_and_alert_signal_path: true,
+    observability_requires_verified_notification_policy: true,
+    observability_signal_evidence_must_be_fresh: true,
+    observability_notification_evidence_must_be_fresh: true,
+    observability_signal_evidence_requires_verified_deployment_route: true,
     public_surface_default: false,
     real_customer_ai_default: false,
     variable_cost_eur: 0
