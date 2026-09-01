@@ -9,6 +9,7 @@ import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { handlePrelaunchCustomerProductSurface } from "./customer-product/prelaunch-security-privacy-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
+import { createCloudflareCustomerObservabilityBinding } from "./customer-product/production-live-bindings-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
 
 // The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
@@ -39,6 +40,35 @@ function customerRateLimited(result = {}) {
   });
 }
 
+function customerMode(env = {}) {
+  return String(env?.AURENTARA_CUSTOMER_SURFACE_MODE || "off").toLowerCase();
+}
+
+function customerRouteClass(url, method) {
+  if (url.pathname === "/customer" || url.pathname === "/customer/") return "customer_entry";
+  if (url.pathname.includes("/chat")) return "customer_chat";
+  if (method === "GET") return "customer_read";
+  return "customer_mutation";
+}
+
+function recordCustomerEvent(ctx, env, input = {}) {
+  if (String(env?.AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE || "").toLowerCase() !== "true") return;
+  const observability = createCloudflareCustomerObservabilityBinding({ sink_active: true });
+  const work = observability.record({
+    event_name: input.event_name,
+    severity: input.severity || "info",
+    occurred_at: new Date().toISOString(),
+    attributes: {
+      route_class: input.route_class,
+      method: input.method,
+      status: Number(input.status || 0),
+      mode: input.mode,
+      retry_after_seconds: input.retry_after_seconds || undefined
+    }
+  }).catch(() => null);
+  if (ctx?.waitUntil) ctx.waitUntil(work);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -58,10 +88,34 @@ export default {
 
     // Customer Product remains isolated and passes through distributed abuse control before the explicit launch shield.
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
+      const routeClass = customerRouteClass(url, request.method);
+      const mode = customerMode(env);
       const rate = await enforceCustomerDistributedRateLimit(request, env);
-      if (!rate.ok) return customerRateLimited(rate);
+      if (!rate.ok) {
+        const response = customerRateLimited(rate);
+        recordCustomerEvent(ctx, env, {
+          event_name: "customer.rate_limited",
+          severity: "warn",
+          route_class: routeClass,
+          method: request.method,
+          status: response.status,
+          mode,
+          retry_after_seconds: rate.retry_after_seconds
+        });
+        return response;
+      }
       const customerResponse = await handlePrelaunchCustomerProductSurface(request, env, ctx);
-      if (customerResponse) return customerResponse;
+      if (customerResponse) {
+        recordCustomerEvent(ctx, env, {
+          event_name: customerResponse.status >= 500 ? "customer.request.failed" : "customer.request.completed",
+          severity: customerResponse.status >= 500 ? "error" : customerResponse.status >= 400 ? "warn" : "info",
+          route_class: routeClass,
+          method: request.method,
+          status: customerResponse.status,
+          mode
+        });
+        return customerResponse;
+      }
     }
 
     if (url.pathname === "/mcp") return handleMcp(request, env);
