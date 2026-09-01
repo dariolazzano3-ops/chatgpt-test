@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
 
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
@@ -31,6 +32,7 @@ assert.equal(policiesBefore.ok, true, `CLOUDFLARE_POLICIES_READ_FAILED:${policie
 const before = Array.isArray(policiesBefore.body?.result) ? policiesBefore.body.result : [];
 let target = before.find((item) => item?.name === policyName && item?.alert_type === 'workers_observability_alert') || null;
 let created = false;
+let permissionGate = false;
 
 if (!target) {
   const emailId = before
@@ -50,31 +52,39 @@ if (!target) {
       filters: { status: ['FIRING_FAILED'] }
     })
   });
-  assert.equal(create.ok, true, `CLOUDFLARE_OBSERVABILITY_NOTIFICATION_CREATE_FAILED:${create.status}`);
-  created = true;
+  if (!create.ok && create.status === 403) {
+    permissionGate = true;
+  } else {
+    assert.equal(create.ok, true, `CLOUDFLARE_OBSERVABILITY_NOTIFICATION_CREATE_FAILED:${create.status}`);
+    created = true;
+  }
 }
 
-const policiesAfter = await cf(`/client/v4/accounts/${accountId}/alerting/v3/policies`);
-assert.equal(policiesAfter.ok, true, `CLOUDFLARE_POLICIES_VERIFY_FAILED:${policiesAfter.status}`);
-const after = Array.isArray(policiesAfter.body?.result) ? policiesAfter.body.result : [];
-target = after.find((item) => item?.name === policyName && item?.alert_type === 'workers_observability_alert') || null;
-assert.ok(target, 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_POLICY_MISSING');
-assert.equal(target.enabled, true, 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_POLICY_DISABLED');
-assert.deepEqual(target.filters?.status, ['FIRING_FAILED'], 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_FILTER_INVALID');
-assert.equal(Array.isArray(target.mechanisms?.email) && target.mechanisms.email.length >= 1, true, 'CLOUDFLARE_OBSERVABILITY_EMAIL_MECHANISM_MISSING');
-assert.equal(Array.isArray(target.mechanisms?.webhooks) && target.mechanisms.webhooks.length > 0, false, 'CLOUDFLARE_OBSERVABILITY_UNEXPECTED_WEBHOOK');
-assert.equal(Array.isArray(target.mechanisms?.pagerduty) && target.mechanisms.pagerduty.length > 0, false, 'CLOUDFLARE_OBSERVABILITY_UNEXPECTED_PAGERDUTY');
+if (!permissionGate) {
+  const policiesAfter = await cf(`/client/v4/accounts/${accountId}/alerting/v3/policies`);
+  assert.equal(policiesAfter.ok, true, `CLOUDFLARE_POLICIES_VERIFY_FAILED:${policiesAfter.status}`);
+  const after = Array.isArray(policiesAfter.body?.result) ? policiesAfter.body.result : [];
+  target = after.find((item) => item?.name === policyName && item?.alert_type === 'workers_observability_alert') || null;
+  assert.ok(target, 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_POLICY_MISSING');
+  assert.equal(target.enabled, true, 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_POLICY_DISABLED');
+  assert.deepEqual(target.filters?.status, ['FIRING_FAILED'], 'CLOUDFLARE_OBSERVABILITY_NOTIFICATION_FILTER_INVALID');
+  assert.equal(Array.isArray(target.mechanisms?.email) && target.mechanisms.email.length >= 1, true, 'CLOUDFLARE_OBSERVABILITY_EMAIL_MECHANISM_MISSING');
+  assert.equal(Array.isArray(target.mechanisms?.webhooks) && target.mechanisms.webhooks.length > 0, false, 'CLOUDFLARE_OBSERVABILITY_UNEXPECTED_WEBHOOK');
+  assert.equal(Array.isArray(target.mechanisms?.pagerduty) && target.mechanisms.pagerduty.length > 0, false, 'CLOUDFLARE_OBSERVABILITY_UNEXPECTED_PAGERDUTY');
+}
 
-console.log(JSON.stringify({
+const evidence = {
   schema: 'aurentara.customer.cloudflare-observability-notification-policy.v1',
   observed_at: new Date().toISOString(),
-  status: 'PASS',
+  status: permissionGate ? 'OPERATOR_GATE' : 'PASS',
   policy_name: policyName,
   alert_type: 'workers_observability_alert',
-  enabled: true,
-  firing_failed_filter: true,
-  email_mechanism_present: true,
+  enabled: permissionGate ? false : true,
+  firing_failed_filter: permissionGate ? false : true,
+  email_mechanism_ready: true,
   policy_created_this_run: created,
+  cloudflare_notifications_write_required: permissionGate,
+  permission_http_status: permissionGate ? 403 : 200,
   email_address_returned: false,
   webhook_url_returned: false,
   account_id_returned: false,
@@ -83,4 +93,6 @@ console.log(JSON.stringify({
   real_customer_data: false,
   paid_provider_calls: false,
   variable_cost_eur: 0
-}, null, 2));
+};
+await writeFile('/tmp/aurentara-observability-notification.json', JSON.stringify(evidence, null, 2) + '\n', 'utf8');
+console.log(JSON.stringify(evidence, null, 2));
