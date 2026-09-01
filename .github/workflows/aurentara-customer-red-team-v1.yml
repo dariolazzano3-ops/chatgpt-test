@@ -1,0 +1,32 @@
+name: AURENTARA Customer Red Team V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/customer-ai/**'
+      - 'src/customer-product/**'
+      - 'src/entry.js'
+      - 'scripts/aurentara-customer-red-team-v1.mjs'
+      - 'docs/AURENTARA_PERSONAL_BUSINESS_AI_RED_TEAM_V1.md'
+      - '.github/workflows/aurentara-customer-red-team-v1.yml'
+
+jobs:
+  customer-red-team:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax
+        run: |
+          node --check src/customer-ai/context-v1.js
+          node --check src/customer-product/economics-v1.js
+          node --check src/customer-product/abuse-guard-v1.js
+          node --check src/customer-product/red-team-v1.js
+          node --check scripts/aurentara-customer-red-team-v1.mjs
+      - name: Run mandatory zero-cost synthetic red team
+        run: node scripts/aurentara-customer-red-team-v1.mjs
