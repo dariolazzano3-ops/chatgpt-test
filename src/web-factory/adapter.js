@@ -4,6 +4,8 @@ import { buildAutonomousPremiumWebsite } from './autonomous-premium.js';
 import { runWebOperatingSystemV2 } from './operating-system-v2.js';
 import { webProviderRoleModel } from './provider-roles.js';
 import { selectWebBuildRoute } from './routing.js';
+import { runFramerVisualProvider } from './framer-live-provider.js';
+import { connectTrackedFramer } from './framer-server-connection.js';
 
 const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web_generate', 'web_rebuild', 'web_evolve']);
 
@@ -70,6 +72,82 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   return buildWebsiteProject(mission, options);
 }
 
+export async function executeWebFactoryTaskWithVisualProvider(task = {}, options = {}) {
+  const capability = String(task.capability || 'web.premium.build');
+  const mission = task.website_mission || task.input || task.mission || {};
+  const routingContext = task.routing_context || {};
+  const route = selectWebBuildRoute({
+    ...routingContext,
+    premium_visual: capability === 'web.premium.build' || routingContext.premium_visual === true,
+    quality_level: routingContext.quality_level || (capability === 'web.premium.build' ? 'PREMIUM' : 'STANDARD'),
+    synthetic_test_data_only: mission.synthetic_test_data_only === true,
+    environment: 'staging'
+  });
+
+  if (route.selected.route_id !== 'framer-design-native-cloudflare') {
+    return executeWebFactoryTask(task, options);
+  }
+
+  if (!task.framer_visual_request) {
+    if (task.design_contract) return executeWebFactoryTask(task, options);
+    return {
+      ok: false,
+      status: 'FRAMER_VISUAL_REQUEST_REQUIRED',
+      route,
+      next_stage: 'guarded_framer_visual_provider',
+      production_deploy: false,
+      variable_cost_eur: 0
+    };
+  }
+
+  const rawProviderOptions = options.framer || options.visualProvider || {};
+  const providerOptions = { ...rawProviderOptions };
+  if (typeof providerOptions.connectFn !== 'function') providerOptions.connectFn = connectTrackedFramer;
+
+  const visualProvider = await runFramerVisualProvider(task.framer_visual_request, providerOptions);
+  if (!visualProvider.ok) {
+    return {
+      ok: false,
+      status: visualProvider.status,
+      route,
+      visual_provider: visualProvider,
+      production_deploy: false,
+      variable_cost_eur: 0
+    };
+  }
+
+  const designContract = task.design_contract || visualProvider.design_contract;
+  const build = reconstructPremiumWebsite({
+    mission,
+    design_contract: designContract,
+    routing_context: routingContext,
+    framer_status: { design_verified: true, connection_verified: true, free_plan_ready: true }
+  }, options);
+
+  return {
+    ...build,
+    route,
+    visual_provider_evidence: {
+      schema: 'riosystems.framer-visual-provider-evidence.v1',
+      status: visualProvider.status,
+      provider: visualProvider.provider,
+      mode: visualProvider.mode,
+      operation_count: visualProvider.operations.length,
+      operations: visualProvider.operations,
+      snapshot_schema: visualProvider.snapshot_after?.schema || null,
+      design_contract_status: visualProvider.design_contract_validation?.status || null,
+      portability_required: true,
+      native_reconstruction_required: true,
+      framer_runtime_dependency_in_final_site: false,
+      production_publish: false,
+      production_deploy: false,
+      domain_change: false,
+      paid_action: false,
+      variable_cost_eur: 0
+    }
+  };
+}
+
 export function webFactoryProviderManifest() {
   return {
     schema: 'riosystems.web-factory-provider.v2',
@@ -98,6 +176,16 @@ export function webFactoryProviderManifest() {
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'],
     autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'],
     web_os_v2_path: ['business-intent', 'strategy', 'architecture', 'design-intent', 'native-build', 'multi-domain-QA', 'self-healing', 'integration-contracts', 'delivery'],
+    framer_live_visual_provider: {
+      transport: 'framer-server-api',
+      credential_policy: 'runtime-secret-only',
+      visual_writes_guarded: true,
+      tracked_insertions: ['TextNode', 'SVGNode'],
+      native_reconstruction_required: true,
+      publish_allowed: false,
+      deploy_allowed: false,
+      destructive_actions_allowed: false
+    },
     framer_hosting_default: false,
     deterministic_zero_cost_mode: true,
     ai_provider_required: false,
