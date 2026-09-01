@@ -1,6 +1,8 @@
 const clean = (value, max = 8000) => String(value ?? '').trim().slice(0, max);
 const SCHEMA = 'aurentara_customer_ai';
 const PURPOSES = new Set(['persistent_business_memory','trusted_research','product_analytics','service_handoff']);
+const CUSTOMER_DELETE_CONFIRMATION = 'DELETE_MY_HAMYREN_DATA';
+const EDGE_DELETE_CONFIRMATION = 'DELETE_MY_AURENTARA_DATA';
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -51,10 +53,13 @@ async function primaryMembership(config, accessToken, userId, fetchImpl) {
 export function productionPrivacySurfaceManifest() {
   return {
     version: 'aurentara.customer.production-privacy-surface.v1',
+    visible_product_name: 'HAMYREN',
     privacy_export_rpc: 'aurentara_customer_ai.export_my_workspace',
     consent_append_only: true,
     consent_purposes: [...PURPOSES],
     account_delete_edge_function: 'aurentara-delete-account-v1',
+    customer_delete_confirmation_phrase: CUSTOMER_DELETE_CONFIRMATION,
+    internal_delete_confirmation_exposed: false,
     service_role_in_worker: false,
     user_jwt_and_rls: true
   };
@@ -127,8 +132,8 @@ export async function handleProductionCustomerPrivacyRoute(request, context = {}
   if (url.pathname === '/customer/api/account/delete' && method === 'POST') {
     const parsed = await readJson(request, 3000);
     if (!parsed.ok) return { response: json({ ok: false, error: parsed.error }, 400), clear_session: false };
-    if (parsed.value?.confirm !== 'DELETE_MY_AURENTARA_DATA') {
-      return { response: json({ ok: false, error: 'EXPLICIT_DELETION_CONFIRMATION_REQUIRED' }, 400), clear_session: false };
+    if (parsed.value?.confirm !== CUSTOMER_DELETE_CONFIRMATION) {
+      return { response: json({ ok: false, error: 'EXPLICIT_DELETION_CONFIRMATION_REQUIRED', required_confirmation: CUSTOMER_DELETE_CONFIRMATION }, 400), clear_session: false };
     }
     const result = await fetchJson(fetchImpl, `${config.url}/functions/v1/aurentara-delete-account-v1`, {
       method: 'POST',
@@ -137,7 +142,7 @@ export async function handleProductionCustomerPrivacyRoute(request, context = {}
         'apikey': config.publishable_key,
         'authorization': `Bearer ${accessToken}`
       },
-      body: JSON.stringify({ confirm: 'DELETE_MY_AURENTARA_DATA' })
+      body: JSON.stringify({ confirm: EDGE_DELETE_CONFIRMATION })
     });
     if (!result.ok) return { response: json({ ok: false, error: result.body?.error || 'CUSTOMER_ACCOUNT_DELETION_FAILED', audit_id: result.body?.audit_id || null }, result.status >= 500 ? 502 : result.status), clear_session: false };
     return { response: json({ ok: true, deletion: result.body }), clear_session: true };

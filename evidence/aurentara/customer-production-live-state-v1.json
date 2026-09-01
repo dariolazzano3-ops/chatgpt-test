@@ -5,6 +5,11 @@
   "synthetic_only": true,
   "real_customer_data": false,
   "variable_cost_eur": 0,
+  "visible_product": {
+    "name": "HAMYREN",
+    "descriptor": "Your Personal Business AI",
+    "byline": "by AURENTARA SYSTEMS"
+  },
   "operator_project_ref": "pgzayxpqiakuvibhonwh",
   "customer_project_ref": "pqmbtfzjcdnihovvppjr",
   "customer_project_region": "eu-central-1",
@@ -62,6 +67,9 @@
   },
   "readiness_percent": 88,
   "zero_cost_technical_remaining": [],
+  "legal_privacy_technical_readiness": true,
+  "legal_privacy_human_review_required": true,
+  "legal_privacy_technical_validation_mode": "synthetic_and_existing_live_evidence",
   "customer_surface_active": false,
   "real_customer_ai_processing_approved": false,
   "legal_privacy_review_complete": false,
