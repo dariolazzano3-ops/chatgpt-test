@@ -11,6 +11,7 @@
     "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "true",
     "AURENTARA_CUSTOMER_SUPABASE_URL": "https://pqmbtfzjcdnihovvppjr.supabase.co",
     "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
+    "AURENTARA_CUSTOMER_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_APgisjLicxi_l60r_CFcQQ_-UE-C_sh",
     "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh"
   },
   "access": {
@@ -78,6 +79,7 @@
         "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "true",
         "AURENTARA_CUSTOMER_SUPABASE_URL": "https://pqmbtfzjcdnihovvppjr.supabase.co",
         "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
+        "AURENTARA_CUSTOMER_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_APgisjLicxi_l60r_CFcQQ_-UE-C_sh",
         "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh"
       },
       "durable_objects": {
