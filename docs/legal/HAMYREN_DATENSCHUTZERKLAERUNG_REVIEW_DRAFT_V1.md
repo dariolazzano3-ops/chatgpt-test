@@ -19,6 +19,8 @@ Datenschutzbeauftragter/Vertreter: `[REVIEW: Benennung erforderlich? Falls nein,
 
 HAMYREN ist ein Produkt von AURENTARA SYSTEMS. AURENTARA SYSTEMS ist `[REVIEW: Marke/Unternehmen/rechtliches Verhältnis zur verantwortlichen Stelle präzisieren]`.
 
+HAMYREN V1 richtet sich ausschließlich an Unternehmer im Sinne des § 14 BGB und deren vertretungsberechtigte geschäftliche Nutzer. Eine Nutzung als Verbraucher im Sinne des § 13 BGB ist in V1 nicht vorgesehen.
+
 ## 2. Was HAMYREN ist
 
 HAMYREN ist ein KI-gestützter persönlicher Business-Workspace. Das System kann Angaben zu einem Unternehmen oder einer Geschäftsidee strukturieren, Fragen beantworten, Business-Kontext speichern, Ziele und Entscheidungen unterstützen und – nach gesonderter Aktivierung – aktuelle vertrauenswürdige Quellen einbeziehen.
@@ -30,6 +32,7 @@ Sie interagieren mit einem KI-System. KI-Ausgaben können unvollständig oder fa
 Abhängig von der Nutzung können folgende Daten verarbeitet werden:
 
 - leichte Erstangaben: Name, Unternehmen/Geschäftsidee, Branche, aktuelles Ziel und optional Land/Region;
+- B2B-Berechtigungsdaten: Unternehmens-/Geschäftsname, Geschäftsanschrift/Land, Tätigkeit, Name und Rolle/Vertretungsbefugnis des Nutzers, Bestätigungszeitpunkt und akzeptierte Vertragsversion;
 - die bis zu fünf Fragen und Antworten der kostenlosen Einstiegsnutzung;
 - Account- und Authentifizierungsdaten, insbesondere E-Mail-Adresse, technische Nutzerkennung, Tenant-/Workspace-Zuordnung und sicherheitsrelevante Ereignisse;
 - Business-Workspace-Daten: Unternehmensprofil, bestätigte Fakten, Memory-Kandidaten, Korrekturen, Ziele, Entscheidungen und Zustands-Snapshots;
@@ -45,7 +48,8 @@ Bitte übermitteln Sie keine besonderen Kategorien personenbezogener Daten, frem
 
 | Verarbeitung | Zweck | Rechtsgrundlagen-Entwurf |
 |---|---|---|
-| Erstangaben und kostenlose Fragen | angeforderte Business-AI-Leistung und Produktdemonstration | Art. 6 Abs. 1 lit. b DSGVO (Vertrag/vorvertragliche Maßnahmen) `[REVIEW]` |
+| B2B-Berechtigung | Prüfung/Dokumentation, dass der Kunde als Unternehmer nach § 14 BGB und nicht als Verbraucher handelt | Art. 6 Abs. 1 lit. b DSGVO; Nachweisanteile ggf. lit. f `[REVIEW]` |
+| Erstangaben und kostenlose Fragen | angeforderte Business-AI-Leistung und Produktdemonstration im B2B-Kontext | Art. 6 Abs. 1 lit. b DSGVO (Vertrag/vorvertragliche Maßnahmen) `[REVIEW]` |
 | Account, Tenant und Authentifizierung | Accountbereitstellung, Zugriffsschutz, Mandantentrennung | Art. 6 Abs. 1 lit. b DSGVO; Sicherheitsanteile ggf. lit. f `[REVIEW]` |
 | Persistenter Business-Workspace | persönliche Kontext-, Memory-, Ziel- und Entscheidungsfunktionen | Art. 6 Abs. 1 lit. b DSGVO `[REVIEW]` |
 | KI-Unterhaltung | Antwortgenerierung, Kontext und Vorschläge | Art. 6 Abs. 1 lit. b DSGVO `[REVIEW: Anbieter/Transfer erst nach separatem Gate]` |
@@ -117,9 +121,9 @@ Die technische Architektur trennt den Customer Data Plane vom privaten AURENTARA
 
 Keine Sicherheitsmaßnahme kann absolute Sicherheit garantieren. `[REVIEW: Art.-32-TOM-Verweis/DPA-Anlage und Incident-Kontakt ergänzen.]`
 
-## 12. Minderjährige und zulässige Nutzer
+## 12. Zulässige B2B-Nutzer und Minderjährige
 
-`[REVIEW: B2B-only und Mindestalter festlegen.]` Der Dienstentwurf richtet sich an Unternehmer und autorisierte geschäftliche Nutzer, nicht an Kinder. Ohne finalen Age-/Scope-Beschluss darf dieser Abschnitt nicht veröffentlicht werden.
+HAMYREN V1 darf nur von Unternehmern im Sinne des § 14 BGB oder vertretungsberechtigten Personen für deren gewerbliche oder selbständige berufliche Tätigkeit genutzt werden. Verbraucher- und gemischt private Nutzung ist ausgeschlossen. `[REVIEW: Mindestalter, Vertretungsbefugnis und Behandlung minderjähriger Unternehmer abschließend festlegen.]`
 
 ## 13. Änderungen dieser Erklärung
 

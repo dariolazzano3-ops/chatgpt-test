@@ -2,6 +2,7 @@ import { HAMYREN_LEGAL_REVIEW_ITEMS_V1, HAMYREN_PRODUCT_IDENTITY_V1 } from './le
 
 const REQUIRED = 'REQUIRES_HUMAN_REVIEW';
 const INPUT_REQUIRED = 'OPERATOR_OR_COUNSEL_INPUT_REQUIRED';
+const RECORDED_PENDING_COUNSEL = 'OPERATOR_DECISION_RECORDED_PENDING_COUNSEL_REVIEW';
 
 const freezeRows = (rows) => Object.freeze(rows.map((row) => Object.freeze(row)));
 
@@ -38,11 +39,62 @@ export const HAMYREN_LEGAL_PRIMARY_SOURCES_V1 = freezeRows([
   }
 ]);
 
+export const HAMYREN_B2B_ONLY_SCOPE_V1 = Object.freeze({
+  schema: 'hamyren.legal.customer-scope.b2b-only.v1',
+  launch_version: 'V1',
+  market_scope: 'B2B_ONLY',
+  eligibility_rule: 'Entrepreneur under section 14 BGB acting for commercial or independent professional activity',
+  eligibility_source: 'https://www.gesetze-im-internet.de/bgb/__14.html',
+  consumers_under_section_13_bgb_allowed: false,
+  mixed_private_business_use_allowed: false,
+  consumer_contract_flow_present: false,
+  b2c_terms_present: false,
+  operator_decision_recorded: true,
+  counsel_review_required: true,
+  public_activation_effect: false,
+  real_customer_processing_effect: false,
+  required_precontract_attestations: [
+    'I am an entrepreneur within the meaning of section 14 BGB or act with authority for one',
+    'I conclude and use HAMYREN exclusively for commercial or independent professional activity',
+    'I do not conclude or use HAMYREN as a consumer within the meaning of section 13 BGB',
+    'The supplied business and representative information is complete and accurate'
+  ],
+  eligibility_evidence_fields: [
+    'business_legal_or_trade_name',
+    'business_address',
+    'business_country',
+    'business_activity',
+    'representative_name',
+    'representative_role_or_authority',
+    'bgb14_attested_at',
+    'terms_version'
+  ]
+});
+
+export const HAMYREN_OPERATOR_IDENTITY_FIELDS_V1 = freezeRows([
+  { id: 'legal_name', required: true, condition: 'always', purpose: 'controller, legal notice and contracting party' },
+  { id: 'legal_form', required: true, condition: 'always', purpose: 'controller, legal notice and contracting party' },
+  { id: 'authorized_representative', required: true, condition: 'for legal entity/person partnership', purpose: 'DDG legal notice and contract identification' },
+  { id: 'street_house_number', required: true, condition: 'always', purpose: 'service-provider and controller address' },
+  { id: 'postal_code_city', required: true, condition: 'always', purpose: 'service-provider and controller address' },
+  { id: 'country', required: true, condition: 'always', purpose: 'service-provider and controller jurisdiction' },
+  { id: 'general_contact_email', required: true, condition: 'always', purpose: 'rapid electronic contact and direct communication' },
+  { id: 'privacy_contact_email', required: true, condition: 'always; may equal general contact email', purpose: 'data-subject and privacy requests' },
+  { id: 'direct_contact_channel', required: true, condition: 'always', purpose: 'immediate communication channel; counsel to confirm final legal-notice format' },
+  { id: 'register_name_and_court', required: false, condition: 'if registered', purpose: 'DDG legal notice' },
+  { id: 'register_number', required: false, condition: 'if registered', purpose: 'DDG legal notice' },
+  { id: 'vat_or_business_identification_number', required: false, condition: 'if issued', purpose: 'DDG legal notice' },
+  { id: 'competent_supervisory_authority', required: false, condition: 'if the offered activity requires official authorization', purpose: 'DDG legal notice' },
+  { id: 'regulated_profession_details', required: false, condition: 'if a regulated profession is involved', purpose: 'DDG legal notice' },
+  { id: 'dpo_name_and_contact_or_none_confirmation', required: true, condition: 'always', purpose: 'privacy notice and governance' },
+  { id: 'aurentara_legal_brand_relationship', required: true, condition: 'always', purpose: 'explain whether AURENTARA SYSTEMS is a trade name/brand of the controller' }
+]);
+
 export const HAMYREN_REVIEW_DECISIONS_V1 = freezeRows([
   { id: 'controller_legal_identity', owner: 'operator', status: INPUT_REQUIRED, blocks: ['privacy_notice', 'legal_notice', 'terms'] },
   { id: 'controller_postal_and_privacy_contact', owner: 'operator', status: INPUT_REQUIRED, blocks: ['privacy_notice', 'data_subject_requests'] },
   { id: 'dpo_or_representative_applicability', owner: 'counsel', status: REQUIRED, blocks: ['privacy_notice'] },
-  { id: 'b2b_only_or_b2c_scope', owner: 'operator+counsel', status: INPUT_REQUIRED, blocks: ['terms', 'customer_journey'] },
+  { id: 'b2b_only_or_b2c_scope', owner: 'operator+counsel', status: RECORDED_PENDING_COUNSEL, decision: 'B2B_ONLY_V1', blocks: ['counsel_review'] },
   { id: 'minimum_age_and_minor_handling', owner: 'operator+counsel', status: INPUT_REQUIRED, blocks: ['terms', 'privacy_notice', 'intake'] },
   { id: 'purposes_and_legal_bases', owner: 'counsel', status: REQUIRED, blocks: ['privacy_notice', 'consent_ui'] },
   { id: 'retention_and_legal_hold_schedule', owner: 'operator+counsel', status: INPUT_REQUIRED, blocks: ['privacy_notice', 'runtime_configuration'] },
@@ -192,12 +244,46 @@ export function hamyrenDpiaAiScreeningV1() {
   };
 }
 
+export function evaluateHamyrenB2bEligibilityAttestationV1(input = {}) {
+  const required = [
+    'business_legal_or_trade_name',
+    'business_address',
+    'business_country',
+    'business_activity',
+    'representative_name',
+    'representative_role_or_authority',
+    'bgb14_attested_at',
+    'terms_version'
+  ];
+  const missing = required.filter((field) => !String(input[field] ?? '').trim());
+  const failures = [];
+  if (input.is_entrepreneur_under_bgb14 !== true) failures.push('BGB14_ENTREPRENEUR_ATTESTATION_REQUIRED');
+  if (input.business_use_only !== true) failures.push('EXCLUSIVE_BUSINESS_USE_ATTESTATION_REQUIRED');
+  if (input.consumer_use === true) failures.push('CONSUMER_USE_FORBIDDEN_V1');
+  if (input.authorized_representative !== true) failures.push('BUSINESS_REPRESENTATIVE_AUTHORITY_REQUIRED');
+  if (missing.length) failures.push('B2B_ELIGIBILITY_EVIDENCE_INCOMPLETE');
+  return {
+    ok: failures.length === 0,
+    schema: 'hamyren.legal.b2b-eligibility-attestation-result.v1',
+    eligible_for_v1: failures.length === 0,
+    failures,
+    missing_fields: missing,
+    market_scope: 'B2B_ONLY',
+    consumer_contract_allowed: false,
+    counsel_review_required: true,
+    activates_public_surface: false,
+    activates_real_customer_processing: false
+  };
+}
+
 export function hamyrenLegalPrivacyFinalReviewPreparationManifestV1() {
   return {
     schema: 'hamyren.legal-privacy.final-review-preparation.v1',
     product: { ...HAMYREN_PRODUCT_IDENTITY_V1 },
     jurisdiction_baseline: ['European Union', 'Germany'],
-    intended_launch_scope_candidate: 'B2B-only entrepreneurs and authorized business users; operator and counsel must confirm',
+    intended_launch_scope: 'B2B-only entrepreneurs under section 14 BGB and authorized representatives acting exclusively for commercial or independent professional activity',
+    b2b_only_scope: { ...HAMYREN_B2B_ONLY_SCOPE_V1, required_precontract_attestations: [...HAMYREN_B2B_ONLY_SCOPE_V1.required_precontract_attestations], eligibility_evidence_fields: [...HAMYREN_B2B_ONLY_SCOPE_V1.eligibility_evidence_fields] },
+    operator_identity_fields: HAMYREN_OPERATOR_IDENTITY_FIELDS_V1.map((row) => ({ ...row })),
     official_sources: HAMYREN_LEGAL_PRIMARY_SOURCES_V1.map((row) => ({ ...row })),
     processing_register: HAMYREN_PROCESSING_REGISTER_V1.map((row) => ({ ...row })),
     service_register: HAMYREN_SERVICE_REGISTER_V1.map((row) => ({ ...row })),
@@ -230,7 +316,8 @@ export function evaluateHamyrenLegalPrivacyFinalReviewPreparationV1(input = {}) 
   if (input.real_customer_ai_processing_approved === true) failures.push('REAL_CUSTOMER_AI_MUST_REMAIN_OFF');
   if (input.real_customer_data === true) failures.push('REAL_CUSTOMER_DATA_FORBIDDEN');
   if (Number(input.variable_cost_eur || 0) !== 0) failures.push('ZERO_VARIABLE_COST_REQUIRED');
-  if (!HAMYREN_REVIEW_DECISIONS_V1.every((row) => [REQUIRED, INPUT_REQUIRED].includes(row.status))) failures.push('HUMAN_DECISION_STATUS_INVALID');
+  if (!HAMYREN_REVIEW_DECISIONS_V1.every((row) => [REQUIRED, INPUT_REQUIRED, RECORDED_PENDING_COUNSEL].includes(row.status))) failures.push('HUMAN_DECISION_STATUS_INVALID');
+  if (HAMYREN_B2B_ONLY_SCOPE_V1.market_scope !== 'B2B_ONLY' || HAMYREN_B2B_ONLY_SCOPE_V1.consumers_under_section_13_bgb_allowed !== false) failures.push('B2B_ONLY_SCOPE_INVALID');
   if (!HAMYREN_PROCESSING_REGISTER_V1.every((row) => row.human_review_status === REQUIRED)) failures.push('PROCESSING_REGISTER_REVIEW_STATUS_INVALID');
   if (!HAMYREN_SERVICE_REGISTER_V1.every((row) => row.status === REQUIRED)) failures.push('SERVICE_REGISTER_REVIEW_STATUS_INVALID');
   if (!HAMYREN_RETENTION_PROPOSALS_V1.every((row) => row.status === REQUIRED)) failures.push('RETENTION_REVIEW_STATUS_INVALID');
@@ -241,6 +328,8 @@ export function evaluateHamyrenLegalPrivacyFinalReviewPreparationV1(input = {}) 
     failures,
     preparation_complete: failures.length === 0,
     unresolved_human_decision_count: HAMYREN_REVIEW_DECISIONS_V1.length,
+    recorded_operator_decisions: ['B2B_ONLY_V1'],
+    missing_operator_identity_field_count: HAMYREN_OPERATOR_IDENTITY_FIELDS_V1.length,
     qualified_human_review_required: true,
     final_legal_acceptance_recorded: false,
     legal_privacy_review_complete: false,

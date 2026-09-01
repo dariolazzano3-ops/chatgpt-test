@@ -38,11 +38,13 @@ The following remain OFF throughout this block:
 
 These facts establish technical evidence only. Counsel must decide whether the implementation, contracts and customer wording meet the applicable legal standard.
 
-## Intended-purpose candidate for review
+## Recorded V1 customer-scope decision
 
-HAMYREN is intended as a personal AI workspace for entrepreneurs and authorized business users. It organizes user-supplied business context, supports goals and decisions, answers questions, and may later retrieve authoritative sources. It does not make a binding decision for the user and must not be positioned as legal, tax, medical, employment, financial or other regulated professional advice.
+HAMYREN V1 is **B2B-only**. It is offered exclusively to entrepreneurs within the meaning of [§ 14 BGB](https://www.gesetze-im-internet.de/bgb/__14.html) who conclude and use HAMYREN in the exercise of their commercial or independent professional activity, or to authorized representatives acting for such an entrepreneur.
 
-The recommended launch candidate is **B2B-only**. This is not yet an operator decision. If consumers are admitted, the terms, checkout, cancellation, withdrawal, digital-product conformity and dispute-resolution flows need a separate B2C review before launch.
+Consumers within the meaning of § 13 BGB, mixed private/business use and a B2C contract flow are excluded from V1. This is a recorded operator decision, not a final legal conclusion. Counsel must review the definition, eligibility evidence, customer wording and enforcement flow. Any later B2C release requires a separate legal, contractual and technical review before activation.
+
+HAMYREN remains a personal AI workspace for business users. It organizes user-supplied business context, supports goals and decisions, answers questions, and may later retrieve authoritative sources. It does not make a binding decision for the user and must not be positioned as legal, tax, medical, employment, financial or other regulated professional advice.
 
 ## Primary-law baseline to refresh at final review
 
@@ -62,7 +64,7 @@ Every row is blocking until decided and evidenced.
 |---|---|---|
 | Controller identity | legal name/form, authorized representative, complete postal address | Operator |
 | Privacy contact | monitored email; DPO/representative determination | Operator + counsel |
-| Customer scope | B2B-only or B2C; countries; eligible users | Operator + counsel |
+| Customer scope | **Operator decision recorded: B2B-only V1 under § 14 BGB.** Counsel must review eligibility wording/evidence and prohibited consumer flow. | Counsel |
 | Age policy | minimum age, verification and minor handling | Operator + counsel |
 | Purpose/legal-basis map | Article 6 basis per processing activity; role of consent | Counsel |
 | Retention schedule | approved periods, deletion propagation, backups, legal holds | Operator + counsel |
@@ -91,6 +93,19 @@ The machine-readable register covers:
 - future subscription/payment records (inactive).
 
 Each legal basis in the register is a review candidate, not a determination. In particular, a consent ledger does not make consent the correct legal basis for every feature.
+
+## B2B eligibility and contract-flow contract
+
+Before any real-customer account, persistent workspace or contractual use can be activated, the reviewed customer journey must fail closed unless the user confirms all of the following:
+
+- the contracting customer is an entrepreneur within the meaning of § 14 BGB or the user acts with authority for one;
+- HAMYREN is concluded and used exclusively for commercial or independent professional activity;
+- HAMYREN is not concluded or used as a consumer under § 13 BGB;
+- the supplied business and representative information is complete and accurate.
+
+The pre-contract evidence candidate contains business/trade name, business address/country, activity, representative name and authority, attestation timestamp and accepted terms version. No checkbox may be preselected. A failed or missing attestation must block V1 eligibility without activating the public surface or real-customer processing.
+
+Counsel must approve the exact UI wording, timing, evidence minimization/retention, treatment of sole traders, mixed-purpose contracts and consequences of a false declaration.
 
 ## Processor and transfer evidence request
 
@@ -153,6 +168,8 @@ No code test or AI agent may create that acceptance record on behalf of the revi
 ```json
 {
   "legal_privacy_final_review_preparation": true,
+  "customer_scope": "B2B_ONLY_V1",
+  "b2c_allowed": false,
   "final_legal_acceptance_recorded": false,
   "legal_privacy_review_complete": false,
   "public_customer_surface_active": false,

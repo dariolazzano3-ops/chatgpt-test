@@ -11,6 +11,12 @@
     "European Union",
     "Germany"
   ],
+  "customer_scope": "B2B_ONLY_V1",
+  "eligibility_rule": "Entrepreneur under section 14 BGB acting exclusively for commercial or independent professional activity",
+  "consumers_under_section_13_bgb_allowed": false,
+  "mixed_private_business_use_allowed": false,
+  "b2b_scope_operator_decision_recorded": true,
+  "b2b_scope_counsel_review_required": true,
   "artifacts": [
     "docs/HAMYREN_LEGAL_PRIVACY_FINAL_REVIEW_PREPARATION_V1.md",
     "docs/legal/HAMYREN_DATENSCHUTZERKLAERUNG_REVIEW_DRAFT_V1.md",
@@ -19,6 +25,10 @@
   ],
   "preparation_complete": true,
   "unresolved_human_decision_count": 16,
+  "recorded_operator_decisions": [
+    "B2B_ONLY_V1"
+  ],
+  "missing_operator_identity_field_count": 16,
   "qualified_human_review_required": true,
   "final_legal_acceptance_recorded": false,
   "legal_privacy_review_complete": false,

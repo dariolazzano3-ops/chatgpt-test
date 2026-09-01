@@ -1,7 +1,7 @@
 # HAMYREN Nutzungsbedingungen — B2B Review Draft V1
 
 > **NICHT VERÖFFENTLICHEN. NICHT RECHTLICH FREIGEGEBEN.**  
-> Dieser Entwurf setzt als empfohlene Launch-Variante eine reine B2B-Nutzung voraus. Entscheidet der Operator B2C, ist dieser Entwurf nicht ausreichend und darf nicht verwendet werden.
+> Die B2B-only-Entscheidung für V1 ist vom Operator verbindlich getroffen. Der Entwurf bleibt bis zur Prüfung durch einen qualifizierten menschlichen Rechtsberater unveröffentlicht und rechtlich nicht freigegeben. Jede spätere B2C-Freigabe erfordert einen separaten Neu-Review.
 
 Stand des Entwurfs: 1. September 2026
 
@@ -14,7 +14,7 @@ HAMYREN wird angeboten von:
 `[REVIEW: ladungsfähige Anschrift]`  
 E-Mail: `[REVIEW]`
 
-Diese Bedingungen gelten ausschließlich gegenüber Unternehmern im Sinne des § 14 BGB, juristischen Personen des öffentlichen Rechts oder öffentlich-rechtlichen Sondervermögen. `[REVIEW: B2B-only operativ durch Registrierung/Vertrag verifizieren und final freigeben.]`
+Diese Bedingungen gelten ausschließlich gegenüber Unternehmern im Sinne des § 14 BGB, die HAMYREN bei Vertragsschluss und Nutzung in Ausübung ihrer gewerblichen oder selbständigen beruflichen Tätigkeit verwenden, sowie gegenüber vertretungsberechtigten Nutzern eines solchen Unternehmers. Verbraucher im Sinne des § 13 BGB und gemischt private/geschäftliche Nutzung sind für HAMYREN V1 ausgeschlossen. `[REVIEW: Formulierung und operative Verifikation final freigeben.]`
 
 „HAMYREN“, „Dienst“, „Nutzer“, „Account“, „Workspace“ und „Business-Daten“ sind in der finalen Fassung eindeutig zu definieren.
 
@@ -31,6 +31,17 @@ Der konkrete Funktionsumfang richtet sich nach dem vereinbarten Plan und den zum
 `[REVIEW: genaue Click-/Registrierungsabfolge, Annahmezeitpunkt, Bestätigung, Vertretungsberechtigung und Sprache einsetzen.]`
 
 Der Nutzer muss richtige, aktuelle Accountangaben machen, Zugangsdaten schützen und unbefugte Nutzung unverzüglich melden. Accounts dürfen nur von autorisierten Personen des jeweiligen Unternehmens genutzt werden. Tenant- und Workspace-Zuordnungen dürfen nicht umgangen werden.
+
+Vor Vertragsschluss und realer Nutzung bestätigt der Nutzer ausdrücklich und nicht vorangekreuzt:
+
+1. Vertragspartner ist ein Unternehmer im Sinne des § 14 BGB oder der Nutzer handelt vertretungsberechtigt für diesen;
+2. Abschluss und Nutzung erfolgen ausschließlich für die gewerbliche oder selbständige berufliche Tätigkeit;
+3. es liegt kein Verbraucher- oder gemischt privater Zweck vor;
+4. Unternehmens- und Vertretungsangaben sind vollständig und richtig.
+
+Als Nachweisentwurf werden Unternehmens-/Geschäftsname, Geschäftsanschrift/Land, Tätigkeit, Name und Rolle/Vertretungsbefugnis des Nutzers, Bestätigungszeitpunkt und akzeptierte Vertragsversion dokumentiert. `[REVIEW: Datenminimierung, Aufbewahrung, Prüfung bei Einzelunternehmern und Rechtsfolge falscher Erklärungen finalisieren.]`
+
+Fehlt eine Bestätigung oder ist Verbraucher-/Privatnutzung erkennbar, darf der HAMYREN-V1-Vertrag nicht abgeschlossen und kein realer Customer Workspace aktiviert werden.
 
 ## 4. KI-Transparenz und Verantwortung des Nutzers
 
@@ -114,3 +125,7 @@ Rangfolge von Angebot, DPA, Leistungsbeschreibung und Bedingungen: `[REVIEW]`
 Finale Version: `[REVIEW]`  
 Wirksam ab: `[REVIEW]`  
 Freigabe-/Review-Nachweis: `[REVIEW: nicht öffentliches Evidence-Referenzfeld]`
+
+## Kein B2C-Vertrag in V1
+
+Dieser Entwurf enthält bewusst keine Freigabe für Verbraucherverträge. Er darf nicht durch eine bloße Checkbox für B2C umgedeutet werden. Verbraucherrechtliche Widerrufs-, Kündigungs-, Digitalprodukt-, Informations- und Streitbeilegungsprozesse sind nicht Bestandteil von V1 und müssen vor jeder späteren B2C-Version separat gebaut und geprüft werden.
