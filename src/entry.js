@@ -52,7 +52,7 @@ function customerMode(env = {}) {
 }
 
 function customerRouteClass(url, method) {
-  if (url.pathname === "/customer" || url.pathname === "/customer/") return "customer_entry";
+  if (["/customer", "/customer/"].includes(url.pathname)) return "customer_entry";
   if (url.pathname.includes("/chat")) return "customer_chat";
   if (method === "GET") return "customer_read";
   return "customer_mutation";
