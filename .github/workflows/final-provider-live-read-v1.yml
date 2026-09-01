@@ -1,0 +1,200 @@
+name: Final Provider Live Read V1
+
+on:
+  push:
+    branches: [final-provider-live-read-v1]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: final-provider-live-read-v1
+  cancel-in-progress: false
+
+jobs:
+  verify-final-providers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      BASE_URL: https://control.aurentarasystems.com
+    steps:
+      - name: Run single-pass sanitized live reads
+        shell: bash
+        run: |
+          node <<'NODE'
+          const token = process.env.API_TOKEN || "";
+          const baseUrl = process.env.BASE_URL;
+
+          const safeBase = () => ({
+            secret_value_exposed: false,
+            provider_writes: 0,
+            production_deploy: false,
+            external_writes: false,
+            real_customer_data: false,
+            variable_cost_eur: 0
+          });
+
+          function print(label, value) {
+            console.log(`${label}=${JSON.stringify(value)}`);
+          }
+
+          if (!token) {
+            const failure = { status: "FAIL", error: "RUNTIME_AUTH_GATE", worker_reached: false, provider_requests: 0, ...safeBase() };
+            print("WEBFLOW_PRESENCE", { ...failure, token_present: null });
+            print("ACTIVEPIECES_PRESENCE", { ...failure, token_present: null });
+            print("WEBFLOW_VERIFY", { status: "SKIPPED", error: "RUNTIME_AUTH_GATE", provider_requests: 0, ...safeBase() });
+            print("ACTIVEPIECES_VERIFY", { status: "SKIPPED", error: "RUNTIME_AUTH_GATE", provider_requests: 0, ...safeBase() });
+            console.log("FINAL_PROVIDER_LIVE_READ_COMPLETE=true");
+            process.exit(0);
+          }
+
+          async function callDiagnostic(path, expectedService) {
+            let response;
+            try {
+              response = await fetch(`${baseUrl}${path}`, {
+                method: "GET",
+                redirect: "manual",
+                headers: {
+                  accept: "application/json",
+                  authorization: `Bearer ${token}`
+                },
+                signal: AbortSignal.timeout(20000)
+              });
+            } catch {
+              return { transport_ok: false, error: "RUNTIME_NETWORK_FAILURE", worker_reached: false, http_status: null, json: null };
+            }
+
+            const contentType = response.headers.get("content-type") || "";
+            if (response.status >= 300 && response.status < 400) {
+              return { transport_ok: false, error: "RUNTIME_AUTH_GATE", worker_reached: false, http_status: response.status, json: null };
+            }
+
+            let body = null;
+            if (contentType.includes("application/json")) {
+              try { body = await response.json(); } catch { body = null; }
+            }
+
+            if (!body || typeof body !== "object") {
+              return {
+                transport_ok: false,
+                error: response.status === 401 || response.status === 403 ? "RUNTIME_AUTH_GATE" : "RUNTIME_NETWORK_FAILURE",
+                worker_reached: false,
+                http_status: response.status,
+                json: null
+              };
+            }
+
+            const workerReached = typeof body.service === "string" || body.error === "UNAUTHORIZED" || body.error === "STAGING_ONLY_EXTERNAL_WRITES_OFF_REQUIRED";
+            if (response.status === 401 && body.error === "UNAUTHORIZED") {
+              return { transport_ok: false, error: "RUNTIME_AUTH_GATE", worker_reached: true, http_status: response.status, json: null };
+            }
+            if (response.status === 403 && !body.service) {
+              return { transport_ok: false, error: "RUNTIME_AUTH_GATE", worker_reached: workerReached, http_status: response.status, json: null };
+            }
+            if (expectedService && body.service !== expectedService) {
+              return { transport_ok: false, error: "RUNTIME_AUTH_GATE", worker_reached: workerReached, http_status: response.status, json: null };
+            }
+            return { transport_ok: response.status === 200, error: null, worker_reached: true, http_status: response.status, json: body };
+          }
+
+          function sanitizePresence(call) {
+            if (!call.transport_ok || !call.json) {
+              return {
+                status: "FAIL",
+                error: call.error || "RUNTIME_AUTH_GATE",
+                worker_reached: call.worker_reached,
+                http_status: call.http_status,
+                token_present: null,
+                provider_requests: 0,
+                ...safeBase()
+              };
+            }
+            const b = call.json;
+            const pass = b.ok === true && b.credential_present === true && b.provider_requests === 0 && b.provider_writes === 0 && b.production_deploy === false && b.external_writes === false && b.variable_cost_eur === 0;
+            return {
+              status: pass ? "PASS" : "FAIL",
+              error: pass ? null : (b.error || "UNKNOWN_PROVIDER_FAILURE"),
+              worker_reached: true,
+              http_status: call.http_status,
+              token_present: b.credential_present === true,
+              provider_requests: Number(b.provider_requests || 0),
+              ...safeBase()
+            };
+          }
+
+          function sanitizeWebflowVerify(call) {
+            if (!call.transport_ok || !call.json) return { status: "FAIL", error: call.error || "RUNTIME_AUTH_GATE", worker_reached: call.worker_reached, http_status: call.http_status, provider_requests: 0, credential_valid: null, authenticated: false, site_accessible: false, site_metadata_read: false, connected_staging: false, staging_write_verified: false, publish_verified: false, publish_performed: false, ...safeBase() };
+            const b = call.json;
+            return {
+              status: b.ok === true ? "PASS" : "FAIL",
+              error: b.error || null,
+              worker_reached: true,
+              http_status: call.http_status,
+              provider_requests: Number(b.provider_requests || 0),
+              credential_valid: b.credential_valid === true ? true : b.credential_valid === false ? false : null,
+              authenticated: b.authenticated === true,
+              site_accessible: b.site_accessible === true,
+              site_metadata_read: b.site_metadata_read === true,
+              connected_staging: b.connected_staging === true,
+              staging_write_verified: b.staging_write_verified === true,
+              publish_verified: b.publish_verified === true,
+              publish_performed: b.publish_performed === true,
+              ...safeBase()
+            };
+          }
+
+          function sanitizeActivepiecesVerify(call) {
+            if (!call.transport_ok || !call.json) return { status: "FAIL", error: call.error || "RUNTIME_AUTH_GATE", worker_reached: call.worker_reached, http_status: call.http_status, provider_requests: 0, credential_valid: null, authenticated: false, api_accessible: false, connected_staging: false, flow_execution_performed: false, ...safeBase() };
+            const b = call.json;
+            return {
+              status: b.ok === true ? "PASS" : "FAIL",
+              error: b.error || null,
+              worker_reached: true,
+              http_status: call.http_status,
+              provider_requests: Number(b.provider_requests || 0),
+              credential_valid: b.credential_valid === true ? true : b.credential_valid === false ? false : null,
+              authenticated: b.authenticated === true,
+              api_accessible: b.api_accessible === true,
+              connected_staging: b.connected_staging === true,
+              flow_execution_performed: b.flow_execution_performed === true,
+              ...safeBase()
+            };
+          }
+
+          const webflowPresenceCall = await callDiagnostic(
+            "/factory/diagnostics/webflow-connection",
+            "aurentara-webflow-connection-presence-v1"
+          );
+          const webflowPresence = sanitizePresence(webflowPresenceCall);
+          print("WEBFLOW_PRESENCE", webflowPresence);
+
+          const activepiecesPresenceCall = await callDiagnostic(
+            "/factory/diagnostics/activepieces-connection",
+            "aurentara-activepieces-connection-presence-v1"
+          );
+          const activepiecesPresence = sanitizePresence(activepiecesPresenceCall);
+          print("ACTIVEPIECES_PRESENCE", activepiecesPresence);
+
+          if (webflowPresence.status === "PASS") {
+            const verifyCall = await callDiagnostic(
+              "/factory/diagnostics/webflow-connection?verify=sites",
+              "aurentara-webflow-readonly-connection-v1"
+            );
+            print("WEBFLOW_VERIFY", sanitizeWebflowVerify(verifyCall));
+          } else {
+            print("WEBFLOW_VERIFY", { status: "SKIPPED", error: webflowPresence.error, provider_requests: 0, ...safeBase() });
+          }
+
+          if (activepiecesPresence.status === "PASS") {
+            const verifyCall = await callDiagnostic(
+              "/factory/diagnostics/activepieces-connection?verify=projects",
+              "aurentara-activepieces-readonly-connection-v1"
+            );
+            print("ACTIVEPIECES_VERIFY", sanitizeActivepiecesVerify(verifyCall));
+          } else {
+            print("ACTIVEPIECES_VERIFY", { status: "SKIPPED", error: activepiecesPresence.error, provider_requests: 0, ...safeBase() });
+          }
+
+          console.log("FINAL_PROVIDER_LIVE_READ_COMPLETE=true");
+          NODE
