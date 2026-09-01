@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/aurentara-customer-hosted-identity-e2e-v1.mjs'
       - '.github/workflows/aurentara-customer-hosted-identity-e2e-v1.yml'
+      - 'scripts/staging-provider-bindings-smoke.mjs'
 
 permissions:
   contents: read
@@ -19,6 +20,8 @@ jobs:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      AURENTARA_IDENTITY_E2E_EMAIL: aurentara.identity.e2e.${{ github.run_id }}.${{ github.run_attempt }}@example.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +29,8 @@ jobs:
           node-version: 24
       - name: Syntax
         run: node --check scripts/aurentara-customer-hosted-identity-e2e-v1.mjs
+      - name: Parallel staging-provider binding regression
+        run: node scripts/staging-provider-bindings-smoke.mjs
       - name: Customer Red Team regression
         run: node scripts/aurentara-customer-red-team-v1.mjs
       - name: Hosted Supabase Auth JWT RLS E2E with synthetic cleanup

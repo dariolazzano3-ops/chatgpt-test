@@ -14,6 +14,8 @@ assert.notEqual(customerRef, operatorRef);
 assert.equal(new URL(supabaseUrl).hostname, `${customerRef}.supabase.co`);
 assert.ok(publishableKey.startsWith('sb_publishable_'));
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function requestJson(url, init = {}) {
   const response = await fetch(url, {
     redirect: 'error',
@@ -30,10 +32,11 @@ const settings = await requestJson(`${supabaseUrl}/auth/v1/settings`, { method: 
 assert.equal(settings.ok, true, 'HOSTED_AUTH_SETTINGS_UNREACHABLE');
 assert.equal(settings.body?.disable_signup, false, 'HOSTED_AUTH_SIGNUP_DISABLED');
 assert.equal(settings.body?.external?.email, true, 'HOSTED_AUTH_EMAIL_DISABLED');
-assert.equal(settings.body?.mailer_autoconfirm, true, 'HOSTED_AUTH_AUTOCONFIRM_REQUIRED_BEFORE_SYNTHETIC_WRITE');
+assert.equal(typeof settings.body?.mailer_autoconfirm, 'boolean', 'HOSTED_AUTH_AUTOCONFIRM_STATE_UNKNOWN');
 
-const suffix = randomUUID().replaceAll('-', '');
-const email = `aurentara.identity.e2e.${suffix}@example.com`;
+const configuredEmail = String(process.env.AURENTARA_IDENTITY_E2E_EMAIL || '').trim().toLowerCase();
+const email = configuredEmail || `aurentara.identity.e2e.${randomUUID().replaceAll('-', '')}@example.com`;
+assert.match(email, /^aurentara\.identity\.e2e\.[a-z0-9.-]+@example\.com$/, 'SYNTHETIC_IDENTITY_EMAIL_REQUIRED');
 const password = `Au!${randomBytes(24).toString('base64url')}9z`;
 let accessToken = null;
 let userId = null;
@@ -41,6 +44,7 @@ let tenantId = null;
 let businessId = null;
 let deletion = null;
 let cleanupAttempted = false;
+let confirmationWaited = false;
 
 function userHeaders(profile = null, contentProfile = false) {
   assert.ok(accessToken, 'HOSTED_AUTH_ACCESS_TOKEN_REQUIRED');
@@ -63,8 +67,7 @@ async function deleteSyntheticAccount() {
   return result;
 }
 
-let primaryError = null;
-try {
+async function acquireHostedSession() {
   const signup = await requestJson(`${supabaseUrl}/auth/v1/signup`, {
     method: 'POST',
     headers: baseHeaders,
@@ -75,10 +78,44 @@ try {
     })
   });
   assert.equal(signup.ok, true, `HOSTED_AUTH_SIGNUP_FAILED:${signup.status}`);
-  accessToken = String(signup.body?.access_token || '');
   userId = String(signup.body?.user?.id || '');
-  assert.ok(accessToken.length > 100, 'HOSTED_AUTH_SESSION_NOT_CREATED');
   assert.match(userId, /^[0-9a-f-]{36}$/i, 'HOSTED_AUTH_USER_ID_INVALID');
+
+  const immediate = String(signup.body?.access_token || '');
+  if (immediate.length > 100) return immediate;
+
+  assert.equal(settings.body?.mailer_autoconfirm, false, 'HOSTED_AUTH_SESSION_NOT_CREATED_UNEXPECTEDLY');
+  confirmationWaited = true;
+  console.log(JSON.stringify({
+    suite: 'AURENTARA CUSTOMER HOSTED IDENTITY E2E V1',
+    status: 'WAITING_FOR_SYNTHETIC_ADMIN_CONFIRMATION',
+    hosted_signup_created: true,
+    mailer_autoconfirm: false,
+    synthetic_user_id_available: true,
+    email_returned: false,
+    password_returned: false,
+    access_token_returned: false,
+    real_customer_data: false,
+    variable_cost_eur: 0
+  }));
+
+  for (let attempt = 1; attempt <= 150; attempt += 1) {
+    const signIn = await requestJson(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ email, password })
+    });
+    const token = String(signIn.body?.access_token || '');
+    if (signIn.ok && token.length > 100) return token;
+    await sleep(2000);
+  }
+  throw new Error('HOSTED_AUTH_SYNTHETIC_CONFIRMATION_TIMEOUT');
+}
+
+let primaryError = null;
+try {
+  accessToken = await acquireHostedSession();
+  assert.ok(accessToken.length > 100, 'HOSTED_AUTH_SESSION_NOT_CREATED');
 
   const user = await requestJson(`${supabaseUrl}/auth/v1/user`, {
     method: 'GET',
@@ -170,6 +207,8 @@ console.log(JSON.stringify({
   suite: 'AURENTARA CUSTOMER HOSTED IDENTITY E2E V1',
   status: 'PASS',
   hosted_auth_settings_verified: true,
+  hosted_signup_verified: true,
+  hosted_confirmation_path_verified: confirmationWaited,
   hosted_auth_user_flow_verified: true,
   hosted_session_jwt_verified: true,
   jwt_to_rls_membership_e2e_verified: true,
