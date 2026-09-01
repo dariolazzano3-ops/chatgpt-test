@@ -3,7 +3,7 @@ import { appendFile } from 'node:fs/promises';
 
 const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
-const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'chatgpt-test').trim();
+const scriptName = String(process.env.AURENTARA_CUSTOMER_WORKER_SCRIPT || 'aurentara-customer-runtime').trim();
 const githubEnv = String(process.env.GITHUB_ENV || '').trim();
 
 assert.match(accountId, /^[a-f0-9]{32}$/i, 'CLOUDFLARE_ACCOUNT_ID_INVALID');
@@ -182,7 +182,7 @@ const evidence = {
   serving_route_source: verifiedRoute?.routeSource || null,
   probe_status_counts: sanitizedProbeStatuses,
   exact_closed_customer_route_verified: Boolean(verifiedRoute),
-  customer_surface_remained_off: true,
+  customer_surface_remained_off: Boolean(verifiedRoute),
   deployment_id_returned: false,
   version_ids_returned: false,
   hostname_returned: false,
@@ -199,4 +199,5 @@ const evidence = {
 console.log(JSON.stringify(evidence, null, 2));
 
 assert.ok(verifiedRoute, 'CLOUDFLARE_CONFIRMED_SERVING_ROUTE_DID_NOT_RETURN_CLOSED_CUSTOMER_RESPONSE');
+console.log(`::add-mask::${verifiedRoute.baseUrl}`);
 await appendFile(githubEnv, `AURENTARA_LIVE_PROBE_BASE_URL=${verifiedRoute.baseUrl}\n`, { encoding: 'utf8' });
