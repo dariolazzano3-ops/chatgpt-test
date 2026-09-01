@@ -114,7 +114,11 @@ export function createCustomerConsentLedger(options = {}) {
   async function current(tenantId, userId, purpose) {
     const records = await store.list(privacyScope(tenantId), 'consents');
     const matches = records.map((entry) => entry.value).filter((item) => item.user_id === userId && item.purpose === purpose);
-    return matches.sort((a, b) => String(b.recorded_at).localeCompare(String(a.recorded_at)))[0] || null;
+    return matches.sort((a, b) => {
+      const timeOrder = String(b.recorded_at).localeCompare(String(a.recorded_at));
+      if (timeOrder !== 0) return timeOrder;
+      return String(b.consent_id).localeCompare(String(a.consent_id));
+    })[0] || null;
   }
 
   return {
@@ -125,6 +129,7 @@ export function createCustomerConsentLedger(options = {}) {
         tenant_scoped: true,
         consent_version_required: true,
         withdrawal_supported: true,
+        deterministic_same_timestamp_ordering: true,
         allowed_purposes: [...CUSTOMER_CONSENT_PURPOSES_V1]
       };
     },
