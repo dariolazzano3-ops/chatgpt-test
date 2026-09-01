@@ -4,6 +4,8 @@ Status: **REVIEW PACK PREPARED — NOT LEGALLY APPROVED**
 Baseline date: **2026-09-01**  
 Product: **HAMYREN — Your Personal Business AI — by AURENTARA SYSTEMS**
 
+Operator status: **PRE_LAUNCH_UNREGISTERED / HUMAN-GATED**. No registered company or verified legal operator currently exists for AURENTARA SYSTEMS. `AURENTARA SYSTEMS` and `HAMYREN` are used only as product/brand names in this review pack.
+
 ## Purpose and hard boundary
 
 This pack turns the existing technical privacy evidence into a structured handoff for a qualified human legal reviewer. It is not legal advice, a compliance certification, or a final privacy/terms publication. It must not set `legal_privacy_review_complete=true`.
@@ -22,7 +24,22 @@ The following remain OFF throughout this block:
 2. A machine-readable processing, service, transfer-candidate, retention and decision register in `src/customer-product/hamyren-legal-privacy-final-review-preparation-v1.js`.
 3. A German privacy-notice review draft in `docs/legal/HAMYREN_DATENSCHUTZERKLAERUNG_REVIEW_DRAFT_V1.md`.
 4. A German B2B terms review draft in `docs/legal/HAMYREN_NUTZUNGSBEDINGUNGEN_REVIEW_DRAFT_V1.md`.
-5. A deterministic acceptance test that proves preparation is complete while all activation and legal-acceptance gates remain false.
+5. A non-publishable legal-notice placeholder in `docs/legal/HAMYREN_IMPRESSUM_REVIEW_DRAFT_V1.md`.
+6. An Article 28 AVV/DPA review outline in `docs/legal/HAMYREN_AVV_REVIEW_OUTLINE_V1.md`.
+7. A technical and organizational measures annex in `docs/legal/HAMYREN_TOM_REVIEW_ANNEX_V1.md`.
+8. An intentionally unsigned human-review record template in `docs/legal/HAMYREN_FINAL_HUMAN_REVIEW_RECORD_TEMPLATE_V1.md`.
+9. A deterministic acceptance test that proves preparation is complete while all activation and legal-acceptance gates remain false.
+
+## Operator identity boundary
+
+Until an actual operator is legally available and human-verified:
+
+- no legal name, legal form, register, register number, VAT ID or company designation may be invented;
+- AURENTARA SYSTEMS must not be described as an incorporated or registered entity;
+- HAMYREN must not be described as an incorporated or registered entity;
+- controller, provider and contracting-party fields remain explicit `[REVIEW: ...]` placeholders;
+- the legal notice is not publishable and contracts are not executable;
+- legal/privacy acceptance, Public Customer Surface and real-customer AI processing remain blocked.
 
 ## Verified technical facts available to counsel
 
@@ -170,6 +187,10 @@ No code test or AI agent may create that acceptance record on behalf of the revi
   "legal_privacy_final_review_preparation": true,
   "customer_scope": "B2B_ONLY_V1",
   "b2c_allowed": false,
+  "operator_legal_status": "PRE_LAUNCH_UNREGISTERED",
+  "verified_legal_operator_available": false,
+  "aurentara_systems_role": "PRODUCT_AND_BRAND_NAME_ONLY",
+  "hamyren_role": "PRODUCT_NAME_ONLY",
   "final_legal_acceptance_recorded": false,
   "legal_privacy_review_complete": false,
   "public_customer_surface_active": false,

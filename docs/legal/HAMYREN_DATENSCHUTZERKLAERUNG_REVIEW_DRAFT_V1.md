@@ -2,6 +2,7 @@
 
 > **NICHT VERÖFFENTLICHEN. NICHT RECHTLICH FREIGEGEBEN.**  
 > Arbeitsentwurf für die anwaltliche Prüfung. Alle `[REVIEW: ...]`-Felder müssen entschieden, alle Anbieterangaben anhand aktueller Verträge belegt und der vollständige Text vor Veröffentlichung freigegeben werden.
+> Aktuell existiert noch kein verifizierter rechtlicher Betreiber für AURENTARA SYSTEMS. AURENTARA SYSTEMS und HAMYREN sind hier ausschließlich Produkt-/Markenbezeichnungen. Keine Platzhalter ersetzen, bis echte Betreiberangaben vorliegen.
 
 Stand des Entwurfs: 1. September 2026
 
@@ -9,7 +10,7 @@ Stand des Entwurfs: 1. September 2026
 
 Verantwortlich für die Verarbeitung personenbezogener Daten im Zusammenhang mit HAMYREN ist:
 
-`[REVIEW: vollständige rechtliche Firma/Rechtsform]`  
+`[REVIEW: tatsächlicher rechtlicher Betreiber – Name und ggf. Rechtsform]`
 `[REVIEW: vertretungsberechtigte Person]`  
 `[REVIEW: vollständige ladungsfähige Anschrift]`  
 E-Mail: `[REVIEW: Datenschutz-Kontaktadresse]`  
@@ -17,7 +18,7 @@ Telefon: `[REVIEW: erforderlich/gewünscht?]`
 
 Datenschutzbeauftragter/Vertreter: `[REVIEW: Benennung erforderlich? Falls nein, Abschnitt entfernen.]`
 
-HAMYREN ist ein Produkt von AURENTARA SYSTEMS. AURENTARA SYSTEMS ist `[REVIEW: Marke/Unternehmen/rechtliches Verhältnis zur verantwortlichen Stelle präzisieren]`.
+HAMYREN ist der Produktname. AURENTARA SYSTEMS ist die derzeitige Produkt-/Markenbezeichnung. `[REVIEW: später das tatsächliche rechtliche Verhältnis beider Bezeichnungen zum verifizierten Betreiber einsetzen.]`
 
 HAMYREN V1 richtet sich ausschließlich an Unternehmer im Sinne des § 14 BGB und deren vertretungsberechtigte geschäftliche Nutzer. Eine Nutzung als Verbraucher im Sinne des § 13 BGB ist in V1 nicht vorgesehen.
 

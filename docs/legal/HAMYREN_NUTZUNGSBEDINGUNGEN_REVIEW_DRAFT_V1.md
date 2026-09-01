@@ -2,6 +2,7 @@
 
 > **NICHT VERÖFFENTLICHEN. NICHT RECHTLICH FREIGEGEBEN.**  
 > Die B2B-only-Entscheidung für V1 ist vom Operator verbindlich getroffen. Der Entwurf bleibt bis zur Prüfung durch einen qualifizierten menschlichen Rechtsberater unveröffentlicht und rechtlich nicht freigegeben. Jede spätere B2C-Freigabe erfordert einen separaten Neu-Review.
+> Aktuell existiert noch kein verifizierter rechtlicher Vertragspartner/Betreiber. AURENTARA SYSTEMS und HAMYREN sind ausschließlich Produkt-/Markenbezeichnungen; dieser Entwurf kann derzeit keinen Vertrag begründen.
 
 Stand des Entwurfs: 1. September 2026
 
@@ -9,7 +10,7 @@ Stand des Entwurfs: 1. September 2026
 
 HAMYREN wird angeboten von:
 
-`[REVIEW: vollständige rechtliche Firma/Rechtsform]`  
+`[REVIEW: tatsächlicher rechtlicher Anbieter/Vertragspartner – Name und ggf. Rechtsform]`
 `[REVIEW: vertretungsberechtigte Person]`  
 `[REVIEW: ladungsfähige Anschrift]`  
 E-Mail: `[REVIEW]`
