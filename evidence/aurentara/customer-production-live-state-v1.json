@@ -1,7 +1,7 @@
 {
   "schema": "aurentara.customer.production-live-state.v1",
-  "observed_at": "2026-09-01T02:34:16Z",
-  "source": "supabase-management-connector+cloudflare-live-readonly-audit",
+  "observed_at": "2026-09-01T03:04:23Z",
+  "source": "supabase-management-connector+cloudflare-live-readonly-audit+hosted-identity-e2e",
   "synthetic_only": true,
   "real_customer_data": false,
   "variable_cost_eur": 0,
@@ -15,8 +15,16 @@
   "conversation_owner_isolation_verified": true,
   "authenticated_delete_policy_absent": true,
   "auth_service_reachable": true,
-  "hosted_auth_user_flow_verified": false,
-  "jwt_to_rls_membership_e2e_verified": false,
+  "hosted_auth_user_flow_verified": true,
+  "hosted_password_sign_in_verified": true,
+  "hosted_session_jwt_verified": true,
+  "jwt_to_rls_membership_e2e_verified": true,
+  "jwt_to_rls_business_e2e_verified": true,
+  "admin_synthetic_identity_bootstrap_verified": true,
+  "identity_e2e_cleanup_verified": true,
+  "identity_e2e_method": "ephemeral_admin_create_user_then_hosted_sign_in",
+  "public_signup_email_confirmation_policy_unchanged": true,
+  "public_signup_real_email_flow_verified": false,
   "applied_migrations": [
     "aurentara_customer_ai_foundation_v1",
     "aurentara_customer_chat_runtime_v1",
@@ -49,9 +57,8 @@
     "factory_route_exposed": false,
     "live_closure_verified": true
   },
-  "readiness_percent": 80,
+  "readiness_percent": 84,
   "zero_cost_technical_remaining": [
-    "production_customer_identity",
     "production_observability"
   ],
   "customer_surface_active": false,
