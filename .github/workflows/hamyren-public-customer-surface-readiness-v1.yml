@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/customer-product/**'
       - 'scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs'
-      - 'scripts/hamyren-legal-privacy-technical-readiness-v1-smoke.mjs'
+      - 'scripts/hamyren-legal-privacy-readiness-v1-smoke.mjs'
       - 'scripts/aurentara-customer-product-surface-v1-smoke.mjs'
       - 'scripts/aurentara-customer-red-team-v1-smoke.mjs'
       - 'docs/HAMYREN_PUBLIC_CUSTOMER_SURFACE_READINESS_V1.md'
@@ -31,7 +31,7 @@ jobs:
       - name: HAMYREN public surface readiness
         run: node scripts/hamyren-public-customer-surface-readiness-v1-smoke.mjs
       - name: Legal privacy technical readiness regression
-        run: node scripts/hamyren-legal-privacy-technical-readiness-v1-smoke.mjs
+        run: node scripts/hamyren-legal-privacy-readiness-v1-smoke.mjs
       - name: Existing customer surface regression
         run: node scripts/aurentara-customer-product-surface-v1-smoke.mjs
       - name: Customer red team regression
