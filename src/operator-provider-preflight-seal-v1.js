@@ -36,7 +36,7 @@ async function readHistory(request, env, ctx, options) {
   }
 }
 
-function reconcileOpenAiConnectionTruth(provider = {}) {
+export function reconcileOpenAiConnectionTruth(provider = {}) {
   if (provider.id !== 'openai-api') return clone(provider);
   const matrix = provider.evidence || {};
   const evidence = matrix.connection_evidence || {};
