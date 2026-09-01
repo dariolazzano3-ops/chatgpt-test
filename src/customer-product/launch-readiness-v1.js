@@ -7,6 +7,7 @@ import { customerAbuseGuardManifest } from './abuse-guard-v1.js';
 import { customerRedTeamManifest } from './red-team-v1.js';
 import { productionActivationContractsManifest } from './production-activation-contracts-v1.js';
 import { paymentLifecycleManifest } from './payment-lifecycle-v1.js';
+import { dedicatedRuntimeBindingsManifest } from './dedicated-runtime-bindings-v1.js';
 
 export const CONTROLLED_LAUNCH_PROFILES_V1 = Object.freeze({
   FREE_CONTROLLED_PILOT: 'FREE_CONTROLLED_PILOT',
@@ -46,6 +47,7 @@ export function evaluateControlledLaunchReadiness(input = {}) {
   const redTeam = customerRedTeamManifest();
   const activation = productionActivationContractsManifest();
   const payment = paymentLifecycleManifest();
+  const dedicated = dedicatedRuntimeBindingsManifest();
   const contractReady = (inputKey, manifest, manifestKey) => input[inputKey] === undefined ? bool(manifest[manifestKey]) : bool(input[inputKey]);
 
   const gates = [
@@ -76,11 +78,13 @@ export function evaluateControlledLaunchReadiness(input = {}) {
       'Production hard deletion needs an auditable purge executor contract before it can touch durable customer data.', 'Build and test the purge executor contract on synthetic tenant/business data.', activation.version),
     gate('observability_contract', contractReady('observability_contract_ready', activation, 'observability_contract_ready') ? PASS : PREPROD_REQUIRED,
       'Production monitoring needs a redacted event/metric contract before an external sink is connected.', 'Build and test redacted Customer observability events and alert-signal contracts.', activation.version),
+    gate('dedicated_customer_runtime_bindings', dedicated.identity_binding_contract_ready && dedicated.durable_store_binding_contract_ready && dedicated.operator_project_reuse_forbidden ? PASS : PREPROD_REQUIRED,
+      'Production Customer identity and persistence need provider-specific bindings that enforce a dedicated Customer project and reject Operator data-plane reuse.', 'Build and test dedicated Customer identity/store bindings with explicit Operator-project collision rejection.', dedicated.version),
 
     gate('production_customer_identity', bool(input.production_customer_identity_active) ? PASS : OPERATOR_GATE,
-      'Guest synthetic identity cannot protect real customer accounts.', 'Activate and verify the approved Production customer authentication/session system with tenant membership enforcement.', null),
+      'Guest synthetic identity cannot protect real customer accounts and the dedicated Customer identity project is not activated.', 'Provision/approve the dedicated Customer identity project, configure its credentials/JWKS, then activate and verify authenticated tenant membership. Do not reuse the Operator Supabase project.', null),
     gate('durable_customer_data_plane', bool(input.durable_customer_data_plane_active) ? PASS : OPERATOR_GATE,
-      'Current Customer runtime defaults are synthetic/in-memory and SQL contracts are not applied.', 'Apply the reviewed Production customer data-plane migrations/storage configuration and verify tenant-isolated persistence.', null),
+      'Current Customer runtime defaults are synthetic/in-memory and the dedicated Customer database has not been provisioned/applied.', 'Provision a dedicated Customer data plane separate from Operator Control, apply the reviewed Customer migrations, then verify tenant-isolated persistence and RLS.', null),
     gate('real_customer_ai_processing', bool(input.real_customer_ai_processing_approved) ? PASS : OPERATOR_GATE,
       'Block 02 intentionally rejects customer/sensitive data before provider inference.', 'Approve the chosen existing AI provider configuration for real customer data, privacy terms and bounded Production cost policy.', null),
     gate('live_trusted_retrieval', bool(input.live_trusted_retrieval_active) ? PASS : OPERATOR_GATE,
