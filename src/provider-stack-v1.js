@@ -10,6 +10,7 @@ import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerifie
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
 import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
+import { activepiecesStagingConnectionEvidence, isActivepiecesStagingConnected } from './activepieces-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
@@ -28,6 +29,7 @@ export function providerStackV1() {
   const openAiEvidence = openAiStagingConnectionEvidence();
   const framerEvidence = framerStagingConnectionEvidence();
   const webflowEvidence = webflowStagingConnectionEvidence();
+  const activepiecesEvidence = activepiecesStagingConnectionEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
@@ -65,6 +67,10 @@ export function providerStackV1() {
       specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free'],
       staging_activation_verified: isMakeLiveStagingVerified(),
       staging_activation_evidence: makeEvidence,
+      activepieces_connected_staging: isActivepiecesStagingConnected(),
+      activepieces_connection_evidence: activepiecesEvidence,
+      activepieces_flow_execution_verified: false,
+      activepieces_routing_scope: 'secondary_only',
       activepieces_resolution: remainingProviderResolution('activepieces-cloud-free'),
       n8n_resolution: remainingProviderResolution('n8n-client-owned')
     },
@@ -139,6 +145,7 @@ export function providerActivationMatrix() {
   const cloudflareAi = cloudflareWorkersAiStagingEvidence();
   const openAi = openAiStagingConnectionEvidence();
   const framer = framerStagingConnectionEvidence();
+  const activepiecesConnectionEvidence = activepiecesStagingConnectionEvidence();
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
   const businessWrite = businessStagingWriteEvidence();
@@ -148,6 +155,7 @@ export function providerActivationMatrix() {
   const openAiConnectedStaging = isOpenAiStagingConnected();
   const framerConnectedStaging = isFramerStagingConnected();
   const webflowConnectedStaging = isWebflowStagingConnected();
+  const activepiecesConnectedStaging = isActivepiecesStagingConnected();
   const webflowConnectionEvidence = webflowStagingConnectionEvidence();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
@@ -220,11 +228,25 @@ export function providerActivationMatrix() {
         production_eligible: false, resolution_evidence: base44
       },
       {
-        id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', connection_state: 'NOT_CONNECTED',
-        activation: 'operator_gate_account_api_key_required', maturity_level: activepieces.maturity_level,
-        final_classification: activepieces.final_classification, operator_gate: activepieces.operator_gate,
-        routing_eligibility: 'not_until_connected', real_write: 'approval_required', provider_requests: 0,
-        provider_writes: 0, production_eligible: false, resolution_evidence: activepieces
+        id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime',
+        connection_state: activepiecesConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+        activation: activepiecesConnectedStaging ? 'live_staging_verified_read_only_connection' : 'operator_gate_account_api_key_required',
+        maturity_level: activepiecesConnectedStaging ? 'L3' : activepieces.maturity_level,
+        final_classification: activepiecesConnectedStaging ? 'CONNECTED_STAGING' : activepieces.final_classification,
+        account: activepiecesConnectedStaging ? 'ready' : 'not_verified',
+        credential: activepiecesConnectedStaging ? 'present_valid' : 'not_verified',
+        authenticated: activepiecesConnectedStaging,
+        api_accessible: activepiecesConnectedStaging,
+        connected_staging: activepiecesConnectedStaging,
+        operator_gate: activepiecesConnectedStaging ? null : activepieces.operator_gate,
+        routing_eligibility: 'secondary_only_flow_execution_not_verified',
+        connection_evidence: activepiecesConnectionEvidence,
+        flow_execution_verified: false,
+        real_write: 'not_verified_approval_required',
+        provider_requests: activepiecesConnectedStaging ? 1 : 0,
+        provider_writes: 0,
+        production_eligible: false,
+        resolution_evidence: activepieces
       },
       {
         id: 'n8n-client-owned', selection: 'technical_specialist', connection_state: 'NOT_CONNECTED',
@@ -275,71 +297,5 @@ export function providerActivationMatrix() {
     secrets_embedded: false,
     automatic_paid_overflow: false,
     production_deploy: false
-  };
-}
-
-export function planProviderStackMission(input = {}) {
-  if (input.production_deploy === true) return { ok: false, error: 'PRODUCTION_DEPLOY_REJECTED', production_deploy: false };
-  const stack = providerStackV1();
-  if (stack.status !== 'PROVIDER_SELECTION_COMPLETE') return { ok: false, error: 'PROVIDER_SELECTION_INCOMPLETE', production_deploy: false };
-  const project = String(input.project || '').trim().slice(0, 160);
-  if (!project) return { ok: false, error: 'PROJECT_REQUIRED', production_deploy: false };
-
-  const nextGate = stack.factories.web.staging_deploy_verified !== true
-    ? 'CLOUDFLARE_ZERO_COST_CONFIRMATION_REQUIRED'
-    : stack.factories.business.staging_write_verified !== true
-      ? 'BUSINESS_STAGING_WRITE_APPROVAL_REQUIRED'
-      : stack.factories.business.analytics_staging_verified !== true
-        ? 'POSTHOG_STAGING_ANALYTICS_APPROVAL_REQUIRED'
-        : stack.factories.ai.cloudflare_ai_runtime_verified !== true
-          ? 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED'
-          : 'STAGING_EXECUTION_APPROVAL_REQUIRED';
-
-  return {
-    ok: true,
-    schema: 'riosystems.provider-stack-mission-plan.v1',
-    project,
-    routes: {
-      web: [...stack.factories.web.primary_path],
-      automation: [...stack.factories.automation.primary_path],
-      ai: [...stack.factories.ai.free_staging_path],
-      business: [...stack.factories.business.primary_path]
-    },
-    activation_status: {
-      automation_make_staging_verified: stack.factories.automation.staging_activation_verified === true,
-      web_cloudflare_read_verified: stack.factories.web.provider_read_verified === true,
-      web_staging_deploy_verified: stack.factories.web.staging_deploy_verified === true,
-      web_framer_connected_staging: stack.factories.web.framer_connected_staging === true,
-      web_framer_staging_write_verified: stack.factories.web.framer_staging_write_verified === true,
-      web_framer_publish_verified: stack.factories.web.framer_publish_verified === true,
-      ai_cloudflare_runtime_verified: stack.factories.ai.cloudflare_ai_runtime_verified === true,
-      ai_openai_connected_staging: stack.factories.ai.openai_connected_staging === true,
-      ai_openai_inference_verified: stack.factories.ai.openai_inference_verified === true,
-      ai_openai_routing_ready: stack.factories.ai.openai_routing_ready === true,
-      business_runtime_read_verified: stack.factories.business.provider_read_verified === true,
-      business_staging_write_verified: stack.factories.business.staging_write_verified === true,
-      business_posthog_staging_analytics_verified: stack.factories.business.analytics_staging_verified === true
-    },
-    activation_evidence: {
-      web_staging_deploy: clone(stack.factories.web.staging_deploy_evidence),
-      web_framer_connection: clone(stack.factories.web.framer_connection_evidence),
-      web_lovable_resolution: clone(stack.factories.web.lovable_resolution),
-      web_webflow_resolution: clone(stack.factories.web.webflow_resolution),
-      web_base44_resolution: clone(stack.factories.web.base44_resolution),
-      automation_make_staging: clone(stack.factories.automation.staging_activation_evidence),
-      automation_activepieces_resolution: clone(stack.factories.automation.activepieces_resolution),
-      automation_n8n_resolution: clone(stack.factories.automation.n8n_resolution),
-      ai_cloudflare_staging_runtime: clone(stack.factories.ai.cloudflare_ai_runtime_evidence),
-      ai_openai_connection: clone(stack.factories.ai.openai_connection_evidence),
-      business_runtime_read: clone(stack.factories.business.provider_read_evidence),
-      business_staging_write: clone(stack.factories.business.staging_write_evidence),
-      business_posthog_staging_analytics: clone(stack.factories.business.analytics_staging_evidence)
-    },
-    execution_authorized: false,
-    external_writes: false,
-    paid_execution: false,
-    automatic_paid_overflow: false,
-    production_deploy: false,
-    next_gate: nextGate
   };
 }
