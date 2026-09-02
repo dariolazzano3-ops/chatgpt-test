@@ -106,5 +106,3 @@ No framework, no autoplay video, no remote fonts, no heavy animation library. Vi
 
 ## Production
 Production deployment, custom-domain binding, DNS changes and traffic migration are explicitly out of scope until separately approved.
-
-<!-- private-preview-trigger -->
