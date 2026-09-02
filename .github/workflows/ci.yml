@@ -59,3 +59,34 @@ jobs:
           echo '=== /factory/diagnostics/github ==='
           curl -fsS 'https://chatgpt-test.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics/github'
           echo
+
+  activepieces-final-one-shot:
+    if: github.event_name == 'pull_request' && github.head_ref == 'activepieces-final-provider-close-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      FACTORY_API_TOKEN_A: ${{ secrets.API_TOKEN }}
+      FACTORY_API_TOKEN_B: ${{ secrets.RIO_FACTORY_API_TOKEN }}
+      ACTIVEPIECES_SOURCE_SECRET: ${{ secrets.ACTIVEPIECES_API_KEY }}
+      WEBFLOW_SOURCE_SECRET: ${{ secrets.WEBFLOW_SITE_TOKEN }}
+      ACCESS_APP_ID: 3a87e726-2724-479f-8e52-6f954e6efc24
+      FACTORY_URL: https://control.aurentarasystems.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run exact one-shot Activepieces verification
+        run: node scripts/activepieces-final-one-shot-v1.mjs
+      - name: Upload sanitized one-shot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: activepieces-final-one-shot-evidence
+          path: .activepieces-evidence/evidence.json
+          if-no-files-found: error
+          retention-days: 1
