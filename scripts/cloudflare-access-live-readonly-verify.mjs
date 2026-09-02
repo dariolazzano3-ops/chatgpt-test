@@ -5,6 +5,7 @@ const accountId = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const token = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const expectedWorkerName = String(process.env.RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME || 'riosystems-staging').trim();
 const expectedHostname = String(process.env.RIOSYSTEMS_ACCESS_EXPECTED_HOSTNAME || '').trim();
+const expectedPath = String(process.env.RIOSYSTEMS_ACCESS_EXPECTED_PATH || '').trim();
 
 if (!token) {
   console.error(JSON.stringify({ ok: false, error: 'CLOUDFLARE_API_TOKEN_MISSING', secrets_returned: false, external_side_effect_performed: false, production_deploy: false }));
@@ -15,6 +16,7 @@ const plan = buildCloudflareAccessReadonlyPlan({
   account_id: accountId,
   expected_worker_name: expectedWorkerName,
   expected_hostname: expectedHostname,
+  expected_path: expectedPath,
   token_ref: 'secret:CLOUDFLARE_API_TOKEN'
 });
 if (!plan.ok) {
