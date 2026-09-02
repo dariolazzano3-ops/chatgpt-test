@@ -1,5 +1,6 @@
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
+import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -9,6 +10,8 @@ const OPENAI_CONNECTION_EVIDENCE = openAiStagingConnectionEvidence();
 const OPENAI_CONNECTED_STAGING = isOpenAiStagingConnected();
 const FRAMER_CONNECTION_EVIDENCE = framerStagingConnectionEvidence();
 const FRAMER_CONNECTED_STAGING = isFramerStagingConnected();
+const WEBFLOW_CONNECTION_EVIDENCE = webflowStagingConnectionEvidence();
+const WEBFLOW_CONNECTED_STAGING = isWebflowStagingConnected();
 const BASE44_RESOLUTION = remainingProviderResolution('base44');
 const LOVABLE_RESOLUTION = remainingProviderResolution('lovable-github');
 const WEBFLOW_RESOLUTION = remainingProviderResolution('webflow-api');
@@ -112,20 +115,27 @@ const PROVIDERS = [
     role: 'WEB SPECIALIST',
     roles: ['web_specialist'],
     capabilities: ['web.design', 'web.cms', 'web.publish'],
-    connection_state: 'NOT_CONNECTED',
-    maturity_level: WEBFLOW_RESOLUTION.maturity_level,
-    final_classification: WEBFLOW_RESOLUTION.final_classification,
-    central_connection_required: WEBFLOW_RESOLUTION.central_connection_required,
-    account_state: WEBFLOW_RESOLUTION.account_state,
-    credential_state: WEBFLOW_RESOLUTION.credential_state,
+    verification: WEBFLOW_CONNECTED_STAGING ? 'CONNECTION_VERIFIED_STAGING' : 'NOT_CONNECTED',
+    connection_state: WEBFLOW_CONNECTED_STAGING ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+    maturity_level: WEBFLOW_CONNECTED_STAGING ? 'L3' : WEBFLOW_RESOLUTION.maturity_level,
+    final_classification: WEBFLOW_CONNECTED_STAGING ? 'CONNECTED_STAGING' : WEBFLOW_RESOLUTION.final_classification,
+    central_connection_required: true,
+    account_state: WEBFLOW_CONNECTED_STAGING ? 'READY' : WEBFLOW_RESOLUTION.account_state,
+    credential_state: WEBFLOW_CONNECTED_STAGING ? 'PRESENT_VALID' : WEBFLOW_RESOLUTION.credential_state,
+    site_binding_state: WEBFLOW_CONNECTED_STAGING ? 'ACCESSIBLE' : 'NOT_VERIFIED',
     routing_ready: false,
     runtime_eligible: false,
     free_tier_confirmed: true,
     cost_mode: 'free_starter_read_only_api_possible_paid_features_separate',
-    restrictions: ['SPECIALIST_ONLY', 'OPERATOR_ACCOUNT_SITE_TOKEN_GATE', 'READ_ONLY_SITE_TOKEN_REQUIRED', 'PRODUCTION_DISABLED'],
-    operator_gate: WEBFLOW_RESOLUTION.operator_gate,
+    restrictions: ['SPECIALIST_ONLY', 'CONNECTED_READ_ONLY', 'STAGING_WRITE_NOT_VERIFIED', 'PUBLISH_NOT_VERIFIED', 'PRODUCTION_DISABLED'],
+    operator_gate: null,
+    connection_evidence: WEBFLOW_CONNECTION_EVIDENCE,
     resolution_evidence: WEBFLOW_RESOLUTION,
-    verified_at: '2026-09-01'
+    staging_write_verified: false,
+    publish_verified: false,
+    routing_scope: 'specialist_only',
+    production_eligible: false,
+    verified_at: '2026-09-02'
   }),
   {
     id: 'cloudflare-workers-free',

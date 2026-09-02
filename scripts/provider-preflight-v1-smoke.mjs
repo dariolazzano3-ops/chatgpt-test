@@ -58,10 +58,20 @@ for (const [id, role] of requiredCatalog) {
   assert.equal(byId.get(id).strategic_state, 'SELECTED');
   assert.equal(byId.get(id).availability, 'AVAILABLE');
 }
-for (const id of ['base44', 'activepieces-cloud-free', 'n8n-client-owned', 'lovable-github', 'webflow-api']) {
+for (const id of ['base44', 'activepieces-cloud-free', 'n8n-client-owned', 'lovable-github']) {
   assert.equal(byId.get(id).verification, 'NOT_CONNECTED');
   assert.equal(byId.get(id).runtime_eligible, false);
 }
+const webflowCatalog = byId.get('webflow-api');
+assert.equal(webflowCatalog.verification, 'CONNECTION_VERIFIED_STAGING');
+assert.equal(webflowCatalog.connection_state, 'CONNECTED_STAGING');
+assert.equal(webflowCatalog.credential_state, 'PRESENT_VALID');
+assert.equal(webflowCatalog.runtime_eligible, false);
+assert.equal(webflowCatalog.routing_ready, false);
+assert.equal(webflowCatalog.routing_scope, 'specialist_only');
+assert.equal(webflowCatalog.staging_write_verified, false);
+assert.equal(webflowCatalog.publish_verified, false);
+assert.equal(webflowCatalog.production_eligible, false);
 const framerCatalog = byId.get('framer-server-api');
 assert.equal(framerCatalog.verification, 'CONNECTION_VERIFIED_STAGING');
 assert.equal(framerCatalog.connection_state, 'CONNECTED_STAGING');
@@ -235,5 +245,8 @@ console.log(JSON.stringify({
   framer_connected_staging: true,
   framer_write_verified: false,
   framer_publish_verified: false,
+  webflow_connected_staging: true,
+  webflow_write_verified: false,
+  webflow_publish_verified: false,
   safety: { production: false, external_writes: false, paid_provider_activation: false, additional_variable_cost_eur: 0 }
 }, null, 2));

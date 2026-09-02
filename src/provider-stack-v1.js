@@ -9,6 +9,7 @@ import { cloudflarePagesStagingEvidence, isCloudflarePagesStagingVerified } from
 import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerified } from './cloudflare-workers-ai-staging-evidence.js';
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
+import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
@@ -26,6 +27,7 @@ export function providerStackV1() {
   const cloudflareAiEvidence = cloudflareWorkersAiStagingEvidence();
   const openAiEvidence = openAiStagingConnectionEvidence();
   const framerEvidence = framerStagingConnectionEvidence();
+  const webflowEvidence = webflowStagingConnectionEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
@@ -46,6 +48,11 @@ export function providerStackV1() {
       framer_staging_write_verified: false,
       framer_publish_verified: false,
       framer_routing_scope: 'specialist_only',
+      webflow_connected_staging: isWebflowStagingConnected(),
+      webflow_connection_evidence: webflowEvidence,
+      webflow_staging_write_verified: false,
+      webflow_publish_verified: false,
+      webflow_routing_scope: 'specialist_only',
       lovable_resolution: remainingProviderResolution('lovable-github'),
       webflow_resolution: remainingProviderResolution('webflow-api'),
       base44_resolution: remainingProviderResolution('base44')
@@ -140,6 +147,8 @@ export function providerActivationMatrix() {
   const cloudflareAiStagingVerified = isCloudflareWorkersAiStagingVerified();
   const openAiConnectedStaging = isOpenAiStagingConnected();
   const framerConnectedStaging = isFramerStagingConnected();
+  const webflowConnectedStaging = isWebflowStagingConnected();
+  const webflowConnectionEvidence = webflowStagingConnectionEvidence();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
   const posthogStagingVerified = isPostHogStagingAnalyticsVerified();
@@ -243,11 +252,24 @@ export function providerActivationMatrix() {
         routing_eligibility: 'specialist_only_mutations_approval_gated', production_eligible: false
       },
       {
-        id: 'webflow-api', selection: 'optional_specialist', connection_state: 'NOT_CONNECTED',
-        activation: 'operator_gate_read_only_site_token_required', maturity_level: webflow.maturity_level,
-        final_classification: webflow.final_classification, operator_gate: webflow.operator_gate,
-        routing_eligibility: 'not_until_connected', provider_requests: 0, provider_writes: 0,
-        production_eligible: false, resolution_evidence: webflow
+        id: 'webflow-api', selection: 'optional_specialist',
+        connection_state: webflowConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+        activation: webflowConnectedStaging ? 'live_staging_verified_read_only_connection' : 'operator_gate_read_only_site_token_required',
+        maturity_level: webflowConnectedStaging ? 'L3' : webflow.maturity_level,
+        final_classification: webflowConnectedStaging ? 'CONNECTED_STAGING' : webflow.final_classification,
+        account: webflowConnectedStaging ? 'ready' : 'not_verified',
+        credential: webflowConnectedStaging ? 'present_valid' : 'not_verified',
+        site_metadata_read: webflowConnectedStaging,
+        connection_evidence: webflowConnectionEvidence,
+        operator_gate: webflowConnectedStaging ? null : webflow.operator_gate,
+        routing_eligibility: 'specialist_only_not_routing_ready_at_l3',
+        provider_requests: webflowConnectedStaging ? 1 : 0,
+        provider_writes: 0,
+        staging_write_verified: false,
+        publish_verified: false,
+        publish_performed: false,
+        production_eligible: false,
+        resolution_evidence: webflow
       }
     ],
     secrets_embedded: false,

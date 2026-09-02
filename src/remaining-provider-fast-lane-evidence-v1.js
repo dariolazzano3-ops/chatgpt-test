@@ -65,14 +65,14 @@ const RESOLUTIONS = Object.freeze({
   'webflow-api': Object.freeze({
     provider_id: 'webflow-api',
     strategic_role: 'specialist_visual_cms_platform',
-    maturity_level: 'L0',
-    final_classification: 'OPERATOR_GATE',
+    maturity_level: 'L3',
+    final_classification: 'CONNECTED_STAGING',
     central_connection_required: true,
-    account_state: 'NOT_EVIDENCED_IN_APPROVED_RUNTIME',
-    site_state: 'NOT_BOUND',
-    credential_state: 'NOT_BOUND',
-    connected: false,
-    verification: 'OFFICIAL_API_AUDITED_NO_AUTHENTICATED_PROVIDER_REQUEST',
+    account_state: 'READY',
+    site_state: 'ACCESSIBLE',
+    credential_state: 'PRESENT_VALID',
+    connected: true,
+    verification: 'PROTECTED_STAGING_RUNTIME_READ_ONLY_GET_V2_SITES_VERIFIED',
     routing_ready: false,
     architecture_reason: 'specialist_only_native_web_factory_framer_and_cloudflare_remain_primary',
     official_model: Object.freeze({
@@ -90,8 +90,8 @@ const RESOLUTIONS = Object.freeze({
         'https://help.webflow.com/hc/en-us/articles/33961232582419-Choose-a-Site-plan'
       ])
     }),
-    operator_gate: 'SIGN_IN_OR_CREATE_FREE_STARTER_CONTEXT_SELECT_SAFE_SITE_GENERATE_READ_ONLY_SITE_TOKEN_BIND_WEBFLOW_API_TOKEN_AND_SITE_REFERENCE',
-    provider_requests: 0,
+    operator_gate: null,
+    provider_requests: 1,
     provider_writes: 0,
     variable_cost_eur: 0
   }),

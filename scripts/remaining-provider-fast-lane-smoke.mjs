@@ -5,10 +5,11 @@ import { providerActivationMatrix, providerStackV1 } from '../src/provider-stack
 import { webProviderStrategy } from '../src/web-provider-strategy.js';
 import { automationProviderStrategy } from '../src/automation-provider-strategy.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from '../src/framer-staging-connection-evidence-v1.js';
+import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from '../src/webflow-staging-connection-evidence-v1.js';
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from '../src/openai-staging-connection-evidence-v1.js';
 
 const batch = remainingProviderFastLaneManifest();
-assert.equal(batch.provider_requests, 0);
+assert.equal(batch.provider_requests, 1);
 assert.equal(batch.provider_writes, 0);
 assert.equal(batch.production_deploy, false);
 assert.equal(batch.external_writes, false);
@@ -35,11 +36,14 @@ assert.equal(activepieces.runtime_eligible, false);
 assert.ok(activepieces.operator_gate);
 
 const webflow = byId.get('webflow-api');
-assert.equal(webflow.maturity_level, 'L0');
-assert.equal(webflow.final_classification, 'OPERATOR_GATE');
+assert.equal(webflow.maturity_level, 'L3');
+assert.equal(webflow.final_classification, 'CONNECTED_STAGING');
 assert.equal(webflow.central_connection_required, true);
+assert.equal(webflow.connection_state, 'CONNECTED_STAGING');
+assert.equal(webflow.credential_state, 'PRESENT_VALID');
 assert.equal(webflow.runtime_eligible, false);
-assert.ok(webflow.operator_gate);
+assert.equal(webflow.routing_ready, false);
+assert.equal(webflow.operator_gate, null);
 
 const lovable = byId.get('lovable-github');
 assert.equal(lovable.maturity_level, 'L0');
@@ -56,16 +60,26 @@ assert.equal(n8n.runtime_eligible, false);
 
 const matrix = providerActivationMatrix();
 const matrixById = new Map(matrix.providers.map((item) => [item.id, item]));
-for (const id of ['base44','activepieces-cloud-free','webflow-api','lovable-github','n8n-client-owned']) {
+for (const id of ['base44','activepieces-cloud-free','lovable-github','n8n-client-owned']) {
   const row = matrixById.get(id);
   assert.ok(row, `${id} missing from activation matrix`);
   assert.equal(row.connection_state, 'NOT_CONNECTED');
-  assert.equal(row.provider_requests, 0);
   assert.equal(row.provider_writes, 0);
   assert.equal(row.production_eligible, false);
 }
+const webflowMatrix = matrixById.get('webflow-api');
+assert.ok(webflowMatrix);
+assert.equal(webflowMatrix.connection_state, 'CONNECTED_STAGING');
+assert.equal(webflowMatrix.activation, 'live_staging_verified_read_only_connection');
+assert.equal(webflowMatrix.maturity_level, 'L3');
+assert.equal(webflowMatrix.final_classification, 'CONNECTED_STAGING');
+assert.equal(webflowMatrix.provider_requests, 1);
+assert.equal(webflowMatrix.provider_writes, 0);
+assert.equal(webflowMatrix.staging_write_verified, false);
+assert.equal(webflowMatrix.publish_verified, false);
+assert.equal(webflowMatrix.production_eligible, false);
 assert.equal(matrixById.get('activepieces-cloud-free').final_classification, 'OPERATOR_GATE');
-assert.equal(matrixById.get('webflow-api').final_classification, 'OPERATOR_GATE');
+assert.equal(matrixById.get('webflow-api').final_classification, 'CONNECTED_STAGING');
 assert.equal(matrixById.get('base44').final_classification, 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED');
 assert.equal(matrixById.get('lovable-github').final_classification, 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED');
 assert.equal(matrixById.get('n8n-client-owned').final_classification, 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED');
@@ -79,9 +93,22 @@ assert.equal(webById.get('framer-server-api').staging_write_verified, false);
 assert.equal(webById.get('framer-server-api').publish_verified, false);
 assert.equal(webById.get('lovable-github').central_connection_required, false);
 assert.equal(webById.get('lovable-github').account_connection_required, true);
-assert.equal(webById.get('webflow-api').availability, 'operator_gate');
+assert.equal(webById.get('webflow-api').availability, 'connected_staging_read_only');
 assert.equal(webById.get('webflow-api').paid_plan_required, true);
 assert.equal(webById.get('webflow-api').read_only_connection_paid_plan_required, false);
+
+const webflowEvidence = webflowStagingConnectionEvidence();
+assert.equal(isWebflowStagingConnected(), true);
+assert.equal(webflowEvidence.connection.provider_requests, 1);
+assert.equal(webflowEvidence.connection.credential_valid, true);
+assert.equal(webflowEvidence.connection.authenticated, true);
+assert.equal(webflowEvidence.connection.site_accessible, true);
+assert.equal(webflowEvidence.connection.site_metadata_read, true);
+assert.equal(webflowEvidence.connection.connected_staging, true);
+assert.equal(webflowEvidence.execution.provider_writes, 0);
+assert.equal(webflowEvidence.execution.staging_write_verified, false);
+assert.equal(webflowEvidence.execution.publish_verified, false);
+assert.equal(webflowEvidence.safety.production_eligible, false);
 
 const automation = automationProviderStrategy();
 assert.equal(automation.primary_external_runtime, 'make-core');
@@ -128,15 +155,16 @@ assert.equal(matrix.production_deploy, false);
 console.log(JSON.stringify({
   ok: true,
   suite: 'remaining-provider-fast-lane-v1',
-  provider_requests: 0,
+  provider_requests: 1,
   provider_writes: 0,
-  operator_gates: ['activepieces-cloud-free','webflow-api'],
+  operator_gates: ['activepieces-cloud-free'],
   intentionally_not_central: ['base44','lovable-github','n8n-client-owned'],
   make_primary: automation.primary_external_runtime,
   cloudflare_primary_host: web.default_host,
   workers_ai_free_staging: stack.factories.ai.free_staging_path[1],
   openai_connected_staging: true,
   framer_connected_staging: true,
+  webflow_connected_staging: true,
   production_deploy: false,
   total_new_paid_cost_eur: 0
 }, null, 2));
