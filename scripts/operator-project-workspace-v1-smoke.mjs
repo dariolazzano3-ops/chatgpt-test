@@ -89,7 +89,7 @@ const shellResponse = await handleOperatorDashboard(new Request('https://operato
 assert.equal(shellResponse.status, 200);
 const shell = await shellResponse.text();
 assert.match(shell, /Projekt Workspace öffnen|Workspace/);
-assert.match(shell, /x-aurentara-project-workspace-v1/i, 'header is represented through response metadata, not HTML');
+assert.equal(shellResponse.headers.get('x-aurentara-project-workspace-v1'), 'enabled');
 
 const projectsResponse = await handleOperatorDashboard(new Request('https://operator.example.test/operator/api/projects'), {}, {}, options);
 assert.equal(projectsResponse.status, 200);
