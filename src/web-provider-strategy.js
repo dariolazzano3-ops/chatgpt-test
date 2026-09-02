@@ -1,9 +1,11 @@
 import { isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
+import { isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const VERIFIED_AT = '2026-09-01';
 const FRAMER_CONNECTED = isFramerStagingConnected();
+const WEBFLOW_CONNECTED = isWebflowStagingConnected();
 const LOVABLE_RESOLUTION = remainingProviderResolution('lovable-github');
 const WEBFLOW_RESOLUTION = remainingProviderResolution('webflow-api');
 
@@ -84,10 +86,10 @@ const PROVIDERS = Object.freeze([
     role: 'optional_client_editable_cms',
     category: 'visual_cms_builder',
     capabilities: ['web.design.visual','web.cms.manage','web.publish.platform','web.export.static-code'],
-    availability: 'operator_gate',
+    availability: WEBFLOW_CONNECTED ? 'connected_staging_read_only' : 'operator_gate',
     account_connection_required: true,
     central_connection_required: true,
-    final_classification: WEBFLOW_RESOLUTION.final_classification,
+    final_classification: WEBFLOW_CONNECTED ? 'CONNECTED_STAGING' : WEBFLOW_RESOLUTION.final_classification,
     code_ownership: 'partial_export_with_cms_limits',
     hosting_lock_in: 'cms_dependent',
     automation_fit: 'high',
@@ -95,9 +97,12 @@ const PROVIDERS = Object.freeze([
     paid_plan_required: true,
     read_only_connection_paid_plan_required: false,
     external_write: true,
+    staging_write_verified: false,
+    publish_verified: false,
+    routing_scope: 'specialist_only_not_routing_ready_at_l3',
     production_deploy: false,
-    operator_gate: WEBFLOW_RESOLUTION.operator_gate,
-    evidence: WEBFLOW_RESOLUTION
+    operator_gate: WEBFLOW_CONNECTED ? null : WEBFLOW_RESOLUTION.operator_gate,
+    evidence: WEBFLOW_CONNECTED ? 'src/webflow-staging-connection-evidence-v1.js' : WEBFLOW_RESOLUTION
   })
 ]);
 
@@ -146,13 +151,13 @@ export function selectWebBuildProvider(input = {}) {
     reasons.splice(0, reasons.length, 'visual_editor_priority','server_api_automation','connected_staging_read_only');
   } else if (mode === 'client_editable_cms') {
     selectedId = 'webflow-api';
-    reasons.splice(0, reasons.length, 'client_editor_priority','cms_and_designer_api','operator_connection_gate');
+    reasons.splice(0, reasons.length, 'client_editor_priority','cms_and_designer_api','connected_staging_read_only');
   }
 
   const provider = getWebProvider(selectedId);
   if (!provider) return { ok: false, error: 'WEB_PROVIDER_NOT_FOUND', production_deploy: false };
 
-  if (provider.account_connection_required && !connected.has(provider.id) && provider.id !== 'cloudflare-workers-free') {
+  if (provider.account_connection_required && !connected.has(provider.id) && !(provider.id === 'webflow-api' && WEBFLOW_CONNECTED) && provider.id !== 'cloudflare-workers-free') {
     blockers.push({ code: 'WEB_PROVIDER_CONNECTION_REQUIRED', provider_id: provider.id });
   }
   if (provider.paid_plan_required === true && input.paid_provider_approved !== true) {
@@ -183,7 +188,8 @@ export function webProviderDecisionManifest() {
     client_editable_cms_specialist: 'webflow-api',
     framer_connected_staging: FRAMER_CONNECTED,
     lovable_central_connection_required: false,
-    webflow_operator_connection_gate: true,
+    webflow_connected_staging: WEBFLOW_CONNECTED,
+    webflow_operator_connection_gate: !WEBFLOW_CONNECTED,
     webflow_read_only_connection_paid_plan_required: false,
     provider_choice_complete_for_web_factory_v1: true,
     activation_is_separate_from_selection: true,
