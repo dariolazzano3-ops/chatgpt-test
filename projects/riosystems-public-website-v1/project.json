@@ -44,7 +44,7 @@
     "preview_workflow": ".github/workflows/factory-preview.yml",
     "preview_provider": "cloudflare-pages-factory-preview",
     "preview_project": "chatgpt-factory-preview",
-    "preview_status": "BUILD_PENDING",
+    "preview_status": "BUILD_PENDING_RETRY",
     "qa_status": "ACCEPTED_RC_PASS",
     "deployment_mode": "STAGING_PREVIEW_ONLY",
     "production_status": "OFF",
