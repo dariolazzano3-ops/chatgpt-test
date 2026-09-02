@@ -67,7 +67,11 @@ try {
   assert.equal(projectsResponse.status, 200, output);
   const projects = await projectsResponse.json();
   assert.equal(projects.schema, 'riosystems.operator-projects-view.v2');
-  assert.equal(projects.items.length, 3);
+  assert.equal(projects.items.length, 4);
+  const website = projects.items.find((item) => item.project_id === 'riosystems-public-website-v1');
+  assert.ok(website, 'AURENTARA Public Website V1 workspace project must be projected');
+  assert.equal(website.runtime_registration, 'PENDING_UNTIL_PREFLIGHT');
+  assert.equal(website.production_deploy, false);
   assert.ok(projects.items.every((item) => item.production_deploy === false));
 
   const dashboardResponse = await fetchChecked(`${origin}/operator/api/dashboard`);
@@ -86,6 +90,7 @@ try {
     runtime_mode: 'local_memory_only',
     staging_runtime_mode: 'durable_required',
     projects: projects.items.length,
+    website_workspace_projected: true,
     production_deploy: false
   }, null, 2));
 } finally {
