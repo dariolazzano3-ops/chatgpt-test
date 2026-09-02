@@ -46,6 +46,8 @@ for (const step of ['Verstehen','Planen','Bauen','Verbinden','Prüfen','Starten'
 
 assert.ok(html.includes('class="skip-link"'), 'skip link missing');
 assert.ok(html.includes('aria-live="polite"'), 'form live region missing');
+assert.ok(html.includes('class="chaos-map reveal" role="img" aria-label="Darstellung getrennter Unternehmenssysteme"'), 'disconnected systems diagram image semantics missing');
+assert.ok(html.includes('class="connected-map reveal" role="img" aria-label="Darstellung einer verbundenen Unternehmensarchitektur"'), 'connected systems diagram image semantics missing');
 assert.ok(html.includes('meta name="robots" content="noindex,nofollow,noarchive"'), 'private HTML robots guard missing');
 assert.ok(headers.includes('X-Robots-Tag: noindex, nofollow'), 'private response robots guard missing');
 assert.ok(robots.includes('Disallow: /'), 'private robots.txt crawl block missing');
