@@ -32,18 +32,6 @@ for (const [name,width,height] of sizes) {
   assert.equal(await page.locator('select[data-locale]').count(), 0, `${name}: unfinished locale UI is exposed`);
   assert.ok(await page.locator('#hamyren').count(), `${name}: HAMYREN homepage section missing`);
   assert.ok(await page.locator('#about').count(), `${name}: AURENTARA about section missing`);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  assert.ok(overflow <= 1, `${name}: horizontal overflow ${overflow}px`);
-
-  if (width <= 767) {
-    const menuButton = page.getByRole('button', { name: /Navigation öffnen/i });
-    assert.ok(await menuButton.isVisible(), `${name}: mobile menu button missing`);
-    await menuButton.click();
-    assert.equal(await menuButton.getAttribute('aria-expanded'), 'true', `${name}: mobile menu did not open`);
-    assert.ok(await page.locator('#mobile-menu').getByRole('link', { name: 'HAMYREN' }).isVisible(), `${name}: mobile HAMYREN entry missing`);
-    await page.getByRole('button', { name: /Navigation schließen/i }).click();
-    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: mobile menu did not close`);
-  }
 
   await revealWholePage(page);
   const hiddenRevealCount = await page.locator('.reveal:not(.is-visible)').count();
@@ -51,6 +39,22 @@ for (const [name,width,height] of sizes) {
   assert.ok(await page.locator('#project').isVisible(), `${name}: contact/start section missing`);
   assert.ok(await page.locator('footer').isVisible(), `${name}: footer missing`);
   await page.screenshot({ path: `artifacts/riosystems-public-website-v1/${name}.png`, fullPage: true });
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(overflow <= 1, `${name}: horizontal overflow ${overflow}px`);
+
+  if (width <= 767) {
+    const menuButton = page.locator('[data-menu-button]');
+    assert.ok(await menuButton.isVisible(), `${name}: mobile menu button missing`);
+    await menuButton.click();
+    await page.locator('#mobile-menu').waitFor({ state: 'visible' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'true', `${name}: mobile menu did not open`);
+    assert.ok(await page.locator('#mobile-menu a[href="#hamyren"]').isVisible(), `${name}: mobile HAMYREN entry missing`);
+    await menuButton.click();
+    await page.locator('#mobile-menu').waitFor({ state: 'hidden' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: mobile menu did not close`);
+  }
+
   await page.close();
 }
 
