@@ -102,7 +102,7 @@ assert.equal(projected.production_deploy, false);
 const workspacePage = await handleOperatorDashboard(new Request(`https://operator.example.test/operator/workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`), {}, {}, options);
 assert.equal(workspacePage.status, 200);
 const workspaceHtml = await workspacePage.text();
-for (const required of ['Project Header', 'Live Preview', 'Change Request', 'QA Panel', 'Version / Iteration History', 'ACCEPT ITERATION', 'RETURN TO LAST ACCEPTED', 'Production OFF']) {
+for (const required of ['Project Header', 'Live Preview', 'Change Request', 'QA Panel', 'Version / Iteration History', 'ACCEPT ITERATION', 'RETURN TO LAST ACCEPTED', 'Production OFF', 'CONFIRM_SYNTHETIC_STAGING', '/mission-plan-decision']) {
   assert.ok(workspaceHtml.includes(required), `workspace surface missing ${required}`);
 }
 assert.match(workspacePage.headers.get('content-security-policy') || '', /frame-src https:\/\/\*\.pages\.dev/);
@@ -141,8 +141,12 @@ assert.ok(preflight.plan_token);
 const runtimeProjects = await runtimeService.handle({ method: 'GET', path: '/projects' });
 assert.ok(runtimeProjects.body.items.some((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE), 'preflight must register project in authoritative runtime through existing CREATE_PROJECT command');
 
-const approveResponse = await handleOperatorDashboard(new Request('https://operator.example.test/operator/api/mission-approve', {
-  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ plan_token: preflight.plan_token })
+const approveResponse = await handleOperatorDashboard(new Request('https://operator.example.test/operator/api/mission-plan-decision', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+    plan_token: preflight.plan_token,
+    decision: 'approve',
+    confirmation_text: 'CONFIRM_SYNTHETIC_STAGING'
+  })
 }), {}, {}, options);
 assert.equal(approveResponse.status, 201);
 const approved = await approveResponse.json();
@@ -194,6 +198,7 @@ console.log(JSON.stringify({
   change_request_classified: true,
   preflight_generated: true,
   approval_gate_verified: true,
+  durable_approval_contract_verified: true,
   execution_route_resolved: true,
   quality_score: approved.quality_score,
   real_provider_calls: approved.real_provider_calls,
