@@ -23,12 +23,19 @@ async function revealWholePage(page) {
 
 for (const [name,width,height] of sizes) {
   const page = await browser.newPage({ viewport: { width, height } });
+  const browserErrors = [];
+  page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`);
+  });
+
   const response = await page.goto(url, { waitUntil: 'networkidle' });
   assert.ok(response?.ok(), `${name}: page response is not OK`);
   assert.match(await page.title(), /AURENTARA SYSTEMS/, `${name}: operative brand missing from title`);
   await page.locator('h1').waitFor({ state: 'visible' });
   assert.ok((await page.locator('h1').innerText()).includes('BUSINESS.'), `${name}: hero copy missing`);
-  assert.ok(await page.locator('.hero').getByRole('link', { name: /Projekt starten/i }).isVisible(), `${name}: primary CTA not visible`);
+  const primaryCta = page.locator('.hero').getByRole('link', { name: /Projekt starten/i });
+  assert.ok(await primaryCta.isVisible(), `${name}: primary CTA not visible`);
   assert.equal(await page.locator('select[data-locale]').count(), 0, `${name}: unfinished locale UI is exposed`);
   assert.ok(await page.locator('#hamyren').count(), `${name}: HAMYREN homepage section missing`);
   assert.ok(await page.locator('#about').count(), `${name}: AURENTARA about section missing`);
@@ -46,20 +53,46 @@ for (const [name,width,height] of sizes) {
   if (width <= 767) {
     const menuButton = page.locator('[data-menu-button]');
     assert.ok(await menuButton.isVisible(), `${name}: mobile menu button missing`);
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: mobile menu initial state incorrect`);
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation öffnen', `${name}: mobile menu initial accessible label incorrect`);
+
+    const menuBox = await menuButton.boundingBox();
+    const heroCtaBox = await primaryCta.boundingBox();
+    const hamyrenCtaBox = await page.locator('#hamyren .button').first().boundingBox();
+    assert.ok(menuBox?.width >= 44 && menuBox?.height >= 44, `${name}: mobile menu tap target too small`);
+    assert.ok(heroCtaBox?.height >= 44, `${name}: hero CTA tap target too small`);
+    assert.ok(hamyrenCtaBox?.height >= 44, `${name}: HAMYREN CTA tap target too small`);
+
     await menuButton.click();
     await page.locator('#mobile-menu').waitFor({ state: 'visible' });
     assert.equal(await menuButton.getAttribute('aria-expanded'), 'true', `${name}: mobile menu did not open`);
-    assert.ok(await page.locator('#mobile-menu a[href="#hamyren"]').isVisible(), `${name}: mobile HAMYREN entry missing`);
-    await menuButton.click();
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation schließen', `${name}: mobile menu open label incorrect`);
+    const mobileHamyren = page.locator('#mobile-menu [data-hamyren-entry]');
+    assert.ok(await mobileHamyren.isVisible(), `${name}: mobile HAMYREN entry missing`);
+    assert.equal(await mobileHamyren.getAttribute('href'), './hamyren/index.html', `${name}: mobile HAMYREN destination changed`);
+
+    await page.keyboard.press('Escape');
     await page.locator('#mobile-menu').waitFor({ state: 'hidden' });
-    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: mobile menu did not close`);
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: Escape did not close mobile menu`);
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation öffnen', `${name}: Escape did not restore menu label`);
+    assert.equal(await menuButton.evaluate((node) => document.activeElement === node), true, `${name}: focus did not return to menu button after Escape`);
+
+    await menuButton.click();
+    await page.locator('#mobile-menu').waitFor({ state: 'visible' });
+    await page.locator('#mobile-menu a[href="#about"]').click();
+    await page.locator('#mobile-menu').waitFor({ state: 'hidden' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: navigation link did not close mobile menu`);
+    assert.equal(new URL(page.url()).hash, '#about', `${name}: mobile navigation link did not navigate to About`);
   }
 
+  assert.deepEqual(browserErrors, [], `${name}: unexpected browser errors: ${browserErrors.join(' | ')}`);
   await page.close();
 }
 
 const journeyPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await journeyPage.goto(url, { waitUntil: 'networkidle' });
+const desktopNavHamyren = journeyPage.locator('.desktop-nav [data-hamyren-entry]');
+assert.equal(await desktopNavHamyren.getAttribute('href'), './hamyren/index.html', 'desktop HAMYREN navigation bridge changed');
 const hamyrenHref = await journeyPage.getByRole('link', { name: /HAMYREN kennenlernen/i }).getAttribute('href');
 assert.equal(hamyrenHref, './hamyren/index.html', 'HAMYREN overview bridge changed');
 const testHref = await journeyPage.getByRole('link', { name: /5 Fragen testen/i }).getAttribute('href');
@@ -77,6 +110,12 @@ assert.equal(await motionPage.locator('.reveal').first().evaluate((el) => getCom
 await motionPage.getByRole('button', { name: /Projekt starten/i }).click();
 await motionPage.locator('dialog[open]').waitFor();
 assert.ok(await motionPage.getByText(/keine Daten an einen externen Provider/i).isVisible(), 'staging form safety note missing');
+await motionPage.locator('input[name="name"]').fill('Synthetic QA');
+await motionPage.locator('input[name="email"]').fill('qa@example.invalid');
+await motionPage.locator('select[name="country"]').selectOption({ label: 'Deutschland' });
+await motionPage.locator('textarea[name="description"]').fill('Synthetic private release-candidate QA only.');
+await motionPage.getByRole('button', { name: 'Staging prüfen' }).click();
+assert.match(await motionPage.locator('[data-form-result]').innerText(), /keine Daten übertragen/i, 'local-only contact validation failed');
 await motionPage.close();
 await browser.close();
 console.log('AURENTARA SYSTEMS Public Website private responsive QA: PASS');
