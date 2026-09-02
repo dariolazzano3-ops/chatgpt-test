@@ -7,7 +7,7 @@ import { handleOpenAiSecretPresence } from "./openai-secret-presence-v1.js";
 import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic-v1.js";
 import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
-import { handleOperatorDashboard } from "./operator-provider-preflight-seal-v1.js";
+import { handleOperatorDashboard } from "./operator-project-workspace-dashboard-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
@@ -84,7 +84,7 @@ export default {
     const url = new URL(request.url);
 
     // Private Operator Control is resolved first and remains a completely separate surface.
-    if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/")) {
+    if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/")) {
       let runtimeService = null;
       try {
         runtimeService = getDurableOperatorRuntimeService(env);
