@@ -14,6 +14,7 @@ import { createCustomerLaunchShield } from "./customer-product/prelaunch-securit
 import { createProductionCustomerAccountPrivacySurface } from "./customer-product/production-account-privacy-surface-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
 import { createCloudflareCustomerObservabilityBinding } from "./customer-product/production-live-bindings-v1.js";
+import { handleSyntheticSessionBootstrap } from "./customer-product/synthetic-session-bootstrap-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
 
 // The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
@@ -114,7 +115,12 @@ export default {
         });
         return response;
       }
-      const customerResponse = await customerLaunchShield.handle(request, env, ctx);
+      const customerResponse = await handleSyntheticSessionBootstrap({
+        launch_shield: customerLaunchShield,
+        request,
+        env,
+        ctx
+      });
       if (customerResponse) {
         recordCustomerEvent(ctx, env, {
           event_name: customerResponse.status >= 500 ? "customer.request.failed" : "customer.request.completed",

@@ -43,6 +43,7 @@ jobs:
           node ./scripts/aurentara-customer-red-team-v1.mjs
           node --test scripts/hamyren-capability-policy-v1.test.mjs
           node scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
+          node --test scripts/hamyren-synthetic-session-bootstrap-v1.test.mjs
       - name: HAMYREN Delivery to Memory V1 acceptance
         run: node --test scripts/hamyren-delivery-memory-feedback-v1.test.mjs
       - name: Canonical brand and ownership contract
