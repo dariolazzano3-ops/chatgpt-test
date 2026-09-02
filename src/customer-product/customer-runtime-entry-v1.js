@@ -4,97 +4,34 @@ import { enforceCustomerDistributedRateLimit } from './customer-rate-limit-do-v1
 import { createCloudflareCustomerObservabilityBinding } from './production-live-bindings-v1.js';
 export { AurentaraCustomerRateLimiter } from './customer-rate-limit-do-v1.js';
 
-const productionCustomerAccountSurface = createProductionCustomerAccountPrivacySurface();
-const customerLaunchShield = createCustomerLaunchShield({
-  production_surface: productionCustomerAccountSurface,
-  production_runtime_active: true
-});
-
-function json(body, status = 200, headers = {}) {
-  return new Response(JSON.stringify(body, null, 2), {
-    status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
-      ...headers
-    }
-  });
+const productionCustomerAccountSurface=createProductionCustomerAccountPrivacySurface();
+const customerLaunchShield=createCustomerLaunchShield({production_surface:productionCustomerAccountSurface,production_runtime_active:true});
+function json(body,status=200,headers={}){return new Response(JSON.stringify(body,null,2),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer',...headers}})}
+function customerRoute(url){return url.pathname==='/customer'||url.pathname==='/customer/'||url.pathname.startsWith('/customer/api/')}
+function routeClass(url,method){if(url.pathname==='/customer'||url.pathname==='/customer/')return'customer_entry';if(url.pathname.includes('/chat'))return'customer_chat';return method==='GET'?'customer_read':'customer_mutation'}
+function bool(value){return value===true||String(value||'').toLowerCase()==='true'}
+function privateAcceptance(env={}){return String(env.AURENTARA_CUSTOMER_SURFACE_MODE||'').toLowerCase()==='private-acceptance'}
+function privateAcceptanceAllowed(request,env={}){
+  return privateAcceptance(env)
+    && String(env.RIOSYSTEMS_ENVIRONMENT||'').toLowerCase()==='staging'
+    && String(env.RIOSYSTEMS_PRODUCTION_DEPLOY||'').toLowerCase()==='false'
+    && String(env.RIOSYSTEMS_EXTERNAL_WRITES||'').toLowerCase()==='false'
+    && bool(env.AURENTARA_CUSTOMER_PRIVATE_ACCEPTANCE_APPROVED)
+    && !bool(env.AURENTARA_CUSTOMER_PUBLIC_ACTIVATION_APPROVED)
+    && Boolean(String(request.headers.get('cf-access-jwt-assertion')||'').trim());
 }
+function recordEvent(ctx,env,input={}){if(String(env?.AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE||'').toLowerCase()!=='true')return;const observability=createCloudflareCustomerObservabilityBinding({sink_active:true});const work=observability.record({event_name:input.event_name,severity:input.severity||'info',occurred_at:new Date().toISOString(),attributes:{route_class:input.route_class,method:input.method,status:Number(input.status||0),mode:String(env?.AURENTARA_CUSTOMER_SURFACE_MODE||'off').toLowerCase(),retry_after_seconds:input.retry_after_seconds||undefined}}).catch(()=>null);if(ctx?.waitUntil)ctx.waitUntil(work)}
+function rateLimited(rate){return json({ok:false,message:'Zu viele Anfragen in kurzer Zeit. Bitte versuche es gleich noch einmal.',retry_after_seconds:Math.max(1,Number(rate.retry_after_seconds||1)),public_active:false},Number(rate.status||429),{'retry-after':String(Math.max(1,Number(rate.retry_after_seconds||1)))})}
 
-function customerRoute(url) {
-  return url.pathname === '/customer'
-    || url.pathname === '/customer/'
-    || url.pathname.startsWith('/customer/api/');
-}
-
-function routeClass(url, method) {
-  if (url.pathname === '/customer' || url.pathname === '/customer/') return 'customer_entry';
-  if (url.pathname.includes('/chat')) return 'customer_chat';
-  return method === 'GET' ? 'customer_read' : 'customer_mutation';
-}
-
-function recordEvent(ctx, env, input = {}) {
-  if (String(env?.AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE || '').toLowerCase() !== 'true') return;
-  const observability = createCloudflareCustomerObservabilityBinding({ sink_active: true });
-  const work = observability.record({
-    event_name: input.event_name,
-    severity: input.severity || 'info',
-    occurred_at: new Date().toISOString(),
-    attributes: {
-      route_class: input.route_class,
-      method: input.method,
-      status: Number(input.status || 0),
-      mode: String(env?.AURENTARA_CUSTOMER_SURFACE_MODE || 'off').toLowerCase(),
-      retry_after_seconds: input.retry_after_seconds || undefined
-    }
-  }).catch(() => null);
-  if (ctx?.waitUntil) ctx.waitUntil(work);
-}
-
-function rateLimited(rate) {
-  return json({
-    ok: false,
-    error: rate.error || 'CUSTOMER_RATE_LIMITED',
-    retry_after_seconds: Math.max(1, Number(rate.retry_after_seconds || 1)),
-    public_active: false
-  }, Number(rate.status || 429), {
-    'retry-after': String(Math.max(1, Number(rate.retry_after_seconds || 1)))
-  });
-}
-
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (!customerRoute(url)) {
-      return json({ ok: false, error: 'AURENTARA_CUSTOMER_RUNTIME_ROUTE_NOT_FOUND', public_active: false }, 404);
-    }
-
-    const route_class = routeClass(url, request.method);
-    const rate = await enforceCustomerDistributedRateLimit(request, env);
-    if (!rate.ok) {
-      const response = rateLimited(rate);
-      recordEvent(ctx, env, {
-        event_name: 'customer.rate_limited',
-        severity: 'warn',
-        route_class,
-        method: request.method,
-        status: response.status,
-        retry_after_seconds: rate.retry_after_seconds
-      });
-      return response;
-    }
-
-    const response = await customerLaunchShield.handle(request, env, ctx);
-    if (!response) return json({ ok: false, error: 'AURENTARA_CUSTOMER_RUNTIME_ROUTE_NOT_FOUND', public_active: false }, 404);
-    recordEvent(ctx, env, {
-      event_name: response.status >= 500 ? 'customer.request.failed' : 'customer.request.completed',
-      severity: response.status >= 500 ? 'error' : response.status >= 400 ? 'warn' : 'info',
-      route_class,
-      method: request.method,
-      status: response.status
-    });
-    return response;
-  }
-};
+export default{async fetch(request,env,ctx){
+ const url=new URL(request.url);if(!customerRoute(url))return json({ok:false,message:'Diese HAMYREN Seite ist nicht verfügbar.',public_active:false},404);
+ const route_class=routeClass(url,request.method);const rate=await enforceCustomerDistributedRateLimit(request,env);if(!rate.ok){const response=rateLimited(rate);recordEvent(ctx,env,{event_name:'customer.rate_limited',severity:'warn',route_class,method:request.method,status:response.status,retry_after_seconds:rate.retry_after_seconds});return response}
+ let response;
+ if(privateAcceptance(env)){
+   if(!privateAcceptanceAllowed(request,env)) response=json({ok:false,message:'Dieser private HAMYREN Acceptance-Bereich ist nur über den geschützten Operator-Zugang verfügbar.',public_active:false},403);
+   else response=await productionCustomerAccountSurface.handle(request,env,ctx);
+   if(response){const headers=new Headers(response.headers);headers.set('x-aurentara-customer-mode','private-acceptance');headers.set('x-aurentara-public-active','false');response=new Response(response.body,{status:response.status,statusText:response.statusText,headers})}
+ }else response=await customerLaunchShield.handle(request,env,ctx);
+ if(!response)return json({ok:false,message:'Diese HAMYREN Funktion ist nicht verfügbar.',public_active:false},404);
+ recordEvent(ctx,env,{event_name:response.status>=500?'customer.request.failed':'customer.request.completed',severity:response.status>=500?'error':response.status>=400?'warn':'info',route_class,method:request.method,status:response.status});return response;
+}};
