@@ -16,7 +16,6 @@ on:
       - 'factory/**'
       - feature/project-factory-v1-5
     paths:
-      - '.github/workflows/factory-preview.yml'
       - 'projects/**'
 
 permissions:
@@ -47,10 +46,10 @@ jobs:
             echo "source_branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout requested branch
+      - name: Checkout requested revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.source.outputs.source_branch }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && steps.source.outputs.source_branch || github.sha }}
           fetch-depth: 2
           persist-credentials: false
 
@@ -67,7 +66,7 @@ jobs:
             PROJECT_SLUG=$(git diff-tree --no-commit-id --name-only -r HEAD \
               | sed -n 's#^projects/\([^/][^/]*\)/.*#\1#p' \
               | head -n 1)
-            test -n "$PROJECT_SLUG" || { echo "No changed project folder found in latest commit"; exit 1; }
+            test -n "$PROJECT_SLUG" || { echo "No changed project folder found in triggering commit"; exit 1; }
           fi
           echo "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
 
