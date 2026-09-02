@@ -29,5 +29,27 @@
   "dns_change": false,
   "domain_activation_authorized": false,
   "automatic_paid_overflow": false,
+  "operator_workspace": {
+    "enabled": true,
+    "workspace_schema": "riosystems.operator-project-workspace.v1",
+    "project_id": "riosystems-public-website-v1",
+    "repo": "dariolazzano3-ops/chatgpt-test",
+    "canonical_branch": "factory-control",
+    "canonical_sha_at_registration": "da71c5f3ab5822bd0bacb87ce5c2f669bf5dfb54",
+    "canonical_truth": "github_remote_authoritative",
+    "accepted_rc_sha": "9876feccfbcb7f87577a9d9a26ac2066412bc7a7",
+    "accepted_rc_branch": "aurentara-public-website-private-rc-v1-20260902",
+    "accepted_rc_pr": 351,
+    "active_working_branch": "factory/operator-project-workspace-v1",
+    "preview_workflow": ".github/workflows/factory-preview.yml",
+    "preview_provider": "cloudflare-pages-factory-preview",
+    "preview_project": "chatgpt-factory-preview",
+    "preview_status": "BUILD_PENDING",
+    "qa_status": "ACCEPTED_RC_PASS",
+    "deployment_mode": "STAGING_PREVIEW_ONLY",
+    "production_status": "OFF",
+    "cost_state": "ZERO_VARIABLE_COST_TARGET",
+    "last_updated": "2026-09-02"
+  },
   "production_deploy": false
 }
