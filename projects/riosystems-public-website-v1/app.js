@@ -1,53 +1,26 @@
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const hamyrenHref = './hamyren/index.html';
-function installHamyrenEntryPoints() {
-  const desktopNav = document.querySelector('.desktop-nav');
-  if (desktopNav && !desktopNav.querySelector('[data-hamyren-entry]')) {
-    const link = document.createElement('a');
-    link.href = hamyrenHref;
-    link.dataset.hamyrenEntry = '';
-    link.textContent = 'HAMYREN';
-    desktopNav.append(link);
-  }
-
-  const mobile = document.querySelector('[data-mobile-menu]');
-  if (mobile && !mobile.querySelector('[data-hamyren-entry]')) {
-    const link = document.createElement('a');
-    link.href = hamyrenHref;
-    link.dataset.hamyrenEntry = '';
-    link.textContent = 'HAMYREN · Business AI';
-    const project = mobile.querySelector('.button');
-    if (project) mobile.insertBefore(link, project); else mobile.append(link);
-  }
-
-  const heroActions = document.querySelector('.hero .cta-row');
-  if (heroActions && !heroActions.querySelector('[data-hamyren-entry]')) {
-    const link = document.createElement('a');
-    link.className = 'button button-ghost';
-    link.href = hamyrenHref;
-    link.dataset.hamyrenEntry = '';
-    link.dataset.event = 'hamyren_entry_click';
-    link.innerHTML = 'HAMYREN testen <span aria-hidden="true">→</span>';
-    heroActions.append(link);
-  }
-}
-installHamyrenEntryPoints();
-
 document.querySelector('[data-year]').textContent = new Date().getFullYear();
 
 const menuButton = document.querySelector('[data-menu-button]');
 const mobileMenu = document.querySelector('[data-mobile-menu]');
+function setMobileMenu(open) {
+  if (!menuButton || !mobileMenu) return;
+  menuButton.setAttribute('aria-expanded', String(open));
+  menuButton.setAttribute('aria-label', open ? 'Navigation schließen' : 'Navigation öffnen');
+  mobileMenu.hidden = !open;
+}
 if (menuButton && mobileMenu) {
   menuButton.addEventListener('click', () => {
-    const open = menuButton.getAttribute('aria-expanded') === 'true';
-    menuButton.setAttribute('aria-expanded', String(!open));
-    mobileMenu.hidden = open;
+    setMobileMenu(menuButton.getAttribute('aria-expanded') !== 'true');
   });
   mobileMenu.addEventListener('click', (event) => {
-    if (event.target.closest('a')) {
-      menuButton.setAttribute('aria-expanded', 'false');
-      mobileMenu.hidden = true;
+    if (event.target.closest('a')) setMobileMenu(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menuButton.getAttribute('aria-expanded') === 'true') {
+      setMobileMenu(false);
+      menuButton.focus();
     }
   });
 }
@@ -80,26 +53,9 @@ if (intakeForm) {
     event.preventDefault();
     if (!intakeForm.reportValidity()) return;
     if (formResult) formResult.textContent = 'Staging-Validierung erfolgreich. Es wurden keine Daten übertragen.';
-    emitEvent('form_submit_success');
+    emitEvent('contact_validation_success');
   });
-  intakeForm.addEventListener('focusin', () => emitEvent('form_start'), { once: true });
-}
-
-const supportedLocales = ['de', 'en', 'fr', 'it', 'es', 'nl', 'pl', 'pt'];
-const localeSelect = document.querySelector('[data-locale]');
-const storedLocale = localStorage.getItem('riosystems_locale');
-const browserLocale = navigator.language?.slice(0, 2).toLowerCase();
-const preferredLocale = supportedLocales.includes(storedLocale) ? storedLocale : supportedLocales.includes(browserLocale) ? browserLocale : 'de';
-if (localeSelect) {
-  localeSelect.value = preferredLocale;
-  localeSelect.addEventListener('change', () => {
-    localStorage.setItem('riosystems_locale', localeSelect.value);
-    emitEvent('language_change', { locale: localeSelect.value });
-    if (localeSelect.value !== 'de') {
-      localeSelect.setCustomValidity('');
-      alert('Die Spracharchitektur ist vorbereitet. Die vollständigen Übersetzungen folgen in einem späteren Content-Pass.');
-    }
-  });
+  intakeForm.addEventListener('focusin', () => emitEvent('contact_form_start'), { once: true });
 }
 
 document.querySelectorAll('[data-event]').forEach((node) => {
