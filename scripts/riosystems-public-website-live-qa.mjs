@@ -28,7 +28,7 @@ for (const [name,width,height] of sizes) {
   assert.match(await page.title(), /AURENTARA SYSTEMS/, `${name}: operative brand missing from title`);
   await page.locator('h1').waitFor({ state: 'visible' });
   assert.ok((await page.locator('h1').innerText()).includes('BUSINESS.'), `${name}: hero copy missing`);
-  assert.ok(await page.getByRole('link', { name: /Projekt starten/i }).first().isVisible(), `${name}: primary CTA not visible`);
+  assert.ok(await page.locator('.hero').getByRole('link', { name: /Projekt starten/i }).isVisible(), `${name}: primary CTA not visible`);
   assert.equal(await page.locator('select[data-locale]').count(), 0, `${name}: unfinished locale UI is exposed`);
   assert.ok(await page.locator('#hamyren').count(), `${name}: HAMYREN homepage section missing`);
   assert.ok(await page.locator('#about').count(), `${name}: AURENTARA about section missing`);
