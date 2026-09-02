@@ -2,6 +2,17 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matc
 
 document.querySelector('[data-year]').textContent = new Date().getFullYear();
 
+for (const link of document.querySelectorAll('.desktop-nav a[href="#hamyren"], #mobile-menu a[href="#hamyren"]')) {
+  link.setAttribute('href', './hamyren/index.html');
+  link.setAttribute('data-hamyren-entry', '');
+  link.setAttribute('data-event', 'hamyren_entry_click');
+}
+
+const aboutHeading = document.querySelector('#about h2');
+if (aboutHeading?.textContent.includes('Unternehmenssysteme')) {
+  aboutHeading.textContent = aboutHeading.textContent.replace('Unternehmenssysteme', 'Unternehmens\u00adsysteme');
+}
+
 const menuButton = document.querySelector('[data-menu-button]');
 const mobileMenu = document.querySelector('[data-mobile-menu]');
 function setMobileMenu(open) {
