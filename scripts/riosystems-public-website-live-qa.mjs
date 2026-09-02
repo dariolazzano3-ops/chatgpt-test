@@ -4,7 +4,8 @@ import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const url = process.env.RIOSYSTEMS_PREVIEW_URL;
-assert.ok(url?.startsWith('https://'), 'RIOSYSTEMS_PREVIEW_URL required');
+const privateLocal = url?.startsWith('http://127.0.0.1:') || url?.startsWith('http://localhost:');
+assert.ok(url?.startsWith('https://') || privateLocal, 'RIOSYSTEMS_PREVIEW_URL must be HTTPS or private localhost');
 await mkdir('artifacts/riosystems-public-website-v1', { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const sizes = [['desktop-large',1440,1000],['desktop',1200,900],['tablet-wide',1024,900],['tablet',768,900],['mobile-large',430,900],['mobile',390,844],['mobile-375',375,812],['mobile-small',320,760]];
@@ -22,20 +23,86 @@ async function revealWholePage(page) {
 
 for (const [name,width,height] of sizes) {
   const page = await browser.newPage({ viewport: { width, height } });
+  const browserErrors = [];
+  page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`);
+  });
+
   const response = await page.goto(url, { waitUntil: 'networkidle' });
-  assert.ok(response?.ok(), `${name}: live page response is not OK`);
+  assert.ok(response?.ok(), `${name}: page response is not OK`);
   assert.match(await page.title(), /AURENTARA SYSTEMS/, `${name}: operative brand missing from title`);
   await page.locator('h1').waitFor({ state: 'visible' });
   assert.ok((await page.locator('h1').innerText()).includes('BUSINESS.'), `${name}: hero copy missing`);
-  assert.ok(await page.getByRole('link', { name: /Projekt starten/i }).first().isVisible(), `${name}: primary CTA not visible`);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  assert.ok(overflow <= 1, `${name}: horizontal overflow ${overflow}px`);
+  const primaryCta = page.locator('.hero').getByRole('link', { name: /Projekt starten/i });
+  assert.ok(await primaryCta.isVisible(), `${name}: primary CTA not visible`);
+  assert.equal(await page.locator('select[data-locale]').count(), 0, `${name}: unfinished locale UI is exposed`);
+  assert.ok(await page.locator('#hamyren').count(), `${name}: HAMYREN homepage section missing`);
+  assert.ok(await page.locator('#about').count(), `${name}: AURENTARA about section missing`);
+
   await revealWholePage(page);
   const hiddenRevealCount = await page.locator('.reveal:not(.is-visible)').count();
   assert.equal(hiddenRevealCount, 0, `${name}: ${hiddenRevealCount} reveal blocks remained hidden after traversal`);
+  assert.ok(await page.locator('#project').isVisible(), `${name}: contact/start section missing`);
+  assert.ok(await page.locator('footer').isVisible(), `${name}: footer missing`);
   await page.screenshot({ path: `artifacts/riosystems-public-website-v1/${name}.png`, fullPage: true });
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(overflow <= 1, `${name}: horizontal overflow ${overflow}px`);
+
+  if (width <= 767) {
+    const menuButton = page.locator('[data-menu-button]');
+    assert.ok(await menuButton.isVisible(), `${name}: mobile menu button missing`);
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: mobile menu initial state incorrect`);
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation öffnen', `${name}: mobile menu initial accessible label incorrect`);
+
+    const menuBox = await menuButton.boundingBox();
+    const heroCtaBox = await primaryCta.boundingBox();
+    const hamyrenCtaBox = await page.locator('#hamyren .button').first().boundingBox();
+    assert.ok(menuBox?.width >= 44 && menuBox?.height >= 44, `${name}: mobile menu tap target too small`);
+    assert.ok(heroCtaBox?.height >= 44, `${name}: hero CTA tap target too small`);
+    assert.ok(hamyrenCtaBox?.height >= 44, `${name}: HAMYREN CTA tap target too small`);
+
+    await menuButton.click();
+    await page.locator('#mobile-menu').waitFor({ state: 'visible' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'true', `${name}: mobile menu did not open`);
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation schließen', `${name}: mobile menu open label incorrect`);
+    const mobileHamyren = page.locator('#mobile-menu [data-hamyren-entry]');
+    assert.ok(await mobileHamyren.isVisible(), `${name}: mobile HAMYREN entry missing`);
+    assert.equal(await mobileHamyren.getAttribute('href'), './hamyren/index.html', `${name}: mobile HAMYREN destination changed`);
+
+    await page.keyboard.press('Escape');
+    await page.locator('#mobile-menu').waitFor({ state: 'hidden' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: Escape did not close mobile menu`);
+    assert.equal(await menuButton.getAttribute('aria-label'), 'Navigation öffnen', `${name}: Escape did not restore menu label`);
+    assert.equal(await menuButton.evaluate((node) => document.activeElement === node), true, `${name}: focus did not return to menu button after Escape`);
+
+    await menuButton.click();
+    await page.locator('#mobile-menu').waitFor({ state: 'visible' });
+    await page.locator('#mobile-menu a[href="#about"]').click();
+    await page.locator('#mobile-menu').waitFor({ state: 'hidden' });
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'false', `${name}: navigation link did not close mobile menu`);
+    assert.equal(new URL(page.url()).hash, '#about', `${name}: mobile navigation link did not navigate to About`);
+  }
+
+  assert.deepEqual(browserErrors, [], `${name}: unexpected browser errors: ${browserErrors.join(' | ')}`);
   await page.close();
 }
+
+const journeyPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await journeyPage.goto(url, { waitUntil: 'networkidle' });
+const desktopNavHamyren = journeyPage.locator('.desktop-nav [data-hamyren-entry]');
+assert.equal(await desktopNavHamyren.getAttribute('href'), './hamyren/index.html', 'desktop HAMYREN navigation bridge changed');
+const hamyrenHref = await journeyPage.getByRole('link', { name: /HAMYREN kennenlernen/i }).getAttribute('href');
+assert.equal(hamyrenHref, './hamyren/index.html', 'HAMYREN overview bridge changed');
+const testHref = await journeyPage.getByRole('link', { name: /5 Fragen testen/i }).getAttribute('href');
+assert.equal(testHref, './hamyren/experience.html', 'HAMYREN test bridge changed');
+const hamyrenResponse = await journeyPage.goto(new URL('hamyren/index.html', url).href, { waitUntil: 'networkidle' });
+assert.ok(hamyrenResponse?.ok(), 'HAMYREN overview did not load');
+assert.match(await journeyPage.title(), /HAMYREN/i, 'HAMYREN product identity missing');
+assert.ok(await journeyPage.getByRole('link', { name: /AURENTARA/i }).first().isVisible(), 'HAMYREN return path missing');
+await journeyPage.close();
+
 const motionPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await motionPage.emulateMedia({ reducedMotion: 'reduce' });
 await motionPage.goto(url, { waitUntil: 'networkidle' });
@@ -43,6 +110,12 @@ assert.equal(await motionPage.locator('.reveal').first().evaluate((el) => getCom
 await motionPage.getByRole('button', { name: /Projekt starten/i }).click();
 await motionPage.locator('dialog[open]').waitFor();
 assert.ok(await motionPage.getByText(/keine Daten an einen externen Provider/i).isVisible(), 'staging form safety note missing');
+await motionPage.locator('input[name="name"]').fill('Synthetic QA');
+await motionPage.locator('input[name="email"]').fill('qa@example.invalid');
+await motionPage.locator('select[name="country"]').selectOption({ label: 'Deutschland' });
+await motionPage.locator('textarea[name="description"]').fill('Synthetic private release-candidate QA only.');
+await motionPage.getByRole('button', { name: 'Staging prüfen' }).click();
+assert.match(await motionPage.locator('[data-form-result]').innerText(), /keine Daten übertragen/i, 'local-only contact validation failed');
 await motionPage.close();
 await browser.close();
-console.log('AURENTARA SYSTEMS Public Website live responsive QA: PASS');
+console.log('AURENTARA SYSTEMS Public Website private responsive QA: PASS');

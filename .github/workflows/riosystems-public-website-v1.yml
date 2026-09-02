@@ -6,6 +6,7 @@ on:
     paths:
       - 'projects/riosystems-public-website-v1/**'
       - 'scripts/riosystems-public-website-v1-smoke.mjs'
+      - 'scripts/riosystems-public-website-live-qa.mjs'
       - '.github/workflows/riosystems-public-website-v1.yml'
   workflow_dispatch:
 
@@ -15,12 +16,14 @@ permissions:
 jobs:
   acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
       - name: Syntax check interactions
         run: node --check projects/riosystems-public-website-v1/app.js
       - name: Public Website V1 contract
@@ -30,3 +33,28 @@ jobs:
           ! grep -R "fetch(" projects/riosystems-public-website-v1/app.js
           grep -q '"production_deploy": false' projects/riosystems-public-website-v1/project.json
           grep -q '"deployment_cost_limit_eur": 0' projects/riosystems-public-website-v1/project.json
+      - name: Install Chromium for existing responsive QA
+        run: npx playwright install --with-deps chromium
+      - name: Start local private preview server
+        shell: bash
+        run: |
+          python3 -m http.server 4174 --bind 127.0.0.1 --directory projects/riosystems-public-website-v1 >/tmp/aurentara-public-rc-http.log 2>&1 &
+          echo $! > /tmp/aurentara-public-rc-http.pid
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4174/index.html >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/aurentara-public-rc-http.log
+          exit 1
+      - name: Private desktop and mobile browser QA
+        env:
+          RIOSYSTEMS_PREVIEW_URL: http://127.0.0.1:4174/index.html
+        run: node scripts/riosystems-public-website-live-qa.mjs
+      - name: Upload private website visual review pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurentara-public-website-private-rc-v1
+          path: artifacts/riosystems-public-website-v1/*.png
+          if-no-files-found: warn
+          retention-days: 7
