@@ -1,0 +1,35 @@
+{
+  "schema_version": "riosystems.customer-project.v1",
+  "customer_id": "synthetic-mueller-elektrotechnik-saarbruecken",
+  "project_id": "mueller-elektrotechnik-digital-customer-system-v1",
+  "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+  "name": "Müller Elektrotechnik Digital Customer System V1",
+  "business_name": "Müller Elektrotechnik",
+  "state": "ACTIVE",
+  "objective": "Aus unstrukturierten lokalen Anfragen einen klaren digitalen Weg von Leistungsinteresse über qualifizierte Anfrage bis Follow-up und messbare Conversion schaffen.",
+  "project_root": "projects/mueller-elektrotechnik-digital-customer-system-v1",
+  "budget_cost_units": 0,
+  "capabilities": [
+    {"id":"website","factory":"web","required":true,"status":"EXECUTED","external_activation_required":false,"production_deploy":false},
+    {"id":"lead-flow","factory":"automation","required":true,"status":"DESIGNED","external_activation_required":true,"production_deploy":false},
+    {"id":"crm","factory":"business","required":true,"status":"DESIGNED","external_activation_required":true,"production_deploy":false},
+    {"id":"automation-followup","factory":"automation","required":true,"status":"DRY_RUN_READY","external_activation_required":true,"production_deploy":false},
+    {"id":"analytics","factory":"automation","required":true,"status":"DESIGN_ONLY","external_activation_required":true,"production_deploy":false}
+  ],
+  "missions": [{"mission_id":"mueller-elektrotechnik:first-customer-quality-run-v1","status":"QUALITY_RUN_IN_PROGRESS","source_revision":"8b29e76aa2fe7845abd6e501bf23db65b38fd2c2"}],
+  "deliveries": [],
+  "audit": [
+    {"event":"PROJECT_CREATED","state":"DRAFT","actor":"aurentara-quality-run"},
+    {"event":"PROJECT_CAPABILITIES_ASSIGNED","count":5,"actor":"system"},
+    {"event":"PROJECT_STATE_CHANGED","from":"DRAFT","state":"READY","actor":"aurentara-quality-run","reason":"Business brief and capability plan complete"},
+    {"event":"PROJECT_STATE_CHANGED","from":"READY","state":"ACTIVE","actor":"aurentara-quality-run","reason":"Zero-cost synthetic execution started"},
+    {"event":"PROJECT_MISSION_ATTACHED","mission_id":"mueller-elektrotechnik:first-customer-quality-run-v1","actor":"system"}
+  ],
+  "environment":"staging",
+  "synthetic_test_data_only":true,
+  "real_customer_data":false,
+  "production_deploy":false,
+  "public_deploy":false,
+  "external_customer_writes":0,
+  "variable_cost_eur":0
+}

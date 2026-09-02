@@ -1,0 +1,105 @@
+{
+  "schema": "aurentara.first-customer-quality-run.package.v1",
+  "brief": {
+    "schema": "aurentara.synthetic-customer-brief.v1",
+    "synthetic": true,
+    "customer": {"name":"Müller Elektrotechnik","location":"Saarbrücken, Deutschland","industry":"Elektrofachbetrieb","real_company":false},
+    "situation": {
+      "company_profile":"Kleiner bis mittelgroßer lokaler Elektrofachbetrieb für Privat- und Gewerbekunden.",
+      "current_journey":["Anfrage meist per Telefon oder E-Mail","Keine strukturierte Lead-Erfassung","CRM-Prozess fehlt","Follow-up erfolgt manuell","Analytics sind nicht durchgängig"],
+      "lead_loss_points":["Unstrukturierte Erstinformationen erschweren Priorisierung","Kein konsistenter Status pro Anfrage","Follow-up kann verspätet oder vergessen werden","Website beantwortet Projektfragen nicht systematisch"]
+    },
+    "target_customers":["Private Eigentümer und Bauherren in Saarbrücken und Umgebung","Hausverwaltungen und kleine Gewerbebetriebe mit Installations- oder Modernisierungsbedarf"],
+    "services":["Elektroinstallationen","Elektrosanierung","Smart Home","Wallboxen","Photovoltaik-nahe Elektroarbeiten","Fehlersuche","Gewerbeinstallationen"],
+    "prospect_information_needs":["Welche Leistungen passen zum Vorhaben?","Ist das Projekt im regionalen Einsatzgebiet?","Welche Eckdaten werden für eine erste Einschätzung benötigt?","Wie läuft eine Anfrage weiter?","Wie kann unkompliziert Kontakt aufgenommen werden?"],
+    "conversion_goals":["Qualifizierte Projektanfrage starten","Telefonkontakt auslösen","Leistungsinteresse erfassen"],
+    "required_systems":["website","lead-flow","crm","automation-followup","analytics"],
+    "not_required_now":["AI chatbot","customer portal","internal custom app","payments"],
+    "constraints":["Keine Preise erfinden","Keine Bewertungen oder Auszeichnungen erfinden","Keine Meistertitel oder Kundenzahlen erfinden","Keine realen Kundendaten","Keine externen Writes","Production und Public Deploy aus"]
+  },
+  "system_plan": {
+    "schema":"aurentara.customer-system-plan.v1",
+    "project_id":"mueller-elektrotechnik-digital-customer-system-v1",
+    "scope_key":"synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+    "environment":"staging","synthetic_only":true,
+    "objective":"Aus unstrukturierten lokalen Anfragen einen klaren digitalen Weg von Leistungsinteresse über qualifizierte Anfrage bis Follow-up und messbare Conversion schaffen.",
+    "capabilities":[
+      {"id":"website","factory":"web","priority":"required","outcome":"Vertrauenswürdiger mobiler Auftritt mit klarer lokaler Positionierung und CTA-System"},
+      {"id":"lead-flow","factory":"automation","priority":"required","outcome":"Kurzer Anfrageflow mit Projektart, PLZ, Zeitraum und Kontakt"},
+      {"id":"crm","factory":"business","priority":"required","outcome":"Projektbezogene Pipeline mit klaren nächsten Aktionen"},
+      {"id":"automation-followup","factory":"automation","priority":"required","outcome":"Bestätigung, interne Aufgabe und kontrollierte Follow-up-Logik"},
+      {"id":"analytics","factory":"automation","priority":"required","outcome":"Messmodell für Website- und Anfrage-Conversions ohne personenbezogene Payloads"}
+    ],
+    "excluded":["AI","chat","customer portal","payments"],
+    "execution_path":["existing project command center","project blueprint","mission cost preflight","native web project output","business CRM contract","automation factory dry run","analytics design","browser QA","delivery gate"],
+    "safety":{"production_deploy":false,"public_deploy":false,"real_customer_data":false,"external_customer_writes":0,"paid_provider_calls":0,"variable_cost_eur":0}
+  },
+  "lead_flow": {
+    "schema":"aurentara.lead-capture-design.v1","project_id":"mueller-elektrotechnik-digital-customer-system-v1",
+    "fields":[
+      {"key":"name","label":"Name","required":true,"reason":"Ansprechperson"},
+      {"key":"contact","label":"E-Mail oder Telefon","required":true,"reason":"Rückmeldung ermöglichen"},
+      {"key":"postal_code","label":"PLZ","required":true,"reason":"Einsatzgebiet einordnen"},
+      {"key":"project_type","label":"Art des Projekts","required":true,"reason":"Passende Anfragekategorie"},
+      {"key":"timeframe","label":"Gewünschter Zeitraum","required":false,"reason":"Priorisierung ohne unnötige Hürde"},
+      {"key":"message","label":"Kurze Nachricht","required":false,"reason":"Wichtige Besonderheiten"}
+    ],
+    "project_types":["Elektroinstallation","Sanierung","Smart Home","Wallbox","PV-nahe Elektroarbeiten","Fehlersuche","Gewerbeinstallation","Sonstiges"],
+    "after_submit":["Eingang bestätigen","Lead als NEW INQUIRY erfassen","Interne Prüfung und nächste Aktion festlegen"],
+    "test_behavior":"LOCAL_VALIDATION_ONLY_NO_EXTERNAL_WRITE"
+  },
+  "crm_contract": {
+    "project_id":"mueller-elektrotechnik-digital-customer-system-v1","business":"Müller Elektrotechnik","industry":"Elektrohandwerk","country":"DE","language":"de",
+    "crm_requirements":["Lead-Status sichtbar","Nächste Aktion und Fälligkeit","Projektinteresse","Kontaktkanal","Verlustgrund bei LOST"],
+    "lead_sources":["website","phone","email","referral"],
+    "sales_pipeline":{"key":"inquiries","name":"Anfragen","stages":[
+      {"key":"new-inquiry","name":"New Inquiry","position":0,"allowed_next":["qualification"]},
+      {"key":"qualification","name":"Qualification","position":1,"allowed_next":["contacted","lost"]},
+      {"key":"contacted","name":"Contacted","position":2,"allowed_next":["site-visit-details","quote","lost"]},
+      {"key":"site-visit-details","name":"Site Visit / Details","position":3,"allowed_next":["quote","lost"]},
+      {"key":"quote","name":"Quote","position":4,"allowed_next":["follow-up","won","lost"]},
+      {"key":"follow-up","name":"Follow-up","position":5,"allowed_next":["won","lost"]},
+      {"key":"won","name":"Won","position":6,"terminal":true,"outcome":"won"},
+      {"key":"lost","name":"Lost","position":7,"terminal":true,"outcome":"lost"}
+    ]},
+    "custom_fields":[
+      {"key":"contact_name","entity":"lead","type":"text","required":true,"label":"Name"},
+      {"key":"contact_channel","entity":"lead","type":"select","required":true,"label":"Kontaktkanal","options":["email","phone"]},
+      {"key":"postal_code","entity":"lead","type":"text","required":true,"label":"PLZ"},
+      {"key":"project_type","entity":"lead","type":"select","required":true,"label":"Projektart","options":["Elektroinstallation","Sanierung","Smart Home","Wallbox","PV-nahe Elektroarbeiten","Fehlersuche","Gewerbeinstallation","Sonstiges"]},
+      {"key":"timeframe","entity":"lead","type":"select","required":false,"label":"Zeitraum","options":["so bald wie möglich","1–4 Wochen","1–3 Monate","später / Planung"]},
+      {"key":"next_action","entity":"lead","type":"text","required":true,"label":"Nächste Aktion"},
+      {"key":"next_action_due","entity":"lead","type":"date","required":false,"label":"Fällig am"},
+      {"key":"lost_reason","entity":"lead","type":"select","required":false,"label":"Verlustgrund","options":["kein Bedarf","außerhalb Einsatzgebiet","zeitlich nicht passend","nicht erreichbar","anderer Anbieter","sonstiges"]}
+    ],
+    "analytics_requirements":["pipeline_stage_changed","lead_created","quote_followup_due"],
+    "metadata":{"synthetic_only":true,"source":"first-customer-quality-run-v1"}
+  },
+  "automation_plan": {
+    "goal":"Neue synthetische Projektanfragen strukturiert bestätigen, intern zur Bearbeitung markieren und unbeantwortete bzw. offene Angebote kontrolliert nachverfolgen.",
+    "steps":[
+      {"id":"receive","type":"input","name":"Neue Anfrage aufnehmen","config":{"source":"website_contact"}},
+      {"id":"validate","type":"filter","name":"Pflichtfelder prüfen","depends_on":["receive"],"config":{"required":["name","contact","postal_code","project_type"]}},
+      {"id":"classify","type":"map","name":"Projektart und Priorität ableiten","depends_on":["validate"]},
+      {"id":"confirmation","type":"email","name":"Eingangsbestätigung vorbereiten","depends_on":["classify"],"config":{"mode":"blocked_in_test"}},
+      {"id":"crm","type":"crm_write","name":"CRM Lead anlegen","depends_on":["classify"],"config":{"stage":"new-inquiry","mode":"blocked_in_test"}},
+      {"id":"task","type":"output","name":"Interne nächste Aktion erzeugen","depends_on":["classify"]},
+      {"id":"unanswered_followup","type":"condition","name":"Unbeantwortete Anfrage prüfen","depends_on":["task"],"config":{"condition":"no_operator_response_after_internal_sla"}},
+      {"id":"quote_followup","type":"condition","name":"Offenes Angebot prüfen","depends_on":["task"],"config":{"condition":"quote_open_and_followup_due"}}
+    ]
+  },
+  "analytics_plan": {
+    "schema":"aurentara.analytics-design.v1","project_id":"mueller-elektrotechnik-digital-customer-system-v1","execution":"DESIGN_ONLY_NO_EXTERNAL_EVENTS",
+    "events":[
+      {"event":"PAGE_VIEW","properties":["page_id","environment","synthetic"],"pii":false},
+      {"event":"PRIMARY_CTA_CLICK","properties":["cta_id","page_id","environment","synthetic"],"pii":false},
+      {"event":"CONTACT_START","properties":["source_section","environment","synthetic"],"pii":false},
+      {"event":"CONTACT_SUBMIT","properties":["project_type","postal_code_prefix","environment","synthetic"],"pii":false},
+      {"event":"SERVICE_INTEREST","properties":["service_id","environment","synthetic"],"pii":false},
+      {"event":"PHONE_CLICK","properties":["source_section","environment","synthetic"],"pii":false},
+      {"event":"EMAIL_CLICK","properties":["source_section","environment","synthetic"],"pii":false}
+    ],
+    "rules":["Keine Namen, E-Mails, Telefonnummern oder Freitexte in Analytics","Person Profiles aus","Geo-IP nicht als Customer Field speichern","Event-Writes in diesem Test deaktiviert"],
+    "success_metrics":["CTA-Rate","Kontaktstart-Rate","Submit-Rate","Interesse nach Leistungsbereich"]
+  }
+}
