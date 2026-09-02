@@ -1,6 +1,7 @@
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
 import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
+import { activepiecesStagingConnectionEvidence, isActivepiecesStagingConnected } from './activepieces-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
@@ -12,6 +13,8 @@ const FRAMER_CONNECTION_EVIDENCE = framerStagingConnectionEvidence();
 const FRAMER_CONNECTED_STAGING = isFramerStagingConnected();
 const WEBFLOW_CONNECTION_EVIDENCE = webflowStagingConnectionEvidence();
 const WEBFLOW_CONNECTED_STAGING = isWebflowStagingConnected();
+const ACTIVEPIECES_CONNECTION_EVIDENCE = activepiecesStagingConnectionEvidence();
+const ACTIVEPIECES_CONNECTED_STAGING = isActivepiecesStagingConnected();
 const BASE44_RESOLUTION = remainingProviderResolution('base44');
 const LOVABLE_RESOLUTION = remainingProviderResolution('lovable-github');
 const WEBFLOW_RESOLUTION = remainingProviderResolution('webflow-api');
@@ -185,20 +188,26 @@ const PROVIDERS = [
     roles: ['secondary_automation'],
     capabilities: ['automation.run', 'automation.orchestrate'],
     external_write: true,
-    connection_state: 'NOT_CONNECTED',
-    maturity_level: ACTIVEPIECES_RESOLUTION.maturity_level,
-    final_classification: ACTIVEPIECES_RESOLUTION.final_classification,
-    central_connection_required: ACTIVEPIECES_RESOLUTION.central_connection_required,
-    account_state: ACTIVEPIECES_RESOLUTION.account_state,
-    credential_state: ACTIVEPIECES_RESOLUTION.credential_state,
+    verification: ACTIVEPIECES_CONNECTED_STAGING ? 'CONNECTION_VERIFIED_STAGING' : 'NOT_CONNECTED',
+    connection_state: ACTIVEPIECES_CONNECTED_STAGING ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+    maturity_level: ACTIVEPIECES_CONNECTED_STAGING ? 'L3' : ACTIVEPIECES_RESOLUTION.maturity_level,
+    final_classification: ACTIVEPIECES_CONNECTED_STAGING ? 'CONNECTED_STAGING' : ACTIVEPIECES_RESOLUTION.final_classification,
+    central_connection_required: true,
+    account_state: ACTIVEPIECES_CONNECTED_STAGING ? 'READY' : ACTIVEPIECES_RESOLUTION.account_state,
+    credential_state: ACTIVEPIECES_CONNECTED_STAGING ? 'PRESENT_VALID' : ACTIVEPIECES_RESOLUTION.credential_state,
+    api_accessible: ACTIVEPIECES_CONNECTED_STAGING,
     routing_ready: false,
     runtime_eligible: false,
     free_tier_confirmed: true,
     cost_mode: 'free_daily_credits_hard_cap',
-    restrictions: ['SECONDARY_ONLY', 'OPERATOR_ACCOUNT_API_KEY_GATE', 'NO_RUNTIME_EVIDENCE', 'PRODUCTION_DISABLED'],
-    operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
+    restrictions: ['SECONDARY_ONLY', 'CONNECTED_READ_ONLY', 'FLOW_EXECUTION_NOT_VERIFIED', 'MUTATING_EXECUTION_APPROVAL_REQUIRED', 'PRODUCTION_DISABLED'],
+    operator_gate: ACTIVEPIECES_CONNECTED_STAGING ? null : ACTIVEPIECES_RESOLUTION.operator_gate,
+    connection_evidence: ACTIVEPIECES_CONNECTION_EVIDENCE,
     resolution_evidence: ACTIVEPIECES_RESOLUTION,
-    verified_at: '2026-09-01'
+    flow_execution_verified: false,
+    routing_scope: 'secondary_only',
+    production_eligible: false,
+    verified_at: '2026-09-02'
   }),
   strategic({
     id: 'n8n-client-owned',
