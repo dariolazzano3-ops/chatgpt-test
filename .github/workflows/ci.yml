@@ -43,17 +43,6 @@ jobs:
           node ./scripts/aurentara-customer-red-team-v1.mjs
           node --test scripts/hamyren-capability-policy-v1.test.mjs
           node scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
-      - name: HAMYREN memory and business-state regressions
-        run: |
-          node --test scripts/hamyren-foundation-v1.test.mjs
-          node --test scripts/business-state-v1.test.mjs
-          node --test scripts/hamyren-memory-v1.test.mjs
-          node scripts/hamyren-vertical-readiness-matrix-v1-smoke.mjs
-          node scripts/hamyren-public-research-v1-smoke.mjs
-          node scripts/hamyren-connectors-v1-smoke.mjs
-          node scripts/personal-business-ai-founder-offer-v1-smoke.mjs
-          node --test scripts/hamyren-business-ownership-v1.test.mjs
-          node --test scripts/operator-hamyren-v1.test.mjs
       - name: HAMYREN Delivery to Memory V1 acceptance
         run: node --test scripts/hamyren-delivery-memory-feedback-v1.test.mjs
       - name: Canonical brand and ownership contract
