@@ -197,7 +197,7 @@ test('HAMYREN standard project preserves canonical mission/delivery/memory flow 
   assert.equal((await memory.createTenant({ tenant_id: ids.tenant_id, owner_user_id: ids.user_id, name: 'Final Loop Tenant' })).ok, true);
   assert.equal((await memory.createBusiness(ids, { business_id: ids.business_id, name: 'Synthetic Final Business', country: 'DE' })).ok, true);
   assert.equal((await memory.addConfirmedMemory(ids, ids.business_id, { fact_key: 'lead_process', subject: 'Lead process', value: 'Manual inbound lead handling', category: 'OPERATIONS', source_type: 'user_statement', confirmed_by_user: true, confidence: 1 })).ok, true);
-  const before = await memory.getRelevantContext(ids, ids.business_id, { query: 'lead process' }); assert.equal(before.ok, true); assert.ok(before.context.facts.some((fact) => fact.fact_key === 'lead_process'));
+  const before = await memory.getRelevantContext(ids, ids.business_id, { query: 'lead process' }); assert.equal(before.ok, true); assert.ok(before.context.relevant_facts.some((fact) => fact.fact_key === 'lead_process'));
 
   const journeyInput = { tenant_id: ids.tenant_id, business_id: ids.business_id, activity: 'implementation', capability: 'business', customer_goal: 'Add a standardized lead notification workflow', business_context: { lead_process: 'Manual inbound lead handling' }, requirements: { complexity: 'low', integration_count: 0, standardized_template_available: true }, projected_direct_cost_eur: 4 };
   const integrated = prepareHamyrenBuildCreditJourneyV1(journeyInput);
@@ -215,7 +215,7 @@ test('HAMYREN standard project preserves canonical mission/delivery/memory flow 
   assert.equal(feedback.ok, true); assert.ok(feedback.business_state.current_facts.some((fact) => fact.fact_key === 'lead_notification_workflow'));
   assert.equal(feedback.business_state.current_facts.some((fact) => /provider|raw_execution|log/i.test(fact.fact_key)), false);
   const settlement = await credits.settleBuildCredits(ids, { reservation_id: reservation.reservation.reservation_id, outcome: 'SUCCESS', actual_direct_cost_eur: 4 }); assert.equal(settlement.reservation.consumed_credits, 1);
-  const refreshed = await memory.getRelevantContext(ids, ids.business_id, { query: 'lead notification workflow' }); assert.equal(refreshed.ok, true); assert.ok(refreshed.context.facts.some((fact) => fact.fact_key === 'lead_notification_workflow'));
+  const refreshed = await memory.getRelevantContext(ids, ids.business_id, { query: 'lead notification workflow' }); assert.equal(refreshed.ok, true); assert.ok(refreshed.context.relevant_facts.some((fact) => fact.fact_key === 'lead_notification_workflow'));
   assert.equal(aurentaraDeliveryMemoryFeedbackManifestV1().raw_execution_logs_persisted, false); assert.equal(missionCompilerManifest().production_deploy, false);
 });
 
