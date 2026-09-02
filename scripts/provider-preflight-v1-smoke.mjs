@@ -58,10 +58,22 @@ for (const [id, role] of requiredCatalog) {
   assert.equal(byId.get(id).strategic_state, 'SELECTED');
   assert.equal(byId.get(id).availability, 'AVAILABLE');
 }
-for (const id of ['base44', 'activepieces-cloud-free', 'n8n-client-owned', 'lovable-github']) {
+for (const id of ['base44', 'n8n-client-owned', 'lovable-github']) {
   assert.equal(byId.get(id).verification, 'NOT_CONNECTED');
   assert.equal(byId.get(id).runtime_eligible, false);
 }
+const activepiecesCatalog = byId.get('activepieces-cloud-free');
+assert.equal(activepiecesCatalog.verification, 'CONNECTION_VERIFIED_STAGING');
+assert.equal(activepiecesCatalog.connection_state, 'CONNECTED_STAGING');
+assert.equal(activepiecesCatalog.maturity_level, 'L3');
+assert.equal(activepiecesCatalog.final_classification, 'CONNECTED_STAGING');
+assert.equal(activepiecesCatalog.credential_state, 'PRESENT_VALID');
+assert.equal(activepiecesCatalog.api_accessible, true);
+assert.equal(activepiecesCatalog.runtime_eligible, false);
+assert.equal(activepiecesCatalog.routing_ready, false);
+assert.equal(activepiecesCatalog.flow_execution_verified, false);
+assert.equal(activepiecesCatalog.routing_scope, 'secondary_only');
+assert.equal(activepiecesCatalog.operator_gate, null);
 const webflowCatalog = byId.get('webflow-api');
 assert.equal(webflowCatalog.verification, 'CONNECTION_VERIFIED_STAGING');
 assert.equal(webflowCatalog.connection_state, 'CONNECTED_STAGING');
@@ -163,6 +175,18 @@ const ecosystem = buildProviderEcosystemProjection();
 for (const provider of ecosystem.provider_ecosystem.filter((item) => item.connection_state === 'NOT_CONNECTED')) {
   assert.equal(provider.active_runtime, false, `${provider.id} cannot be active while NOT_CONNECTED`);
 }
+const activepiecesEcosystem = ecosystem.provider_ecosystem.find((item) => item.id === 'activepieces-cloud-free');
+assert.ok(activepiecesEcosystem);
+assert.equal(activepiecesEcosystem.connection_state, 'CONNECTED_STAGING');
+assert.equal(activepiecesEcosystem.verification, 'VERIFIED_STAGING');
+assert.equal(activepiecesEcosystem.active_runtime, false);
+assert.equal(activepiecesEcosystem.runtime_eligible, false);
+assert.equal(activepiecesEcosystem.restrictions.includes('SECONDARY_ONLY'), true);
+assert.equal(activepiecesEcosystem.restrictions.includes('FLOW_EXECUTION_NOT_VERIFIED'), true);
+assert.equal(activepiecesEcosystem.evidence.provider_writes, 0);
+assert.equal(activepiecesEcosystem.evidence.flow_execution_verified, false);
+assert.equal(activepiecesEcosystem.secrets_exposed, false);
+assert.equal(activepiecesEcosystem.production_deploy, false);
 const framerEcosystem = ecosystem.provider_ecosystem.find((item) => item.id === 'framer-server-api');
 assert.ok(framerEcosystem);
 assert.equal(framerEcosystem.connection_state, 'CONNECTED_STAGING');
@@ -248,5 +272,8 @@ console.log(JSON.stringify({
   webflow_connected_staging: true,
   webflow_write_verified: false,
   webflow_publish_verified: false,
+  activepieces_connected_staging: true,
+  activepieces_active_runtime: false,
+  activepieces_flow_execution_verified: false,
   safety: { production: false, external_writes: false, paid_provider_activation: false, additional_variable_cost_eur: 0 }
 }, null, 2));
