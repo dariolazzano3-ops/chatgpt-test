@@ -1,0 +1,48 @@
+name: Müller Elektrotechnik Customer Quality V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'projects/mueller-elektrotechnik-digital-customer-system-v1/**'
+      - 'scripts/mueller-elektrotechnik-*-v1.mjs'
+      - '.github/workflows/mueller-elektrotechnik-quality-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'projects/mueller-elektrotechnik-digital-customer-system-v1/**'
+      - 'scripts/mueller-elektrotechnik-*-v1.mjs'
+      - '.github/workflows/mueller-elektrotechnik-quality-v1.yml'
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Customer system contract and zero-cost preflight
+        run: node scripts/mueller-elektrotechnik-quality-v1-smoke.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start private local website
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory projects/mueller-elektrotechnik-digital-customer-system-v1 > /tmp/mueller-quality-http.log 2>&1 &
+          echo $! > /tmp/mueller-quality-http.pid
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/mueller-quality-http.log
+          exit 1
+      - name: Desktop mobile accessibility functional QA
+        run: node scripts/mueller-elektrotechnik-browser-qa-v1.mjs
+      - name: Upload private visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: mueller-elektrotechnik-customer-quality-v1
+          path: artifacts/mueller-elektrotechnik-quality-v1/*.png
+          if-no-files-found: error
+          retention-days: 7

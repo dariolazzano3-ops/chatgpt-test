@@ -1,0 +1,84 @@
+{
+  "schema": "aurentara.commercial-quality-review.v1",
+  "project_id": "mueller-elektrotechnik-digital-customer-system-v1",
+  "customer": "Müller Elektrotechnik",
+  "synthetic": true,
+  "review_basis": [
+    "customer need analysis",
+    "system plan",
+    "zero-cost preflight",
+    "desktop 1440x1000 browser QA",
+    "tablet 768x900 browser QA",
+    "mobile 390x844 browser QA",
+    "mobile-small 320x760 browser QA",
+    "private visual screenshot review",
+    "CRM contract validation",
+    "automation dry-run validation",
+    "analytics design review"
+  ],
+  "initial_quality_observation": {
+    "status": "PARTIAL_BEFORE_REPAIR",
+    "primary_defect": "Responsive horizontal overflow at tablet/mobile-small widths prevented acceptance.",
+    "commercial_effect": "A customer-facing mobile build cannot be sold confidently while horizontal layout defects remain."
+  },
+  "improvements_performed": [
+    "Corrected invalid tablet shell width calculation and intrinsic grid sizing.",
+    "Added robust wrapping for long German service labels.",
+    "Measured exact 320px overflow offenders and changed the service signal strip to wrap on small screens.",
+    "Clipped only the residual root scroll artifact after no DOM element remained outside the viewport."
+  ],
+  "scores": {
+    "visual_design": 8.6,
+    "copy": 8.4,
+    "trust": 7.4,
+    "business_understanding": 9.1,
+    "website_structure": 8.8,
+    "lead_flow": 8.8,
+    "crm_logic": 8.7,
+    "automation_logic": 8.4,
+    "analytics": 8.4,
+    "mobile_quality": 8.7,
+    "technical_quality": 9.0,
+    "overall_professionalism": 8.5
+  },
+  "top_quality_gaps": [
+    {
+      "rank": 1,
+      "gap": "Real customer trust evidence",
+      "impact": "The synthetic run cannot honestly include real team/project photography, certifications, qualifications, reviews or verified contact/legal details. These are the largest remaining trust lever for a real customer launch.",
+      "action_in_this_run": "NOT_FABRICATED"
+    },
+    {
+      "rank": 2,
+      "gap": "Production activation of lead/CRM/follow-up/analytics",
+      "impact": "The commercial logic is coherent and validated, but external writes/messages/events are deliberately blocked in this zero-cost safety run.",
+      "action_in_this_run": "DESIGN_AND_DRY_RUN_ONLY"
+    },
+    {
+      "rank": 3,
+      "gap": "Customer-specific visual proof",
+      "impact": "The custom visual system is strong, but real project photos or documented work examples would make the page feel more established and locally authentic once supplied by a real customer.",
+      "action_in_this_run": "NOT_FABRICATED"
+    }
+  ],
+  "sellability": {
+    "gate": "YES",
+    "meaning": "Confidently chargeable as a professionally designed customer system and private customer-ready preview, with real trust assets and production integration activation explicitly remaining onboarding/launch work rather than pretending they already exist.",
+    "production_launch_claimed": false
+  },
+  "provider_review": {
+    "switch_recommended": false,
+    "reason": "No current output area shows a quality deficit large enough to justify replacing the existing native Web/Business/Automation path. Framer could be considered later for a visual-production workflow, but this run does not establish a material quality advantage that warrants switching providers.",
+    "ai_required": false
+  },
+  "safety": {
+    "production_deploy": false,
+    "public_deploy": false,
+    "real_customer_data": false,
+    "real_customer_ai_processing": false,
+    "billing": false,
+    "paid_provider_calls": 0,
+    "external_customer_writes": 0,
+    "additional_variable_cost_eur": 0
+  }
+}
