@@ -11,6 +11,8 @@ const root = new URL('../projects/mueller-elektrotechnik-digital-customer-system
 const readJson = async (name) => JSON.parse(await readFile(new URL(name, root), 'utf8'));
 const project = await readJson('project.json');
 const customerSystem = await readJson('customer-system.json');
+const commercialReview = await readJson('commercial-quality-review.json');
+const deliverySummary = await readFile(new URL('delivery-summary.md', root), 'utf8');
 const brief = customerSystem.brief;
 const systemPlan = customerSystem.system_plan;
 const crmInput = customerSystem.crm_contract;
@@ -25,6 +27,14 @@ assert.equal(project.production_deploy, false);
 assert.equal(project.public_deploy, false);
 assert.equal(project.variable_cost_eur, 0);
 assert.equal(project.external_customer_writes, 0);
+assert.equal(project.state, 'DELIVERED');
+assert.equal(project.missions.at(-1)?.status, 'DELIVERED');
+assert.equal(project.deliveries.length, 1);
+assert.equal(project.deliveries[0].status, 'DELIVERED');
+assert.equal(project.deliveries[0].customer_sellable_preview, true);
+assert.equal(project.deliveries[0].production_ready, false);
+assert.equal(project.deliveries[0].sellability_gate, 'YES');
+assert.equal(project.deliveries[0].commercial_quality_score, 8.5);
 
 const phase2 = evaluatePhase2Readiness();
 assert.equal(phase2.ready, true, 'existing Phase 2 project architecture must be ready');
@@ -81,5 +91,16 @@ for (const field of ['name','contact','postal_code','project_type']) assert.matc
 assert.match(html, /meta name="robots" content="noindex,nofollow"/); assert.doesNotMatch(html, /https?:\/\//i, 'customer page must not load or post to external URLs');
 assert.doesNotMatch(html, /Meisterbetrieb|5\s*Sterne|★★★★★|über\s+\d+\s+Kunden/i, 'unverified trust claims must not be invented'); assert.match(html, /vollständig synthetisches Testunternehmen/i); assert.match(html, /keine externe Übertragung/i);
 
-const summary = {status:'PASS',project:{scope_key:project.scope_key,state:project.state,capabilities:project.capabilities.map((item)=>item.id)},architecture:{phase2_ready:phase2.ready,authoritative_create_project:true,external_side_effect_performed:false},preflight:{route:deep.route,estimated_cost_eur:deep.estimated_cost_eur,low_estimate_eur:deep.low_estimate_eur,high_estimate_eur:deep.high_estimate_eur,confidence:deep.confidence,confidence_score:deep.confidence_score,expected_provider_classes:deep.expected_provider_classes,calculation_latency_ms:deep.calculation_latency_ms,paid_calls_performed:0,actual_variable_cost_eur:0},crm:{stages:crm.contract.sales_pipeline.stages.map((item)=>item.key),synthetic_only:true},automation:{dry_run_status:automationDryRun.status,blocked_external_steps:automationDryRun.trace.filter((item)=>item.status==='BLOCKED').map((item)=>item.step_id)},analytics:{mode:analytics.execution,event_count:analytics.events.length},safety:{production_deploy:false,public_deploy:false,real_customer_data:false,real_customer_ai_processing:false,billing:false,paid_provider_calls:0,external_customer_writes:0,additional_variable_cost_eur:0}};
+assert.equal(commercialReview.sellability.gate, 'YES');
+assert.equal(commercialReview.sellability.production_launch_claimed, false);
+assert.ok(commercialReview.scores.overall_professionalism >= 8);
+assert.equal(commercialReview.top_quality_gaps.length, 3);
+assert.equal(commercialReview.provider_review.switch_recommended, false);
+assert.equal(commercialReview.provider_review.ai_required, false);
+assert.equal(commercialReview.safety.additional_variable_cost_eur, 0);
+assert.match(deliverySummary, /Final overall commercial-quality score: \*\*8\.5 \/ 10\*\*/);
+assert.match(deliverySummary, /Production OFF/);
+assert.match(deliverySummary, /External customer writes 0/);
+
+const summary = {status:'PASS',project:{scope_key:project.scope_key,state:project.state,capabilities:project.capabilities.map((item)=>item.id),delivery_status:project.deliveries[0].status,sellability_gate:commercialReview.sellability.gate,commercial_quality_score:commercialReview.scores.overall_professionalism},architecture:{phase2_ready:phase2.ready,authoritative_create_project:true,external_side_effect_performed:false},preflight:{route:deep.route,estimated_cost_eur:deep.estimated_cost_eur,low_estimate_eur:deep.low_estimate_eur,high_estimate_eur:deep.high_estimate_eur,confidence:deep.confidence,confidence_score:deep.confidence_score,expected_provider_classes:deep.expected_provider_classes,calculation_latency_ms:deep.calculation_latency_ms,paid_calls_performed:0,actual_variable_cost_eur:0},crm:{stages:crm.contract.sales_pipeline.stages.map((item)=>item.key),synthetic_only:true},automation:{dry_run_status:automationDryRun.status,blocked_external_steps:automationDryRun.trace.filter((item)=>item.status==='BLOCKED').map((item)=>item.step_id)},analytics:{mode:analytics.execution,event_count:analytics.events.length},safety:{production_deploy:false,public_deploy:false,real_customer_data:false,real_customer_ai_processing:false,billing:false,paid_provider_calls:0,external_customer_writes:0,additional_variable_cost_eur:0}};
 console.log('AURENTARA FIRST CUSTOMER QUALITY RUN V1 contract: PASS'); console.log(JSON.stringify(summary,null,2));
