@@ -20,6 +20,8 @@ export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-l
 // Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
 void operatorHumanUxFinalManifest;
 
+const AURENTARA_WEBSITE_WORKSPACE_PREVIEW = "https://factory-operator-project-wor.chatgpt-factory-preview.pages.dev";
+
 const productionCustomerAccountSurface = createProductionCustomerAccountPrivacySurface();
 const customerLaunchShield = createCustomerLaunchShield({
   production_surface: productionCustomerAccountSurface,
@@ -92,7 +94,11 @@ export default {
         if (String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging") return operatorUnavailable();
         throw error;
       }
-      const operatorResponse = await handleOperatorDashboard(request, env, ctx, runtimeService ? { runtime_service: runtimeService } : {});
+      const operatorEnv = {
+        ...env,
+        RIOSYSTEMS_AURENTARA_WEBSITE_PREVIEW_URL: env?.RIOSYSTEMS_AURENTARA_WEBSITE_PREVIEW_URL || AURENTARA_WEBSITE_WORKSPACE_PREVIEW
+      };
+      const operatorResponse = await handleOperatorDashboard(request, operatorEnv, ctx, runtimeService ? { runtime_service: runtimeService } : {});
       if (operatorResponse) return applyOperatorBranding(operatorResponse);
     }
 
