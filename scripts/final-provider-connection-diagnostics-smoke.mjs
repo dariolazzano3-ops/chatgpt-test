@@ -18,6 +18,8 @@ assert.equal(presence.provider_requests, 0);
 assert.equal(presence.provider_writes, 0);
 assert.equal(presence.production_deploy, false);
 assert.equal(presence.external_writes, false);
+assert.equal(presence.real_customer_data, false);
+assert.equal(presence.variable_cost_eur, 0);
 
 const headers = { authorization: 'Bearer test-api-token' };
 const seen = [];
@@ -39,8 +41,15 @@ const webflowPresenceResponse = await handleFinalProviderConnectionDiagnostic(
 );
 const webflowPresenceBody = await webflowPresenceResponse.json();
 assert.equal(webflowPresenceBody.ok, true);
+assert.equal(webflowPresenceBody.worker_reached, true);
 assert.equal(webflowPresenceBody.credential_present, true);
 assert.equal(webflowPresenceBody.provider_requests, 0);
+assert.equal(webflowPresenceBody.provider_writes, 0);
+assert.equal(webflowPresenceBody.flow_execution_performed, false);
+assert.equal(webflowPresenceBody.production_deploy, false);
+assert.equal(webflowPresenceBody.external_writes, false);
+assert.equal(webflowPresenceBody.real_customer_data, false);
+assert.equal(webflowPresenceBody.variable_cost_eur, 0);
 assert.equal(seen.length, 0);
 assert.equal(JSON.stringify(webflowPresenceBody).includes(env.WEBFLOW_SITE_TOKEN), false);
 
@@ -51,10 +60,37 @@ const activepiecesPresenceResponse = await handleFinalProviderConnectionDiagnost
 );
 const activepiecesPresenceBody = await activepiecesPresenceResponse.json();
 assert.equal(activepiecesPresenceBody.ok, true);
+assert.equal(activepiecesPresenceBody.worker_reached, true);
 assert.equal(activepiecesPresenceBody.credential_present, true);
 assert.equal(activepiecesPresenceBody.provider_requests, 0);
+assert.equal(activepiecesPresenceBody.provider_writes, 0);
+assert.equal(activepiecesPresenceBody.flow_execution_performed, false);
+assert.equal(activepiecesPresenceBody.production_deploy, false);
+assert.equal(activepiecesPresenceBody.external_writes, false);
+assert.equal(activepiecesPresenceBody.real_customer_data, false);
+assert.equal(activepiecesPresenceBody.variable_cost_eur, 0);
 assert.equal(seen.length, 0);
 assert.equal(JSON.stringify(activepiecesPresenceBody).includes(env.ACTIVEPIECES_API_KEY), false);
+
+const missingActivepiecesEnv = { ...env };
+delete missingActivepiecesEnv.ACTIVEPIECES_API_KEY;
+const missingActivepiecesResponse = await handleFinalProviderConnectionDiagnostic(
+  new Request('https://control.example/factory/diagnostics/activepieces-connection', { headers }),
+  missingActivepiecesEnv,
+  { fetch: mockFetch }
+);
+const missingActivepieces = await missingActivepiecesResponse.json();
+assert.equal(missingActivepiecesResponse.status, 200);
+assert.equal(missingActivepieces.ok, false);
+assert.equal(missingActivepieces.worker_reached, true);
+assert.equal(missingActivepieces.credential_present, false);
+assert.equal(missingActivepieces.provider_requests, 0);
+assert.equal(missingActivepieces.provider_writes, 0);
+assert.equal(missingActivepieces.flow_execution_performed, false);
+assert.equal(missingActivepieces.production_deploy, false);
+assert.equal(missingActivepieces.external_writes, false);
+assert.equal(seen.length, 0);
+assert.equal(JSON.stringify(missingActivepieces).includes('test-activepieces-secret'), false);
 
 const webflowResponse = await handleFinalProviderConnectionDiagnostic(
   new Request('https://control.example/factory/diagnostics/webflow-connection?verify=sites', { headers }),
@@ -63,6 +99,7 @@ const webflowResponse = await handleFinalProviderConnectionDiagnostic(
 );
 const webflow = await webflowResponse.json();
 assert.equal(webflow.ok, true);
+assert.equal(webflow.worker_reached, true);
 assert.equal(webflow.credential_valid, true);
 assert.equal(webflow.authenticated, true);
 assert.equal(webflow.site_accessible, true);
@@ -70,17 +107,24 @@ assert.equal(webflow.site_metadata_read, true);
 assert.equal(webflow.connected_staging, true);
 assert.equal(webflow.provider_requests, 1);
 assert.equal(webflow.provider_writes, 0);
+assert.equal(webflow.flow_execution_performed, false);
 assert.equal(webflow.publish_performed, false);
 assert.equal(webflow.production_deploy, false);
+assert.equal(webflow.external_writes, false);
+assert.equal(webflow.real_customer_data, false);
+assert.equal(webflow.variable_cost_eur, 0);
 assert.equal(JSON.stringify(webflow).includes(env.WEBFLOW_SITE_TOKEN), false);
 
+const activepiecesRequestsBeforeVerify = seen.filter((item) => String(item.url).includes('cloud.activepieces.com')).length;
 const activepiecesResponse = await handleFinalProviderConnectionDiagnostic(
   new Request('https://control.example/factory/diagnostics/activepieces-connection?verify=projects', { headers }),
   env,
   { fetch: mockFetch }
 );
 const activepieces = await activepiecesResponse.json();
+const activepiecesRequestsAfterVerify = seen.filter((item) => String(item.url).includes('cloud.activepieces.com')).length;
 assert.equal(activepieces.ok, true);
+assert.equal(activepieces.worker_reached, true);
 assert.equal(activepieces.credential_valid, true);
 assert.equal(activepieces.authenticated, true);
 assert.equal(activepieces.api_accessible, true);
@@ -89,6 +133,10 @@ assert.equal(activepieces.provider_requests, 1);
 assert.equal(activepieces.provider_writes, 0);
 assert.equal(activepieces.flow_execution_performed, false);
 assert.equal(activepieces.production_deploy, false);
+assert.equal(activepieces.external_writes, false);
+assert.equal(activepieces.real_customer_data, false);
+assert.equal(activepieces.variable_cost_eur, 0);
+assert.equal(activepiecesRequestsAfterVerify - activepiecesRequestsBeforeVerify, 1);
 assert.equal(JSON.stringify(activepieces).includes(env.ACTIVEPIECES_API_KEY), false);
 
 assert.equal(seen.length, 2);
@@ -100,9 +148,15 @@ assert.equal(seen.every((item) => item.authPresent === true), true);
 console.log(JSON.stringify({
   ok: true,
   suite: 'final-provider-connection-diagnostics-v1',
+  worker_reached_contract: true,
+  missing_credential_fails_closed: true,
   presence_provider_requests: 0,
+  activepieces_verify_max_provider_requests: 1,
   simulated_read_requests: 2,
   provider_writes: 0,
+  flow_executions: 0,
   production_deploy: false,
+  external_writes: false,
+  real_customer_data: false,
   secrets_exposed: false
 }, null, 2));

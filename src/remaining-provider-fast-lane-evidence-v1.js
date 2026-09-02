@@ -33,14 +33,14 @@ const RESOLUTIONS = Object.freeze({
   'activepieces-cloud-free': Object.freeze({
     provider_id: 'activepieces-cloud-free',
     strategic_role: 'secondary_automation_runtime',
-    maturity_level: 'L0',
-    final_classification: 'OPERATOR_GATE',
+    maturity_level: 'L3',
+    final_classification: 'CONNECTED_STAGING',
     central_connection_required: true,
-    account_state: 'NOT_EVIDENCED_IN_APPROVED_RUNTIME',
-    instance_state: 'NOT_BOUND',
-    credential_state: 'NOT_BOUND',
-    connected: false,
-    verification: 'OFFICIAL_API_AUDITED_NO_AUTHENTICATED_PROVIDER_REQUEST',
+    account_state: 'READY',
+    instance_state: 'API_ACCESSIBLE',
+    credential_state: 'PRESENT_VALID',
+    connected: true,
+    verification: 'PROTECTED_STAGING_RUNTIME_READ_ONLY_GET_API_V1_PROJECTS_VERIFIED',
     routing_ready: false,
     architecture_reason: 'secondary_only_make_remains_primary',
     official_model: Object.freeze({
@@ -50,16 +50,17 @@ const RESOLUTIONS = Object.freeze({
       free_plan_available: true,
       pricing_page_states_api_access_in_free_plan: true,
       api_docs_state_platform_dashboard_key_requirement: true,
-      documentation_tension_requires_operator_ui_confirmation: true,
+      documentation_tension_requires_operator_ui_confirmation: false,
       documentation: Object.freeze([
         'https://www.activepieces.com/docs/endpoints/overview',
         'https://www.activepieces.com/docs/endpoints/projects/list',
         'https://www.activepieces.com/pricing'
       ])
     }),
-    operator_gate: 'SIGN_IN_EXISTING_OR_FREE_ACCOUNT_CONFIRM_API_KEY_GENERATION_THEN_BIND_ACTIVEPIECES_API_KEY_AND_INSTANCE_PROJECT_REFERENCE_IF_ZERO_COST',
-    provider_requests: 0,
+    operator_gate: null,
+    provider_requests: 1,
     provider_writes: 0,
+    flow_execution_verified: false,
     variable_cost_eur: 0
   }),
   'webflow-api': Object.freeze({
@@ -173,7 +174,7 @@ export function remainingProviderFastLaneManifest() {
   const providers = Object.values(RESOLUTIONS);
   return {
     schema: 'aurentara.remaining-provider-fast-lane-evidence.v1',
-    verified_at: '2026-09-01',
+    verified_at: '2026-09-02',
     providers: structuredClone(providers),
     provider_requests: providers.reduce((sum, item) => sum + item.provider_requests, 0),
     provider_writes: 0,
