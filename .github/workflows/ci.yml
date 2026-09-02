@@ -28,6 +28,21 @@ jobs:
         run: npm install
       - name: Validate JavaScript
         run: npm run check
+      - name: HAMYREN Build Credit final prelaunch acceptance
+        run: |
+          node --test scripts/hamyren-final-technical-prelaunch-closing-v1.test.mjs
+          node --test scripts/hamyren-build-credit-boundary-v1.test.mjs
+      - name: HAMYREN final commercial and journey regressions
+        run: |
+          node --check ./src/customer-product/payment-lifecycle-v1.js
+          node ./scripts/aurentara-customer-economics-v1-smoke.mjs
+          node ./scripts/aurentara-customer-product-surface-v1-smoke.mjs
+          node ./scripts/aurentara-payment-lifecycle-v1-smoke.mjs
+          node ./scripts/aurentara-production-activation-contracts-v1-smoke.mjs
+          node ./scripts/aurentara-controlled-launch-readiness-v1-smoke.mjs
+          node ./scripts/aurentara-customer-red-team-v1.mjs
+          node --test scripts/hamyren-capability-policy-v1.test.mjs
+          node scripts/hamyren-customer-journey-readiness-v1-smoke.mjs
       - name: HAMYREN Delivery to Memory V1 acceptance
         run: node --test scripts/hamyren-delivery-memory-feedback-v1.test.mjs
       - name: Canonical brand and ownership contract
