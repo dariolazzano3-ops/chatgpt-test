@@ -41,7 +41,7 @@ const RESOLUTIONS = Object.freeze({
     credential_state: 'PRESENT_VALID',
     connected: true,
     verification: 'PROTECTED_STAGING_RUNTIME_READ_ONLY_GET_API_V1_PROJECTS_VERIFIED',
-    routing_ready: true,
+    routing_ready: false,
     architecture_reason: 'secondary_only_make_remains_primary',
     official_model: Object.freeze({
       api_available: true,
