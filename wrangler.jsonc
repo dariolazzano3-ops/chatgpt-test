@@ -74,7 +74,7 @@
         "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE": "riosystems_operator_runtime_v1",
         "FACTORY_CONTROL_BRANCH": "factory-control",
         "FRAMER_PROJECT_URL": "https://framer.com/projects/RIOSYSTEMS-Visual-Lab-V1--7vMBHKA7T5i9ezBsIPvE-7sE6T",
-        "AURENTARA_CUSTOMER_SURFACE_MODE": "off",
+        "AURENTARA_CUSTOMER_SURFACE_MODE": "synthetic-staging",
         "AURENTARA_CUSTOMER_DISTRIBUTED_RATE_ACTIVE": "false",
         "AURENTARA_CUSTOMER_OBSERVABILITY_ACTIVE": "false",
         "AURENTARA_CUSTOMER_OFFICIAL_RETRIEVAL_ACTIVE": "false",

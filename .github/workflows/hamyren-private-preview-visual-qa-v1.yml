@@ -3,6 +3,7 @@ name: HAMYREN Private Preview Visual QA V1
 on:
   pull_request:
     paths:
+      - 'wrangler.jsonc'
       - 'projects/riosystems-public-website-v1/hamyren/**'
       - 'projects/riosystems-public-website-v1/app.js'
       - 'src/customer-product/surface-v1.js'

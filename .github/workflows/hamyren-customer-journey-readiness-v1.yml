@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [factory-control]
     paths:
+      - 'wrangler.jsonc'
       - 'src/customer-product/hamyren-customer-journey-readiness-v1.js'
       - 'scripts/hamyren-customer-journey-readiness-v1-smoke.mjs'
       - 'docs/HAMYREN_CUSTOMER_JOURNEY_READINESS_V1.md'
