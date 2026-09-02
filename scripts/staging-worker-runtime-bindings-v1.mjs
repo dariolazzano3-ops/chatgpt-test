@@ -4,23 +4,32 @@ import { fileURLToPath } from 'node:url';
 
 const API_ORIGIN = 'https://api.cloudflare.com';
 const clean = (value, max = 1200) => String(value ?? '').trim().slice(0, max);
+const OPERATOR_ACCESS_PATH = '/operator';
 
-function safeHostname(domain = '') {
+function safeTarget(domain = '') {
   const value = clean(domain, 500);
-  if (!value) return '';
+  if (!value) return null;
   try {
     const url = new URL(value.includes('://') ? value : `https://${value}`);
-    return url.hostname.toLowerCase();
+    return {
+      hostname: url.hostname.toLowerCase(),
+      pathname: url.pathname.replace(/\/+$/, '') || '/'
+    };
   } catch {
-    return '';
+    return null;
   }
 }
 
-function targetApplication(app = {}, expectedWorkerName = 'riosystems-staging') {
+function targetApplication(app = {}, expectedWorkerName = 'riosystems-staging', expectedPath = OPERATOR_ACCESS_PATH) {
   if (clean(app.type, 80).toLowerCase() !== 'self_hosted') return false;
-  const hostname = safeHostname(app.domain);
+  const target = safeTarget(app.domain);
+  if (!target) return false;
   const worker = clean(expectedWorkerName, 120).toLowerCase();
-  return Boolean(worker) && hostname.startsWith(`${worker}.`) && hostname.endsWith('.workers.dev');
+  const path = clean(expectedPath, 120) || OPERATOR_ACCESS_PATH;
+  return Boolean(worker)
+    && target.hostname.startsWith(`${worker}.`)
+    && target.hostname.endsWith('.workers.dev')
+    && target.pathname === path;
 }
 
 function selectorKeys(rule = {}) {
@@ -40,8 +49,8 @@ function validEmail(value = '') {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value, 320));
 }
 
-export function deriveStagingOperatorBindings({ applications = [], policies = [], expected_worker_name = 'riosystems-staging' } = {}) {
-  const matches = applications.filter((app) => targetApplication(app, expected_worker_name));
+export function deriveStagingOperatorBindings({ applications = [], policies = [], expected_worker_name = 'riosystems-staging', expected_path = OPERATOR_ACCESS_PATH } = {}) {
+  const matches = applications.filter((app) => targetApplication(app, expected_worker_name, expected_path));
   if (matches.length !== 1) return { ok: false, error: matches.length ? 'ACCESS_APPLICATION_AMBIGUOUS' : 'ACCESS_APPLICATION_NOT_FOUND' };
 
   const app = matches[0];
@@ -134,7 +143,7 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY_REQUIRED');
 
   const applications = await fetchJson(`${API_ORIGIN}/client/v4/accounts/${accountId}/access/apps?per_page=100`, token);
-  const appMatches = Array.isArray(applications) ? applications.filter((app) => targetApplication(app, expectedWorkerName)) : [];
+  const appMatches = Array.isArray(applications) ? applications.filter((app) => targetApplication(app, expectedWorkerName, OPERATOR_ACCESS_PATH)) : [];
   if (appMatches.length !== 1) throw new Error(appMatches.length ? 'ACCESS_APPLICATION_AMBIGUOUS' : 'ACCESS_APPLICATION_NOT_FOUND');
   const appId = clean(appMatches[0]?.id, 100);
   if (!appId) throw new Error('ACCESS_APPLICATION_ID_MISSING');
@@ -143,7 +152,8 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   const derived = deriveStagingOperatorBindings({
     applications: Array.isArray(applications) ? applications : [],
     policies: Array.isArray(policies) ? policies : [],
-    expected_worker_name: expectedWorkerName
+    expected_worker_name: expectedWorkerName,
+    expected_path: OPERATOR_ACCESS_PATH
   });
   if (!derived.ok) throw new Error(derived.error);
 
@@ -173,6 +183,7 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
     ok: true,
     schema: 'riosystems.staging-worker-runtime-bindings.v1',
     access_application_verified: true,
+    access_path: OPERATOR_ACCESS_PATH,
     single_operator_identity_derived: true,
     durable_provider_secret_sources: durabilitySources,
     worker_secret_names_written: workerSecretNamesWritten,
