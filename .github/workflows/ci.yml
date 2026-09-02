@@ -28,6 +28,10 @@ jobs:
         run: npm install
       - name: Validate JavaScript
         run: npm run check
+      - name: HAMYREN Build Credit final prelaunch acceptance
+        run: |
+          node --test scripts/hamyren-final-technical-prelaunch-closing-v1.test.mjs
+          node --test scripts/hamyren-build-credit-boundary-v1.test.mjs
       - name: HAMYREN Delivery to Memory V1 acceptance
         run: node --test scripts/hamyren-delivery-memory-feedback-v1.test.mjs
       - name: Canonical brand and ownership contract
