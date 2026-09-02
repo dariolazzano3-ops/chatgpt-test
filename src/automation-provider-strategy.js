@@ -1,9 +1,12 @@
 import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './make-live-staging-evidence.js';
+import { activepiecesStagingConnectionEvidence, isActivepiecesStagingConnected } from './activepieces-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
-const VERIFIED_AT = '2026-09-01';
+const VERIFIED_AT = '2026-09-02';
 const ACTIVEPIECES_RESOLUTION = remainingProviderResolution('activepieces-cloud-free');
+const ACTIVEPIECES_CONNECTION_EVIDENCE = activepiecesStagingConnectionEvidence();
+const ACTIVEPIECES_CONNECTED_STAGING = isActivepiecesStagingConnected();
 const N8N_RESOLUTION = remainingProviderResolution('n8n-client-owned');
 
 const PROVIDERS = Object.freeze([
@@ -43,7 +46,7 @@ const PROVIDERS = Object.freeze([
     role: 'strategic_secondary_runtime',
     category: 'workflow_automation_cloud',
     capabilities: ['automation.flow.create','automation.flow.run','automation.webhook','automation.api'],
-    availability: 'operator_gate',
+    availability: ACTIVEPIECES_CONNECTED_STAGING ? 'connected_staging_read_only' : 'operator_gate',
     account_connection_required: true,
     central_connection_required: true,
     final_classification: ACTIVEPIECES_RESOLUTION.final_classification,
@@ -53,10 +56,13 @@ const PROVIDERS = Object.freeze([
     paid_plan_required: false,
     external_write: true,
     routing_ready: false,
-    operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
+    routing_scope: 'secondary_only',
+    flow_execution_verified: false,
+    operator_gate: ACTIVEPIECES_CONNECTED_STAGING ? null : ACTIVEPIECES_RESOLUTION.operator_gate,
     production_deploy: false,
     strategic_value: 'open_source_path_and_future_self_host_control',
     license_posture: 'cloud_service_api_access',
+    connection_evidence: ACTIVEPIECES_CONNECTION_EVIDENCE,
     evidence: ACTIVEPIECES_RESOLUTION
   }),
   Object.freeze({
@@ -123,7 +129,9 @@ export function automationProviderStrategy() {
     primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
     primary_external_runtime_evidence: makeEvidence,
     strategic_secondary_runtime: 'activepieces-cloud-free',
-    strategic_secondary_runtime_operator_gate: ACTIVEPIECES_RESOLUTION.operator_gate,
+    strategic_secondary_runtime_connected_staging: ACTIVEPIECES_CONNECTED_STAGING,
+    strategic_secondary_runtime_operator_gate: ACTIVEPIECES_CONNECTED_STAGING ? null : ACTIVEPIECES_RESOLUTION.operator_gate,
+    strategic_secondary_runtime_flow_execution_verified: false,
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
     technical_specialist_central_connection_required: false,
@@ -132,7 +140,7 @@ export function automationProviderStrategy() {
     principles: [
       'lean_keeps_workflow_intent_and_policy',
       'make_is_primary_for_fast_business_automation',
-      'activepieces_is_secondary_and_connection_gated',
+      'activepieces_is_connected_secondary_but_flow_execution_is_not_verified',
       'n8n_is_customer_owned_or_per_instance_for_complex_technical_workflows',
       'external_runtime_is_replaceable',
       'client_credentials_are_never_embedded',
@@ -163,7 +171,7 @@ export function selectAutomationRuntime(input = {}) {
     reasons.splice(0, reasons.length, 'small_code_flow','repository_owned','already_connected_edge_runtime');
   } else if (mode === 'secondary' || mode === 'strategic_secondary' || mode === 'connector_fallback') {
     selectedId = 'activepieces-cloud-free';
-    reasons.splice(0, reasons.length, 'open_source_path','free_cloud_option','future_self_host_control','operator_connection_gate');
+    reasons.splice(0, reasons.length, 'open_source_path','free_cloud_option','future_self_host_control','connected_staging_read_only','flow_execution_not_verified');
   } else if (mode === 'technical_specialist' || mode === 'client_owned_n8n') {
     selectedId = 'n8n-client-owned';
     reasons.splice(0, reasons.length, 'complex_api_and_code_workflow','client_owned_instance','avoid_shared_hosting_license_risk');
@@ -175,6 +183,7 @@ export function selectAutomationRuntime(input = {}) {
   const provider = getAutomationProvider(selectedId);
   if (!provider) return { ok: false, error: 'AUTOMATION_PROVIDER_NOT_FOUND', production_deploy: false };
   if (provider.central_connection_required !== false && provider.account_connection_required && !connected.has(provider.id)) blockers.push({ code: 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED', provider_id: provider.id });
+  if (provider.id === 'activepieces-cloud-free' && provider.flow_execution_verified !== true) blockers.push({ code: 'AUTOMATION_PROVIDER_FLOW_EXECUTION_NOT_VERIFIED', provider_id: provider.id });
   if (provider.paid_plan_required === true && input.paid_provider_approved !== true) blockers.push({ code: 'PAID_PROVIDER_APPROVAL_REQUIRED', provider_id: provider.id });
   if (provider.availability === 'not_deployed') blockers.push({ code: 'SELF_HOSTED_RUNTIME_NOT_DEPLOYED', provider_id: provider.id });
   if (provider.id === 'n8n-client-owned' && input.client_instance_approved !== true) blockers.push({ code: 'CLIENT_INSTANCE_REQUIRED', provider_id: provider.id });
@@ -185,7 +194,7 @@ export function selectAutomationRuntime(input = {}) {
     reasons,
     ready: blockers.length === 0,
     blockers,
-    staging_live_verified: provider.id === 'make-core' ? isMakeLiveStagingVerified() : false,
+    staging_live_verified: provider.id === 'make-core' ? isMakeLiveStagingVerified() : provider.id === 'activepieces-cloud-free' ? ACTIVEPIECES_CONNECTED_STAGING : false,
     automatic_paid_overflow: false,
     production_deploy: false
   };
@@ -198,7 +207,9 @@ export function automationProviderDecisionManifest() {
     primary_external_runtime: 'make-core',
     primary_external_runtime_staging_verified: isMakeLiveStagingVerified(),
     strategic_secondary_runtime: 'activepieces-cloud-free',
-    activepieces_operator_gate: true,
+    strategic_secondary_runtime_connected_staging: ACTIVEPIECES_CONNECTED_STAGING,
+    activepieces_operator_gate: !ACTIVEPIECES_CONNECTED_STAGING,
+    activepieces_flow_execution_verified: false,
     future_self_hosted_runtime: 'activepieces-community',
     technical_specialist_runtime: 'n8n-client-owned',
     n8n_central_connection_required: false,
