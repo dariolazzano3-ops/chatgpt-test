@@ -80,6 +80,21 @@ export function deriveStagingOperatorBindings({ applications = [], policies = []
   };
 }
 
+export function providerDurabilitySources(env = process.env) {
+  const activepiecesPresent = Boolean(clean(env.ACTIVEPIECES_API_KEY, 2000));
+  const webflowPresent = Boolean(clean(env.WEBFLOW_SITE_TOKEN, 2000));
+  return Object.freeze({
+    activepieces_api_key_present: activepiecesPresent,
+    webflow_site_token_present: webflowPresent,
+    restorable_secret_names: Object.freeze([
+      ...(activepiecesPresent ? ['ACTIVEPIECES_API_KEY'] : []),
+      ...(webflowPresent ? ['WEBFLOW_SITE_TOKEN'] : [])
+    ]),
+    durability_gate_remains: !(activepiecesPresent && webflowPresent),
+    sensitive_values_returned: false
+  });
+}
+
 async function fetchJson(url, token) {
   const target = new URL(url);
   if (target.origin !== API_ORIGIN || !target.pathname.startsWith('/client/v4/')) throw new Error('CLOUDFLARE_READ_PATH_REJECTED');
@@ -108,7 +123,10 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   const token = clean(process.env.CLOUDFLARE_API_TOKEN, 1600);
   const accountId = clean(process.env.CLOUDFLARE_ACCOUNT_ID, 80);
   const serviceRoleKey = clean(process.env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY, 2000);
+  const activepiecesKey = clean(process.env.ACTIVEPIECES_API_KEY, 2000);
+  const webflowToken = clean(process.env.WEBFLOW_SITE_TOKEN, 2000);
   const expectedWorkerName = clean(process.env.RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME || 'riosystems-staging', 120);
+  const durabilitySources = providerDurabilitySources(process.env);
 
   if (process.env.RIOSYSTEMS_STAGING_BINDINGS_APPROVED !== 'true') throw new Error('STAGING_BINDINGS_APPROVAL_REQUIRED');
   if (process.env.RIOSYSTEMS_ZERO_COST_CONFIRMED !== 'true') throw new Error('ZERO_COST_CONFIRMATION_REQUIRED');
@@ -132,20 +150,32 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   console.log(`::add-mask::${derived.operator_email}`);
   console.log(`::add-mask::${derived.audience}`);
 
+  const workerSecretNamesWritten = [
+    'RIOSYSTEMS_OPERATOR_EMAIL',
+    'RIOSYSTEMS_ACCESS_AUD',
+    'RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY'
+  ];
+
   putSecret('RIOSYSTEMS_OPERATOR_EMAIL', derived.operator_email, runtime);
   putSecret('RIOSYSTEMS_ACCESS_AUD', derived.audience, runtime);
   putSecret('RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey, runtime);
+
+  if (activepiecesKey) {
+    putSecret('ACTIVEPIECES_API_KEY', activepiecesKey, runtime);
+    workerSecretNamesWritten.push('ACTIVEPIECES_API_KEY');
+  }
+  if (webflowToken) {
+    putSecret('WEBFLOW_SITE_TOKEN', webflowToken, runtime);
+    workerSecretNamesWritten.push('WEBFLOW_SITE_TOKEN');
+  }
 
   return {
     ok: true,
     schema: 'riosystems.staging-worker-runtime-bindings.v1',
     access_application_verified: true,
     single_operator_identity_derived: true,
-    worker_secret_names_written: [
-      'RIOSYSTEMS_OPERATOR_EMAIL',
-      'RIOSYSTEMS_ACCESS_AUD',
-      'RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY'
-    ],
+    durable_provider_secret_sources: durabilitySources,
+    worker_secret_names_written: workerSecretNamesWritten,
     sensitive_values_returned: false,
     production_deploy: false,
     external_customer_data: false,
