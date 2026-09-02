@@ -4,6 +4,7 @@ import { buildCloudflareAccessReadonlyPlan, runCloudflareAccessReadonlyVerificat
 
 const ACCOUNT = '0123456789abcdef0123456789abcdef';
 const APP_ID = 'f174e90a-fafe-4643-bbbc-4a0ed4fc8415';
+const CUSTOMER_APP_ID = 'a174e90a-fafe-4643-bbbc-4a0ed4fc8416';
 const plan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT });
 assert.equal(plan.ok, true);
 assert.equal(plan.read_only, true);
@@ -19,7 +20,7 @@ function fetchFor({ apps = [], policies = [], appStatus = 200, policyStatus = 20
     assert.equal(options.method, 'GET');
     assert.ok(String(url).startsWith('https://api.cloudflare.com/client/v4/'));
     if (String(url).includes('/access/apps?')) return response({ success: appStatus < 400, result: apps }, appStatus);
-    if (String(url).includes(`/access/apps/${APP_ID}/policies`)) return response({ success: policyStatus < 400, result: policies }, policyStatus);
+    if (/\/access\/apps\/[^/]+\/policies/.test(String(url))) return response({ success: policyStatus < 400, result: policies }, policyStatus);
     return response({ success: false }, 404);
   };
 }
@@ -34,6 +35,12 @@ const app = {
     { type: 'public', uri: 'control.aurentarasystems.com' }
   ]
 };
+const customerApp = {
+  id: CUSTOMER_APP_ID,
+  type: 'self_hosted',
+  domain: 'riosystems-staging.example.workers.dev/customer',
+  destinations: [{ type: 'public', uri: 'riosystems-staging.example.workers.dev/customer' }]
+};
 const restrictive = { id: 'p1', decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] };
 
 const verified = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [restrictive] })));
@@ -45,16 +52,30 @@ assert.equal(verified.external_side_effect_performed, false);
 
 const customPlan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT, expected_hostname: 'control.aurentarasystems.com' });
 assert.equal(customPlan.ok, true);
-const customVerified = await runCloudflareAccessReadonlyVerification(customPlan, runtime(fetchFor({ apps: [app], policies: [restrictive] })));
+const customVerified = await runCloudflareAccessReadonlyVerification(customPlan, runtime(fetchFor({ apps: [app, customerApp], policies: [restrictive] })));
 assert.equal(customVerified.ok, true);
 assert.equal(customVerified.stage, 'PRIVATE_ACCESS_VERIFIED');
 assert.equal(customVerified.matching_application_count, 1);
+
+const operatorPathPlan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT, expected_worker_name: 'riosystems-staging', expected_path: '/operator' });
+const operatorPathVerified = await runCloudflareAccessReadonlyVerification(operatorPathPlan, runtime(fetchFor({ apps: [app, customerApp], policies: [restrictive] })));
+assert.equal(operatorPathVerified.ok, true);
+assert.equal(operatorPathVerified.matching_application_count, 1);
+
+const customerPathPlan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT, expected_worker_name: 'riosystems-staging', expected_path: '/customer' });
+const customerPathVerified = await runCloudflareAccessReadonlyVerification(customerPathPlan, runtime(fetchFor({ apps: [app, customerApp], policies: [restrictive] })));
+assert.equal(customerPathVerified.ok, true);
+assert.equal(customerPathVerified.matching_application_count, 1);
+
+const invalidPathPlan = buildCloudflareAccessReadonlyPlan({ account_id: ACCOUNT, expected_path: 'customer' });
+assert.equal(invalidPathPlan.ok, false);
+assert.equal(invalidPathPlan.error, 'ACCESS_EXPECTED_PATH_INVALID');
 
 const missing = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [] })));
 assert.equal(missing.ok, false);
 assert.equal(missing.stage, 'ACCESS_APPLICATION_NOT_FOUND');
 
-const ambiguous = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app, { ...app, id: 'a174e90a-fafe-4643-bbbc-4a0ed4fc8416' }] })));
+const ambiguous = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app, customerApp] })));
 assert.equal(ambiguous.stage, 'ACCESS_APPLICATION_AMBIGUOUS');
 
 const everyone = await runCloudflareAccessReadonlyVerification(plan, runtime(fetchFor({ apps: [app], policies: [{ decision: 'allow', include: [{ everyone: {} }] }] })));
@@ -82,6 +103,7 @@ assert.equal(wrongCustom.stage, 'ACCESS_APPLICATION_NOT_FOUND');
 const manifest = cloudflareAccessReadonlyVerifierManifest();
 assert.deepEqual(manifest.methods, ['GET']);
 assert.equal(manifest.multi_domain_destinations_supported, true);
+assert.equal(manifest.path_aware_targeting_supported, true);
 assert.equal(manifest.restrictive_allow_required, true);
 assert.equal(manifest.bypass_policy_rejected, true);
 assert.equal(manifest.external_write, false);
@@ -92,6 +114,8 @@ console.log(JSON.stringify({
   suite: 'cloudflare-access-readonly-verifier-v1',
   verified: verified.stage,
   custom_hostname_verified: customVerified.stage,
+  operator_path_verified: operatorPathVerified.stage,
+  customer_path_verified: customerPathVerified.stage,
   missing: missing.stage,
   ambiguous: ambiguous.stage,
   everyone: everyone.stage,
