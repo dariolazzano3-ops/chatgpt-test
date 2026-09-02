@@ -1,11 +1,13 @@
 const clone = (value) => structuredClone(value ?? null);
 const engineOf = (task = {}) => ['web', 'automation', 'ai', 'business'].includes(task.domain) ? task.domain : task.engine || null;
 const terminal = new Set(['COMPLETED', 'FAILED', 'BLOCKED', 'CANCELLED']);
+const businessStateChangesOf = (outputs = {}) => Array.isArray(outputs.business_state_changes) ? clone(outputs.business_state_changes) : [];
 
 function taskDelivery(task = {}) {
   const engine = engineOf(task);
   const state = String(task.state || 'UNKNOWN');
   const outputs = clone(task.outputs || {});
+  const businessStateChanges = businessStateChangesOf(outputs);
   const base = {
     task_id: task.task_id || null,
     capability: task.capability || null,
@@ -27,7 +29,8 @@ function taskDelivery(task = {}) {
         revision: outputs.revision ?? null,
         commit_sha: outputs.commit_sha || null,
         preview_url: outputs.preview_url || null,
-        qa_status: outputs.qa_status || null
+        qa_status: outputs.qa_status || null,
+        business_state_changes: businessStateChanges
       }
     };
   }
@@ -38,7 +41,8 @@ function taskDelivery(task = {}) {
       evidence: {
         business_system: clone(outputs.business_system || outputs.result || null),
         operation_count: outputs.operation_count ?? outputs.business_trace?.length ?? null,
-        external_writes: false
+        external_writes: false,
+        business_state_changes: businessStateChanges
       }
     };
   }
@@ -51,7 +55,8 @@ function taskDelivery(task = {}) {
         provider: outputs.provider || null,
         model: outputs.model || null,
         attempts: outputs.attempts ?? null,
-        provider_activation_implicit: false
+        provider_activation_implicit: false,
+        business_state_changes: businessStateChanges
       }
     };
   }
@@ -62,11 +67,12 @@ function taskDelivery(task = {}) {
       evidence: {
         result: clone(outputs.result || null),
         automation_trace: clone(outputs.automation_trace || []),
-        external_transport_implicit: false
+        external_transport_implicit: false,
+        business_state_changes: businessStateChanges
       }
     };
   }
-  return { ...base, delivery_kind: 'unknown', evidence: {} };
+  return { ...base, delivery_kind: 'unknown', evidence: { business_state_changes: businessStateChanges } };
 }
 
 function activationSummary(activation = null) {
@@ -151,6 +157,7 @@ export function missionDeliveryAggregatorManifest() {
     output: 'unified_mission_delivery_report',
     aggregates_web_business_ai_automation: true,
     distinguishes_structural_completion_from_external_activation: true,
+    structured_business_state_changes_forwarded: true,
     mutates_external_systems: false,
     production_deploy: false
   };
