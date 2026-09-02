@@ -8,3 +8,4 @@ export * from './chat-runtime-v1.js';
 export * from './trusted-runtime-v1.js';
 export * from './capability-policy-v1.js';
 export * from './customer-journey-commercial-routing-v1.js';
+export * from './delivery-memory-feedback-v1.js';
