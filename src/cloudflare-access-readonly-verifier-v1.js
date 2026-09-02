@@ -11,35 +11,58 @@ function getRequest(path) {
   return { method: 'GET', url: url.toString() };
 }
 
-function safeHostname(domain = '') {
-  const value = clean(domain, 500);
+function safeTarget(resource = '') {
+  const value = clean(resource, 500);
   if (!value) return null;
   try {
     const url = new URL(value.includes('://') ? value : `https://${value}`);
-    return url.hostname.toLowerCase();
+    const pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return { hostname: url.hostname.toLowerCase(), pathname };
   } catch {
     return null;
   }
 }
 
-function applicationHostnames(app = {}) {
-  const values = [safeHostname(app.domain)];
+function safeHostname(domain = '') {
+  return safeTarget(domain)?.hostname || null;
+}
+
+function expectedPath(value = '') {
+  const raw = clean(value, 500);
+  if (!raw) return null;
+  if (!raw.startsWith('/')) return null;
+  return raw.replace(/\/+$/, '') || '/';
+}
+
+function applicationTargets(app = {}) {
+  const values = [safeTarget(app.domain)];
   const destinations = Array.isArray(app.destinations) ? app.destinations : [];
   for (const destination of destinations) {
     if (clean(destination?.type, 80).toLowerCase() !== 'public') continue;
-    values.push(safeHostname(destination?.uri));
+    values.push(safeTarget(destination?.uri));
   }
-  return [...new Set(values.filter(Boolean))];
+  const unique = new Map();
+  for (const value of values.filter(Boolean)) unique.set(`${value.hostname}${value.pathname}`, value);
+  return [...unique.values()];
 }
 
-function targetApp(app = {}, expectedWorkerName = 'riosystems-staging', expectedHostname = '') {
+function applicationHostnames(app = {}) {
+  return [...new Set(applicationTargets(app).map((target) => target.hostname))];
+}
+
+function targetApp(app = {}, expectedWorkerName = 'riosystems-staging', expectedHostname = '', expectedResourcePath = '') {
   if (clean(app.type, 80).toLowerCase() !== 'self_hosted') return false;
-  const hostnames = applicationHostnames(app);
-  if (!hostnames.length) return false;
+  const targets = applicationTargets(app);
+  if (!targets.length) return false;
   const explicit = safeHostname(expectedHostname);
-  if (explicit) return hostnames.includes(explicit);
+  const path = expectedPath(expectedResourcePath);
+  if (explicit) return targets.some((target) => target.hostname === explicit && (!path || target.pathname === path));
   const worker = clean(expectedWorkerName, 120).toLowerCase();
-  return Boolean(worker) && hostnames.some((hostname) => hostname.startsWith(`${worker}.`) && hostname.endsWith('.workers.dev'));
+  return Boolean(worker) && targets.some((target) => (
+    target.hostname.startsWith(`${worker}.`)
+    && target.hostname.endsWith('.workers.dev')
+    && (!path || target.pathname === path)
+  ));
 }
 
 function includeRuleKeys(rule = {}) {
@@ -95,6 +118,9 @@ export function buildCloudflareAccessReadonlyPlan(input = {}) {
   if (!validAccountId(accountId)) return { ok: false, error: 'CLOUDFLARE_ACCOUNT_ID_INVALID', production_deploy: false };
   const expectedWorkerName = clean(input.expected_worker_name || 'riosystems-staging', 120);
   const expectedHostname = clean(input.expected_hostname, 500).toLowerCase();
+  const rawExpectedPath = clean(input.expected_path, 500);
+  const path = expectedPath(rawExpectedPath);
+  if (rawExpectedPath && !path) return { ok: false, error: 'ACCESS_EXPECTED_PATH_INVALID', production_deploy: false };
   if (!expectedWorkerName && !expectedHostname) return { ok: false, error: 'ACCESS_TARGET_REQUIRED', production_deploy: false };
   return {
     ok: true,
@@ -104,6 +130,7 @@ export function buildCloudflareAccessReadonlyPlan(input = {}) {
     account_id: accountId,
     expected_worker_name: expectedWorkerName,
     expected_hostname: expectedHostname || null,
+    expected_path: path,
     applications_request: getRequest(`/client/v4/accounts/${accountId}/access/apps?per_page=100`),
     read_only: true,
     external_write: false,
@@ -136,7 +163,7 @@ export async function runCloudflareAccessReadonlyVerification(plan = {}, runtime
   }
 
   const apps = Array.isArray(appsResult.body?.result) ? appsResult.body.result : [];
-  const matches = apps.filter((app) => targetApp(app, plan.expected_worker_name, plan.expected_hostname));
+  const matches = apps.filter((app) => targetApp(app, plan.expected_worker_name, plan.expected_hostname, plan.expected_path));
   if (matches.length !== 1) {
     return {
       ok: false,
@@ -221,6 +248,7 @@ export function cloudflareAccessReadonlyVerifierManifest() {
     expected_worker_name: 'riosystems-staging',
     required_application_type: 'self_hosted',
     multi_domain_destinations_supported: true,
+    path_aware_targeting_supported: true,
     broad_include_selectors_rejected: ['everyone', 'login_method'],
     bypass_policy_rejected: true,
     restrictive_allow_required: true,

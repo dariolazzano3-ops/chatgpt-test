@@ -69,7 +69,13 @@ jobs:
         env:
           RIOSYSTEMS_ACCESS_EXPECTED_HOSTNAME: control.aurentarasystems.com
         run: node scripts/cloudflare-access-live-readonly-verify.mjs
-      - name: Verify workers.dev fallback Access via GET only
+      - name: Verify workers.dev operator fallback Access via GET only
+        env:
+          RIOSYSTEMS_ACCESS_EXPECTED_PATH: /operator
+        run: node scripts/cloudflare-access-live-readonly-verify.mjs
+      - name: Verify HAMYREN workers.dev customer fallback Access via GET only
+        env:
+          RIOSYSTEMS_ACCESS_EXPECTED_PATH: /customer
         run: node scripts/cloudflare-access-live-readonly-verify.mjs
       - name: Verify custom-domain Worker binding, certificate and live Access
         run: node scripts/aurentara-operator-custom-domain-readonly-verify.mjs
