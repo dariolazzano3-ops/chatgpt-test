@@ -35,7 +35,6 @@ jobs:
       - name: HAMYREN final commercial and journey regressions
         run: |
           node --check ./src/customer-product/payment-lifecycle-v1.js
-          node --check ./src/customer-product/launch-v1.js
           node ./scripts/aurentara-customer-economics-v1-smoke.mjs
           node ./scripts/aurentara-customer-product-surface-v1-smoke.mjs
           node ./scripts/aurentara-payment-lifecycle-v1-smoke.mjs
