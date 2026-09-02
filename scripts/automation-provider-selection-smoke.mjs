@@ -17,6 +17,9 @@ assert.equal(manifest.primary_control_engine, 'riosystems-native-automation');
 assert.equal(manifest.primary_external_runtime, 'make-core');
 assert.equal(manifest.primary_external_runtime_staging_verified, true);
 assert.equal(manifest.strategic_secondary_runtime, 'activepieces-cloud-free');
+assert.equal(manifest.strategic_secondary_runtime_connected_staging, true);
+assert.equal(manifest.activepieces_operator_gate, false);
+assert.equal(manifest.activepieces_flow_execution_verified, false);
 assert.equal(manifest.technical_specialist_runtime, 'n8n-client-owned');
 assert.equal(manifest.production_deploy, false);
 
@@ -26,9 +29,14 @@ assert.equal(strategy.primary_external_runtime, 'make-core');
 assert.equal(strategy.primary_external_runtime_staging_verified, true);
 assert.equal(strategy.primary_external_runtime_evidence.execution.github_actions_run_id, 33258730803);
 assert.equal(strategy.strategic_secondary_runtime, 'activepieces-cloud-free');
+assert.equal(strategy.strategic_secondary_runtime_connected_staging, true);
+assert.equal(strategy.strategic_secondary_runtime_operator_gate, null);
+assert.equal(strategy.strategic_secondary_runtime_flow_execution_verified, false);
 assert.ok(strategy.providers.some((item) => item.id === 'activepieces-community'));
 assert.ok(strategy.providers.some((item) => item.id === 'cloudflare-workers-free'));
 assert.equal(strategy.providers.find((item) => item.id === 'make-core')?.availability, 'staging_live_verified');
+assert.equal(strategy.providers.find((item) => item.id === 'activepieces-cloud-free')?.availability, 'connected_staging_read_only');
+assert.equal(strategy.providers.find((item) => item.id === 'activepieces-cloud-free')?.routing_ready, false);
 
 const defaultBlocked = selectAutomationRuntime();
 assert.equal(defaultBlocked.provider.id, 'make-core');
@@ -46,13 +54,19 @@ const secondaryBlocked = selectAutomationRuntime({ mode: 'secondary' });
 assert.equal(secondaryBlocked.provider.id, 'activepieces-cloud-free');
 assert.equal(secondaryBlocked.ready, false);
 assert.ok(secondaryBlocked.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED'));
+assert.ok(secondaryBlocked.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_FLOW_EXECUTION_NOT_VERIFIED'));
 
-const secondaryReady = selectAutomationRuntime({ mode: 'secondary', connected_providers: ['activepieces-cloud-free'] });
-assert.equal(secondaryReady.ready, true);
+const secondaryConnected = selectAutomationRuntime({ mode: 'secondary', connected_providers: ['activepieces-cloud-free'] });
+assert.equal(secondaryConnected.provider.id, 'activepieces-cloud-free');
+assert.equal(secondaryConnected.staging_live_verified, true);
+assert.equal(secondaryConnected.ready, false);
+assert.ok(secondaryConnected.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_FLOW_EXECUTION_NOT_VERIFIED'));
+assert.ok(!secondaryConnected.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_CONNECTION_REQUIRED'));
 
 const legacyFallbackAlias = selectAutomationRuntime({ mode: 'connector_fallback', connected_providers: ['activepieces-cloud-free'] });
-assert.equal(legacyFallbackAlias.ready, true);
+assert.equal(legacyFallbackAlias.ready, false);
 assert.equal(legacyFallbackAlias.provider.id, 'activepieces-cloud-free');
+assert.ok(legacyFallbackAlias.blockers.some((item) => item.code === 'AUTOMATION_PROVIDER_FLOW_EXECUTION_NOT_VERIFIED'));
 
 const micro = selectAutomationRuntime({ mode: 'micro', connected_providers: ['cloudflare-workers-free'] });
 assert.equal(micro.ready, true);
