@@ -8,9 +8,15 @@ const app = {
   domain: 'https://riosystems-staging.example.workers.dev/operator',
   aud: 'access-audience-test'
 };
+const customerApp = {
+  id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+  type: 'self_hosted',
+  domain: 'https://riosystems-staging.example.workers.dev/customer',
+  aud: 'customer-access-audience-test'
+};
 
 const success = deriveStagingOperatorBindings({
-  applications: [app],
+  applications: [app, customerApp],
   policies: [{ decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] }]
 });
 assert.equal(success.ok, true);
@@ -19,22 +25,29 @@ assert.equal(success.audience, 'access-audience-test');
 assert.equal(success.production_deploy, false);
 assert.equal(success.variable_cost_eur, 0);
 
+const customerOnly = deriveStagingOperatorBindings({
+  applications: [customerApp],
+  policies: [{ decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] }]
+});
+assert.equal(customerOnly.ok, false);
+assert.equal(customerOnly.error, 'ACCESS_APPLICATION_NOT_FOUND');
+
 const broad = deriveStagingOperatorBindings({
-  applications: [app],
+  applications: [app, customerApp],
   policies: [{ decision: 'allow', include: [{ everyone: {} }] }]
 });
 assert.equal(broad.ok, false);
 assert.equal(broad.error, 'ACCESS_BROAD_ALLOW_POLICY_REJECTED');
 
 const domainOnly = deriveStagingOperatorBindings({
-  applications: [app],
+  applications: [app, customerApp],
   policies: [{ decision: 'allow', include: [{ email_domain: { domain: 'example.invalid' } }] }]
 });
 assert.equal(domainOnly.ok, false);
 assert.equal(domainOnly.error, 'ACCESS_OPERATOR_EMAIL_NOT_RESOLVABLE');
 
 const ambiguous = deriveStagingOperatorBindings({
-  applications: [app],
+  applications: [app, customerApp],
   policies: [{
     decision: 'allow',
     include: [
@@ -47,7 +60,7 @@ assert.equal(ambiguous.ok, false);
 assert.equal(ambiguous.error, 'ACCESS_OPERATOR_EMAIL_AMBIGUOUS');
 
 const bypass = deriveStagingOperatorBindings({
-  applications: [app],
+  applications: [app, customerApp],
   policies: [
     { decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] },
     { decision: 'bypass', include: [{ everyone: {} }] }
@@ -84,7 +97,8 @@ assert.equal(JSON.stringify(bothProviderSources).includes('synthetic-webflow-tok
 console.log(JSON.stringify({
   ok: true,
   schema: 'riosystems.staging-worker-runtime-bindings-smoke.v1',
-  access_domain_path_normalized: true,
+  operator_access_path_targeted: true,
+  customer_access_app_coexists: true,
   durable_provider_secret_sources_supported: true,
   missing_provider_sources_fail_visible: true,
   sensitive_values_returned: false,
