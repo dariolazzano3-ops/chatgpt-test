@@ -10,6 +10,7 @@ import { cloudflareWorkersAiStagingEvidence, isCloudflareWorkersAiStagingVerifie
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from './openai-staging-connection-evidence-v1.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from './framer-staging-connection-evidence-v1.js';
 import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from './webflow-staging-connection-evidence-v1.js';
+import { activepiecesStagingConnectionEvidence, isActivepiecesStagingConnected } from './activepieces-staging-connection-evidence-v1.js';
 import { remainingProviderResolution } from './remaining-provider-fast-lane-evidence-v1.js';
 import { supabaseStagingWriteManifest } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
@@ -28,6 +29,7 @@ export function providerStackV1() {
   const openAiEvidence = openAiStagingConnectionEvidence();
   const framerEvidence = framerStagingConnectionEvidence();
   const webflowEvidence = webflowStagingConnectionEvidence();
+  const activepiecesEvidence = activepiecesStagingConnectionEvidence();
   const makeEvidence = makeLiveStagingActivationEvidence();
   const businessEvidence = businessLiveReadEvidence();
   const businessWriteRunner = supabaseStagingWriteManifest();
@@ -65,6 +67,10 @@ export function providerStackV1() {
       specialist_paths: ['n8n-client-owned','activepieces-community','cloudflare-workers-free'],
       staging_activation_verified: isMakeLiveStagingVerified(),
       staging_activation_evidence: makeEvidence,
+      activepieces_connected_staging: isActivepiecesStagingConnected(),
+      activepieces_connection_evidence: activepiecesEvidence,
+      activepieces_flow_execution_verified: false,
+      activepieces_routing_scope: 'secondary_only',
       activepieces_resolution: remainingProviderResolution('activepieces-cloud-free'),
       n8n_resolution: remainingProviderResolution('n8n-client-owned')
     },
@@ -139,6 +145,7 @@ export function providerActivationMatrix() {
   const cloudflareAi = cloudflareWorkersAiStagingEvidence();
   const openAi = openAiStagingConnectionEvidence();
   const framer = framerStagingConnectionEvidence();
+  const activepiecesConnectionEvidence = activepiecesStagingConnectionEvidence();
   const make = makeLiveStagingActivationEvidence();
   const business = businessLiveReadEvidence();
   const businessWrite = businessStagingWriteEvidence();
@@ -148,6 +155,7 @@ export function providerActivationMatrix() {
   const openAiConnectedStaging = isOpenAiStagingConnected();
   const framerConnectedStaging = isFramerStagingConnected();
   const webflowConnectedStaging = isWebflowStagingConnected();
+  const activepiecesConnectedStaging = isActivepiecesStagingConnected();
   const webflowConnectionEvidence = webflowStagingConnectionEvidence();
   const makeStagingVerified = isMakeLiveStagingVerified();
   const businessStagingWriteVerified = isBusinessStagingWriteVerified();
@@ -220,11 +228,25 @@ export function providerActivationMatrix() {
         production_eligible: false, resolution_evidence: base44
       },
       {
-        id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime', connection_state: 'NOT_CONNECTED',
-        activation: 'operator_gate_account_api_key_required', maturity_level: activepieces.maturity_level,
-        final_classification: activepieces.final_classification, operator_gate: activepieces.operator_gate,
-        routing_eligibility: 'not_until_connected', real_write: 'approval_required', provider_requests: 0,
-        provider_writes: 0, production_eligible: false, resolution_evidence: activepieces
+        id: 'activepieces-cloud-free', selection: 'strategic_secondary_runtime',
+        connection_state: activepiecesConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
+        activation: activepiecesConnectedStaging ? 'live_staging_verified_read_only_connection' : 'operator_gate_account_api_key_required',
+        maturity_level: activepiecesConnectedStaging ? 'L3' : activepieces.maturity_level,
+        final_classification: activepiecesConnectedStaging ? 'CONNECTED_STAGING' : activepieces.final_classification,
+        account: activepiecesConnectedStaging ? 'ready' : 'not_verified',
+        credential: activepiecesConnectedStaging ? 'present_valid' : 'not_verified',
+        authenticated: activepiecesConnectedStaging,
+        api_accessible: activepiecesConnectedStaging,
+        connected_staging: activepiecesConnectedStaging,
+        operator_gate: activepiecesConnectedStaging ? null : activepieces.operator_gate,
+        routing_eligibility: 'secondary_only_flow_execution_not_verified',
+        connection_evidence: activepiecesConnectionEvidence,
+        flow_execution_verified: false,
+        real_write: 'not_verified_approval_required',
+        provider_requests: activepiecesConnectedStaging ? 1 : 0,
+        provider_writes: 0,
+        production_eligible: false,
+        resolution_evidence: activepieces
       },
       {
         id: 'n8n-client-owned', selection: 'technical_specialist', connection_state: 'NOT_CONNECTED',

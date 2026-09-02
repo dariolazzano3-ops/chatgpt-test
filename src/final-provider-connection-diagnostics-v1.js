@@ -130,11 +130,13 @@ async function probeActivepieces(token, fetchFn) {
 function baseResult(providerId, credentialRef, credentialPresent) {
   return {
     runtime: "riosystems-staging",
+    worker_reached: true,
     provider_id: providerId,
     credential_ref: credentialRef,
     credential_present: credentialPresent,
     secret_value_exposed: false,
     provider_writes: 0,
+    flow_execution_performed: false,
     production_deploy: false,
     external_writes: false,
     real_customer_data: false,

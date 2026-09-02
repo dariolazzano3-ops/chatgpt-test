@@ -6,10 +6,11 @@ import { webProviderStrategy } from '../src/web-provider-strategy.js';
 import { automationProviderStrategy } from '../src/automation-provider-strategy.js';
 import { framerStagingConnectionEvidence, isFramerStagingConnected } from '../src/framer-staging-connection-evidence-v1.js';
 import { webflowStagingConnectionEvidence, isWebflowStagingConnected } from '../src/webflow-staging-connection-evidence-v1.js';
+import { activepiecesStagingConnectionEvidence, isActivepiecesStagingConnected } from '../src/activepieces-staging-connection-evidence-v1.js';
 import { openAiStagingConnectionEvidence, isOpenAiStagingConnected } from '../src/openai-staging-connection-evidence-v1.js';
 
 const batch = remainingProviderFastLaneManifest();
-assert.equal(batch.provider_requests, 1);
+assert.equal(batch.provider_requests, 2);
 assert.equal(batch.provider_writes, 0);
 assert.equal(batch.production_deploy, false);
 assert.equal(batch.external_writes, false);
@@ -29,11 +30,19 @@ assert.equal(base44.runtime_eligible, false);
 assert.equal(base44.routing_ready, false);
 
 const activepieces = byId.get('activepieces-cloud-free');
-assert.equal(activepieces.maturity_level, 'L0');
-assert.equal(activepieces.final_classification, 'OPERATOR_GATE');
+assert.equal(activepieces.verification, 'CONNECTION_VERIFIED_STAGING');
+assert.equal(activepieces.connection_state, 'CONNECTED_STAGING');
+assert.equal(activepieces.maturity_level, 'L3');
+assert.equal(activepieces.final_classification, 'CONNECTED_STAGING');
 assert.equal(activepieces.central_connection_required, true);
+assert.equal(activepieces.account_state, 'READY');
+assert.equal(activepieces.credential_state, 'PRESENT_VALID');
+assert.equal(activepieces.api_accessible, true);
 assert.equal(activepieces.runtime_eligible, false);
-assert.ok(activepieces.operator_gate);
+assert.equal(activepieces.routing_ready, false);
+assert.equal(activepieces.flow_execution_verified, false);
+assert.equal(activepieces.routing_scope, 'secondary_only');
+assert.equal(activepieces.operator_gate, null);
 
 const webflow = byId.get('webflow-api');
 assert.equal(webflow.maturity_level, 'L3');
@@ -60,13 +69,31 @@ assert.equal(n8n.runtime_eligible, false);
 
 const matrix = providerActivationMatrix();
 const matrixById = new Map(matrix.providers.map((item) => [item.id, item]));
-for (const id of ['base44','activepieces-cloud-free','lovable-github','n8n-client-owned']) {
+for (const id of ['base44','lovable-github','n8n-client-owned']) {
   const row = matrixById.get(id);
   assert.ok(row, `${id} missing from activation matrix`);
   assert.equal(row.connection_state, 'NOT_CONNECTED');
   assert.equal(row.provider_writes, 0);
   assert.equal(row.production_eligible, false);
 }
+const activepiecesMatrix = matrixById.get('activepieces-cloud-free');
+assert.ok(activepiecesMatrix);
+assert.equal(activepiecesMatrix.connection_state, 'CONNECTED_STAGING');
+assert.equal(activepiecesMatrix.activation, 'live_staging_verified_read_only_connection');
+assert.equal(activepiecesMatrix.maturity_level, 'L3');
+assert.equal(activepiecesMatrix.final_classification, 'CONNECTED_STAGING');
+assert.equal(activepiecesMatrix.account, 'ready');
+assert.equal(activepiecesMatrix.credential, 'present_valid');
+assert.equal(activepiecesMatrix.authenticated, true);
+assert.equal(activepiecesMatrix.api_accessible, true);
+assert.equal(activepiecesMatrix.connected_staging, true);
+assert.equal(activepiecesMatrix.operator_gate, null);
+assert.equal(activepiecesMatrix.routing_eligibility, 'secondary_only_flow_execution_not_verified');
+assert.equal(activepiecesMatrix.flow_execution_verified, false);
+assert.equal(activepiecesMatrix.provider_requests, 1);
+assert.equal(activepiecesMatrix.provider_writes, 0);
+assert.equal(activepiecesMatrix.production_eligible, false);
+
 const webflowMatrix = matrixById.get('webflow-api');
 assert.ok(webflowMatrix);
 assert.equal(webflowMatrix.connection_state, 'CONNECTED_STAGING');
@@ -78,7 +105,7 @@ assert.equal(webflowMatrix.provider_writes, 0);
 assert.equal(webflowMatrix.staging_write_verified, false);
 assert.equal(webflowMatrix.publish_verified, false);
 assert.equal(webflowMatrix.production_eligible, false);
-assert.equal(matrixById.get('activepieces-cloud-free').final_classification, 'OPERATOR_GATE');
+assert.equal(matrixById.get('activepieces-cloud-free').final_classification, 'CONNECTED_STAGING');
 assert.equal(matrixById.get('webflow-api').final_classification, 'CONNECTED_STAGING');
 assert.equal(matrixById.get('base44').final_classification, 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED');
 assert.equal(matrixById.get('lovable-github').final_classification, 'INTENTIONALLY_NOT_CENTRALLY_CONNECTED');
@@ -110,10 +137,28 @@ assert.equal(webflowEvidence.execution.staging_write_verified, false);
 assert.equal(webflowEvidence.execution.publish_verified, false);
 assert.equal(webflowEvidence.safety.production_eligible, false);
 
+const activepiecesEvidence = activepiecesStagingConnectionEvidence();
+assert.equal(isActivepiecesStagingConnected(), true);
+assert.equal(activepiecesEvidence.provider_requests, 1);
+assert.equal(activepiecesEvidence.credential_valid, true);
+assert.equal(activepiecesEvidence.authenticated, true);
+assert.equal(activepiecesEvidence.api_accessible, true);
+assert.equal(activepiecesEvidence.connected_staging, true);
+assert.equal(activepiecesEvidence.provider_writes, 0);
+assert.equal(activepiecesEvidence.flow_execution_performed, false);
+assert.equal(activepiecesEvidence.production_deploy, false);
+assert.equal(activepiecesEvidence.external_writes, false);
+assert.equal(activepiecesEvidence.real_customer_data, false);
+assert.equal(activepiecesEvidence.variable_cost_eur, 0);
+assert.equal(activepiecesEvidence.cleanup_verified, true);
+
 const automation = automationProviderStrategy();
 assert.equal(automation.primary_external_runtime, 'make-core');
 assert.equal(automation.primary_external_runtime_staging_verified, true);
 assert.equal(automation.strategic_secondary_runtime, 'activepieces-cloud-free');
+assert.equal(automation.strategic_secondary_runtime_connected_staging, true);
+assert.equal(automation.strategic_secondary_runtime_operator_gate, null);
+assert.equal(automation.strategic_secondary_runtime_flow_execution_verified, false);
 assert.equal(automation.technical_specialist_runtime, 'n8n-client-owned');
 assert.equal(automation.technical_specialist_central_connection_required, false);
 assert.equal(automation.technical_specialist_customer_owned_strategy, true);
@@ -121,6 +166,10 @@ assert.equal(automation.technical_specialist_customer_owned_strategy, true);
 const stack = providerStackV1();
 assert.deepEqual(stack.factories.web.primary_path, ['riosystems-native-web','cloudflare-workers-free']);
 assert.deepEqual(stack.factories.automation.primary_path, ['riosystems-native-automation','make-core']);
+assert.deepEqual(stack.factories.automation.secondary_path, ['riosystems-native-automation','activepieces-cloud-free']);
+assert.equal(stack.factories.automation.activepieces_connected_staging, true);
+assert.equal(stack.factories.automation.activepieces_flow_execution_verified, false);
+assert.equal(stack.factories.automation.activepieces_routing_scope, 'secondary_only');
 assert.deepEqual(stack.factories.ai.free_staging_path, ['riosystems-ai-local-policy','cloudflare-workers-ai-free']);
 assert.equal(stack.factories.ai.cloudflare_ai_runtime_verified, true);
 assert.equal(stack.factories.business.provider_read_verified, true);
@@ -155,11 +204,13 @@ assert.equal(matrix.production_deploy, false);
 console.log(JSON.stringify({
   ok: true,
   suite: 'remaining-provider-fast-lane-v1',
-  provider_requests: 1,
+  provider_requests: 2,
   provider_writes: 0,
-  operator_gates: ['activepieces-cloud-free'],
+  operator_gates: [],
   intentionally_not_central: ['base44','lovable-github','n8n-client-owned'],
   make_primary: automation.primary_external_runtime,
+  activepieces_secondary_connected_staging: true,
+  activepieces_flow_execution_verified: false,
   cloudflare_primary_host: web.default_host,
   workers_ai_free_staging: stack.factories.ai.free_staging_path[1],
   openai_connected_staging: true,
