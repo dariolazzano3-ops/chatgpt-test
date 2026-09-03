@@ -139,7 +139,10 @@ try {
   const industry = page.locator('#mission input[name="industry"]');
   if (await industry.count()) await industry.fill('synthetic');
   const outcomes = page.locator('#mission input[name="requested_outcomes"]');
-  if (await outcomes.count()) await outcomes.fill('Website, CRM');
+  if (await outcomes.count()) {
+    await page.locator('#mission').getByRole('checkbox', { name: 'Website' }).check();
+    await page.locator('#mission').getByRole('checkbox', { name: 'CRM' }).check();
+  }
   await page.locator('#mission-form button[type="submit"]').click();
   await page.waitForFunction(() => document.getElementById('plan-review')?.textContent?.includes('Plan Review'));
   assert.match(await page.locator('#plan-review').innerText(), /Freigabe erforderlich/i);
