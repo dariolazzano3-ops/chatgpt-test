@@ -74,7 +74,7 @@ const READ_FIXTURE_KEYS = new Map([
   ['/operator/api/actions', 'actions']
 ]);
 
-function isolatedDashboardFailureHandler({ cachedData, onDashboard, failFirstOnly = false }) {
+function isolatedDashboardFailureHandler({ cachedData, sourceFixture, onDashboard, failFirstOnly = false }) {
   return async (route) => {
     const request = route.request();
     if (request.method() !== 'GET') return route.continue();
@@ -83,6 +83,9 @@ function isolatedDashboardFailureHandler({ cachedData, onDashboard, failFirstOnl
       const count = onDashboard();
       if (!failFirstOnly || count === 1) return route.abort('failed');
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cachedData.dashboard) });
+    }
+    if (pathname === '/operator/api/project-source-intake' && sourceFixture) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sourceFixture) });
     }
     const key = READ_FIXTURE_KEYS.get(pathname);
     if (key) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cachedData[key]) });
@@ -121,10 +124,22 @@ try {
   }
 
   const cachedData = await page.evaluate(() => structuredClone(state.data));
+  const sourceFixture = await page.evaluate((scopeKey) => {
+    const root = document.querySelector('#project-detail [data-project-source-intake]');
+    if (root?.__sourcePayload) return structuredClone(root.__sourcePayload);
+    return {
+      identity: { scope_key: scopeKey },
+      workspace: { sections: { project_sources: [], content_readiness: { status: 'READY' } } },
+      project_scoped: true,
+      production_deploy: false,
+      variable_cost_eur: 0
+    };
+  }, scope);
 
   let dashboardCalls = 0;
   const recoveredHandler = isolatedDashboardFailureHandler({
     cachedData,
+    sourceFixture,
     failFirstOnly: true,
     onDashboard: () => ++dashboardCalls
   });
@@ -138,6 +153,7 @@ try {
   dashboardCalls = 0;
   const persistentHandler = isolatedDashboardFailureHandler({
     cachedData,
+    sourceFixture,
     failFirstOnly: false,
     onDashboard: () => ++dashboardCalls
   });
@@ -168,12 +184,28 @@ try {
   assert.equal(reloadContext.scope, scope, 'iPhone reload keeps selected scope');
   assert.equal(reloadContext.detailScope, scope, 'iPhone reload restores cached project detail when read hydration fails');
   assert.equal(await page.locator('#project-detail').isVisible(), true, 'cached project detail remains visible across transient reload failure');
+  await page.unroute('**/operator/api/**', persistentHandler);
 
+  let durabilityCalls = 0;
+  const durabilityHandler = async (route) => {
+    durabilityCalls += 1;
+    return route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'OPERATOR_RUNTIME_DURABILITY_NOT_READY', production_deploy: false })
+    });
+  };
+  await page.route('**/operator/api/project-source-intake*', durabilityHandler);
+  await page.evaluate(() => {
+    if (state.detail && typeof renderProjectDetail === 'function') renderProjectDetail(state.detail);
+  });
   await page.waitForFunction(() => document.getElementById('error')?.textContent?.includes('OPERATOR_RUNTIME_DURABILITY_NOT_READY'));
+  assert.ok(durabilityCalls >= 1, 'independent source-intake durability read is exercised');
   const durabilityErrorText = await page.locator('#error').innerText();
   assert.match(durabilityErrorText, /OPERATOR_RUNTIME_DURABILITY_NOT_READY/, 'independent source-intake durability failure remains visible and fail-closed');
-  assert.doesNotMatch(durabilityErrorText, /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i, 'durability failure is asserted separately from the earlier transient network error');
-  await page.unroute('**/operator/api/**', persistentHandler);
+  assert.equal(await page.evaluate(() => state.selectedScope), scope, 'durability failure does not erase selected scope');
+  assert.equal(await page.locator('#project-detail').isVisible(), true, 'durability failure does not erase the visible project detail');
+  await page.unroute('**/operator/api/project-source-intake*', durabilityHandler);
 
   let writeProbeCalls = 0;
   await page.route('**/operator/api/operator-final-ux-write-probe', async (route) => {
