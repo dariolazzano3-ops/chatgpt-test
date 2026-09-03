@@ -9,6 +9,7 @@ import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic
 import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-project-source-intake-storage-dashboard-v1.js";
+import { applyProjectSourceHumanAcceptanceUi } from "./operator-project-source-intake-human-acceptance-ui-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
@@ -145,7 +146,7 @@ export default {
         throw error;
       }
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, runtimeService ? { runtime_service: runtimeService } : {});
-      if (operatorResponse) return applyOperatorBranding(operatorResponse);
+      if (operatorResponse) return applyOperatorBranding(await applyProjectSourceHumanAcceptanceUi(operatorResponse));
     }
 
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
