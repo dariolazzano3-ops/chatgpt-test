@@ -39,6 +39,29 @@ function mapResolverFailure(result = {}, resolverSession = null) {
   return exact ? { ...result, error: exact, legacy_error: 'DNS_RESOLUTION_FAILED' } : result;
 }
 
+function mapNestedResolverFailures(result = {}, resolverSession = null) {
+  if (!resolverSession || !Array.isArray(result.fetch_errors)) return result;
+  const exact = resolverSession.lastError();
+  if (!exact) return result;
+  const fetchErrors = result.fetch_errors.map((item) => item?.error === 'DNS_RESOLUTION_FAILED'
+    ? { ...item, error: exact, legacy_error: 'DNS_RESOLUTION_FAILED' }
+    : item);
+  if (exact === 'DNS_REBINDING_DETECTED' && fetchErrors.some((item) => item?.error === exact)) {
+    return {
+      ok: false,
+      error: exact,
+      legacy_error: 'DNS_RESOLUTION_FAILED',
+      import_status: 'IMPORT_BLOCKED',
+      pages_analyzed: Number(result.pages_analyzed || 0),
+      fetch_errors: fetchErrors,
+      variable_cost_eur: 0,
+      paid_provider_calls: 0,
+      production_deploy: false
+    };
+  }
+  return { ...result, fetch_errors: fetchErrors };
+}
+
 function websiteImportDeps(deps = {}) {
   if (typeof deps.resolveHostname === 'function') return { deps, resolverSession: null };
   const resolverSession = createProjectSourceWorkerResolver({
@@ -138,7 +161,7 @@ export async function importProjectWebsiteSource(input = {}, deps = {}) {
     ...effectiveDeps,
     fetcher: guardedFetcher(checked.url.origin, fetcher)
   });
-  const result = mapResolverFailure(rawResult, resolverSession);
+  const result = mapNestedResolverFailures(mapResolverFailure(rawResult, resolverSession), resolverSession);
   return {
     ...result,
     preflight_robots_status: preflight.status,
