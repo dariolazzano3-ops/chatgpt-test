@@ -1,97 +1,38 @@
 const clone = (value) => structuredClone(value ?? null);
 const bool = (value) => value === true;
 
-function configuredHosts(config = {}) {
-  return Array.isArray(config.allowed_hosts) ? config.allowed_hosts.filter((value) => typeof value === 'string' && value.trim()) : [];
-}
+function configuredHosts(config = {}) { return Array.isArray(config.allowed_hosts) ? config.allowed_hosts.filter((value) => typeof value === 'string' && value.trim()) : []; }
+function engineTasks(pkg = {}, engine) { return (pkg.mission?.tasks || []).filter((task) => (['web', 'automation', 'ai', 'business'].includes(task.domain) ? task.domain : task.engine) === engine); }
+function approvalState(pkg = {}, activation = {}) { const required = pkg.approvals?.required_engines || []; const approvals = activation.adapter_approvals || {}; return required.map((engine) => ({ engine, required: true, approved: bool(approvals[engine]?.authorized), production_deploy: false })); }
 
-function engineTasks(pkg = {}, engine) {
-  return (pkg.mission?.tasks || []).filter((task) => (['web', 'automation', 'ai', 'business'].includes(task.domain) ? task.domain : task.engine) === engine);
-}
-
-function approvalState(pkg = {}, activation = {}) {
-  const required = pkg.approvals?.required_engines || [];
-  const approvals = activation.adapter_approvals || {};
-  return required.map((engine) => ({
-    engine,
-    required: true,
-    approved: bool(approvals[engine]?.authorized),
-    production_deploy: false
-  }));
+function projectContentBlockers(pkg = {}, activation = {}) {
+  const context = pkg.project_context || null; if (!context) return [];
+  const blockers = []; const revision = Number(context.knowledge_revision);
+  if (context.readiness_ref?.status === 'BLOCKED') blockers.push({ type: 'project_content', engine: 'global', code: 'PROJECT_CONTENT_READINESS_BLOCKED', user_action_required: true });
+  if ([context.content_pack_ref?.knowledge_revision, context.visual_pack_ref?.knowledge_revision, context.readiness_ref?.knowledge_revision].some((value) => Number(value) !== revision)) blockers.push({ type: 'project_content', engine: 'global', code: 'PROJECT_CONTENT_PACK_OR_READINESS_STALE', user_action_required: true });
+  const currentRevision = activation.project_knowledge_revision ?? activation.project_context_current?.knowledge_revision;
+  if (currentRevision != null && Number(currentRevision) !== revision) blockers.push({ type: 'project_content', engine: 'global', code: 'PROJECT_CONTENT_BINDING_STALE', compiled_revision: revision, current_revision: Number(currentRevision), user_action_required: true });
+  const currentScope = activation.scope_key || activation.project_context_current?.project?.scope_key;
+  if (currentScope && String(currentScope) !== String(context.project?.scope_key)) blockers.push({ type: 'project_content', engine: 'global', code: 'PROJECT_CONTENT_SCOPE_MISMATCH', user_action_required: true });
+  const requiredRefs = ['content_pack_ref', 'visual_pack_ref', 'readiness_ref'];
+  if (requiredRefs.some((key) => !context[key])) blockers.push({ type: 'project_content', engine: 'global', code: 'PROJECT_CONTENT_BINDING_INCOMPLETE', user_action_required: true });
+  return blockers;
 }
 
 export function evaluateMissionActivation(pkg = {}, activation = {}) {
   if (!pkg || typeof pkg !== 'object' || !pkg.mission || !pkg.contracts) return { ok: false, error: 'MISSION_PACKAGE_INVALID' };
-
-  const blockers = [];
-  const warnings = [];
-  const approvals = approvalState(pkg, activation);
+  const blockers = []; const warnings = []; const approvals = approvalState(pkg, activation);
   for (const item of approvals) if (!item.approved) blockers.push({ type: 'adapter_approval', engine: item.engine, code: 'ADAPTER_DISPATCH_APPROVAL_REQUIRED', user_action_required: true });
-
+  blockers.push(...projectContentBlockers(pkg, activation));
   const aiTasks = engineTasks(pkg, 'ai');
-  if (aiTasks.length) {
-    const ai = activation.ai || {};
-    if (typeof ai.runner !== 'function' && !bool(ai.runner_configured)) blockers.push({ type: 'ai_provider_runner', engine: 'ai', code: 'AI_RUNNER_NOT_CONFIGURED', user_action_required: true });
-    if (!bool(ai.credentials_configured)) blockers.push({ type: 'ai_provider_credentials', engine: 'ai', code: 'AI_PROVIDER_CREDENTIALS_REQUIRED', user_action_required: true });
-    if (!bool(ai.cost_approved)) blockers.push({ type: 'ai_provider_cost', engine: 'ai', code: 'AI_PROVIDER_COST_APPROVAL_REQUIRED', user_action_required: true });
-  }
-
-  const automationTasks = engineTasks(pkg, 'automation');
-  const automationNeedsExternal = (pkg.activation_requirements || []).some((item) => item.engine === 'automation' && item.type === 'external_integration_activation' && item.required === true);
-  if (automationTasks.length && automationNeedsExternal) {
-    const automation = activation.automation || {};
-    if (typeof automation.transport !== 'function' && !bool(automation.transport_configured)) blockers.push({ type: 'automation_transport', engine: 'automation', code: 'AUTOMATION_TRANSPORT_REQUIRED', user_action_required: true });
-    if (!bool(automation.policy_authorized)) blockers.push({ type: 'automation_policy', engine: 'automation', code: 'AUTOMATION_EXTERNAL_POLICY_APPROVAL_REQUIRED', user_action_required: true });
-    if (!configuredHosts(automation).length) blockers.push({ type: 'automation_allowlist', engine: 'automation', code: 'AUTOMATION_ALLOWED_HOSTS_REQUIRED', user_action_required: true });
-    if (automation.inline_secrets === true) blockers.push({ type: 'automation_inline_secrets', engine: 'automation', code: 'AUTOMATION_INLINE_SECRETS_REJECTED', user_action_required: true });
-  }
-
-  const businessTasks = engineTasks(pkg, 'business');
-  const businessNeedsExternal = (pkg.activation_requirements || []).some((item) => item.engine === 'business' && item.type === 'external_crm_write_activation' && item.required === true);
-  if (businessTasks.length && businessNeedsExternal) {
-    const business = activation.business || {};
-    if (!bool(business.target_adapter_configured)) blockers.push({ type: 'business_target_adapter', engine: 'business', code: 'BUSINESS_TARGET_ADAPTER_REQUIRED', user_action_required: true });
-    if (!bool(business.external_write_approved)) blockers.push({ type: 'business_external_write', engine: 'business', code: 'BUSINESS_EXTERNAL_WRITE_APPROVAL_REQUIRED', user_action_required: true });
-  }
-
-  if (activation.production_deploy === true) blockers.push({ type: 'production', engine: 'global', code: 'PRODUCTION_ACTIVATION_NOT_ALLOWED_HERE', user_action_required: true });
-  else warnings.push({ type: 'production', code: 'PRODUCTION_REMAINS_SEPARATE_MANUAL_APPROVAL', production_deploy: false });
-
-  const localBlockers = blockers.filter((item) => item.type === 'adapter_approval');
-  const externalBlockers = blockers.filter((item) => item.type !== 'adapter_approval' && item.type !== 'production');
-  const readyForSupervisedExecution = localBlockers.length === 0;
-  const readyForExternalActivation = readyForSupervisedExecution && externalBlockers.length === 0;
-
-  return {
-    ok: true,
-    mission_id: pkg.mission.mission_id || null,
-    task_count: pkg.mission.tasks?.length || 0,
-    approvals,
-    blockers,
-    warnings,
-    blocker_count: blockers.length,
-    user_action_required: blockers.some((item) => item.user_action_required),
-    ready_for_supervised_execution: readyForSupervisedExecution,
-    ready_for_external_activation: readyForExternalActivation,
-    status: readyForExternalActivation ? 'READY_FOR_EXTERNAL_ACTIVATION' : readyForSupervisedExecution ? 'READY_FOR_SUPERVISED_EXECUTION_WITH_EXTERNAL_BLOCKERS' : 'BLOCKED_BY_REQUIRED_APPROVALS',
-    production_deploy: false,
-    automatic_multi_factory_execution: false,
-    evaluated_configuration: {
-      ai: aiTasks.length ? { runner_configured: typeof activation.ai?.runner === 'function' || bool(activation.ai?.runner_configured), credentials_configured: bool(activation.ai?.credentials_configured), cost_approved: bool(activation.ai?.cost_approved) } : null,
-      automation: automationTasks.length ? { external_activation_required: automationNeedsExternal, transport_configured: typeof activation.automation?.transport === 'function' || bool(activation.automation?.transport_configured), policy_authorized: bool(activation.automation?.policy_authorized), allowed_hosts: configuredHosts(activation.automation || {}) } : null,
-      business: businessTasks.length ? { external_activation_required: businessNeedsExternal, target_adapter_configured: bool(activation.business?.target_adapter_configured), external_write_approved: bool(activation.business?.external_write_approved) } : null
-    }
-  };
+  if (aiTasks.length) { const ai = activation.ai || {}; if (typeof ai.runner !== 'function' && !bool(ai.runner_configured)) blockers.push({ type: 'ai_provider_runner', engine: 'ai', code: 'AI_RUNNER_NOT_CONFIGURED', user_action_required: true }); if (!bool(ai.credentials_configured)) blockers.push({ type: 'ai_provider_credentials', engine: 'ai', code: 'AI_PROVIDER_CREDENTIALS_REQUIRED', user_action_required: true }); if (!bool(ai.cost_approved)) blockers.push({ type: 'ai_provider_cost', engine: 'ai', code: 'AI_PROVIDER_COST_APPROVAL_REQUIRED', user_action_required: true }); }
+  const automationTasks = engineTasks(pkg, 'automation'); const automationNeedsExternal = (pkg.activation_requirements || []).some((item) => item.engine === 'automation' && item.type === 'external_integration_activation' && item.required === true);
+  if (automationTasks.length && automationNeedsExternal) { const automation = activation.automation || {}; if (typeof automation.transport !== 'function' && !bool(automation.transport_configured)) blockers.push({ type: 'automation_transport', engine: 'automation', code: 'AUTOMATION_TRANSPORT_REQUIRED', user_action_required: true }); if (!bool(automation.policy_authorized)) blockers.push({ type: 'automation_policy', engine: 'automation', code: 'AUTOMATION_EXTERNAL_POLICY_APPROVAL_REQUIRED', user_action_required: true }); if (!configuredHosts(automation).length) blockers.push({ type: 'automation_allowlist', engine: 'automation', code: 'AUTOMATION_ALLOWED_HOSTS_REQUIRED', user_action_required: true }); if (automation.inline_secrets === true) blockers.push({ type: 'automation_inline_secrets', engine: 'automation', code: 'AUTOMATION_INLINE_SECRETS_REJECTED', user_action_required: true }); }
+  const businessTasks = engineTasks(pkg, 'business'); const businessNeedsExternal = (pkg.activation_requirements || []).some((item) => item.engine === 'business' && item.type === 'external_crm_write_activation' && item.required === true);
+  if (businessTasks.length && businessNeedsExternal) { const business = activation.business || {}; if (!bool(business.target_adapter_configured)) blockers.push({ type: 'business_target_adapter', engine: 'business', code: 'BUSINESS_TARGET_ADAPTER_REQUIRED', user_action_required: true }); if (!bool(business.external_write_approved)) blockers.push({ type: 'business_external_write', engine: 'business', code: 'BUSINESS_EXTERNAL_WRITE_APPROVAL_REQUIRED', user_action_required: true }); }
+  if (activation.production_deploy === true) blockers.push({ type: 'production', engine: 'global', code: 'PRODUCTION_ACTIVATION_NOT_ALLOWED_HERE', user_action_required: true }); else warnings.push({ type: 'production', code: 'PRODUCTION_REMAINS_SEPARATE_MANUAL_APPROVAL', production_deploy: false });
+  const localBlockers = blockers.filter((item) => item.type === 'adapter_approval' || item.type === 'project_content'); const externalBlockers = blockers.filter((item) => item.type !== 'adapter_approval' && item.type !== 'project_content' && item.type !== 'production');
+  const readyForSupervisedExecution = localBlockers.length === 0; const readyForExternalActivation = readyForSupervisedExecution && externalBlockers.length === 0;
+  return { ok: true, mission_id: pkg.mission.mission_id || null, task_count: pkg.mission.tasks?.length || 0, approvals, blockers, warnings, blocker_count: blockers.length, user_action_required: blockers.some((item) => item.user_action_required), ready_for_supervised_execution: readyForSupervisedExecution, ready_for_external_activation: readyForExternalActivation, status: readyForExternalActivation ? 'READY_FOR_EXTERNAL_ACTIVATION' : readyForSupervisedExecution ? 'READY_FOR_SUPERVISED_EXECUTION_WITH_EXTERNAL_BLOCKERS' : 'BLOCKED_BY_REQUIRED_APPROVALS', production_deploy: false, automatic_multi_factory_execution: false, evaluated_configuration: { project_content: pkg.project_context ? { scope_key: pkg.project_context.project?.scope_key || null, compiled_knowledge_revision: pkg.project_context.knowledge_revision, current_knowledge_revision: activation.project_knowledge_revision ?? activation.project_context_current?.knowledge_revision ?? null, readiness_status: pkg.project_context.readiness_ref?.status || null } : null, ai: aiTasks.length ? { runner_configured: typeof activation.ai?.runner === 'function' || bool(activation.ai?.runner_configured), credentials_configured: bool(activation.ai?.credentials_configured), cost_approved: bool(activation.ai?.cost_approved) } : null, automation: automationTasks.length ? { external_activation_required: automationNeedsExternal, transport_configured: typeof activation.automation?.transport === 'function' || bool(activation.automation?.transport_configured), policy_authorized: bool(activation.automation?.policy_authorized), allowed_hosts: configuredHosts(activation.automation || {}) } : null, business: businessTasks.length ? { external_activation_required: businessNeedsExternal, target_adapter_configured: bool(activation.business?.target_adapter_configured), external_write_approved: bool(activation.business?.external_write_approved) } : null } };
 }
-
-export function missionActivationGateManifest() {
-  return {
-    version: '4.11',
-    mode: 'read_only_activation_readiness',
-    checks: ['adapter_approvals', 'ai_provider_activation', 'automation_transport_policy_allowlist', 'business_external_write_target', 'production_separation'],
-    mutates_external_systems: false,
-    activates_providers: false,
-    activates_transports: false,
-    production_deploy: false
-  };
-}
+export function missionActivationGateManifest() { return { version: '4.12', mode: 'read_only_activation_readiness', checks: ['adapter_approvals', 'project_content_readiness', 'project_content_staleness', 'ai_provider_activation', 'automation_transport_policy_allowlist', 'business_external_write_target', 'production_separation'], mutates_external_systems: false, activates_providers: false, activates_transports: false, production_deploy: false }; }
