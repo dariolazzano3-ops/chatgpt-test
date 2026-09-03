@@ -16,10 +16,16 @@ function listCanonical(values = {}, patterns = []) {
   return out.filter(Boolean);
 }
 function tokens(text, regex) { return [...new Set((String(text).match(regex) || []).map(normalized).filter(Boolean))]; }
+function categoryFor(code) {
+  if (/RIGHTS|ASSET/.test(code)) return 'rights';
+  if (/PROVENANCE|PACK_VERSION_EVIDENCE/.test(code)) return 'provenance';
+  if (/SCOPE_ISOLATION/.test(code)) return 'security';
+  return 'content';
+}
 
 export function runProjectContentRightsQa(artifact = {}, projectContext = artifact.project_mission_context || null) {
   const issues = [];
-  const block = (code, message, details = {}) => issues.push({ category: 'content', code, message, severity: 'blocking', ...details });
+  const block = (code, message, details = {}) => issues.push({ category: categoryFor(code), code, message, severity: 'blocking', ...details });
   if (!projectContext) return { schema: 'aurentara.project-content-rights-qa.v1', status: 'NOT_APPLICABLE', blocking_issues: [], warnings: [], checks: { project_context_present: false } };
   if (projectContext.schema !== 'aurentara.project-mission-context.v1') block('PROJECT_CONTEXT_INVALID', 'Project mission context schema is invalid.');
   if (projectContext.readiness_ref?.status === 'BLOCKED') block('PROJECT_CONTENT_READINESS_BLOCKED', 'Blocked content readiness cannot enter a Web Factory build.');
@@ -61,6 +67,7 @@ export function runProjectContentRightsQa(artifact = {}, projectContext = artifa
     else if (!APPROVED_RIGHTS.has(asset.rights_status) || asset.publishable !== true) block('USED_PROJECT_ASSET_RIGHTS_BLOCKED', `Used asset ${assetId} does not have publishable rights.`, { asset_id: assetId, rights_status: asset.rights_status });
   }
 
-  if (artifact.project_scope_key && artifact.project_scope_key !== projectContext.project?.scope_key) block('PROJECT_SCOPE_ISOLATION_MISMATCH', 'Artifact project scope differs from compiled project scope.');
+  if (!artifact.project_scope_key) block('PROJECT_SCOPE_ISOLATION_MISSING', 'Bound project builds must retain their project scope key.');
+  else if (artifact.project_scope_key !== projectContext.project?.scope_key) block('PROJECT_SCOPE_ISOLATION_MISMATCH', 'Artifact project scope differs from compiled project scope.');
   return { schema: 'aurentara.project-content-rights-qa.v1', status: issues.length ? 'FAIL' : 'PASS', blocking_issues: issues, warnings: [], checks: { project_context_present: true, provenance_checked: true, critical_rendered_facts_checked: true, asset_rights_checked: true, pack_versions_checked: true, project_scope_checked: true } };
 }
