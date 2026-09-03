@@ -1,0 +1,31 @@
+name: Controlled Paid Staging V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/operator-controlled-paid-staging-v1.js'
+      - 'src/operator-finalization-runtime-v1.js'
+      - 'src/command-center.js'
+      - 'scripts/controlled-paid-staging-v1-smoke.mjs'
+      - '.github/workflows/controlled-paid-staging-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Controlled Paid Staging targeted acceptance
+        run: node scripts/controlled-paid-staging-v1-smoke.mjs
+      - name: General CI
+        run: npm run check
