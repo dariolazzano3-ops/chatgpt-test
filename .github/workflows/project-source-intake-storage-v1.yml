@@ -22,19 +22,31 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
-      - name: Syntax check storage integration
+      - name: Syntax check storage and live acceptance repair
         run: |
           node --check src/project-source-storage-supabase-v1.js
+          node --check src/project-source-worker-dns-resolver-v1.js
+          node --check src/project-source-website-import-v1.js
           node --check src/operator-project-source-intake-runtime-v1.js
           node --check src/operator-project-source-intake-storage-dashboard-v1.js
+          node --check src/operator-project-source-intake-human-acceptance-ui-v1.js
           node --check src/operator-runtime-bootstrap-v1.js
           node --check src/entry.js
           node --check scripts/project-source-intake-storage-v1-smoke.mjs
           node --check scripts/project-source-intake-storage-replace-v1-smoke.mjs
+          node --check scripts/project-source-dns-resolver-v1-smoke.mjs
+          node --check scripts/project-source-dns-worker-runtime-smoke.mjs
+          node --check scripts/project-source-human-acceptance-ui-v1-smoke.mjs
       - name: Project Source Intake core regression
         run: |
           node scripts/project-source-intake-v1-smoke.mjs
           node scripts/project-source-intake-v1-acceptance.mjs
+      - name: DNS resolver SSRF and classification acceptance
+        run: node scripts/project-source-dns-resolver-v1-smoke.mjs
+      - name: Actual Workerd node DNS runtime acceptance
+        run: node scripts/project-source-dns-worker-runtime-smoke.mjs
+      - name: Project Sources local human status acceptance
+        run: node scripts/project-source-human-acceptance-ui-v1-smoke.mjs
       - name: Private storage security and mobile acceptance
         run: |
           node scripts/project-source-intake-storage-v1-smoke.mjs
