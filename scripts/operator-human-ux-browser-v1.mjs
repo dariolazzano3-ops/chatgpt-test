@@ -45,6 +45,7 @@ async function go(page, id, title) {
   else await page.locator(`[data-goto="${id}"]`).first().click();
   await page.waitForFunction((expected) => document.getElementById('title')?.textContent?.trim() === expected, title);
   assert.equal(await page.locator(`#${id}`).isVisible(), true, `${id} must be visible`);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   checkedViews.push(id);
 }
 
