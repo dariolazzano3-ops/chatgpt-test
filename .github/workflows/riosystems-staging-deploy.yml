@@ -3,6 +3,7 @@ name: RIOSYSTEMS Zero-Cost Staging Deploy
 on:
   pull_request:
     branches: [factory-control]
+    types: [opened, synchronize, reopened]
     paths:
       - 'wrangler.jsonc'
       - 'scripts/staging-deploy-guard.mjs'
@@ -14,6 +15,7 @@ on:
       - 'src/operator-controlled-paid-staging-runtime-service-v1.js'
       - 'src/operator-runtime-bootstrap-v1.js'
       - 'src/entry.js'
+      - '.github/riosystems-staging-deploy-request.json'
       - '.github/workflows/riosystems-staging-deploy.yml'
       - 'package.json'
   workflow_dispatch:
@@ -23,7 +25,84 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
+  authorize-deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.ref == 'riosystems-staging-deploy-request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login == 'dariolazzano3-ops' &&
+        github.event.pull_request.title == '[STAGING DEPLOY] riosystems-staging' &&
+        github.event.pull_request.draft == false
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      canonical_sha: ${{ steps.manual.outputs.canonical_sha || steps.pr_request.outputs.canonical_sha }}
+    steps:
+      - name: Checkout canonical for manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 0
+
+      - name: Authorize manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        id: manual
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$GITHUB_REF_NAME" = "factory-control"
+          test "$CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
+          git fetch --no-tags origin factory-control
+          CANONICAL_SHA="$(git rev-parse origin/factory-control)"
+          test "$(git rev-parse HEAD)" = "$CANONICAL_SHA"
+          echo "canonical_sha=$CANONICAL_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout autonomous deploy request
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+
+      - name: Authorize autonomous canonical staging request
+        if: github.event_name == 'pull_request'
+        id: pr_request
+        run: |
+          set -euo pipefail
+          REQUEST_PATH=".github/riosystems-staging-deploy-request.json"
+          test -f "$REQUEST_PATH"
+          test "$(git diff --name-only HEAD^ HEAD)" = "$REQUEST_PATH"
+
+          CANONICAL_SHA="$(node - "$REQUEST_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const path = process.argv[2];
+          const request = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const valid =
+            request.schema === 'riosystems-staging-deploy-request-v1' &&
+            request.target === 'riosystems-staging' &&
+            request.canonical_ref === 'factory-control' &&
+            /^[0-9a-f]{40}$/.test(request.canonical_sha || '') &&
+            request.confirmation === 'DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST' &&
+            request.production_deploy === false &&
+            request.external_writes === false;
+          if (!valid) process.exit(1);
+          process.stdout.write(request.canonical_sha);
+          NODE
+          )"
+
+          test "$(git rev-parse HEAD^)" = "$CANONICAL_SHA"
+          git fetch --no-tags origin factory-control
+          test "$(git rev-parse origin/factory-control)" = "$CANONICAL_SHA"
+          echo "canonical_sha=$CANONICAL_SHA" >> "$GITHUB_OUTPUT"
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -38,11 +117,28 @@ jobs:
       - run: npm run deploy:staging:dry-run
 
   deploy-staging:
-    if: github.event_name == 'workflow_dispatch'
-    needs: validate
+    if: >-
+      always() &&
+      needs.validate.result == 'success' &&
+      needs.authorize-deploy.result == 'success' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.ref == 'riosystems-staging-deploy-request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.user.login == 'dariolazzano3-ops' &&
+          github.event.pull_request.title == '[STAGING DEPLOY] riosystems-staging' &&
+          github.event.pull_request.draft == false
+        )
+      )
+    needs: [validate, authorize-deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: riosystems-staging
+    concurrency:
+      group: riosystems-staging-live-deploy
+      cancel-in-progress: false
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -53,21 +149,32 @@ jobs:
       RIOSYSTEMS_STAGING_BINDINGS_APPROVED: 'true'
       RIOSYSTEMS_STAGING_DEPLOY_APPROVED: 'true'
       RIOSYSTEMS_ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
-      RIOSYSTEMS_STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+      RIOSYSTEMS_STAGING_CONFIRMATION: ${{ github.event_name == 'workflow_dispatch' && inputs.confirmation || 'DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST' }}
+      RIOSYSTEMS_PRODUCTION_DEPLOY: 'false'
+      RIOSYSTEMS_EXTERNAL_WRITES: 'false'
+      AUTHORIZED_CANONICAL_SHA: ${{ needs.authorize-deploy.outputs.canonical_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: factory-control
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: npm install
-      - name: Verify canonical ref and zero-cost approval
+      - name: Verify canonical revision and zero-cost approval
         run: |
-          test "$GITHUB_REF_NAME" = "factory-control"
+          set -euo pipefail
           test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
           test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
+          test "$RIOSYSTEMS_PRODUCTION_DEPLOY" = "false"
+          test "$RIOSYSTEMS_EXTERNAL_WRITES" = "false"
           test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
+          test "$AUTHORIZED_CANONICAL_SHA" != ""
+          DEPLOYED_SHA="$(git rev-parse HEAD)"
+          git fetch --no-tags origin factory-control
+          test "$DEPLOYED_SHA" = "$AUTHORIZED_CANONICAL_SHA"
+          test "$DEPLOYED_SHA" = "$(git rev-parse origin/factory-control)"
       - run: node scripts/staging-worker-runtime-bindings-v1-smoke.mjs
       - run: npm run deploy:staging:dry-run
       - name: Restore private operator and durable runtime bindings without logging values
@@ -75,6 +182,6 @@ jobs:
       - name: Deploy exact factory-control revision with runtime version evidence
         run: |
           DEPLOYED_SHA="$(git rev-parse HEAD)"
-          test "$DEPLOYED_SHA" = "$(git rev-parse origin/factory-control)"
+          test "$DEPLOYED_SHA" = "$AUTHORIZED_CANONICAL_SHA"
           node scripts/staging-deploy-guard.mjs --deploy
           npx wrangler deploy --env staging --tag "$DEPLOYED_SHA"
