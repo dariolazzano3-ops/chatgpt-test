@@ -14,12 +14,12 @@ function businessContract(task, prompt, project) {
   if (crmRequested || /pipeline|vertrieb|sales/.test(text)) operations.push({ id: 'pipeline', type: 'configure_pipeline', config: { stages: ['new', 'qualified', 'proposal', 'won', 'lost'] } });
   if (offerRequested) operations.push({ id: 'offer-flow', type: 'define_offer_flow', config: { stages: ['draft', 'review', 'sent', 'accepted'], external_write: false } });
   if (!operations.length) operations.push({ id: 'process-map', type: 'map_business_process', config: { goal: task.goal, external_write: false } });
-  return { goal: task.goal, operations, metadata: { compiler: 'mission-compiler-v4.12', external_writes: false } };
+  return { goal: task.goal, operations, metadata: { compiler: 'mission-compiler-v4.10', external_writes: false } };
 }
 function automationContract(task, prompt) {
   const text = lower(prompt); const incomingLeadFlow = /eingehende? leads?|lead.*automat|automat.*lead|lead.?flow/.test(text); const apiIntent = /api|webhook|integration|verbinde|connect/.test(text);
   const workflowSpec = { goal: task.goal, trigger: incomingLeadFlow ? 'incoming_lead' : 'mission_dependency_ready', dependency_handoff: true, intended_integration: apiIntent || incomingLeadFlow, external_activation_required: apiIntent || incomingLeadFlow, external_execution_authorized: false };
-  return { goal: task.goal, steps: [{ id: 'compile-workflow-spec', type: 'transform', config: { mode: 'set', field: 'automation_spec', value: workflowSpec } }, { id: 'mark-supervised', type: 'transform', config: { mode: 'set', field: 'supervised_activation_required', value: workflowSpec.external_activation_required } }], metadata: { compiler: 'mission-compiler-v4.12', external_side_effects: false } };
+  return { goal: task.goal, steps: [{ id: 'compile-workflow-spec', type: 'transform', config: { mode: 'set', field: 'automation_spec', value: workflowSpec } }, { id: 'mark-supervised', type: 'transform', config: { mode: 'set', field: 'supervised_activation_required', value: workflowSpec.external_activation_required } }], metadata: { compiler: 'mission-compiler-v4.10', external_side_effects: false } };
 }
 function activationRequirements(mission, prompt, projectContext) {
   const text = lower(prompt); const requirements = [];
@@ -51,7 +51,7 @@ export function compileMissionPackage(input = {}) {
   const businessContracts = {}; const automationContracts = {}; const aiContracts = {};
   for (const task of created.tasks) { if (task.domain === 'business') businessContracts[task.task_id] = businessContract(task, prompt, created.project); if (task.domain === 'automation') automationContracts[task.task_id] = automationContract(task, prompt); if (task.domain === 'ai') aiContracts[task.task_id] = { task_type: 'generate', output: { format: 'text', max_chars: 100000 }, max_attempts: Math.min(task.max_attempts || 1, 3) }; }
   const packageValue = {
-    package_version: 'mission.package.v1', compiler_version: '4.12', mission: created, source_of_truth: sourceOfTruth,
+    package_version: 'mission.package.v1', compiler_version: '4.10', mission: created, source_of_truth: sourceOfTruth,
     project_context: projectContext,
     project_context_binding: projectContext ? { scope_key: projectContext.project.scope_key, knowledge_revision: projectContext.knowledge_revision, content_pack_ref: clone(projectContext.content_pack_ref), visual_pack_ref: clone(projectContext.visual_pack_ref), readiness_ref: clone(projectContext.readiness_ref) } : null,
     contracts: { business_contracts: businessContracts, automation_contracts: automationContracts, ai_contracts: aiContracts, web: { project_name: clean(input.project_name || input.project || created.project || `Mission ${created.mission_id.slice(-8)}`, 120), project_context: projectContext } },
@@ -62,4 +62,4 @@ export function compileMissionPackage(input = {}) {
   return { ok: true, package: packageValue };
 }
 
-export function missionCompilerManifest() { return { version: '4.12', engine_revision: 'max-source-of-truth-1+project-source-intake-v1', input: 'single_high_level_prompt', output: 'durable_mission_plus_factory_contracts', compiled_engines: ['web', 'automation', 'ai', 'business'], project_identity_separate_from_routing: true, deterministic_safe_contract_synthesis: true, source_of_truth_contract: true, project_knowledge_contract: 'aurentara.project-mission-context.v1', git_source_of_truth_separate: true, full_sha_revision_binding_supported: true, explicit_adapter_approvals_required: true, external_activation_requirements_exposed: true, automatic_multi_factory_execution: false, production_deploy: false }; }
+export function missionCompilerManifest() { return { version: '4.10', engine_revision: 'max-source-of-truth-1', input: 'single_high_level_prompt', output: 'durable_mission_plus_factory_contracts', compiled_engines: ['web', 'automation', 'ai', 'business'], project_identity_separate_from_routing: true, deterministic_safe_contract_synthesis: true, source_of_truth_contract: true, project_source_intake_extension: 'aurentara.project-mission-context.v1', git_source_of_truth_separate: true, full_sha_revision_binding_supported: true, explicit_adapter_approvals_required: true, external_activation_requirements_exposed: true, automatic_multi_factory_execution: false, production_deploy: false }; }
