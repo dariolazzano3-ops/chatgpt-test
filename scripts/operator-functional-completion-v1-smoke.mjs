@@ -14,9 +14,26 @@ const sourceResults = {
   approvals: ok({ core: { pending_count: 0 }, mission_plans: [{ mission_id: missionId, plan_token: 'plan:1', status: 'APPROVAL_REQUIRED', risk: 'SYNTHETIC_STAGING_ONLY' }] }),
   factories: ok({ items: [{ factory: 'automation', status: 'READY' }, { factory: 'web', status: 'READY' }, { factory: 'business_crm', status: 'READY' }, { factory: 'ai', status: 'READY' }, { factory: 'analytics', status: 'READY' }, { factory: 'growth_gtm', status: 'READY' }] }),
   providers: ok({ activation_matrix: {}, active_runtime_providers: [{ name: 'make-core', reality: 'SYNTHETIC_ROUTE_ONLY', variable_cost_eur: 0 }] }),
-  costs: ok({ spent_eur: 0, variable_cost_eur: 0, development_ceiling_eur: 20, remaining_development_budget_eur: 20, paid_execution_authorized: false }),
+  costs: ok({ spent_eur: 0, variable_cost_eur: 0, variable_cost_state: 'ESTIMATED_ZERO', daily_cost_eur: null, monthly_cost_eur: null, development_ceiling_eur: 20, remaining_development_budget_eur: 20, paid_execution_authorized: false }),
   deliveries: ok({ universal_missions: [{ mission_id: missionId }], durable_missions: [], live_staging_executions: [] }),
-  system_health: ok({ factory_control_api: { raw: 'VERIFIED_HEALTHY', label: 'verified' }, control_plane: { raw: 'HEALTHY', label: 'healthy' }, ci: { raw: 'HEALTHY', label: 'healthy' }, production: { raw: 'LOCKED', label: 'locked' } }),
+  system_health: ok({
+    factory_control_api: { raw: 'VERIFIED_HEALTHY', label: 'legacy alias healthy' },
+    control_plane: { raw: 'HEALTHY', label: 'legacy alias healthy' },
+    ci: { raw: 'HEALTHY', label: 'legacy alias healthy' },
+    production: { raw: 'LOCKED', label: 'legacy alias locked' },
+    signals: {
+      core_ci: { status: 'HEALTHY', label: 'exact-head core CI healthy' },
+      integrated_regression_gate: { status: 'HEALTHY', label: 'integrated regression healthy' },
+      dashboard_ci: { status: 'HEALTHY', label: 'dashboard CI healthy' },
+      universal_mission_ci: { status: 'HEALTHY', label: 'universal mission CI healthy' },
+      factory_readiness: { status: 'HEALTHY', label: 'factory readiness healthy' },
+      provider_evidence_freshness: { status: 'NOT_VERIFIED', label: 'provider evidence missing' },
+      runtime_persistence: { status: 'HEALTHY', label: 'runtime persistence healthy' },
+      staging_availability: { status: 'HEALTHY', label: 'staging available' },
+      activation_readiness: { status: 'NOT_VERIFIED', label: 'activation evidence missing' },
+      production_readiness: { status: 'NOT_VERIFIED', label: 'production evidence missing' }
+    }
+  }),
   audit: ok({ items: [{ event: 'MISSION_PLAN_CREATED', mission_id: missionId, at: '2026-08-31T15:00:00.000Z' }, { event: 'MISSION_PLAN_APPROVED', mission_id: missionId, at: '2026-08-31T15:01:00.000Z' }, { event: 'QUALITY_GATE_PASSED', mission_id: missionId, at: '2026-08-31T15:02:00.000Z' }] }),
   actions: ok({ items: [] })
 };
@@ -84,21 +101,36 @@ assert.equal(projection.missions[0].delivery_state, 'SIMULATED_HANDOFF_READY');
 assert.equal(projection.executions.length, 1);
 assert.equal(projection.executions[0].execution_id, null, 'must not invent an execution id');
 assert.equal(projection.executions[0].task_id, 'synthetic-project:task:01:automation_followup');
+assert.equal(projection.executions[0].started, null, 'must not infer execution start from mission/audit timestamps');
+assert.equal(projection.executions[0].completed, null, 'must not infer execution completion from mission/audit timestamps');
+assert.equal(projection.executions[0].duration_ms, null, 'must not invent execution duration');
 assert.equal(projection.executions[0].cost_eur, null, 'must not allocate/fake per-task cost');
+assert.equal(projection.executions[0].cost_state, 'NOT_RECONCILED');
+assert.equal(projection.executions[0].mission_actual_cost_state, 'VERIFIED_ACTUAL');
+assert.equal(projection.missions[0].estimated_cost_state, 'ESTIMATED');
+assert.equal(projection.missions[0].actual_cost_state, 'VERIFIED_ACTUAL');
 assert.equal(projection.cost_signals.daily_cost_eur, null, 'period cost must remain unknown without Core evidence');
 assert.equal(projection.cost_signals.monthly_cost_eur, null, 'period cost must remain unknown without Core evidence');
 assert.equal(projection.cost_signals.daily_cost_state, 'UNKNOWN');
 assert.equal(projection.cost_signals.monthly_cost_state, 'UNKNOWN');
+assert.equal(projection.cost_signals.variable_cost_eur, 0);
+assert.equal(projection.cost_signals.variable_cost_state, 'ESTIMATED', '0 EUR from ESTIMATED_ZERO must not become verified actual zero');
 assert.equal(projection.capabilities.source, 'universal_mission_router');
 assert.equal(projection.capabilities.items.length, 6, 'canonical router introspection must expose the six registered V1 capabilities');
 for (const id of ['growth_gtm', 'web_presence', 'business_crm', 'automation_followup', 'ai_assistance', 'analytics']) {
   assert.ok(projection.capabilities.items.some((item) => item.capability === id), `missing canonical capability ${id}`);
 }
 assert.ok(projection.providers.some((item) => item.name === 'make-core' && item.status === 'STAGING_ONLY'));
+assert.ok(projection.alerts.some((item) => item.severity === 'UNKNOWN' && item.what.includes('Provider Evidence: NOT_VERIFIED')), 'authoritative missing provider evidence must remain NOT_VERIFIED despite legacy healthy aliases');
+assert.ok(projection.alerts.some((item) => item.severity === 'UNKNOWN' && item.what.includes('Activation Readiness: NOT_VERIFIED')));
+assert.ok(projection.alerts.some((item) => item.severity === 'UNKNOWN' && item.what.includes('Production Readiness: NOT_VERIFIED')));
 assert.ok(projection.alerts.some((item) => item.severity === 'ACTION_REQUIRED' && item.what.includes('Approval required')));
 assert.equal(projection.summary.operator_state, 'ACTION_REQUIRED');
 assert.equal(projection.truth_rules.unknown_is_not_zero, true);
 assert.equal(projection.truth_rules.unknown_is_not_healthy, true);
+assert.equal(projection.truth_rules.null_timing_is_not_inferred, true);
+assert.equal(projection.truth_rules.cost_evidence_states_explicit, true);
+assert.equal(projection.truth_rules.authoritative_health_signals_only, true);
 assert.equal(projection.truth_rules.unsupported_actions_exposed, false);
 assert.equal(projection.safety.production, 'OFF');
 assert.equal(projection.safety.external_writes, 'OFF');
@@ -138,6 +170,9 @@ console.log(JSON.stringify({
   execution_projection: projection.executions.length,
   operator_state: projection.summary.operator_state,
   unknown_period_costs_preserved: true,
+  null_execution_timing_preserved: true,
+  unreconciled_task_cost_preserved: true,
+  authoritative_health_signals_only: true,
   unsupported_actions_exposed: false,
   production_deploy: false,
   external_writes: false,
