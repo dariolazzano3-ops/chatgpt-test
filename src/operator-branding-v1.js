@@ -1,3 +1,5 @@
+import { applyOperatorFinalHumanUxLocalization } from './operator-final-human-ux-localization-v1.js';
+
 const INTERNAL_TECHNOLOGY_NAME = 'RIOSYSTEMS';
 const OPERATIVE_BRAND_NAME = 'AURENTARA SYSTEMS';
 const OPERATOR_SURFACE_NAME = 'Operator Control';
@@ -33,11 +35,12 @@ export async function applyOperatorBranding(response) {
   headers.delete('content-length');
   headers.set('x-aurentara-brand-layer', 'operator-presentation-v1');
 
-  return new Response(body, {
+  const branded = new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers
   });
+  return applyOperatorFinalHumanUxLocalization(branded);
 }
 
 export function operatorBrandingManifest() {
