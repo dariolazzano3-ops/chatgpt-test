@@ -113,9 +113,10 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
   const TECH_CODE='LIVE_STAGING_CONTROL_READY';
   const transient=error=>/load failed|failed to fetch|networkerror|network request failed|network.*failed/i.test(String(error?.message||error||''));
   const berlin=value=>{
-    if(!value)return'–';
+    if(typeof formatOperatorTimestamp==='function')return formatOperatorTimestamp(value);
+    if(!value)return'Nicht erfasst';
     const date=new Date(value);
-    if(Number.isNaN(date.getTime()))return'–';
+    if(Number.isNaN(date.getTime()))return'Nicht erfasst';
     const parts=Object.fromEntries(new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZoneName:'short'}).formatToParts(date).map(part=>[part.type,part.value]));
     return parts.day+'.'+parts.month+'.'+parts.year+' · '+parts.hour+':'+parts.minute+' '+parts.timeZoneName;
   };
