@@ -151,11 +151,14 @@ try {
   checkedViews.push('mission-plan');
 
   await go(page, 'approvals', 'Freigaben');
+  await page.waitForFunction(() => {
+    const root = document.getElementById('approvals');
+    return Boolean(root?.querySelector('.human-all-clear, .plan-action, button[data-decision]'));
+  });
   const approvalsText = await page.locator('#approvals').innerText();
   const hasDecisionControls = /Freigeben|Ablehnen|Approve|Reject/i.test(approvalsText);
-  const hasExplicitEmptyState = /Keine offenen Mission-Plan-Freigaben\./i.test(approvalsText)
-    && /Keine offenen Core-Freigaben\./i.test(approvalsText);
-  assert.ok(hasDecisionControls || hasExplicitEmptyState, 'Approvals must expose actionable controls or both explicit empty states');
+  const hasHumanEmptyState = /Keine Freigaben erforderlich/i.test(approvalsText);
+  assert.ok(hasDecisionControls || hasHumanEmptyState, 'Final approval view must expose actionable controls or the canonical human empty state');
 
   await go(page, 'factories', 'Factories');
   await page.waitForFunction(() => document.querySelectorAll('#factories .human-card').length > 0);
@@ -179,7 +182,7 @@ try {
   for (const label of ['Ausgegeben', 'Reserviert', 'Geschätzt', 'Verbleibend']) assert.ok(costLabels.includes(label.toLocaleLowerCase('de-DE')));
   assert.equal(costLabels.some((label) => ['spent', 'reserved', 'estimated', 'remaining'].includes(label)), false);
 
-  await go(page, 'executions', 'Executions');
+  await go(page, 'executions', 'Ausführungen');
   const executionsText = await page.locator('#executions').innerText();
   assert.match(executionsText, /Start/);
   assert.match(executionsText, /Ende/);
