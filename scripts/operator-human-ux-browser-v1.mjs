@@ -65,6 +65,7 @@ try {
     assert.equal(await page.locator(`.nav button[data-goto="${id}"] span:last-child`).innerText(), label);
   }
   checkedViews.push('hq');
+  assert.equal((await page.locator('body').innerText()).includes('[object Object]'), false, 'shared structured presenter must prevent [object Object]');
 
   await go(page, 'projects', 'Projekte');
   assert.match(await page.locator('#projects').innerText(), /Projektportfolio/);
@@ -173,6 +174,14 @@ try {
   const costLabels = (await page.locator('#costs .metric .k').allInnerTexts()).map((value) => value.toLocaleLowerCase('de-DE'));
   for (const label of ['Ausgegeben', 'Reserviert', 'Geschätzt', 'Verbleibend']) assert.ok(costLabels.includes(label.toLocaleLowerCase('de-DE')));
   assert.equal(costLabels.some((label) => ['spent', 'reserved', 'estimated', 'remaining'].includes(label)), false);
+
+  await go(page, 'executions', 'Executions');
+  const executionsText = await page.locator('#executions').innerText();
+  assert.match(executionsText, /Start/);
+  assert.match(executionsText, /Ende/);
+  assert.match(executionsText, /Dauer/);
+  assert.match(executionsText, /Kosten/);
+  assert.equal(executionsText.includes('[object Object]'), false);
 
   await go(page, 'deliveries', 'Ergebnisse');
   const deliveriesText = await page.locator('#deliveries').innerText();
