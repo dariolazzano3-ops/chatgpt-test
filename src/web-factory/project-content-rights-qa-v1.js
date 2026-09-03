@@ -35,6 +35,18 @@ export function runProjectContentRightsQa(artifact = {}, projectContext = artifa
 
   const values = projectContext.verified_content || {};
   const provenance = Array.isArray(projectContext.content_provenance) ? projectContext.content_provenance : [];
+  const websiteSources = Array.isArray(projectContext.website_sources) ? projectContext.website_sources : [];
+  const websiteSourceById = new Map(websiteSources.map((source) => [source.source_id, source]));
+  for (const source of websiteSources) {
+    if (source.source_type === 'REFERENCE_WEBSITE' && source.effective_usage?.content === true) block('REFERENCE_WEBSITE_CONTENT_USAGE_FORBIDDEN', 'Reference websites may not become publishable content truth.', { source_id: source.source_id });
+  }
+  for (const evidence of provenance) {
+    const refs = Array.isArray(evidence.source_refs) ? evidence.source_refs : [];
+    const websiteRefs = refs.map((ref) => websiteSourceById.get(ref)).filter(Boolean);
+    if (websiteRefs.length && refs.every((ref) => websiteSourceById.has(ref)) && !websiteRefs.some((source) => source.effective_usage?.content === true)) {
+      block('CONTENT_SOURCE_USAGE_NOT_ALLOWED', `Content provenance for ${evidence.field_path || 'unknown'} is bound only to website sources without content permission.`, { field_path: evidence.field_path || null, source_refs: refs });
+    }
+  }
   const criticalKeys = Object.keys(values).filter((key) => /price|pricing|business\.name|phone|email|address|opening_hours|legal|offerings|services|products/i.test(key));
   for (const key of criticalKeys) {
     const evidence = provenance.find((item) => item.field_path === key);
@@ -59,6 +71,10 @@ export function runProjectContentRightsQa(artifact = {}, projectContext = artifa
 
   const assets = Array.isArray(projectContext.assets) ? projectContext.assets : [];
   const assetById = new Map(assets.map((asset) => [asset.asset_id, asset]));
+  for (const asset of assets) {
+    const source = websiteSourceById.get(asset.source_id);
+    if (source && source.effective_usage?.design_reference !== true) block('WEBSITE_ASSET_USAGE_NOT_ALLOWED', `Asset ${asset.asset_id || 'unknown'} comes from a website source without design-reference permission.`, { asset_id: asset.asset_id || null, source_id: asset.source_id || null });
+  }
   const usedIds = Array.isArray(artifact.used_project_asset_ids) ? artifact.used_project_asset_ids : [];
   for (const asset of assets) if (!APPROVED_RIGHTS.has(asset.rights_status) || asset.publishable !== true) block('UNPUBLISHABLE_ASSET_IN_VISUAL_PACK', `Asset ${asset.asset_id || 'unknown'} is not publishable.`, { asset_id: asset.asset_id || null, rights_status: asset.rights_status || null });
   for (const assetId of usedIds) {
@@ -69,5 +85,5 @@ export function runProjectContentRightsQa(artifact = {}, projectContext = artifa
 
   if (!artifact.project_scope_key) block('PROJECT_SCOPE_ISOLATION_MISSING', 'Bound project builds must retain their project scope key.');
   else if (artifact.project_scope_key !== projectContext.project?.scope_key) block('PROJECT_SCOPE_ISOLATION_MISMATCH', 'Artifact project scope differs from compiled project scope.');
-  return { schema: 'aurentara.project-content-rights-qa.v1', status: issues.length ? 'FAIL' : 'PASS', blocking_issues: issues, warnings: [], checks: { project_context_present: true, provenance_checked: true, critical_rendered_facts_checked: true, asset_rights_checked: true, pack_versions_checked: true, project_scope_checked: true } };
+  return { schema: 'aurentara.project-content-rights-qa.v1', status: issues.length ? 'FAIL' : 'PASS', blocking_issues: issues, warnings: [], checks: { project_context_present: true, provenance_checked: true, website_usage_checked: true, critical_rendered_facts_checked: true, asset_rights_checked: true, pack_versions_checked: true, project_scope_checked: true } };
 }

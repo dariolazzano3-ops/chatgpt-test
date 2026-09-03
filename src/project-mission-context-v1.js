@@ -36,6 +36,7 @@ export function projectMissionContextManifest() {
     schema: 'aurentara.project-mission-context.v1',
     git_source_of_truth_embedded: false,
     content_provenance_included: true,
+    website_source_usage_included: true,
     pack_versions_required: true,
     production_deploy: false
   };

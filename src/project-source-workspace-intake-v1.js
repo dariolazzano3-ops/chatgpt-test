@@ -133,7 +133,12 @@ export async function intakeWebsiteSource(state = {}, input = {}, deps = {}, opt
     display_name: clean(input.display_name || 'Existing website', 300),
     ownership_status: input.reference_only === true ? 'PUBLIC_REFERENCE_ONLY' : (input.ownership_status || 'CUSTOMER_ASSERTED'),
     ingestion_status: imported.import_status,
-    content_hash: clean(input.content_hash, 240) || null
+    content_hash: clean(input.content_hash, 240) || null,
+    website_usage: input.website_usage && typeof input.website_usage === 'object'
+      ? input.website_usage
+      : (input.reference_only === true
+        ? { content: false, structure_reference: false, design_reference: false }
+        : { content: true, structure_reference: false, design_reference: false })
   }, options);
   if (!source.ok) return source;
   return { ok: true, state: source.state, source: source.source, import_result: imported, variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };

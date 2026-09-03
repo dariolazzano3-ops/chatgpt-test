@@ -12,6 +12,7 @@ import {
 } from '../src/project-source-storage-supabase-v1.js';
 import { handleOperatorDashboard } from '../src/operator-project-source-intake-storage-dashboard-v1.js';
 import { intakeManualSource, buildWorkspacePacksAndReadiness } from '../src/project-source-workspace-intake-v1.js';
+import { registerProjectSource } from '../src/project-source-intake-v1.js';
 
 const operatorId = 'operator:test@example.com';
 const gelato = {
@@ -174,7 +175,70 @@ assert.equal(response.status, 200);
 assert.equal(response.headers.get('cache-control'), 'private, no-store');
 assert.equal(response.headers.get('x-aurentara-public-active'), 'false');
 
-// Controlled Gelato project facts are added explicitly and then packs/readiness are built. No website mission runs.
+// Website purpose updates are project-scoped, audited, metadata-only and keep source identity stable.
+let websiteRead = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
+let websiteState = websiteRead.body.state;
+const websiteRegistered = registerProjectSource(websiteState, {
+  source_id: 'gelato-owned-website-purpose',
+  source_type: 'OWNED_WEBSITE',
+  locator: 'https://gelato.example/',
+  ownership_status: 'OWNED_CONFIRMED',
+  content_hash: 'website-purpose-v1',
+  website_usage: { content: true, structure_reference: false, design_reference: false }
+});
+assert.equal(websiteRegistered.ok, true);
+let websiteSaved = await service.saveProjectSourceIntake({
+  state: websiteRegistered.state,
+  expected_revision: websiteRead.body.runtime_revision,
+  event: 'GELATO_WEBSITE_PURPOSE_FIXTURE_RECORDED'
+});
+assert.equal(websiteSaved.ok, true);
+
+websiteRead = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
+const websiteBefore = websiteRead.body.state.sources.find((source) => source.source_id === 'gelato-owned-website-purpose');
+const websiteRevisions = {
+  knowledge: websiteRead.body.state.knowledge_revision,
+  record: websiteRead.body.state.record_revision
+};
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/website-usage', {
+  method: 'PATCH',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: gelato.scope_key,
+    source_id: websiteBefore.source_id,
+    website_usage: { content: true, structure_reference: true, design_reference: false }
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 200);
+const usageResponse = await response.json();
+assert.equal(usageResponse.ok, true);
+assert.equal(usageResponse.source.source_id, websiteBefore.source_id);
+assert.equal(usageResponse.source.locator, websiteBefore.locator);
+assert.equal(usageResponse.source.storage_ref, websiteBefore.storage_ref);
+assert.equal(usageResponse.source.content_hash, websiteBefore.content_hash);
+assert.equal(usageResponse.source.version, websiteBefore.version);
+assert.deepEqual(usageResponse.source.effective_usage, { content: true, structure_reference: true, design_reference: false });
+assert.equal(usageResponse.variable_cost_eur, 0);
+assert.equal(usageResponse.paid_provider_calls, 0);
+assert.equal(usageResponse.production_deploy, false);
+
+websiteRead = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
+assert.equal(websiteRead.body.state.knowledge_revision, websiteRevisions.knowledge + 1);
+assert.equal(websiteRead.body.state.record_revision, websiteRevisions.record + 1);
+assert.equal(websiteRead.body.state.audit.at(-2)?.event === 'PROJECT_SOURCE_WEBSITE_USAGE_UPDATED' || websiteRead.body.state.audit.at(-1)?.event === 'PROJECT_SOURCE_WEBSITE_USAGE_UPDATED', true);
+
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/website-usage', {
+  method: 'PATCH',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: other.scope_key,
+    source_id: websiteBefore.source_id,
+    website_usage: { content: false, structure_reference: false, design_reference: true }
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 404);
+
+// // Controlled Gelato project facts are added explicitly and then packs/readiness are built. No website mission runs.
 let read = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
 let state = read.body.state;
 const manual = intakeManualSource(state, {
@@ -234,6 +298,12 @@ assert.equal(html.includes('type="file" multiple'), true);
 assert.equal(html.includes('@media(max-width:760px)'), true);
 assert.equal(html.includes('Bulk Rights'), true);
 assert.equal(html.includes('Project Sources'), true);
+assert.equal(html.includes('Website-Art'), true);
+assert.equal(html.includes('data-source-use-content'), true);
+assert.equal(html.includes('data-source-use-structure'), true);
+assert.equal(html.includes('data-source-use-design'), true);
+assert.equal(html.includes('data-website-usage-save'), true);
+assert.equal(html.includes('Verwendung speichern'), true);
 
 console.log(JSON.stringify({
   ok: true,
@@ -251,6 +321,9 @@ console.log(JSON.stringify({
   mobile_upload_path: 'PASS',
   multi_image_upload: 'PASS',
   bulk_rights: 'PASS',
+  website_purpose_update: 'PASS',
+  website_purpose_identity_stability: 'PASS',
+  website_purpose_cross_project_rejection: 'PASS',
   gelato_content_pack: packs.content_pack.version,
   gelato_visual_pack: packs.visual_pack.version,
   gelato_readiness: packs.readiness.status,
