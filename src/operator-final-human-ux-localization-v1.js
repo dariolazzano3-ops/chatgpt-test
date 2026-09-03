@@ -1,4 +1,5 @@
 const CONTEXT_KEY = 'aurentara.operator-context.v1';
+const CONTEXT_DETAIL_LIMIT_BYTES = 450_000;
 
 export function formatOperatorBerlinTimestamp(value) {
   if (!value) return '–';
@@ -45,7 +46,7 @@ export async function runBoundedOperatorRead(fetcher, input, init = {}, sleep = 
 const STYLE = String.raw`<style id="aurentara-operator-final-localization-v1-style">
 .operator-network-detail{margin-top:5px;font-size:11px;line-height:1.45;opacity:.72;overflow-wrap:anywhere}
 .operator-control-code{margin-top:3px;font:10.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere}
-.operator-deployment-time{margin-top:3px}
+.operator-deployment-time{display:block;margin-top:3px}
 @media(max-width:760px){.operator-network-detail,.operator-control-code{font-size:10.5px}}
 </style>`;
 
@@ -55,6 +56,7 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
   window.__aurentaraOperatorFinalLocalizationV1 = true;
 
   const CONTEXT_KEY='aurentara.operator-context.v1';
+  const CONTEXT_DETAIL_LIMIT_BYTES=450000;
   const RIGHTS={
     CUSTOMER_ASSERTED:'Vom Kunden bestätigt',
     OWNED_CONFIRMED:'Eigentum bestätigt',
@@ -146,12 +148,31 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
     window.setError=setError;
   }
 
-  const readContext=()=>{try{const value=JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||'{}');return{section:String(value.section||''),scope:String(value.scope||'').slice(0,640)}}catch{return{section:'',scope:''}}};
-  const saveContext=()=>{try{sessionStorage.setItem(CONTEXT_KEY,JSON.stringify({section:String(state?.section||'hq'),scope:String(state?.selectedScope||'').slice(0,640)}))}catch{}};
+  const normalizeContext=value=>{
+    const section=String(value?.section||'');
+    const scope=String(value?.scope||'').slice(0,640);
+    const detail=value?.detail&&typeof value.detail==='object'&&value.detail?.project?.scope_key===scope?value.detail:null;
+    return{section,scope,detail};
+  };
+  const readContext=()=>{try{return normalizeContext(JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||'{}'))}catch{return{section:'',scope:'',detail:null}}};
+  const contextDetail=()=>{
+    if(!state?.detail||!state?.selectedScope||state.detail?.project?.scope_key!==state.selectedScope)return null;
+    try{const encoded=JSON.stringify(state.detail);return encoded.length<=CONTEXT_DETAIL_LIMIT_BYTES?state.detail:null}catch{return null}
+  };
+  const saveContext=()=>{
+    try{
+      sessionStorage.setItem(CONTEXT_KEY,JSON.stringify({
+        section:String(state?.section||'hq'),
+        scope:String(state?.selectedScope||'').slice(0,640),
+        detail:contextDetail()
+      }));
+    }catch{}
+  };
   const allowedSection=id=>Array.isArray(NAV)&&NAV.some(item=>item[0]===id);
   const saved=readContext();
   if(saved.section&&allowedSection(saved.section))state.section=saved.section;
   if(saved.scope)state.selectedScope=saved.scope;
+  if(saved.detail)state.detail=saved.detail;
 
   if(typeof go==='function'){
     const priorGo=go;
@@ -166,12 +187,16 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
   if(typeof loadAll==='function'){
     const priorLoadAll=loadAll;
     loadAll=async function(){
-      const before={section:state.section,scope:state.selectedScope};
+      const before={section:state.section,scope:state.selectedScope,detail:state.detail,data:state.data};
       saveContext();
       const result=await priorLoadAll();
       if(before.scope)state.selectedScope=before.scope;
       if(before.section&&allowedSection(before.section))state.section=before.section;
-      if(typeof go==='function'&&allowedSection(state.section))go(state.section);
+      const failed=state.data===before.data&&Boolean(document.getElementById('error')?.textContent?.trim());
+      if(failed&&before.detail){
+        state.detail=before.detail;
+        if(typeof renderProjectDetail==='function')renderProjectDetail(before.detail);
+      }
       saveContext();
       return result;
     };
@@ -257,6 +282,10 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
     if(saved.scope&&state.section==='projects'){
       const project=(state.data?.projects?.items||[]).find(item=>item.scope_key===saved.scope);
       if(project&&(!state.detail||state.detail?.project?.scope_key!==saved.scope)&&typeof openProject==='function')await openProject(saved.scope);
+      else if(saved.detail&&typeof renderProjectDetail==='function'){
+        state.detail=saved.detail;
+        renderProjectDetail(saved.detail);
+      }
     }
     polish(document.body);
     saveContext();
@@ -289,6 +318,8 @@ export function operatorFinalHumanUxLocalizationManifest() {
     source_enum_values_preserved: true,
     context_storage: CONTEXT_KEY,
     context_storage_scope: 'sessionStorage',
+    context_detail_limit_bytes: CONTEXT_DETAIL_LIMIT_BYTES,
+    context_detail_snapshot: true,
     read_retry_maximum: 1,
     read_retry_transient_network_only: true,
     write_retry_maximum: 0,
