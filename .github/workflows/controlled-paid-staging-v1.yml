@@ -6,14 +6,21 @@ on:
     paths:
       - 'src/operator-controlled-paid-staging-v1.js'
       - 'src/operator-controlled-paid-staging-dashboard-v1.js'
+      - 'src/operator-controlled-paid-staging-runtime-service-v1.js'
+      - 'src/operator-deployment-identity-v1.js'
+      - 'src/operator-deployment-activation-dashboard-v1.js'
       - 'src/operator-finalization-runtime-v1.js'
       - 'src/operator-runtime-api-v1.js'
+      - 'src/operator-runtime-bootstrap-v1.js'
       - 'src/command-center.js'
       - 'src/entry.js'
+      - 'wrangler.jsonc'
       - 'scripts/controlled-paid-staging-v1-smoke.mjs'
       - 'scripts/controlled-paid-staging-mission-studio-smoke.mjs'
       - 'scripts/controlled-paid-staging-execution-path-smoke.mjs'
+      - 'scripts/operator-deployment-identity-gelato-activation-v1-smoke.mjs'
       - '.github/workflows/controlled-paid-staging-v1.yml'
+      - '.github/workflows/riosystems-staging-deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,5 +42,7 @@ jobs:
         run: node scripts/controlled-paid-staging-mission-studio-smoke.mjs
       - name: Controlled Paid Staging execution path acceptance
         run: node scripts/controlled-paid-staging-execution-path-smoke.mjs
+      - name: Deployment identity and durable Gelato activation acceptance
+        run: node scripts/operator-deployment-identity-gelato-activation-v1-smoke.mjs
       - name: General CI
         run: npm run check
