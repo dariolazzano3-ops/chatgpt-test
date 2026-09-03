@@ -62,6 +62,7 @@ assert.match(shell.payload, /Mission Studio/);
 assert.match(shell.payload, /System Health/);
 assert.match(shell.payload, /aria-label="Hauptnavigation"/);
 assert.match(shell.payload, /@media\(max-width:760px\)/);
+assert.match(shell.payload, /const \$=\(s,r=document\)=>r\.querySelector\(s\),\$\$=\(s,r=document\)=>\[\.\.\.r\.querySelectorAll\(s\)\];/, 'shared selector helpers must remain valid browser JavaScript');
 assert.match(shell.payload, /function humanStatus\(/);
 assert.match(shell.payload, /function humanEvent\(/);
 assert.match(shell.payload, /function humanCapability\(/);
