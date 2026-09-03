@@ -1,3 +1,5 @@
+import { runProjectContentRightsQa } from './project-content-rights-qa-v1.js';
+
 function issue(category, code, message, severity = 'blocking', file = null) {
   return { category, code, message, severity, file };
 }
@@ -124,9 +126,14 @@ export function runWebsiteQa(artifact) {
   if (!String(artifact.project_root || '').startsWith('projects/') || String(artifact.project_root).includes('..')) block('structure', 'PROJECT_ISOLATION_INVALID', 'Project root must be an isolated projects/<slug> path');
   for (const file of Object.keys(files)) if (!file.startsWith(`${artifact.project_root}/`)) block('structure', 'PROJECT_FILE_ESCAPE', `File escaped project boundary: ${file}`, file);
 
+  const projectQa = runProjectContentRightsQa(artifact);
+  for (const finding of [...(projectQa.blocking_issues || []), ...(projectQa.warnings || [])]) {
+    issues.push(issue(finding.category || 'content', finding.code, finding.message, finding.severity || 'blocking', finding.file || null));
+  }
+
   const blockingIssues = issues.filter((item) => item.severity === 'blocking');
   const warnings = issues.filter((item) => item.severity === 'warning');
-  const categoryNames = ['structure', 'content', 'responsive', 'seo', 'accessibility', 'security', 'deployment'];
+  const categoryNames = ['structure', 'content', 'rights', 'provenance', 'responsive', 'seo', 'accessibility', 'security', 'deployment'];
   const categories = Object.fromEntries(categoryNames.map((category) => {
     const categoryIssues = issues.filter((item) => item.category === category);
     return [category, {
@@ -142,6 +149,7 @@ export function runWebsiteQa(artifact) {
     score,
     blocking_issues: blockingIssues,
     warnings,
-    categories
+    categories,
+    project_content_rights: projectQa
   };
 }

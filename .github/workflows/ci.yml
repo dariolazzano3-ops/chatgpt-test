@@ -62,6 +62,10 @@ jobs:
           node scripts/operator-design-ux-v1-smoke.mjs
           node scripts/operator-project-workspace-v1-smoke.mjs
           node scripts/operator-project-workspace-reconciliation-v1-smoke.mjs
+      - name: Project Source Intake V1 acceptance
+        run: |
+          node scripts/project-source-intake-v1-smoke.mjs
+          node scripts/project-source-intake-v1-acceptance.mjs
       - name: Universal Mission V1 acceptance
         run: |
           node scripts/universal-mission-run-v1-smoke.mjs

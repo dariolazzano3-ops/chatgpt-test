@@ -51,6 +51,15 @@ export function validateWebsiteMission(input = {}) {
   if (!input.tone) warnings.push({ field: 'tone', code: 'DEFAULT_APPLIED', value: tone });
   if (qualityLevelRaw && qualityLevelRaw !== qualityLevel) warnings.push({ field:'quality_level', code:'UNSUPPORTED_VALUE_DEFAULTED', value:qualityLevel });
 
+  const projectMissionContext = object(input.project_mission_context);
+  const projectScopeKey = text(input.project_scope_key || projectMissionContext?.project?.scope_key, 320) || null;
+  if (projectMissionContext && projectMissionContext.schema !== 'aurentara.project-mission-context.v1') {
+    requirements.push({ field: 'project_mission_context', code: 'PROJECT_MISSION_CONTEXT_INVALID', message: 'Bound project context must use aurentara.project-mission-context.v1' });
+  }
+  if (projectMissionContext?.project?.scope_key && projectScopeKey !== projectMissionContext.project.scope_key) {
+    requirements.push({ field: 'project_scope_key', code: 'PROJECT_SCOPE_MISMATCH', message: 'Web mission project scope must match bound project context' });
+  }
+
   const mission = {
     schema: 'riosystems.web-mission.v1',
     business_name: businessName,
@@ -81,6 +90,9 @@ export function validateWebsiteMission(input = {}) {
     integration_requirements: object(input.integration_requirements) || {},
     provider_preferences: object(input.provider_preferences) || {},
     special_requirements: list(input.special_requirements, 40),
+    project_scope_key: projectScopeKey,
+    project_mission_context: projectMissionContext,
+    approved_project_assets: objects(input.approved_project_assets, 100),
     synthetic_test_data_only: input.synthetic_test_data_only === true,
     real_customer_data: false,
     production_deploy: false,
@@ -104,7 +116,8 @@ export function websiteMissionContractManifest() {
     schema: 'riosystems.web-mission.v1',
     required: ['business_name', 'industry', 'primary_goal', 'services'],
     defaultable: ['country', 'language', 'target_audience', 'brand_positioning', 'tone', 'quality_level', 'required_pages', 'seo_location', 'conversion_goal'],
-    optional: ['existing_brand', 'existing_content', 'existing_domain', 'reference_sites', 'visual_references', 'competitor_references', 'operator_design_intent', 'motion_intent', 'localization', 'existing_website', 'integration_requirements', 'provider_preferences', 'special_requirements', 'required_features'],
+    optional: ['existing_brand', 'existing_content', 'existing_domain', 'reference_sites', 'visual_references', 'competitor_references', 'operator_design_intent', 'motion_intent', 'localization', 'existing_website', 'integration_requirements', 'provider_preferences', 'special_requirements', 'required_features', 'project_scope_key', 'project_mission_context', 'approved_project_assets'],
+    project_context_contract: 'aurentara.project-mission-context.v1',
     visual_reference_contract: ['reference_id','source','role','priority','instructions','allowed_influence','excluded_elements','match_strength'],
     production_deploy: false,
     variable_cost_ceiling_eur: 0,
