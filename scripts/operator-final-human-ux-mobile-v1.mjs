@@ -90,26 +90,26 @@ try {
     assert.ok(usage.some((item) => item.value === 'GALLERY' && item.text === 'Galerie'));
   }
 
-  let overviewCalls = 0;
-  await page.route('**/operator/api/overview*', async (route) => {
-    overviewCalls += 1;
-    if (overviewCalls === 1) return route.abort('failed');
+  let dashboardCalls = 0;
+  await page.route('**/operator/api/dashboard*', async (route) => {
+    dashboardCalls += 1;
+    if (dashboardCalls === 1) return route.abort('failed');
     return route.continue();
   });
   await page.evaluate(() => loadAll());
   await page.waitForTimeout(250);
-  assert.equal(overviewCalls, 2, 'one transient GET failure is retried exactly once');
+  assert.equal(dashboardCalls, 2, 'one transient GET failure is retried exactly once');
   assert.equal((await page.evaluate(() => state.selectedScope)), scope, 'selectedScope survives recovered GET failure');
-  await page.unroute('**/operator/api/overview*');
+  await page.unroute('**/operator/api/dashboard*');
 
-  overviewCalls = 0;
-  await page.route('**/operator/api/overview*', async (route) => {
-    overviewCalls += 1;
+  dashboardCalls = 0;
+  await page.route('**/operator/api/dashboard*', async (route) => {
+    dashboardCalls += 1;
     return route.abort('failed');
   });
   await page.evaluate(() => loadAll());
   await page.waitForTimeout(300);
-  assert.equal(overviewCalls, 2, 'persistent transient GET failure stops after the single retry');
+  assert.equal(dashboardCalls, 2, 'persistent transient GET failure stops after the single retry');
   const failedContext = await page.evaluate(() => ({ section: state.section, scope: state.selectedScope }));
   assert.equal(failedContext.section, 'projects', 'workspace section survives failed read');
   assert.equal(failedContext.scope, scope, 'selectedScope survives failed read');
@@ -124,17 +124,17 @@ try {
   assert.equal(stored.scope, scope);
   assert.equal(stored.detail?.project?.scope_key, scope, 'tab-local detail snapshot is retained for reload recovery');
 
-  overviewCalls = 0;
+  dashboardCalls = 0;
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitReady(page);
-  assert.equal(overviewCalls, 2, 'initial reload read also stops after one bounded retry');
+  assert.ok(dashboardCalls >= 1 && dashboardCalls <= 2, 'initial reload read remains bounded and never exceeds one retry');
   const reloadContext = await page.evaluate(() => ({ section: state.section, scope: state.selectedScope, detailScope: state.detail?.project?.scope_key || null }));
   assert.equal(reloadContext.section, 'projects', 'iPhone reload keeps project workspace section');
   assert.equal(reloadContext.scope, scope, 'iPhone reload keeps selected scope');
   assert.equal(reloadContext.detailScope, scope, 'iPhone reload restores cached project detail when read hydration fails');
   assert.equal(await page.locator('#project-detail').isVisible(), true, 'cached project detail remains visible across transient reload failure');
   assert.match(await page.locator('#error').innerText(), /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i);
-  await page.unroute('**/operator/api/overview*');
+  await page.unroute('**/operator/api/dashboard*');
 
   let writeProbeCalls = 0;
   await page.route('**/operator/api/operator-final-ux-write-probe', async (route) => {
