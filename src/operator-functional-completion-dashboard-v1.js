@@ -14,6 +14,15 @@ const FAILURE_STATES = new Set(['FAILED', 'FAILURE', 'ERROR']);
 const BLOCKED_STATES = new Set(['BLOCKED', 'BLOCK', 'LOCKED']);
 const ACTIVE_STATES = new Set(['ACTIVE', 'RUNNING', 'QUEUED', 'WAITING', 'RETRYING']);
 const COMPLETE_STATES = new Set(['COMPLETED', 'DONE', 'SUCCESS', 'DELIVERY_READY', 'SIMULATED_HANDOFF_READY', 'SYNTHETIC_STAGING_COMPLETED']);
+const COST_EVIDENCE_STATES = new Set(['VERIFIED_ACTUAL','ESTIMATED','RESERVED','UNKNOWN','NOT_RECONCILED']);
+function costEvidenceState(value, kind = 'actual', explicit = null) {
+  const normalized = upper(explicit);
+  if (COST_EVIDENCE_STATES.has(normalized)) return normalized;
+  if (value === null || value === undefined || value === '') return 'UNKNOWN';
+  if (kind === 'estimate') return 'ESTIMATED';
+  if (kind === 'reserved') return 'RESERVED';
+  return 'VERIFIED_ACTUAL';
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -84,7 +93,9 @@ function projectUniversalMission(detail, approvals, audit) {
     created: times.created,
     updated: times.updated,
     estimated_cost_eur: preflight.estimated_variable_cost_eur ?? null,
+    estimated_cost_state: costEvidenceState(preflight.estimated_variable_cost_eur ?? null, 'estimate', preflight.estimated_cost_state),
     actual_cost_eur: execution.variable_cost_eur ?? null,
+    actual_cost_state: costEvidenceState(execution.variable_cost_eur ?? null, 'actual', execution.actual_cost_state),
     approval_state: approvalState(approvals, audit, missionId),
     execution_state: upper(execution.status),
     quality_state: upper(quality.status),
@@ -121,7 +132,9 @@ function projectLiveMission(detail, approvals, audit) {
     created: run.created_at || run.started_at || times.created,
     updated: run.updated_at || run.completed_at || times.updated,
     estimated_cost_eur: run.estimated_variable_cost_eur ?? null,
+    estimated_cost_state: costEvidenceState(run.estimated_variable_cost_eur ?? null, 'estimate', run.estimated_cost_state),
     actual_cost_eur: run.variable_cost_eur ?? null,
+    actual_cost_state: costEvidenceState(run.variable_cost_eur ?? null, 'actual', run.actual_cost_state),
     approval_state: approvalState(approvals, audit, missionId),
     execution_state: upper(run.status),
     quality_state: upper(run.quality?.status || run.quality_state),
@@ -158,7 +171,9 @@ function projectDurableMission(detail, approvals, audit) {
     created: run.created_at || times.created,
     updated: run.updated_at || times.updated,
     estimated_cost_eur: run.estimated_variable_cost_eur ?? null,
+    estimated_cost_state: costEvidenceState(run.estimated_variable_cost_eur ?? null, 'estimate', run.estimated_cost_state),
     actual_cost_eur: run.variable_cost_eur ?? run.actual_cost_eur ?? null,
+    actual_cost_state: costEvidenceState(run.variable_cost_eur ?? run.actual_cost_eur ?? null, 'actual', run.actual_cost_state),
     approval_state: approvalState(approvals, audit, missionId),
     execution_state: upper(run.execution_state),
     quality_state: upper(run.quality_state || run.quality?.status),
@@ -209,7 +224,11 @@ function projectExecutions(missions = []) {
           duration_ms: result.duration_ms ?? null,
           retries: asArray(result.retries).length,
           cost_eur: result.variable_cost_eur ?? result.cost_eur ?? null,
+          cost_state: (result.variable_cost_eur ?? result.cost_eur) == null
+            ? (mission.actual_cost_eur == null ? 'UNKNOWN' : 'NOT_RECONCILED')
+            : costEvidenceState(result.variable_cost_eur ?? result.cost_eur, 'actual', result.cost_state),
           mission_actual_cost_eur: mission.actual_cost_eur,
+          mission_actual_cost_state: mission.actual_cost_state,
           result: clone(result.output || result.result || null),
           error: clone(result.error || null),
           retry_evidence: clone(result.retries || []),
@@ -231,12 +250,16 @@ function projectExecutions(missions = []) {
         factory: execution?.factory || null,
         provider: execution?.provider || firstValue(mission, [['providers', 0]]) || null,
         state: upper(execution?.status || mission.execution_state),
-        started: execution?.started_at || mission.created || null,
-        completed: execution?.completed_at || mission.updated || null,
+        started: execution?.started_at || null,
+        completed: execution?.completed_at || null,
         duration_ms: execution?.duration_ms ?? null,
         retries: asArray(execution?.retries).length,
-        cost_eur: execution?.variable_cost_eur ?? mission.actual_cost_eur ?? null,
+        cost_eur: execution?.variable_cost_eur ?? execution?.cost_eur ?? null,
+        cost_state: (execution?.variable_cost_eur ?? execution?.cost_eur) == null
+          ? (mission.actual_cost_eur == null ? 'UNKNOWN' : 'NOT_RECONCILED')
+          : costEvidenceState(execution?.variable_cost_eur ?? execution?.cost_eur, 'actual', execution?.cost_state),
         mission_actual_cost_eur: mission.actual_cost_eur,
+        mission_actual_cost_state: mission.actual_cost_state,
         result: clone(execution?.result || execution?.output || null),
         error: clone(execution?.error || mission.errors?.[0] || null),
         retry_evidence: clone(execution?.retries || []),
@@ -417,17 +440,25 @@ function projectProviders(providerOps = {}, capabilities = {}, executions = []) 
 }
 
 function healthAlerts(systemHealth = {}) {
+  const signals = systemHealth.signals || {};
   const candidates = [
-    ['Dashboard/API', systemHealth.factory_control_api],
-    ['Control Plane', systemHealth.control_plane],
-    ['CI', systemHealth.ci],
-    ['Production', systemHealth.production]
+    ['Core CI', signals.core_ci],
+    ['Integrated Regression', signals.integrated_regression_gate],
+    ['Dashboard CI', signals.dashboard_ci],
+    ['Universal Mission CI', signals.universal_mission_ci],
+    ['Factory Readiness', signals.factory_readiness],
+    ['Provider Evidence', signals.provider_evidence_freshness],
+    ['Runtime Persistence', signals.runtime_persistence],
+    ['Staging Availability', signals.staging_availability],
+    ['Activation Readiness', signals.activation_readiness],
+    ['Production Readiness', signals.production_readiness]
   ];
   return candidates.flatMap(([name, value]) => {
-    const state = upper(value?.raw || value?.status);
-    if (['VERIFIED_HEALTHY', 'HEALTHY', 'READY', 'DISABLED', 'LOCKED'].includes(state)) return [];
-    if (!value) return [{ key: `health:${name}`, severity: 'UNKNOWN', what: `${name} health unknown`, why: 'No authoritative health projection was returned.', impact: 'Operator cannot verify this dependency from the dashboard.', next_action: 'Refresh System Health and inspect the authoritative health source.' }];
-    return [{ key: `health:${name}`, severity: state === 'FAILED' ? 'FAILED' : state === 'BLOCKED' ? 'BLOCKED' : 'ACTION_REQUIRED', what: `${name}: ${state}`, why: value.label || 'Health state requires attention.', impact: 'This component may limit or block operator work.', next_action: 'Open System Health and resolve the reported dependency.' }];
+    const state = upper(value?.status || value?.raw);
+    if (state === 'HEALTHY') return [];
+    if (!value || state === 'UNKNOWN' || state === 'NOT_VERIFIED') return [{ key: `health:${name}`, severity: 'UNKNOWN', what: `${name}: NOT_VERIFIED`, why: value?.label || 'No authoritative evidence was returned for this dimension.', impact: 'Operator cannot claim this dimension is healthy or ready.', next_action: 'Open System Health and inspect the authoritative evidence source.' }];
+    const severity = ['FAILED','FAILURE','ERROR'].includes(state) ? 'FAILED' : state === 'BLOCKED' ? 'BLOCKED' : 'ACTION_REQUIRED';
+    return [{ key: `health:${name}`, severity, what: `${name}: ${state}`, why: value.label || 'Health state requires attention.', impact: 'This dimension may limit or block operator work.', next_action: 'Open System Health and resolve the reported dependency.' }];
   });
 }
 
@@ -475,17 +506,27 @@ function buildAlerts({ missions = [], executions = [], quality = [], approvals =
 
 function costSignals(costs = {}, audit = []) {
   const budgetEvents = asArray(audit).filter((event) => /BUDGET/i.test(`${event.event || ''} ${event.type || ''}`) && /(BLOCK|DENIED|GATE)/i.test(`${event.event || ''} ${event.type || ''}`));
+  const daily = costs.daily_cost_eur ?? null;
+  const monthly = costs.monthly_cost_eur ?? null;
+  const variable = costs.variable_cost_eur ?? costs.spent_eur ?? null;
+  const normalizedVariableState = upper(costs.variable_cost_state);
+  const variableState = normalizedVariableState === 'ESTIMATED_ZERO' ? 'ESTIMATED'
+    : COST_EVIDENCE_STATES.has(normalizedVariableState) ? normalizedVariableState
+      : costEvidenceState(variable, 'actual');
   return {
     mission_estimates_source: 'mission_preflight',
     mission_actuals_source: 'execution_runtime',
     provider_cost_source: 'operator_cost_center',
-    daily_cost_eur: costs.daily_cost_eur ?? null,
-    monthly_cost_eur: costs.monthly_cost_eur ?? null,
-    daily_cost_state: costs.daily_cost_eur === undefined ? 'UNKNOWN' : 'VERIFIED',
-    monthly_cost_state: costs.monthly_cost_eur === undefined ? 'UNKNOWN' : 'VERIFIED',
+    daily_cost_eur: daily,
+    monthly_cost_eur: monthly,
+    daily_cost_state: costEvidenceState(daily, 'actual', costs.daily_cost_state),
+    monthly_cost_state: costEvidenceState(monthly, 'actual', costs.monthly_cost_state),
+    variable_cost_eur: variable,
+    variable_cost_state: variableState,
     development_ceiling_eur: costs.development_ceiling_eur ?? null,
     remaining_development_budget_eur: costs.remaining_development_budget_eur ?? null,
     mission_variable_budget_ceiling_eur: 0,
+    mission_variable_budget_state: 'RESERVED',
     blocked_by_budget_events: clone(budgetEvents),
     paid_execution_authorized: costs.paid_execution_authorized === true,
     production_deploy: false
@@ -529,6 +570,7 @@ export function buildFunctionalCompletionProjection({ source_results = {}, missi
       blocked_missions: blockedMissions,
       recent_executions: executions.slice(0, 8),
       variable_cost_eur: source('costs').variable_cost_eur ?? source('costs').spent_eur ?? null,
+      variable_cost_state: costSignals(source('costs'), audit).variable_cost_state,
       provider_counts: providers.reduce((acc, item) => { acc[item.status] = (acc[item.status] || 0) + 1; return acc; }, {}),
       factory_count: asArray(source('factories').items).length,
       deliverable_count: asArray(source('deliveries').universal_missions).length + asArray(source('deliveries').durable_missions).length + asArray(source('deliveries').live_staging_executions).length,
@@ -552,6 +594,9 @@ export function buildFunctionalCompletionProjection({ source_results = {}, missi
     actions: clone(source('actions')),
     truth_rules: {
       unknown_is_not_zero: true,
+      null_timing_is_not_inferred: true,
+      cost_evidence_states_explicit: true,
+      authoritative_health_signals_only: true,
       unknown_is_not_healthy: true,
       unsupported_actions_exposed: false,
       secrets_exposed: false,
