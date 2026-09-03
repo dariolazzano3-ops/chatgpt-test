@@ -81,6 +81,24 @@ function privateAcceptanceAllowed(request, env = {}) {
     && Boolean(String(request.headers.get("cf-access-jwt-assertion") || "").trim());
 }
 
+function privateHamyrenRuntimeSecretPresence(env = {}) {
+  const staging = String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging";
+  const present = staging && Boolean(env?.HAMYREN_OPENAI_API_KEY);
+  return customerJson({
+    ok: present,
+    runtime: staging ? "riosystems-staging" : "non-staging",
+    hamyren_secret_present: present,
+    secret_value_exposed: false,
+    external_request_performed: false,
+    openai_api_called: false,
+    inference_performed: false,
+    production_deploy: false,
+    public_active: false,
+    billing_active: false,
+    variable_cost_eur: 0
+  }, 200);
+}
+
 function withPrivateAcceptanceHeaders(response) {
   const headers = new Headers(response.headers);
   headers.set("x-aurentara-customer-mode", "private-acceptance");
@@ -157,6 +175,8 @@ export default {
             public_active: false,
             production_deploy: false
           }, 403);
+        } else if (url.pathname === "/customer/api/hamyren-runtime-secret-presence" && request.method === "GET") {
+          customerResponse = withPrivateAcceptanceHeaders(privateHamyrenRuntimeSecretPresence(env));
         } else {
           customerResponse = await productionCustomerAccountSurface.handle(request, env, ctx);
           if (customerResponse) customerResponse = withPrivateAcceptanceHeaders(customerResponse);
