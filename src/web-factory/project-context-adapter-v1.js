@@ -18,7 +18,17 @@ export function adaptProjectContextToWebMission(projectContext = {}, existing = 
   const values = projectContext.verified_content || {};
   const project = projectContext.project || {};
   const servicesRaw = first(values, ['business.services', 'business.offerings', 'business.products']);
-  const visualRefs = list(projectContext.visual_context?.reference_sites || projectContext.visual_context?.visual_references);
+  const websiteSources = list(projectContext.website_sources);
+  const sourceBound = websiteSources.length > 0;
+  const designWebsiteRefs = websiteSources.filter((source) => source.effective_usage?.design_reference === true).map((source) => clean(source.locator, 2000)).filter(Boolean);
+  const structureWebsiteRefs = websiteSources.filter((source) => source.effective_usage?.structure_reference === true).map((source) => clean(source.locator, 2000)).filter(Boolean);
+  const visualRefs = list(projectContext.visual_references || projectContext.visual_context?.reference_sites || projectContext.visual_context?.visual_references).filter((ref) => {
+    if (!ref?.source_id) return true;
+    const source = websiteSources.find((item) => item.source_id === ref.source_id);
+    return !source || source.effective_usage?.design_reference === true;
+  });
+  const visualRefUrls = visualRefs.map((ref) => clean(ref?.original_url || ref?.url || ref, 2000)).filter(Boolean);
+  const allowedDesignRefs = [...new Set([...designWebsiteRefs, ...visualRefUrls])];
   const approvedAssets = list(projectContext.assets).filter((asset) => asset.publishable === true);
   const canonicalContent = {
     ...(existing.existing_content || {}),
@@ -46,11 +56,15 @@ export function adaptProjectContextToWebMission(projectContext = {}, existing = 
     existing_brand: clone(existing.existing_brand || projectContext.visual_context || {}),
     existing_content: canonicalContent,
     existing_domain: clean(first(values, ['website.domain', 'business.domain']) || existing.existing_domain, 240) || null,
-    reference_sites: list(existing.reference_sites).length ? clone(existing.reference_sites) : visualRefs,
-    visual_references: clone(existing.visual_references || []),
-    existing_website: clone(existing.existing_website || first(values, ['website.existing_website']) || null),
+    reference_sites: sourceBound ? clone(allowedDesignRefs) : (list(existing.reference_sites).length ? clone(existing.reference_sites) : clone(visualRefUrls)),
+    design_reference_sites: clone(allowedDesignRefs),
+    structure_reference_sites: clone(structureWebsiteRefs),
+    visual_references: sourceBound ? clone(visualRefs) : clone(existing.visual_references || visualRefs),
+    existing_website: sourceBound && !structureWebsiteRefs.length && !allowedDesignRefs.length ? null : clone(existing.existing_website || first(values, ['website.existing_website']) || null),
     operator_design_intent: clone(existing.operator_design_intent || {}),
-    special_requirements: [...new Set([...(list(existing.special_requirements)), 'PROJECT_CONTENT_PACK_BOUND', 'PROJECT_RIGHTS_ENFORCEMENT_REQUIRED'])],
+    special_requirements: [...new Set([...(list(existing.special_requirements)), 'PROJECT_CONTENT_PACK_BOUND', 'PROJECT_RIGHTS_ENFORCEMENT_REQUIRED', 'PROJECT_WEBSITE_USAGE_ENFORCEMENT_REQUIRED', 'REFERENCE_COPY_FORBIDDEN', 'REFERENCE_LOGO_CLONE_FORBIDDEN', 'REFERENCE_PIXEL_CLONE_FORBIDDEN'])],
+    website_sources: clone(websiteSources),
+    website_reference_policy: { content_copy_allowed: false, publishable_reference_assets: false, logo_clone_allowed: false, pixel_clone_allowed: false },
     project_scope_key: clean(project.scope_key, 320) || null,
     project_mission_context: clone(projectContext),
     approved_project_assets: clone(approvedAssets),
@@ -68,6 +82,8 @@ export function projectContextWebAdapterManifest() {
     preserves_project_scope: true,
     preserves_content_provenance: true,
     preserves_approved_assets: true,
+    enforces_website_source_usage: true,
+    reference_copy_allowed: false,
     creates_new_factory: false,
     changes_provider_routing: false,
     production_deploy: false
