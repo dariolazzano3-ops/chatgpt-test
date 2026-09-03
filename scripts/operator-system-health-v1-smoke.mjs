@@ -88,6 +88,9 @@ assert.equal(healthy.signals.factory_readiness.status, 'HEALTHY');
 assert.equal(healthy.signals.provider_evidence_freshness.status, 'HEALTHY');
 assert.equal(healthy.signals.runtime_persistence.status, 'HEALTHY');
 assert.equal(healthy.signals.staging_availability.status, 'HEALTHY');
+assert.equal(healthy.signals.activation_readiness.status, 'NOT_VERIFIED');
+assert.equal(healthy.signals.production_readiness.status, 'NOT_VERIFIED');
+assert.equal(healthy.status, 'HEALTHY', 'readiness uncertainty must not be collapsed into operational health');
 assert.equal(healthy.production_deploy, false);
 
 const stale = await buildAuthoritativeOperatorSystemHealth({
@@ -99,6 +102,16 @@ const stale = await buildAuthoritativeOperatorSystemHealth({
 });
 assert.equal(stale.signals.provider_evidence_freshness.status, 'STALE');
 assert.equal(stale.status, 'STALE');
+
+const missingProviderEvidence = await buildAuthoritativeOperatorSystemHealth({
+  base_health: baseHealth(null),
+  env: { RIOSYSTEMS_ENVIRONMENT: 'staging', RIOSYSTEMS_OPERATOR_RUNTIME_STORE: 'supabase' },
+  runtime_service: durableService,
+  fetch_impl: githubFetch(),
+  now: new Date('2026-08-30T14:00:00Z')
+});
+assert.equal(missingProviderEvidence.signals.provider_evidence_freshness.status, 'NOT_VERIFIED');
+assert.equal(missingProviderEvidence.status, 'NOT_VERIFIED');
 
 const failedCi = await buildAuthoritativeOperatorSystemHealth({
   base_health: baseHealth(),
@@ -142,6 +155,21 @@ assert.equal(badPersistence.signals.runtime_persistence.status, 'BLOCKED');
 assert.equal(badPersistence.signals.staging_availability.status, 'BLOCKED');
 assert.equal(badPersistence.status, 'BLOCKED');
 
+const explicitReadiness = await buildAuthoritativeOperatorSystemHealth({
+  base_health: {
+    ...baseHealth(),
+    activation_readiness: { status: 'READY_FOR_EXTERNAL_ACTIVATION', verified_at: '2026-08-30T13:59:00Z' },
+    production_readiness: { status: 'PRODUCTION_READY', verified_at: '2026-08-30T13:59:00Z' }
+  },
+  env: { RIOSYSTEMS_ENVIRONMENT: 'staging', RIOSYSTEMS_OPERATOR_RUNTIME_STORE: 'supabase' },
+  runtime_service: durableService,
+  fetch_impl: githubFetch(),
+  now: new Date('2026-08-30T14:00:00Z')
+});
+assert.equal(explicitReadiness.signals.activation_readiness.status, 'HEALTHY');
+assert.equal(explicitReadiness.signals.production_readiness.status, 'HEALTHY');
+assert.equal(explicitReadiness.status, 'HEALTHY');
+
 const nonStaging = await buildAuthoritativeOperatorSystemHealth({
   base_health: baseHealth(),
   env: { RIOSYSTEMS_ENVIRONMENT: 'development', RIOSYSTEMS_OPERATOR_RUNTIME_STORE: 'memory' },
@@ -156,6 +184,7 @@ assert.equal(nonStaging.status, 'NOT_VERIFIED');
 const manifest = operatorSystemHealthManifest();
 assert.deepEqual(manifest.states, ['HEALTHY','DEGRADED','BLOCKED','STALE','NOT_VERIFIED']);
 assert.equal(manifest.github_token_required, false);
+assert.equal(manifest.schema, 'riosystems.operator-system-health.v4');
 assert.equal(manifest.production_deploy, false);
 
 console.log(JSON.stringify({
