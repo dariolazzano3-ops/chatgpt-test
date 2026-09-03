@@ -151,7 +151,11 @@ try {
   checkedViews.push('mission-plan');
 
   await go(page, 'approvals', 'Freigaben');
-  assert.ok(/Keine Freigaben erforderlich|Freigeben|Ablehnen|Approve|Reject/i.test(await page.locator('#approvals').innerText()));
+  const approvalsText = await page.locator('#approvals').innerText();
+  const hasDecisionControls = /Freigeben|Ablehnen|Approve|Reject/i.test(approvalsText);
+  const hasExplicitEmptyState = /Keine offenen Mission-Plan-Freigaben\./i.test(approvalsText)
+    && /Keine offenen Core-Freigaben\./i.test(approvalsText);
+  assert.ok(hasDecisionControls || hasExplicitEmptyState, 'Approvals must expose actionable controls or both explicit empty states');
 
   await go(page, 'factories', 'Factories');
   await page.waitForFunction(() => document.querySelectorAll('#factories .human-card').length > 0);
