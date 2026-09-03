@@ -2,6 +2,7 @@ import { createOperatorRuntime } from './operator-runtime-v1.js';
 import { createOperatorRuntimeApiService } from './operator-runtime-api-v1.js';
 import { createOperatorRuntimeStoreFromEnv } from './operator-runtime-store-supabase-v1.js';
 import { withControlledPaidStagingActivationService } from './operator-controlled-paid-staging-runtime-service-v1.js';
+import { withProjectSourceIntakeRuntimeService } from './operator-project-source-intake-runtime-v1.js';
 
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
 const services = new Map();
@@ -36,7 +37,8 @@ export function createDurableOperatorRuntimeServiceFromEnv(env = {}, options = {
   const store = createOperatorRuntimeStoreFromEnv(env, options);
   if (!store) return null;
   const coreService = createOperatorRuntimeApiService({ operator_id: operatorId, store, initial_runtime: createInitialRuntime(operatorId, options.at) });
-  return withControlledPaidStagingActivationService({ service: coreService, store, operator_id: operatorId });
+  const paidStagingService = withControlledPaidStagingActivationService({ service: coreService, store, operator_id: operatorId });
+  return withProjectSourceIntakeRuntimeService({ service: paidStagingService, store, operator_id: operatorId });
 }
 
 export function getDurableOperatorRuntimeService(env = {}, options = {}) {
@@ -51,5 +53,5 @@ export function getDurableOperatorRuntimeService(env = {}, options = {}) {
 }
 
 export function operatorRuntimeBootstrapManifest() {
-  return { schema: 'riosystems.operator-runtime-bootstrap.v1', staging_store_required: 'supabase', fail_closed: true, memory_allowed_in_staging: false, synthetic_seed_only: true, controlled_paid_staging_activation_persisted: true, browser_secrets: false, production_deploy: false };
+  return { schema: 'riosystems.operator-runtime-bootstrap.v1', staging_store_required: 'supabase', fail_closed: true, memory_allowed_in_staging: false, synthetic_seed_only: true, controlled_paid_staging_activation_persisted: true, project_source_intake_metadata_persisted: true, browser_secrets: false, production_deploy: false };
 }

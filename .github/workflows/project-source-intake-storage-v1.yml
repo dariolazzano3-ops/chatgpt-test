@@ -1,0 +1,43 @@
+name: AURENTARA Project Source Intake Storage V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+  push:
+    branches: [factory-control]
+
+permissions:
+  contents: read
+
+jobs:
+  project-source-intake-storage-v1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Syntax check storage integration
+        run: |
+          node --check src/project-source-storage-supabase-v1.js
+          node --check src/operator-project-source-intake-runtime-v1.js
+          node --check src/operator-project-source-intake-storage-dashboard-v1.js
+          node --check src/operator-runtime-bootstrap-v1.js
+          node --check src/entry.js
+          node --check scripts/project-source-intake-storage-v1-smoke.mjs
+          node --check scripts/project-source-intake-storage-replace-v1-smoke.mjs
+      - name: Project Source Intake core regression
+        run: |
+          node scripts/project-source-intake-v1-smoke.mjs
+          node scripts/project-source-intake-v1-acceptance.mjs
+      - name: Private storage security and mobile acceptance
+        run: |
+          node scripts/project-source-intake-storage-v1-smoke.mjs
+          node scripts/project-source-intake-storage-replace-v1-smoke.mjs
+      - name: Worker bundle remains production-safe
+        run: npx wrangler deploy --dry-run
