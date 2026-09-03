@@ -678,17 +678,17 @@ const FUNCTIONAL_SCRIPT = String.raw`<script>
   if (window.__aurentaraFunctionalV1) return;
   window.__aurentaraFunctionalV1 = true;
   Object.assign(STATUS_MAP, {
-    NORMAL:['Normal','ready'], ACTION_REQUIRED:['Action required','attention'], REGISTERED:['Registered','ready'],
-    QUEUED:['Queued','neutral'], WAITING:['Waiting','attention'], APPROVED:['Approved','ready'], REJECTED:['Rejected','blocked'],
-    CREDENTIAL_REQUIRED:['Credential required','attention'], BUDGET_GATE:['Budget gate','attention'], PERMISSION_GATE:['Permission gate','attention'],
-    UNAVAILABLE:['Unavailable','blocked'], STAGING_ONLY:['Staging only','active'], PRODUCTION_DISABLED:['Production disabled','neutral'],
-    BLOCK:['Blocked','blocked'], VERIFIED:['Verified','ready']
+    NORMAL:['Normal','ready'], ACTION_REQUIRED:['Aktion erforderlich','attention'], REGISTERED:['Registriert','ready'],
+    QUEUED:['In Warteschlange','neutral'], WAITING:['Wartet','attention'], APPROVED:['Freigegeben','ready'], REJECTED:['Abgelehnt','blocked'],
+    CREDENTIAL_REQUIRED:['Zugangsdaten erforderlich','attention'], BUDGET_GATE:['Budget-Freigabe erforderlich','attention'], PERMISSION_GATE:['Berechtigung erforderlich','attention'],
+    UNAVAILABLE:['Nicht verfügbar','blocked'], STAGING_ONLY:['Nur Staging','active'], PRODUCTION_DISABLED:['Production gesperrt','neutral'],
+    BLOCK:['Blockiert','blocked'], VERIFIED:['Verifiziert','ready'], UNKNOWN:['Unbekannt','neutral'], NOT_RECONCILED:['Noch nicht abgeglichen','neutral']
   });
 
   const desiredNav = [
-    ['hq','Overview'],['projects','Projects'],['missions','Missions'],['mission','Mission Studio'],['approvals','Approvals'],['deliveries','Deliverables'],
-    ['executions','Executions'],['factories','Factories'],['capabilities','Capabilities'],['providers','Providers'],
-    ['costs','Costs'],['quality','Quality'],['alerts','Blockers / Alerts'],['health','System Health'],['audit','Activity'],['settings','Settings']
+    ['hq','Übersicht'],['projects','Projekte'],['missions','Missionen'],['mission','Neue Mission'],['approvals','Freigaben'],['deliveries','Ergebnisse'],
+    ['executions','Ausführungen'],['factories','Factories'],['capabilities','Capabilities'],['providers','Provider'],
+    ['costs','Kosten'],['quality','Qualität'],['alerts','Blocker / Hinweise'],['health','Systemzustand'],['audit','Aktivität'],['settings','Einstellungen']
   ];
   NAV.splice(0, NAV.length, ...desiredNav);
   const nav = document.querySelector('.nav');
