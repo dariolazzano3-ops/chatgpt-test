@@ -17,8 +17,6 @@ import { createCloudflareCustomerObservabilityBinding } from "./customer-product
 import { handleSyntheticSessionBootstrap } from "./customer-product/synthetic-session-bootstrap-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
 
-// The accepted Human UX final remains the presentation base of the provider-preflight wrapper.
-// Importing its manifest here keeps the canonical entry contract explicit and regression-testable.
 void operatorHumanUxFinalManifest;
 
 const productionCustomerAccountSurface = createProductionCustomerAccountPrivacySurface();
@@ -31,6 +29,19 @@ function operatorUnavailable() {
   return new Response(JSON.stringify({ error: "OPERATOR_RUNTIME_DURABILITY_NOT_READY", private_operator_access_required: true, production_deploy: false }), {
     status: 503,
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" }
+  });
+}
+
+function customerJson(body, status = 200, headers = {}) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      ...headers
+    }
   });
 }
 
@@ -53,6 +64,28 @@ function customerRateLimited(result = {}) {
 
 function customerMode(env = {}) {
   return String(env?.AURENTARA_CUSTOMER_SURFACE_MODE || "off").toLowerCase();
+}
+
+function bool(value) {
+  return value === true || String(value || "").toLowerCase() === "true";
+}
+
+function privateAcceptanceAllowed(request, env = {}) {
+  return customerMode(env) === "private-acceptance"
+    && String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging"
+    && String(env?.RIOSYSTEMS_PRODUCTION_DEPLOY || "").toLowerCase() === "false"
+    && String(env?.RIOSYSTEMS_EXTERNAL_WRITES || "").toLowerCase() === "false"
+    && bool(env?.AURENTARA_CUSTOMER_PRIVATE_ACCEPTANCE_APPROVED)
+    && !bool(env?.AURENTARA_CUSTOMER_PUBLIC_ACTIVATION_APPROVED)
+    && Boolean(String(request.headers.get("cf-access-jwt-assertion") || "").trim());
+}
+
+function withPrivateAcceptanceHeaders(response) {
+  const headers = new Headers(response.headers);
+  headers.set("x-aurentara-customer-mode", "private-acceptance");
+  headers.set("x-aurentara-public-active", "false");
+  headers.set("x-aurentara-production-deploy", "false");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 function customerRouteClass(url, method) {
@@ -84,7 +117,6 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Private Operator Control is resolved first and remains a completely separate surface.
     if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/")) {
       let runtimeService = null;
       try {
@@ -97,7 +129,6 @@ export default {
       if (operatorResponse) return applyOperatorBranding(operatorResponse);
     }
 
-    // Customer Product remains isolated and passes through distributed abuse control before the explicit launch shield.
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
       const routeClass = customerRouteClass(url, request.method);
       const mode = customerMode(env);
@@ -115,12 +146,29 @@ export default {
         });
         return response;
       }
-      const customerResponse = await handleSyntheticSessionBootstrap({
-        launch_shield: customerLaunchShield,
-        request,
-        env,
-        ctx
-      });
+
+      let customerResponse = null;
+      if (mode === "private-acceptance") {
+        if (!privateAcceptanceAllowed(request, env)) {
+          customerResponse = customerJson({
+            ok: false,
+            message: "Dieser private HAMYREN Acceptance-Bereich ist nur über den geschützten Zugang verfügbar.",
+            public_active: false,
+            production_deploy: false
+          }, 403);
+        } else {
+          customerResponse = await productionCustomerAccountSurface.handle(request, env, ctx);
+          if (customerResponse) customerResponse = withPrivateAcceptanceHeaders(customerResponse);
+        }
+      } else {
+        customerResponse = await handleSyntheticSessionBootstrap({
+          launch_shield: customerLaunchShield,
+          request,
+          env,
+          ctx
+        });
+      }
+
       if (customerResponse) {
         recordCustomerEvent(ctx, env, {
           event_name: customerResponse.status >= 500 ? "customer.request.failed" : "customer.request.completed",
