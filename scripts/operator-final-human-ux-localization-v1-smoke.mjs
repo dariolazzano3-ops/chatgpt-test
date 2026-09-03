@@ -56,7 +56,7 @@ const output = await deployed.text();
 
 assert.match(output, /aurentara-operator-final-localization-v1-script/);
 assert.match(output, /Europe\/Berlin/);
-assert.match(output, /STAGING · 8c1f3fdb · bereitgestellt<div class="operator-deployment-time">03\.09\.2026 · 20:06 MESZ<\/div>/);
+assert.match(output, /STAGING · 8c1f3fdb · bereitgestellt<span class="operator-deployment-time">03\.09\.2026 · 20:06 MESZ<\/span>/);
 assert.match(output, /Produktion: GESPERRT/);
 assert.match(output, /Externe Schreibzugriffe: GESPERRT/);
 assert.match(output, /CUSTOMER_ASSERTED:'Vom Kunden bestätigt'/);
@@ -87,8 +87,10 @@ assert.match(output, /const raw=String\(option\.value\|\|''\)\.trim\(\)/, 'usage
 assert.match(output, /if\(method!==\'GET\'\)return nativeFetch\(input,init\)/, 'browser retry bypasses all writes');
 assert.match(output, /return nativeFetch\(input,init\);\n    \}/, 'browser GET path has one final retry and no loop');
 assert.match(output, /sessionStorage\.setItem\(CONTEXT_KEY/);
+assert.match(output, /detail:contextDetail\(\)/);
 assert.match(output, /state\.selectedScope=before\.scope/);
 assert.match(output, /state\.section=before\.section/);
+assert.match(output, /renderProjectDetail\(before\.detail\)/);
 assert.match(output, /⚠️ Verbindung fehlgeschlagen\. Bitte erneut versuchen\./);
 assert.match(output, /Technisches Detail:/);
 
@@ -103,6 +105,9 @@ for (const accepted of ['Eigene Website','Rechte: ','✅ Erfolgreich hinzugefüg
 const manifest = operatorFinalHumanUxLocalizationManifest();
 assert.equal(manifest.locale, 'de-DE');
 assert.equal(manifest.time_zone, 'Europe/Berlin');
+assert.equal(manifest.context_storage_scope, 'sessionStorage');
+assert.equal(manifest.context_detail_snapshot, true);
+assert.ok(manifest.context_detail_limit_bytes <= 500_000);
 assert.equal(manifest.read_retry_maximum, 1);
 assert.equal(manifest.write_retry_maximum, 0);
 assert.equal(manifest.write_methods_retried, false);
@@ -121,7 +126,7 @@ console.log(JSON.stringify({
   winter: formatOperatorBerlinTimestamp('2026-12-03T18:06:00Z'),
   read_retry_maximum: manifest.read_retry_maximum,
   write_retry_maximum: manifest.write_retry_maximum,
-  context_retention: 'sessionStorage + selectedScope + section',
+  context_retention: 'sessionStorage + selectedScope + section + bounded detail snapshot',
   variable_cost_eur: 0,
   production_deploy: false
 }, null, 2));
