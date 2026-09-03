@@ -151,7 +151,7 @@ try {
   assert.equal(await page.locator('#project-detail').isVisible(), true, 'project detail remains visible after failed read');
   assert.match(await page.locator('#project-detail').innerText(), new RegExp(detailBefore.split('\n')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
   const errorText = await page.locator('#error').innerText();
-  assert.match(errorText, /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i);
+  assert.match(errorText, /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i, 'transient network failure has its own human error state');
   assert.match(errorText, /Technisches Detail:/i);
 
   const stored = await page.evaluate(() => JSON.parse(sessionStorage.getItem('aurentara.operator-context.v1') || '{}'));
@@ -168,7 +168,11 @@ try {
   assert.equal(reloadContext.scope, scope, 'iPhone reload keeps selected scope');
   assert.equal(reloadContext.detailScope, scope, 'iPhone reload restores cached project detail when read hydration fails');
   assert.equal(await page.locator('#project-detail').isVisible(), true, 'cached project detail remains visible across transient reload failure');
-  assert.match(await page.locator('#error').innerText(), /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i);
+
+  await page.waitForFunction(() => document.getElementById('error')?.textContent?.includes('OPERATOR_RUNTIME_DURABILITY_NOT_READY'));
+  const durabilityErrorText = await page.locator('#error').innerText();
+  assert.match(durabilityErrorText, /OPERATOR_RUNTIME_DURABILITY_NOT_READY/, 'independent source-intake durability failure remains visible and fail-closed');
+  assert.doesNotMatch(durabilityErrorText, /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i, 'durability failure is asserted separately from the earlier transient network error');
   await page.unroute('**/operator/api/**', persistentHandler);
 
   let writeProbeCalls = 0;
@@ -203,6 +207,8 @@ try {
     suite: 'operator-final-human-ux-mobile-v1',
     viewport: '390x844',
     selected_scope_preserved: scope,
+    transient_network_failure_asserted_separately: true,
+    durability_failure_visible_fail_closed: true,
     get_retry_maximum: 1,
     write_retry_maximum: 0,
     reload_context_retained: true,
