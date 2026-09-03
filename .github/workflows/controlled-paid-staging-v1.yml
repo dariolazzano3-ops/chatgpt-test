@@ -23,8 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - run: npm install
       - name: Controlled Paid Staging targeted acceptance
         run: node scripts/controlled-paid-staging-v1-smoke.mjs
       - name: General CI
