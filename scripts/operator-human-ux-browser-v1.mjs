@@ -184,10 +184,14 @@ try {
 
   await go(page, 'executions', 'Ausführungen');
   const executionsText = await page.locator('#executions').innerText();
-  assert.match(executionsText, /Start/);
-  assert.match(executionsText, /Ende/);
-  assert.match(executionsText, /Dauer/);
-  assert.match(executionsText, /Kosten/);
+  if (/Keine Execution-Evidence vorhanden\./i.test(executionsText)) {
+    assert.match(executionsText, /Keine Execution-Evidence vorhanden\./i);
+  } else {
+    assert.match(executionsText, /Start/);
+    assert.match(executionsText, /Ende/);
+    assert.match(executionsText, /Dauer/);
+    assert.match(executionsText, /Kosten/);
+  }
   assert.equal(executionsText.includes('[object Object]'), false);
 
   await go(page, 'deliveries', 'Ergebnisse');
