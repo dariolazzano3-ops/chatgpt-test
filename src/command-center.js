@@ -1,5 +1,6 @@
 import { buildOperatorQueue, portfolioSnapshot } from './project-portfolio.js';
 import { providerStackV1 } from './provider-stack-v1.js';
+import { activateControlledPaidStagingProject, controlledPaidStagingSnapshot } from './operator-controlled-paid-staging-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const clean = (value, max = 240) => String(value || '').trim().slice(0, max);
@@ -206,7 +207,7 @@ export function buildCommandCenterSnapshot(state = {}) {
 
 export function evaluateCommand(state = {}, command = {}) {
   const type = clean(command.type, 120);
-  const allowed = ['CREATE_PROJECT','PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','GRANT_APPROVAL','REVOKE_APPROVAL','ACK_ALERT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'];
+  const allowed = ['CREATE_PROJECT','PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','ACTIVATE_CONTROLLED_PAID_STAGING','GRANT_APPROVAL','REVOKE_APPROVAL','ACK_ALERT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'];
   if (!allowed.includes(type)) return { ok: false, error: 'COMMAND_TYPE_UNSUPPORTED', production_deploy: false };
 
   if (type === 'CREATE_PROJECT') {
@@ -227,9 +228,27 @@ export function evaluateCommand(state = {}, command = {}) {
 
   const scopeKey = clean(command.scope_key, 260);
   const project = (state.portfolio?.projects || []).find((item) => item.scope_key === scopeKey);
-  if (['PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'].includes(type) && !project) {
+  if (['PRIORITIZE_PROJECT','PAUSE_PROJECT','RESUME_PROJECT','ACTIVATE_CONTROLLED_PAID_STAGING','REQUEST_EXECUTION','REQUEST_QA','REQUEST_HANDOFF'].includes(type) && !project) {
     return { ok: false, error: 'COMMAND_PROJECT_NOT_FOUND', scope_key: scopeKey, production_deploy: false };
   }
+
+  if (type === 'ACTIVATE_CONTROLLED_PAID_STAGING') {
+    const activated = activateControlledPaidStagingProject(project, command);
+    if (!activated.ok) return activated;
+    return {
+      ok: true,
+      command_id: clean(command.command_id, 180) || `${state.operator_id || 'operator'}:ACTIVATE_CONTROLLED_PAID_STAGING:${Date.now()}`,
+      type,
+      scope_key: scopeKey,
+      project: activated.project,
+      controlled_paid_staging: activated.snapshot,
+      idempotent_existing: activated.changed === false,
+      requires_explicit_approval: true,
+      ready_for_dispatch: command.approved === true,
+      production_deploy: false
+    };
+  }
+
   const externalMutation = ['GRANT_APPROVAL','REVOKE_APPROVAL'].includes(type) || command.external_side_effect === true;
   const requiresExplicitApproval = ['REQUEST_EXECUTION','REQUEST_HANDOFF'].includes(type) || externalMutation;
   return {
@@ -265,6 +284,22 @@ export function applyLocalCommand(state = {}, evaluated = {}) {
   }
 
   const project = (next.portfolio?.projects || []).find((item) => item.scope_key === evaluated.scope_key);
+  if (evaluated.type === 'ACTIVATE_CONTROLLED_PAID_STAGING' && project) {
+    Object.assign(project, clone(evaluated.project));
+    next.audit = [...(next.audit || []), {
+      event: 'CONTROLLED_PAID_STAGING_ACTIVATED',
+      command_id: evaluated.command_id,
+      type: evaluated.type,
+      scope_key: evaluated.scope_key,
+      actor: state.operator_id || 'operator',
+      project_budget_ceiling_eur: evaluated.controlled_paid_staging?.project_budget_ceiling_eur || 0,
+      production_locked: true,
+      external_write_locked: true,
+      at: new Date().toISOString()
+    }];
+    return { ok: true, state: next, command: evaluated, project: clone(project), controlled_paid_staging: controlledPaidStagingSnapshot(project), external_side_effect_performed: false, production_deploy: false };
+  }
+
   if (evaluated.type === 'PRIORITIZE_PROJECT' && project) project.priority = evaluated.priority;
   if (evaluated.type === 'PAUSE_PROJECT' && project) project.state = 'PAUSED';
   if (evaluated.type === 'RESUME_PROJECT' && project && project.state === 'PAUSED') project.state = 'READY';
@@ -276,8 +311,9 @@ export function commandCenterManifest() {
   return {
     version: 'riosystems.command-center.v1',
     surfaces: ['portfolio','priority_queue','approvals','executions','integration_health','provider_readiness','alerts','audit'],
-    commands: ['create_project','prioritize','pause','resume','grant_approval','revoke_approval','request_execution','request_qa','request_handoff'],
+    commands: ['create_project','prioritize','pause','resume','activate_controlled_paid_staging','grant_approval','revoke_approval','request_execution','request_qa','request_handoff'],
     project_creation_authoritative: true,
+    controlled_paid_staging_project_scoped: true,
     project_creation_external_side_effects: false,
     dashboard_contract_ready: true,
     command_dispatch_fail_closed: true,
