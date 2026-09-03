@@ -1,4 +1,4 @@
-import { quickImportProjectWebsite, validatePublicUrl } from './scraper.js';
+import { quickImportProjectWebsite, validatePublicUrl, validateProjectAssetFetchTarget } from './scraper.js';
 
 const MAX_ROBOTS_BYTES = 250_000;
 const MAX_REDIRECTS = 5;
@@ -32,13 +32,16 @@ async function readBoundedText(response, maxBytes = MAX_ROBOTS_BYTES) {
   return { ok: true, text };
 }
 
-async function preflightRobots(sourceUrl, fetcher) {
+async function preflightRobots(sourceUrl, fetcher, deps = {}) {
   let current = new URL('/robots.txt', sourceUrl);
   const sourceOrigin = sourceUrl.origin;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     if (current.origin !== sourceOrigin) return { ok: false, error: 'ROBOTS_CROSS_ORIGIN_REDIRECT_BLOCKED' };
     const checked = validatePublicUrl(current);
     if (!checked.ok) return { ok: false, error: checked.error };
+    const network = await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...deps, fetcher });
+    if (!network.ok) return { ok: false, error: network.error, cause: network.address || null };
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     let response;
@@ -54,6 +57,7 @@ async function preflightRobots(sourceUrl, fetcher) {
       return { ok: false, error: error?.name === 'AbortError' ? 'ROBOTS_FETCH_TIMEOUT' : 'ROBOTS_FETCH_FAILED' };
     }
     clearTimeout(timeout);
+
     if (response.status >= 300 && response.status < 400) {
       if (hop >= MAX_REDIRECTS) return { ok: false, error: 'ROBOTS_REDIRECT_LIMIT_EXCEEDED' };
       const location = response.headers?.get?.('location');
@@ -91,7 +95,10 @@ export async function importProjectWebsiteSource(input = {}, deps = {}) {
   const fetcher = deps.fetcher || globalThis.fetch;
   if (typeof fetcher !== 'function') return { ok: false, error: 'FETCH_UNAVAILABLE', import_status: 'IMPORT_BLOCKED', variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
 
-  const preflight = await preflightRobots(checked.url, fetcher);
+  const rootNetwork = await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...deps, fetcher });
+  if (!rootNetwork.ok) return { ok: false, error: rootNetwork.error, import_status: 'IMPORT_BLOCKED', variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
+
+  const preflight = await preflightRobots(checked.url, fetcher, deps);
   if (!preflight.ok) {
     return {
       ok: false,
@@ -124,8 +131,8 @@ export function projectSourceWebsiteImportManifest() {
   return {
     schema: 'aurentara.project-source-website-import.v1',
     robots_checked_before_root_fetch: true,
+    dns_private_target_checked_before_network_fetch: true,
     cross_origin_redirect_fetch_blocked: true,
-    dns_private_target_blocked_by_scraper: true,
     bounded: true,
     paid_provider_calls: 0,
     variable_cost_eur: 0,
