@@ -1,4 +1,5 @@
 import { quickImportProjectWebsite, validatePublicUrl, validateProjectAssetFetchTarget } from './scraper.js';
+import { createProjectSourceWorkerResolver } from './project-source-worker-dns-resolver-v1.js';
 
 const MAX_ROBOTS_BYTES = 250_000;
 const MAX_REDIRECTS = 5;
@@ -32,15 +33,33 @@ async function readBoundedText(response, maxBytes = MAX_ROBOTS_BYTES) {
   return { ok: true, text };
 }
 
-async function preflightRobots(sourceUrl, fetcher, deps = {}) {
+function mapResolverFailure(result = {}, resolverSession = null) {
+  if (!result || result.error !== 'DNS_RESOLUTION_FAILED' || !resolverSession) return result;
+  const exact = resolverSession.lastError();
+  return exact ? { ...result, error: exact, legacy_error: 'DNS_RESOLUTION_FAILED' } : result;
+}
+
+function websiteImportDeps(deps = {}) {
+  if (typeof deps.resolveHostname === 'function') return { deps, resolverSession: null };
+  const resolverSession = createProjectSourceWorkerResolver({
+    dns_resolver: deps.dns_resolver,
+    timeout_ms: deps.dns_timeout_ms
+  });
+  return {
+    resolverSession,
+    deps: { ...deps, resolveHostname: resolverSession.resolveHostname }
+  };
+}
+
+async function preflightRobots(sourceUrl, fetcher, deps = {}, resolverSession = null) {
   let current = new URL('/robots.txt', sourceUrl);
   const sourceOrigin = sourceUrl.origin;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     if (current.origin !== sourceOrigin) return { ok: false, error: 'ROBOTS_CROSS_ORIGIN_REDIRECT_BLOCKED' };
     const checked = validatePublicUrl(current);
     if (!checked.ok) return { ok: false, error: checked.error };
-    const network = await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...deps, fetcher });
-    if (!network.ok) return { ok: false, error: network.error, cause: network.address || null };
+    const network = mapResolverFailure(await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...deps, fetcher }), resolverSession);
+    if (!network.ok) return { ok: false, error: network.error, cause: network.address || network.cause || null };
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -81,8 +100,7 @@ async function preflightRobots(sourceUrl, fetcher, deps = {}) {
 function guardedFetcher(sourceOrigin, fetcher) {
   return async (input, init = {}) => {
     const url = new URL(typeof input === 'string' ? input : input.url);
-    const allowedDns = url.origin === 'https://cloudflare-dns.com';
-    if (!allowedDns && url.origin !== sourceOrigin) {
+    if (url.origin !== sourceOrigin) {
       throw Object.assign(new Error('PROJECT_SOURCE_CROSS_ORIGIN_FETCH_BLOCKED'), { code: 'PROJECT_SOURCE_CROSS_ORIGIN_FETCH_BLOCKED' });
     }
     return fetcher(input, init);
@@ -95,10 +113,14 @@ export async function importProjectWebsiteSource(input = {}, deps = {}) {
   const fetcher = deps.fetcher || globalThis.fetch;
   if (typeof fetcher !== 'function') return { ok: false, error: 'FETCH_UNAVAILABLE', import_status: 'IMPORT_BLOCKED', variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
 
-  const rootNetwork = await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...deps, fetcher });
-  if (!rootNetwork.ok) return { ok: false, error: rootNetwork.error, import_status: 'IMPORT_BLOCKED', variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
+  const resolved = websiteImportDeps(deps);
+  const effectiveDeps = resolved.deps;
+  const resolverSession = resolved.resolverSession;
 
-  const preflight = await preflightRobots(checked.url, fetcher, deps);
+  const rootNetwork = mapResolverFailure(await validateProjectAssetFetchTarget({ url: checked.url.toString() }, { ...effectiveDeps, fetcher }), resolverSession);
+  if (!rootNetwork.ok) return { ok: false, error: rootNetwork.error, legacy_error: rootNetwork.legacy_error || null, import_status: 'IMPORT_BLOCKED', variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
+
+  const preflight = await preflightRobots(checked.url, fetcher, effectiveDeps, resolverSession);
   if (!preflight.ok) {
     return {
       ok: false,
@@ -112,15 +134,17 @@ export async function importProjectWebsiteSource(input = {}, deps = {}) {
     };
   }
 
-  const result = await quickImportProjectWebsite(input, {
-    ...deps,
+  const rawResult = await quickImportProjectWebsite(input, {
+    ...effectiveDeps,
     fetcher: guardedFetcher(checked.url.origin, fetcher)
   });
+  const result = mapResolverFailure(rawResult, resolverSession);
   return {
     ...result,
     preflight_robots_status: preflight.status,
     source_origin_locked: checked.url.origin,
     cross_origin_fetch_allowed: false,
+    worker_dns_transport: resolverSession ? 'node:dns' : 'injected-resolver',
     variable_cost_eur: 0,
     paid_provider_calls: 0,
     production_deploy: false
@@ -132,6 +156,11 @@ export function projectSourceWebsiteImportManifest() {
     schema: 'aurentara.project-source-website-import.v1',
     robots_checked_before_root_fetch: true,
     dns_private_target_checked_before_network_fetch: true,
+    worker_native_dns_resolver: true,
+    dns_transport_error_distinguished: true,
+    dns_timeout_distinguished: true,
+    dns_no_public_address_distinguished: true,
+    dns_rebinding_fail_closed: true,
     cross_origin_redirect_fetch_blocked: true,
     bounded: true,
     paid_provider_calls: 0,
