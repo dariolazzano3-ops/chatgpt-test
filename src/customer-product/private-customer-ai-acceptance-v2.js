@@ -108,7 +108,7 @@ function actualCostEur(usage={}) {
 }
 
 function buildProvider(env, fetchImpl) {
-  const apiKey=clean(env.OPENAI_API_KEY,12000);
+  const apiKey=clean(env.HAMYREN_OPENAI_API_KEY,12000);
   const invoke=async ({model,prompt_contract}) => {
     const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{
       method:'POST',
