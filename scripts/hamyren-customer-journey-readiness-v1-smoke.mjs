@@ -6,6 +6,7 @@ import {
   createHamyrenFreeQuestionJourney,
   evaluateHamyrenCustomerJourneyReadiness
 } from '../src/customer-product/hamyren-customer-journey-readiness-v1.js';
+import { renderCustomerProductShell } from '../src/customer-product/shell-v1.js';
 
 const manifest = hamyrenCustomerJourneyReadinessManifest();
 assert.equal(manifest.product_name, 'HAMYREN');
@@ -48,6 +49,24 @@ assert.equal(fifth.public_activation_automatic, false);
 assert.equal(fifth.real_customer_ai_processing_automatic, false);
 assert.equal(fifth.operator_access, false);
 
+const privateShell = renderCustomerProductShell({
+  product_name: 'HAMYREN',
+  tagline: 'Your Personal Business AI',
+  maker: 'AURENTARA SYSTEMS',
+  private_acceptance: true
+});
+assert.match(privateShell, /<span>HAMYREN Trial<\/span>/);
+assert.match(privateShell, /Dein privater HAMYREN Workspace ist bereit\./);
+assert.match(privateShell, /const PRIVATE_ACCEPTANCE=true;/);
+assert.match(privateShell, /if\(PRIVATE_ACCEPTANCE\)throw error;/);
+assert.doesNotMatch(privateShell, /<span>Guest Trial<\/span>/);
+assert.doesNotMatch(privateShell, /Starte die sichere Guest-Demo, um eine synthetische Business-Session anzulegen\./);
+
+const syntheticShell = renderCustomerProductShell();
+assert.match(syntheticShell, /<span>Guest Trial<\/span>/);
+assert.match(syntheticShell, /const PRIVATE_ACCEPTANCE=false;/);
+assert.match(syntheticShell, /Starte die sichere Guest-Demo, um eine synthetische Business-Session anzulegen\./);
+
 const readiness = evaluateHamyrenCustomerJourneyReadiness({ operator_route_exposed: false });
 assert.equal(readiness.ok, true, JSON.stringify(readiness.failures));
 assert.equal(readiness.technical_journey_ready, true);
@@ -64,6 +83,7 @@ console.log(JSON.stringify({
   five_free_business_questions: true,
   minimal_business_intake: true,
   persistent_context_handoff_ready: true,
+  private_customer_shell_isolated: true,
   public_customer_surface_active: false,
   real_customer_ai_processing_active: false,
   stripe_active: false,

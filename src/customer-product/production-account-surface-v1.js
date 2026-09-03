@@ -275,7 +275,7 @@ export function createProductionCustomerAccountSurface(options = {}) {
       const user = await getUser(cfg, accessToken, fetchImpl);
       if (!user.ok) return json({ ok: false, message: 'Bitte melde dich mit deinem HAMYREN Account an.' }, 401);
       if ((url.pathname === '/customer' || url.pathname === '/customer/') && method === 'GET' && url.searchParams.has('app')) {
-        return html(renderCustomerProductShell({ product_name: 'HAMYREN', tagline: 'Your Personal Business AI', maker: 'AURENTARA SYSTEMS' }));
+        return html(renderCustomerProductShell({ product_name: 'HAMYREN', tagline: 'Your Personal Business AI', maker: 'AURENTARA SYSTEMS', private_acceptance: true }));
       }
       if (url.pathname === '/customer/api/account' && method === 'GET') return json({ ok: true, user: safeUser(user.user), private_acceptance: privateAcceptanceEnvironment(env) });
 
