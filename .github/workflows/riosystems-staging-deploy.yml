@@ -9,6 +9,11 @@ on:
       - 'scripts/staging-deploy-guard-smoke.mjs'
       - 'scripts/staging-worker-runtime-bindings-v1.mjs'
       - 'scripts/staging-worker-runtime-bindings-v1-smoke.mjs'
+      - 'src/operator-deployment-identity-v1.js'
+      - 'src/operator-deployment-activation-dashboard-v1.js'
+      - 'src/operator-controlled-paid-staging-runtime-service-v1.js'
+      - 'src/operator-runtime-bootstrap-v1.js'
+      - 'src/entry.js'
       - '.github/workflows/riosystems-staging-deploy.yml'
       - 'package.json'
   workflow_dispatch:
@@ -65,6 +70,11 @@ jobs:
           test -n "$RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY"
       - run: node scripts/staging-worker-runtime-bindings-v1-smoke.mjs
       - run: npm run deploy:staging:dry-run
-      - run: npm run deploy:staging
       - name: Restore private operator and durable runtime bindings without logging values
         run: node scripts/staging-worker-runtime-bindings-v1.mjs
+      - name: Deploy exact factory-control revision with runtime version evidence
+        run: |
+          DEPLOYED_SHA="$(git rev-parse HEAD)"
+          test "$DEPLOYED_SHA" = "$(git rev-parse origin/factory-control)"
+          node scripts/staging-deploy-guard.mjs --deploy
+          npx wrangler deploy --env staging --tag "$DEPLOYED_SHA"
