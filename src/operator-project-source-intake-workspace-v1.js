@@ -1,3 +1,5 @@
+import { effectiveProjectWebsiteUsage } from './project-source-intake-v1.js';
+
 const clone = (value) => structuredClone(value ?? null);
 
 export function buildProjectSourceIntakeWorkspaceSections(intakeState = {}) {
@@ -18,7 +20,11 @@ export function buildProjectSourceIntakeWorkspaceSections(intakeState = {}) {
     scope_key: intakeState.scope_key,
     status: latestReadiness?.status || 'INTAKE_IN_PROGRESS',
     sections: {
-      project_sources: clone((intakeState.sources || []).filter((source) => !source.deleted_at)),
+      project_sources: clone((intakeState.sources || []).filter((source) => !source.deleted_at).map((source) => {
+        if (!['OWNED_WEBSITE', 'REFERENCE_WEBSITE'].includes(source.source_type)) return source;
+        const usage = effectiveProjectWebsiteUsage(source);
+        return { ...source, rights_status: usage.rights_status, website_usage: usage.usage, effective_usage: usage.effective_usage, website_usage_state: usage.usage_state };
+      })),
       project_knowledge: clone((intakeState.facts || []).map((fact) => ({
         fact_id: fact.fact_id,
         field_path: fact.field_path,
