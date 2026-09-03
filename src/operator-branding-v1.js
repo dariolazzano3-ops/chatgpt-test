@@ -1,4 +1,5 @@
 import { applyOperatorFinalHumanUxLocalization } from './operator-final-human-ux-localization-v1.js';
+import { applyOperatorDeploymentLocalization } from './operator-deployment-localization-v1.js';
 
 const INTERNAL_TECHNOLOGY_NAME = 'RIOSYSTEMS';
 const OPERATIVE_BRAND_NAME = 'AURENTARA SYSTEMS';
@@ -40,7 +41,8 @@ export async function applyOperatorBranding(response) {
     statusText: response.statusText,
     headers
   });
-  return applyOperatorFinalHumanUxLocalization(branded);
+  const localized = await applyOperatorFinalHumanUxLocalization(branded);
+  return applyOperatorDeploymentLocalization(localized);
 }
 
 export function operatorBrandingManifest() {
