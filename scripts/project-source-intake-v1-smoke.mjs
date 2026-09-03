@@ -18,6 +18,7 @@ import {
   projectSourceIntakeManifest
 } from '../src/project-source-intake-v1.js';
 import { adaptProjectContextToWebMission } from '../src/web-factory/project-context-adapter-v1.js';
+import { evaluateReferenceOriginality, screenshotToDesignSpecManifest } from '../src/web-factory/reference-intelligence.js';
 
 const project = {
   operator_id: 'operator-1',
@@ -32,6 +33,8 @@ assert.equal(created.ok, true);
 let state = created.state;
 assert.equal(state.knowledge_revision, 1);
 assert.equal(state.safety.variable_cost_eur, 0);
+assert.equal(state.safety.external_writes, false);
+assert.equal(state.safety.production_deploy, false);
 
 const crossScope = registerProjectSource(state, {
   customer_id: 'other', project_id: 'project', scope_key: 'other:project', source_type: 'MANUAL_INPUT'
@@ -211,6 +214,20 @@ assert.equal(webMission.mission.website_reference_policy.content_copy_allowed, f
 assert.equal(webMission.mission.website_reference_policy.publishable_reference_assets, false);
 assert.equal(webMission.mission.website_reference_policy.logo_clone_allowed, false);
 assert.equal(webMission.mission.website_reference_policy.pixel_clone_allowed, false);
+assert.equal(screenshotToDesignSpecManifest().pixel_clone_allowed, false);
+const originality = evaluateReferenceOriginality([{
+  reference_id: 'premium-reference',
+  elements: [
+    { element_id: 'foreign-logo', element_type: 'logo', rights_status: 'public_reference_only', allowed_for_reimplementation: false },
+    { element_id: 'foreign-copy', element_type: 'copy', rights_status: 'public_reference_only', allowed_for_reimplementation: false },
+    { element_id: 'layout-principle', element_type: 'generic_design_principle', rights_status: 'public_reference_only', allowed_for_reimplementation: false }
+  ]
+}]);
+assert.equal(originality.blind_pixel_clone, false);
+assert.equal(originality.high_fidelity_overrides_rights, false);
+assert.equal(originality.replacement_required.some((item) => item.element_type === 'logo'), true);
+assert.equal(originality.replacement_required.some((item) => item.element_type === 'copy'), true);
+assert.equal(originality.replacement_required.some((item) => item.element_type === 'generic_design_principle'), false);
 
 const changedAfterPack = upsertProjectFact(state, { fact_id: 'fact-story', field_path: 'company.story', value: 'Neue Geschichte', origin: 'MANUAL', verification_status: 'OPERATOR_CONFIRMED', source_refs: ['src-owned'], critical: false }, { at: '2026-09-03T15:22:00.000Z' });
 assert.equal(changedAfterPack.ok, true);
