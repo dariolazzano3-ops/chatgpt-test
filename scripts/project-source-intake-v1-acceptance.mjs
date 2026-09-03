@@ -226,6 +226,36 @@ const rightsQa = runWebsiteQa(invalidAsset);
 assert.equal(rightsQa.status, 'FAIL');
 assert.equal(rightsQa.blocking_issues.some((item) => item.code === 'USED_PROJECT_ASSET_NOT_IN_APPROVED_PACK'), true);
 
+const disallowedContentSource = structuredClone(web.artifact);
+disallowedContentSource.project_mission_context.website_sources = [{
+  source_id: 'reference-content-blocked',
+  source_type: 'REFERENCE_WEBSITE',
+  rights_status: 'PUBLIC_REFERENCE_ONLY',
+  effective_usage: { content: false, structure_reference: true, design_reference: true }
+}];
+disallowedContentSource.project_mission_context.content_provenance[0].source_refs = ['reference-content-blocked'];
+const disallowedContentQa = runWebsiteQa(disallowedContentSource);
+assert.equal(disallowedContentQa.status, 'FAIL');
+assert.equal(disallowedContentQa.blocking_issues.some((item) => item.code === 'CONTENT_SOURCE_USAGE_NOT_ALLOWED'), true);
+
+const disallowedWebsiteAsset = structuredClone(web.artifact);
+disallowedWebsiteAsset.project_mission_context.website_sources = [{
+  source_id: 'owned-content-only',
+  source_type: 'OWNED_WEBSITE',
+  rights_status: 'OWNED_CONFIRMED',
+  effective_usage: { content: true, structure_reference: false, design_reference: false }
+}];
+disallowedWebsiteAsset.project_mission_context.assets = [{
+  asset_id: 'owned-site-logo',
+  source_id: 'owned-content-only',
+  rights_status: 'OWNED_CONFIRMED',
+  publishable: true
+}];
+disallowedWebsiteAsset.used_project_asset_ids = ['owned-site-logo'];
+const disallowedAssetQa = runWebsiteQa(disallowedWebsiteAsset);
+assert.equal(disallowedAssetQa.status, 'FAIL');
+assert.equal(disallowedAssetQa.blocking_issues.some((item) => item.code === 'WEBSITE_ASSET_USAGE_NOT_ALLOWED'), true);
+
 const staleArtifact = structuredClone(web.artifact);
 staleArtifact.project_mission_context.knowledge_revision += 1;
 const staleQa = runWebsiteQa(staleArtifact);
@@ -248,6 +278,8 @@ console.log(JSON.stringify({
   project_isolation: 'PASS',
   mission_compiler_integration: 'PASS',
   web_factory_central_qa: 'PASS',
+  website_usage_qa_fail_closed: 'PASS',
+  public_reference_content_blocked: 'PASS',
   gelato_first_run: 'PASS_SOURCE_INTAKE_ONLY',
   quick_intake_cost_eur: 0,
   gelato_budget_consumed_eur: 0,
