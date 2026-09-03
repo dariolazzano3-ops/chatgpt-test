@@ -10,7 +10,7 @@ function localizeDeploymentHeader(source = '') {
     const timeMatch = deployment.match(/^deployed (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC$/i);
     const timestamp = timeMatch ? `${timeMatch[1]}T${timeMatch[2]}:00Z` : null;
     const time = timestamp ? formatOperatorBerlinTimestamp(timestamp) : 'Bereitstellungszeit unbekannt';
-    return `${prefix}${environment} · ${version} · bereitgestellt<div class="operator-deployment-time">${time}</div>${suffix}`;
+    return `${prefix}${environment} · ${version} · bereitgestellt<span class="operator-deployment-time">${time}</span>${suffix}`;
   })
     .replace(/Production:\s*LOCKED/g, 'Produktion: GESPERRT')
     .replace(/External Writes:\s*LOCKED/g, 'Externe Schreibzugriffe: GESPERRT')
