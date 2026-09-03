@@ -14,7 +14,7 @@ export function renderOperatorDashboardShell(statusMap = {}) {
 <script>
 const STATUS_MAP=${statusJson};
 const NAV=[['hq','HQ'],['projects','Projects'],['mission','Mission Studio'],['approvals','Approvals'],['factories','Factories'],['providers','Providers'],['costs','Costs'],['deliveries','Deliveries'],['health','System Health'],['audit','Audit Log'],['settings','Settings']];
-const $=(s,r=document)=>r.querySelector(s),$=(s,r=document)=>[...r.querySelectorAll(s)];
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const HUMAN_EVENTS={PROJECT_CREATED:'Projekt erstellt',PROJECT_UPDATED:'Projekt aktualisiert',MISSION_CREATED:'Mission erstellt',MISSION_PLANNED:'Mission geplant',MISSION_APPROVED:'Mission freigegeben',MISSION_REJECTED:'Mission abgelehnt',EXECUTION_STARTED:'Ausführung gestartet',EXECUTION_COMPLETED:'Ausführung abgeschlossen',EXECUTION_FAILED:'Ausführung fehlgeschlagen',QUALITY_GATE_PASSED:'Qualitätsprüfung bestanden',DELIVERY_READY:'Ergebnis bereit',DELIVERY_COMPLETED:'Auslieferung abgeschlossen',PROJECT_SOURCE_WEBSITE_USAGE_UPDATED:'Website-Verwendung aktualisiert'};
 const HUMAN_CAPABILITIES={web_presence:'Website',business_crm:'CRM',ai_assistance:'KI-Unterstützung',automation_followup:'Automationen',analytics:'Analytics',growth_gtm:'Growth / Go-to-Market'};
 const HUMAN_FACTORIES={web:'Web Factory',automation:'Automation Factory',ai:'KI Factory',analytics:'Analytics Factory',app:'App Factory',business:'Business Factory',business_crm:'CRM Factory',growth_gtm:'Growth Factory'};
