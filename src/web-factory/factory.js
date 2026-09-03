@@ -133,9 +133,10 @@ function createBaseArtifact(mission, blueprint, designSystem, content, buildId) 
   files[`${projectRoot}/website-blueprint.json`] = JSON.stringify(blueprint, null, 2);
   files[`${projectRoot}/project.json`] = JSON.stringify({
     schema: 'riosystems.web-staging-project.v1',
-    project: { slug: mission.project_slug, business_name: mission.business_name },
+    project: { slug: mission.project_slug, business_name: mission.business_name, scope_key: mission.project_scope_key || null },
     generated_by: 'riosystems-native-web',
     environment: 'staging',
+    project_context_bound: Boolean(mission.project_mission_context),
     synthetic_test_data_only: mission.synthetic_test_data_only,
     real_customer_data: false,
     external_integrations: false,
@@ -156,6 +157,10 @@ function createBaseArtifact(mission, blueprint, designSystem, content, buildId) 
     build_id: buildId,
     project: { slug: mission.project_slug, business_name: mission.business_name },
     project_root: projectRoot,
+    project_scope_key: mission.project_scope_key || mission.project_mission_context?.project?.scope_key || null,
+    project_mission_context: mission.project_mission_context ? structuredClone(mission.project_mission_context) : null,
+    approved_project_assets: structuredClone(mission.approved_project_assets || []),
+    used_project_asset_ids: [],
     environment: 'staging',
     hosting_target: 'cloudflare-pages-preview',
     expected_pages_project: 'chatgpt-factory-preview',
@@ -238,14 +243,14 @@ export function buildWebsiteProject(input = {}, options = {}) {
   const now = options.now || new Date().toISOString();
   const buildId = options.build_id || buildIdFor(mission, now);
   const observer = createObserver(buildId, now);
-  observer.emit('mission_received', { schema: mission.schema, project_slug: mission.project_slug });
+  observer.emit('mission_received', { schema: mission.schema, project_slug: mission.project_slug, project_scope_key: mission.project_scope_key || null });
 
   const blueprint = planWebsite(mission);
   observer.emit('plan_generated', { pages: blueprint.pages.map((page) => page.id) });
   const designSystem = createDesignSystem(mission);
   observer.emit('design_system_generated', { schema: designSystem.schema });
   const content = createContentContract(mission, blueprint);
-  observer.emit('content_generated', { schema: content.schema, ai_provider_required: false });
+  observer.emit('content_generated', { schema: content.schema, ai_provider_required: false, project_content_pack_bound: Boolean(mission.project_mission_context) });
   let artifact = createBaseArtifact(mission, blueprint, designSystem, content, buildId);
   observer.emit('components_selected', { components: artifact.components_used });
   observer.emit('pages_generated', { count: blueprint.pages.length, project_root: artifact.project_root });
