@@ -490,9 +490,12 @@ async function customApi(service, operatorId, path, request, body) {
   }
 
   if (path === '/mission-preflight' && request.method === 'POST') {
-    const scopeKey = clean(body.scope_key, 300) || runtime.selected_project_scope;
+    const scopeKey = clean(body.scope_key, 300);
+    const contextScopeKey = clean(body.context_scope_key, 300);
+    if (!scopeKey) return { status: 400, body: { error: 'MISSION_PROJECT_SCOPE_REQUIRED', production_deploy: false } };
+    if (contextScopeKey && contextScopeKey !== scopeKey) return { status: 409, body: { error: 'MISSION_PROJECT_CONTEXT_MISMATCH', production_deploy: false } };
     const project = (runtime.command_center_state?.portfolio?.projects || []).find((item) => item.scope_key === scopeKey);
-    if (!project) return { status: 404, body: { error: 'MISSION_PROJECT_SCOPE_REQUIRED', production_deploy: false } };
+    if (!project) return { status: 404, body: { error: 'MISSION_PROJECT_SCOPE_NOT_FOUND', production_deploy: false } };
     const input = safeMissionInput(body, project);
     if (!input.mission_text) return { status: 400, body: { error: 'MISSION_TEXT_REQUIRED', production_deploy: false } };
     const review = buildPlanReview(input);

@@ -62,6 +62,11 @@ assert.match(shell.payload, /Mission Studio/);
 assert.match(shell.payload, /System Health/);
 assert.match(shell.payload, /aria-label="Hauptnavigation"/);
 assert.match(shell.payload, /@media\(max-width:760px\)/);
+assert.doesNotMatch(shell.payload, /projects\.items\?\.\[0\]/);
+assert.match(shell.payload, /Mission für <span id="mission-project-name">/);
+assert.match(shell.payload, /name="requested_outcomes" value="Website"/);
+assert.match(shell.payload, /name="requested_outcomes" value="KI-Unterstützung"/);
+assert.match(shell.payload, /textarea name="mission_text" required lang="de" spellcheck="true"/);
 assert.match(shell.response.headers.get('content-security-policy'), /frame-ancestors 'none'/);
 
 const dashboard = await request('/operator/api/dashboard');
@@ -81,6 +86,24 @@ assert.notEqual(bakery.project_id, craft.project_id);
 
 const beforeMissions = await request('/operator/api/missions');
 assert.equal(beforeMissions.payload.universal.length, 0);
+
+const missingScopePreflight = await request('/operator/api/mission-preflight', {
+  method: 'POST',
+  body: { mission_text: 'Diese Mission darf ohne explizites Projekt nicht starten.' }
+});
+assert.equal(missingScopePreflight.response.status, 400);
+assert.equal(missingScopePreflight.payload.error, 'MISSION_PROJECT_SCOPE_REQUIRED');
+
+const mismatchedContextPreflight = await request('/operator/api/mission-preflight', {
+  method: 'POST',
+  body: {
+    scope_key: bakery.scope_key,
+    context_scope_key: craft.scope_key,
+    mission_text: 'Diese Mission muss am sichtbaren Project Context scheitern.'
+  }
+});
+assert.equal(mismatchedContextPreflight.response.status, 409);
+assert.equal(mismatchedContextPreflight.payload.error, 'MISSION_PROJECT_CONTEXT_MISMATCH');
 
 const maliciousPreflight = await request('/operator/api/mission-preflight', {
   method: 'POST',
