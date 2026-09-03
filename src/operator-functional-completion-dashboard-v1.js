@@ -282,12 +282,23 @@ function projectQuality(missions = [], executions = []) {
       const previous = retries.at(-1)?.provider;
       return count + (previous && previous !== item.provider ? 1 : 0);
     }, 0);
+    const observabilityChecks = missionExecutions.flatMap((item) => [
+      item.started != null,
+      item.completed != null,
+      item.duration_ms != null,
+      !['UNKNOWN','NOT_RECONCILED'].includes(upper(item.cost_state)),
+      item.evidence != null
+    ]);
+    const observabilityCompleteness = observabilityChecks.length
+      ? Math.round((observabilityChecks.filter(Boolean).length / observabilityChecks.length) * 100)
+      : 0;
     return {
       mission_id: mission.mission_id,
       project_id: mission.project_id,
       output: clone(mission.deliverables || []),
       quality_score: mission.quality_score,
       quality_state: mission.quality_state,
+      observability_completeness_pct: observabilityCompleteness,
       validation_result: clone(mission.quality?.checks || null),
       failures: clone(mission.quality?.failures || mission.errors || []),
       repair_attempts: mission.quality?.repair_attempts ?? null,
@@ -667,17 +678,17 @@ const FUNCTIONAL_SCRIPT = String.raw`<script>
   if (window.__aurentaraFunctionalV1) return;
   window.__aurentaraFunctionalV1 = true;
   Object.assign(STATUS_MAP, {
-    NORMAL:['Normal','ready'], ACTION_REQUIRED:['Action required','attention'], REGISTERED:['Registered','ready'],
-    QUEUED:['Queued','neutral'], WAITING:['Waiting','attention'], APPROVED:['Approved','ready'], REJECTED:['Rejected','blocked'],
-    CREDENTIAL_REQUIRED:['Credential required','attention'], BUDGET_GATE:['Budget gate','attention'], PERMISSION_GATE:['Permission gate','attention'],
-    UNAVAILABLE:['Unavailable','blocked'], STAGING_ONLY:['Staging only','active'], PRODUCTION_DISABLED:['Production disabled','neutral'],
-    BLOCK:['Blocked','blocked'], VERIFIED:['Verified','ready']
+    NORMAL:['Normal','ready'], ACTION_REQUIRED:['Aktion erforderlich','attention'], REGISTERED:['Registriert','ready'],
+    QUEUED:['In Warteschlange','neutral'], WAITING:['Wartet','attention'], APPROVED:['Freigegeben','ready'], REJECTED:['Abgelehnt','blocked'],
+    CREDENTIAL_REQUIRED:['Zugangsdaten erforderlich','attention'], BUDGET_GATE:['Budget-Freigabe erforderlich','attention'], PERMISSION_GATE:['Berechtigung erforderlich','attention'],
+    UNAVAILABLE:['Nicht verfügbar','blocked'], STAGING_ONLY:['Nur Staging','active'], PRODUCTION_DISABLED:['Production gesperrt','neutral'],
+    BLOCK:['Blockiert','blocked'], VERIFIED:['Verifiziert','ready'], UNKNOWN:['Unbekannt','neutral'], NOT_RECONCILED:['Noch nicht abgeglichen','neutral']
   });
 
   const desiredNav = [
-    ['hq','Overview'],['projects','Projects'],['missions','Missions'],['mission','Mission Studio'],['approvals','Approvals'],['deliveries','Deliverables'],
-    ['executions','Executions'],['factories','Factories'],['capabilities','Capabilities'],['providers','Providers'],
-    ['costs','Costs'],['quality','Quality'],['alerts','Blockers / Alerts'],['health','System Health'],['audit','Activity'],['settings','Settings']
+    ['hq','Übersicht'],['projects','Projekte'],['missions','Missionen'],['mission','Neue Mission'],['approvals','Freigaben'],['deliveries','Ergebnisse'],
+    ['executions','Ausführungen'],['factories','Factories'],['capabilities','Capabilities'],['providers','Provider'],
+    ['costs','Kosten'],['quality','Qualität'],['alerts','Blocker / Hinweise'],['health','Systemzustand'],['audit','Aktivität'],['settings','Einstellungen']
   ];
   NAV.splice(0, NAV.length, ...desiredNav);
   const nav = document.querySelector('.nav');
@@ -714,7 +725,9 @@ const FUNCTIONAL_SCRIPT = String.raw`<script>
   };
 
   const f = () => state.data.functional || {};
-  const maybeMoney = (value) => value === null || value === undefined ? 'UNKNOWN' : fmtMoney(value);
+  const maybeMoney = (value,state='UNKNOWN') => typeof humanCostState==='function' ? humanCostState(value,state) : (value === null || value === undefined ? 'Kosten noch nicht verifiziert' : fmtMoney(value));
+  const maybeTime = value => typeof formatOperatorTimestamp==='function' ? formatOperatorTimestamp(value) : fmtDate(value);
+  const maybeDuration = value => value===null||value===undefined?'Nicht erfasst':(Number(value)>=1000?(Number(value)/1000).toLocaleString('de-DE',{maximumFractionDigits:2})+' s':Number(value).toLocaleString('de-DE')+' ms');
   const list = (value) => Array.isArray(value) ? value : [];
   const noData = (text) => '<div class="empty">'+esc(text)+'</div>';
   const missionStatusGroup = (m) => {
@@ -748,14 +761,14 @@ const FUNCTIONAL_SCRIPT = String.raw`<script>
     const filtered=filter==='all'?items:items.filter(m=>missionStatusGroup(m)===filter);
     root.innerHTML='<div class="card"><div class="row"><div><h2>Missions</h2><div class="small">Mission Input → Plan → Approval → Execution → Quality → Delivery</div></div><select id="functional-mission-filter" class="filter-control" style="max-width:220px">'+
       [['all','All'],['running','Running'],['approval_required','Approval required'],['completed','Completed'],['failed','Failed'],['blocked','Blocked'],['pending','Pending']].map(([v,l])=>'<option value="'+v+'" '+(filter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></div>'+
-      (filtered.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Mission</th><th>Project</th><th>Type</th><th>Status</th><th>Cost</th><th>Approval</th><th>Quality</th><th>Delivery</th></tr></thead><tbody>'+filtered.map(m=>'<tr><td><strong class="mono">'+esc(m.mission_id||'UNKNOWN')+'</strong><div class="small">'+esc(fmtDate(m.updated||m.created))+'</div></td><td>'+esc(m.project||m.project_id||'UNKNOWN')+'</td><td>'+esc(m.mission_type)+'</td><td>'+badge(m.status)+'</td><td>'+esc(maybeMoney(m.actual_cost_eur))+'</td><td>'+badge(m.approval_state)+'</td><td>'+badge(m.quality_state)+'<div class="small">Score '+esc(m.quality_score??'UNKNOWN')+'</div></td><td>'+badge(m.delivery_state)+'</td></tr><tr><td colspan="8"><details class="details"><summary>Open mission lifecycle</summary><div class="grid three"><div class="kv"><b>Execution</b><span>'+esc(m.execution_state)+'</span></div><div class="kv"><b>Estimated Cost</b><span>'+esc(maybeMoney(m.estimated_cost_eur))+'</span></div><div class="kv"><b>Reality</b><span>'+esc(m.reality)+'</span></div></div><h3>Plan / Capabilities / Providers</h3><pre>'+esc(JSON.stringify({plan:m.plan,selected_capabilities:m.selected_capabilities,factories:m.factories,providers:m.providers,approval_requirements:m.approval_requirements},null,2))+'</pre><h3>Execution / Quality / Delivery</h3><pre>'+esc(JSON.stringify({execution:m.execution,quality:m.quality,deliverables:m.deliverables,delivery:m.delivery,evidence:m.evidence,errors:m.errors},null,2))+'</pre><h3>Mission Input / Compiled Mission</h3><pre>'+esc(JSON.stringify({mission_input:m.mission_input,compiled_mission:m.compiled_mission},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Missionen in diesem Filter.'))+'</div>';
+      (filtered.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Mission</th><th>Project</th><th>Type</th><th>Status</th><th>Cost</th><th>Approval</th><th>Quality</th><th>Delivery</th></tr></thead><tbody>'+filtered.map(m=>'<tr><td><strong class="mono">'+esc(m.mission_id||'UNKNOWN')+'</strong><div class="small">'+esc(fmtDate(m.updated||m.created))+'</div></td><td>'+esc(m.project||m.project_id||'UNKNOWN')+'</td><td>'+esc(m.mission_type)+'</td><td>'+badge(m.status)+'</td><td>'+esc(maybeMoney(m.actual_cost_eur))+'</td><td>'+badge(m.approval_state)+'</td><td>'+badge(m.quality_state)+'<div class="small">Score '+esc(m.quality_score??'UNKNOWN')+'</div></td><td>'+badge(m.delivery_state)+'</td></tr><tr><td colspan="8"><details class="details"><summary>Technische Details / Missions-Lifecycle</summary><div class="grid three"><div class="kv"><b>Execution</b><span>'+esc(m.execution_state)+'</span></div><div class="kv"><b>Estimated Cost</b><span>'+esc(maybeMoney(m.estimated_cost_eur))+'</span></div><div class="kv"><b>Reality</b><span>'+esc(m.reality)+'</span></div></div><h3>Technische Plan-, Capability- und Provider-Evidence</h3><pre>'+esc(JSON.stringify({plan:m.plan,selected_capabilities:m.selected_capabilities,factories:m.factories,providers:m.providers,approval_requirements:m.approval_requirements},null,2))+'</pre><h3>Technische Ausführungs-, Qualitäts- und Ergebnis-Evidence</h3><pre>'+esc(JSON.stringify({execution:m.execution,quality:m.quality,deliverables:m.deliverables,delivery:m.delivery,evidence:m.evidence,errors:m.errors},null,2))+'</pre><h3>Technischer Mission Input / Compiled Mission</h3><pre>'+esc(JSON.stringify({mission_input:m.mission_input,compiled_mission:m.compiled_mission},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Missionen in diesem Filter.'))+'</div>';
     const selector=document.getElementById('functional-mission-filter'); if(selector) selector.onchange=e=>{state.functionalMissionFilter=e.target.value;renderFunctionalMissions();};
   }
 
   function renderFunctionalExecutions() {
     const root=document.getElementById('executions'); if(!root) return; const items=list(f().executions);
-    root.innerHTML='<div class="card"><h2>Executions</h2><div class="small">Keine erfundenen Execution IDs. Fehlt eine Core-ID, bleibt sie UNKNOWN und der echte Task-Key wird gezeigt.</div>'+
-      (items.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Execution / Task</th><th>Mission</th><th>Factory</th><th>Provider</th><th>State</th><th>Retries</th><th>Cost</th></tr></thead><tbody>'+items.map(x=>'<tr><td><strong class="mono">'+esc(x.execution_id||x.task_id||'UNKNOWN')+'</strong><div class="small">'+esc(x.execution_id?'Execution ID':'Task reference')+'</div></td><td class="mono">'+esc(x.mission_id||'UNKNOWN')+'</td><td>'+esc(x.factory||'UNKNOWN')+'</td><td>'+esc(x.provider||'UNKNOWN')+'</td><td>'+badge(x.state)+'</td><td>'+esc(x.retries??'UNKNOWN')+'</td><td>'+esc(maybeMoney(x.cost_eur))+'</td></tr><tr><td colspan="7"><details class="details"><summary>Execution evidence</summary><pre>'+esc(JSON.stringify({started:x.started,completed:x.completed,duration_ms:x.duration_ms,result:x.result,error:x.error,retry_evidence:x.retry_evidence,quality:x.quality,evidence:x.evidence,reality:x.reality},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Execution-Evidence vorhanden.'))+'</div>';
+    root.innerHTML='<div class="card"><h2>Ausführungen</h2><div class="small">Human Summary zuerst. Fehlende Timing-, Kosten- oder ID-Evidence bleibt ausdrücklich nicht erfasst.</div>'+
+      (items.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Ausführung / Task</th><th>Mission</th><th>Factory</th><th>Provider</th><th>Status</th><th>Kosten</th><th>Retries</th></tr></thead><tbody>'+items.map(x=>'<tr><td><strong class="mono">'+esc(x.execution_id||x.task_id||'Nicht erfasst')+'</strong><div class="small">'+esc(x.execution_id?'Execution ID':'Task-Referenz')+'</div></td><td class="mono">'+esc(x.mission_id||'Nicht erfasst')+'</td><td>'+esc(typeof humanFactory==='function'?humanFactory(x.factory):x.factory||'Nicht erfasst')+'</td><td>'+esc(x.provider||'Nicht erfasst')+'</td><td>'+badge(x.state)+'</td><td>'+esc(maybeMoney(x.cost_eur,x.cost_state))+'</td><td>'+esc(x.retries??'Nicht erfasst')+'</td></tr><tr><td colspan="7"><div class="human-summary"><div class="grid three"><div class="kv"><b>Start</b><span>'+esc(maybeTime(x.started))+'</span></div><div class="kv"><b>Ende</b><span>'+esc(maybeTime(x.completed))+'</span></div><div class="kv"><b>Dauer</b><span>'+esc(maybeDuration(x.duration_ms))+'</span></div><div class="kv"><b>Resultat</b><span>'+esc(x.result??'Nicht erfasst')+'</span></div><div class="kv"><b>Reality</b><span>'+esc(x.reality||'Nicht verifiziert')+'</span></div><div class="kv"><b>Kostenstatus</b><span>'+esc(x.cost_state||'UNKNOWN')+'</span></div></div></div><details class="details"><summary>Technische Details / Execution Evidence</summary><pre>'+esc(JSON.stringify({started:x.started,completed:x.completed,duration_ms:x.duration_ms,result:x.result,error:x.error,retry_evidence:x.retry_evidence,quality:x.quality,evidence:x.evidence,reality:x.reality,cost_state:x.cost_state},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Execution-Evidence vorhanden.'))+'</div>';
   }
 
   function renderFunctionalCapabilities() {
@@ -781,7 +794,7 @@ const FUNCTIONAL_SCRIPT = String.raw`<script>
 
   function renderFunctionalQuality() {
     const root=document.getElementById('quality'); if(!root) return; const items=list(f().quality);
-    root.innerHTML='<div class="card"><h2>Quality</h2>'+(items.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Mission</th><th>State</th><th>Score</th><th>Repair Attempts</th><th>Provider Switches</th><th>Validation</th></tr></thead><tbody>'+items.map(x=>'<tr><td class="mono">'+esc(x.mission_id||'UNKNOWN')+'</td><td>'+badge(x.final_quality_status)+'</td><td>'+esc(x.quality_score??'UNKNOWN')+'</td><td>'+esc(x.repair_attempts??'UNKNOWN')+'</td><td>'+esc(x.provider_switches??'UNKNOWN')+'</td><td><details class="details"><summary>Evidence</summary><pre>'+esc(JSON.stringify({validation_result:x.validation_result,failures:x.failures,output:x.output},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Quality-Evidence vorhanden.'))+'</div>';
+    root.innerHTML='<div class="card"><h2>Qualität</h2><div class="small">Quality Score bewertet das Ergebnis. Observability Completeness bewertet ausschließlich, wie vollständig die technische Evidence erfasst wurde.</div>'+(items.length?'<div class="table-wrap"><table class="table"><thead><tr><th>Mission</th><th>Status</th><th>Quality Score</th><th>Observability Completeness</th><th>Repair Attempts</th><th>Provider Switches</th><th>Evidence</th></tr></thead><tbody>'+items.map(x=>'<tr><td class="mono">'+esc(x.mission_id||'Nicht erfasst')+'</td><td>'+badge(x.final_quality_status)+'</td><td>'+esc(x.quality_score??'Nicht erfasst')+'</td><td>'+esc(x.observability_completeness_pct)+' %</td><td>'+esc(x.repair_attempts??'Nicht erfasst')+'</td><td>'+esc(x.provider_switches??'Nicht erfasst')+'</td><td><details class="details"><summary>Technische Details</summary><pre>'+esc(JSON.stringify({validation_result:x.validation_result,failures:x.failures,output:x.output},null,2))+'</pre></details></td></tr>').join('')+'</tbody></table></div>':noData('Keine Quality-Evidence vorhanden.'))+'</div>';
   }
 
   function renderFunctionalAlerts() {

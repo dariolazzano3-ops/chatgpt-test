@@ -98,6 +98,8 @@ assert.equal(projection.missions[0].mission_id, missionId);
 assert.equal(projection.missions[0].actual_cost_eur, 0);
 assert.equal(projection.missions[0].quality_score, 100);
 assert.equal(projection.missions[0].delivery_state, 'SIMULATED_HANDOFF_READY');
+assert.equal(projection.quality[0].quality_score, 100);
+assert.equal(projection.quality[0].observability_completeness_pct, 20, 'quality and observability completeness must remain separate dimensions');
 assert.equal(projection.executions.length, 1);
 assert.equal(projection.executions[0].execution_id, null, 'must not invent an execution id');
 assert.equal(projection.executions[0].task_id, 'synthetic-project:task:01:automation_followup');
@@ -156,7 +158,7 @@ const response = await handleOperatorDashboard(
 );
 assert.equal(response.status, 200);
 const html = await response.text();
-for (const required of ['Missions', 'Executions', 'Capabilities', 'Quality', 'Blockers / Alerts', 'Quick Jump', '/functional-completion']) {
+for (const required of ['Missionen', 'Ausführungen', 'Capabilities', 'Qualität', 'Blocker / Hinweise', 'Quick Jump', '/functional-completion', 'Observability Completeness', 'Technische Details / Execution Evidence']) {
   assert.ok(html.includes(required), `missing dashboard functional surface ${required}`);
 }
 assert.doesNotMatch(html, /data-action=["']retry["']/i);

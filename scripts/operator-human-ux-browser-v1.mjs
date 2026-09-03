@@ -45,6 +45,7 @@ async function go(page, id, title) {
   else await page.locator(`[data-goto="${id}"]`).first().click();
   await page.waitForFunction((expected) => document.getElementById('title')?.textContent?.trim() === expected, title);
   assert.equal(await page.locator(`#${id}`).isVisible(), true, `${id} must be visible`);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   checkedViews.push(id);
 }
 
@@ -65,6 +66,7 @@ try {
     assert.equal(await page.locator(`.nav button[data-goto="${id}"] span:last-child`).innerText(), label);
   }
   checkedViews.push('hq');
+  assert.equal((await page.locator('body').innerText()).includes('[object Object]'), false, 'shared structured presenter must prevent [object Object]');
 
   await go(page, 'projects', 'Projekte');
   assert.match(await page.locator('#projects').innerText(), /Projektportfolio/);
@@ -150,7 +152,14 @@ try {
   checkedViews.push('mission-plan');
 
   await go(page, 'approvals', 'Freigaben');
-  assert.ok(/Keine Freigaben erforderlich|Freigeben|Ablehnen|Approve|Reject/i.test(await page.locator('#approvals').innerText()));
+  await page.waitForFunction(() => {
+    const root = document.getElementById('approvals');
+    return Boolean(root?.querySelector('.human-all-clear, .plan-action, button[data-decision]'));
+  });
+  const approvalsText = await page.locator('#approvals').innerText();
+  const hasDecisionControls = /Freigeben|Ablehnen|Approve|Reject/i.test(approvalsText);
+  const hasHumanEmptyState = /Keine Freigaben erforderlich/i.test(approvalsText);
+  assert.ok(hasDecisionControls || hasHumanEmptyState, 'Final approval view must expose actionable controls or the canonical human empty state');
 
   await go(page, 'factories', 'Factories');
   await page.waitForFunction(() => document.querySelectorAll('#factories .human-card').length > 0);
@@ -173,6 +182,18 @@ try {
   const costLabels = (await page.locator('#costs .metric .k').allInnerTexts()).map((value) => value.toLocaleLowerCase('de-DE'));
   for (const label of ['Ausgegeben', 'Reserviert', 'Geschätzt', 'Verbleibend']) assert.ok(costLabels.includes(label.toLocaleLowerCase('de-DE')));
   assert.equal(costLabels.some((label) => ['spent', 'reserved', 'estimated', 'remaining'].includes(label)), false);
+
+  await go(page, 'executions', 'Ausführungen');
+  const executionsText = await page.locator('#executions').innerText();
+  if (/Keine Execution-Evidence vorhanden\./i.test(executionsText)) {
+    assert.match(executionsText, /Keine Execution-Evidence vorhanden\./i);
+  } else {
+    assert.match(executionsText, /Start/);
+    assert.match(executionsText, /Ende/);
+    assert.match(executionsText, /Dauer/);
+    assert.match(executionsText, /Kosten/);
+  }
+  assert.equal(executionsText.includes('[object Object]'), false);
 
   await go(page, 'deliveries', 'Ergebnisse');
   const deliveriesText = await page.locator('#deliveries').innerText();
