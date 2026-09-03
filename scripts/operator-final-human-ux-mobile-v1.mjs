@@ -60,6 +60,36 @@ async function openProjectDetail(page) {
   return scope;
 }
 
+const READ_FIXTURE_KEYS = new Map([
+  ['/operator/api/projects', 'projects'],
+  ['/operator/api/missions', 'missions'],
+  ['/operator/api/deliveries', 'deliveries'],
+  ['/operator/api/factories', 'factories'],
+  ['/operator/api/providers', 'providers'],
+  ['/operator/api/costs', 'costs'],
+  ['/operator/api/approvals', 'approvals'],
+  ['/operator/api/system-health', 'health'],
+  ['/operator/api/audit', 'audit'],
+  ['/operator/api/settings', 'settings'],
+  ['/operator/api/actions', 'actions']
+]);
+
+function isolatedDashboardFailureHandler({ cachedData, onDashboard, failFirstOnly = false }) {
+  return async (route) => {
+    const request = route.request();
+    if (request.method() !== 'GET') return route.continue();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === '/operator/api/dashboard') {
+      const count = onDashboard();
+      if (!failFirstOnly || count === 1) return route.abort('failed');
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cachedData.dashboard) });
+    }
+    const key = READ_FIXTURE_KEYS.get(pathname);
+    if (key) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cachedData[key]) });
+    return route.continue();
+  };
+}
+
 let browser;
 const pageErrors = [];
 try {
@@ -90,23 +120,28 @@ try {
     assert.ok(usage.some((item) => item.value === 'GALLERY' && item.text === 'Galerie'));
   }
 
+  const cachedData = await page.evaluate(() => structuredClone(state.data));
+
   let dashboardCalls = 0;
-  await page.route('**/operator/api/dashboard*', async (route) => {
-    dashboardCalls += 1;
-    if (dashboardCalls === 1) return route.abort('failed');
-    return route.continue();
+  const recoveredHandler = isolatedDashboardFailureHandler({
+    cachedData,
+    failFirstOnly: true,
+    onDashboard: () => ++dashboardCalls
   });
+  await page.route('**/operator/api/**', recoveredHandler);
   await page.evaluate(() => loadAll());
   await page.waitForTimeout(250);
   assert.equal(dashboardCalls, 2, 'one transient GET failure is retried exactly once');
   assert.equal((await page.evaluate(() => state.selectedScope)), scope, 'selectedScope survives recovered GET failure');
-  await page.unroute('**/operator/api/dashboard*');
+  await page.unroute('**/operator/api/**', recoveredHandler);
 
   dashboardCalls = 0;
-  await page.route('**/operator/api/dashboard*', async (route) => {
-    dashboardCalls += 1;
-    return route.abort('failed');
+  const persistentHandler = isolatedDashboardFailureHandler({
+    cachedData,
+    failFirstOnly: false,
+    onDashboard: () => ++dashboardCalls
   });
+  await page.route('**/operator/api/**', persistentHandler);
   await page.evaluate(() => loadAll());
   await page.waitForTimeout(300);
   assert.equal(dashboardCalls, 2, 'persistent transient GET failure stops after the single retry');
@@ -134,7 +169,7 @@ try {
   assert.equal(reloadContext.detailScope, scope, 'iPhone reload restores cached project detail when read hydration fails');
   assert.equal(await page.locator('#project-detail').isVisible(), true, 'cached project detail remains visible across transient reload failure');
   assert.match(await page.locator('#error').innerText(), /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i);
-  await page.unroute('**/operator/api/dashboard*');
+  await page.unroute('**/operator/api/**', persistentHandler);
 
   let writeProbeCalls = 0;
   await page.route('**/operator/api/operator-final-ux-write-probe', async (route) => {
