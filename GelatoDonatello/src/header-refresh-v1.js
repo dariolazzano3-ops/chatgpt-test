@@ -1,7 +1,5 @@
 import frozen from "./frozen.js";
 
-const HOME_PATHS = new Set(["/", "/index.html"]);
-
 const HEADER_CSS = `
 /* Gelato Donatello header refresh: preserve the original wordmark, crop only the right cone trio. */
 .gelato-top{
@@ -120,9 +118,9 @@ const HEADER_CSS = `
 }
 `;
 
-const HEADER_HTML = `<header class="top gelato-top"><a class="gelato-brand" href="/" aria-label="Gelato Donatello Startseite"><span class="gelato-brand-crop"><img src="/assets/images/brand/gelato-donatello-logo.png" alt="Gelato Donatello" decoding="async"></span></a><div class="gelato-header-actions"><a class="gelato-icon-button" href="tel:+4968069394980" aria-label="Gelato Donatello anrufen" title="Anrufen"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"></path></svg></a><details class="gelato-menu"><summary class="gelato-icon-button" aria-label="Menü öffnen" title="Menü"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></summary><nav class="gelato-menu-panel" aria-label="Hauptnavigation"><a href="#sorten">Sorten</a><a href="#besuch">Besuch</a></nav></details></div></header>`;
+const HEADER_HTML = `<header class="top gelato-top"><a class="gelato-brand" href="/" aria-label="Gelato Donatello Startseite"><span class="gelato-brand-crop"><img src="/assets/images/brand/gelato-donatello-logo.png" alt="Gelato Donatello" decoding="async"></span></a><div class="gelato-header-actions"><a class="gelato-icon-button" href="tel:+4968069394980" aria-label="Gelato Donatello anrufen" title="Anrufen"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"></path></svg></a><details class="gelato-menu"><summary class="gelato-icon-button" aria-label="Menü öffnen" title="Menü"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></summary><nav class="gelato-menu-panel" aria-label="Hauptnavigation"><a href="/#sorten">Sorten</a><a href="/#besuch">Besuch</a></nav></details></div></header>`;
 
-function decorateHome(html) {
+function decoratePage(html) {
   const withCss = html.includes("</style>")
     ? html.replace("</style>", `${HEADER_CSS}</style>`)
     : html;
@@ -133,10 +131,9 @@ function decorateHome(html) {
 export default {
   async fetch(request, env, ctx) {
     const response = await frozen.fetch(request, env, ctx);
-    const url = new URL(request.url);
     const contentType = response.headers.get("content-type") || "";
 
-    if (request.method !== "GET" || !HOME_PATHS.has(url.pathname) || !contentType.includes("text/html")) {
+    if (request.method !== "GET" || !contentType.includes("text/html")) {
       return response;
     }
 
@@ -144,7 +141,7 @@ export default {
     const headers = new Headers(response.headers);
     headers.delete("content-length");
 
-    return new Response(decorateHome(html), {
+    return new Response(decoratePage(html), {
       status: response.status,
       statusText: response.statusText,
       headers
