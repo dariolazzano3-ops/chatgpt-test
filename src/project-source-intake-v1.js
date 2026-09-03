@@ -10,7 +10,7 @@ export const READINESS_STATUSES = Object.freeze(['READY', 'READY_WITH_WARNINGS',
 
 const USABLE_FACT_STATES = new Set(['OPERATOR_CONFIRMED', 'CUSTOMER_CONFIRMED', 'VERIFIED']);
 const PUBLISHABLE_RIGHTS = new Set(['OWNED_CONFIRMED', 'CUSTOMER_LICENSED', 'CUSTOMER_ASSERTED']);
-const CRITICAL_PATH_PATTERNS = [/(^|\.)price(s|ing)?($|\.)/i,/(^|\.)business(_|\.)?name$/i,/(^|\.)(phone|email|address|opening(_|\.)?hours)($|\.)/i,/(^|\.)legal($|\.)/i,/(^|\.)offerings?($|\.)/i,/(^|\.)services?($|\.)/i,/(^|\.)products?($|\.)/i];
+const CRITICAL_PATH_PATTERNS = [/(^|\.)pric(?:e|es|ing)($|\.)/i,/(^|\.)business(_|\.)?name$/i,/(^|\.)(phone|email|address|opening(_|\.)?hours)($|\.)/i,/(^|\.)legal($|\.)/i,/(^|\.)offerings?($|\.)/i,/(^|\.)services?($|\.)/i,/(^|\.)products?($|\.)/i];
 
 function id(prefix = 'item') { if (globalThis.crypto?.randomUUID) return `${prefix}_${globalThis.crypto.randomUUID()}`; return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`; }
 function enumValue(value, allowed, fallback) { const normalized = clean(value, 80).toUpperCase(); return allowed.includes(normalized) ? normalized : fallback; }
