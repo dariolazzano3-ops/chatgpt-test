@@ -4,6 +4,7 @@ import { handleFactory } from "./factory.js";
 import { handlePreview } from "./preview.js";
 import { handleDiagnostics } from "./diagnostics.js";
 import { handleOpenAiSecretPresence } from "./openai-secret-presence-v1.js";
+import { handleHamyrenOpenAiSecretPresence } from "./hamyren-openai-secret-presence-v1.js";
 import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic-v1.js";
 import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
@@ -186,6 +187,10 @@ export default {
     if (url.pathname === "/factory/diagnostics/openai-secret-presence") {
       const presenceResponse = handleOpenAiSecretPresence(request, env);
       if (presenceResponse) return presenceResponse;
+    }
+    if (url.pathname === "/factory/diagnostics/hamyren-openai-secret-presence") {
+      const hamyrenPresenceResponse = handleHamyrenOpenAiSecretPresence(request, env);
+      if (hamyrenPresenceResponse) return hamyrenPresenceResponse;
     }
     if (url.pathname === "/factory/diagnostics/framer-connection") {
       const framerResponse = await handleFramerConnectionDiagnostic(request, env);
