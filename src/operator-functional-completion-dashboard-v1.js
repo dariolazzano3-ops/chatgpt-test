@@ -16,8 +16,8 @@ const ACTIVE_STATES = new Set(['ACTIVE', 'RUNNING', 'QUEUED', 'WAITING', 'RETRYI
 const COMPLETE_STATES = new Set(['COMPLETED', 'DONE', 'SUCCESS', 'DELIVERY_READY', 'SIMULATED_HANDOFF_READY', 'SYNTHETIC_STAGING_COMPLETED']);
 const COST_EVIDENCE_STATES = new Set(['VERIFIED_ACTUAL','ESTIMATED','RESERVED','UNKNOWN','NOT_RECONCILED']);
 function costEvidenceState(value, kind = 'actual', explicit = null) {
-  const normalized = upper(explicit);
-  if (COST_EVIDENCE_STATES.has(normalized)) return normalized;
+  const normalized = clean(explicit, 160).toUpperCase();
+  if (normalized && COST_EVIDENCE_STATES.has(normalized)) return normalized;
   if (value === null || value === undefined || value === '') return 'UNKNOWN';
   if (kind === 'estimate') return 'ESTIMATED';
   if (kind === 'reserved') return 'RESERVED';
