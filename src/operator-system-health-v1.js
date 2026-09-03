@@ -185,6 +185,18 @@ function stagingAvailabilitySignal({ env, runtimePersistence }) {
   return signal('HEALTHY', 'Authenticated staging operator endpoint is serving this health request', { source: 'current_authenticated_operator_request' });
 }
 
+function readinessEvidenceSignal(evidence, kind = 'activation') {
+  const label = kind === 'production' ? 'Production readiness' : 'Activation readiness';
+  if (!evidence || typeof evidence !== 'object') return signal('NOT_VERIFIED', `${label} evidence is missing`, { evidence_present: false });
+  const raw = clean(evidence.status || evidence.raw || evidence.state, 120).toUpperCase();
+  const extras = { evidence_present: true, evidence: clone(evidence) };
+  if (['READY','VERIFIED','HEALTHY','READY_FOR_EXTERNAL_ACTIVATION','PRODUCTION_READY'].includes(raw)) return signal('HEALTHY', `${label} explicitly verified`, extras);
+  if (['BLOCKED','FAILED','FAILURE','ERROR'].includes(raw)) return signal('BLOCKED', `${label} explicitly blocked`, extras);
+  if (['STALE'].includes(raw)) return signal('STALE', `${label} evidence is stale`, extras);
+  if (['DEGRADED','PENDING','QUEUED','WAITING','ACTION_REQUIRED'].includes(raw)) return signal('DEGRADED', `${label} is not ready`, extras);
+  return signal('NOT_VERIFIED', `${label} is not proven by the supplied evidence`, { ...extras, raw_state: raw || null });
+}
+
 function overallStatus(signals = {}) {
   const statuses = Object.values(signals).map((item) => item?.status).filter(Boolean);
   if (statuses.includes('BLOCKED')) return 'BLOCKED';
@@ -208,7 +220,7 @@ export async function buildAuthoritativeOperatorSystemHealth({ base_health = {},
         universal_mission_ci: signal('NOT_VERIFIED', 'Universal Mission CI is not polled outside staging runtime')
       };
   const persistence = await runtimePersistenceSignal({ env, runtime_service });
-  const signals = {
+  const operationalSignals = {
     core_ci: github.core_ci,
     integrated_regression_gate: github.integrated_regression_gate,
     dashboard_ci: github.dashboard_ci,
@@ -218,9 +230,14 @@ export async function buildAuthoritativeOperatorSystemHealth({ base_health = {},
     runtime_persistence: persistence,
     staging_availability: stagingAvailabilitySignal({ env, runtimePersistence: persistence })
   };
+  const signals = {
+    ...operationalSignals,
+    activation_readiness: readinessEvidenceSignal(base_health.activation_readiness, 'activation'),
+    production_readiness: readinessEvidenceSignal(base_health.production_readiness, 'production')
+  };
   return {
-    schema: 'riosystems.operator-system-health.v3',
-    status: overallStatus(signals),
+    schema: 'riosystems.operator-system-health.v4',
+    status: overallStatus(operationalSignals),
     checked_at: new Date(safeNow).toISOString(),
     branch_truth: github.branch_head,
     signals,
@@ -229,7 +246,10 @@ export async function buildAuthoritativeOperatorSystemHealth({ base_health = {},
       no_inferred_green_states: true,
       exact_factory_control_head_required_for_ci_health: true,
       ci_max_age_ms,
-      provider_evidence_max_age_ms: provider_max_age_ms
+      provider_evidence_max_age_ms: provider_max_age_ms,
+      activation_readiness_requires_explicit_evidence: true,
+      production_readiness_requires_explicit_evidence: true,
+      readiness_does_not_infer_operational_health: true
     },
     base_health: clone(base_health),
     production_deploy: false
@@ -238,9 +258,9 @@ export async function buildAuthoritativeOperatorSystemHealth({ base_health = {},
 
 export function operatorSystemHealthManifest() {
   return {
-    schema: 'riosystems.operator-system-health.v3',
+    schema: 'riosystems.operator-system-health.v4',
     states: ['HEALTHY','DEGRADED','BLOCKED','STALE','NOT_VERIFIED'],
-    authoritative_sources: ['github_actions_exact_factory_control_head','operator_runtime_store','factory_readiness_matrix','provider_evidence','current_authenticated_staging_request'],
+    authoritative_sources: ['github_actions_exact_factory_control_head','operator_runtime_store','factory_readiness_matrix','provider_evidence','current_authenticated_staging_request','explicit_activation_readiness_evidence','explicit_production_readiness_evidence'],
     github_token_required: false,
     public_repository_read_only: true,
     production_deploy: false
