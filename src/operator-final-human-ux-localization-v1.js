@@ -148,6 +148,7 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
     window.setError=setError;
   }
 
+  const dashboardStateAvailable=()=>typeof state!=='undefined'&&typeof NAV!=='undefined';
   const normalizeContext=value=>{
     const section=String(value?.section||'');
     const scope=String(value?.scope||'').slice(0,640);
@@ -156,62 +157,66 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
   };
   const readContext=()=>{try{return normalizeContext(JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||'{}'))}catch{return{section:'',scope:'',detail:null}}};
   const contextDetail=()=>{
-    if(!state?.detail||!state?.selectedScope||state.detail?.project?.scope_key!==state.selectedScope)return null;
+    if(!dashboardStateAvailable()||!state.detail||!state.selectedScope||state.detail?.project?.scope_key!==state.selectedScope)return null;
     try{const encoded=JSON.stringify(state.detail);return encoded.length<=CONTEXT_DETAIL_LIMIT_BYTES?state.detail:null}catch{return null}
   };
   const saveContext=()=>{
+    if(!dashboardStateAvailable())return;
     try{
       sessionStorage.setItem(CONTEXT_KEY,JSON.stringify({
-        section:String(state?.section||'hq'),
-        scope:String(state?.selectedScope||'').slice(0,640),
+        section:String(state.section||'hq'),
+        scope:String(state.selectedScope||'').slice(0,640),
         detail:contextDetail()
       }));
     }catch{}
   };
-  const allowedSection=id=>Array.isArray(NAV)&&NAV.some(item=>item[0]===id);
+  const allowedSection=id=>typeof NAV!=='undefined'&&Array.isArray(NAV)&&NAV.some(item=>item[0]===id);
   const saved=readContext();
-  if(saved.section&&allowedSection(saved.section))state.section=saved.section;
-  if(saved.scope)state.selectedScope=saved.scope;
-  if(saved.detail)state.detail=saved.detail;
+  if(dashboardStateAvailable()){
+    if(saved.section&&allowedSection(saved.section))state.section=saved.section;
+    if(saved.scope)state.selectedScope=saved.scope;
+    if(saved.detail)state.detail=saved.detail;
 
-  if(typeof go==='function'){
-    const priorGo=go;
-    go=function(id){const result=priorGo(id);saveContext();return result};
-    window.go=go;
+    if(typeof go==='function'){
+      const priorGo=go;
+      go=function(id){const result=priorGo(id);saveContext();return result};
+      window.go=go;
+    }
+    if(typeof openProject==='function'){
+      const priorOpenProject=openProject;
+      openProject=async function(scope){state.selectedScope=scope;saveContext();const result=await priorOpenProject(scope);saveContext();return result};
+      window.openProject=openProject;
+    }
+    if(typeof loadAll==='function'){
+      const priorLoadAll=loadAll;
+      loadAll=async function(){
+        const before={section:state.section,scope:state.selectedScope,detail:state.detail,data:state.data};
+        saveContext();
+        const result=await priorLoadAll();
+        if(before.scope)state.selectedScope=before.scope;
+        if(before.section&&allowedSection(before.section))state.section=before.section;
+        const failed=state.data===before.data&&Boolean(document.getElementById('error')?.textContent?.trim());
+        if(failed&&before.detail){
+          state.detail=before.detail;
+          if(typeof renderProjectDetail==='function')renderProjectDetail(before.detail);
+        }
+        saveContext();
+        return result;
+      };
+      window.loadAll=loadAll;
+      const refresh=document.getElementById('refresh');
+      if(refresh)refresh.onclick=loadAll;
+    }
+    addEventListener('pagehide',saveContext);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveContext()});
   }
-  if(typeof openProject==='function'){
-    const priorOpenProject=openProject;
-    openProject=async function(scope){state.selectedScope=scope;saveContext();const result=await priorOpenProject(scope);saveContext();return result};
-    window.openProject=openProject;
-  }
-  if(typeof loadAll==='function'){
-    const priorLoadAll=loadAll;
-    loadAll=async function(){
-      const before={section:state.section,scope:state.selectedScope,detail:state.detail,data:state.data};
-      saveContext();
-      const result=await priorLoadAll();
-      if(before.scope)state.selectedScope=before.scope;
-      if(before.section&&allowedSection(before.section))state.section=before.section;
-      const failed=state.data===before.data&&Boolean(document.getElementById('error')?.textContent?.trim());
-      if(failed&&before.detail){
-        state.detail=before.detail;
-        if(typeof renderProjectDetail==='function')renderProjectDetail(before.detail);
-      }
-      saveContext();
-      return result;
-    };
-    window.loadAll=loadAll;
-    const refresh=document.getElementById('refresh');
-    if(refresh)refresh.onclick=loadAll;
-  }
-  addEventListener('pagehide',saveContext);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveContext()});
 
   const humanEvent=code=>EVENTS[code]||(typeof window.aurentaraHumanEventTitleV1==='function'?window.aurentaraHumanEventTitleV1(code):code);
   const polishEventElement=element=>{
     const raw=String(element.textContent||'').trim();
     if(!/^[A-Z][A-Z0-9_]{3,}$/.test(raw)||!raw.includes('_'))return;
     if(element.closest('code,pre,.human-meta'))return;
+    if(!EVENTS[raw]&&!element.closest('#audit'))return;
     element.dataset.finalHumanEvent='true';
     element.innerHTML='<span>'+escapeHtml(humanEvent(raw))+'</span><div class="human-meta"><code>'+escapeHtml(raw)+'</code></div>';
   };
@@ -277,6 +282,7 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
   polish(document.body);
 
   const restore=async()=>{
+    if(!dashboardStateAvailable()){polish(document.body);return}
     while(document.body.classList.contains('loading'))await new Promise(resolve=>setTimeout(resolve,25));
     if(saved.section&&allowedSection(saved.section)&&typeof go==='function')go(saved.section);
     if(saved.scope&&state.section==='projects'){
