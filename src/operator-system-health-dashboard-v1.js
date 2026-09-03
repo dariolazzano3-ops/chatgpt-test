@@ -54,7 +54,9 @@ const HEALTH_STATUS_SCRIPT = String.raw`<script>
         ['Factory Readiness', signals.factory_readiness],
         ['Provider Evidence', signals.provider_evidence_freshness],
         ['Runtime Persistence', signals.runtime_persistence],
-        ['Staging Availability', signals.staging_availability]
+        ['Staging Availability', signals.staging_availability],
+        ['Activation Readiness', signals.activation_readiness],
+        ['Production Readiness', signals.production_readiness]
       ];
       card.innerHTML = '<div class="row"><div><div class="eyebrow">Authoritative Health</div><h2 style="margin:3px 0">V1 System Signals</h2><div class="small">Exact factory-control head · echte Evidence · keine geratenen Grünzustände</div></div>' + badge(health.status || 'NOT_VERIFIED') + '</div>' +
         rows.map(([name, item]) => '<div class="row"><div><strong>' + esc(name) + '</strong><div class="small">' + esc(item?.label || 'Not verified') + '</div></div>' + badge(item?.status || 'NOT_VERIFIED') + '</div>').join('') +
@@ -109,7 +111,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
 
 export function operatorSystemHealthDashboardManifest() {
   return {
-    schema: 'riosystems.operator-system-health-dashboard.v1',
+    schema: 'riosystems.operator-system-health-dashboard.v2',
     status_states: ['HEALTHY','DEGRADED','BLOCKED','STALE','NOT_VERIFIED'],
     exact_factory_control_head: true,
     github_read_only: true,
@@ -117,6 +119,7 @@ export function operatorSystemHealthDashboardManifest() {
     runtime_persistence_is_live_probe: true,
     provider_evidence_has_freshness: true,
     guessed_green_states: false,
+    activation_and_production_readiness_separate: true,
     production_deploy: false
   };
 }
