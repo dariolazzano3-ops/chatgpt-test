@@ -5,8 +5,8 @@ const port = 8793;
 const base = `http://127.0.0.1:${port}`;
 const useProcessGroup = process.platform !== 'win32';
 const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', [
-  'wrangler', 'dev', 'scripts/fixtures/project-source-dns-worker-entry.mjs',
-  '--local', '--port', String(port), '--compatibility-date', '2026-08-25', '--log-level', 'error'
+  'wrangler', 'dev', '--config', 'scripts/fixtures/project-source-dns-worker-wrangler.jsonc',
+  '--local', '--port', String(port), '--log-level', 'error'
 ], {
   stdio: ['ignore', 'pipe', 'pipe'],
   detached: useProcessGroup,
@@ -63,6 +63,7 @@ try {
     ok: true,
     suite: 'project-source-dns-worker-runtime-smoke',
     actual_runtime: 'workerd',
+    isolated_fixture_config: true,
     worker_native_node_dns_public_resolution: 'PASS',
     worker_native_nxdomain_no_address: 'PASS',
     deterministic_process_cleanup: 'PASS',
