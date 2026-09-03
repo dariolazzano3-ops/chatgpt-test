@@ -19,6 +19,9 @@ on:
       - 'src/operator-design-ux-v1.js'
       - 'src/operator-human-ux-seal-v1.js'
       - 'src/operator-human-ux-final-v1.js'
+      - 'src/operator-final-human-ux-localization-v1.js'
+      - 'src/operator-deployment-localization-v1.js'
+      - 'src/operator-branding-v1.js'
       - 'src/operator-runtime-api-v1.js'
       - 'src/operator-finalization-runtime-v1.js'
       - 'src/operator-runtime-store-supabase-v1.js'
@@ -31,6 +34,8 @@ on:
       - 'scripts/operator-design-ux-v1-smoke.mjs'
       - 'scripts/operator-human-ux-reality-v1-smoke.mjs'
       - 'scripts/operator-human-ux-browser-v1.mjs'
+      - 'scripts/operator-final-human-ux-localization-v1-smoke.mjs'
+      - 'scripts/operator-final-human-ux-mobile-v1.mjs'
       - 'scripts/operator-dashboard-local-worker-smoke.mjs'
       - 'scripts/operator-runtime-supabase-store-v1-smoke.mjs'
       - 'scripts/operator-live-staging-bridge-v1-smoke.mjs'
@@ -71,6 +76,9 @@ jobs:
           node --check src/operator-design-ux-v1.js
           node --check src/operator-human-ux-seal-v1.js
           node --check src/operator-human-ux-final-v1.js
+          node --check src/operator-final-human-ux-localization-v1.js
+          node --check src/operator-deployment-localization-v1.js
+          node --check src/operator-branding-v1.js
           node --check src/operator-runtime-api-v1.js
           node --check src/operator-finalization-runtime-v1.js
           node --check src/operator-runtime-store-supabase-v1.js
@@ -83,6 +91,8 @@ jobs:
           node --check scripts/operator-design-ux-v1-smoke.mjs
           node --check scripts/operator-human-ux-reality-v1-smoke.mjs
           node --check scripts/operator-human-ux-browser-v1.mjs
+          node --check scripts/operator-final-human-ux-localization-v1-smoke.mjs
+          node --check scripts/operator-final-human-ux-mobile-v1.mjs
           node --check scripts/operator-dashboard-local-worker-smoke.mjs
           node --check scripts/operator-runtime-supabase-store-v1-smoke.mjs
           node --check scripts/operator-live-staging-bridge-v1-smoke.mjs
@@ -106,12 +116,16 @@ jobs:
         run: node scripts/operator-design-ux-v1-smoke.mjs
       - name: Final human UX reality contract
         run: node scripts/operator-human-ux-reality-v1-smoke.mjs
+      - name: Final German UX localization and bounded retry contract
+        run: node scripts/operator-final-human-ux-localization-v1-smoke.mjs
       - name: Operator dashboard completeness acceptance
         run: node scripts/operator-dashboard-completeness-v1-smoke.mjs
       - name: Local Cloudflare Worker acceptance
         run: node scripts/operator-dashboard-local-worker-smoke.mjs
       - name: Browser-based human operator flow
         run: node scripts/operator-human-ux-browser-v1.mjs
+      - name: iPhone transient read retention acceptance
+        run: node scripts/operator-final-human-ux-mobile-v1.mjs
       - name: Operator Runtime API regression
         run: node scripts/operator-runtime-api-v1-smoke.mjs
       - name: Operator Control Plane regression
