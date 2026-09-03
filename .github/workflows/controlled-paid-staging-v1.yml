@@ -12,6 +12,7 @@ on:
       - 'src/entry.js'
       - 'scripts/controlled-paid-staging-v1-smoke.mjs'
       - 'scripts/controlled-paid-staging-mission-studio-smoke.mjs'
+      - 'scripts/controlled-paid-staging-execution-path-smoke.mjs'
       - '.github/workflows/controlled-paid-staging-v1.yml'
   workflow_dispatch:
 
@@ -32,5 +33,7 @@ jobs:
         run: node scripts/controlled-paid-staging-v1-smoke.mjs
       - name: Mission Studio controlled paid staging acceptance
         run: node scripts/controlled-paid-staging-mission-studio-smoke.mjs
+      - name: Controlled Paid Staging execution path acceptance
+        run: node scripts/controlled-paid-staging-execution-path-smoke.mjs
       - name: General CI
         run: npm run check
