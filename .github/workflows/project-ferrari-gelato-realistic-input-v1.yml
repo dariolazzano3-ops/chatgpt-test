@@ -51,6 +51,8 @@ jobs:
         run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Diagnose existing Gelato primary CTA keyboard journey
+        run: node scripts/gelato-premium-cta-keyboard-diagnostic-v1.mjs
       - name: Existing Gelato premium regression
         run: node scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
       - name: Start private Gelato preview
