@@ -185,7 +185,11 @@ assert.match(shell.body, /Technische Details/);
 assert.match(shell.body, /Website-Art/);
 assert.match(shell.body, /data-source-use-content/);
 assert.equal(shell.body.includes('[object Object]'), false);
-assert.equal(shell.body.includes('Number(v||0)'), false);
+assert.match(
+  shell.body,
+  /function formatOperatorMoney\(value\)\{if\(value===null\|\|value===undefined\|\|value===''\)return'Kosten noch nicht verifiziert'/,
+  'shared money presenter must preserve unknown cost instead of coercing null to zero'
+);
 
 const sourceView = await call('/operator/api/project-source-intake?scope_key=' + encodeURIComponent(gelato.scope_key));
 assert.equal(sourceView.response.status, 200);
