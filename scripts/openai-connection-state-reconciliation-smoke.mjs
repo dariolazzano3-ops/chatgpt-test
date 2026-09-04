@@ -86,8 +86,8 @@ const stack = providerStackV1();
 assert.deepEqual(stack.factories.ai.free_staging_path, ['riosystems-ai-local-policy','cloudflare-workers-ai-free']);
 assert.equal(stack.factories.ai.cloudflare_ai_runtime_verified, true);
 assert.equal(stack.factories.ai.openai_connected_staging, true);
-assert.equal(stack.factories.ai.openai_inference_verified, false);
-assert.equal(stack.factories.ai.openai_routing_ready, false);
+assert.equal(stack.factories.ai.openai_inference_verified, true);
+assert.equal(stack.factories.ai.openai_routing_ready, true);
 assert.equal(stack.factories.ai.openai_paid_execution_approved, false);
 assert.equal(stack.activation_policy.paid_execution_requires_explicit_approval, true);
 assert.equal(stack.activation_policy.automatic_paid_overflow, false);
@@ -103,7 +103,8 @@ for (const providerId of ['cloudflare-workers-free','cloudflare-workers-ai-free'
 
 const seal = operatorProviderPreflightSealManifest();
 assert.equal(seal.openai_connection_evidence_reconciled, true);
-assert.equal(seal.openai_inference_verification_not_implied, true);
+assert.equal(seal.openai_inference_verification_requires_explicit_evidence, true);
+assert.equal(seal.openai_inference_verified_from_bounded_probe, true);
 assert.equal(seal.openai_paid_execution_remains_gated, true);
 assert.equal(seal.production_deploy, false);
 assert.equal(seal.external_writes, false);
@@ -115,8 +116,8 @@ console.log(JSON.stringify({
   suite: 'openai-connection-state-reconciliation-v1',
   provider: 'openai-api',
   connected_staging: true,
-  inference_verified: false,
-  routing_ready: false,
+  inference_verified: true,
+  routing_ready: true,
   paid_execution_approved: false,
   zero_cost_staging_ai: zeroCostAi[0].id,
   production_deploy: false
