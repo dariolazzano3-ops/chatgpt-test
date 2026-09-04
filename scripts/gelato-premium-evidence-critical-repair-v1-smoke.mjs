@@ -53,8 +53,8 @@ let intake = requireOk(createProjectSourceIntakeState({
 }), 'create project source intake').state;
 
 for (const source of [
-  { source_id: 'canonical-project-identity', source_type: 'MANUAL_INPUT', display_name: 'Canonical project identity', ownership_status: 'OWNED_CONFIRMED' },
-  { source_id: 'operator-input-2026-08-12', source_type: 'MANUAL_INPUT', display_name: 'Operator input 2026-08-12', ownership_status: 'OWNED_CONFIRMED' },
+  { source_id: 'canonical-project-identity', source_type: 'MANUAL_INPUT', locator: 'manual://canonical-project-identity', display_name: 'Canonical project identity', ownership_status: 'OWNED_CONFIRMED' },
+  { source_id: 'operator-input-2026-08-12', source_type: 'MANUAL_INPUT', locator: 'manual://operator-input-2026-08-12', display_name: 'Operator input 2026-08-12', ownership_status: 'OWNED_CONFIRMED' },
   { source_id: 'gelato-live-owned-website', source_type: 'OWNED_WEBSITE', locator: SOURCE_URL, display_name: 'Current public Gelato website', ownership_status: 'UNKNOWN', website_usage: { content: false, structure_reference: false, design_reference: false } },
   { source_id: 'gelato-live-imprint', source_type: 'OWNED_WEBSITE', locator: new URL('/impressum/', SOURCE_URL).href, display_name: 'Current public Gelato imprint', ownership_status: 'UNKNOWN', website_usage: { content: false, structure_reference: false, design_reference: false } }
 ]) {
