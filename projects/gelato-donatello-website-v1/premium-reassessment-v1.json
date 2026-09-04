@@ -1,0 +1,136 @@
+{
+  "schema": "aurentara.gelato-premium-reassessment-snapshot.v1",
+  "evidence_run": {
+    "workflow": "GELATO Premium Evidence + Critical Repair V1",
+    "run_id": 33853310655,
+    "head_sha": "07764cc82bf224e3d6faf8d5e1b63f9b719cc49d"
+  },
+  "starting_score": 24.2,
+  "final_evidence_backed_score": 64.21,
+  "score_change": 40.01,
+  "dimensions": {
+    "business_understanding": {
+      "starting": 40,
+      "final": 40,
+      "change": 0,
+      "verification": "NOT_VERIFIED"
+    },
+    "brand_foundation_fit": {
+      "starting": 30,
+      "final": 40,
+      "change": 10,
+      "verification": "NOT_VERIFIED"
+    },
+    "content_copy": {
+      "starting": 45,
+      "final": 57.14,
+      "change": 12.14,
+      "verification": "NOT_VERIFIED"
+    },
+    "information_architecture_ux": {
+      "starting": 40,
+      "final": 83.33,
+      "change": 43.33,
+      "verification": "NOT_VERIFIED"
+    },
+    "visual_design_art_direction": {
+      "starting": 10,
+      "final": 60,
+      "change": 50,
+      "verification": "NOT_VERIFIED"
+    },
+    "conversion": {
+      "starting": 25,
+      "final": 71.43,
+      "change": 46.43,
+      "verification": "NOT_VERIFIED"
+    },
+    "trust": {
+      "starting": 20,
+      "final": 60,
+      "change": 40,
+      "verification": "NOT_VERIFIED"
+    },
+    "seo_discoverability": {
+      "starting": 35,
+      "final": 77.78,
+      "change": 42.78,
+      "verification": "NOT_VERIFIED"
+    },
+    "performance": {
+      "starting": 0,
+      "final": 80,
+      "change": 80,
+      "verification": "NOT_VERIFIED"
+    },
+    "accessibility": {
+      "starting": 20,
+      "final": 80,
+      "change": 60,
+      "verification": "NOT_VERIFIED"
+    },
+    "technical_quality_security": {
+      "starting": 15,
+      "final": 100,
+      "change": 85,
+      "verification": "VERIFIED"
+    },
+    "mobile_responsive": {
+      "starting": 0,
+      "final": 83.33,
+      "change": 83.33,
+      "verification": "NOT_VERIFIED"
+    },
+    "legal_rights_readiness": {
+      "starting": 25,
+      "final": 16.67,
+      "change": -8.33,
+      "verification": "NOT_VERIFIED"
+    },
+    "launch_handover_readiness": {
+      "starting": 15,
+      "final": 37.5,
+      "change": 22.5,
+      "verification": "NOT_VERIFIED"
+    }
+  },
+  "candidate_technical_evidence": {
+    "viewports": [
+      "1440x1000",
+      "1024x900",
+      "390x844",
+      "320x760"
+    ],
+    "horizontal_overflow_px": 0,
+    "cta_min_measured_height_px": 53.59375,
+    "prelaunch_lab_status": "PASS",
+    "total_core_bytes": 9756,
+    "max_navigation_ms": 52,
+    "third_party_requests": 0,
+    "javascript_files": 0,
+    "image_files": 0,
+    "true_404": "PASS",
+    "canonical": "PASS",
+    "robots_private_staging": "PASS",
+    "sitemap_template": "PASS",
+    "security_headers": "PASS",
+    "tracking_surface": false,
+    "field_cwv_claimed": false,
+    "post_launch_field_cwv": "NOT_VERIFIED"
+  },
+  "hard_failures": [],
+  "not_verified_hard_gates": [
+    "broken_primary_conversion",
+    "critical_canonical_redirect_route_failure",
+    "missing_required_public_legal_input",
+    "missing_final_human_approval",
+    "missing_required_customer_approval"
+  ],
+  "customer_review_ready": false,
+  "premium_delivery_ready": false,
+  "public_launch_ready": false,
+  "production_deploy": false,
+  "public_deploy": false,
+  "paid_provider_calls": 0,
+  "score_policy": "PASS evidence contributes; NOT_VERIFIED contributes no check credit and cannot override hard gates"
+}

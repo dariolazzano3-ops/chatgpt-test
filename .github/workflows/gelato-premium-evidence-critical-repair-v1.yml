@@ -1,0 +1,68 @@
+name: GELATO Premium Evidence + Critical Repair V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'projects/gelato-donatello-website-v1/**'
+      - 'scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs'
+      - '.github/workflows/gelato-premium-evidence-critical-repair-v1.yml'
+      - 'src/project-source-intake-v1.js'
+      - 'src/web-factory/premium-standard-v1.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GELATO_SOURCE_URL: https://gelato-donatello.de/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Syntax
+        run: node --check scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
+
+      - name: Gelato evidence + repair acceptance
+        run: node scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
+
+      - name: Premium Standard regression
+        run: node scripts/aurentara-premium-website-standard-v1-smoke.mjs
+
+      - name: Project Source Intake regression
+        run: node scripts/project-source-intake-v1-acceptance.mjs
+
+      - name: Web Factory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+
+      - name: Safety seal
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -E 'wrangler deploy([^[:alnum:]-]|$)' .github/workflows/gelato-premium-evidence-critical-repair-v1.yml
+          ! grep -R -E 'production_deploy["'\'']?[[:space:]]*:[[:space:]]*true' projects/gelato-donatello-website-v1 scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
+          ! grep -R -E 'paid_provider_calls["'\'']?[[:space:]]*:[[:space:]]*[1-9]' projects/gelato-donatello-website-v1 scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-premium-evidence-repair-v1
+          path: artifacts/gelato-premium-evidence-repair-v1/
+          if-no-files-found: warn
+          retention-days: 14
