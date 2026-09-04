@@ -22,7 +22,7 @@ function safeExecutableBlueprint(name, payload) {
       version: 1,
       scenario: { roundtrips: 1, maxErrors: 1, autoCommit: true, autoCommitTriggerLast: true, sequential: true, confidential: false, dataloss: false, dlq: false, freshVariables: false },
       designer: { orphans: [] },
-      riosystems: { environment: 'staging', project: 'bakery-muller', scope_key: payload.project_scope, synthetic_test_data_only: true, external_connections: false }
+      riosystems: { environment: 'staging', project_scope: payload.project_scope, synthetic_test_data_only: true, external_connections: false }
     }
   };
 }
@@ -67,7 +67,7 @@ export function buildMakeSafeStagingExecutionPlan(input = {}) {
   });
   if (!runPlan.ok || runPlan.state !== 'RUN_PLAN_APPROVED_NOT_EXECUTED') return runPlan;
   const origin = new URL(runPlan.request.url).origin;
-  const syntheticPayload = makeSupabaseSyntheticExecutionPayload();
+  const syntheticPayload = makeSupabaseSyntheticExecutionPayload(input.bridge_scope || {});
   return {
     ok: true,
     schema: 'riosystems.make-staging-execution-plan.v1',
@@ -85,6 +85,7 @@ export function buildMakeSafeStagingExecutionPlan(input = {}) {
     },
     required_scopes: ['scenarios:read','scenarios:write','scenarios:run'],
     synthetic_payload: syntheticPayload,
+    project_scope: syntheticPayload.project_scope,
     synthetic_test_data_only: true,
     external_connections_allowed: false,
     activate_only_for_single_supervised_run: true,
