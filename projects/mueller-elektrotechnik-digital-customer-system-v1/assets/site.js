@@ -25,6 +25,22 @@
       if (result) { result.hidden = false; result.textContent = 'Bitte prüfen Sie die markierten Pflichtfelder.'; }
       return;
     }
+    if (document.documentElement.dataset.riosystemsSyntheticE2e === 'true') {
+      const projectType = String(form.elements?.project_type?.value || '').trim().slice(0, 80);
+      window.dispatchEvent(new CustomEvent('aurentara:synthetic-lead-ready', {
+        detail: {
+          schema: 'aurentara.synthetic-form-lead.v1',
+          project_id: 'mueller-elektrotechnik-digital-customer-system-v1',
+          scope_key: 'synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1',
+          idempotency_key: 'mueller-elektrotechnik-digital-customer-system-v1-synthetic-lead-001',
+          project_type: projectType,
+          environment: 'staging',
+          synthetic: true,
+          pii_in_event: false,
+          production_deploy: false
+        }
+      }));
+    }
     if (result) {
       result.hidden = false;
       result.textContent = 'Testmodus: Die Anfrage ist vollständig und wurde lokal validiert. Es wurden keine Daten übertragen oder gespeichert.';
