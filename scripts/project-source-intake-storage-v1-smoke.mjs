@@ -276,7 +276,8 @@ for (let index = 0; index < categoryFacts.length; index += 1) {
 const otherAfterManual = await service.getProjectSourceIntake({ scope_key: other.scope_key });
 assert.equal(otherAfterManual.body.state.knowledge_revision > otherBeforeManual.body.state.knowledge_revision, true);
 assert.equal(otherAfterManual.body.state.record_revision > otherBeforeManual.body.state.record_revision, true);
-assert.equal(otherAfterManual.body.state.audit.some((event) => event.event === 'PROJECT_SOURCE_MANUAL_INPUT_RECORDED'), true);
+const runtimeAfterManual = await store.load(operatorId);
+assert.equal(runtimeAfterManual.audit.some((event) => event.event === 'PROJECT_SOURCE_MANUAL_INPUT_RECORDED' && event.scope_key === other.scope_key), true);
 
 // // Website purpose updates are project-scoped, audited, metadata-only and keep source identity stable.
 let websiteRead = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
