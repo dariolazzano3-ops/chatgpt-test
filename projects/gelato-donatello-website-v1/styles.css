@@ -71,3 +71,30 @@ h3{font-size:1.35rem}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+.ferrari-hero{background:radial-gradient(circle at 80% 20%,rgba(255,255,255,.95),transparent 34%)}
+.ferrari-summary strong{font-size:1.25rem}
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:2rem}
+.product-card,.price-card,.rental-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.product-card{padding:1.35rem}
+.product-card p{margin-bottom:0}
+.pricing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.9rem;margin-top:2rem}
+.pricing-grid.compact{margin-top:1rem}
+.price-card{padding:1rem 1.1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.price-card strong{font-size:1.25rem;white-space:nowrap}
+.subsection{margin-top:2.5rem}
+.price-note{font-weight:800;color:var(--ink)!important}
+.rental-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:clamp(2rem,6vw,5rem);align-items:start}
+.rental-card{padding:1.25rem}
+.rental-card>div{display:flex;justify-content:space-between;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--line)}
+.rental-card>div:first-child{padding-top:0}
+.rental-card strong{font-size:1.3rem}
+.small-lead{font-size:1.1rem}
+@media(max-width:900px){
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pricing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .product-grid,.pricing-grid,.rental-grid{grid-template-columns:1fr}
+  .price-card{min-height:58px}
+}
