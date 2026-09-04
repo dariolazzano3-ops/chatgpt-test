@@ -37,6 +37,7 @@ jobs:
           node --check scripts/project-source-dns-resolver-v1-smoke.mjs
           node --check scripts/project-source-dns-worker-runtime-smoke.mjs
           node --check scripts/project-source-human-acceptance-ui-v1-smoke.mjs
+          node --check scripts/project-source-human-ux-browser-v1.mjs
       - name: Project Source Intake core regression
         run: |
           node scripts/project-source-intake-v1-smoke.mjs
@@ -51,5 +52,7 @@ jobs:
         run: |
           node scripts/project-source-intake-storage-v1-smoke.mjs
           node scripts/project-source-intake-storage-replace-v1-smoke.mjs
+      - name: Source human UX browser and iPhone acceptance
+        run: node scripts/project-source-human-ux-browser-v1.mjs
       - name: Worker bundle remains production-safe
         run: npx wrangler deploy --dry-run
