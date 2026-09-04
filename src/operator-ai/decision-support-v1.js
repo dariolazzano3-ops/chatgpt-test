@@ -36,7 +36,7 @@ export function buildOperatorAiDecisionSupport(input = {}) {
   for (const item of missingCustomer) items.push(blocker(`CUSTOMER_INPUT_REQUIRED:${clean(item,120)}`,'P1','CUSTOMER_REQUIRED','Zwingender Kundeninput fehlt.','project_context'));
 
   if (snapshot.cost_state?.approval_required === true) items.push(blocker('COST_APPROVAL_REQUIRED','P0','PAID_APPROVAL_REQUIRED','Kostenfreigabe ist erforderlich.','cost_state'));
-  if (snapshot.release_state?.production_approval_required === true || snapshot.release_state?.operator_production_approval === false) items.push(blocker('PRODUCTION_APPROVAL_REQUIRED','P0','PRODUCTION_APPROVAL_REQUIRED','Production bleibt bis zur formalen Freigabe gesperrt.','release_state'));
+  if (input.production_intent === true && (snapshot.release_state?.production_approval_required === true || snapshot.release_state?.operator_production_approval === false)) items.push(blocker('PRODUCTION_APPROVAL_REQUIRED','P0','PRODUCTION_APPROVAL_REQUIRED','Production bleibt bis zur formalen Freigabe gesperrt.','release_state'));
 
   const providerBlocked = asArray(snapshot.provider_state?.provider_ecosystem).filter((p) => p.runtime_eligible === false || p.connection_state === 'NOT_CONNECTED');
   if (input.required_provider_ids?.some((id) => providerBlocked.some((p) => p.id === id))) items.push(blocker('REQUIRED_PROVIDER_UNAVAILABLE','P2','PROVIDER_REQUIRED','Ein benötigter Provider ist aktuell nicht runtime-eligible.','provider_state'));
