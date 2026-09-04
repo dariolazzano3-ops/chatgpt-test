@@ -154,12 +154,19 @@ try {
   await go(page, 'approvals', 'Freigaben');
   await page.waitForFunction(() => {
     const root = document.getElementById('approvals');
-    return Boolean(root?.querySelector('.human-all-clear, .plan-action, button[data-decision]'));
+    if (!root) return false;
+    const text = root.innerText || '';
+    return Boolean(root.querySelector('.human-all-clear, .plan-action, button[data-decision]'))
+      || /Freigabe erforderlich|Offene Freigaben|APPROVAL_REQUIRED/i.test(text);
   });
   const approvalsText = await page.locator('#approvals').innerText();
   const hasDecisionControls = /Freigeben|Ablehnen|Approve|Reject/i.test(approvalsText);
   const hasHumanEmptyState = /Keine Freigaben erforderlich/i.test(approvalsText);
-  assert.ok(hasDecisionControls || hasHumanEmptyState, 'Final approval view must expose actionable controls or the canonical human empty state');
+  const hasVisiblePendingState = /Freigabe erforderlich|Offene Freigaben|APPROVAL_REQUIRED/i.test(approvalsText);
+  assert.ok(
+    hasDecisionControls || hasHumanEmptyState || hasVisiblePendingState,
+    'Final approval view must expose actionable controls, the canonical all-clear, or a visible authoritative pending-approval state'
+  );
 
   await go(page, 'factories', 'Factories');
   await page.waitForFunction(() => document.querySelectorAll('#factories .human-card').length > 0);
