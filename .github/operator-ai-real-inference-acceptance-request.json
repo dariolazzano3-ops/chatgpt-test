@@ -1,0 +1,15 @@
+{
+  "schema": "aurentara.operator-ai-real-inference-acceptance-request.v1",
+  "target": "riosystems-staging",
+  "canonical_ref": "factory-control",
+  "canonical_sha": "87c49a3ba7affc1a45a4e1e330ef964751446274",
+  "confirmation": "AURENTARA_OPERATOR_AI_REAL_ACCEPTANCE_V1",
+  "previous_paid_calls": 1,
+  "max_paid_calls_this_acceptance": 1,
+  "max_total_paid_calls": 2,
+  "call_1_cost_usd": 0.0000194,
+  "max_total_cost_usd": 0.25,
+  "production_deploy": false,
+  "external_writes": false,
+  "level_4_status": "NOT_ACTIVATED"
+}
