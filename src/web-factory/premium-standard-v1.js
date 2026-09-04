@@ -46,6 +46,7 @@ const LAUNCH_CHECKS=['domain','dns_plan_state','ssl','redirects','canonicals','r
 const OWNERSHIP_CHECKS=['domain_ownership','content_ownership','customer_asset_rights','source_export','analytics_ownership','search_console_ownership','provider_account_ownership','credentials_transfer_process','third_party_license_restrictions','care_dependency','retention_deletion_notes'];
 
 function state(v,fallback='NOT_VERIFIED'){
+  if(v==null)return fallback;
   if(v===true)return 'PASS'; if(v===false)return 'FAIL';
   const raw=typeof v==='object'?(v.status??v.verification??v.state):v;
   const x=clean(raw,80).toUpperCase();

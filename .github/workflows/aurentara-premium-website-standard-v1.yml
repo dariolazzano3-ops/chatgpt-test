@@ -28,10 +28,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: npm
+          node-version: '24'
       - name: Install repository dependencies
-        run: npm ci
+        run: npm install --package-lock=false
       - name: Syntax
         run: |
           node --check src/web-factory/premium-standard-v1.js
