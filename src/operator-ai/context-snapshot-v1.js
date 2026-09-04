@@ -34,6 +34,7 @@ export function buildOperatorAiContextSnapshot(input = {}, options = {}) {
     canonical_source: canonical,
     project_state: stateOrUnknown(input.project_state, 'PROJECT_STATE_UNKNOWN', unknowns),
     project_context: stateOrUnknown(input.project_context, 'PROJECT_CONTEXT_UNKNOWN', unknowns),
+    ui_context_hint: input.ui_context_hint && typeof input.ui_context_hint === 'object' ? clone(input.ui_context_hint) : null,
     mission_state: stateOrUnknown(input.mission_state, 'MISSION_STATE_UNKNOWN', unknowns),
     quality_state: stateOrUnknown(input.quality_state, 'QUALITY_STATE_UNKNOWN', unknowns),
     provider_state: stateOrUnknown(input.provider_state, 'PROVIDER_STATE_UNKNOWN', unknowns),
@@ -52,5 +53,5 @@ export function buildOperatorAiContextSnapshot(input = {}, options = {}) {
 }
 
 export function operatorAiContextSnapshotManifest() {
-  return { schema: OPERATOR_AI_CONTEXT_SCHEMA, source_of_truth_first: true, stale_canonical_blocks_execution: true, conversation_lowest_truth_priority: true, production_deploy: false };
+  return { schema: OPERATOR_AI_CONTEXT_SCHEMA, source_of_truth_first: true, stale_canonical_blocks_execution: true, conversation_lowest_truth_priority: true, ui_context_hint_only: true, ui_context_cannot_override_project_resolution: true, production_deploy: false };
 }
