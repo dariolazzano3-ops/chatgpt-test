@@ -12,11 +12,14 @@ const result = await runSimulatedPilotE2E({
 
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'SIMULATED_HANDOFF_READY');
+assert.equal(result.project.delivery_contract.customer_review_required, false);
 assert.equal(result.outputs.length, 4);
 assert.deepEqual(new Set(result.outputs.map((item) => item.domain)), new Set(['web','automation','ai','business']));
 assert.equal(result.qa.passed, true);
 assert.equal(result.delivery_gate.ready_for_structural_delivery, true);
+assert.equal(result.delivery_gate.customer_review_required, false);
 assert.equal(result.handoff.structural_delivery_ready, true);
+assert.equal(result.handoff.customer_review.required, false);
 assert.equal(result.handoff.simulation_only, true);
 assert.equal(result.cost_units, 0);
 assert.equal(result.external_side_effects, false);
