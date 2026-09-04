@@ -8,6 +8,10 @@ assert.deepEqual(manifest.active_autonomy_levels, [0, 1, 2, 3]);
 assert.equal(manifest.safe_internal_execution_status, 'NOT_ACTIVATED');
 assert.equal(manifest.production_deploy, false);
 assert.equal(manifest.external_writes, false);
+assert.equal(manifest.dashboard_wide_global_access, true);
+assert.equal(manifest.nav_rebuild_independent, true);
+assert.equal(manifest.sidepanel, true);
+assert.equal(manifest.full_workspace_preserved, true);
 
 const request = new Request('https://operator.local/operator/api/operator-ai/manifest', { method: 'GET' });
 const allowed = await handleOperatorDashboard(request, {}, {}, { authorize: async () => ({ ok: true, operator_id: 'operator:test' }) });
@@ -20,6 +24,9 @@ assert.deepEqual(body.active_autonomy_levels, [0, 1, 2, 3]);
 assert.equal(body.safe_internal_execution_status, 'NOT_ACTIVATED');
 assert.equal(body.production_deploy, false);
 assert.equal(body.external_writes, false);
+assert.equal(body.global_access.dashboard_wide_trigger, true);
+assert.equal(body.global_access.nav_rebuild_independent, true);
+assert.equal(body.global_access.paid_provider_calls_for_acceptance, 0);
 
 const denied = await handleOperatorDashboard(request, {}, {}, {});
 assert.equal(denied.status, 503);
