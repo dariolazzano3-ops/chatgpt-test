@@ -15,6 +15,7 @@ import { operatorAiPromptRendererManifest } from './prompt-renderer-v1.js';
 import { operatorAiResultInterpreterManifest } from './result-interpreter-v1.js';
 import { operatorAiServiceManifest } from './service-v1.js';
 import { operatorAiInferenceManifest, operatorAiInferenceRuntimeStatus } from './inference-v1.js';
+import { injectGlobalOperatorAiAccessUi, sanitizeGlobalOperatorAiUiContext, globalOperatorAiAccessManifest } from './global-access-v1.js';
 
 const clean = (value, max = 6000) => String(value ?? '').trim().slice(0, max);
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -134,10 +135,9 @@ const AI_SCRIPT = String.raw`<script id="aurentara-operator-ai-v1-script">
 (()=>{if(window.__aurentaraOperatorAiV1)return;window.__aurentaraOperatorAiV1=true;
 const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rows=v=>Array.isArray(v)?v:[];let last=null;let activeTab='CHAT';
-const nav=document.querySelector('.nav');const main=document.querySelector('.main');if(!nav||!main)return;
+const main=document.querySelector('.main');if(!main)return;
 let section=document.getElementById('operator-ai');if(!section){section=document.createElement('section');section.id='operator-ai';section.className='section';main.appendChild(section)}
-const btn=document.createElement('button');btn.type='button';btn.className='operator-ai-nav';btn.textContent='Operator AI';btn.onclick=()=>open();nav.appendChild(btn);
-function show(){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));section.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const t=document.getElementById('title');if(t)t.textContent='Operator AI'}
+function show(){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));section.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));const t=document.getElementById('title');if(t)t.textContent='Operator AI'}
 async function api(path,opt={}){const r=await fetch('/operator/api/operator-ai'+path,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})}});const d=await r.json().catch(()=>({error:'INVALID_RESPONSE'}));if(!r.ok){const e=new Error(d.error||('HTTP '+r.status));e.data=d;throw e}return d}
 function badge(v){const s=String(v||'UNKNOWN').toUpperCase();const tone=s.includes('BLOCK')||s.includes('FAIL')?'blocked':s.includes('READY')||s.includes('VERIFIED')||s.includes('FRESH')?'ready':s.includes('APPROVAL')||s.includes('STALE')?'attention':'active';return '<span class="badge '+tone+'">'+h(s)+'</span>'}
 function base(){section.innerHTML='<div class="operator-ai-shell"><div><div class="operator-ai-hero"><div class="eyebrow" style="color:#bfc5bb">AURENTARA SYSTEMS · ONE CENTRAL AI</div><h2 style="font-size:24px;margin:4px 0 6px">Was möchtest du tun?</h2><div class="small">Status verstehen, nächsten Schritt finden, Masterprompt erzeugen oder sichere Execution vorbereiten. Production bleibt approval-gated.</div><div class="operator-ai-compose"><textarea id="operator-ai-input" placeholder="z. B. Wie steht Gelato gerade?"></textarea><div class="actions"><button class="btn primary" id="operator-ai-send">AN OPERATOR AI SENDEN</button><button class="btn" id="operator-ai-context">KONTEXT AKTUALISIEREN</button></div></div><div class="operator-ai-meta" id="operator-ai-meta"></div></div><div class="operator-ai-tabs" id="operator-ai-tabs">'+['CHAT','BRIEF','MASTERPROMPT','RUN','RESULT'].map(x=>'<button data-ai-tab="'+x+'">'+x+'</button>').join('')+'</div><div id="operator-ai-output" class="card"></div></div><aside class="stack"><div class="card"><h2>Safety</h2><div class="operator-ai-launch-lock"><strong>Production locked</strong><div class="small">Keine Chat-Aussage ersetzt formale Approval Records.</div></div><div class="row"><span>Aktiver Autonomie-Max</span><strong>Level 3</strong></div><div class="row"><span>Level 4</span><span>NOT ACTIVATED</span></div><div class="row"><span>Level 5</span><span>APPROVAL-GATED</span></div></div><div class="card" id="operator-ai-context-card"><h2>Project Context</h2><div class="small">Noch nicht geladen.</div></div></aside></div>';document.getElementById('operator-ai-send').onclick=send;document.getElementById('operator-ai-context').onclick=loadContext;document.querySelectorAll('[data-ai-tab]').forEach(x=>x.onclick=()=>{activeTab=x.dataset.aiTab;renderLast()});renderLast()}
@@ -169,7 +169,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
         schema: 'aurentara.operator-ai.bundle.v1',
         contracts: operatorAiContractsManifest(), intent: operatorAiIntentManifest(), project_resolution: operatorAiProjectResolutionManifest(),
         context: operatorAiContextSnapshotManifest(), decision_support: operatorAiDecisionSupportManifest(), execution_brief: operatorAiExecutionBriefManifest(),
-        prompt_renderer: operatorAiPromptRendererManifest(), result_interpreter: operatorAiResultInterpreterManifest(), service: operatorAiServiceManifest(), inference: operatorAiInferenceManifest(),
+        prompt_renderer: operatorAiPromptRendererManifest(), result_interpreter: operatorAiResultInterpreterManifest(), service: operatorAiServiceManifest(), inference: operatorAiInferenceManifest(), global_access: globalOperatorAiAccessManifest(),
         dashboard_integrated: true, safe_internal_execution_status: 'NOT_ACTIVATED', active_autonomy_levels: [0,1,2,3], production_deploy: false, external_writes: false
       });
     }
@@ -193,6 +193,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
       const message = clean(body.message || body.text, 6000);
       if (!message) return json({ error: 'OPERATOR_AI_MESSAGE_REQUIRED', production_deploy: false }, 400);
       let context = await collectContext(request, env, ctx, options, clean(body.project_scope || body.scope_key, 500) || null);
+      context.ui_context_hint = sanitizeGlobalOperatorAiUiContext(body.ui_context || {}, context);
       const resolvedIntent = resolveOperatorAiIntent({ message });
       if (resolvedIntent.ok && resolvedIntent.intent !== 'PROJECT_CREATION_REQUEST') {
         const preProject = resolveOperatorAiProject({
@@ -204,6 +205,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
         });
         if (preProject.ok && preProject.scope_key && preProject.scope_key !== context.selected_project_scope) {
           context = await collectContext(request, env, ctx, options, preProject.scope_key);
+          context.ui_context_hint = sanitizeGlobalOperatorAiUiContext(body.ui_context || {}, context);
         }
       }
       if (resolvedIntent.ok && resolvedIntent.requested_autonomy >= 3) {
@@ -247,7 +249,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   headers.set('x-aurentara-operator-ai-v1', 'enabled');
-  return new Response(injectOperatorAiUi(source), { status: response.status, statusText: response.statusText, headers });
+  return new Response(injectGlobalOperatorAiAccessUi(injectOperatorAiUi(source)), { status: response.status, statusText: response.statusText, headers });
 }
 
 export function operatorAiDashboardManifest() {
@@ -257,6 +259,10 @@ export function operatorAiDashboardManifest() {
     routes: ['GET /operator/api/operator-ai/context','POST /operator/api/operator-ai/message','POST /operator/api/operator-ai/results/interpret','GET /operator/api/operator-ai/manifest'],
     views: ['CHAT','BRIEF','MASTERPROMPT','RUN','RESULT'],
     central_input: true,
+    dashboard_wide_global_access: true,
+    nav_rebuild_independent: true,
+    sidepanel: true,
+    full_workspace_preserved: true,
     project_context_visible: true,
     cost_risk_evidence_visible: true,
     real_inference_connected_staging: true,
