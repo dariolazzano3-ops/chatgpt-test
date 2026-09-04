@@ -9,11 +9,15 @@ import {
   submitCustomerFeedbackV1
 } from '../src/customer-review-lifecycle-v1.js';
 import { evaluateHumanOutcomeAcceptance } from '../src/human-outcome-acceptance-v1.js';
+import { createProjectHandoff, evaluateProjectDelivery } from '../src/project-delivery-gate.js';
 
 const project = {
   customer_id: 'mueller-elektrotechnik',
   project_id: 'digital-system-v1',
   scope_key: 'mueller-elektrotechnik:digital-system-v1',
+  capabilities: [{ id: 'web_presence', required: true }],
+  missions: [{ mission_id: 'mission-1' }],
+  deliveries: [],
   delivery_contract: {
     schema: 'aurentara.customer-delivery-contract.v1',
     customer_review_required: true
@@ -107,6 +111,17 @@ assert.equal(result.ok, true);
 state = result.state;
 assert.equal(state.status, 'CUSTOMER_REVIEW');
 
+const beforeApprovalGate = evaluateProjectDelivery(project, {
+  capabilities: [{ id: 'web_presence', completed: true }],
+  qa_passed: true,
+  scope_verified: true,
+  costs_reconciled: true,
+  customer_review: state,
+  production_deploy: false
+});
+assert.equal(beforeApprovalGate.ready_for_structural_delivery, false);
+assert.equal(beforeApprovalGate.blockers.some((item) => item.code === 'CUSTOMER_APPROVAL_REQUIRED'), true);
+
 result = approveCustomerReviewV1(state, {
   actor_id: 'customer-user'
 }, { at: '2026-09-04T16:25:00.000Z', actor: 'customer-user' });
@@ -121,6 +136,32 @@ const evidence = evaluateCustomerReviewLifecycleV1(state, { now: new Date('2026-
 assert.equal(evidence.ok, true);
 assert.equal(evidence.ready_for_delivery, true);
 assert.deepEqual(evidence.blockers, []);
+
+const approvedGate = evaluateProjectDelivery(project, {
+  capabilities: [{ id: 'web_presence', completed: true }],
+  qa_passed: true,
+  scope_verified: true,
+  costs_reconciled: true,
+  customer_review: state,
+  now: new Date('2026-09-04T16:26:00.000Z'),
+  production_deploy: false
+});
+assert.equal(approvedGate.ready_for_structural_delivery, true);
+assert.equal(approvedGate.customer_review_ready, true);
+
+const handoff = createProjectHandoff(project, {
+  capabilities: [{ id: 'web_presence', completed: true }],
+  qa_passed: true,
+  scope_verified: true,
+  costs_reconciled: true,
+  customer_review: state,
+  now: new Date('2026-09-04T16:26:00.000Z'),
+  production_deploy: false
+});
+assert.equal(handoff.ok, true);
+assert.equal(handoff.handoff.customer_review.ready, true);
+assert.equal(handoff.handoff.customer_review.approved_preview_id, 'preview-2');
+assert.equal(Boolean(handoff.handoff.customer_review.approval_id), true);
 
 let scopeState = createCustomerReviewLifecycleV1(project, { at: '2026-09-04T17:00:00.000Z' }).state;
 scopeState = registerPrivatePreviewV1(scopeState, {
