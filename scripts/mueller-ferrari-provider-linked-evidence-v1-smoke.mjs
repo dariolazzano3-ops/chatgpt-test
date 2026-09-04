@@ -17,9 +17,44 @@ assert.equal(evidence.supabase_crm.cross_project_leak_count, 0);
 assert.equal(evidence.supabase_crm.pii_present, false);
 assert.equal(evidence.pipeline.allowed_transition_applied, true);
 assert.equal(evidence.pipeline.invalid_transition_blocked, true);
-assert.equal(evidence.posthog.credential_state, 'MISSING_IN_GITHUB_ENVIRONMENT_RIOSYSTEMS_STAGING');
-assert.equal(evidence.posthog.batch_executed, false);
-assert.equal(evidence.acceptance.full_cross_factory_e2e, 'INCOMPLETE');
+assert.equal(evidence.posthog.credential_state, 'PRESENT_IN_GITHUB_ENVIRONMENT_RIOSYSTEMS_STAGING');
+assert.equal(evidence.posthog.presence_check, 'PASS');
+assert.equal(evidence.posthog.live_batch_result, 'PASS');
+assert.equal(evidence.posthog.batch_executed, true);
+assert.equal(evidence.posthog.status_code, 200);
+assert.deepEqual(evidence.posthog.event_names, ['page_view','cta_clicked','lead_submitted','automation_started','lead_persisted']);
+assert.equal(evidence.posthog.event_count, 5);
+assert.equal(evidence.posthog.distinct_event_names, 5);
+assert.equal(evidence.posthog.distinct_project_scopes, 1);
+assert.equal(evidence.posthog.cross_project_events, 0);
+assert.equal(evidence.posthog.non_staging_events, 0);
+assert.equal(evidence.posthog.non_synthetic_events, 0);
+assert.equal(evidence.posthog.pii_or_freetext_events, 0);
+assert.equal(evidence.posthog.retries_performed, 0);
+assert.equal(evidence.posthog.person_profiles_created, false);
+assert.equal(evidence.posthog.real_customer_data, false);
+assert.equal(evidence.posthog.variable_cost_eur, 0);
+assert.equal(evidence.posthog.scope_key, evidence.project.scope_key);
+assert.equal(evidence.posthog.project_id, evidence.project.project_id);
+assert.equal(evidence.posthog.direct_posthog_readback_verified, true);
+assert.equal(evidence.acceptance.live_posthog, 'PASS');
+assert.equal(evidence.acceptance.full_cross_factory_e2e, 'PASS');
+assert.deepEqual(evidence.delivery_evidence, {
+  website: 'PASS',
+  form: 'PASS',
+  lead: 'PASS',
+  crm: 'PASS',
+  pipeline: 'PASS',
+  make_automation: 'PASS',
+  posthog_analytics: 'PASS',
+  operator: 'PASS',
+  human_outcome: 'PASS',
+  private_preview: 'PASS',
+  customer_review: 'PASS',
+  customer_approval: 'PASS',
+  delivery_gate: 'PASS',
+  delivery_evidence: 'PASS'
+});
 
 const project = evidence.project;
 const runtime = {
@@ -47,9 +82,10 @@ const runtime = {
       selected_capabilities: [
         { capability: 'web_presence', factory: 'web', dependencies: [] },
         { capability: 'business_crm', factory: 'business', dependencies: ['web_presence'] },
-        { capability: 'automation_followup', factory: 'automation', dependencies: ['business_crm'] }
+        { capability: 'automation_followup', factory: 'automation', dependencies: ['business_crm'] },
+        { capability: 'analytics', factory: 'automation', dependencies: ['web_presence'] }
       ],
-      execution_order: ['web_presence','business_crm','automation_followup']
+      execution_order: ['web_presence','business_crm','automation_followup','analytics']
     },
     execution: {
       status: 'SYNTHETIC_STAGING_COMPLETED',
@@ -57,7 +93,8 @@ const runtime = {
       results: [
         { capability: 'web_presence', factory: 'web', provider: 'local-web', status: 'COMPLETED', retries: [] },
         { capability: 'business_crm', factory: 'business', provider: 'supabase-free', status: 'COMPLETED', retries: [] },
-        { capability: 'automation_followup', factory: 'automation', provider: 'make-core', status: 'COMPLETED', retries: [] }
+        { capability: 'automation_followup', factory: 'automation', provider: 'make-core', status: 'COMPLETED', retries: [] },
+        { capability: 'analytics', factory: 'automation', provider: 'posthog-free', status: 'COMPLETED', retries: [] }
       ]
     },
     quality: { status: 'PASS', quality_score: 100, failures: [] },
@@ -66,6 +103,8 @@ const runtime = {
       execution_evidence: {
         synthetic: true,
         make_execution_id: evidence.make.execution_id,
+        posthog_flow_id: evidence.posthog.flow_id,
+        posthog_event_count: evidence.posthog.event_count,
         production_deploy: false
       }
     }
