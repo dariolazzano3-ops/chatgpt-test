@@ -1,6 +1,7 @@
 import { createCustomerProject, assignProjectCapabilities, evaluateProjectReadiness, attachProjectMission, recordProjectDelivery } from './project-operating-layer.js';
 import { compileProjectBlueprint } from './project-blueprint.js';
 import { runMissionPipeline } from './mission-pipeline.js';
+import { createCustomerDeliveryContractV1 } from './customer-delivery-contract-v1.js';
 
 const clone = (value) => structuredClone(value ?? null);
 
@@ -10,8 +11,35 @@ export function prepareCustomerProject(input = {}) {
   const blueprint = compileProjectBlueprint({ objective: input.objective || input.prompt || input.goal });
   if (!blueprint.ok) return blueprint;
   const assigned = assignProjectCapabilities(created.project, blueprint.blueprint.capabilities);
-  const readiness = evaluateProjectReadiness(assigned.project);
-  return { ok: true, project: assigned.project, blueprint: blueprint.blueprint, readiness, production_deploy: false };
+
+  const requestedCapabilities = Array.isArray(input.requested_capabilities) && input.requested_capabilities.length
+    ? input.requested_capabilities
+    : (assigned.project.capabilities || []).map((item) => item.id).filter(Boolean);
+  const requiredCapabilities = Array.isArray(input.required_capabilities) && input.required_capabilities.length
+    ? input.required_capabilities
+    : (assigned.project.capabilities || []).filter((item) => item.required !== false).map((item) => item.id).filter(Boolean);
+
+  const deliveryContract = createCustomerDeliveryContractV1({
+    ...input,
+    customer_id: assigned.project.customer_id,
+    project_id: assigned.project.project_id,
+    scope_key: assigned.project.scope_key,
+    customer_problem: input.customer_problem || input.customer_wish || input.objective || input.prompt || input.goal,
+    requested_capabilities: requestedCapabilities,
+    required_capabilities: requiredCapabilities
+  });
+  if (!deliveryContract.ok) return deliveryContract;
+
+  const project = { ...assigned.project, delivery_contract: deliveryContract.contract };
+  const readiness = evaluateProjectReadiness(project);
+  return {
+    ok: true,
+    project,
+    blueprint: blueprint.blueprint,
+    readiness,
+    delivery_contract_readiness: deliveryContract.readiness,
+    production_deploy: false
+  };
 }
 
 export async function runCustomerProjectMission(project = {}, missionInput = {}, options = {}) {
@@ -45,5 +73,13 @@ export async function runCustomerProjectMission(project = {}, missionInput = {},
 }
 
 export function projectControlPlaneManifest() {
-  return { version: 'riosystems.phase2.project-control-plane.v1', project_to_mission_binding: true, phase1_runtime_governance_required_by_default: true, delivery_backpropagation: true, production_deploy: false };
+  return {
+    version: 'riosystems.phase2.project-control-plane.v1',
+    project_to_mission_binding: true,
+    customer_delivery_contract: 'aurentara.customer-delivery-contract.v1',
+    customer_delivery_contract_draft_authoritative: false,
+    phase1_runtime_governance_required_by_default: true,
+    delivery_backpropagation: true,
+    production_deploy: false
+  };
 }
