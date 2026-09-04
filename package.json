@@ -9,7 +9,7 @@
     "deploy:staging:dry-run": "node scripts/staging-deploy-guard.mjs --dry-run && wrangler deploy --env staging --dry-run",
     "deploy:staging": "node scripts/staging-deploy-guard.mjs --deploy && wrangler deploy --env staging",
     "dev": "wrangler dev",
-    "check:operator-ai": "node scripts/operator-ai-v1-smoke.mjs && node scripts/operator-ai-inference-v1-smoke.mjs && node scripts/operator-ai-dashboard-v1-smoke.mjs && node scripts/operator-ai-real-inference-live-acceptance-smoke.mjs"
+    "check:operator-ai": "node scripts/operator-ai-v1-smoke.mjs && node scripts/operator-ai-inference-v1-smoke.mjs && node scripts/operator-ai-dashboard-v1-smoke.mjs && node scripts/operator-ai-global-access-v1-smoke.mjs && node scripts/operator-ai-real-inference-live-acceptance-smoke.mjs"
   },
   "dependencies": {
     "framer-api": "0.1.30"
