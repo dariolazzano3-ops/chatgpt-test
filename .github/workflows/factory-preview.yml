@@ -82,14 +82,44 @@ jobs:
           test -d "projects/$PROJECT_SLUG"
           test -f "projects/$PROJECT_SLUG/index.html"
 
+      - name: Resolve external preview policy
+        id: preview_policy
+        shell: bash
+        env:
+          PROJECT_SLUG: ${{ steps.target.outputs.project_slug }}
+        run: |
+          set -euo pipefail
+          PROJECT_JSON="projects/$PROJECT_SLUG/project.json"
+          EXTERNAL_PUBLISH=true
+          if [ -f "$PROJECT_JSON" ]; then
+            EXTERNAL_PUBLISH=$(node -e '
+              const fs=require("fs");
+              const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+              process.stdout.write(data?.preview_policy?.external_publish === false ? "false" : "true");
+            ' "$PROJECT_JSON")
+          fi
+          echo "external_publish=$EXTERNAL_PUBLISH" >> "$GITHUB_OUTPUT"
+          if [ "$EXTERNAL_PUBLISH" = "false" ]; then
+            echo "External Pages preview disabled by project policy."
+          fi
+
       - name: Check preview configuration
+        if: steps.preview_policy.outputs.external_publish == 'true'
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
 
+      - name: Confirm private preview stays local
+        if: steps.preview_policy.outputs.external_publish == 'false'
+        run: |
+          echo "Factory Preview external publish skipped."
+          echo "production_deploy=false"
+          echo "public_preview_deploy=false"
+
       - name: Deploy preview only
+        if: steps.preview_policy.outputs.external_publish == 'true'
         id: deploy
         shell: bash
         env:
