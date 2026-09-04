@@ -166,6 +166,10 @@ async function runViewport(name, viewport) {
   assert.equal(await page.evaluate(() => window.__lastOpened || ''), '');
   assert.match(await page.locator('[data-source-local-status]').innerText(), /keine sichere Vorschau verfügbar/i);
 
+  const manualDetails = page.locator('[data-project-source-intake] details.details');
+  assert.equal(await manualDetails.locator('summary').innerText(), 'Weitere Source Actions');
+  await manualDetails.locator('summary').click();
+  assert.equal(await manualDetails.evaluate((element) => element.open), true);
   const category = page.locator('[data-source-manual-category]');
   assert.equal(await category.isVisible(), true);
   const labels = await category.locator('option').allInnerTexts();
