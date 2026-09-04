@@ -281,7 +281,7 @@ const PREFLIGHT_SCRIPT = String.raw`<script id="aurentara-provider-preflight-v1-
     BLOCKED:'Blockiert'
   })[String(v||'NOT_VERIFIED').toUpperCase()]||String(v||'Nicht verifiziert').replaceAll('_',' ');
   const humanGroup=v=>({
-    EINSATZBEREIT:'Einsatzbereit',STAGING_VERIFIZIERT:'Staging verifiziert',
+    EINSATZBEREIT:'Einsatzbereit (Staging)',STAGING_VERIFIZIERT:'Staging verifiziert',
     KONFIGURIERT_NICHT_VERIFIZIERT:'Konfiguriert, nicht verifiziert',
     NICHT_VERBUNDEN:'Nicht verbunden',BLOCKIERT:'Blockiert'
   })[String(v||'NICHT_VERBUNDEN').toUpperCase()]||String(v||'Nicht verbunden');
