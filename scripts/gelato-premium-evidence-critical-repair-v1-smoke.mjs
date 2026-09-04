@@ -38,6 +38,13 @@ const VIEWPORTS = [
 await mkdir(ARTIFACT_DIR, { recursive: true });
 const project = JSON.parse(await readFile(path.join(PROJECT_DIR, 'project.json'), 'utf8'));
 const evidence = JSON.parse(await readFile(path.join(PROJECT_DIR, 'source-evidence.json'), 'utf8'));
+const factoryPreviewWorkflow = await readFile(path.join(ROOT, '.github/workflows/factory-preview.yml'), 'utf8');
+
+assert.equal(project.preview_policy?.external_publish, false, 'Gelato external preview publishing must remain disabled');
+assert.equal(project.safety?.public_preview_deploy, false, 'Gelato public preview deploy must remain disabled');
+assert.match(factoryPreviewWorkflow, /Resolve external preview policy/, 'Factory Preview must resolve project external-publish policy');
+assert.match(factoryPreviewWorkflow, /external_publish=\$EXTERNAL_PUBLISH/, 'Factory Preview must project resolved external-publish state');
+assert.match(factoryPreviewWorkflow, /steps\.preview_policy\.outputs\.external_publish == 'false'/, 'Factory Preview must support local-private skip path');
 
 function requireOk(result, label) {
   assert.equal(result?.ok, true, label + ': ' + JSON.stringify(result));
