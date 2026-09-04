@@ -49,10 +49,10 @@ jobs:
         run: node scripts/project-source-website-extracted-facts-v1-smoke.mjs
       - name: Gelato realistic customer input closure
         run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
-      - name: Existing Gelato premium regression
-        run: node scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Existing Gelato premium regression
+        run: node scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
       - name: Start private Gelato preview
         run: |
           python3 -m http.server 4183 --bind 127.0.0.1 --directory projects/gelato-donatello-website-v1 >/tmp/gelato-ferrari-http.log 2>&1 &
