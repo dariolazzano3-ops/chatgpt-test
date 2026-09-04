@@ -47,3 +47,71 @@ export function getIndustryPattern(industry = '') {
     hardcoded_core_branching: false, extensible_pattern_layer: true
   };
 }
+
+
+export const PREMIUM_INDUSTRY_QUALITY_PROFILES = Object.freeze({
+  HANDWERK_LOCAL_SERVICE: Object.freeze({
+    profile_id:'HANDWERK_LOCAL_SERVICE',
+    required_inputs:['verified_business_identity','services','priority_services','verified_service_area','primary_conversion','contact_data'],
+    trust_patterns:['verified_local_presence','qualifications_if_verified','project_evidence_if_verified','reviews_if_verified','response_expectations'],
+    content_needs:['specific_services','service_area_context','process','objection_handling','contact_path'],
+    conversion_patterns:['call','quote_request','contact'],
+    seo_local_requirements:['verified_NAP','verified_service_area','local_context','LocalBusiness_schema_when_supported'],
+    qa_rules:['mobile_contact_path','service_fact_consistency','no_fake_location','no_fabricated_qualification'],
+    risk_warnings:['Do not invent certifications, reviews, locations, response times or completed projects.'],
+    rigid_sitemap:false,rigid_layout:false,rigid_design:false,template_copy:false
+  }),
+  GASTRONOMY: Object.freeze({
+    profile_id:'GASTRONOMY',
+    required_inputs:['verified_business_identity','offer','verified_location_or_service_area','opening_hours_if_rendered','primary_conversion','contact_data'],
+    trust_patterns:['verified_location','verified_opening_hours','real_food_imagery_or_asset_gap','reviews_if_verified'],
+    content_needs:['offer_clarity','menu_or_product_context','visit_or_order_information','dietary_information_if_verified'],
+    conversion_patterns:['booking_or_order','call','directions'],
+    seo_local_requirements:['verified_NAP','local_context','opening_hours_if_verified','LocalBusiness_or_Restaurant_schema_when_supported'],
+    qa_rules:['mobile_directions_or_contact','no_fake_location','price_fact_consistency','asset_rights'],
+    risk_warnings:['Do not invent menu items, prices, opening hours, reviews, food photography or availability.'],
+    rigid_sitemap:false,rigid_layout:false,rigid_design:false,template_copy:false
+  }),
+  PRAXIS: Object.freeze({
+    profile_id:'PRAXIS',
+    required_inputs:['verified_business_identity','services_or_treatments','verified_location','verified_qualifications_if_claimed','primary_conversion','contact_data'],
+    trust_patterns:['verified_qualifications','team_and_practice_information','privacy','reviews_if_verified'],
+    content_needs:['service_clarity','patient_or_client_orientation','process','contact_or_appointment_path','risk_appropriate_language'],
+    conversion_patterns:['appointment_request','call','contact'],
+    seo_local_requirements:['verified_NAP','verified_location','local_service_intent','structured_data_when_supported'],
+    qa_rules:['no_medical_guarantee','no_fabricated_qualification','privacy_sensitive_forms','accessible_primary_journey'],
+    risk_warnings:['Do not invent qualifications, outcomes, reviews, medical guarantees or practice locations.'],
+    rigid_sitemap:false,rigid_layout:false,rigid_design:false,template_copy:false
+  }),
+  B2B_SERVICE: Object.freeze({
+    profile_id:'B2B_SERVICE',
+    required_inputs:['verified_business_identity','business_model','services','priority_services','target_customers','primary_conversion'],
+    trust_patterns:['verified_expertise','methodology','case_evidence_if_verified','customer_evidence_if_verified'],
+    content_needs:['specific_value_proposition','audience_fit','problem_solution_context','objection_handling','process','proof'],
+    conversion_patterns:['qualified_enquiry','discovery_call'],
+    seo_local_requirements:['service_intent','industry_problem_intent','local_requirements_only_when_verified'],
+    qa_rules:['claim_provenance','case_evidence_provenance','conversion_friction','no_empty_superlatives'],
+    risk_warnings:['Do not invent clients, results, qualifications, certifications or case studies.'],
+    rigid_sitemap:false,rigid_layout:false,rigid_design:false,template_copy:false
+  }),
+  PROFESSIONAL_SERVICES: Object.freeze({
+    profile_id:'PROFESSIONAL_SERVICES',
+    required_inputs:['verified_business_identity','services','target_customers','differentiation','primary_conversion','contact_data'],
+    trust_patterns:['verified_credentials','methodology','project_evidence_if_verified','team_information_if_verified'],
+    content_needs:['expertise_clarity','service_scope','process','objection_handling','proof','contact_path'],
+    conversion_patterns:['enquiry','consultation'],
+    seo_local_requirements:['service_intent','expertise_intent','verified_local_context_when_applicable'],
+    qa_rules:['credential_provenance','no_guaranteed_outcomes','rights_provenance','accessible_primary_journey'],
+    risk_warnings:['Do not invent credentials, memberships, project evidence, customer logos or guaranteed outcomes.'],
+    rigid_sitemap:false,rigid_layout:false,rigid_design:false,template_copy:false
+  })
+});
+
+export function getPremiumIndustryQualityProfile(industry = '') {
+  const value=String(industry || '').toLowerCase();
+  if (/restaurant|cafe|café|gastronom|bistro|food/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.GASTRONOMY);
+  if (/praxis|doctor|arzt|medical|dental|dentist|zahnarzt|therapy|therap/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.PRAXIS);
+  if (/handwerk|local service|electric|plumb|cleaning|bakery|bäckerei|craft/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.HANDWERK_LOCAL_SERVICE);
+  if (/b2b|consult|agency|agentur|software|saas|business service/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.B2B_SERVICE);
+  return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.PROFESSIONAL_SERVICES);
+}

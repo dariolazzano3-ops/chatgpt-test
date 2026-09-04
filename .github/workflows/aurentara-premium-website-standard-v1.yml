@@ -1,0 +1,69 @@
+name: AURENTARA Premium Website Standard V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'src/project-source-intake-v1.js'
+      - 'src/project-delivery-gate.js'
+      - 'src/operator-project-workspace-v1.js'
+      - 'scripts/aurentara-premium-website-standard-v1-smoke.mjs'
+      - 'scripts/web-factory-*.mjs'
+      - 'scripts/project-source-intake-v1-smoke.mjs'
+      - 'scripts/operator-project-workspace-v1-smoke.mjs'
+      - 'scripts/riosystems-public-website-live-qa.mjs'
+      - '.github/workflows/aurentara-premium-website-standard-v1.yml'
+      - 'docs/AURENTARA-PREMIUM-WEBSITE-STANDARD-V1.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  premium-standard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install repository dependencies
+        run: npm install --package-lock=false
+      - name: Syntax
+        run: |
+          node --check src/web-factory/premium-standard-v1.js
+          node --check src/web-factory/industry-brain.js
+          node --check src/web-factory/contracts.js
+          node --check src/web-factory/compiler-strategy-v2.js
+          node --check src/web-factory/qa.js
+          node --check src/web-factory/operating-system-v2.js
+          node --check src/project-source-intake-v1.js
+          node --check src/project-delivery-gate.js
+          node --check src/operator-project-workspace-v1.js
+          node --check scripts/aurentara-premium-website-standard-v1-smoke.mjs
+      - name: Premium Standard acceptance
+        run: node scripts/aurentara-premium-website-standard-v1-smoke.mjs
+      - name: Web Factory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+      - name: Framer and fidelity regression
+        run: node scripts/web-factory-framer-fidelity-smoke.mjs
+      - name: Autonomous Premium regression
+        run: node scripts/web-factory-autonomous-premium-smoke.mjs
+      - name: Web Operating System V2 regression
+        run: node scripts/web-factory-operating-system-v2-smoke.mjs
+      - name: Project Source Intake regression
+        run: node scripts/project-source-intake-v1-smoke.mjs
+      - name: Project Workspace regression
+        run: node scripts/operator-project-workspace-v1-smoke.mjs
+      - name: Public website browser regression
+        run: |
+          npx playwright install --with-deps chromium
+          python3 -m http.server 4173 --directory projects/riosystems-public-website-v1 >/tmp/aurentara-premium-site.log 2>&1 &
+          RIOSYSTEMS_PREVIEW_URL=http://127.0.0.1:4173 node scripts/riosystems-public-website-live-qa.mjs
+      - name: Safety seal
+        run: |
+          node -e "const fs=require('fs');const y=fs.readFileSync('.github/workflows/aurentara-premium-website-standard-v1.yml','utf8');if(/wrangler\s+deploy|pages\s+deploy|curl\s+.*workers\.dev/i.test(y))process.exit(1);console.log('no deploy command in premium workflow')"
+          echo "Production deploy: false"
+          echo "Paid provider calls: 0"
