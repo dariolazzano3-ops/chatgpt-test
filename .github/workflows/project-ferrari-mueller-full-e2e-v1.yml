@@ -54,10 +54,10 @@ jobs:
           node --check scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
           node --check scripts/mueller-ferrari-browser-e2e-v1.mjs
           node --check scripts/mueller-ferrari-live-make-v1.mjs
-          node --check scripts/mueller-ferrari-live-posthog-v1.mjs
+          node --check scripts/mueller-ferrari-live-posthog-v1.mjs\n          node --check scripts/mueller-ferrari-provider-linked-evidence-v1-smoke.mjs
       - name: Cost, contracts, CRM, review, operator and delivery E2E
         run: node scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
-      - name: Make Supabase bridge regressions
+      - name: Provider-linked evidence and Operator projection\n        run: node scripts/mueller-ferrari-provider-linked-evidence-v1-smoke.mjs\n      - name: Make Supabase bridge regressions
         run: |
           node scripts/make-supabase-lead-bridge-smoke.mjs
           node scripts/make-supabase-lead-payload-smoke.mjs
