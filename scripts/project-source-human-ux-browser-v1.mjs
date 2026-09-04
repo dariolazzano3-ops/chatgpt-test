@@ -114,7 +114,7 @@ const payload = {
 };
 
 async function runViewport(name, viewport) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, channel: 'chrome' });
   const context = await browser.newContext({ viewport });
   await context.route('https://source.test/operator', route => route.fulfill({
     status: 200,
