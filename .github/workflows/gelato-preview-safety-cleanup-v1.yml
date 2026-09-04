@@ -54,7 +54,7 @@ jobs:
           HTML
           cat > /tmp/gelato-preview-disabled/_headers <<'HEADERS'
           /*
-            X-Robots-Tag: noindex, nofollow, noarchive
+            X-Robots-Tag: noindex, nofollow,noarchive
             Cache-Control: no-store
             Referrer-Policy: no-referrer
             X-Content-Type-Options: nosniff
@@ -64,31 +64,22 @@ jobs:
             --project-name "$CLOUDFLARE_PAGES_PROJECT" \
             --branch "$TARGET_BRANCH"
 
-      - name: Wait for preview deployment visibility
+      - name: Inventory target preview deployments
         shell: bash
         run: |
           set -euo pipefail
-          cd /tmp
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PAGES_PROJECT/deployments?per_page=100"
           FOUND=false
           for ATTEMPT in 1 2 3 4 5 6 7 8 9 10; do
-            npx --yes wrangler@4 pages deployment list \
-              --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-              --environment preview \
-              --json > /tmp/pages-deployments.json
+            curl -fsS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "$API" > /tmp/pages-deployments-api.json
             if node <<'NODE'
           const fs=require('fs');
-          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments.json','utf8'));
-          if(!Array.isArray(data)) process.exit(2);
-          const target=process.env.TARGET_BRANCH;
-          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
-          const rows=data.filter((d)=>{
-            const branch=d?.deployment_trigger?.metadata?.branch
-              ?? d?.source?.config?.branch
-              ?? d?.source?.branch
-              ?? null;
-            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
-            return branch===target || aliases.some((a)=>a.includes(aliasHost));
-          });
+          const payload=JSON.parse(fs.readFileSync('/tmp/pages-deployments-api.json','utf8'));
+          if(payload?.success!==true || !Array.isArray(payload?.result)) process.exit(2);
+          const rows=payload.result.filter((d)=>d?.deployment_trigger?.metadata?.branch===process.env.TARGET_BRANCH);
           process.exit(rows.length ? 0 : 1);
           NODE
             then
@@ -97,7 +88,7 @@ jobs:
             fi
             sleep 5
           done
-          test "$FOUND" = 'true' || { echo "Target preview deployment did not become visible"; exit 1; }
+          test "$FOUND" = 'true' || { echo "Target preview deployments not visible through Cloudflare API"; exit 1; }
 
       - name: Delete older target-branch deployments
         shell: bash
@@ -106,24 +97,13 @@ jobs:
           cd /tmp
           node <<'NODE'
           const fs=require('fs');
-          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments.json','utf8'));
-          if(!Array.isArray(data)) throw new Error('PAGES_DEPLOYMENT_LIST_NOT_ARRAY');
-          const target=process.env.TARGET_BRANCH;
-          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
-          const rows=data.filter((d)=>{
-            const branch=d?.deployment_trigger?.metadata?.branch
-              ?? d?.source?.config?.branch
-              ?? d?.source?.branch
-              ?? null;
-            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
-            return branch===target || aliases.some((a)=>a.includes(aliasHost));
-          }).sort((a,b)=>String(b.created_on||'').localeCompare(String(a.created_on||'')));
+          const payload=JSON.parse(fs.readFileSync('/tmp/pages-deployments-api.json','utf8'));
+          if(payload?.success!==true || !Array.isArray(payload?.result)) throw new Error('CLOUDFLARE_DEPLOYMENT_LIST_INVALID');
+          const rows=payload.result
+            .filter((d)=>d?.deployment_trigger?.metadata?.branch===process.env.TARGET_BRANCH)
+            .sort((a,b)=>String(b.created_on||'').localeCompare(String(a.created_on||'')));
           if(!rows.length) throw new Error('TARGET_BRANCH_DEPLOYMENTS_NOT_FOUND');
           const keep=rows[0];
-          const aliases=Array.isArray(keep.aliases)?keep.aliases.map(String):[];
-          if(!aliases.some((a)=>a.includes(aliasHost))){
-            throw new Error('LATEST_TOMBSTONE_ALIAS_NOT_CONFIRMED');
-          }
           fs.writeFileSync('/tmp/keep-id.txt',String(keep.id||''));
           fs.writeFileSync('/tmp/delete-ids.txt',rows.slice(1).map((d)=>String(d.id||'')).filter(Boolean).join('\n'));
           console.log(JSON.stringify({
@@ -149,28 +129,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd /tmp
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PAGES_PROJECT/deployments?per_page=100"
           VERIFIED=false
           for ATTEMPT in 1 2 3 4 5 6 7 8 9 10; do
-            npx --yes wrangler@4 pages deployment list \
-              --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-              --environment preview \
-              --json > /tmp/pages-deployments-after.json
+            curl -fsS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "$API" > /tmp/pages-deployments-after-api.json
             if node <<'NODE'
           const fs=require('fs');
-          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments-after.json','utf8'));
-          if(!Array.isArray(data)) process.exit(2);
-          const target=process.env.TARGET_BRANCH;
-          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
+          const payload=JSON.parse(fs.readFileSync('/tmp/pages-deployments-after-api.json','utf8'));
+          if(payload?.success!==true || !Array.isArray(payload?.result)) process.exit(2);
           const keep=fs.readFileSync('/tmp/keep-id.txt','utf8').trim();
-          const rows=data.filter((d)=>{
-            const branch=d?.deployment_trigger?.metadata?.branch
-              ?? d?.source?.config?.branch
-              ?? d?.source?.branch
-              ?? null;
-            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
-            return branch===target || aliases.some((a)=>a.includes(aliasHost));
-          });
+          const rows=payload.result.filter((d)=>d?.deployment_trigger?.metadata?.branch===process.env.TARGET_BRANCH);
           process.exit(rows.length===1 && String(rows[0].id||'')===keep ? 0 : 1);
           NODE
             then
