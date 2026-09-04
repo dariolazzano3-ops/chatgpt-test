@@ -31,7 +31,7 @@ async function ready(page){
   await page.waitForFunction(()=>window.__aurentaraGlobalOperatorAiAccessV1===true&&!document.body.classList.contains('loading'));
   await page.waitForTimeout(250);
 }
-const sections=['hq','projects','missions','approvals','deliveries','executions','factories','capabilities','providers','costs','quality','alerts','health','audit','settings'];
+const sections=['hq','projects','missions','approvals','deliveries','executions','factories','capabilities','providers','costs','quality','health','audit','settings'];
 let browser;
 const errors=[];
 try{
