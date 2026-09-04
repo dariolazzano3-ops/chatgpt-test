@@ -46,6 +46,43 @@ function matrixConnection(row = {}) {
   return 'NOT_CONNECTED';
 }
 
+function providerConfigured(provider = {}, evidence = {}, connection = 'NOT_CONNECTED') {
+  if (connection !== 'NOT_CONNECTED') return 'CONFIGURED';
+  const credential = clean(provider.credential_state || evidence.credential || evidence.credentials_state || '', 120).toUpperCase();
+  const account = clean(provider.account_state || evidence.account || evidence.account_state || '', 120).toUpperCase();
+  const credentialReady = provider.credentials_required !== true || ['PRESENT_VALID','READY','VERIFIED'].includes(credential);
+  const accountReady = provider.account_binding_required !== true || ['READY','PRESENT','VERIFIED','ACCESSIBLE'].includes(account);
+  return credentialReady && accountReady ? 'CONFIGURED' : 'NOT_VERIFIED';
+}
+
+function providerExecutable(evidence = {}) {
+  if (!evidence || typeof evidence !== 'object') return false;
+  const explicit = [
+    evidence.staging_deploy_verified,
+    evidence.staging_inference_verified,
+    evidence.staging_write_verified,
+    evidence.staging_analytics_verified
+  ].some((value) => value === true);
+  if (explicit) return true;
+  const text = activationText(evidence);
+  if (text.includes('read_only') || text.includes('read-only')) return false;
+  return text === 'live_staging_verified'
+    || text.includes('staging_deploy_verified')
+    || text.includes('staging_write_verified')
+    || text.includes('staging_analytics_verified')
+    || text.includes('live_staging_inference_verified');
+}
+
+function providerPresentationGroup({ availability, connection, configured, executable, evidence = {} } = {}) {
+  const text = activationText(evidence);
+  if (String(availability || '').toUpperCase().includes('UNAVAILABLE') || text.includes('failed')) return 'BLOCKIERT';
+  if (connection === 'NOT_CONNECTED') return 'NICHT_VERBUNDEN';
+  if (executable === 'VERIFIED_STAGING' && connection === 'CONNECTED_STAGING') return 'EINSATZBEREIT';
+  if (['CONNECTED_STAGING','READ_ONLY_VERIFIED'].includes(connection)) return 'STAGING_VERIFIZIERT';
+  if (configured === 'CONFIGURED') return 'KONFIGURIERT_NICHT_VERIFIZIERT';
+  return 'NICHT_VERBUNDEN';
+}
+
 export function buildProviderEcosystemProjection() {
   const inventory = providerActivationInventory();
   const matrix = providerActivationMatrix();
@@ -59,6 +96,16 @@ export function buildProviderEcosystemProjection() {
       : connection === 'READ_ONLY_VERIFIED'
         ? 'VERIFIED_READ_ONLY'
         : provider.verification === 'EVIDENCE_DRIVEN' ? 'NOT_VERIFIED' : (provider.verification || 'NOT_CONNECTED');
+    const configured = providerConfigured(provider, evidence || {}, connection);
+    const executable = providerExecutable(evidence || {}) ? 'VERIFIED_STAGING' : (connection === 'NOT_CONNECTED' ? 'NOT_CONNECTED' : 'NOT_VERIFIED');
+    const productionCapable = provider.production_eligible === true ? 'VERIFIED' : provider.production_eligible === false ? 'BLOCKED' : 'NOT_VERIFIED';
+    const presentationGroup = providerPresentationGroup({
+      availability: provider.availability,
+      connection,
+      configured,
+      executable,
+      evidence: evidence || {}
+    });
     return {
       id: provider.id,
       name: provider.name || provider.id,
@@ -74,14 +121,31 @@ export function buildProviderEcosystemProjection() {
       capabilities: clone(provider.capabilities || []),
       cost_mode: provider.cost_mode || 'UNKNOWN',
       evidence: evidence ? clone(evidence) : null,
+      presentation_group: presentationGroup,
+      presentation_dimensions: {
+        registered: 'REGISTERED',
+        available: provider.availability || 'NOT_VERIFIED',
+        configured,
+        connected: connection,
+        staging_verified: connection === 'CONNECTED_STAGING' ? 'VERIFIED_STAGING' : connection === 'READ_ONLY_VERIFIED' ? 'VERIFIED_READ_ONLY' : 'NOT_VERIFIED',
+        executable,
+        production_capable: productionCapable
+      },
       secrets_exposed: false,
       production_deploy: false
     };
   });
   return {
-    schema: 'aurentara.provider-ecosystem.v1',
+    schema: 'aurentara.provider-ecosystem.v2',
     source_of_truth: 'provider_activation_inventory_plus_activation_matrix',
     provider_ecosystem: providers,
+    presentation_groups: {
+      einsatzbereit: providers.filter((provider) => provider.presentation_group === 'EINSATZBEREIT').map((provider) => provider.id),
+      staging_verifiziert: providers.filter((provider) => provider.presentation_group === 'STAGING_VERIFIZIERT').map((provider) => provider.id),
+      konfiguriert_nicht_verifiziert: providers.filter((provider) => provider.presentation_group === 'KONFIGURIERT_NICHT_VERIFIZIERT').map((provider) => provider.id),
+      nicht_verbunden: providers.filter((provider) => provider.presentation_group === 'NICHT_VERBUNDEN').map((provider) => provider.id),
+      blockiert: providers.filter((provider) => provider.presentation_group === 'BLOCKIERT').map((provider) => provider.id)
+    },
     active_runtime_routes: providers.filter((provider) => provider.active_runtime === true),
     strategic_selection_is_not_technical_connection: true,
     not_connected_never_runtime_eligible: providers.every((provider) => provider.connection_state !== 'NOT_CONNECTED' || provider.active_runtime === false),
@@ -210,6 +274,20 @@ const PREFLIGHT_SCRIPT = String.raw`<script id="aurentara-provider-preflight-v1-
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const eur=v=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(Number(v||0));
   const routeKey=v=>String(v||'BALANCED').toUpperCase();
+  const humanDim=v=>({
+    REGISTERED:'Registriert',AVAILABLE:'Verfügbar',CONFIGURED:'Konfiguriert',
+    CONNECTED_STAGING:'Verbunden (Staging)',READ_ONLY_VERIFIED:'Read-only verifiziert',
+    VERIFIED_STAGING:'Staging verifiziert',VERIFIED_READ_ONLY:'Read-only verifiziert',
+    VERIFIED:'Verifiziert',NOT_VERIFIED:'Nicht verifiziert',NOT_CONNECTED:'Nicht verbunden',
+    BLOCKED:'Blockiert'
+  })[String(v||'NOT_VERIFIED').toUpperCase()]||String(v||'Nicht verifiziert').replaceAll('_',' ');
+  const humanGroup=v=>({
+    EINSATZBEREIT:'Einsatzbereit (Staging)',STAGING_VERIFIZIERT:'Staging verifiziert',
+    KONFIGURIERT_NICHT_VERIFIZIERT:'Konfiguriert, nicht verifiziert',
+    NICHT_VERBUNDEN:'Nicht verbunden',BLOCKIERT:'Blockiert'
+  })[String(v||'NICHT_VERBUNDEN').toUpperCase()]||String(v||'Nicht verbunden');
+  const groupBadge=v=>badge(v==='EINSATZBEREIT'?'READY':v==='STAGING_VERIFIZIERT'?'STAGING_ONLY':v==='BLOCKIERT'?'BLOCKED':'NOT_VERIFIED');
+  const capLabel=v=>typeof humanCapability==='function'?humanCapability(v):String(v||'').replaceAll('_',' ');
   const cache=new Map();
   function routeData(result,route){return result?.routes?.[String(route||'BALANCED').toLowerCase()]||result}
   function missionInput(review,route){const form=document.getElementById('mission-form');const text=form?.querySelector('[name="mission_text"]')?.value||review?.mission?.mission_text||'';const outcomes=String(form?.querySelector('[name="requested_outcomes"]')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);const constraints=String(form?.querySelector('[name="known_constraints"]')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);return{route:routeKey(route),mission_text:text,requested_outcomes:outcomes,known_constraints:constraints,plan:review?.plan||{},selected_capabilities:review?.plan?.selected_capabilities||[],mission_type:'GENERAL',external_dependencies_unknown:true}}
@@ -219,7 +297,16 @@ const PREFLIGHT_SCRIPT = String.raw`<script id="aurentara-provider-preflight-v1-
   function renderCost(review,result,route='BALANCED',deep=false){const host=document.getElementById('plan-review');if(!host||!review)return;let card=host.querySelector('[data-cost-preflight]');if(!card){card=document.createElement('div');card.className='card cost-preflight';card.dataset.costPreflight='true';host.prepend(card)}const selected=routeData(result,route);const r=result.routes||{};card.innerHTML='<div class="row"><div><div class="eyebrow">Kosten-Preflight</div><h2 style="margin:3px 0">Geschätzte Kosten</h2><div class="small">'+(deep?'Deep Preflight':'Quick Estimate')+' · Range statt Scheinpräzision · 0 Paid Calls</div></div>'+badge(selected.confidence||'UNKNOWN')+'</div><div class="cost-summary"><div class="kv"><b>Geschätzt</b><span>'+eur(selected.estimated_cost_eur)+'</span></div><div class="kv"><b>Erwarteter Bereich</b><span>'+eur(selected.low_estimate_eur)+' – '+eur(selected.high_estimate_eur)+'</span></div><div class="kv"><b>Confidence</b><span>'+h(selected.confidence)+' · '+h(selected.confidence_score)+'</span></div><div class="kv"><b>Quick Latency</b><span>'+h(result.calculation_latency_ms)+' ms</span></div></div><div class="route-grid">'+['ECONOMY','BALANCED','PREMIUM'].map(name=>{const d=routeData(result,name);return '<button type="button" class="cost-route '+(routeKey(route)===name?'active':'')+'" data-cost-route="'+name+'"><b>'+name+(name==='BALANCED'?' · EMPFOHLEN':'')+'</b><span>'+eur(d.estimated_cost_eur)+'</span><small>'+eur(d.low_estimate_eur)+' – '+eur(d.high_estimate_eur)+'</small></button>'}).join('')+'</div><div class="cost-ceiling"><div class="field"><label>Approved Cost Ceiling</label><input type="number" min="0" step="0.01" data-cost-ceiling value="'+h(selected.recommended_cost_ceiling_eur)+'"></div><div class="small">Execution pausiert automatisch, wenn der projected final cost dieses Ceiling überschreiten würde.</div></div><div class="actions" style="margin-top:12px"><button type="button" class="btn" data-cost-deep>GENAUER KALKULIEREN</button><details class="details"><summary>ROUTENDETAILS</summary><pre>'+h(JSON.stringify({provider_classes:selected.expected_provider_classes,capabilities:selected.expected_capabilities,uncertainties:selected.uncertainties,estimate_basis:selected.estimate_basis,expected_execution_structure:result.expected_execution_structure||null},null,2))+'</pre></details></div>';card.querySelectorAll('[data-cost-route]').forEach(btn=>btn.onclick=()=>renderCost(review,result,btn.dataset.costRoute,deep));card.querySelector('[data-cost-deep]').onclick=async()=>{const deepResult=await api('/cost-preflight/deep',{method:'POST',body:JSON.stringify(missionInput(review,route))});cache.set(review.plan_token,{result:deepResult,route:routeKey(route),deep:true});renderCost(review,deepResult,route,true)};const start=document.getElementById('approve-plan');if(start){start.textContent='MISSION STARTEN';start.onclick=()=>startMission(review,result,route)}}
   async function hydrateCost(review){if(!review?.plan_token)return;try{const input=missionInput(review,'BALANCED');const result=await api('/cost-preflight/quick',{method:'POST',body:JSON.stringify(input)});cache.set(review.plan_token,{result,route:'BALANCED',deep:false});renderCost(review,result,'BALANCED',false)}catch(error){setError(error)}}
   if(typeof renderPlan==='function'){const prev=renderPlan;renderPlan=function(review){prev(review);if(review)void hydrateCost(review)}}
-  async function renderProviderEcosystem(){const root=document.getElementById('providers');if(!root)return;try{const data=await api('/provider-ecosystem');const ecosystem=rows(data.provider_ecosystem),active=rows(data.active_runtime_routes);root.innerHTML='<div class="card"><div class="human-head"><div><h2>Provider Ecosystem</h2><p>Strategische Auswahl und technische Verbindung werden bewusst getrennt.</p></div></div><div class="provider-ecosystem-grid">'+ecosystem.map(p=>'<div class="provider-ecosystem-card"><div class="row"><div><h3>'+h(p.name)+'</h3><div class="small">'+h(p.category)+' · '+h(p.role)+'</div></div>'+badge(p.connection_state==='NOT_CONNECTED'?'NOT_VERIFIED':p.connection_state)+'</div><div class="small">State: '+h(p.state)+' · Availability: '+h(p.availability)+' · Verification: '+h(p.verification)+'</div><div class="human-note">'+h(rows(p.restrictions).join(' · ')||'Keine zusätzliche Restriction')+'</div></div>').join('')+'</div></div><div class="card provider-runtime-list"><h2>Active Runtime Routes</h2>'+(active.length?active.map(p=>'<div class="row"><div><strong>'+h(p.name)+'</strong><div class="small">'+h(p.role)+' · '+h(p.connection_state)+'</div></div>'+badge(p.verification)+'</div>').join(''):'<div class="empty">Keine verifizierte aktive Runtime-Route.</div>')+'</div>'}catch(error){setError(error)}}
+  async function renderProviderEcosystem(){const root=document.getElementById('providers');if(!root)return;try{const data=await api('/provider-ecosystem');const ecosystem=rows(data.provider_ecosystem),active=rows(data.active_runtime_routes);root.innerHTML='<div class="card"><div class="human-head"><div><h2>Provider Ecosystem</h2><p>Registrierung, Konfiguration, Verbindung, Staging-Verifikation, Ausführbarkeit und Production-Fähigkeit bleiben getrennte Wahrheitsdimensionen.</p></div></div><div class="provider-ecosystem-grid">'+ecosystem.map(p=>{const d=p.presentation_dimensions||{};return '<div class="provider-ecosystem-card" data-provider-group="'+h(p.presentation_group)+'"><div class="row"><div><h3>'+h(p.name)+'</h3><div class="small">'+h(p.category)+' · '+h(p.role)+'</div></div>'+groupBadge(p.presentation_group)+'</div><div class="human-note"><strong>'+h(humanGroup(p.presentation_group))+'</strong></div><div class="human-grid">'+
+      '<div class="kv"><b>Registriert</b><span>'+h(humanDim(d.registered))+'</span></div>'+
+      '<div class="kv"><b>Verfügbar</b><span>'+h(humanDim(d.available))+'</span></div>'+
+      '<div class="kv"><b>Konfiguriert</b><span>'+h(humanDim(d.configured))+'</span></div>'+
+      '<div class="kv"><b>Verbunden</b><span>'+h(humanDim(d.connected))+'</span></div>'+
+      '<div class="kv"><b>Staging-verifiziert</b><span>'+h(humanDim(d.staging_verified))+'</span></div>'+
+      '<div class="kv"><b>Ausführbar</b><span>'+h(humanDim(d.executable))+'</span></div>'+
+      '<div class="kv"><b>Production-fähig</b><span>'+h(humanDim(d.production_capable))+'</span></div></div>'+
+      '<div class="small">Capabilities: '+h(rows(p.capabilities).map(capLabel).join(' · ')||'Nicht projiziert')+'</div>'+
+      '<details class="details"><summary>Technischer Provider-Contract</summary><pre>'+h(JSON.stringify({id:p.id,state:p.state,availability:p.availability,connection_state:p.connection_state,verification:p.verification,cost_mode:p.cost_mode,restrictions:p.restrictions,evidence:p.evidence},null,2))+'</pre></details></div>'}).join('')+'</div></div><div class="card provider-runtime-list"><h2>Aktive Runtime-Routen</h2>'+(active.length?active.map(p=>'<div class="row"><div><strong>'+h(p.name)+'</strong><div class="small">'+h(p.role)+' · '+h(humanDim(p.presentation_dimensions?.executable))+'</div></div>'+groupBadge(p.presentation_group)+'</div>').join(''):'<div class="empty">Keine verifizierte aktive Runtime-Route.</div>')+'</div>'}catch(error){setError(error)}}
   if(typeof render==='function'){const prev=render;render=function(id){prev(id);if(id==='providers')requestAnimationFrame(()=>void renderProviderEcosystem());if(id==='mission'&&state?.plan)requestAnimationFrame(()=>void hydrateCost(state.plan))}}
 })();
 </script>`;

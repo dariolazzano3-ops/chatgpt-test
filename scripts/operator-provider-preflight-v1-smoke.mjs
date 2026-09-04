@@ -23,13 +23,16 @@ for (const marker of [
   'ROUTENDETAILS',
   'Approved Cost Ceiling',
   'Provider Ecosystem',
-  'Active Runtime Routes',
+  'Aktive Runtime-Routen',
+  'Technischer Provider-Contract',
   'ECONOMY',
   'BALANCED',
   'PREMIUM'
 ]) assert.equal(html.includes(marker), true, `operator shell missing ${marker}`);
 assert.equal(html.includes('0 Paid Calls'), true);
 assert.equal(html.includes('Production aktivieren'), false);
+assert.equal(html.includes('Active Runtime Routes'), false, 'Phase-5 human presentation uses the German primary label while preserving active_runtime_routes in the API contract');
+assert.equal(html.includes('Einsatzbereit (Staging)'), true, 'staging executable readiness must not read as generic production readiness');
 
 const providersResponse = await handleOperatorDashboard(get('/operator/api/provider-ecosystem'), {}, {}, options);
 assert.equal(providersResponse.status, 200);
@@ -37,7 +40,21 @@ const providers = await providersResponse.json();
 assert.equal(providers.strategic_selection_is_not_technical_connection, true);
 assert.equal(providers.read_only_evidence_is_not_active_runtime, true);
 for (const provider of providers.provider_ecosystem.filter((row) => row.connection_state === 'NOT_CONNECTED')) assert.equal(provider.active_runtime, false);
-for (const provider of providers.active_runtime_routes) assert.equal(provider.connection_state, 'CONNECTED_STAGING');
+for (const provider of providers.active_runtime_routes) assert.equal(['CONNECTED_STAGING','READ_ONLY_VERIFIED'].includes(provider.connection_state), true);
+assert.equal(providers.schema, 'aurentara.provider-ecosystem.v2');
+for (const provider of providers.provider_ecosystem) {
+  assert.deepEqual(Object.keys(provider.presentation_dimensions), [
+    'registered','available','configured','connected','staging_verified','executable','production_capable'
+  ]);
+  assert.equal(provider.presentation_dimensions.registered, 'REGISTERED');
+  assert.equal(['EINSATZBEREIT','STAGING_VERIFIZIERT','KONFIGURIERT_NICHT_VERIFIZIERT','NICHT_VERBUNDEN','BLOCKIERT'].includes(provider.presentation_group), true);
+  if (provider.connection_state === 'NOT_CONNECTED') assert.notEqual(provider.presentation_group, 'EINSATZBEREIT');
+  if (provider.presentation_group === 'EINSATZBEREIT') assert.equal(provider.presentation_dimensions.executable, 'VERIFIED_STAGING', 'Einsatzbereit is staging execution readiness only');
+  if (provider.production_deploy === false) assert.notEqual(provider.presentation_dimensions.production_capable, 'VERIFIED', 'Production capability must not be invented from a disabled deployment state');
+}
+assert.deepEqual(Object.keys(providers.presentation_groups), [
+  'einsatzbereit','staging_verifiziert','konfiguriert_nicht_verifiziert','nicht_verbunden','blockiert'
+]);
 const providerNames = new Set(providers.provider_ecosystem.map((row) => row.name));
 for (const name of ['Framer', 'Base44', 'Make', 'Activepieces', 'n8n', 'Lovable', 'Webflow']) assert.equal(providerNames.has(name), true, `provider UI projection missing ${name}`);
 
@@ -121,6 +138,8 @@ assert.equal(manifest.additional_variable_cost_eur, 0);
 
 console.log(JSON.stringify({
   operator_provider_preflight_smoke: 'PASS',
+  catalog_dimensions_separated: true,
+  provider_human_groups: true,
   quick_latency_ms: quick.calculation_latency_ms,
   governed_auto_deep: governed.automatically_triggered,
   provider_ecosystem_count: providers.provider_ecosystem.length,
