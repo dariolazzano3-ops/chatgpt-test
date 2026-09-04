@@ -13,6 +13,13 @@ export function evaluateProjectDelivery(project = {}, evidence = {}) {
   if (evidence.scope_verified !== true) blockers.push({ code: 'PROJECT_SCOPE_VERIFICATION_REQUIRED' });
   if (evidence.costs_reconciled !== true) blockers.push({ code: 'PROJECT_COST_RECONCILIATION_REQUIRED' });
   if (evidence.production_deploy === true) blockers.push({ code: 'PRODUCTION_DEPLOY_NOT_PART_OF_PROJECT_DELIVERY_GATE' });
+  const premiumRequired = project.premium_website_standard_required === true || project.quality_contract?.premium_website_standard_required === true || project.website_standard === 'aurentara.premium-website-standard.v1';
+  const premiumEvidence = evidence.premium_standard || evidence.premium_website_standard || null;
+  if (premiumRequired) {
+    if (!premiumEvidence) blockers.push({ code: 'PREMIUM_WEBSITE_STANDARD_EVIDENCE_REQUIRED' });
+    else if (premiumEvidence.schema !== 'aurentara.premium-website-standard.v1') blockers.push({ code: 'PREMIUM_WEBSITE_STANDARD_SCHEMA_INVALID' });
+    else if (premiumEvidence.delivery_readiness?.premium_delivery_ready !== true) blockers.push({ code: 'PREMIUM_WEBSITE_STANDARD_DELIVERY_NOT_READY', state: premiumEvidence.delivery_readiness?.state || 'NOT_VERIFIED', hard_failures: (premiumEvidence.hard_failures || []).map((item) => item.code) });
+  }
   return {
     ok: true,
     scope_key: project.scope_key || null,
@@ -39,11 +46,18 @@ export function createProjectHandoff(project = {}, evidence = {}) {
       delivery_count: (project.deliveries || []).length,
       structural_delivery_ready: true,
       external_activation_separate: true,
+      premium_website_standard: {
+        required: project.premium_website_standard_required === true || project.quality_contract?.premium_website_standard_required === true || project.website_standard === 'aurentara.premium-website-standard.v1',
+        schema: evidence.premium_standard?.schema || evidence.premium_website_standard?.schema || null,
+        weighted_score: evidence.premium_standard?.weighted_score ?? evidence.premium_website_standard?.weighted_score ?? null,
+        state: evidence.premium_standard?.delivery_readiness?.state || evidence.premium_website_standard?.delivery_readiness?.state || null,
+        premium_delivery_ready: evidence.premium_standard?.delivery_readiness?.premium_delivery_ready === true || evidence.premium_website_standard?.delivery_readiness?.premium_delivery_ready === true
+      },
       production_deploy: false
     }
   };
 }
 
 export function projectDeliveryGateManifest() {
-  return { version: 'riosystems.project-delivery-gate.v1', checks: ['capability_completion','mission_history','qa','scope','cost_reconciliation'], external_activation_separate: true, production_deploy: false };
+  return { version: 'riosystems.project-delivery-gate.v1', checks: ['capability_completion','mission_history','qa','scope','cost_reconciliation','premium_website_standard_when_required'], external_activation_separate: true, production_deploy: false };
 }

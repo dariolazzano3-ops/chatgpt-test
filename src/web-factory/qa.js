@@ -67,14 +67,15 @@ function contrastRatio(hexA, hexB) {
   return (l1 + 0.05) / (l2 + 0.05);
 }
 
-export function runWebsiteQa(artifact) {
+export function runWebsiteQa(artifact, options = {}) {
   const issues = [];
   const warn = (category, code, message, file = null) => issues.push(issue(category, code, message, 'warning', file));
   const block = (category, code, message, file = null) => issues.push(issue(category, code, message, 'blocking', file));
   const files = artifact.files || {};
   const html = htmlFiles(artifact);
 
-  if (html.length < 5) block('structure', 'MULTI_PAGE_REQUIRED', `Expected at least 5 HTML pages, received ${html.length}`);
+  const expectedPageSet = options.expected_page_set || artifact.expected_page_set || artifact.information_architecture?.expected_page_set || artifact.architecture?.expected_page_set || [];
+  if (Array.isArray(expectedPageSet) && expectedPageSet.length && html.length !== expectedPageSet.length) block('structure', 'EXPECTED_PAGE_SET_MISMATCH', `Expected ${expectedPageSet.length} HTML pages from approved information architecture, received ${html.length}`);
   for (const [file, source] of html) {
     if (!/^<!doctype html>/i.test(source.trim())) block('structure', 'DOCTYPE_MISSING', 'HTML doctype is required', file);
     if (!/<html\b[^>]*\blang="[^"]+"/i.test(source)) block('accessibility', 'LANG_MISSING', 'html lang attribute is required', file);

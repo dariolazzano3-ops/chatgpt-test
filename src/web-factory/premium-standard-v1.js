@@ -203,7 +203,7 @@ export function evaluatePremiumWebsiteStandard(input={}){
     missing_assets:uniq([...(assets.missing_assets||[]),...arr(input.missing_assets)]),
     missing_legal_inputs:uniq([...(legal.missing_required_inputs||[]),...arr(input.missing_legal_inputs)]),
     trust_evidence:trust,legal_readiness:legal,
-    technical_evidence:{preview_qa:state(input.preview_qa),responsive_qa:state(input.responsive_qa),seo:clone(input.seo_evidence||null),local_seo:clone(input.local_seo_evidence||null),performance,accessibility,privacy:clone(input.privacy_evidence||null),security:clone(input.security_evidence||null),project_isolation:clone(input.project_isolation||null),launch_checklist:launch,field_cwv_claimed:performance.field_cwv_claimed===true},
+    technical_evidence:{existing_web_quality_score:clone(input.existing_web_quality_score||null),preview_qa:state(input.preview_qa),responsive_qa:state(input.responsive_qa),seo:clone(input.seo_evidence||null),local_seo:clone(input.local_seo_evidence||null),performance,accessibility,privacy:clone(input.privacy_evidence||null),security:clone(input.security_evidence||null),project_isolation:clone(input.project_isolation||null),launch_checklist:launch,field_cwv_claimed:performance.field_cwv_claimed===true},
     customer_review:{...customer_review,ready:customer_review_ready},human_review:human,ownership,care,
     delivery_readiness:{build_ready,customer_review_ready,premium_delivery_ready,state:readiness_state},
     launch_readiness:{public_launch_ready,launch_checklist_status:launch.status,existing_launch_governance:launchGovernance,deploy_executed:false},

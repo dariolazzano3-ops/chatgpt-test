@@ -152,10 +152,11 @@ function workspaceHistory(uiAudit = []) {
   return [...seed, ...mapped];
 }
 
-export function buildOperatorProjectWorkspace({ project = {}, ui_audit = [], preview_url = null, preview_status = null } = {}) {
+export function buildOperatorProjectWorkspace({ project = {}, ui_audit = [], preview_url = null, preview_status = null, premium_standard = null } = {}) {
   if (!isAurentaraPublicWebsiteProject(project)) return { ok: false, error: 'PROJECT_WORKSPACE_NOT_SUPPORTED', production_deploy: false };
   const url = clean(preview_url || project.preview_url, 1200) || null;
   const currentPreviewStatus = clean(preview_status || project.preview_status, 80) || (url ? 'AVAILABLE' : 'NOT_AVAILABLE');
+  const premium = premium_standard || project.premium_standard || project.premium_website_standard || null;
   const history = workspaceHistory(ui_audit);
   const last = history.at(-1);
   return {
@@ -202,6 +203,13 @@ export function buildOperatorProjectWorkspace({ project = {}, ui_audit = [], pre
       current_iteration_status: currentPreviewStatus === 'AVAILABLE' ? 'PREVIEW_AVAILABLE_QA_PENDING_OR_EXTERNAL' : 'NOT_VERIFIED'
     },
     iteration_history: history,
+    premium_standard: {
+      enabled:Boolean(premium),schema:premium?.schema || 'aurentara.premium-website-standard.v1',state:premium?.delivery_readiness?.state || 'NOT_VERIFIED',score:premium?.weighted_score ?? null,
+      dimension_scores:(premium?.quality_dimensions || []).map((item)=>({id:item.id,label:item.label,score:item.score,verification:item.verification})),hard_failures:(premium?.hard_failures || []).map((item)=>item.code),
+      missing_customer_inputs:premium?.input_readiness?.missing_inputs || [],missing_assets:premium?.missing_assets || [],trust_evidence_state:premium?.trust_evidence?.status || 'NOT_VERIFIED',legal_state:premium?.legal_readiness?.legal_state || 'NOT_VERIFIED',
+      performance_state:premium?.technical_evidence?.performance?.lab_status || 'NOT_VERIFIED',accessibility_state:premium?.technical_evidence?.accessibility?.status || 'NOT_VERIFIED',seo_state:premium?.technical_evidence?.seo?.status || 'NOT_VERIFIED',
+      human_review_state:premium?.human_review?.state || 'NOT_VERIFIED',customer_review_state:premium?.customer_review?.ready===true?'READY':'NOT_READY',launch_readiness:premium?.launch_readiness?.public_launch_ready===true?'PUBLIC LAUNCH READY':'NOT_READY'
+    },
     governance: {
       branch_pr_only: true,
       automatic_merge: false,
@@ -309,7 +317,7 @@ async function classify(){try{fail(null);classification=await api('/project-work
 async function preflight(){try{fail(null);if(!classification)classification=await api('/project-workspace/'+encodeURIComponent(SCOPE)+'/classify',{method:'POST',body:JSON.stringify({requested_change:$('#request').value})});if(!classification.allowed)throw new Error(classification.block_reason);plan=await api('/mission-preflight',{method:'POST',body:JSON.stringify({scope_key:SCOPE,industry:'business-systems',country:'DE',language:'de',mission_text:classification.requested_change,requested_outcomes:['website preview iteration'],known_constraints:['staging only','no production','no DNS','no billing','synthetic data only','zero variable cost']})});renderChange()}catch(e){fail(e)}}
 async function approve(){try{fail(null);const entered=window.prompt('Bestätigungstext eingeben: '+APPROVAL_CONFIRMATION,'');if(entered===null)return;if(String(entered).trim()!==APPROVAL_CONFIRMATION)throw new Error('Freigabe nicht ausgeführt: Bestätigungstext stimmt nicht überein.');const result=await api('/mission-plan-decision',{method:'POST',body:JSON.stringify({plan_token:plan.plan_token,decision:'approve',confirmation_text:APPROVAL_CONFIRMATION})});plan=null;classification=null;await load();$('#decision').insertAdjacentHTML('afterbegin','<div class="callout"><strong>Execution route resolved.</strong><div class="small">Quality '+esc(result.quality_score??'–')+' · Variable cost '+money(result.variable_cost_eur||0)+' · Production '+esc(String(result.production_deploy))+'</div></div>')}catch(e){fail(e)}}
 async function planDecision(decision){try{await api('/mission-plan-decision',{method:'POST',body:JSON.stringify({plan_token:plan.plan_token,decision})});plan=null;renderChange()}catch(e){fail(e)}}
-function renderQA(){const q=workspace.qa;$('#qa').innerHTML='<h2>QA Panel</h2><div class="small" style="margin-bottom:8px">Source: '+esc(q.source)+'</div><div class="qa-list">'+q.checks.map(x=>'<div class="qa"><span>'+esc(x.label)+'</span>'+badge(x.status)+'</div>').join('')+'</div><div class="small" style="margin-top:8px">Current iteration: '+esc(q.current_iteration_status)+'</div>'}
+function renderQA(){const q=workspace.qa;const p=workspace.premium_standard||{};const premium=p.enabled?'<div class="callout" style="margin-top:10px"><strong>Premium Standard</strong><div class="small">State '+esc(p.state)+' · Score '+esc(p.score??'–')+' · Human '+esc(p.human_review_state)+' · Launch '+esc(p.launch_readiness)+'</div><div class="small">Hard failures '+esc((p.hard_failures||[]).length)+' · Missing inputs '+esc((p.missing_customer_inputs||[]).length)+' · Missing assets '+esc((p.missing_assets||[]).length)+'</div></div>':'<div class="small" style="margin-top:8px">Premium Standard: NOT_VERIFIED</div>';$('#qa').innerHTML='<h2>QA Panel</h2><div class="small" style="margin-bottom:8px">Source: '+esc(q.source)+'</div><div class="qa-list">'+q.checks.map(x=>'<div class="qa"><span>'+esc(x.label)+'</span>'+badge(x.status)+'</div>').join('')+'</div><div class="small" style="margin-top:8px">Current iteration: '+esc(q.current_iteration_status)+'</div>'+premium}
 function renderHistory(){const h=workspace.iteration_history||[];$('#history').innerHTML='<h2>Version / Iteration History</h2><div style="overflow:auto"><table class="table"><thead><tr><th>Iteration</th><th>SHA / Branch</th><th>QA</th><th>Status</th></tr></thead><tbody>'+h.slice().reverse().map(x=>'<tr><td>'+esc(x.iteration)+'</td><td class="mono">'+esc(x.git_sha||'not projected')+'<br>'+esc(x.branch||'')+'</td><td>'+badge(x.qa_status)+'</td><td>'+badge(x.status)+'</td></tr>').join('')+'</tbody></table></div>'}
 async function decide(decision){try{fail(null);const r=await api('/project-workspace/'+encodeURIComponent(SCOPE)+'/decision',{method:'POST',body:JSON.stringify({decision})});await load();$('#decision').insertAdjacentHTML('afterbegin','<div class="callout"><strong>'+esc(r.status)+'</strong><div class="small">'+esc(r.operator_gate)+' · Merge started '+esc(String(r.merge_started))+' · Production '+esc(String(r.production_deploy))+'</div></div>')}catch(e){fail(e)}}
 function renderDecision(){ $('#decision').innerHTML='<h2>Human Review</h2><div class="actions"><button class="btn primary" data-decision="accept">ACCEPT ITERATION</button><button class="btn" data-decision="request_changes">REQUEST CHANGES</button><button class="btn danger" data-decision="return_to_accepted">RETURN TO LAST ACCEPTED</button></div><div class="small" style="margin-top:8px">Kein Button merged automatisch. Finaler Merge oder Release bleibt ein explizites Operator-Gate.</div>';document.querySelectorAll('[data-decision]').forEach(b=>b.onclick=()=>decide(b.dataset.decision))}
@@ -329,6 +337,7 @@ export function operatorProjectWorkspaceManifest() {
     existing_web_factory_route_referenced: true,
     existing_factory_preview_reused: true,
     duplicate_project_state: false,
+    premium_standard_projection: true,
     automatic_merge: false,
     production_deploy: false,
     dns_change: false,

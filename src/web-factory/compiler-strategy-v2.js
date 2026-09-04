@@ -146,6 +146,7 @@ export function createWebsiteStrategy(mission = {}) {
   const goal = text(mission.primary_goal,400);
   const local = recipe.recipe_id === 'local_business' || ['restaurant','dentist','real_estate','hospitality'].includes(recipe.recipe_id);
   const saas = recipe.recipe_id === 'saas';
+  const expectedPages = arr(mission.required_pages).length ? uniq(mission.required_pages) : uniq(recipe.recommended_pages);
   return {
     schema:'riosystems.website-strategy.v2',
     website_role:local ? 'local trust and conversion hub' : saas ? 'product education and acquisition surface' : 'authority, understanding and lead generation surface',
@@ -156,15 +157,28 @@ export function createWebsiteStrategy(mission = {}) {
     secondary_conversion:local ? 'phone_or_email_contact' : saas ? 'product_evaluation' : 'deeper_service_evaluation',
     trust_requirements:recipe.trust_patterns,
     content_priorities:recipe.content_patterns,
-    recommended_pages:uniq([...(mission.required_pages || []),...recipe.recommended_pages]),
+    recommended_pages:expectedPages,
+    architecture_basis:arr(mission.required_pages).length ? 'approved_required_pages' : 'industry_recipe_default',
     industry_warnings:recipe.industry_warnings,
     no_fabricated_trust:true
   };
 }
 
 export function createInformationArchitecture(strategy = {}, mission = {}) {
-  const pages = uniq(strategy.recommended_pages || mission.required_pages || ['home','services','about','contact','faq']);
-  const normalized = pages.map((id,index) => ({ page_id:id, path:id === 'home' ? '/' : `/${id}/`, parent:null, depth:1, order:index }));
+  const explicitPages = arr(mission.required_pages);
+  const pages = explicitPages.length ? uniq(explicitPages) : (arr(strategy.recommended_pages).length ? uniq(strategy.recommended_pages) : ['home','services','about','contact','faq']);
+  const normalized = pages.map((id,index) => {
+    const home=id==='home'; const contact=id==='contact'; const faq=id==='faq';
+    const conversionRole=contact?'primary_conversion':home?'journey_entry':faq?'objection_resolution':'evaluation';
+    const trustRole=home?'establish_initial_trust':faq?'resolve_trust_objections':contact?'reduce_contact_risk':'support_evaluation_with_relevant_evidence';
+    return { page_id:id, path:home ? '/' : `/${id}/`, parent:null, depth:1, order:index,
+      business_purpose:home?'orient the visitor around the business value and primary journey':contact?'enable the primary customer action with low friction':faq?'resolve material objections before conversion':`support informed evaluation of ${id}`,
+      audience:mission.target_audience || strategy.target_audience || 'prospective customer', journey_role:conversionRole,
+      search_intent:`${id} | ${mission.industry || 'business'} | ${mission.seo_location || mission.country || ''}`,
+      conversion_role:conversionRole, trust_role:trustRole,
+      page_rationale:explicitPages.length?'included by the approved information architecture':'included by the industry-informed strategy and business need'
+    };
+  });
   const nav = normalized.filter((p) => !['privacy','legal-notice'].includes(p.page_id)).map((p) => ({ page_id:p.page_id, path:p.path }));
   const footer = { primary:nav.map((p) => p.page_id), utility:uniq(['privacy','legal-notice'].filter((id) => pages.includes(id))), contact_required:true };
   const internalLinks = normalized.flatMap((page) => page.page_id === 'home'
@@ -176,6 +190,7 @@ export function createInformationArchitecture(strategy = {}, mission = {}) {
   const deadEnds = pages.filter((p) => !internalLinks.some((l) => l.from === p) && p !== 'contact');
   return {
     schema:'riosystems.information-architecture.v2', site_map:normalized, page_hierarchy:normalized,
+    expected_page_set:normalized.map((page)=>({page_id:page.page_id,path:page.path,page_rationale:page.page_rationale})), business_driven_page_count:true, fixed_minimum_page_count:false,
     navigation:nav, footer_structure:footer, internal_links:internalLinks,
     conversion_paths:[{ id:'primary', steps:['home','understand_offer','trust','evaluate','contact'].filter(Boolean), target:mission.conversion_goal || strategy.primary_conversion }],
     diagnostics:{ orphan_pages:orphanPages, navigation_depth:Math.max(...normalized.map((p) => p.depth),1), duplicate_pages:pages.filter((p,i) => pages.indexOf(p)!==i), dead_end_journeys:deadEnds },
@@ -210,6 +225,12 @@ export function createPageIntentContracts(architecture = {}, strategy = {}, miss
       return {
         page_id:id,
         page_type:id,
+        business_purpose:page.business_purpose,
+        audience:page.audience || mission.target_audience,
+        journey_role:page.journey_role,
+        search_intent:page.search_intent,
+        trust_role:page.trust_role,
+        page_rationale:page.page_rationale,
         goal:contact ? 'convert with low friction' : faq ? 'resolve objections' : home ? 'orient, build trust and route to conversion' : `support evaluation of ${id}`,
         audience:mission.target_audience,
         primary_message:home ? mission.brand_positioning || mission.primary_goal : `${id} information supporting ${strategy.primary_goal || mission.primary_goal}`,
@@ -217,7 +238,7 @@ export function createPageIntentContracts(architecture = {}, strategy = {}, miss
         secondary_CTA:contact ? 'phone_or_email' : 'learn_more',
         required_sections:home ? ['hero','proof','services','process','faq','cta'] : contact ? ['hero','form','contact_options'] : faq ? ['hero','faq','cta'] : ['hero',id,'proof','cta'],
         SEO_intent:`${id} | ${mission.industry} | ${mission.seo_location || mission.country || ''}`,
-        conversion_role:contact ? 'primary_conversion' : home ? 'journey_entry' : faq ? 'objection_resolution' : 'evaluation'
+        conversion_role:page.conversion_role || (contact ? 'primary_conversion' : home ? 'journey_entry' : faq ? 'objection_resolution' : 'evaluation')
       };
     }),
     decorative_pages_allowed:false
