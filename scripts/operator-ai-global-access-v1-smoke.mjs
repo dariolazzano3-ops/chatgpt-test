@@ -34,6 +34,9 @@ assert.match(html,/@media\(max-width:760px\)/);
 assert.match(html,/height:min\(92vh,780px\)/);
 assert.equal((html.match(/aurentara-global-operator-ai-access-v1-script/g)||[]).length,1);
 assert.equal(injectGlobalOperatorAiAccessUi(html),html,'injection must be idempotent');
+const globalScriptMatch=html.match(/<script id="aurentara-global-operator-ai-access-v1-script">([\s\S]*?)<\/script>/);
+assert.ok(globalScriptMatch,'global access script must be embedded');
+assert.doesNotThrow(()=>new Function(globalScriptMatch[1]),'embedded global access script must parse');
 
 const scope='gelato-donatello:website-v1';
 const projects=[{scope_key:scope,name:'Gelato Donatello',project_id:'gelato'}];
