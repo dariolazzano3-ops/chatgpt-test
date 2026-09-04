@@ -104,20 +104,23 @@ export async function executeProjectOperationalLoop(project = {}, missionInput =
 export function finalizeOperationalDelivery(project = {}, run = {}, evidence = {}) {
   const qa = evaluateExecutionQA(run, evidence);
   if (!qa.ready_for_delivery) return { ok: false, error: 'EXECUTION_QA_NOT_READY', qa, production_deploy: false };
-  const gate = evaluateProjectDelivery(project, {
+  const gateEvidence = {
     capabilities: evidence.capabilities || [],
     qa_passed: true,
     scope_verified: qa.run.scope_verified,
     costs_reconciled: qa.run.cost_reconciled,
+    customer_review: evidence.customer_review || null,
+    premium_standard: evidence.premium_standard || null,
+    premium_website_standard: evidence.premium_website_standard || null,
+    now: evidence.now,
     production_deploy: false
-  });
+  };
+  const gate = evaluateProjectDelivery(project, gateEvidence);
   if (!gate.ready_for_structural_delivery) return { ok: false, error: 'PROJECT_DELIVERY_NOT_READY', gate, qa, production_deploy: false };
   const handoff = createProjectHandoff(project, {
-    capabilities: evidence.capabilities || [],
-    qa_passed: true,
+    ...gateEvidence,
     scope_verified: true,
-    costs_reconciled: true,
-    production_deploy: false
+    costs_reconciled: true
   });
   if (!handoff.ok) return handoff;
   const delivered = checkpointExecution(qa.run, { status: 'DELIVERED', actor: evidence.actor || 'operator', reason: 'structural_delivery_complete' });
@@ -127,7 +130,7 @@ export function finalizeOperationalDelivery(project = {}, run = {}, evidence = {
 export function executionDeliveryOperationsManifest() {
   return {
     version: 'riosystems.phase3.execution-delivery.v1',
-    supports: ['execution_runs','checkpoints','bounded_recovery','qa_gate','delivery_handoff'],
+    supports: ['execution_runs','checkpoints','bounded_recovery','qa_gate','customer_review_gate','delivery_handoff'],
     durable_resume_contract: true,
     external_activation_separate: true,
     production_deploy: false

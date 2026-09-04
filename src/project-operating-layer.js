@@ -33,6 +33,7 @@ export function createCustomerProject(input = {}) {
       capabilities: [],
       missions: [],
       deliveries: [],
+      customer_review: null,
       audit: [{ event: 'PROJECT_CREATED', state: 'DRAFT', actor: clean(input.actor, 160) || 'system' }],
       production_deploy: false
     }
@@ -99,6 +100,22 @@ export function recordProjectDelivery(project = {}, delivery = {}) {
   return { ok: true, project: next };
 }
 
+export function recordProjectCustomerReview(project = {}, review = {}, options = {}) {
+  if (review?.schema !== 'aurentara.customer-review-lifecycle.v1') return { ok: false, error: 'CUSTOMER_REVIEW_LIFECYCLE_REQUIRED', production_deploy: false };
+  if (review.customer_id !== project.customer_id || review.project_id !== project.project_id || review.scope_key !== project.scope_key) {
+    return { ok: false, error: 'CUSTOMER_REVIEW_PROJECT_SCOPE_MISMATCH', production_deploy: false };
+  }
+  const next = clone(project);
+  next.customer_review = clone(review);
+  next.audit = [...(next.audit || []), {
+    event: 'PROJECT_CUSTOMER_REVIEW_RECORDED',
+    status: clean(review.status, 80) || null,
+    review_revision: Number(review.review_revision || 0),
+    actor: clean(options.actor, 160) || 'system'
+  }];
+  return { ok: true, project: next, production_deploy: false };
+}
+
 export function evaluateProjectReadiness(project = {}) {
   const blockers = [];
   if (!project.customer_id || !project.project_id) blockers.push('PROJECT_SCOPE_MISSING');
@@ -123,6 +140,7 @@ export function projectOperatingLayerManifest() {
     capability_portfolio: true,
     mission_binding: true,
     delivery_history: true,
+    customer_review_binding: true,
     production_deploy: false
   };
 }
