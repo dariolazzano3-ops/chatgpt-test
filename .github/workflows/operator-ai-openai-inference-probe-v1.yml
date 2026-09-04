@@ -1,0 +1,115 @@
+name: AURENTARA Operator AI OpenAI Inference Probe V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/operator-ai-inference-probe-request.json'
+      - '.github/workflows/operator-ai-openai-inference-probe-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-operator-ai-openai-inference-probe-v1
+  cancel-in-progress: false
+
+jobs:
+  authorize-and-probe:
+    if: >-
+      github.event.pull_request.head.ref == 'factory/operator-ai-inference-probe-run-v1' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'dariolazzano3-ops' &&
+      github.event.pull_request.title == '[PAID STAGING PROBE] AURENTARA Operator AI OpenAI V1' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: riosystems-staging
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      ENDPOINT: https://riosystems-staging.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics/openai-secret-presence
+      CONFIRMATION: AURENTARA_OPERATOR_AI_INFERENCE_TEST_V1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+
+      - name: Authorize exact one-file probe request
+        run: |
+          set -euo pipefail
+          test -n "$API_TOKEN"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/operator-ai-inference-probe-request.json"
+          git fetch --no-tags origin factory-control
+          test "$(git rev-parse HEAD^)" = "$(git rev-parse origin/factory-control)"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const request = JSON.parse(fs.readFileSync('.github/operator-ai-inference-probe-request.json', 'utf8'));
+          const valid =
+            request.schema === 'aurentara.operator-ai-inference-probe-request.v1' &&
+            request.target === 'riosystems-staging' &&
+            request.canonical_ref === 'factory-control' &&
+            /^[0-9a-f]{40}$/.test(request.canonical_sha || '') &&
+            request.canonical_sha === process.env.CANONICAL_SHA &&
+            request.confirmation === 'AURENTARA_OPERATOR_AI_INFERENCE_TEST_V1' &&
+            request.max_paid_inference_calls === 1 &&
+            Number(request.max_cost_usd) <= 0.01 &&
+            request.production_deploy === false &&
+            request.external_writes === false;
+          if (!valid) process.exit(1);
+          NODE
+        env:
+          CANONICAL_SHA: ${{ github.event.pull_request.base.sha }}
+
+      - name: Verify protected staging OpenAI authentication without inference
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error             -H "Authorization: Bearer ${API_TOKEN}"             "${ENDPOINT}?verify=models")"
+          RESPONSE="$response" node - <<'NODE'
+          const data = JSON.parse(process.env.RESPONSE);
+          if (data.ok !== true) throw new Error(data.error || 'OPENAI_MODELS_VERIFICATION_FAILED');
+          if (data.credential_valid !== true || data.connected_staging !== true) throw new Error('OPENAI_STAGING_CONNECTION_NOT_VERIFIED');
+          if (data.inference_performed !== false || data.token_generation_requested !== false) throw new Error('UNEXPECTED_INFERENCE_DURING_AUTH_CHECK');
+          if (data.secret_value_exposed !== false || data.production_deploy !== false) throw new Error('OPENAI_AUTH_CHECK_SAFETY_FAILED');
+          console.log(JSON.stringify({
+            ok: true,
+            phase: 'AUTH_MODEL_PREFLIGHT',
+            connected_staging: true,
+            inference_performed: false,
+            variable_cost_eur: 0,
+            secret_value_exposed: false,
+            production_deploy: false
+          }));
+          NODE
+
+      - name: Execute exactly one bounded paid OpenAI inference probe
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error             -X POST             -H "Authorization: Bearer ${API_TOKEN}"             -H "x-aurentara-openai-probe-confirmation: ${CONFIRMATION}"             "${ENDPOINT}?verify=inference")"
+          RESPONSE="$response" node - <<'NODE'
+          const data = JSON.parse(process.env.RESPONSE);
+          if (data.ok !== true) throw new Error(data.error || 'OPENAI_INFERENCE_PROBE_FAILED');
+          if (data.inference_verified !== true || data.token_generation_verified !== true) throw new Error('OPENAI_INFERENCE_NOT_VERIFIED');
+          if (data.paid_inference_calls !== 1) throw new Error('PAID_INFERENCE_CALL_COUNT_INVALID');
+          if (!data.usage || !Number.isFinite(Number(data.usage.total_tokens))) throw new Error('OPENAI_USAGE_MISSING');
+          if (!Number.isFinite(Number(data.estimated_cost_usd)) || Number(data.estimated_cost_usd) > 0.01) throw new Error('OPENAI_PROBE_COST_CEILING_EXCEEDED');
+          if (data.tool_calls !== 0 || data.secret_value_exposed !== false || data.external_writes !== false || data.production_deploy !== false) throw new Error('OPENAI_PROBE_SAFETY_FAILED');
+          console.log(JSON.stringify({
+            ok: true,
+            schema: data.schema,
+            provider_id: data.provider_id,
+            environment: data.environment,
+            model: data.model,
+            model_fallback_used: data.model_fallback_used,
+            inference_verified: true,
+            token_generation_verified: true,
+            usage: data.usage,
+            estimated_cost_usd: data.estimated_cost_usd,
+            paid_inference_calls: 1,
+            tool_calls: 0,
+            secret_value_exposed: false,
+            external_writes: false,
+            production_deploy: false
+          }, null, 2));
+          NODE
