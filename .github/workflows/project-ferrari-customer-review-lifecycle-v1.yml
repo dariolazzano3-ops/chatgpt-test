@@ -1,0 +1,49 @@
+name: AURENTARA Project Ferrari Customer Review Lifecycle V1
+
+on:
+  pull_request:
+    branches:
+      - factory-control
+    paths:
+      - 'src/customer-review-lifecycle-v1.js'
+      - 'src/customer-delivery-contract-v1.js'
+      - 'src/human-outcome-acceptance-v1.js'
+      - 'src/runtime-approvals.js'
+      - 'src/project-operating-layer.js'
+      - 'src/project-portfolio.js'
+      - 'src/project-delivery-gate.js'
+      - 'src/execution-delivery-operations.js'
+      - 'scripts/customer-review-lifecycle-v1-smoke.mjs'
+      - '.github/workflows/project-ferrari-customer-review-lifecycle-v1.yml'
+  push:
+    branches:
+      - factory/project-ferrari-customer-review-lifecycle-v1
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: node --check src/customer-review-lifecycle-v1.js
+      - run: node --check src/project-delivery-gate.js
+      - run: node --check src/project-operating-layer.js
+      - run: node --check src/project-portfolio.js
+      - run: node --check src/execution-delivery-operations.js
+      - name: Ferrari customer review lifecycle
+        run: node scripts/customer-review-lifecycle-v1-smoke.mjs
+      - name: Customer delivery contract regression
+        run: node scripts/customer-delivery-contract-v1-smoke.mjs
+      - name: Human outcome regression
+        run: node scripts/human-outcome-acceptance-v1-smoke.mjs
+      - name: Project operating layer regression
+        run: node scripts/phase2-project-operating-layer-smoke.mjs
+      - name: Execution delivery regression
+        run: node scripts/phase3-execution-delivery-smoke.mjs
