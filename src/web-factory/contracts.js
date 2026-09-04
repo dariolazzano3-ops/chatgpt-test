@@ -38,7 +38,7 @@ export function validateWebsiteMission(input = {}) {
   const brandPositioning = text(input.brand_positioning, 500) || `Clear, trustworthy specialist in ${industry || 'its market'}`;
   const tone = text(input.tone, 160) || 'clear, trustworthy, modern';
   const requiredPages = list(input.required_pages, 20).map((page) => slugifyProject(page));
-  const pages = [...new Set([...(requiredPages.length ? requiredPages : DEFAULT_PAGES), ...DEFAULT_PAGES])];
+  const pages = requiredPages.length ? requiredPages : [...DEFAULT_PAGES];
   const conversionGoal = text(input.conversion_goal, 300) || primaryGoal || 'Generate qualified enquiries';
   const seoLocation = text(input.seo_location, 160) || (country === 'Germany' ? 'Germany' : country);
   const qualityLevelRaw = text(input.quality_level, 40).toUpperCase();

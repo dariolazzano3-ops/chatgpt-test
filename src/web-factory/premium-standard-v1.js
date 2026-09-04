@@ -111,8 +111,10 @@ export function normalizePremiumTrustEvidence(items=[]){
   return {schema:'aurentara.premium-trust-evidence.v1',status:invalid.length?'NOT_VERIFIED':'PASS',items:evidence,invalid_evidence:invalid.map((x)=>x.evidence_id),chain:['claim','source','verification','placement'],fabrication_allowed:false};
 }
 export function evaluatePremiumCopyQuality(input={}){
-  const checks=['specificity','value_proposition_clarity','claim_provenance','objection_handling','cta_clarity','brand_voice','fact_consistency','repetition','empty_superlatives','generic_ai_style_filler','unsupported_assertions'];
-  const result=Object.fromEntries(checks.map((key)=>[key,state(input[key])]));
+  const positive=['specificity','value_proposition_clarity','claim_provenance','objection_handling','cta_clarity','brand_voice','fact_consistency'];
+  const negative=['repetition','empty_superlatives','generic_ai_style_filler','unsupported_assertions'];
+  const result=Object.fromEntries(positive.map((key)=>[key,state(input[key])]));
+  for(const key of negative){const value=input[key];result[key]=value===false?'PASS':value===true?'FAIL':state(value);}
   return {schema:'aurentara.premium-copy-quality.v1',status:Object.values(result).includes('FAIL')?'FAIL':Object.values(result).includes('NOT_VERIFIED')?'NOT_VERIFIED':'PASS',checks:result,ai_detection_claimed:false,deterministic_quality_rules_only:true};
 }
 export function validatePremiumConversionPlan(input={}){
