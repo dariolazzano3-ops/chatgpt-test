@@ -13,7 +13,9 @@ on:
       - 'src/project-portfolio.js'
       - 'src/project-delivery-gate.js'
       - 'src/execution-delivery-operations.js'
+      - 'src/pilot-orchestrator.js'
       - 'scripts/customer-review-lifecycle-v1-smoke.mjs'
+      - 'scripts/pilot-e2e-smoke.mjs'
       - '.github/workflows/project-ferrari-customer-review-lifecycle-v1.yml'
   push:
     branches:
@@ -37,6 +39,7 @@ jobs:
       - run: node --check src/project-operating-layer.js
       - run: node --check src/project-portfolio.js
       - run: node --check src/execution-delivery-operations.js
+      - run: node --check src/pilot-orchestrator.js
       - name: Ferrari customer review lifecycle
         run: node scripts/customer-review-lifecycle-v1-smoke.mjs
       - name: Customer delivery contract regression
@@ -47,3 +50,5 @@ jobs:
         run: node scripts/phase2-project-operating-layer-smoke.mjs
       - name: Execution delivery regression
         run: node scripts/phase3-execution-delivery-smoke.mjs
+      - name: Internal synthetic pilot exclusion regression
+        run: node scripts/pilot-e2e-smoke.mjs
