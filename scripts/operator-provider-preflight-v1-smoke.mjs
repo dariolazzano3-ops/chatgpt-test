@@ -32,6 +32,7 @@ for (const marker of [
 assert.equal(html.includes('0 Paid Calls'), true);
 assert.equal(html.includes('Production aktivieren'), false);
 assert.equal(html.includes('Active Runtime Routes'), false, 'Phase-5 human presentation uses the German primary label while preserving active_runtime_routes in the API contract');
+assert.equal(html.includes('Einsatzbereit (Staging)'), true, 'staging executable readiness must not read as generic production readiness');
 
 const providersResponse = await handleOperatorDashboard(get('/operator/api/provider-ecosystem'), {}, {}, options);
 assert.equal(providersResponse.status, 200);
@@ -48,6 +49,7 @@ for (const provider of providers.provider_ecosystem) {
   assert.equal(provider.presentation_dimensions.registered, 'REGISTERED');
   assert.equal(['EINSATZBEREIT','STAGING_VERIFIZIERT','KONFIGURIERT_NICHT_VERIFIZIERT','NICHT_VERBUNDEN','BLOCKIERT'].includes(provider.presentation_group), true);
   if (provider.connection_state === 'NOT_CONNECTED') assert.notEqual(provider.presentation_group, 'EINSATZBEREIT');
+  if (provider.presentation_group === 'EINSATZBEREIT') assert.equal(provider.presentation_dimensions.executable, 'VERIFIED_STAGING', 'Einsatzbereit is staging execution readiness only');
   if (provider.production_deploy === false) assert.notEqual(provider.presentation_dimensions.production_capable, 'VERIFIED', 'Production capability must not be invented from a disabled deployment state');
 }
 assert.deepEqual(Object.keys(providers.presentation_groups), [
