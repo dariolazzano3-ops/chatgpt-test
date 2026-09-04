@@ -50,8 +50,8 @@ insert into public.contacts (project_id, external_ref, email, full_name, source,
 values (
   ${uuidLiteral(scope.project_uuid)},
   ${literal(ids.contact_ref)},
-  'synthetic.lead@example.invalid',
-  'Synthetic Bakery Lead',
+  null,
+  null,
   'synthetic-website',
   '{"synthetic":true,"consent":false}'::jsonb,
   '{"synthetic":true,"source":"business-staging-write-plan"}'::jsonb
@@ -70,7 +70,7 @@ values (
   'validated',
   'synthetic-website',
   'business-staging-write-plan',
-  '{"message":"Synthetic staging lead only","synthetic":true}'::jsonb,
+  '{"synthetic":true,"classification":"staging_e2e"}'::jsonb,
   '{"synthetic":true,"source":"business-staging-write-plan"}'::jsonb
 )
 on conflict (project_id, idempotency_key)
