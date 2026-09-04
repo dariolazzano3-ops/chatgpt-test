@@ -105,7 +105,7 @@ jobs:
           if(!rows.length) throw new Error('TARGET_BRANCH_DEPLOYMENTS_NOT_FOUND');
           const keep=rows[0];
           fs.writeFileSync('/tmp/keep-id.txt',String(keep.id||''));
-          fs.writeFileSync('/tmp/delete-ids.txt',rows.slice(1).map((d)=>String(d.id||'')).filter(Boolean).join('\n'));
+          fs.writeFileSync('/tmp/delete-ids.txt',rows.slice(1).map((d)=>String(d.id||'')).filter(Boolean).join('\n') + (rows.length > 1 ? '\n' : ''));
           console.log(JSON.stringify({
             target_branch_deployments:rows.length,
             keeping_latest_tombstone:true,
@@ -117,7 +117,7 @@ jobs:
           NODE
 
           if [ -s /tmp/delete-ids.txt ]; then
-            while IFS= read -r DEPLOYMENT_ID; do
+            while IFS= read -r DEPLOYMENT_ID || [ -n "$DEPLOYMENT_ID" ]; do
               test -n "$DEPLOYMENT_ID" || continue
               npx --yes wrangler@4 pages deployment delete "$DEPLOYMENT_ID" \
                 --project-name "$CLOUDFLARE_PAGES_PROJECT" \
