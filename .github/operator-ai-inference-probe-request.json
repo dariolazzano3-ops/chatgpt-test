@@ -1,0 +1,11 @@
+{
+  "schema": "aurentara.operator-ai-inference-probe-request.v1",
+  "target": "riosystems-staging",
+  "canonical_ref": "factory-control",
+  "canonical_sha": "32d468a75e9addb0f67f874bb62e7fc959e629b1",
+  "confirmation": "AURENTARA_OPERATOR_AI_INFERENCE_TEST_V1",
+  "max_paid_inference_calls": 1,
+  "max_cost_usd": 0.01,
+  "production_deploy": false,
+  "external_writes": false
+}
