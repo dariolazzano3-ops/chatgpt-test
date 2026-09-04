@@ -133,6 +133,7 @@ upload.append('usage_role', 'GALLERY');
 upload.append('files', makeFile('gelato-logo.png', 'image/png', 'logo-fixture'), 'gelato-logo.png');
 upload.append('files', makeFile('gelato-hero.webp', 'image/webp', 'hero-fixture'), 'gelato-hero.webp');
 upload.append('files', makeFile('gelato-sortiment.pdf', 'application/pdf', 'pdf-fixture'), 'gelato-sortiment.pdf');
+upload.append('files', makeFile('gelato-notes.html', 'text/html', '<html>html-fixture</html>'), 'gelato-notes.html');
 response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/upload', {
   method: 'POST',
   headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' },
@@ -141,7 +142,7 @@ response = await handleOperatorDashboard(new Request('https://operator.example/o
 assert.equal(response.status, 201);
 const uploaded = await response.json();
 assert.equal(uploaded.ok, true);
-assert.equal(uploaded.items.length, 3);
+assert.equal(uploaded.items.length, 4);
 assert.equal(uploaded.multi_upload, true);
 assert.equal(uploaded.bulk_rights_status, 'OWNED_CONFIRMED');
 assert.equal(uploaded.mobile_compatible_multipart, true);
@@ -153,7 +154,7 @@ assert.equal(uploaded.paid_provider_calls, 0);
 response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake?scope_key=${encodeURIComponent(gelato.scope_key)}`), env, {}, handlerOptions);
 assert.equal(response.status, 200);
 const sourceView = await response.json();
-assert.equal(sourceView.workspace.sections.project_sources.length, 3);
+assert.equal(sourceView.workspace.sections.project_sources.length, 4);
 assert.equal(sourceView.storage.private, true);
 assert.equal(sourceView.storage.public_access, false);
 const durable = await store.load(operatorId);
@@ -161,19 +162,55 @@ const runtimeJson = JSON.stringify(durable);
 assert.equal(runtimeJson.includes('logo-fixture'), false);
 assert.equal(runtimeJson.includes('hero-fixture'), false);
 assert.equal(runtimeJson.includes('pdf-fixture'), false);
+assert.equal(runtimeJson.includes('html-fixture'), false);
 assert.equal(runtimeJson.includes('synthetic-service-role-secret'), false);
 assert.equal(runtimeJson.includes('supabase://project-source-intake-private/'), true);
 
-// Cross-project read is denied even when a valid ref from another project is supplied.
-const gelatoRef = sourceView.workspace.sections.project_sources[0].storage_ref;
-response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/object?scope_key=${encodeURIComponent(other.scope_key)}&storage_ref=${encodeURIComponent(gelatoRef)}`), env, {}, handlerOptions);
-assert.equal(response.status, 404);
+// Preview and download share the same private project-scoped storage validation but remain semantically separate.
+const sources = sourceView.workspace.sections.project_sources;
+const imageSource = sources.find((item) => item.mime_type === 'image/png');
+const pdfSource = sources.find((item) => item.mime_type === 'application/pdf');
+const htmlSource = sources.find((item) => item.mime_type === 'text/html');
+assert.ok(imageSource);
+assert.ok(pdfSource);
+assert.ok(htmlSource);
 
-// Explicit same-project private read works through the Access-gated Worker route.
-response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/object?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(gelatoRef)}`), env, {}, handlerOptions);
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/preview?scope_key=${encodeURIComponent(other.scope_key)}&storage_ref=${encodeURIComponent(imageSource.storage_ref)}`), env, {}, handlerOptions);
+assert.equal(response.status, 404, 'cross-project preview must fail closed');
+
+const unauthenticatedOptions = { ...handlerOptions, authorize: async () => ({ ok: false, status: 401, error: 'CLOUDFLARE_ACCESS_REQUIRED' }) };
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/preview?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(imageSource.storage_ref)}`), env, {}, unauthenticatedOptions);
+assert.equal(response.status, 401, 'preview must require operator authentication');
+
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/preview?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(imageSource.storage_ref)}`), env, {}, handlerOptions);
 assert.equal(response.status, 200);
+assert.equal(response.headers.get('content-type'), 'image/png');
+assert.match(response.headers.get('content-disposition') || '', /^inline;/);
 assert.equal(response.headers.get('cache-control'), 'private, no-store');
+assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
 assert.equal(response.headers.get('x-aurentara-public-active'), 'false');
+assert.equal(response.headers.get('x-aurentara-source-object-mode'), 'preview');
+
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/preview?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(pdfSource.storage_ref)}`), env, {}, handlerOptions);
+assert.equal(response.status, 200);
+assert.equal(response.headers.get('content-type'), 'application/pdf');
+assert.match(response.headers.get('content-disposition') || '', /^inline;/);
+
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/preview?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(htmlSource.storage_ref)}`), env, {}, handlerOptions);
+assert.equal(response.status, 415);
+const unsupportedPreview = await response.json();
+assert.equal(unsupportedPreview.error, 'PROJECT_SOURCE_PREVIEW_UNSUPPORTED');
+assert.equal(unsupportedPreview.safe_preview_available, false);
+assert.equal(unsupportedPreview.download_available, true);
+assert.match(unsupportedPreview.message, /keine sichere Vorschau verfügbar/i);
+
+response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake/object?scope_key=${encodeURIComponent(gelato.scope_key)}&storage_ref=${encodeURIComponent(imageSource.storage_ref)}`), env, {}, handlerOptions);
+assert.equal(response.status, 200);
+assert.match(response.headers.get('content-disposition') || '', /^attachment;/);
+assert.equal(response.headers.get('cache-control'), 'private, no-store');
+assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+assert.equal(response.headers.get('x-aurentara-public-active'), 'false');
+assert.equal(response.headers.get('x-aurentara-source-object-mode'), 'download');
 
 // Website purpose updates are project-scoped, audited, metadata-only and keep source identity stable.
 let websiteRead = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
@@ -237,6 +274,91 @@ response = await handleOperatorDashboard(new Request('https://operator.example/o
   })
 }), env, {}, handlerOptions);
 assert.equal(response.status, 404);
+
+// Human manual categories map to existing canonical field paths without changing Fact verification semantics.
+const manualCategoryCases = [
+  ['OFFERING', 'business.offerings', 'Eisbecher'],
+  ['PRODUCT', 'business.products', 'Eistorte'],
+  ['PRICE', 'business.pricing', '1,60 EUR pro Kugel'],
+  ['OPENING_HOURS', 'business.opening_hours', 'Täglich 12:00–22:00'],
+  ['PHONE', 'business.phone', '+49 681 000000'],
+  ['EMAIL', 'business.email', 'info@example.test'],
+  ['ADDRESS', 'business.address', 'Saarbrücken'],
+  ['DESCRIPTION', 'content.summary', 'Gelato Donatello Beschreibung'],
+  ['OTHER', 'content.summary', 'Gelato Donatello Beschreibung']
+];
+for (const [category, fieldPath, value] of manualCategoryCases) {
+  response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      scope_key: other.scope_key,
+      context_scope_key: other.scope_key,
+      facts: [{ category, value }]
+    })
+  }), env, {}, handlerOptions);
+  assert.equal(response.status, 201, category);
+  const manualResponse = await response.json();
+  assert.equal(manualResponse.category_mapping_used, true);
+  assert.equal(manualResponse.auto_verified, false);
+  assert.equal(manualResponse.facts[0].field_path, fieldPath);
+  assert.equal(manualResponse.facts[0].origin, 'MANUAL');
+  assert.equal(manualResponse.facts[0].verification_status, 'UNVERIFIED');
+}
+
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: gelato.scope_key,
+    context_scope_key: other.scope_key,
+    facts: [{ category: 'DESCRIPTION', value: 'must not cross project context' }]
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 409);
+assert.equal((await response.json()).error, 'PROJECT_SOURCE_MANUAL_PROJECT_CONTEXT_MISMATCH');
+
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: gelato.scope_key,
+    context_scope_key: gelato.scope_key,
+    facts: [{ category: 'PRICE', field_path: 'business.phone', value: 'tampered mapping' }]
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 400);
+assert.equal((await response.json()).error, 'PROJECT_SOURCE_MANUAL_CATEGORY_FIELD_MISMATCH');
+
+// Conflict semantics are tested separately on the isolated mapping project.
+// The mapping loop already created the conflict-free content.summary baseline.
+let isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
+let isolatedBaseline = isolatedRead.body.state.facts.filter((fact) => fact.field_path === 'content.summary');
+assert.equal(isolatedBaseline.length, 1);
+assert.equal(isolatedBaseline[0].origin, 'MANUAL');
+assert.equal(isolatedBaseline[0].verification_status, 'UNVERIFIED');
+assert.equal(isolatedBaseline[0].value, 'Gelato Donatello Beschreibung');
+
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: other.scope_key,
+    context_scope_key: other.scope_key,
+    facts: [{ category: 'OTHER', value: 'Contradictory isolated description' }]
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 201);
+let isolatedManual = await response.json();
+assert.equal(isolatedManual.facts[0].field_path, 'content.summary');
+assert.equal(isolatedManual.facts[0].origin, 'MANUAL');
+assert.equal(isolatedManual.facts[0].verification_status, 'SOURCE_CONFLICT');
+
+isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
+const isolatedConflicts = isolatedRead.body.state.facts.filter((fact) => fact.field_path === 'content.summary');
+assert.equal(isolatedConflicts.length, 2);
+assert.equal(isolatedConflicts.every((fact) => fact.verification_status === 'SOURCE_CONFLICT'), true);
+assert.equal(isolatedRead.body.state.audit.some((event) => event.event === 'PROJECT_FACT_CONFLICT_DETECTED'), true);
 
 // // Controlled Gelato project facts are added explicitly and then packs/readiness are built. No website mission runs.
 let read = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
@@ -304,6 +426,13 @@ assert.equal(html.includes('data-source-use-structure'), true);
 assert.equal(html.includes('data-source-use-design'), true);
 assert.equal(html.includes('data-website-usage-save'), true);
 assert.equal(html.includes('Verwendung speichern'), true);
+assert.equal(html.includes('data-source-preview'), true);
+assert.equal(html.includes('data-source-download'), true);
+assert.equal(html.includes('Herunterladen'), true);
+assert.equal(html.includes('data-source-manual-category'), true);
+assert.equal(html.includes('Leistung / Angebot'), true);
+assert.equal(html.includes('Sonstige Information'), true);
+assert.equal(html.includes('Technischer Pfad:'), true);
 
 console.log(JSON.stringify({
   ok: true,
@@ -324,6 +453,14 @@ console.log(JSON.stringify({
   website_purpose_update: 'PASS',
   website_purpose_identity_stability: 'PASS',
   website_purpose_cross_project_rejection: 'PASS',
+  private_preview_image: 'PASS',
+  private_preview_pdf: 'PASS',
+  unsafe_preview_blocked: 'PASS',
+  explicit_download: 'PASS',
+  preview_auth_fail_closed: 'PASS',
+  manual_category_mapping: 'PASS',
+  manual_conflict_semantics: 'PASS',
+  manual_auto_verification: false,
   gelato_content_pack: packs.content_pack.version,
   gelato_visual_pack: packs.visual_pack.version,
   gelato_readiness: packs.readiness.status,

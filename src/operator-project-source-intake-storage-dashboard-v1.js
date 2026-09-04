@@ -18,6 +18,32 @@ import {
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const PUBLISHABLE_RIGHTS = new Set(['OWNED_CONFIRMED', 'CUSTOMER_LICENSED', 'CUSTOMER_ASSERTED']);
 const RIGHTS = new Set(['OWNED_CONFIRMED', 'CUSTOMER_LICENSED', 'CUSTOMER_ASSERTED', 'UNKNOWN', 'DO_NOT_PUBLISH']);
+export const PROJECT_SOURCE_PREVIEW_MIME_TYPES = Object.freeze([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/plain'
+]);
+const PROJECT_SOURCE_PREVIEW_MIME_SET = new Set(PROJECT_SOURCE_PREVIEW_MIME_TYPES);
+
+export const PROJECT_SOURCE_MANUAL_CATEGORIES = Object.freeze([
+  { id: 'OFFERING', label: 'Leistung / Angebot', field_path: 'business.offerings' },
+  { id: 'PRODUCT', label: 'Produkt', field_path: 'business.products' },
+  { id: 'PRICE', label: 'Preis', field_path: 'business.pricing' },
+  { id: 'OPENING_HOURS', label: 'Öffnungszeiten', field_path: 'business.opening_hours' },
+  { id: 'PHONE', label: 'Telefon', field_path: 'business.phone' },
+  { id: 'EMAIL', label: 'E-Mail', field_path: 'business.email' },
+  { id: 'ADDRESS', label: 'Adresse', field_path: 'business.address' },
+  { id: 'DESCRIPTION', label: 'Beschreibung', field_path: 'content.summary' },
+  { id: 'OTHER', label: 'Sonstige Information', field_path: 'content.summary' }
+]);
+const PROJECT_SOURCE_MANUAL_CATEGORY_MAP = new Map(PROJECT_SOURCE_MANUAL_CATEGORIES.map((item) => [item.id, item.field_path]));
+
+export function projectSourceManualFieldPath(category = '') {
+  return PROJECT_SOURCE_MANUAL_CATEGORY_MAP.get(clean(category, 80).toUpperCase()) || null;
+}
 
 function json(body, status = 200, source = null) {
   const headers = source ? new Headers(source.headers) : new Headers();
@@ -210,7 +236,7 @@ async function handleDelete(request, env, service, options = {}) {
   return json({ error: 'PROJECT_SOURCE_DELETE_RUNTIME_RECONCILIATION_FAILED', storage_deleted: true, production_deploy: false }, 409);
 }
 
-async function handleDownload(request, env, service, options = {}) {
+async function handleStoredObject(request, env, service, options = {}, mode = 'download') {
   const url = new URL(request.url);
   const scopeKey = clean(url.searchParams.get('scope_key'), 640);
   const storageRef = clean(url.searchParams.get('storage_ref'), 4000);
@@ -218,31 +244,101 @@ async function handleDownload(request, env, service, options = {}) {
   if (!read.ok) return json(read.body, read.status || 400);
   const source = sourceForStorageRef(read.body.state, storageRef);
   if (!source) return json({ error: 'PROJECT_SOURCE_STORAGE_REF_NOT_REGISTERED_IN_PROJECT', production_deploy: false }, 404);
+
+  const mimeType = clean(source.mime_type, 180).toLowerCase() || 'application/octet-stream';
+  if (mode === 'preview' && !PROJECT_SOURCE_PREVIEW_MIME_SET.has(mimeType)) {
+    return json({
+      error: 'PROJECT_SOURCE_PREVIEW_UNSUPPORTED',
+      message: 'Für diesen Dateityp ist keine sichere Vorschau verfügbar.',
+      mime_type: mimeType,
+      safe_preview_available: false,
+      download_available: true,
+      production_deploy: false
+    }, 415);
+  }
+
   let storage;
-  try { storage = storageClient(env, options); } catch { return json({ error: 'PROJECT_SOURCE_STORAGE_NOT_CONFIGURED', secret_exposed: false, production_deploy: false }, 503); }
+  try { storage = storageClient(env, options); } catch {
+    return json({ error: 'PROJECT_SOURCE_STORAGE_NOT_CONFIGURED', secret_exposed: false, production_deploy: false }, 503);
+  }
   const downloaded = await storage.download(storageRef, read.body.identity);
   if (!downloaded.ok) return json(downloaded, downloaded.error === 'PROJECT_SOURCE_STORAGE_CROSS_SCOPE_REJECTED' ? 403 : 404);
+
+  const responseType = clean(downloaded.content_type, 180).toLowerCase() || mimeType;
+  if (mode === 'preview' && !PROJECT_SOURCE_PREVIEW_MIME_SET.has(responseType)) {
+    return json({
+      error: 'PROJECT_SOURCE_PREVIEW_MIME_MISMATCH',
+      message: 'Für diesen Dateityp ist keine sichere Vorschau verfügbar.',
+      declared_mime_type: mimeType,
+      response_mime_type: responseType,
+      safe_preview_available: false,
+      download_available: true,
+      production_deploy: false
+    }, 415);
+  }
+
+  const filename = clean(source.display_name, 140).replace(/["\\]/g, '_') || 'project-source';
   const headers = new Headers();
-  headers.set('content-type', downloaded.content_type || source.mime_type || 'application/octet-stream');
+  headers.set('content-type', responseType);
   headers.set('cache-control', 'private, no-store');
-  headers.set('content-disposition', `attachment; filename="${clean(source.display_name, 140).replace(/["\\]/g, '_') || 'project-source'}"`);
+  headers.set('content-disposition', `${mode === 'preview' ? 'inline' : 'attachment'}; filename="${filename}"`);
   headers.set('x-content-type-options', 'nosniff');
   headers.set('x-aurentara-public-active', 'false');
+  headers.set('x-aurentara-source-object-mode', mode);
+  headers.set('referrer-policy', 'no-referrer');
+  if (mode === 'preview') headers.set('content-security-policy', "sandbox; default-src 'none'");
   return new Response(downloaded.response.body, { status: 200, headers });
+}
+
+async function handleDownload(request, env, service, options = {}) {
+  return handleStoredObject(request, env, service, options, 'download');
+}
+
+async function handlePreview(request, env, service, options = {}) {
+  return handleStoredObject(request, env, service, options, 'preview');
 }
 
 async function handleManual(request, service) {
   const body = await readJson(request);
-  const read = await loadIntake(service, body.scope_key);
+  const scopeKey = clean(body.scope_key, 640);
+  const contextScopeKey = clean(body.context_scope_key, 640);
+  if (contextScopeKey && contextScopeKey !== scopeKey) {
+    return json({ error: 'PROJECT_SOURCE_MANUAL_PROJECT_CONTEXT_MISMATCH', production_deploy: false }, 409);
+  }
+  const read = await loadIntake(service, scopeKey);
   if (!read.ok) return json(read.body, read.status || 400);
-  const facts = (Array.isArray(body.facts) ? body.facts : []).slice(0, 30).map((fact) => ({
-    fact_id: clean(fact.fact_id, 200) || undefined,
-    field_path: clean(fact.field_path, 320),
-    value: fact.value,
-    origin: 'MANUAL',
-    verification_status: 'UNVERIFIED',
-    critical: fact.critical === true
-  })).filter((fact) => fact.field_path && fact.value !== undefined && fact.value !== null && clean(typeof fact.value === 'string' ? fact.value : JSON.stringify(fact.value), 1));
+
+  const rawFacts = (Array.isArray(body.facts) ? body.facts : []).slice(0, 30);
+  const facts = [];
+  for (const fact of rawFacts) {
+    const category = clean(fact.category, 80).toUpperCase();
+    const mappedFieldPath = category ? projectSourceManualFieldPath(category) : null;
+    if (category && !mappedFieldPath) {
+      return json({ error: 'PROJECT_SOURCE_MANUAL_CATEGORY_UNSUPPORTED', category, production_deploy: false }, 400);
+    }
+    const suppliedFieldPath = clean(fact.field_path, 320);
+    if (category && suppliedFieldPath && suppliedFieldPath !== mappedFieldPath) {
+      return json({
+        error: 'PROJECT_SOURCE_MANUAL_CATEGORY_FIELD_MISMATCH',
+        category,
+        canonical_field_path: mappedFieldPath,
+        production_deploy: false
+      }, 400);
+    }
+    const fieldPath = mappedFieldPath || suppliedFieldPath;
+    const valuePresent = fact.value !== undefined && fact.value !== null
+      && clean(typeof fact.value === 'string' ? fact.value : JSON.stringify(fact.value), 1);
+    if (!fieldPath || !valuePresent) continue;
+    facts.push({
+      fact_id: clean(fact.fact_id, 200) || undefined,
+      field_path: fieldPath,
+      value: fact.value,
+      origin: 'MANUAL',
+      verification_status: 'UNVERIFIED',
+      critical: fact.critical === true
+    });
+  }
+
   if (!facts.length) return json({ error: 'PROJECT_SOURCE_MANUAL_FACTS_REQUIRED', production_deploy: false }, 400);
   const result = intakeManualSource(read.body.state, {
     source_id: clean(body.source_id, 200) || undefined,
@@ -253,7 +349,15 @@ async function handleManual(request, service) {
   if (!result.ok) return json(result, 400);
   const saved = await saveIntake(service, read, result.state, 'PROJECT_SOURCE_MANUAL_INPUT_RECORDED');
   if (!saved.ok) return json(saved.body, saved.status || 409);
-  return json({ ok: true, source: result.source, facts: result.facts, runtime_revision: saved.body.runtime_revision, auto_verified: false, production_deploy: false }, 201);
+  return json({
+    ok: true,
+    source: result.source,
+    facts: result.facts,
+    runtime_revision: saved.body.runtime_revision,
+    auto_verified: false,
+    category_mapping_used: rawFacts.some((fact) => Boolean(clean(fact.category, 80))),
+    production_deploy: false
+  }, 201);
 }
 
 async function handleWebsite(request, service, options = {}) {
@@ -315,7 +419,8 @@ async function handlePacks(request, service) {
 
 function sourceUi() {
   const accept = PROJECT_SOURCE_STORAGE_MIME_TYPES.join(',');
-  return `<style id="aurentara-project-source-storage-v1-style">.source-intake-v1{margin-top:14px}.source-upload-grid{display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:9px;align-items:end}.source-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.source-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;min-width:0}.source-card strong{display:block;overflow-wrap:anywhere}.source-card .small{overflow-wrap:anywhere}.source-tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.source-manual-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}@media(max-width:760px){.source-upload-grid,.source-cards,.source-manual-grid{grid-template-columns:1fr}.source-upload-grid .btn{width:100%;min-height:46px}.source-intake-v1 input[type=file]{min-height:48px;padding:10px}.source-card{padding:14px}}</style><script id="aurentara-project-source-storage-v1-ui">(()=>{const ACCEPT=${JSON.stringify(accept)};const sourceFetch=async(path,opt={})=>{const res=await fetch('/operator/api/project-source-intake'+path,opt);const type=res.headers.get('content-type')||'';const data=type.includes('json')?await res.json():res;if(!res.ok){const e=new Error(data?.error||('HTTP '+res.status));e.data=data;throw e}return data};const renderSources=(root,payload)=>{const list=payload?.workspace?.sections?.project_sources||[];const assets=payload?.workspace?.sections?.project_knowledge||[];const ready=payload?.workspace?.sections?.content_readiness;root.querySelector('[data-source-status]').innerHTML='<span class="badge '+(ready?.status==='BLOCKED'?'blocked':ready?'ready':'neutral')+'">'+esc(ready?.status||'INTAKE IN PROGRESS')+'</span> · '+esc(list.length)+' Sources';const cards=root.querySelector('[data-source-cards]');cards.innerHTML=list.length?list.map(s=>{const website=['OWNED_WEBSITE','REFERENCE_WEBSITE'].includes(s.source_type);const usage=s.website_usage||{content:s.source_type==='OWNED_WEBSITE',structure_reference:false,design_reference:false};return '<div class="source-card"><strong>'+esc(s.display_name||s.source_type)+'</strong><div class="small">'+esc(s.source_type)+' · '+esc(s.mime_type||'')+'</div><div class="small">Rights: '+esc(s.rights_status||s.ownership_status||'UNKNOWN')+'</div>'+(website?'<div class="small">Verwendung</div><div class="source-tools"><label><input type="checkbox" data-website-content="'+esc(s.source_id)+'" '+(usage.content?'checked':'')+'> Inhalt</label><label><input type="checkbox" data-website-structure="'+esc(s.source_id)+'" '+(usage.structure_reference?'checked':'')+'> Struktur</label><label><input type="checkbox" data-website-design="'+esc(s.source_id)+'" '+(usage.design_reference?'checked':'')+'> Design</label><button class="btn" data-website-usage-save="'+esc(s.source_id)+'">Verwendung speichern</button></div><div class="small">Effektiv: '+esc(Object.entries(s.effective_usage||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'keine')+'</div>':'')+'<div class="small">Private storage: '+(s.storage_ref?'yes':'no')+'</div><div class="source-tools">'+(s.storage_ref?'<button class="btn" data-source-open="'+esc(s.source_id)+'">Ansehen</button><button class="btn danger" data-source-delete="'+esc(s.source_id)+'">Löschen</button>':'')+'</div></div>'}).join(''):'<div class="empty">Noch keine Project Sources.</div>';cards.querySelectorAll('[data-website-usage-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.websiteUsageSave;const pick=name=>cards.querySelector('['+name+'="'+CSS.escape(id)+'"]')?.checked===true;try{await sourceFetch('/website-usage',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:payload.identity.scope_key,source_id:id,website_usage:{content:pick('data-website-content'),structure_reference:pick('data-website-structure'),design_reference:pick('data-website-design')}})});await hydrate(root,payload.identity.scope_key)}catch(e){setError(e)}});cards.querySelectorAll('[data-source-open]').forEach(b=>b.onclick=()=>{const s=list.find(x=>x.source_id===b.dataset.sourceOpen);if(s?.storage_ref)window.open('/operator/api/project-source-intake/object?scope_key='+encodeURIComponent(payload.identity.scope_key)+'&storage_ref='+encodeURIComponent(s.storage_ref),'_blank','noopener')});cards.querySelectorAll('[data-source-delete]').forEach(b=>b.onclick=async()=>{try{await sourceFetch('/object',{method:'DELETE',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:payload.identity.scope_key,source_id:b.dataset.sourceDelete})});await hydrate(root,payload.identity.scope_key)}catch(e){setError(e)}})};const hydrate=async(root,scope)=>{const payload=await sourceFetch('?scope_key='+encodeURIComponent(scope));root.dataset.scope=scope;renderSources(root,payload)};const install=d=>{const host=document.getElementById('project-detail');const p=d?.project;if(!host||!p?.scope_key)return;let root=host.querySelector('[data-project-source-intake]');if(!root){root=document.createElement('div');root.className='card source-intake-v1';root.dataset.projectSourceIntake='true';root.innerHTML='<div class="eyebrow">Project Knowledge</div><h2>Project Sources</h2><div class="small" data-source-status>Loading…</div><div class="source-upload-grid" style="margin-top:12px"><div class="field"><label>Dateien / Bilder</label><input type="file" multiple accept="'+esc(ACCEPT)+'" data-source-files></div><div class="field"><label>Bulk Rights</label><select data-source-rights><option> CUSTOMER_ASSERTED </option><option> OWNED_CONFIRMED </option><option> CUSTOMER_LICENSED </option><option> DO_NOT_PUBLISH </option></select></div><div class="field"><label>Usage</label><select data-source-usage><option value="PROJECT_VISUAL">Project Visual</option><option value="LOGO">Logo</option><option value="GALLERY">Gallery</option></select></div><button class="btn primary" data-source-upload>Upload</button></div><div class="source-cards" data-source-cards></div><details class="details"><summary>Weitere Source Actions</summary><div class="source-manual-grid"><div class="field"><label>Website URL</label><input data-source-url placeholder="https://..."></div><div class="field"><label>Website-Art</label><select data-source-website-type><option value="OWNED_WEBSITE">Eigene Website</option><option value="REFERENCE_WEBSITE">Referenz-Website</option></select></div><div class="field"><label>Verwendung</label><label><input type="checkbox" data-source-use-content checked> Inhalt</label> <label><input type="checkbox" data-source-use-structure> Struktur</label> <label><input type="checkbox" data-source-use-design> Design</label></div><button class="btn" data-source-website style="align-self:end">Website hinzufügen</button><div class="field"><label>Manuelle Info</label><textarea data-source-manual placeholder="Kurze bestätigungsbedürftige Projektinformation"></textarea></div><div class="field"><label>Feld</label><input data-source-field placeholder="content.summary"><button class="btn" data-source-manual-save style="margin-top:8px">Info hinzufügen</button></div></div></details>';host.prepend(root);root.querySelector('[data-source-upload]').onclick=async()=>{const files=[...root.querySelector('[data-source-files]').files];if(!files.length)return;const fd=new FormData();fd.append('scope_key',p.scope_key);fd.append('rights_status',root.querySelector('[data-source-rights]').value.trim());fd.append('usage_role',root.querySelector('[data-source-usage]').value);files.forEach(f=>fd.append('files',f,f.name));try{root.classList.add('loading');await sourceFetch('/upload',{method:'POST',body:fd});root.querySelector('[data-source-files]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}finally{root.classList.remove('loading')}};root.querySelector('[data-source-website-type]').onchange=e=>{const ref=e.target.value==='REFERENCE_WEBSITE';root.querySelector('[data-source-use-content]').checked=!ref;root.querySelector('[data-source-use-structure]').checked=ref;root.querySelector('[data-source-use-design]').checked=ref};root.querySelector('[data-source-website]').onclick=async()=>{const u=root.querySelector('[data-source-url]').value.trim();if(!u)return;const type=root.querySelector('[data-source-website-type]').value;try{await sourceFetch('/website',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:p.scope_key,source_url:u,source_type:type,reference_only:type==='REFERENCE_WEBSITE',website_usage:{content:root.querySelector('[data-source-use-content]').checked,structure_reference:root.querySelector('[data-source-use-structure]').checked,design_reference:root.querySelector('[data-source-use-design]').checked}})});root.querySelector('[data-source-url]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}};root.querySelector('[data-source-manual-save]').onclick=async()=>{const value=root.querySelector('[data-source-manual]').value.trim(),field=root.querySelector('[data-source-field]').value.trim()||'content.summary';if(!value)return;try{await sourceFetch('/manual',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:p.scope_key,facts:[{field_path:field,value}]})});root.querySelector('[data-source-manual]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}}}hydrate(root,p.scope_key).catch(setError)};const old=window.renderProjectDetail;if(typeof old==='function')window.renderProjectDetail=function(d){old(d);install(d)};})();</script>`;
+  const categories = PROJECT_SOURCE_MANUAL_CATEGORIES;
+  return `<style id="aurentara-project-source-storage-v1-style">.source-intake-v1{margin-top:14px}.source-upload-grid{display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:9px;align-items:end}.source-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.source-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;min-width:0}.source-card strong{display:block;overflow-wrap:anywhere}.source-card .small{overflow-wrap:anywhere}.source-tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.source-manual-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}@media(max-width:760px){.source-upload-grid,.source-cards,.source-manual-grid{grid-template-columns:1fr}.source-upload-grid .btn{width:100%;min-height:46px}.source-intake-v1 input[type=file]{min-height:48px;padding:10px}.source-card{padding:14px}}</style><script id="aurentara-project-source-storage-v1-ui">(()=>{const ACCEPT=${JSON.stringify(accept)};const PREVIEW_MIME=${JSON.stringify(PROJECT_SOURCE_PREVIEW_MIME_TYPES)};const MANUAL_CATEGORIES=${JSON.stringify(PROJECT_SOURCE_MANUAL_CATEGORIES)};const sourceFetch=async(path,opt={})=>{const res=await fetch('/operator/api/project-source-intake'+path,opt);const type=res.headers.get('content-type')||'';const data=type.includes('json')?await res.json():res;if(!res.ok){const e=new Error(data?.error||('HTTP '+res.status));e.data=data;throw e}return data};const renderSources=(root,payload)=>{const list=payload?.workspace?.sections?.project_sources||[];const assets=payload?.workspace?.sections?.project_knowledge||[];const ready=payload?.workspace?.sections?.content_readiness;root.querySelector('[data-source-status]').innerHTML='<span class="badge '+(ready?.status==='BLOCKED'?'blocked':ready?'ready':'neutral')+'">'+esc(ready?.status||'INTAKE IN PROGRESS')+'</span> · '+esc(list.length)+' Sources';const cards=root.querySelector('[data-source-cards]');cards.innerHTML=list.length?list.map(s=>{const website=['OWNED_WEBSITE','REFERENCE_WEBSITE'].includes(s.source_type);const usage=s.website_usage||{content:s.source_type==='OWNED_WEBSITE',structure_reference:false,design_reference:false};return '<div class="source-card"><strong>'+esc(s.display_name||s.source_type)+'</strong><div class="small">'+esc(s.source_type)+' · '+esc(s.mime_type||'')+'</div><div class="small">Rights: '+esc(s.rights_status||s.ownership_status||'UNKNOWN')+'</div>'+(website?'<div class="small">Verwendung</div><div class="source-tools"><label><input type="checkbox" data-website-content="'+esc(s.source_id)+'" '+(usage.content?'checked':'')+'> Inhalt</label><label><input type="checkbox" data-website-structure="'+esc(s.source_id)+'" '+(usage.structure_reference?'checked':'')+'> Struktur</label><label><input type="checkbox" data-website-design="'+esc(s.source_id)+'" '+(usage.design_reference?'checked':'')+'> Design</label><button class="btn" data-website-usage-save="'+esc(s.source_id)+'">Verwendung speichern</button></div><div class="small">Effektiv: '+esc(Object.entries(s.effective_usage||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'keine')+'</div>':'')+'<div class="small">Private storage: '+(s.storage_ref?'yes':'no')+'</div><div class="source-tools">'+(s.storage_ref?'<button class="btn" data-source-preview="'+esc(s.source_id)+'">Ansehen</button><button class="btn" data-source-download="'+esc(s.source_id)+'">Herunterladen</button><button class="btn danger" data-source-delete="'+esc(s.source_id)+'">Löschen</button>':'')+'</div></div>'}).join(''):'<div class="empty">Noch keine Project Sources.</div>';cards.querySelectorAll('[data-website-usage-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.websiteUsageSave;const pick=name=>cards.querySelector('['+name+'="'+CSS.escape(id)+'"]')?.checked===true;try{await sourceFetch('/website-usage',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:payload.identity.scope_key,source_id:id,website_usage:{content:pick('data-website-content'),structure_reference:pick('data-website-structure'),design_reference:pick('data-website-design')}})});await hydrate(root,payload.identity.scope_key)}catch(e){setError(e)}});cards.querySelectorAll('[data-source-preview]').forEach(b=>b.onclick=()=>{const s=list.find(x=>x.source_id===b.dataset.sourcePreview);if(!s?.storage_ref)return;if(!PREVIEW_MIME.includes(String(s.mime_type||'').toLowerCase())){if(typeof setError==='function')setError(new Error('Für diesen Dateityp ist keine sichere Vorschau verfügbar.'));return}window.open('/operator/api/project-source-intake/preview?scope_key='+encodeURIComponent(payload.identity.scope_key)+'&storage_ref='+encodeURIComponent(s.storage_ref),'_blank','noopener')});cards.querySelectorAll('[data-source-download]').forEach(b=>b.onclick=()=>{const s=list.find(x=>x.source_id===b.dataset.sourceDownload);if(s?.storage_ref)window.open('/operator/api/project-source-intake/object?scope_key='+encodeURIComponent(payload.identity.scope_key)+'&storage_ref='+encodeURIComponent(s.storage_ref),'_blank','noopener')});cards.querySelectorAll('[data-source-delete]').forEach(b=>b.onclick=async()=>{try{await sourceFetch('/object',{method:'DELETE',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:payload.identity.scope_key,source_id:b.dataset.sourceDelete})});await hydrate(root,payload.identity.scope_key)}catch(e){setError(e)}})};const hydrate=async(root,scope)=>{const payload=await sourceFetch('?scope_key='+encodeURIComponent(scope));root.dataset.scope=scope;renderSources(root,payload)};const install=d=>{const host=document.getElementById('project-detail');const p=d?.project;if(!host||!p?.scope_key)return;let root=host.querySelector('[data-project-source-intake]');if(!root){root=document.createElement('div');root.className='card source-intake-v1';root.dataset.projectSourceIntake='true';root.innerHTML='<div class="eyebrow">Project Knowledge</div><h2>Project Sources</h2><div class="small" data-source-status>Loading…</div><div class="source-upload-grid" style="margin-top:12px"><div class="field"><label>Dateien / Bilder</label><input type="file" multiple accept="'+esc(ACCEPT)+'" data-source-files></div><div class="field"><label>Bulk Rights</label><select data-source-rights><option> CUSTOMER_ASSERTED </option><option> OWNED_CONFIRMED </option><option> CUSTOMER_LICENSED </option><option> DO_NOT_PUBLISH </option></select></div><div class="field"><label>Usage</label><select data-source-usage><option value="PROJECT_VISUAL">Project Visual</option><option value="LOGO">Logo</option><option value="GALLERY">Gallery</option></select></div><button class="btn primary" data-source-upload>Upload</button></div><div class="source-cards" data-source-cards></div><details class="details"><summary>Weitere Source Actions</summary><div class="source-manual-grid"><div class="field"><label>Website URL</label><input data-source-url placeholder="https://..."></div><div class="field"><label>Website-Art</label><select data-source-website-type><option value="OWNED_WEBSITE">Eigene Website</option><option value="REFERENCE_WEBSITE">Referenz-Website</option></select></div><div class="field"><label>Verwendung</label><label><input type="checkbox" data-source-use-content checked> Inhalt</label> <label><input type="checkbox" data-source-use-structure> Struktur</label> <label><input type="checkbox" data-source-use-design> Design</label></div><button class="btn" data-source-website style="align-self:end">Website hinzufügen</button><div class="field"><label>Manuelle Information</label><textarea data-source-manual placeholder="Kurze bestätigungsbedürftige Projektinformation"></textarea></div><div class="field"><label>Kategorie</label><select data-source-manual-category>'+MANUAL_CATEGORIES.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.label)+'</option>').join('')+'</select><div class="small" data-source-manual-technical></div><button class="btn" data-source-manual-save style="margin-top:8px">Info hinzufügen</button></div></div></details>';host.prepend(root);root.querySelector('[data-source-upload]').onclick=async()=>{const files=[...root.querySelector('[data-source-files]').files];if(!files.length)return;const fd=new FormData();fd.append('scope_key',p.scope_key);fd.append('rights_status',root.querySelector('[data-source-rights]').value.trim());fd.append('usage_role',root.querySelector('[data-source-usage]').value);files.forEach(f=>fd.append('files',f,f.name));try{root.classList.add('loading');await sourceFetch('/upload',{method:'POST',body:fd});root.querySelector('[data-source-files]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}finally{root.classList.remove('loading')}};root.querySelector('[data-source-website-type]').onchange=e=>{const ref=e.target.value==='REFERENCE_WEBSITE';root.querySelector('[data-source-use-content]').checked=!ref;root.querySelector('[data-source-use-structure]').checked=ref;root.querySelector('[data-source-use-design]').checked=ref};root.querySelector('[data-source-website]').onclick=async()=>{const u=root.querySelector('[data-source-url]').value.trim();if(!u)return;const type=root.querySelector('[data-source-website-type]').value;try{await sourceFetch('/website',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:p.scope_key,source_url:u,source_type:type,reference_only:type==='REFERENCE_WEBSITE',website_usage:{content:root.querySelector('[data-source-use-content]').checked,structure_reference:root.querySelector('[data-source-use-structure]').checked,design_reference:root.querySelector('[data-source-use-design]').checked}})});root.querySelector('[data-source-url]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}};const manualCategory=root.querySelector('[data-source-manual-category]'),manualTechnical=root.querySelector('[data-source-manual-technical]');const syncManualTechnical=()=>{const item=MANUAL_CATEGORIES.find(x=>x.id===manualCategory?.value);if(manualTechnical)manualTechnical.textContent=item?'Technischer Pfad: '+item.field_path:''};if(manualCategory){manualCategory.onchange=syncManualTechnical;syncManualTechnical()}root.querySelector('[data-source-manual-save]').onclick=async()=>{const value=root.querySelector('[data-source-manual]').value.trim(),category=manualCategory?.value;if(!value||!category)return;try{await sourceFetch('/manual',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope_key:p.scope_key,context_scope_key:p.scope_key,facts:[{category,value}]})});root.querySelector('[data-source-manual]').value='';await hydrate(root,p.scope_key)}catch(e){setError(e)}}}hydrate(root,p.scope_key).catch(setError)};const old=window.renderProjectDetail;if(typeof old==='function')window.renderProjectDetail=function(d){old(d);install(d)};})();</script>`;
 }
 
 function injectSourceUi(source) {
@@ -349,6 +454,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
   }
   if (url.pathname === '/operator/api/project-source-intake/upload' && request.method === 'POST') return handleUpload(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/object' && request.method === 'GET') return handleDownload(request, env, service, options);
+  if (url.pathname === '/operator/api/project-source-intake/preview' && request.method === 'GET') return handlePreview(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/object' && request.method === 'DELETE') return handleDelete(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/manual' && request.method === 'POST') return handleManual(request, service);
   if (url.pathname === '/operator/api/project-source-intake/website' && request.method === 'POST') return handleWebsite(request, service, options);
@@ -361,12 +467,16 @@ export function operatorProjectSourceIntakeStorageDashboardManifest() {
   return {
     schema: 'aurentara.operator-project-source-intake-storage-dashboard.v1',
     existing_operator_dashboard_extended: true,
-    routes: ['GET source intake','POST multipart upload','GET private object','DELETE private object','POST manual source','POST website source','PATCH website usage','POST packs/readiness'],
+    routes: ['GET source intake','POST multipart upload','GET private object download','GET private object preview','DELETE private object','POST manual source','POST website source','PATCH website usage','POST packs/readiness'],
     multi_file_upload: true,
     multi_image_upload: true,
     bulk_rights_on_upload: true,
     mobile_file_input: true,
     source_cards: true,
+    private_preview: true,
+    preview_download_separated: true,
+    preview_mime_allowlist: [...PROJECT_SOURCE_PREVIEW_MIME_TYPES],
+    manual_human_categories: PROJECT_SOURCE_MANUAL_CATEGORIES.map((item) => ({ ...item })),
     service_role_browser_exposure: false,
     project_scope_server_resolved: true,
     runtime_binary_storage: false,
