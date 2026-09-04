@@ -1,0 +1,212 @@
+{
+  "schema": "aurentara.project-ferrari.economic-baseline.v1",
+  "project": {
+    "customer_id": "synthetic-mueller-elektrotechnik-saarbruecken",
+    "project_id": "mueller-elektrotechnik-digital-customer-system-v1",
+    "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+    "environment": "staging",
+    "synthetic": true,
+    "full_cross_factory_e2e": "PASS"
+  },
+  "economic_evidence": {
+    "estimated_variable_cost_eur": 6.18,
+    "estimate_low_eur": 1.7,
+    "estimate_high_eur": 10.66,
+    "approved_cost_ceiling_eur": 0,
+    "actual_variable_cost_eur": {
+      "make": 0,
+      "supabase": 0,
+      "posthog": 0,
+      "ai": 0,
+      "hosting_deploy": 0,
+      "total": 0
+    },
+    "hosting_deploy_evidence": {
+      "staging_deploy_workflow_run_id": 33898872307,
+      "staging_deploy_job_id": 101108038411,
+      "zero_cost_confirmed": true,
+      "variable_cost_eur": 0,
+      "shared_fixed_cost_allocation_eur": null,
+      "shared_fixed_cost_allocation_state": "UNKNOWN_NOT_PROJECT_ATTRIBUTED"
+    },
+    "paid_overflow": false
+  },
+  "provider_usage": {
+    "make": {
+      "live_runs": 1,
+      "execution_id": "4c41a3d4716541bc8747cea8b0f03b25",
+      "provider_retries": 0,
+      "variable_cost_eur": 0
+    },
+    "posthog": {
+      "live_batches": 1,
+      "event_count": 5,
+      "provider_retries": 0,
+      "variable_cost_eur": 0
+    },
+    "supabase": {
+      "provider_run_count": null,
+      "provider_run_count_state": "MEASUREMENT_GAP",
+      "persisted_leads": 1,
+      "allowed_stage_transitions_applied": 1,
+      "deliberate_idempotency_validation_retries": 1,
+      "business_run_log_rows": 0,
+      "variable_cost_eur": 0
+    },
+    "cloudflare": {
+      "staging_deploys": 1,
+      "variable_cost_eur": 0
+    },
+    "ai": {
+      "calls": 0,
+      "variable_cost_eur": 0
+    }
+  },
+  "retry_repair_evidence": {
+    "provider_retry_count": 0,
+    "deliberate_idempotency_validation_retry_count": 1,
+    "additional_make_live_runs": 0,
+    "posthog_live_workflow_attempts": 3,
+    "posthog_provider_calls": 1,
+    "posthog_pre_provider_failed_attempts": 2,
+    "exact_repair_count": null,
+    "exact_repair_count_state": "MEASUREMENT_GAP_NO_CANONICAL_REPAIR_COUNTER",
+    "known_technical_repair_episodes_minimum": 5,
+    "known_technical_repair_episodes": [
+      "PROJECT_SCOPE_HARDCODING_IN_MAKE_POSTHOG_BRIDGES",
+      "EXISTING_BUSINESS_CRM_MIGRATION_NOT_APPLIED_TO_STAGING",
+      "CRM_OPERATOR_VISIBILITY_MISSING_MINIMAL_CRM_SNAPSHOT",
+      "MAKE_AND_POSTHOG_LIVE_GATES_COUPLED",
+      "EVIDENCE_WORKFLOW_YAML_ESCAPE_ERROR"
+    ],
+    "external_credential_blockers": 1,
+    "external_credential_blocker_types": [
+      "POSTHOG_PROJECT_TOKEN_MANUAL_PROVISIONING"
+    ]
+  },
+  "review_approval_evidence": {
+    "normal_revision_count": 1,
+    "synthetic_customer_approval_events": 1,
+    "actual_human_approval_count": null,
+    "actual_human_approval_count_state": "UNKNOWN_SYNTHETIC_DOGFOOD_DOES_NOT_PROVE_HUMAN_APPROVAL_COUNT",
+    "production_approval_count": 0
+  },
+  "operator_efficiency": {
+    "operator_touch_count": null,
+    "operator_touch_count_state": "MEASUREMENT_GAP",
+    "operator_minutes": null,
+    "operator_minutes_state": "MEASUREMENT_GAP",
+    "manual_credential_actions_known_minimum": 1,
+    "manual_approval_actions": null,
+    "manual_approval_actions_state": "UNKNOWN_NOT_SEPARATELY_METERED",
+    "manual_deployment_actions_known": 0,
+    "manual_provider_dashboard_actions_known": 0,
+    "manual_debugging_repair_actions": null,
+    "manual_debugging_repair_actions_state": "UNKNOWN_TECHNICAL_REPAIRS_KNOWN_BUT_HUMAN_TOUCHES_NOT_METERED",
+    "customer_waiting_like_steps_known_minimum": 1,
+    "customer_waiting_like_step_types": [
+      "EXTERNAL_CREDENTIAL_DEPENDENCY"
+    ],
+    "real_customer_wait_time": "NOT_APPLICABLE_SYNTHETIC_DOGFOOD",
+    "system_execution_time_evidence": {
+      "make_live_script_seconds": 1.355,
+      "posthog_live_script_seconds": 0.612,
+      "full_ferrari_acceptance_job_seconds": 40.867,
+      "cloudflare_deploy_trigger_seconds": 0.98,
+      "end_to_end_business_runtime_seconds": null,
+      "end_to_end_business_runtime_state": "MEASUREMENT_GAP"
+    },
+    "future_minimum_measurement": [
+      "record operator touch events by scope_key",
+      "record active operator seconds separately from wait time",
+      "record manual action category",
+      "record external wait start and resolution timestamps"
+    ]
+  },
+  "human_system_responsibility": {
+    "human_judgment_required": [
+      "CUSTOMER_APPROVAL",
+      "PRODUCTION_APPROVAL",
+      "LEGAL_AND_RIGHTS",
+      "SECRET_PROVISIONING",
+      "BILLING_ACTIVATION",
+      "SCOPE_EXPANSION_DECISION"
+    ],
+    "system_should_handle": [
+      "PROJECT_SCOPED_DATA_TRANSFER",
+      "CRM_PERSISTENCE",
+      "IDEMPOTENCY",
+      "PIPELINE_STATUS_SYNCHRONIZATION",
+      "PROVIDER_CALLS_AFTER_APPROVAL",
+      "ANALYTICS_EVENT_DELIVERY",
+      "EVIDENCE_GENERATION",
+      "REPEATABLE_TECHNICAL_CHECKS",
+      "REGRESSION_TESTS",
+      "DELIVERY_STATUS_SYNCHRONIZATION",
+      "CRM_TASK_STATUS_PROJECTION"
+    ],
+    "acceptable_v1_manual_steps": [
+      "ONE_TIME_PROVIDER_SECRET_PROVISIONING",
+      "EXPLICIT_PRODUCTION_ACTIVATION_WHEN_LATER_ALLOWED"
+    ]
+  },
+  "crm_operator_assessment": {
+    "required_visibility": {
+      "lead": "PASS",
+      "project": "PASS",
+      "pipeline": "PASS",
+      "stage": "PASS",
+      "last_activity": "PASS",
+      "next_action": "PASS",
+      "open_task": "PASS_AFTER_MINIMAL_PROJECTION_FIX",
+      "automation_status": "PASS",
+      "customer_review_status": "PASS",
+      "delivery_status": "PASS_AFTER_EXPLICIT_PROJECTION"
+    },
+    "mueller_open_task_count": 0,
+    "verdict": "CRM_OPERATOR_V1_SUFFICIENT_FOR_FERRARI",
+    "redesign_required": false,
+    "minimal_fix": {
+      "required": true,
+      "scope": "PROJECT_EXISTING_TASK_COUNT_NEXT_TASK_AND_DELIVERY_STATUS_ONLY",
+      "new_crm_system": false,
+      "new_table": false,
+      "new_architecture": false
+    }
+  },
+  "economic_readiness": {
+    "verdict": "PASS_WITH_OPERATOR_OVERHEAD",
+    "variable_cost_ready": true,
+    "operator_time_economics_proven": false,
+    "margin_proven": false,
+    "labor_cost_proven": false,
+    "delivery_complexity_observed": "HIGH_FIRST_DOGFOOD_REPAIR_OVERHEAD",
+    "steady_state_delivery_complexity": "UNKNOWN_UNTIL_NEXT_DOGFOOD"
+  },
+  "remaining_measurement_gaps": [
+    "EXACT_OPERATOR_TOUCH_COUNT",
+    "ACTIVE_OPERATOR_MINUTES",
+    "WAIT_TIME_SEPARATION",
+    "SUPABASE_PROVIDER_RUN_COUNT",
+    "EXACT_REPAIR_COUNTER",
+    "PROJECT_ATTRIBUTED_SHARED_FIXED_COST",
+    "REAL_CUSTOMER_PRODUCTION_ECONOMICS"
+  ],
+  "maturity": {
+    "state": "FULL_SYNTHETIC_STAGING_DELIVERY_PROVEN_ECONOMIC_BASELINE_ESTABLISHED_OPERATOR_EFFICIENCY_PARTIALLY_UNMEASURED",
+    "next_proof_target": "REPEATABILITY_WITH_OPERATOR_TIME_AND_TOUCH_MEASUREMENT"
+  },
+  "gelato_ready": {
+    "recommendation": "YES",
+    "condition": "START_ONLY_AS_SEPARATE_EXPLICIT_DOGFOOD_WITH_MINIMUM_OPERATOR_TIME_AND_TOUCH_MEASUREMENT",
+    "automatically_started": false
+  },
+  "safety": {
+    "production": false,
+    "public": false,
+    "dns_changed": false,
+    "billing_changed": false,
+    "real_customer_data": false,
+    "new_providers": 0
+  }
+}
