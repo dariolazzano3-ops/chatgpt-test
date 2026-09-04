@@ -9,16 +9,16 @@ const NO_EXECUTION = [
   'nur sagen','sag mir nur','nur den masterprompt','nur masterprompt','keine ausführung','nicht ausführen','do not start',
   'start nothing','prepare only','do not execute','no execution'
 ];
-const RELEASE = ['bring live','mach live','live schalten','veröffentlichen','veroeffentlichen','production deploy','deploy production','go live'];
+const RELEASE = ['bring live','mach live','live schalten','veröffentlichen','veroeffentlichen','production deploy','deploy production','go live',/mach .{0,120} live/,/bring .{0,120} live/];
 const PROMPT = ['masterprompt','master prompt','execution prompt','umsetzungsprompt'];
-const PREPARE = ['bereite den run vor','bereite alles vor','execution vorbereiten','run vorbereiten','prepare the run','prepare execution'];
+const PREPARE = ['bereite den run vor','bereite alles vor','execution vorbereiten','run vorbereiten','prepare the run','prepare execution',/bereite .{0,120} vor/];
 const PROJECT_CREATE = ['neues projekt','projekt erstellen','create project','new project'];
 const CUSTOMER_CHANGE = ['der kunde hat','kunde hat jetzt','customer changed','customer says','neue öffnungszeiten','neue oeffnungszeiten'];
 const COST = ['kosten','cost','budget','preislich','wie teuer','spend'];
 const PROVIDER = ['provider','openai','framer','make','n8n','supabase','cloudflare','posthog'];
 const APPROVAL = ['freigabe','approval','genehmigung','approve'];
 const REVISION = ['gefällt mir nicht','gefaellt mir nicht','ruhiger','nur desktop','nur mobile','letzte änderung zurück','letzte aenderung zurueck','behalte mobile','revision'];
-const QUALITY = ['premium','hochwertiger','qualität','qualitaet','score','punkte','conversion','accessibility','seo','responsive','performance'];
+const QUALITY = ['premium','hochwertiger','qualität','qualitaet','score','punkte','conversion','accessibility','seo','responsive','performance','mobile','desktop','ui'];
 const STATUS = ['wie steht','status','stand von','wo stehen wir','wie weit','current state'];
 const ANALYSIS = ['warum','wieso','weshalb','analysiere','analyse','blocker','nicht fertig','problem'];
 const PLAN = ['was würdest du','was wuerdest du','was soll ich','nächster schritt','naechster schritt','plane','plan erstellen','what next'];
