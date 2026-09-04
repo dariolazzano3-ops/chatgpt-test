@@ -72,19 +72,47 @@
     "pii_present": false
   },
   "posthog": {
-    "credential_state": "MISSING_IN_GITHUB_ENVIRONMENT_RIOSYSTEMS_STAGING",
-    "workflow_run_id": 33904274619,
-    "workflow_job_id": 101125633069,
-    "presence_check": "FAIL",
-    "live_batch_result": "BLOCKED_BY_MISSING_CREDENTIAL",
-    "batch_executed": false,
-    "events_sent": 0
+    "credential_state": "PRESENT_IN_GITHUB_ENVIRONMENT_RIOSYSTEMS_STAGING",
+    "presence_check": "PASS",
+    "presence_workflow_run_id": 33911420784,
+    "presence_workflow_job_id": 101148482990,
+    "live_workflow_run_id": 33904274619,
+    "live_workflow_attempt": 3,
+    "live_workflow_job_id": 101148638609,
+    "live_batch_result": "PASS",
+    "batch_executed": true,
+    "status_code": 200,
+    "provider": "posthog-free",
+    "project_id": "mueller-elektrotechnik-digital-customer-system-v1",
+    "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+    "project_binding": "exact project_id encoded in project_scope",
+    "flow_id": "ferrari:synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1:analytics-v1",
+    "event_names": [
+      "page_view",
+      "cta_clicked",
+      "lead_submitted",
+      "automation_started",
+      "lead_persisted"
+    ],
+    "event_count": 5,
+    "distinct_event_names": 5,
+    "distinct_project_scopes": 1,
+    "cross_project_events": 0,
+    "non_staging_events": 0,
+    "non_synthetic_events": 0,
+    "pii_or_freetext_events": 0,
+    "retries_performed": 0,
+    "person_profiles_created": false,
+    "real_customer_data": false,
+    "variable_cost_eur": 0,
+    "direct_posthog_readback_verified": true,
+    "live_event_timestamp": "2026-09-04T19:30:08.403Z"
   },
   "acceptance": {
     "contract_browser_crm_human_outcome_customer_review_delivery_gate": "PASS",
     "live_make": "PASS",
-    "live_posthog": "BLOCKED_BY_MISSING_CREDENTIAL",
-    "full_cross_factory_e2e": "INCOMPLETE"
+    "live_posthog": "PASS",
+    "full_cross_factory_e2e": "PASS"
   },
   "cost": {
     "approved_ceiling_eur": 0,
@@ -92,7 +120,8 @@
     "supabase_variable_cost_eur": 0,
     "posthog_variable_cost_eur": 0,
     "ai_cost_eur": 0,
-    "automatic_paid_overflow": false
+    "automatic_paid_overflow": false,
+    "total_variable_cost_eur": 0
   },
   "safety": {
     "production_deploy": false,
@@ -103,5 +132,21 @@
     "customer_communication_sent": false,
     "new_providers": 0,
     "secrets_exposed": false
+  },
+  "delivery_evidence": {
+    "website": "PASS",
+    "form": "PASS",
+    "lead": "PASS",
+    "crm": "PASS",
+    "pipeline": "PASS",
+    "make_automation": "PASS",
+    "posthog_analytics": "PASS",
+    "operator": "PASS",
+    "human_outcome": "PASS",
+    "private_preview": "PASS",
+    "customer_review": "PASS",
+    "customer_approval": "PASS",
+    "delivery_gate": "PASS",
+    "delivery_evidence": "PASS"
   }
 }
