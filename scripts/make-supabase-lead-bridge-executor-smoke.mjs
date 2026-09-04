@@ -6,7 +6,7 @@ const plan = buildMakeSupabaseLeadBridgePlan({ customer_id: 'bakery-muller', pro
 const approvals = {
   bridge_confirmation: 'RUN_MAKE_SUPABASE_STAGING_LEAD_ONCE', make_confirmation: 'RUN_STAGING_ONCE', supabase_confirmation: 'APPLY_SUPABASE_STAGING_CRM_ONCE',
   external_write_execution_approved: true, supervised_execution_approved: true, make_provider_approved: true, project_isolation_approved: true,
-  approved_scope_key: 'bakery-muller:digital-system-v1', staging_only: true, synthetic_test_data_only: true, zero_cost_confirmed: true, max_variable_cost_eur: 0, production_deploy: false
+  approved_scope_key: plan.scope.scope_key, staging_only: true, synthetic_test_data_only: true, zero_cost_confirmed: true, max_variable_cost_eur: 0, production_deploy: false
 };
 
 const order = [];
@@ -17,7 +17,7 @@ const success = await runMakeSupabaseLeadBridgeOnce(plan, approvals, {
   },
   persist_supabase: async ({ input, make }) => {
     order.push('supabase');
-    assert.equal(input.contact.email, 'synthetic.lead@example.invalid');
+    assert.equal(input.pii_in_envelope, false); assert.equal('email' in input.contact, false);
     assert.equal(make.execution_id, 'make-exec-test');
     return { ok: true, lead_count: 1, lead_event_count: 1, provider_ref_count: 1, audit_count: 1, synthetic_only: true, idempotent: true };
   }
