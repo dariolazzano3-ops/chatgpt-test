@@ -285,7 +285,7 @@ const manualCategoryCases = [
   ['EMAIL', 'business.email', 'info@example.test'],
   ['ADDRESS', 'business.address', 'Saarbrücken'],
   ['DESCRIPTION', 'content.summary', 'Gelato Donatello Beschreibung'],
-  ['OTHER', 'content.summary', 'Sonstige projektbezogene Information']
+  ['OTHER', 'content.summary', 'Gelato Donatello Beschreibung']
 ];
 for (const [category, fieldPath, value] of manualCategoryCases) {
   response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
@@ -329,6 +329,44 @@ response = await handleOperatorDashboard(new Request('https://operator.example/o
 }), env, {}, handlerOptions);
 assert.equal(response.status, 400);
 assert.equal((await response.json()).error, 'PROJECT_SOURCE_MANUAL_CATEGORY_FIELD_MISMATCH');
+
+// Conflict semantics are tested separately on an isolated project state.
+// Conflict-free manual facts remain UNVERIFIED; a contradictory value on the same canonical field becomes SOURCE_CONFLICT.
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: other.scope_key,
+    context_scope_key: other.scope_key,
+    facts: [{ category: 'DESCRIPTION', value: 'Isolated baseline description' }]
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 201);
+let isolatedManual = await response.json();
+assert.equal(isolatedManual.facts[0].field_path, 'content.summary');
+assert.equal(isolatedManual.facts[0].origin, 'MANUAL');
+assert.equal(isolatedManual.facts[0].verification_status, 'UNVERIFIED');
+
+response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    scope_key: other.scope_key,
+    context_scope_key: other.scope_key,
+    facts: [{ category: 'OTHER', value: 'Contradictory isolated description' }]
+  })
+}), env, {}, handlerOptions);
+assert.equal(response.status, 201);
+isolatedManual = await response.json();
+assert.equal(isolatedManual.facts[0].field_path, 'content.summary');
+assert.equal(isolatedManual.facts[0].origin, 'MANUAL');
+assert.equal(isolatedManual.facts[0].verification_status, 'SOURCE_CONFLICT');
+
+const isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
+const isolatedConflicts = isolatedRead.body.state.facts.filter((fact) => fact.field_path === 'content.summary');
+assert.equal(isolatedConflicts.length, 2);
+assert.equal(isolatedConflicts.every((fact) => fact.verification_status === 'SOURCE_CONFLICT'), true);
+assert.equal(isolatedRead.body.state.audit.some((event) => event.event === 'PROJECT_FACT_CONFLICT_DETECTED'), true);
 
 // // Controlled Gelato project facts are added explicitly and then packs/readiness are built. No website mission runs.
 let read = await service.getProjectSourceIntake({ scope_key: gelato.scope_key });
@@ -429,6 +467,7 @@ console.log(JSON.stringify({
   explicit_download: 'PASS',
   preview_auth_fail_closed: 'PASS',
   manual_category_mapping: 'PASS',
+  manual_conflict_semantics: 'PASS',
   manual_auto_verification: false,
   gelato_content_pack: packs.content_pack.version,
   gelato_visual_pack: packs.visual_pack.version,
