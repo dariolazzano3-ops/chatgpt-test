@@ -61,6 +61,18 @@ export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pendi
       && crm_snapshot.synthetic === true
       && crm_snapshot.pii_present !== true
     );
+  const openTaskCount = crm_snapshot && Number.isInteger(Number(crm_snapshot.open_task_count)) && Number(crm_snapshot.open_task_count) >= 0
+    ? Number(crm_snapshot.open_task_count)
+    : null;
+  const nextTask = crm_snapshot?.next_task && typeof crm_snapshot.next_task === 'object'
+    ? {
+        task_id: crm_snapshot.next_task.task_id || null,
+        title: String(crm_snapshot.next_task.title || '').trim().slice(0, 120) || null,
+        status: crm_snapshot.next_task.status || null,
+        priority: crm_snapshot.next_task.priority || null,
+        due_at: crm_snapshot.next_task.due_at || null
+      }
+    : null;
   const crm = crmSnapshotValid && crm_snapshot ? {
     scope_key,
     lead_id: crm_snapshot.lead_id || null,
@@ -68,8 +80,11 @@ export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pendi
     stage_key: crm_snapshot.stage_key || null,
     next_action: crm_snapshot.next_action || null,
     last_activity: crm_snapshot.last_activity || null,
+    open_task_count: openTaskCount,
+    next_task: nextTask,
     automation_status: crm_snapshot.automation_status || null,
     review_status: crm_snapshot.review_status || null,
+    delivery_status: latest?.delivery?.final_delivery_status || null,
     synthetic: true,
     pii_present: false
   } : null;
