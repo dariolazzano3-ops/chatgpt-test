@@ -23,13 +23,15 @@ for (const marker of [
   'ROUTENDETAILS',
   'Approved Cost Ceiling',
   'Provider Ecosystem',
-  'Active Runtime Routes',
+  'Aktive Runtime-Routen',
+  'Technischer Provider-Contract',
   'ECONOMY',
   'BALANCED',
   'PREMIUM'
 ]) assert.equal(html.includes(marker), true, `operator shell missing ${marker}`);
 assert.equal(html.includes('0 Paid Calls'), true);
 assert.equal(html.includes('Production aktivieren'), false);
+assert.equal(html.includes('Active Runtime Routes'), false, 'Phase-5 human presentation uses the German primary label while preserving active_runtime_routes in the API contract');
 
 const providersResponse = await handleOperatorDashboard(get('/operator/api/provider-ecosystem'), {}, {}, options);
 assert.equal(providersResponse.status, 200);
