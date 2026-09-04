@@ -166,6 +166,13 @@ try {
   const factoryText = await page.locator('#factories').innerText();
   assert.ok(/EXISTS|STAGING VERIFIED|READY|PLANNED|NOT VERIFIED|BLOCKED/i.test(factoryText));
   assert.ok(/Noch kein verifizierter Run|Runs/i.test(factoryText));
+  assert.match(factoryText, /Web Factory|Automation Factory|KI Factory|Analytics Factory|CRM Factory|Growth Factory/i);
+
+  await go(page, 'capabilities', 'Fähigkeiten');
+  const capabilityText = await page.locator('#capabilities').innerText();
+  for (const label of ['Website', 'CRM', 'KI-Unterstützung', 'Automationen', 'Analytics']) assert.match(capabilityText, visibleLabel(label));
+  assert.match(capabilityText, /Technisch:/i);
+  assert.match(capabilityText, /web_presence|business_crm|ai_assistance/i);
 
   await go(page, 'providers', 'Provider');
   await page.waitForFunction(() => document.querySelectorAll('#providers .provider-ecosystem-card').length >= 5);
@@ -174,8 +181,10 @@ try {
     assert.match(providerText, visibleLabel(provider));
   }
   assert.match(providerText, /Provider Ecosystem/i);
-  assert.match(providerText, /Active Runtime Routes/i);
-  assert.ok(/AVAILABLE|CONNECTED STAGING|READ ONLY VERIFIED|NOT VERIFIED|NOT_CONNECTED|VERIFIED/i.test(providerText));
+  assert.match(providerText, /Aktive Runtime-Routen/i);
+  for (const label of ['Registriert','Verfügbar','Konfiguriert','Verbunden','Staging-verifiziert','Ausführbar','Production-fähig']) assert.match(providerText, visibleLabel(label));
+  assert.ok(/Einsatzbereit|Staging verifiziert|Konfiguriert, nicht verifiziert|Nicht verbunden|Blockiert/i.test(providerText));
+  assert.match(providerText, /Technischer Provider-Contract/i);
   assert.equal(await page.locator('#refresh').isVisible(), true);
 
   await go(page, 'costs', 'Kosten');
@@ -228,7 +237,11 @@ try {
   await go(page, 'settings', 'Richtlinien');
   const policyText = await page.locator('#settings').innerText();
   assert.doesNotMatch(policyText, /NOT CONFIGURED/);
-  assert.ok(/Nicht konfiguriert|Monatsbudget/i.test(policyText));
+  for (const label of ['Aktive Richtlinien','Production','Datenmodus','Paid Overflow','Freigaben','Provider-Fallback']) assert.match(policyText, visibleLabel(label));
+  assert.match(policyText, /Gesperrt/i);
+  assert.match(policyText, /Aus/i);
+  assert.match(policyText, /Nur synthetische Daten/i);
+  assert.match(policyText, /Technischer Policy-Contract/i);
 
   await go(page, 'hq', 'HQ');
   assert.match(await page.locator('#hq').innerText(), /Aktive Vorgänge|System|Ergebnisse|Letzte Aktivität/i);
