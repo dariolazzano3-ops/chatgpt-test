@@ -31,6 +31,12 @@
     "paid_provider_calls": 0,
     "external_writes": false,
     "indexing": "NOINDEX",
-    "field_cwv_claimed": false
+    "field_cwv_claimed": false,
+    "public_preview_deploy": false
+  },
+  "preview_policy": {
+    "external_publish": false,
+    "mode": "LOCAL_PRIVATE_QA_ONLY",
+    "reason": "GELATO Premium Evidence + Critical Truth & Conversion Repair V1 forbids public preview publication"
   }
 }
