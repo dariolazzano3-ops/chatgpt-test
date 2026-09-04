@@ -290,9 +290,13 @@ assert.equal(afterProject.body.project.scope_key, gelato.scope_key);
 const runtimeAfter = await store.load(operatorId);
 assert.equal(runtimeAfter.selected_project_scope, gelato.scope_key);
 assert.equal(runtimeAfter.safety.production_deploy, false);
-assert.equal(runtimeAfter.safety.external_writes, false);
-assert.equal(runtimeAfter.safety.variable_cost_eur, 0);
+assert.equal(runtimeAfter.safety.external_writes_implicit, false);
+assert.equal(runtimeAfter.safety.automatic_dispatch, false);
+assert.equal(runtimeAfter.safety.automatic_paid_overflow, false);
 assert.equal((runtimeAfter.universal_runs || []).length, 1);
+assert.equal(runtimeAfter.universal_runs[0].execution.variable_cost_eur, 0);
+assert.equal(runtimeAfter.universal_runs[0].delivery.execution_evidence.external_writes, 0);
+assert.equal(runtimeAfter.universal_runs[0].delivery.execution_evidence.real_provider_calls, 0);
 
 console.log(JSON.stringify({
   ok: true,
