@@ -73,21 +73,196 @@ const MARKUP=String.raw`<button id="global-operator-ai-trigger" class="global-op
 </div>`;
 
 const SCRIPT=String.raw`<script id="aurentara-global-operator-ai-access-v1-script">
-(()=>{if(window.__aurentaraGlobalOperatorAiAccessV1)return;window.__aurentaraGlobalOperatorAiAccessV1=true;
-const trigger=document.getElementById('global-operator-ai-trigger'),backdrop=document.getElementById('global-operator-ai-backdrop'),panel=document.getElementById('global-operator-ai-panel'),close=document.getElementById('global-operator-ai-close'),send=document.getElementById('global-operator-ai-send'),input=document.getElementById('global-operator-ai-input'),output=document.getElementById('global-operator-ai-output'),full=document.getElementById('global-operator-ai-full'),sectionLabel=document.getElementById('global-operator-ai-section'),projectLabel=document.getElementById('global-operator-ai-project');
-if(!trigger||!backdrop||!panel)return;
-const LABELS={hq:'HQ',projects:'Projects',missions:'Missions',mission:'Missions',approvals:'Approvals',deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'};
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const current=()=>{const s=typeof state!=='undefined'&&state?state:{};const section=String(s.section||'hq');const scope=String(s.selectedScope||'').slice(0,640)||null;const items=s.data?.projects?.items||[];const detail=s.detail?.project||null;const project=(detail?.scope_key===scope?detail:items.find(x=>x.scope_key===scope))||null;return{section:LABELS[section]?section:'hq',section_label:LABELS[section]||'HQ',view_identity:'masterdashboard:'+(LABELS[section]?section:'hq'),selected_project_scope:scope,selected_project_name:project?.name||project?.project_name||project?.project_id||null,conversation_project_scope:scope}};
-const refreshContext=()=>{const c=current();sectionLabel.textContent=c.section_label;projectLabel.textContent=c.selected_project_name||'Nicht ausgewählt';return c};
-const open=()=>{refreshContext();backdrop.classList.add('open');backdrop.setAttribute('aria-hidden','false');trigger.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';setTimeout(()=>input?.focus(),0)};
-const shut=()=>{backdrop.classList.remove('open');backdrop.setAttribute('aria-hidden','true');trigger.setAttribute('aria-expanded','false');document.body.style.overflow='';trigger.focus()};
-trigger.onclick=open;close.onclick=shut;backdrop.addEventListener('click',e=>{if(e.target===backdrop)shut()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&backdrop.classList.contains('open'))shut()});
-const renderResult=d=>{const blockers=Array.isArray(d.blockers)?d.blockers:[];const usage=d.inference?.usage;const cost=d.inference?.estimated_cost_usd;output.hidden=false;output.innerHTML='<div><div class="eyebrow">Antwort</div><div class="global-operator-ai-answer">'+esc(d.summary||'Keine Antwort verfügbar.')+'</div></div><div><b>Next Action</b><div class="small">'+esc(d.next_action?.message||'Keine weitere Aktion ermittelt.')+'</div></div><div><b>Blocker</b><div class="global-operator-ai-blockers">'+(blockers.length?blockers.slice(0,5).map(x=>'<span class="small">'+esc(x.code||x.message||x)+'</span>').join(''):'<span class="small">Keine priorisierten Blocker.</span>')+'</div></div><div class="global-operator-ai-model">AI: '+esc(d.inference?.status==='VERIFIED'?'REAL AI CONNECTED':'FAIL-SAFE')+' · '+esc(d.inference?.model||'gpt-5.6-luna')+(usage?' · '+esc(usage.total_tokens)+' Tokens':'')+(Number.isFinite(Number(cost))?' · $'+esc(cost):'')+'</div>'};
-send.onclick=async()=>{const message=input?.value.trim();if(!message)return;const ui=refreshContext();send.disabled=true;output.hidden=false;output.innerHTML='<div class="small">Operator AI wertet den verifizierten Kontext aus…</div>';try{const r=await fetch('/operator/api/operator-ai/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,project_scope:ui.selected_project_scope,conversation_project_scope:ui.conversation_project_scope,ui_context:ui})});const d=await r.json().catch(()=>({error:'INVALID_RESPONSE'}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));renderResult(d)}catch(e){output.innerHTML='<div class="error">'+esc(e.message||e)+'</div>'}finally{send.disabled=false}};
-full.onclick=()=>{shut();if(typeof window.aurentaraOpenOperatorAiV1==='function')window.aurentaraOpenOperatorAiV1()};
-window.aurentaraGlobalOperatorAiContextV1=current;window.aurentaraOpenGlobalOperatorAiV1=open;window.aurentaraCloseGlobalOperatorAiV1=shut;
-new MutationObserver(()=>{if(backdrop.classList.contains('open'))refreshContext()}).observe(document.querySelector('.main')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+(()=>{
+if(window.__aurentaraGlobalOperatorAiAccessV1)return;
+window.__aurentaraGlobalOperatorAiAccessV1=true;
+
+const trigger=document.getElementById('global-operator-ai-trigger');
+const backdrop=document.getElementById('global-operator-ai-backdrop');
+const panel=document.getElementById('global-operator-ai-panel');
+const closeButton=document.getElementById('global-operator-ai-close');
+const sendButton=document.getElementById('global-operator-ai-send');
+const input=document.getElementById('global-operator-ai-input');
+const output=document.getElementById('global-operator-ai-output');
+const fullButton=document.getElementById('global-operator-ai-full');
+const sectionLabel=document.getElementById('global-operator-ai-section');
+const projectLabel=document.getElementById('global-operator-ai-project');
+if(!trigger||!backdrop||!panel||!closeButton||!sendButton||!input||!output||!fullButton||!sectionLabel||!projectLabel)return;
+
+const LABELS={
+  hq:'HQ',projects:'Projects',missions:'Missions',mission:'Missions',approvals:'Approvals',
+  deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',
+  providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',
+  health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'
+};
+
+function currentContext(){
+  const dashboardState=typeof state!=='undefined'&&state?state:{};
+  const rawSection=String(dashboardState.section||'hq');
+  const section=LABELS[rawSection]?rawSection:'hq';
+  const scope=String(dashboardState.selectedScope||'').slice(0,640)||null;
+  const items=dashboardState.data&&dashboardState.data.projects&&Array.isArray(dashboardState.data.projects.items)?dashboardState.data.projects.items:[];
+  const detail=dashboardState.detail&&dashboardState.detail.project?dashboardState.detail.project:null;
+  const project=detail&&detail.scope_key===scope?detail:items.find(function(item){return item&&item.scope_key===scope})||null;
+  return {
+    section:section,
+    section_label:LABELS[section]||'HQ',
+    view_identity:'masterdashboard:'+section,
+    selected_project_scope:scope,
+    selected_project_name:project&&(project.name||project.project_name||project.project_id)||null,
+    conversation_project_scope:scope
+  };
+}
+
+function refreshContext(){
+  const context=currentContext();
+  sectionLabel.textContent=context.section_label;
+  projectLabel.textContent=context.selected_project_name||'Nicht ausgewählt';
+  return context;
+}
+
+function openPanel(){
+  refreshContext();
+  backdrop.classList.add('open');
+  backdrop.setAttribute('aria-hidden','false');
+  trigger.setAttribute('aria-expanded','true');
+  document.body.style.overflow='hidden';
+  setTimeout(function(){input.focus()},0);
+}
+
+function closePanel(){
+  backdrop.classList.remove('open');
+  backdrop.setAttribute('aria-hidden','true');
+  trigger.setAttribute('aria-expanded','false');
+  document.body.style.overflow='';
+  trigger.focus();
+}
+
+function block(title,text,className){
+  const root=document.createElement('div');
+  if(className)root.className=className;
+  const heading=document.createElement('b');
+  heading.textContent=title;
+  const body=document.createElement('div');
+  body.className='small';
+  body.textContent=text;
+  root.append(heading,body);
+  return root;
+}
+
+function renderResult(data){
+  output.hidden=false;
+  output.replaceChildren();
+
+  const answerRoot=document.createElement('div');
+  const eyebrow=document.createElement('div');
+  eyebrow.className='eyebrow';
+  eyebrow.textContent='Antwort';
+  const answer=document.createElement('div');
+  answer.className='global-operator-ai-answer';
+  answer.textContent=String(data&&data.summary||'Keine Antwort verfügbar.');
+  answerRoot.append(eyebrow,answer);
+  output.appendChild(answerRoot);
+
+  output.appendChild(block('Next Action',String(data&&data.next_action&&data.next_action.message||'Keine weitere Aktion ermittelt.')));
+
+  const blockersRoot=document.createElement('div');
+  const blockersTitle=document.createElement('b');
+  blockersTitle.textContent='Blocker';
+  const blockersList=document.createElement('div');
+  blockersList.className='global-operator-ai-blockers';
+  const blockers=Array.isArray(data&&data.blockers)?data.blockers:[];
+  if(blockers.length){
+    blockers.slice(0,5).forEach(function(item){
+      const row=document.createElement('span');
+      row.className='small';
+      row.textContent=String(item&&item.code||item&&item.message||item||'');
+      blockersList.appendChild(row);
+    });
+  }else{
+    const row=document.createElement('span');
+    row.className='small';
+    row.textContent='Keine priorisierten Blocker.';
+    blockersList.appendChild(row);
+  }
+  blockersRoot.append(blockersTitle,blockersList);
+  output.appendChild(blockersRoot);
+
+  const inference=data&&data.inference||{};
+  const usage=inference.usage||null;
+  const cost=Number(inference.estimated_cost_usd);
+  const model=document.createElement('div');
+  model.className='global-operator-ai-model';
+  let text='AI: '+(inference.status==='VERIFIED'?'REAL AI CONNECTED':'FAIL-SAFE')+' · '+String(inference.model||'gpt-5.6-luna');
+  if(usage)text+=' · '+String(usage.total_tokens)+' Tokens';
+  if(Number.isFinite(cost))text+=' · $'+String(cost);
+  model.textContent=text;
+  output.appendChild(model);
+}
+
+function renderWorking(){
+  output.hidden=false;
+  output.replaceChildren();
+  const row=document.createElement('div');
+  row.className='small';
+  row.textContent='Operator AI wertet den verifizierten Kontext aus…';
+  output.appendChild(row);
+}
+
+function renderError(error){
+  output.hidden=false;
+  output.replaceChildren();
+  const row=document.createElement('div');
+  row.className='error';
+  row.textContent=String(error&&error.message||error||'Operator AI Anfrage fehlgeschlagen.');
+  output.appendChild(row);
+}
+
+trigger.addEventListener('click',openPanel);
+closeButton.addEventListener('click',closePanel);
+backdrop.addEventListener('click',function(event){if(event.target===backdrop)closePanel()});
+document.addEventListener('keydown',function(event){if(event.key==='Escape'&&backdrop.classList.contains('open'))closePanel()});
+
+sendButton.addEventListener('click',async function(){
+  const message=input.value.trim();
+  if(!message)return;
+  const ui=refreshContext();
+  sendButton.disabled=true;
+  renderWorking();
+  try{
+    const response=await fetch('/operator/api/operator-ai/message',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        message:message,
+        project_scope:ui.selected_project_scope,
+        conversation_project_scope:ui.conversation_project_scope,
+        ui_context:ui
+      })
+    });
+    const data=await response.json().catch(function(){return {error:'INVALID_RESPONSE'}});
+    if(!response.ok)throw new Error(data.error||('HTTP '+response.status));
+    renderResult(data);
+  }catch(error){
+    renderError(error);
+  }finally{
+    sendButton.disabled=false;
+  }
+});
+
+fullButton.addEventListener('click',function(){
+  closePanel();
+  if(typeof window.aurentaraOpenOperatorAiV1==='function')window.aurentaraOpenOperatorAiV1();
+});
+
+window.aurentaraGlobalOperatorAiContextV1=currentContext;
+window.aurentaraOpenGlobalOperatorAiV1=openPanel;
+window.aurentaraCloseGlobalOperatorAiV1=closePanel;
+
+const main=document.querySelector('.main')||document.body;
+new MutationObserver(function(){
+  if(backdrop.classList.contains('open'))refreshContext();
+}).observe(main,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 })();
 </script>`;
 
