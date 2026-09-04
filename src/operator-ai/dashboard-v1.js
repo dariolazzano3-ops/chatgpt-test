@@ -142,9 +142,9 @@ async function api(path,opt={}){const r=await fetch('/operator/api/operator-ai'+
 function badge(v){const s=String(v||'UNKNOWN').toUpperCase();const tone=s.includes('BLOCK')||s.includes('FAIL')?'blocked':s.includes('READY')||s.includes('VERIFIED')||s.includes('FRESH')?'ready':s.includes('APPROVAL')||s.includes('STALE')?'attention':'active';return '<span class="badge '+tone+'">'+h(s)+'</span>'}
 function base(){section.innerHTML='<div class="operator-ai-shell"><div><div class="operator-ai-hero"><div class="eyebrow" style="color:#bfc5bb">AURENTARA SYSTEMS · ONE CENTRAL AI</div><h2 style="font-size:24px;margin:4px 0 6px">Was möchtest du tun?</h2><div class="small">Status verstehen, nächsten Schritt finden, Masterprompt erzeugen oder sichere Execution vorbereiten. Production bleibt approval-gated.</div><div class="operator-ai-compose"><textarea id="operator-ai-input" placeholder="z. B. Wie steht Gelato gerade?"></textarea><div class="actions"><button class="btn primary" id="operator-ai-send">AN OPERATOR AI SENDEN</button><button class="btn" id="operator-ai-context">KONTEXT AKTUALISIEREN</button></div></div><div class="operator-ai-meta" id="operator-ai-meta"></div></div><div class="operator-ai-tabs" id="operator-ai-tabs">'+['CHAT','BRIEF','MASTERPROMPT','RUN','RESULT'].map(x=>'<button data-ai-tab="'+x+'">'+x+'</button>').join('')+'</div><div id="operator-ai-output" class="card"></div></div><aside class="stack"><div class="card"><h2>Safety</h2><div class="operator-ai-launch-lock"><strong>Production locked</strong><div class="small">Keine Chat-Aussage ersetzt formale Approval Records.</div></div><div class="row"><span>Aktiver Autonomie-Max</span><strong>Level 3</strong></div><div class="row"><span>Level 4</span><span>NOT ACTIVATED</span></div><div class="row"><span>Level 5</span><span>APPROVAL-GATED</span></div></div><div class="card" id="operator-ai-context-card"><h2>Project Context</h2><div class="small">Noch nicht geladen.</div></div></aside></div>';document.getElementById('operator-ai-send').onclick=send;document.getElementById('operator-ai-context').onclick=loadContext;document.querySelectorAll('[data-ai-tab]').forEach(x=>x.onclick=()=>{activeTab=x.dataset.aiTab;renderLast()});renderLast()}
 function renderLast(){document.querySelectorAll('[data-ai-tab]').forEach(x=>x.classList.toggle('active',x.dataset.aiTab===activeTab));const out=document.getElementById('operator-ai-output');if(!out)return;if(!last){out.innerHTML='<div class="empty">Schreibe eine Anweisung. Statusfragen bleiben garantiert read-only.</div>';return}const b=last.execution_brief;const prompt=last.masterprompt||'';const blockers=rows(last.blockers);if(activeTab==='CHAT'){out.innerHTML='<div class="eyebrow">SUMMARY</div><h2>'+h(last.summary)+'</h2><div class="operator-ai-next"><b>NEXT ACTION</b><div>'+h(last.next_action?.message||'Keine weitere Aktion ermittelt.')+'</div></div><h3>WHY</h3><div class="small">'+h(last.why||'–')+'</div><h3>BLOCKERS</h3>'+(blockers.length?blockers.map(x=>'<div class="operator-ai-blocker"><b>'+h(x.code)+'</b><div class="small">'+h(x.message||x.classification)+'</div></div>').join(''):'<div class="small">Keine priorisierten Blocker.</div>')}else if(activeTab==='BRIEF'){out.innerHTML=b?'<h2>Execution Brief</h2><pre>'+h(JSON.stringify(b,null,2))+'</pre>':'<div class="empty">Für diese Read-only-Antwort wurde kein Execution Brief benötigt.</div>'}else if(activeTab==='MASTERPROMPT'){out.innerHTML=prompt?'<h2>Masterprompt</h2><pre class="operator-ai-prompt">'+h(prompt)+'</pre>':'<div class="empty">Kein Masterprompt für diese Anfrage.</div>'}else if(activeTab==='RUN'){const e=last.execution||{};out.innerHTML='<h2>Run State</h2><div class="operator-ai-grid"><div class="kv"><b>Execution requested</b><span>'+h(String(e.requested))+'</span></div><div class="kv"><b>Requested autonomy</b><span>'+h(e.requested_autonomy)+'</span></div><div class="kv"><b>Actual autonomy</b><span>'+h(e.actual_autonomy)+'</span></div><div class="kv"><b>Started</b><span>'+h(String(e.started))+'</span></div></div><div class="callout warn" style="margin-top:12px"><b>'+h(e.safe_internal_execution_status||'NOT_ACTIVATED')+'</b><div class="small">V1 bereitet bis Level 3 vor. Keine ungesicherte interne oder externe Wirkung.</div></div>'}else{out.innerHTML='<h2>Result</h2><div class="empty">Result Interpretation wird nach einem bestehenden Runtime-Run angezeigt. In V1 startet diese Oberfläche selbst keine Level-4/5-Execution.</div>'}}
-function renderContext(d){const card=document.getElementById('operator-ai-context-card');if(!card)return;const s=d?.context_snapshot||d||{},rt=d?.inference_runtime||d?.inference||{};const p=s?.project_state?.project||s?.project_state||{};const ai=rt?.status==='VERIFIED'||rt?.inference_enabled===true?'REAL AI CONNECTED':'AI FAIL-SAFE';card.innerHTML='<h2>Project Context</h2><div class="row"><span>Project</span><strong>'+h(p.name||p.project_name||s.project_ref||'Nicht ausgewählt')+'</strong></div><div class="row"><span>Canonical</span><span class="operator-ai-inline-code">'+h(s?.canonical_source?.canonical_head||'UNKNOWN')+'</span></div><div class="row"><span>Freshness</span>'+badge(s?.freshness?.canonical)+'</div><div class="row"><span>AI</span>'+badge(ai)+'</div><div class="row"><span>Model</span><strong>'+h(rt?.model||'gpt-5.6-luna')+'</strong></div><div class="row"><span>Unknowns</span><strong>'+rows(s?.unknowns).length+'</strong></div>'}
+function renderContext(d){const card=document.getElementById('operator-ai-context-card');if(!card)return;const s=d?.context_snapshot||d||{},rt=d?.inference_runtime||d?.inference||{},p=s?.project_state?.project||s?.project_state||{};const ai=rt?.status==='VERIFIED'||rt?.inference_enabled===true?'REAL AI CONNECTED':'AI FAIL-SAFE';card.innerHTML='<h2>Project Context</h2><div class="row"><span>Project</span><strong>'+h(p.name||p.project_name||s.project_ref||'Nicht ausgewählt')+'</strong></div><div class="row"><span>Canonical</span><span class="operator-ai-inline-code">'+h(s?.canonical_source?.canonical_head||'UNKNOWN')+'</span></div><div class="row"><span>Freshness</span>'+badge(s?.freshness?.canonical)+'</div><div class="row"><span>AI</span>'+badge(ai)+'</div><div class="row"><span>Model</span><strong>'+h(rt?.model||'gpt-5.6-luna')+'</strong></div><div class="row"><span>Unknowns</span><strong>'+rows(s?.unknowns).length+'</strong></div>'}
 async function loadContext(){try{const d=await api('/context');renderContext(d)}catch(e){const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
-async function send(){const input=document.getElementById('operator-ai-input');const message=input?.value.trim();if(!message)return;const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="empty">Operator AI wertet den verifizierten Kontext aus…</div>';try{last=await api('/message',{method:'POST',body:JSON.stringify({message})});const meta=document.getElementById('operator-ai-meta');if(meta)meta.innerHTML=badge(last.intent?.intent)+' '+badge('LEVEL '+last.execution?.actual_autonomy)+' '+badge(last.inference?.status==='VERIFIED'?'REAL AI CONNECTED':'AI FAIL-SAFE')+' '+(last.inference?.usage?'<span class="badge active">'+h(last.inference.model)+' · '+h(last.inference.usage.total_tokens)+' tokens · activeTab='CHAT';renderLast()}catch(e){if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
+async function send(){const input=document.getElementById('operator-ai-input');const message=input?.value.trim();if(!message)return;const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="empty">Operator AI wertet den verifizierten Kontext aus…</div>';try{last=await api('/message',{method:'POST',body:JSON.stringify({message})});const meta=document.getElementById('operator-ai-meta');const ai=last.inference?.status==='VERIFIED'?'REAL AI CONNECTED':'AI FAIL-SAFE';const usage=last.inference?.usage;const ev=usage?'<span class="badge active">'+h(last.inference?.model||'gpt-5.6-luna')+' · '+h(usage.total_tokens)+' tokens</span>':'';if(meta)meta.innerHTML=badge(last.intent?.intent)+' '+badge('LEVEL '+last.execution?.actual_autonomy)+' '+badge(ai)+' '+ev;renderContext(last);activeTab='CHAT';renderLast()}catch(e){if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
 function open(){show();if(!document.getElementById('operator-ai-input'))base();void loadContext()}
 window.aurentaraOpenOperatorAiV1=open;
 })();
@@ -267,130 +267,6 @@ export function operatorAiDashboardManifest() {
     production_deploy: false,
     external_writes: false,
     paid_provider_calls: 'BOUNDED_PER_REQUEST',
-    variable_cost_eur: 0
-  };
-}
-+h(last.inference.estimated_cost_usd)+'</span>':'');renderContext(last);activeTab='CHAT';renderLast()}catch(e){if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
-function open(){show();if(!document.getElementById('operator-ai-input'))base();void loadContext()}
-window.aurentaraOpenOperatorAiV1=open;
-})();
-</script>`;
-
-function injectOperatorAiUi(source = '') {
-  if (source.includes('aurentara-operator-ai-v1-script')) return source;
-  const injection = `${AI_STYLE}${AI_SCRIPT}`;
-  return source.includes('</body>') ? source.replace('</body>', `${injection}</body>`) : `${source}${injection}`;
-}
-
-export async function handleOperatorDashboard(request, env = {}, ctx = {}, options = {}) {
-  const url = new URL(request.url);
-  const isAiApi = url.pathname === '/operator/api/operator-ai/context' || url.pathname === '/operator/api/operator-ai/message' || url.pathname === '/operator/api/operator-ai/manifest' || url.pathname === '/operator/api/operator-ai/results/interpret';
-
-  if (isAiApi) {
-    const auth = await authorizeOperator(request, env, ctx, options);
-    if (!auth.ok) return json({ error: auth.error, private_operator_access_required: true, production_deploy: false }, auth.status || 403);
-
-    if (request.method === 'GET' && url.pathname === '/operator/api/operator-ai/manifest') {
-      return json({
-        schema: 'aurentara.operator-ai.bundle.v1',
-        contracts: operatorAiContractsManifest(), intent: operatorAiIntentManifest(), project_resolution: operatorAiProjectResolutionManifest(),
-        context: operatorAiContextSnapshotManifest(), decision_support: operatorAiDecisionSupportManifest(), execution_brief: operatorAiExecutionBriefManifest(),
-        prompt_renderer: operatorAiPromptRendererManifest(), result_interpreter: operatorAiResultInterpreterManifest(), service: operatorAiServiceManifest(),
-        dashboard_integrated: true, safe_internal_execution_status: 'NOT_ACTIVATED', active_autonomy_levels: [0,1,2,3], production_deploy: false, external_writes: false
-      });
-    }
-
-    if (request.method === 'POST' && url.pathname === '/operator/api/operator-ai/results/interpret') {
-      const body = await readJson(request);
-      return json(interpretOperatorAiResult(body));
-    }
-
-    if (request.method === 'GET' && url.pathname === '/operator/api/operator-ai/context') {
-      const scopeKey = clean(url.searchParams.get('scope_key'), 500) || null;
-      const context = await collectContext(request, env, ctx, options, scopeKey);
-      const selected = context.selected_project_scope ? context.projects.find((p) => p.scope_key === context.selected_project_scope) : null;
-      const syntheticMessage = selected ? `Wie steht ${selected.name || selected.project_id}?` : 'Wie steht das ausgewählte Projekt?';
-      const result = handleOperatorAiMessage({ message: syntheticMessage }, context, { safe_internal_execution_active: false });
-      return json({ schema: 'aurentara.operator-ai.context-response.v1', context_snapshot: result.context_snapshot || null, project_resolution: result.project_resolution || null, production_deploy: false });
-    }
-
-    if (request.method === 'POST' && url.pathname === '/operator/api/operator-ai/message') {
-      const body = await readJson(request);
-      const message = clean(body.message || body.text, 6000);
-      if (!message) return json({ error: 'OPERATOR_AI_MESSAGE_REQUIRED', production_deploy: false }, 400);
-      let context = await collectContext(request, env, ctx, options, clean(body.project_scope || body.scope_key, 500) || null);
-      const resolvedIntent = resolveOperatorAiIntent({ message });
-      if (resolvedIntent.ok && resolvedIntent.intent !== 'PROJECT_CREATION_REQUEST') {
-        const preProject = resolveOperatorAiProject({
-          projects: context.projects,
-          message,
-          project_reference: resolvedIntent.project_reference,
-          selected_project_scope: context.selected_project_scope,
-          conversation_project_scope: clean(body.conversation_project_scope, 500) || null
-        });
-        if (preProject.ok && preProject.scope_key && preProject.scope_key !== context.selected_project_scope) {
-          context = await collectContext(request, env, ctx, options, preProject.scope_key);
-        }
-      }
-      if (resolvedIntent.ok && resolvedIntent.requested_autonomy >= 3) {
-        const quick = quickMissionCostEstimate({
-          route: 'BALANCED',
-          mission_text: message,
-          selected_capabilities: [],
-          mission_type: 'GENERAL',
-          external_dependencies_unknown: true
-        });
-        const selected = quick?.routes?.balanced || quick?.routes?.BALANCED || quick;
-        context.cost_state = {
-          ...clone(context.cost_state || {}),
-          schema: quick?.schema || 'aurentara.mission-cost-preflight.v1',
-          route: 'BALANCED',
-          estimated_min: selected?.low_estimate_eur ?? null,
-          estimated_max: selected?.high_estimate_eur ?? null,
-          low_estimate_eur: selected?.low_estimate_eur ?? null,
-          high_estimate_eur: selected?.high_estimate_eur ?? null,
-          confidence: selected?.confidence || quick?.confidence || 'UNKNOWN',
-          cost_ceiling: selected?.recommended_cost_ceiling_eur ?? 0,
-          approval_required: false,
-          paid_provider_calls_expected: 0,
-          preflight_status: quick?.ok === false ? 'BLOCKED' : 'PREPARED',
-          preflight_ref: `operator-ai-inline:${Date.now()}`
-        };
-        context.cost_preflight_ref = context.cost_state.preflight_ref;
-      }
-      const result = handleOperatorAiMessage({ message, conversation_project_scope: clean(body.conversation_project_scope,500) || null }, context, { safe_internal_execution_active: false });
-      return json(result, result.ok === false ? 409 : 200);
-    }
-
-    return json({ error: 'OPERATOR_AI_ROUTE_NOT_FOUND', production_deploy: false }, 404);
-  }
-
-  const response = await handleExistingOperatorDashboard(request, env, ctx, options);
-  if (!response) return null;
-  const type = response.headers.get('content-type') || '';
-  if (!(url.pathname === '/operator' || url.pathname === '/operator/') || response.status !== 200 || !type.includes('text/html')) return response;
-  const source = await response.text();
-  const headers = new Headers(response.headers);
-  headers.delete('content-length');
-  headers.set('x-aurentara-operator-ai-v1', 'enabled');
-  return new Response(injectOperatorAiUi(source), { status: response.status, statusText: response.statusText, headers });
-}
-
-export function operatorAiDashboardManifest() {
-  return {
-    schema: 'aurentara.operator-ai.dashboard.v1',
-    existing_dashboard_extended: true,
-    routes: ['GET /operator/api/operator-ai/context','POST /operator/api/operator-ai/message','POST /operator/api/operator-ai/results/interpret','GET /operator/api/operator-ai/manifest'],
-    views: ['CHAT','BRIEF','MASTERPROMPT','RUN','RESULT'],
-    central_input: true,
-    project_context_visible: true,
-    cost_risk_evidence_visible: true,
-    safe_internal_execution_status: 'NOT_ACTIVATED',
-    active_autonomy_levels: [0,1,2,3],
-    new_database: false,
-    production_deploy: false,
-    external_writes: false,
-    paid_provider_calls: 0,
     variable_cost_eur: 0
   };
 }
