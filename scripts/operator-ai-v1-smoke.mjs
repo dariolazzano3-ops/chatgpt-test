@@ -27,7 +27,7 @@ const baseContext={
 function msg(message, context=baseContext){return handleOperatorAiMessage({message},context,{now:NOW,safe_internal_execution_active:false})}
 
 const status=msg('Wie steht Gelato gerade?');
-assert.equal(status.ok,true);assert.equal(status.intent.intent,'STATUS_REQUEST');assert.equal(status.intent.execution_requested,false);assert.equal(status.execution_brief,null);assert.equal(status.execution.started,false);
+assert.equal(status.ok,true);assert.equal(status.intent.intent,'STATUS_REQUEST');assert.equal(status.intent.execution_requested,false);assert.equal(status.execution_brief,null);assert.equal(status.execution.started,false);assert.notEqual(status.next_action.code,'PRODUCTION_APPROVAL_REQUIRED');
 
 const why=msg('Warum ist Gelato noch nicht fertig?');
 assert.equal(why.intent.intent,'ANALYSIS_REQUEST');assert.equal(why.intent.execution_requested,false);assert.equal(why.execution.started,false);
@@ -56,8 +56,10 @@ assert.ok(sourceConflict.context_snapshot.conflicts.length);assert.equal(sourceC
 const ambiguous=handleOperatorAiMessage({message:'Wie steht das Projekt?'},{...baseContext,selected_project_scope:null},{now:NOW});
 assert.equal(ambiguous.ok,false);assert.equal(ambiguous.project_resolution.status,'AMBIGUOUS');assert.equal(ambiguous.execution_started,false);
 
-const hamyren=msg('Wie steht HAMYREN?');
-assert.equal(hamyren.project_resolution.project.scope_key,'aurentara:hamyren-v1');assert.equal(hamyren.execution.started,false);
+const hamyrenMismatch=msg('Wie steht HAMYREN?');
+assert.equal(hamyrenMismatch.ok,false);assert.equal(hamyrenMismatch.error,'OPERATOR_AI_PROJECT_CONTEXT_MISMATCH');assert.equal(hamyrenMismatch.execution_started,false);
+const hamyren=handleOperatorAiMessage({message:'Wie steht HAMYREN?'},{...baseContext,project_state:projects[1]},{now:NOW,safe_internal_execution_active:false});
+assert.equal(hamyren.ok,true);assert.equal(hamyren.project_resolution.project.scope_key,'aurentara:hamyren-v1');assert.equal(hamyren.execution.started,false);
 const explicitGelatoAgainstOtherSelection=handleOperatorAiMessage({message:'Wie steht Gelato?'},{...baseContext,selected_project_scope:projects[1].scope_key},{now:NOW});assert.equal(explicitGelatoAgainstOtherSelection.project_resolution.project.scope_key,projects[0].scope_key);
 
 const intentNoExec=resolveOperatorAiIntent({message:'Verbessere Gelato, aber starte nichts.'});
