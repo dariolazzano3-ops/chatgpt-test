@@ -154,7 +154,7 @@ assert.equal(uploaded.paid_provider_calls, 0);
 response = await handleOperatorDashboard(new Request(`https://operator.example/operator/api/project-source-intake?scope_key=${encodeURIComponent(gelato.scope_key)}`), env, {}, handlerOptions);
 assert.equal(response.status, 200);
 const sourceView = await response.json();
-assert.equal(sourceView.workspace.sections.project_sources.length, 3);
+assert.equal(sourceView.workspace.sections.project_sources.length, 4);
 assert.equal(sourceView.storage.private, true);
 assert.equal(sourceView.storage.public_access, false);
 const durable = await store.load(operatorId);
