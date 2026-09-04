@@ -11,6 +11,7 @@ const SECTION_LABELS=Object.freeze({
   providers:'Providers',
   costs:'Costs',
   quality:'Quality',
+  alerts:'Blocker / Hinweise',
   health:'System Health',
   audit:'Activity',
   settings:'Settings / Richtlinien'
@@ -74,7 +75,7 @@ const SCRIPT=String.raw`<script id="aurentara-global-operator-ai-access-v1-scrip
 (()=>{if(window.__aurentaraGlobalOperatorAiAccessV1)return;window.__aurentaraGlobalOperatorAiAccessV1=true;
 const trigger=document.getElementById('global-operator-ai-trigger'),backdrop=document.getElementById('global-operator-ai-backdrop'),panel=document.getElementById('global-operator-ai-panel'),close=document.getElementById('global-operator-ai-close'),send=document.getElementById('global-operator-ai-send'),input=document.getElementById('global-operator-ai-input'),output=document.getElementById('global-operator-ai-output'),full=document.getElementById('global-operator-ai-full'),sectionLabel=document.getElementById('global-operator-ai-section'),projectLabel=document.getElementById('global-operator-ai-project');
 if(!trigger||!backdrop||!panel)return;
-const LABELS={hq:'HQ',projects:'Projects',mission:'Missions',approvals:'Approvals',deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',providers:'Providers',costs:'Costs',quality:'Quality',health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'};
+const LABELS={hq:'HQ',projects:'Projects',mission:'Missions',approvals:'Approvals',deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const current=()=>{const s=typeof state!=='undefined'&&state?state:{};const section=String(s.section||'hq');const scope=String(s.selectedScope||'').slice(0,640)||null;const items=s.data?.projects?.items||[];const detail=s.detail?.project||null;const project=(detail?.scope_key===scope?detail:items.find(x=>x.scope_key===scope))||null;return{section:LABELS[section]?section:'hq',section_label:LABELS[section]||'HQ',view_identity:'masterdashboard:'+(LABELS[section]?section:'hq'),selected_project_scope:scope,selected_project_name:project?.name||project?.project_name||project?.project_id||null,conversation_project_scope:scope}};
 const refreshContext=()=>{const c=current();sectionLabel.textContent=c.section_label;projectLabel.textContent=c.selected_project_name||'Nicht ausgewählt';return c};
