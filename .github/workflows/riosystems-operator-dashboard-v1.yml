@@ -24,6 +24,7 @@ on:
       - 'src/operator-branding-v1.js'
       - 'src/operator-project-source-intake-storage-dashboard-v1.js'
       - 'src/operator-project-source-intake-human-acceptance-ui-v1.js'
+      - 'src/human-outcome-acceptance-v1.js'
       - 'src/operator-ai/dashboard-v1.js'
       - 'src/operator-ai/global-access-v1.js'
       - 'src/operator-ai/context-snapshot-v1.js'
@@ -45,6 +46,7 @@ on:
       - 'scripts/operator-final-human-ux-mobile-v1.mjs'
       - 'scripts/operator-dashboard-local-worker-smoke.mjs'
       - 'scripts/project-source-human-ux-browser-v1.mjs'
+      - 'scripts/human-outcome-acceptance-v1-smoke.mjs'
       - 'scripts/operator-ai-global-access-v1-smoke.mjs'
       - 'scripts/operator-ai-global-access-v1-browser.mjs'
       - 'scripts/operator-runtime-supabase-store-v1-smoke.mjs'
@@ -89,6 +91,7 @@ jobs:
           node --check src/operator-final-human-ux-localization-v1.js
           node --check src/operator-deployment-localization-v1.js
           node --check src/operator-branding-v1.js
+          node --check src/human-outcome-acceptance-v1.js
           node --check src/operator-ai/dashboard-v1.js
           node --check src/operator-ai/global-access-v1.js
           node --check src/operator-ai/context-snapshot-v1.js
@@ -113,6 +116,7 @@ jobs:
           node --check scripts/operator-live-staging-bridge-v1-smoke.mjs
           node --check scripts/operator-project-create-v1-smoke.mjs
           node --check scripts/operator-system-health-v1-smoke.mjs
+          node --check scripts/human-outcome-acceptance-v1-smoke.mjs
           node --check scripts/operator-ai-global-access-v1-smoke.mjs
           node --check scripts/operator-ai-global-access-v1-browser.mjs
       - name: Durable Operator Runtime acceptance
@@ -141,6 +145,8 @@ jobs:
         run: node scripts/operator-dashboard-local-worker-smoke.mjs
       - name: Browser-based human operator flow
         run: node scripts/operator-human-ux-browser-v1.mjs
+      - name: Real human outcome fail-closed contract
+        run: node scripts/human-outcome-acceptance-v1-smoke.mjs
       - name: Global Operator AI desktop and iPhone acceptance
         run: |
           node scripts/operator-ai-global-access-v1-smoke.mjs

@@ -24,6 +24,21 @@ const access = {
   restrictive_policy_verified: true,
   source: 'github_actions_cloudflare_access_readonly'
 };
+const humanPass = {
+  technical_implementation: true,
+  technical_integration: true,
+  final_dom_presence: true,
+  human_visibility: true,
+  human_reachability: true,
+  primary_interaction: true,
+  expected_result: true,
+  desktop_acceptance: true,
+  mobile_acceptance: true,
+  mobile_required: true,
+  composition_regression: true,
+  safety_regression: true
+};
+
 const deployed = { status: 'HEALTHY', deployed_sha: HEAD, source: 'github_actions_zero_cost_staging_deploy' };
 
 const preActivation = buildRiosystemsV1AcceptanceFromEvidence({ system_health: healthySystem, request_context: { server_side_operator_authorized: true } });
@@ -38,11 +53,22 @@ const accepted = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
   request_context: { server_side_operator_authorized: true },
   access_evidence: access,
-  deployment_evidence: deployed
+  deployment_evidence: deployed,
+  human_outcome: humanPass
 });
 assert.equal(accepted.status, 'V1_ACCEPTED');
 assert.equal(accepted.staging_activation.summary.VERIFIED, 5);
 assert.equal(accepted.next_actions.length, 0);
+
+const missingHuman = buildRiosystemsV1AcceptanceFromEvidence({
+  system_health: healthySystem,
+  request_context: { server_side_operator_authorized: true },
+  access_evidence: access,
+  deployment_evidence: deployed
+});
+assert.equal(missingHuman.status, 'TECHNICALLY_ACCEPTED_HUMAN_ACCEPTANCE_PENDING');
+assert.equal(missingHuman.human_outcome.human_outcome_accepted, false);
+
 
 const blockedAccess = buildRiosystemsV1AcceptanceFromEvidence({
   system_health: healthySystem,
@@ -118,6 +144,7 @@ console.log(JSON.stringify({
   activation_verified_without_access_or_deploy: preActivation.staging_activation.summary.VERIFIED,
   pre_activation_status: preActivation.status,
   fully_accepted_status: accepted.status,
+  missing_human_status: missingHuman.status,
   blocked_access_gate: blockedAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status,
   pending_access_gate: pendingAccess.staging_activation.items.find((item) => item.id === 'access_application_configured').status,
   stale_deploy_gate: staleDeploy.staging_activation.items.find((item) => item.id === 'latest_factory_control_deployed_to_staging').status,
