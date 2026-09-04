@@ -37,7 +37,9 @@ assert.equal((html.match(/aurentara-global-operator-ai-access-v1-script/g)||[]).
 assert.equal(injectGlobalOperatorAiAccessUi(html),html,'injection must be idempotent');
 const globalScriptMatch=html.match(/<script id="aurentara-global-operator-ai-access-v1-script">([\s\S]*?)<\/script>/);
 assert.ok(globalScriptMatch,'global access script must be embedded');
-assert.match(globalScriptMatch[1],/modelText \+= ' · \\assert.doesNotThrow(()=>new vm.Script(globalScriptMatch[1],{filename:'aurentara-global-operator-ai-access-v1.inline.js'}),'embedded global access script must parse');
+assert.equal(globalScriptMatch[1].includes("modelText += ' · $'"),true,'composed script must preserve literal currency marker');
+assert.equal(globalScriptMatch[1].includes("' · </html>"),false,'HTML composition must not expand String.replace replacement tokens inside script');
+assert.doesNotThrow(()=>new vm.Script(globalScriptMatch[1],{filename:'aurentara-global-operator-ai-access-v1.inline.js'}),'embedded global access script must parse');
 
 const scope='gelato-donatello:website-v1';
 const projects=[{scope_key:scope,name:'Gelato Donatello',project_id:'gelato'}];
