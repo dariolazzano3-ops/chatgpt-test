@@ -180,8 +180,11 @@ assert.equal(stack.activation_policy.production_deploy, false);
 const openai = openAiStagingConnectionEvidence();
 assert.equal(isOpenAiStagingConnected(), true);
 assert.equal(openai.connection.connected_staging, true);
-assert.equal(openai.execution.inference_performed, false);
-assert.equal(openai.execution.routing_ready, false);
+assert.equal(openai.execution.inference_performed, true);
+assert.equal(openai.execution.inference_verified, true);
+assert.equal(openai.execution.token_generation_verified, true);
+assert.equal(openai.execution.model, 'gpt-5.6-luna');
+assert.equal(openai.execution.routing_ready, true);
 assert.equal(openai.execution.paid_execution_approved, false);
 assert.equal(openai.safety.production_eligible, false);
 
