@@ -10,14 +10,20 @@ import {
 } from '../src/customer-review-lifecycle-v1.js';
 import { evaluateHumanOutcomeAcceptance } from '../src/human-outcome-acceptance-v1.js';
 import { createProjectHandoff, evaluateProjectDelivery } from '../src/project-delivery-gate.js';
+import { recordProjectCustomerReview } from '../src/project-operating-layer.js';
+import { createProjectPortfolio, upsertPortfolioProject } from '../src/project-portfolio.js';
 
 const project = {
   customer_id: 'mueller-elektrotechnik',
   project_id: 'digital-system-v1',
   scope_key: 'mueller-elektrotechnik:digital-system-v1',
+  name: 'Müller Elektrotechnik',
+  state: 'ACTIVE',
+  budget_cost_units: 5,
   capabilities: [{ id: 'web_presence', required: true }],
   missions: [{ mission_id: 'mission-1' }],
   deliveries: [],
+  audit: [],
   delivery_contract: {
     schema: 'aurentara.customer-delivery-contract.v1',
     customer_review_required: true
@@ -163,6 +169,19 @@ assert.equal(handoff.handoff.customer_review.ready, true);
 assert.equal(handoff.handoff.customer_review.approved_preview_id, 'preview-2');
 assert.equal(Boolean(handoff.handoff.customer_review.approval_id), true);
 
+const bound = recordProjectCustomerReview(project, state, { actor: 'operator' });
+assert.equal(bound.ok, true);
+assert.equal(bound.project.customer_review.status, 'CUSTOMER_APPROVED');
+assert.equal(bound.project.audit.at(-1).event, 'PROJECT_CUSTOMER_REVIEW_RECORDED');
+
+let portfolio = createProjectPortfolio({ operator_id: 'operator-1' }).portfolio;
+let projected = upsertPortfolioProject(portfolio, bound.project);
+assert.equal(projected.ok, true);
+portfolio = projected.portfolio;
+assert.equal(portfolio.projects[0].customer_review.status, 'CUSTOMER_APPROVED');
+assert.equal(portfolio.projects[0].customer_review.normal_revision_count, 1);
+assert.equal(portfolio.projects[0].next_action, 'DELIVERY_REVIEW');
+
 let scopeState = createCustomerReviewLifecycleV1(project, { at: '2026-09-04T17:00:00.000Z' }).state;
 scopeState = registerPrivatePreviewV1(scopeState, {
   preview_url: 'https://scope-preview.example.invalid',
@@ -193,6 +212,15 @@ const scopeEvidence = evaluateCustomerReviewLifecycleV1(scopeState);
 assert.equal(scopeEvidence.ready_for_delivery, false);
 assert.equal(scopeEvidence.blockers.includes('SCOPE_REASSESSMENT_REQUIRED'), true);
 assert.equal(scopeEvidence.blockers.includes('CUSTOMER_APPROVAL_REQUIRED'), true);
+
+const scopeBound = recordProjectCustomerReview(project, scopeState, { actor: 'operator' });
+assert.equal(scopeBound.ok, true);
+projected = upsertPortfolioProject(portfolio, scopeBound.project);
+assert.equal(projected.ok, true);
+const scopeProject = projected.portfolio.projects[0];
+assert.equal(scopeProject.blocked, true);
+assert.equal(scopeProject.next_action, 'REASSESS_SCOPE_AND_COST');
+assert.equal(scopeProject.customer_review.unresolved_feedback_count, 1);
 
 const manifest = customerReviewLifecycleV1Manifest();
 assert.equal(manifest.scope_expansion_is_normal_revision, false);
