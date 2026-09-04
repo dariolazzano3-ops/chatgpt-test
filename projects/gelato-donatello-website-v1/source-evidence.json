@@ -8,7 +8,23 @@
   "baseline": {
     "premium_score": 24.2,
     "source": "GELATO PREMIUM STANDARD – REAL ACCEPTANCE V1",
-    "authoritative_handoff": true
+    "authoritative_handoff": true,
+    "dimension_scores": {
+      "business_understanding": 40,
+      "brand_foundation_fit": 30,
+      "content_copy": 45,
+      "information_architecture_ux": 40,
+      "visual_design_art_direction": 10,
+      "conversion": 25,
+      "trust": 20,
+      "seo_discoverability": 35,
+      "performance": 0,
+      "accessibility": 20,
+      "technical_quality_security": 15,
+      "mobile_responsive": 0,
+      "legal_rights_readiness": 25,
+      "launch_handover_readiness": 15
+    }
   },
   "source_capture": {
     "source_id": "gelato-live-owned-website",
