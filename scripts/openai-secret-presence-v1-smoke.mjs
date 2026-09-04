@@ -25,7 +25,7 @@ const request = new Request('https://example.invalid/factory/diagnostics/openai-
   method: 'GET',
   headers: { authorization: 'Bearer test-operator-token' }
 });
-const response = handleOpenAiSecretPresence(request, env);
+const response = await handleOpenAiSecretPresence(request, env);
 assert.equal(response.status, 200);
 const body = await response.json();
 assert.equal(body.ok, true);
@@ -121,13 +121,13 @@ const denied = await handleOpenAiSecretPresence(
 assert.equal(denied.status, 403);
 assert.equal(deniedFetches, 0);
 
-const unauthorized = handleOpenAiSecretPresence(
+const unauthorized = await handleOpenAiSecretPresence(
   new Request('https://example.invalid/factory/diagnostics/openai-secret-presence'),
   env
 );
 assert.equal(unauthorized.status, 401);
 
-const nonStaging = handleOpenAiSecretPresence(request, {
+const nonStaging = await handleOpenAiSecretPresence(request, {
   ...env,
   RIOSYSTEMS_ENVIRONMENT: 'production'
 });
