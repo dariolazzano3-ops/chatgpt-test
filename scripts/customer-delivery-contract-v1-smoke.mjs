@@ -6,6 +6,7 @@ import {
   draftFerrariRequirementsFromCustomerWish,
   evaluateCustomerDeliveryContractV1
 } from '../src/customer-delivery-contract-v1.js';
+import { prepareCustomerProject } from '../src/project-control-plane.js';
 
 const draft = draftFerrariRequirementsFromCustomerWish('Ich brauche eine moderne Webseite und will mehr Anfragen.');
 assert.equal(draft.authoritative, false);
@@ -61,6 +62,18 @@ const evaluated = evaluateCustomerDeliveryContractV1(ready.contract);
 assert.equal(evaluated.ready_for_build, true);
 assert.equal(evaluated.scope_drift_blocked, true);
 assert.equal(evaluated.production_without_approval_blocked, true);
+
+const prepared = prepareCustomerProject({
+  customer_id: 'customer-x',
+  project_id: 'website-v1',
+  name: 'Customer X Website',
+  objective: 'Moderne Webseite und mehr Anfragen'
+});
+assert.equal(prepared.ok, true);
+assert.equal(prepared.project.delivery_contract.schema, 'aurentara.customer-delivery-contract.v1');
+assert.equal(prepared.project.delivery_contract.discovery.authoritative, false);
+assert.equal(prepared.delivery_contract_readiness.ready_for_build, false);
+assert.equal(prepared.delivery_contract_readiness.blockers.includes('SCOPE_CONFIRMATION_REQUIRED'), true);
 
 const mismatch = createCustomerDeliveryContractV1({
   customer_id: 'project-a',
