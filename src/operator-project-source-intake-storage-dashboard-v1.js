@@ -18,6 +18,29 @@ import {
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const PUBLISHABLE_RIGHTS = new Set(['OWNED_CONFIRMED', 'CUSTOMER_LICENSED', 'CUSTOMER_ASSERTED']);
 const RIGHTS = new Set(['OWNED_CONFIRMED', 'CUSTOMER_LICENSED', 'CUSTOMER_ASSERTED', 'UNKNOWN', 'DO_NOT_PUBLISH']);
+export const PROJECT_SOURCE_INLINE_PREVIEW_MIME_TYPES = Object.freeze(['image/png','image/jpeg','image/webp','image/gif','application/pdf']);
+export const PROJECT_SOURCE_MANUAL_CATEGORIES = Object.freeze({
+  offering: { label: 'Leistung / Angebot', field_path: 'business.offerings' },
+  product: { label: 'Produkt', field_path: 'business.products' },
+  price: { label: 'Preis', field_path: 'business.pricing' },
+  opening_hours: { label: 'Öffnungszeiten', field_path: 'business.opening_hours' },
+  phone: { label: 'Telefon', field_path: 'business.phone' },
+  email: { label: 'E-Mail', field_path: 'business.email' },
+  address: { label: 'Adresse', field_path: 'business.address' },
+  description: { label: 'Beschreibung', field_path: 'business.description' },
+  other: { label: 'Sonstige Information', field_path: 'content.summary' }
+});
+const INLINE_PREVIEW_MIME_SET = new Set(PROJECT_SOURCE_INLINE_PREVIEW_MIME_TYPES);
+
+function manualFieldPath(fact = {}) {
+  const category = clean(fact.manual_category || fact.category, 80).toLowerCase();
+  if (category && PROJECT_SOURCE_MANUAL_CATEGORIES[category]) return PROJECT_SOURCE_MANUAL_CATEGORIES[category].field_path;
+  return clean(fact.field_path, 320);
+}
+
+function safeSourceFilename(source = {}) {
+  return clean(source.display_name || source.filename, 140).replace(/["\\\r\n]/g, '_') || 'project-source';
+}
 
 function json(body, status = 200, source = null) {
   const headers = source ? new Headers(source.headers) : new Headers();
@@ -210,6 +233,43 @@ async function handleDelete(request, env, service, options = {}) {
   return json({ error: 'PROJECT_SOURCE_DELETE_RUNTIME_RECONCILIATION_FAILED', storage_deleted: true, production_deploy: false }, 409);
 }
 
+async function handlePreview(request, env, service, options = {}) {
+  const url = new URL(request.url);
+  const scopeKey = clean(url.searchParams.get('scope_key'), 640);
+  const storageRef = clean(url.searchParams.get('storage_ref'), 4000);
+  const read = await loadIntake(service, scopeKey);
+  if (!read.ok) return json(read.body, read.status || 400);
+  const source = sourceForStorageRef(read.body.state, storageRef);
+  if (!source) return json({ error: 'PROJECT_SOURCE_STORAGE_REF_NOT_REGISTERED_IN_PROJECT', project_scoped: true, production_deploy: false }, 404);
+
+  const sourceMime = clean(source.mime_type, 180).toLowerCase();
+  if (!INLINE_PREVIEW_MIME_SET.has(sourceMime)) {
+    return json({ error: 'PROJECT_SOURCE_PREVIEW_MIME_NOT_ALLOWED', mime_type: sourceMime || null, inline_preview: false, download_available: true, production_deploy: false }, 415);
+  }
+
+  let storage;
+  try { storage = storageClient(env, options); } catch { return json({ error: 'PROJECT_SOURCE_STORAGE_NOT_CONFIGURED', secret_exposed: false, production_deploy: false }, 503); }
+  const downloaded = await storage.download(storageRef, read.body.identity);
+  if (!downloaded.ok) return json(downloaded, downloaded.error === 'PROJECT_SOURCE_STORAGE_CROSS_SCOPE_REJECTED' ? 403 : 404);
+
+  const responseMime = clean(downloaded.content_type, 180).toLowerCase();
+  if (responseMime !== sourceMime || !INLINE_PREVIEW_MIME_SET.has(responseMime)) {
+    return json({ error: 'PROJECT_SOURCE_PREVIEW_MIME_MISMATCH', expected_mime_type: sourceMime, observed_mime_type: responseMime || null, inline_preview: false, download_available: true, production_deploy: false }, 415);
+  }
+
+  const headers = new Headers();
+  headers.set('content-type', sourceMime);
+  headers.set('cache-control', 'private, no-store');
+  headers.set('content-disposition', `inline; filename="${safeSourceFilename(source)}"`);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-aurentara-public-active', 'false');
+  headers.set('x-aurentara-project-source-preview', 'private-inline-v1');
+  headers.set('cross-origin-resource-policy', 'same-origin');
+  headers.set('referrer-policy', 'no-referrer');
+  headers.set('content-security-policy', "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  return new Response(downloaded.response.body, { status: 200, headers });
+}
+
 async function handleDownload(request, env, service, options = {}) {
   const url = new URL(request.url);
   const scopeKey = clean(url.searchParams.get('scope_key'), 640);
@@ -237,7 +297,7 @@ async function handleManual(request, service) {
   if (!read.ok) return json(read.body, read.status || 400);
   const facts = (Array.isArray(body.facts) ? body.facts : []).slice(0, 30).map((fact) => ({
     fact_id: clean(fact.fact_id, 200) || undefined,
-    field_path: clean(fact.field_path, 320),
+    field_path: manualFieldPath(fact),
     value: fact.value,
     origin: 'MANUAL',
     verification_status: 'UNVERIFIED',
@@ -348,6 +408,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
     return read.ok ? json(workspacePayload(read.body)) : json(read.body, read.status || 400);
   }
   if (url.pathname === '/operator/api/project-source-intake/upload' && request.method === 'POST') return handleUpload(request, env, service, options);
+  if (url.pathname === '/operator/api/project-source-intake/preview' && request.method === 'GET') return handlePreview(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/object' && request.method === 'GET') return handleDownload(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/object' && request.method === 'DELETE') return handleDelete(request, env, service, options);
   if (url.pathname === '/operator/api/project-source-intake/manual' && request.method === 'POST') return handleManual(request, service);
@@ -361,12 +422,16 @@ export function operatorProjectSourceIntakeStorageDashboardManifest() {
   return {
     schema: 'aurentara.operator-project-source-intake-storage-dashboard.v1',
     existing_operator_dashboard_extended: true,
-    routes: ['GET source intake','POST multipart upload','GET private object','DELETE private object','POST manual source','POST website source','PATCH website usage','POST packs/readiness'],
+    routes: ['GET source intake','POST multipart upload','GET private preview','GET private object download','DELETE private object','POST manual source','POST website source','PATCH website usage','POST packs/readiness'],
     multi_file_upload: true,
     multi_image_upload: true,
     bulk_rights_on_upload: true,
     mobile_file_input: true,
     source_cards: true,
+    private_inline_preview_allowlist: [...PROJECT_SOURCE_INLINE_PREVIEW_MIME_TYPES],
+    unsafe_mime_inline_preview: false,
+    explicit_download_action: true,
+    manual_input_categories: Object.fromEntries(Object.entries(PROJECT_SOURCE_MANUAL_CATEGORIES).map(([key, value]) => [key, value.field_path])),
     service_role_browser_exposure: false,
     project_scope_server_resolved: true,
     runtime_binary_storage: false,
