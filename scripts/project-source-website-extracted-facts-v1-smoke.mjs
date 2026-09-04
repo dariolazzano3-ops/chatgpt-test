@@ -18,7 +18,7 @@ const html = `<!doctype html><html><head><title>Gelato Fixture</title><meta name
 <p>Telefon 06806 9394980</p>
 <p>Telefon +49 176 200 150 65</p>
 <p>Montag 12:00 - 22:00</p>
-<p>Kugel 1,60 €</p>
+<p>Kugel 1,60 EUR </p>
 <a href="/impressum">Impressum</a>
 </body></html>`;
 
@@ -66,7 +66,7 @@ assert.equal(phoneFacts.every((fact) => fact.verification_status === 'SOURCE_CON
 const pricing = imported.state.facts.find((fact) => fact.field_path === 'business.pricing');
 assert.ok(pricing);
 assert.equal(pricing.verification_status, 'UNVERIFIED');
-assert.deepEqual(pricing.value, ['1,60 €']);
+assert.deepEqual(pricing.value, ['1,60 EUR']);
 
 const products = imported.state.facts.find((fact) => fact.field_path === 'business.products');
 assert.ok(products);
