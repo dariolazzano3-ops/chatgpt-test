@@ -1,3 +1,5 @@
+import { sealHumanFacingAcceptance } from './human-outcome-acceptance-v1.js';
+
 const clone = (value) => structuredClone(value ?? null);
 
 const DOD = Object.freeze([
@@ -67,16 +69,25 @@ function nextActions(dod, activation, safety) {
   return activation.filter((item) => item.status !== 'VERIFIED').map((item) => ({ type: 'STAGING_ACTIVATION', id: item.id, action: item.label }));
 }
 
-export function buildRiosystemsV1Acceptance({ definition_of_done = {}, staging_activation = {}, safety = {} } = {}) {
+export function buildRiosystemsV1Acceptance({ definition_of_done = {}, staging_activation = {}, safety = {}, human_outcome = {} } = {}) {
   const dod = evaluate(DOD, definition_of_done);
   const activation = evaluate(ACTIVATION, staging_activation);
   const dodSummary = summarize(dod);
   const activationSummary = summarize(activation);
   const hardSafety = safetyStatus(safety);
 
+  const humanSeal = sealHumanFacingAcceptance({
+    human_facing: true,
+    technical_accepted: dodSummary.complete && activationSummary.complete,
+    safety_accepted: hardSafety.ok,
+    human_outcome
+  });
+
   let status = 'INCOMPLETE';
   if (!hardSafety.ok) status = 'BLOCKED';
-  else if (dodSummary.complete && activationSummary.complete) status = 'V1_ACCEPTED';
+  else if (dodSummary.complete && activationSummary.complete && humanSeal.ok) status = 'V1_ACCEPTED';
+  else if (dodSummary.complete && activationSummary.complete && humanSeal.verdict === 'TECHNICALLY_ACCEPTED_HUMAN_ACCEPTANCE_PENDING') status = 'TECHNICALLY_ACCEPTED_HUMAN_ACCEPTANCE_PENDING';
+  else if (dodSummary.complete && activationSummary.complete && humanSeal.verdict === 'HUMAN_OUTCOME_FAILED') status = 'HUMAN_OUTCOME_FAILED';
   else if (dodSummary.complete) status = 'CODE_ACCEPTED_EXTERNAL_ACTIVATION_REQUIRED';
 
   return {
@@ -85,14 +96,20 @@ export function buildRiosystemsV1Acceptance({ definition_of_done = {}, staging_a
     definition_of_done: { summary: dodSummary, items: dod },
     staging_activation: { summary: activationSummary, items: activation },
     safety: hardSafety,
-    next_actions: nextActions(dod, activation, hardSafety),
+    human_outcome: humanSeal.human_outcome,
+    human_outcome_required: true,
+    next_actions: status === 'TECHNICALLY_ACCEPTED_HUMAN_ACCEPTANCE_PENDING'
+      ? [{ type: 'HUMAN_OUTCOME_ACCEPTANCE', action: 'Run final composed browser human-outcome acceptance before full acceptance.' }]
+      : nextActions(dod, activation, hardSafety),
     rules: {
       no_inferred_success: true,
       unknown_is_not_verified: true,
       exact_head_ci_required: true,
       private_access_required: true,
       authenticated_staging_smoke_required_for_operational_acceptance: true,
-      production_must_remain_locked_for_v1_acceptance: true
+      production_must_remain_locked_for_v1_acceptance: true,
+      full_acceptance_requires_human_outcome: true,
+      final_composed_browser_is_authoritative: true
     },
     production_deploy: false
   };
@@ -103,7 +120,7 @@ export function riosystemsV1AcceptanceManifest() {
     schema: 'riosystems.v1-acceptance.v1',
     definition_of_done_ids: DOD.map(([id]) => id),
     staging_activation_ids: ACTIVATION.map(([id]) => id),
-    statuses: ['INCOMPLETE', 'CODE_ACCEPTED_EXTERNAL_ACTIVATION_REQUIRED', 'V1_ACCEPTED', 'BLOCKED'],
+    statuses: ['INCOMPLETE', 'CODE_ACCEPTED_EXTERNAL_ACTIVATION_REQUIRED', 'TECHNICALLY_ACCEPTED_HUMAN_ACCEPTANCE_PENDING', 'HUMAN_OUTCOME_FAILED', 'V1_ACCEPTED', 'BLOCKED'],
     production_deploy: false
   };
 }

@@ -4,11 +4,13 @@ on:
   pull_request:
     branches: [factory-control]
     paths:
+      - 'src/human-outcome-acceptance-v1.js'
       - 'src/riosystems-v1-acceptance-v1.js'
       - 'src/riosystems-v1-acceptance-evidence-v1.js'
       - 'src/operator-staging-deployment-evidence-v1.js'
       - 'src/operator-cloudflare-access-evidence-v1.js'
       - 'src/cloudflare-access-readonly-verifier-v1.js'
+      - 'scripts/human-outcome-acceptance-v1-smoke.mjs'
       - 'scripts/riosystems-v1-acceptance-v1-smoke.mjs'
       - 'scripts/riosystems-v1-acceptance-evidence-v1-smoke.mjs'
       - 'scripts/operator-staging-deployment-evidence-v1-smoke.mjs'
@@ -47,18 +49,22 @@ jobs:
         run: npm install
       - name: Validate acceptance gate syntax
         run: |
+          node --check src/human-outcome-acceptance-v1.js
           node --check src/riosystems-v1-acceptance-v1.js
           node --check src/riosystems-v1-acceptance-evidence-v1.js
           node --check src/operator-staging-deployment-evidence-v1.js
           node --check src/operator-cloudflare-access-evidence-v1.js
           node --check src/cloudflare-access-readonly-verifier-v1.js
           node --check src/operator-v1-acceptance-dashboard-v1.js
+          node --check scripts/human-outcome-acceptance-v1-smoke.mjs
           node --check scripts/riosystems-v1-acceptance-v1-smoke.mjs
           node --check scripts/riosystems-v1-acceptance-evidence-v1-smoke.mjs
           node --check scripts/operator-staging-deployment-evidence-v1-smoke.mjs
           node --check scripts/operator-cloudflare-access-evidence-v1-smoke.mjs
           node --check scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
           node --check scripts/cloudflare-access-live-readonly-verify.mjs
+      - name: Real human outcome fail-closed contract
+        run: node scripts/human-outcome-acceptance-v1-smoke.mjs
       - name: RIOSYSTEMS V1 acceptance contract
         run: node scripts/riosystems-v1-acceptance-v1-smoke.mjs
       - name: Operator staging deployment evidence

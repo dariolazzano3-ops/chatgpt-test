@@ -121,7 +121,7 @@ export function buildRiosystemsV1AcceptanceFromEvidence(input = {}) {
     unapproved_external_writes: completeness.live_staging_requires_server_executor === true && runtime.external_writes === false ? false : null,
     ...(input.safety_overrides || {})
   };
-  const acceptance = buildRiosystemsV1Acceptance({ definition_of_done: definitionOfDone, staging_activation: stagingActivation, safety });
+  const acceptance = buildRiosystemsV1Acceptance({ definition_of_done: definitionOfDone, staging_activation: stagingActivation, safety, human_outcome: input.human_outcome || {} });
   return {
     ...acceptance,
     evidence_collector: {
@@ -130,6 +130,7 @@ export function buildRiosystemsV1AcceptanceFromEvidence(input = {}) {
       no_inferred_activation_success: true,
       access_requires_authoritative_readonly_evidence: true,
       deployment_requires_exact_sha_evidence: true,
+      human_outcome_requires_final_composed_browser_evidence: true,
       production_deploy: false
     }
   };

@@ -73,146 +73,193 @@ const MARKUP=String.raw`<button id="global-operator-ai-trigger" class="global-op
 </div>`;
 
 const SCRIPT=String.raw`<script id="aurentara-global-operator-ai-access-v1-script">
-(function(){
-if(window.__aurentaraGlobalOperatorAiAccessV1){return;}
-window.__aurentaraGlobalOperatorAiAccessV1=true;
-var trigger=document.getElementById('global-operator-ai-trigger');
-var backdrop=document.getElementById('global-operator-ai-backdrop');
-var panel=document.getElementById('global-operator-ai-panel');
-var closeButton=document.getElementById('global-operator-ai-close');
-var sendButton=document.getElementById('global-operator-ai-send');
-var input=document.getElementById('global-operator-ai-input');
-var output=document.getElementById('global-operator-ai-output');
-var fullButton=document.getElementById('global-operator-ai-full');
-var sectionLabel=document.getElementById('global-operator-ai-section');
-var projectLabel=document.getElementById('global-operator-ai-project');
-if(!trigger||!backdrop||!panel||!closeButton||!sendButton||!input||!output||!fullButton||!sectionLabel||!projectLabel){return;}
-var LABELS={hq:'HQ',projects:'Projects',missions:'Missions',mission:'Missions',approvals:'Approvals',deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'};
-function currentContext(){
-  var dashboardState=typeof state!=='undefined'&&state?state:{};
-  var rawSection=String(dashboardState.section||'hq');
-  var section=LABELS[rawSection]?rawSection:'hq';
-  var scope=String(dashboardState.selectedScope||'').slice(0,640)||null;
-  var items=dashboardState.data&&dashboardState.data.projects&&Array.isArray(dashboardState.data.projects.items)?dashboardState.data.projects.items:[];
-  var detail=dashboardState.detail&&dashboardState.detail.project?dashboardState.detail.project:null;
-  var project=null;
-  if(detail&&detail.scope_key===scope){project=detail;}
-  if(!project&&scope){for(var i=0;i<items.length;i+=1){if(items[i]&&items[i].scope_key===scope){project=items[i];break;}}}
-  return {section:section,section_label:LABELS[section]||'HQ',view_identity:'masterdashboard:'+section,selected_project_scope:scope,selected_project_name:project&&(project.name||project.project_name||project.project_id)||null,conversation_project_scope:scope};
-}
-function refreshContext(){
-  var context=currentContext();
-  sectionLabel.textContent=context.section_label;
-  projectLabel.textContent=context.selected_project_name||'No project selected';
-  return context;
-}
-function openPanel(){
-  refreshContext();
-  backdrop.classList.add('open');
-  backdrop.setAttribute('aria-hidden','false');
-  trigger.setAttribute('aria-expanded','true');
-  document.body.style.overflow='hidden';
-  setTimeout(function(){input.focus();},0);
-}
-function closePanel(){
-  backdrop.classList.remove('open');
-  backdrop.setAttribute('aria-hidden','true');
-  trigger.setAttribute('aria-expanded','false');
-  document.body.style.overflow='';
-  trigger.focus();
-}
-function makeBlock(title,text){
-  var root=document.createElement('div');
-  var heading=document.createElement('b');
-  var body=document.createElement('div');
-  heading.textContent=title;
-  body.className='small';
-  body.textContent=text;
-  root.appendChild(heading);
-  root.appendChild(body);
-  return root;
-}
-function clearOutput(){
-  while(output.firstChild){output.removeChild(output.firstChild);}
-}
-function renderResult(data){
-  output.hidden=false;
-  clearOutput();
-  var answerRoot=document.createElement('div');
-  var eyebrow=document.createElement('div');
-  var answer=document.createElement('div');
-  eyebrow.className='eyebrow';
-  eyebrow.textContent='Antwort';
-  answer.className='global-operator-ai-answer';
-  answer.textContent=String(data&&data.summary||'Keine Antwort verfuegbar.');
-  answerRoot.appendChild(eyebrow);
-  answerRoot.appendChild(answer);
-  output.appendChild(answerRoot);
-  output.appendChild(makeBlock('Next Action',String(data&&data.next_action&&data.next_action.message||'Keine weitere Aktion ermittelt.')));
-  var blockersRoot=document.createElement('div');
-  var blockersTitle=document.createElement('b');
-  var blockersList=document.createElement('div');
-  blockersTitle.textContent='Blocker';
-  blockersList.className='global-operator-ai-blockers';
-  var blockers=Array.isArray(data&&data.blockers)?data.blockers:[];
-  if(blockers.length){
-    for(var j=0;j<blockers.length&&j<5;j+=1){
-      var item=blockers[j];
-      var blockerRow=document.createElement('span');
-      blockerRow.className='small';
-      blockerRow.textContent=String(item&&item.code||item&&item.message||item||'');
-      blockersList.appendChild(blockerRow);
+(function () {
+  if (window.__aurentaraGlobalOperatorAiAccessV1) return;
+  window.__aurentaraGlobalOperatorAiAccessV1 = true;
+
+  var trigger = document.getElementById('global-operator-ai-trigger');
+  var backdrop = document.getElementById('global-operator-ai-backdrop');
+  var closeButton = document.getElementById('global-operator-ai-close');
+  var sendButton = document.getElementById('global-operator-ai-send');
+  var input = document.getElementById('global-operator-ai-input');
+  var output = document.getElementById('global-operator-ai-output');
+  var fullButton = document.getElementById('global-operator-ai-full');
+  var sectionLabel = document.getElementById('global-operator-ai-section');
+  var projectLabel = document.getElementById('global-operator-ai-project');
+  if (!trigger || !backdrop || !closeButton || !sendButton || !input || !output || !fullButton || !sectionLabel || !projectLabel) return;
+
+  var labels = {
+    hq: 'HQ',
+    projects: 'Projects',
+    missions: 'Missions',
+    mission: 'Missions',
+    approvals: 'Approvals',
+    deliveries: 'Results',
+    executions: 'Executions',
+    factories: 'Factories',
+    capabilities: 'Capabilities',
+    providers: 'Providers',
+    costs: 'Costs',
+    quality: 'Quality',
+    alerts: 'Blocker / Hinweise',
+    health: 'System Health',
+    audit: 'Activity',
+    settings: 'Settings / Richtlinien'
+  };
+
+  function contextNow() {
+    var dashboardState = typeof state !== 'undefined' && state ? state : {};
+    var rawSection = String(dashboardState.section || 'hq');
+    var section = labels[rawSection] ? rawSection : 'hq';
+    var scope = String(dashboardState.selectedScope || '').slice(0, 640) || null;
+    var items = dashboardState.data && dashboardState.data.projects && Array.isArray(dashboardState.data.projects.items)
+      ? dashboardState.data.projects.items
+      : [];
+    var detail = dashboardState.detail && dashboardState.detail.project ? dashboardState.detail.project : null;
+    var project = detail && detail.scope_key === scope ? detail : null;
+    if (!project && scope) {
+      for (var i = 0; i < items.length; i += 1) {
+        if (items[i] && items[i].scope_key === scope) {
+          project = items[i];
+          break;
+        }
+      }
     }
-  }else{
-    var emptyBlocker=document.createElement('span');
-    emptyBlocker.className='small';
-    emptyBlocker.textContent='Keine priorisierten Blocker.';
-    blockersList.appendChild(emptyBlocker);
+    return {
+      section: section,
+      section_label: labels[section] || 'HQ',
+      view_identity: 'masterdashboard:' + section,
+      selected_project_scope: scope,
+      selected_project_name: project ? (project.name || project.project_name || project.project_id || null) : null,
+      conversation_project_scope: scope
+    };
   }
-  blockersRoot.appendChild(blockersTitle);
-  blockersRoot.appendChild(blockersList);
-  output.appendChild(blockersRoot);
-  var inference=data&&data.inference||{};
-  var usage=inference.usage||null;
-  var cost=Number(inference.estimated_cost_usd);
-  var model=document.createElement('div');
-  var modelText='AI: '+(inference.status==='VERIFIED'?'REAL AI CONNECTED':'FAIL-SAFE')+' | '+String(inference.model||'gpt-5.6-luna');
-  model.className='global-operator-ai-model';
-  if(usage){modelText+=' | '+String(usage.total_tokens)+' Tokens';}
-  if(Number.isFinite(cost)){modelText+=' | $'+String(cost);}
-  model.textContent=modelText;
-  output.appendChild(model);
-}
-function renderMessage(className,text){
-  output.hidden=false;
-  clearOutput();
-  var row=document.createElement('div');
-  row.className=className;
-  row.textContent=text;
-  output.appendChild(row);
-}
-trigger.addEventListener('click',openPanel);
-closeButton.addEventListener('click',closePanel);
-backdrop.addEventListener('click',function(event){if(event.target===backdrop){closePanel();}});
-document.addEventListener('keydown',function(event){if(event.key==='Escape'&&backdrop.classList.contains('open')){closePanel();}});
-sendButton.addEventListener('click',function(){
-  var message=input.value.trim();
-  if(!message){return;}
-  var ui=refreshContext();
-  sendButton.disabled=true;
-  renderMessage('small','Operator AI analysiert den verifizierten Kontext...');
-  fetch('/operator/api/operator-ai/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:message,project_scope:ui.selected_project_scope,conversation_project_scope:ui.conversation_project_scope,ui_context:ui})})
-    .then(function(response){return response.json().catch(function(){return {error:'INVALID_RESPONSE'};}).then(function(data){if(!response.ok){throw new Error(data.error||('HTTP '+response.status));}return data;});})
-    .then(function(data){renderResult(data);})
-    .catch(function(error){renderMessage('error',String(error&&error.message||error||'Operator AI request failed.'));})
-    .then(function(){sendButton.disabled=false;});
-});
-fullButton.addEventListener('click',function(){closePanel();if(typeof window.aurentaraOpenOperatorAiV1==='function'){window.aurentaraOpenOperatorAiV1();}});
-window.aurentaraGlobalOperatorAiContextV1=currentContext;
-window.aurentaraOpenGlobalOperatorAiV1=openPanel;
-window.aurentaraCloseGlobalOperatorAiV1=closePanel;
-var main=document.querySelector('.main')||document.body;
-new MutationObserver(function(){if(backdrop.classList.contains('open')){refreshContext();}}).observe(main,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+
+  function refreshContext() {
+    var context = contextNow();
+    sectionLabel.textContent = context.section_label;
+    projectLabel.textContent = context.selected_project_name || 'Nicht ausgewählt';
+    return context;
+  }
+
+  function openPanel() {
+    refreshContext();
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { input.focus(); }, 0);
+  }
+
+  function closePanel() {
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    trigger.focus();
+  }
+
+  function appendLine(title, value, className) {
+    var root = document.createElement('div');
+    if (className) root.className = className;
+    if (title) {
+      var strong = document.createElement('b');
+      strong.textContent = title;
+      root.appendChild(strong);
+    }
+    var body = document.createElement('div');
+    body.className = 'small';
+    body.textContent = String(value == null ? '' : value);
+    root.appendChild(body);
+    output.appendChild(root);
+  }
+
+  function renderResult(data) {
+    data = data || {};
+    output.hidden = false;
+    while (output.firstChild) output.removeChild(output.firstChild);
+
+    appendLine('Antwort', data.summary || 'Keine Antwort verfügbar.', 'global-operator-ai-answer');
+    appendLine('Next Action', data.next_action && data.next_action.message ? data.next_action.message : 'Keine weitere Aktion ermittelt.');
+
+    var blockers = Array.isArray(data.blockers) ? data.blockers : [];
+    if (blockers.length) {
+      for (var i = 0; i < blockers.length && i < 5; i += 1) {
+        var blocker = blockers[i] || {};
+        appendLine(i === 0 ? 'Blocker' : '', blocker.code || blocker.message || String(blocker));
+      }
+    } else {
+      appendLine('Blocker', 'Keine priorisierten Blocker.');
+    }
+
+    var inference = data.inference || {};
+    var modelText = 'AI: ' + (inference.status === 'VERIFIED' ? 'REAL AI CONNECTED' : 'FAIL-SAFE');
+    modelText += ' · ' + (inference.model || 'gpt-5.6-luna');
+    if (inference.usage) modelText += ' · ' + String(inference.usage.total_tokens || 0) + ' Tokens';
+    if (Number.isFinite(Number(inference.estimated_cost_usd))) modelText += ' · $' + String(inference.estimated_cost_usd);
+    appendLine('', modelText, 'global-operator-ai-model');
+  }
+
+  function renderError(error) {
+    output.hidden = false;
+    while (output.firstChild) output.removeChild(output.firstChild);
+    appendLine('Fehler', error && error.message ? error.message : String(error), 'error');
+  }
+
+  trigger.addEventListener('click', openPanel);
+  closeButton.addEventListener('click', closePanel);
+  backdrop.addEventListener('click', function (event) {
+    if (event.target === backdrop) closePanel();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && backdrop.classList.contains('open')) closePanel();
+  });
+
+  sendButton.addEventListener('click', function () {
+    var message = input.value.trim();
+    if (!message) return;
+    var ui = refreshContext();
+    sendButton.disabled = true;
+    output.hidden = false;
+    while (output.firstChild) output.removeChild(output.firstChild);
+    appendLine('', 'Operator AI wertet den verifizierten Kontext aus…');
+
+    fetch('/operator/api/operator-ai/message', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        message: message,
+        project_scope: ui.selected_project_scope,
+        conversation_project_scope: ui.conversation_project_scope,
+        ui_context: ui
+      })
+    }).then(function (response) {
+      return response.json().catch(function () { return { error: 'INVALID_RESPONSE' }; }).then(function (data) {
+        if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+        return data;
+      });
+    }).then(function (data) {
+      renderResult(data);
+    }).catch(function (error) {
+      renderError(error);
+    }).then(function () {
+      sendButton.disabled = false;
+    });
+  });
+
+  fullButton.addEventListener('click', function () {
+    closePanel();
+    if (typeof window.aurentaraOpenOperatorAiV1 === 'function') window.aurentaraOpenOperatorAiV1();
+  });
+
+  window.aurentaraGlobalOperatorAiContextV1 = contextNow;
+  window.aurentaraOpenGlobalOperatorAiV1 = openPanel;
+  window.aurentaraCloseGlobalOperatorAiV1 = closePanel;
+
+  var main = document.querySelector('.main') || document.body;
+  new MutationObserver(function () {
+    if (backdrop.classList.contains('open')) refreshContext();
+  }).observe(main, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
 }());
 </script>`;
 

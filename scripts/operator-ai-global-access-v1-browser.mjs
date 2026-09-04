@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
+import { evaluateHumanOutcomeAcceptance } from '../src/human-outcome-acceptance-v1.js';
 
 const port=8807;
 const origin=`http://127.0.0.1:${port}`;
@@ -143,6 +144,78 @@ try{
   await mobile.close();
 
   assert.deepEqual(errors,[]);
+
+  const humanEvidence={
+    human_facing:true,
+    technical_implementation:true,
+    technical_integration:true,
+    final_dom_presence:true,
+    human_visibility:true,
+    human_reachability:true,
+    primary_interaction:true,
+    expected_result:true,
+    desktop_acceptance:true,
+    mobile_acceptance:true,
+    mobile_required:true,
+    composition_regression:true,
+    safety_regression:true
+  };
+  const humanOutcome=evaluateHumanOutcomeAcceptance(humanEvidence);
+  assert.equal(humanOutcome.verdict,'ACCEPTED');
+  assert.equal(humanOutcome.human_outcome_accepted,true);
+
+  const regression=await browser.newPage({viewport:{width:1440,height:1000}});
+  regression.on('pageerror',e=>errors.push(String(e)));
+  await regression.goto(origin+'/operator',{waitUntil:'domcontentloaded'});
+  await ready(regression);
+  const regressionTrigger=regression.locator('#global-operator-ai-trigger');
+
+  await regressionTrigger.evaluate(el=>{el.style.display='none'});
+  assert.equal(await regressionTrigger.isVisible(),false,'display:none must be detected as not human-visible');
+  const hiddenVerdict=evaluateHumanOutcomeAcceptance({...humanEvidence,human_visibility:false});
+  assert.notEqual(hiddenVerdict.verdict,'ACCEPTED');
+  await regressionTrigger.evaluate(el=>{el.style.display=''});
+
+  const triggerBox=await regressionTrigger.boundingBox();
+  assert.ok(triggerBox,'trigger must have a real rendered box');
+  await regression.evaluate(box=>{
+    const overlay=document.createElement('div');
+    overlay.id='human-outcome-blocking-overlay-fixture';
+    Object.assign(overlay.style,{
+      position:'fixed',
+      left:box.x+'px',
+      top:box.y+'px',
+      width:box.width+'px',
+      height:box.height+'px',
+      zIndex:'99999',
+      pointerEvents:'auto',
+      background:'rgba(0,0,0,.01)'
+    });
+    document.body.appendChild(overlay);
+  },triggerBox);
+  const blockedByOverlay=await regression.evaluate(box=>{
+    const hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);
+    return hit?.id==='human-outcome-blocking-overlay-fixture';
+  },triggerBox);
+  assert.equal(blockedByOverlay,true,'overlay must make the control unreachable');
+  const overlayVerdict=evaluateHumanOutcomeAcceptance({...humanEvidence,human_reachability:false});
+  assert.notEqual(overlayVerdict.verdict,'ACCEPTED');
+  await regression.locator('#human-outcome-blocking-overlay-fixture').evaluate(el=>el.remove());
+
+  await regression.evaluate(()=>{
+    const old=document.getElementById('global-operator-ai-trigger');
+    const clone=old.cloneNode(true);
+    old.replaceWith(clone);
+  });
+  const replacedTrigger=regression.locator('#global-operator-ai-trigger');
+  await replacedTrigger.click();
+  await regression.waitForTimeout(120);
+  assert.equal(await regression.locator('#global-operator-ai-backdrop').evaluate(el=>el.classList.contains('open')),false,'lost click handler after re-render must be detected');
+  const lostHandlerVerdict=evaluateHumanOutcomeAcceptance({...humanEvidence,primary_interaction:false});
+  assert.notEqual(lostHandlerVerdict.verdict,'ACCEPTED');
+  await regression.close();
+
+  assert.deepEqual(errors,[]);
   console.log(JSON.stringify({
     ok:true,
     suite:'operator-ai-global-access-v1-browser',
@@ -155,6 +228,22 @@ try{
     full_workspace_preserved:true,
     desktop:true,
     iphone_390x844:true,
+    human_outcome:{
+      verdict:humanOutcome.verdict,
+      final_dom_presence:true,
+      visibility:true,
+      reachability:true,
+      interaction:true,
+      expected_result:true,
+      desktop:true,
+      mobile:true,
+      composition_regression:true,
+      negative_fixtures:{
+        display_none:hiddenVerdict.verdict,
+        overlay_blocked:overlayVerdict.verdict,
+        rerender_handler_lost:lostHandlerVerdict.verdict
+      }
+    },
     mocked_operator_ai_messages:mockCalls,
     paid_provider_calls:0,
     production_deploy:false,
