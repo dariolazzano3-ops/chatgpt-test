@@ -2,6 +2,7 @@ import { handleOperatorDashboard as handleExistingOperatorDashboard } from '../o
 import { authorizeOperator } from '../operator-dashboard-http-v1.js';
 import { handleOperatorAiMessage } from './service-v1.js';
 import { resolveOperatorAiIntent } from './intent-v1.js';
+import { resolveOperatorAiProject } from './project-resolution-v1.js';
 import { interpretOperatorAiResult } from './result-interpreter-v1.js';
 import { quickMissionCostEstimate } from '../mission-cost-preflight-v1.js';
 import { operatorAiContractsManifest } from './contracts-v1.js';
@@ -190,8 +191,20 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
       const body = await readJson(request);
       const message = clean(body.message || body.text, 6000);
       if (!message) return json({ error: 'OPERATOR_AI_MESSAGE_REQUIRED', production_deploy: false }, 400);
-      const context = await collectContext(request, env, ctx, options, clean(body.project_scope || body.scope_key, 500) || null);
+      let context = await collectContext(request, env, ctx, options, clean(body.project_scope || body.scope_key, 500) || null);
       const resolvedIntent = resolveOperatorAiIntent({ message });
+      if (resolvedIntent.ok && resolvedIntent.intent !== 'PROJECT_CREATION_REQUEST') {
+        const preProject = resolveOperatorAiProject({
+          projects: context.projects,
+          message,
+          project_reference: resolvedIntent.project_reference,
+          selected_project_scope: context.selected_project_scope,
+          conversation_project_scope: clean(body.conversation_project_scope, 500) || null
+        });
+        if (preProject.ok && preProject.scope_key && preProject.scope_key !== context.selected_project_scope) {
+          context = await collectContext(request, env, ctx, options, preProject.scope_key);
+        }
+      }
       if (resolvedIntent.ok && resolvedIntent.requested_autonomy >= 3) {
         const quick = quickMissionCostEstimate({
           route: 'BALANCED',
