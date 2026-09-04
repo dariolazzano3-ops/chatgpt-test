@@ -1,0 +1,77 @@
+name: PROJECT FERRARI Gelato Realistic Customer Input Dogfood V1
+
+on:
+  push:
+    branches:
+      - factory/project-ferrari-gelato-realistic-input-v1
+  pull_request:
+    branches:
+      - factory-control
+    paths:
+      - 'projects/gelato-donatello-website-v1/**'
+      - 'src/project-source-workspace-intake-v1.js'
+      - 'src/operator-project-source-intake-storage-dashboard-v1.js'
+      - 'scripts/project-source-website-extracted-facts-v1-smoke.mjs'
+      - 'scripts/gelato-ferrari-realistic-input-*.mjs'
+      - '.github/workflows/project-ferrari-gelato-realistic-input-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-ferrari-gelato-realistic-input-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax
+        run: |
+          node --check src/project-source-workspace-intake-v1.js
+          node --check src/operator-project-source-intake-storage-dashboard-v1.js
+          node --check scripts/project-source-website-extracted-facts-v1-smoke.mjs
+          node --check scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
+          node --check scripts/gelato-ferrari-realistic-input-browser-v1.mjs
+      - name: Existing Source Intake regression
+        run: |
+          node scripts/project-source-intake-v1-smoke.mjs
+          node scripts/project-source-intake-v1-acceptance.mjs
+      - name: Website extraction candidates remain unverified
+        run: node scripts/project-source-website-extracted-facts-v1-smoke.mjs
+      - name: Gelato realistic customer input closure
+        run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Diagnose existing Gelato primary CTA keyboard journey
+        run: node scripts/gelato-premium-cta-keyboard-diagnostic-v1.mjs
+      - name: Existing Gelato premium regression
+        run: node scripts/gelato-premium-evidence-critical-repair-v1-smoke.mjs
+      - name: Start private Gelato preview
+        run: |
+          python3 -m http.server 4183 --bind 127.0.0.1 --directory projects/gelato-donatello-website-v1 >/tmp/gelato-ferrari-http.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4183/ferrari-preview-v1.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/gelato-ferrari-http.log
+          exit 1
+      - name: Gelato browser and Human Outcome
+        run: node scripts/gelato-ferrari-realistic-input-browser-v1.mjs
+      - name: Safety invariants
+        run: |
+          grep -q 'noindex,nofollow,noarchive' projects/gelato-donatello-website-v1/ferrari-preview-v1.html
+          ! grep -q 'tel:' projects/gelato-donatello-website-v1/ferrari-preview-v1.html
+          ! grep -q 'mailto:' projects/gelato-donatello-website-v1/ferrari-preview-v1.html
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "DNS changed: false"
+          echo "Paid provider calls: 0"

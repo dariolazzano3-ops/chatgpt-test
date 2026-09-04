@@ -331,7 +331,14 @@ for (const [name, width, height] of VIEWPORTS) {
   assert.ok((secondaryBox?.height || 0) >= 44, name + ': secondary tap target');
 
   await primary.focus();
+  const focusedPrimary = await page.evaluate(() => ({
+    tag: document.activeElement?.tagName || null,
+    href: document.activeElement?.getAttribute?.('href') || null
+  }));
+  assert.equal(focusedPrimary.tag, 'A', name + ': primary CTA keyboard focus lands on link');
+  assert.equal(focusedPrimary.href, '#sorten', name + ': primary CTA keyboard target');
   await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.location.hash === '#sorten', null, { timeout: 2000 });
   assert.equal(new URL(page.url()).hash, '#sorten', name + ': primary CTA keyboard journey');
   await page.goto(baseUrl, { waitUntil: 'load' });
   await page.keyboard.press('Tab');

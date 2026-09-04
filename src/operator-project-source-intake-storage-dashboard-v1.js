@@ -370,6 +370,7 @@ async function handleWebsite(request, service, options = {}) {
     reference_only: referenceOnly,
     ownership_status: referenceOnly ? 'PUBLIC_REFERENCE_ONLY' : 'CUSTOMER_ASSERTED',
     display_name: clean(body.display_name, 300) || 'Website source',
+    record_extracted_facts: true,
     website_usage: body.website_usage && typeof body.website_usage === 'object'
       ? body.website_usage
       : (referenceOnly
@@ -379,7 +380,7 @@ async function handleWebsite(request, service, options = {}) {
   if (!result.ok) return json(result, 400);
   const saved = await saveIntake(service, read, result.state, 'PROJECT_SOURCE_WEBSITE_IMPORTED');
   if (!saved.ok) return json(saved.body, saved.status || 409);
-  return json({ ok: true, source: result.source, import_result: result.import_result, extracted_is_verified: false, variable_cost_eur: 0, paid_provider_calls: 0, runtime_revision: saved.body.runtime_revision, production_deploy: false }, 201);
+  return json({ ok: true, source: result.source, import_result: result.import_result, extracted_fact_count: result.extracted_fact_count || 0, extracted_is_verified: false, variable_cost_eur: 0, paid_provider_calls: 0, runtime_revision: saved.body.runtime_revision, production_deploy: false }, 201);
 }
 
 async function handleWebsiteUsage(request, service) {
