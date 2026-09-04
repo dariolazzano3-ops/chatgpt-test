@@ -21,6 +21,38 @@ function ensureState(state) {
   return state?.schema === 'aurentara.project-source-intake.v1' ? { ok: true } : { ok: false, error: 'PROJECT_SOURCE_WORKSPACE_STATE_REQUIRED' };
 }
 
+function extractedWebsiteFactInputs(imported = {}, sourceId = '') {
+  const candidates = imported?.extracted_candidates || {};
+  const rows = [];
+  const addMany = (fieldPath, values, { critical = true } = {}) => {
+    for (const value of Array.isArray(values) ? values : []) {
+      if (value === null || value === undefined || String(value).trim() === '') continue;
+      rows.push({ field_path: fieldPath, value, critical });
+    }
+  };
+  const addArray = (fieldPath, values, { critical = true } = {}) => {
+    const cleanValues = [...new Set((Array.isArray(values) ? values : []).filter((value) => value !== null && value !== undefined && String(value).trim() !== ''))];
+    if (cleanValues.length) rows.push({ field_path: fieldPath, value: cleanValues, critical });
+  };
+
+  addMany('business.email', candidates.contacts?.emails);
+  addMany('business.phone', candidates.contacts?.phones);
+  addMany('business.opening_hours', candidates.opening_hours);
+  addMany('business.address', candidates.addresses);
+  addArray('business.products', candidates.services_products);
+  addArray('business.pricing', candidates.prices);
+  addArray('legal.source_links', candidates.legal_links);
+  addArray('social.links', candidates.social_links, { critical: false });
+
+  return rows.map((fact, index) => ({
+    ...fact,
+    fact_id: `${sourceId || 'website'}-extracted-${index + 1}`,
+    origin: 'EXTRACTED',
+    verification_status: 'UNVERIFIED',
+    source_refs: sourceId ? [sourceId] : []
+  }));
+}
+
 export function openProjectSourceWorkspace(project = {}) {
   const created = createProjectSourceIntakeState(project);
   if (!created.ok) return created;
@@ -141,7 +173,28 @@ export async function intakeWebsiteSource(state = {}, input = {}, deps = {}, opt
         : { content: true, structure_reference: false, design_reference: false })
   }, options);
   if (!source.ok) return source;
-  return { ok: true, state: source.state, source: source.source, import_result: imported, variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
+  let next = source.state;
+  const extractedFacts = [];
+  if (input.record_extracted_facts === true) {
+    for (const factInput of extractedWebsiteFactInputs(imported, source.source.source_id)) {
+      const added = upsertProjectFact(next, factInput, options);
+      if (!added.ok) return added;
+      next = added.state;
+      extractedFacts.push(added.fact);
+    }
+  }
+  return {
+    ok: true,
+    state: next,
+    source: source.source,
+    import_result: imported,
+    extracted_facts: extractedFacts,
+    extracted_fact_count: extractedFacts.length,
+    extracted_is_verified: false,
+    variable_cost_eur: 0,
+    paid_provider_calls: 0,
+    production_deploy: false
+  };
 }
 
 export function buildWorkspacePacksAndReadiness(state = {}, readinessInput = {}, options = {}) {
