@@ -2,7 +2,7 @@ import { isMakeLiveStagingVerified, makeLiveStagingActivationEvidence } from './
 import { buildSupabaseStagingCrmWritePlan } from './business-staging-write-plan.js';
 import { businessStagingWriteEvidence, isBusinessStagingWriteVerified } from './business-staging-write-evidence.js';
 
-const SCOPE = Object.freeze({
+const DEFAULT_SCOPE = Object.freeze({
   customer_id: 'bakery-muller',
   project_id: 'digital-system-v1',
   project_uuid: '6b4b7f3a-8c6f-4d72-9be1-f2f8a3120101',
@@ -17,42 +17,49 @@ const CONFIRMATIONS = Object.freeze({
 
 const clone = (value) => structuredClone(value ?? null);
 const clean = (value, max = 300) => String(value ?? '').trim().slice(0, max);
+const SCOPE_PART = /^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function exactScope(input = {}) {
+function normalizedScope(input = {}) {
+  const useDefault = !input.customer_id && !input.project_id && !input.project_uuid;
   const scope = {
-    customer_id: clean(input.customer_id || SCOPE.customer_id, 80).toLowerCase(),
-    project_id: clean(input.project_id || SCOPE.project_id, 80).toLowerCase(),
-    project_uuid: clean(input.project_uuid || SCOPE.project_uuid, 80).toLowerCase()
+    customer_id: clean(input.customer_id || (useDefault ? DEFAULT_SCOPE.customer_id : ''), 100).toLowerCase(),
+    project_id: clean(input.project_id || (useDefault ? DEFAULT_SCOPE.project_id : ''), 100).toLowerCase(),
+    project_uuid: clean(input.project_uuid || (useDefault ? DEFAULT_SCOPE.project_uuid : ''), 80).toLowerCase()
   };
-  scope.scope_key = `${scope.customer_id}:${scope.project_id}`;
+  scope.scope_key = scope.customer_id && scope.project_id ? `${scope.customer_id}:${scope.project_id}` : '';
   return scope;
 }
 
-function scopeMatches(scope) {
-  return scope.customer_id === SCOPE.customer_id
-    && scope.project_id === SCOPE.project_id
-    && scope.project_uuid === SCOPE.project_uuid
-    && scope.scope_key === SCOPE.scope_key;
+function validScope(scope = {}) {
+  return SCOPE_PART.test(scope.customer_id)
+    && SCOPE_PART.test(scope.project_id)
+    && UUID.test(scope.project_uuid)
+    && scope.scope_key === `${scope.customer_id}:${scope.project_id}`;
 }
 
-function canonicalSyntheticLead() {
+function syntheticIdentifier(scope, kind) {
+  return `${scope.customer_id}-${scope.project_id}-synthetic-${kind}-001`;
+}
+
+function canonicalSyntheticLead(scope) {
   return {
     schema: 'riosystems.synthetic-lead-envelope.v1',
     source: 'make-core',
     source_kind: 'automation',
     environment: 'staging',
-    project_scope: SCOPE.scope_key,
+    project_scope: scope.scope_key,
     contact: {
-      external_ref: 'bakery-muller-digital-system-v1-synthetic-contact-001',
-      email: 'synthetic.lead@example.invalid',
-      full_name: 'Synthetic Bakery Lead'
+      external_ref: syntheticIdentifier(scope, 'contact'),
+      synthetic: true
     },
     lead: {
-      idempotency_key: 'bakery-muller-digital-system-v1-synthetic-lead-001',
+      idempotency_key: syntheticIdentifier(scope, 'lead'),
       status: 'validated',
-      message: 'Synthetic Make to Supabase staging lead only'
+      synthetic: true
     },
     synthetic: true,
+    pii_in_envelope: false,
     real_customer_data: false,
     production: false
   };
@@ -63,9 +70,9 @@ export function buildMakeSupabaseLeadBridgePlan(input = {}) {
     return { ok: false, error: 'PRODUCTION_DEPLOY_REJECTED', production_deploy: false };
   }
 
-  const scope = exactScope(input);
-  if (!scopeMatches(scope)) {
-    return { ok: false, error: 'MAKE_SUPABASE_BRIDGE_SCOPE_REJECTED', expected_scope: clone(SCOPE), production_deploy: false };
+  const scope = normalizedScope(input);
+  if (!validScope(scope)) {
+    return { ok: false, error: 'MAKE_SUPABASE_BRIDGE_SCOPE_INVALID', production_deploy: false };
   }
   if (input.staging_only !== true || input.synthetic_test_data_only !== true || input.real_customer_data === true) {
     return { ok: false, error: 'MAKE_SUPABASE_BRIDGE_SYNTHETIC_STAGING_REQUIRED', production_deploy: false };
@@ -115,11 +122,11 @@ export function buildMakeSupabaseLeadBridgePlan(input = {}) {
       }
     },
     bridge_contract: {
-      input: canonicalSyntheticLead(),
+      input: canonicalSyntheticLead(scope),
       make_output_required: {
         synthetic: true,
         environment: 'staging',
-        project_scope: SCOPE.scope_key,
+        project_scope: scope.scope_key,
         execution_id_required: true
       },
       supabase_persistence: {
@@ -156,6 +163,7 @@ function canonicalPlan(plan = {}) {
     production_deploy: false
   });
   if (!rebuilt.ok || rebuilt.state !== 'BRIDGE_PLAN_READY_APPROVAL_REQUIRED') return null;
+  if (JSON.stringify(rebuilt.scope) !== JSON.stringify(plan.scope)) return null;
   return rebuilt;
 }
 
@@ -176,7 +184,7 @@ export function evaluateMakeSupabaseLeadBridgeExecution(plan = {}, approvals = {
   if (approvals.external_write_execution_approved !== true) blockers.push({ code: 'EXTERNAL_WRITE_EXECUTION_APPROVAL_REQUIRED' });
   if (approvals.supervised_execution_approved !== true) blockers.push({ code: 'SUPERVISED_EXECUTION_APPROVAL_REQUIRED' });
   if (approvals.make_provider_approved !== true) blockers.push({ code: 'MAKE_PROVIDER_EXECUTION_APPROVAL_REQUIRED' });
-  if (approvals.project_isolation_approved !== true || clean(approvals.approved_scope_key, 180) !== SCOPE.scope_key) blockers.push({ code: 'PROJECT_ISOLATION_APPROVAL_REQUIRED' });
+  if (approvals.project_isolation_approved !== true || clean(approvals.approved_scope_key, 220) !== canonical.scope.scope_key) blockers.push({ code: 'PROJECT_ISOLATION_APPROVAL_REQUIRED' });
   if (approvals.staging_only !== true || approvals.synthetic_test_data_only !== true) blockers.push({ code: 'SYNTHETIC_STAGING_APPROVAL_REQUIRED' });
   if (approvals.zero_cost_confirmed !== true || Number(approvals.max_variable_cost_eur) !== 0) blockers.push({ code: 'ZERO_VARIABLE_COST_CONFIRMATION_REQUIRED' });
 
@@ -186,7 +194,7 @@ export function evaluateMakeSupabaseLeadBridgeExecution(plan = {}, approvals = {
     state: blockers.length === 0 ? 'BRIDGE_EXECUTION_APPROVED_NOT_EXECUTED' : 'BLOCKED',
     execution_ready: blockers.length === 0,
     blockers,
-    scope: clone(SCOPE),
+    scope: clone(canonical.scope),
     required_confirmations: clone(CONFIRMATIONS),
     execute_make: false,
     execute_supabase: false,
@@ -199,11 +207,13 @@ export function evaluateMakeSupabaseLeadBridgeExecution(plan = {}, approvals = {
 export function makeSupabaseLeadBridgeManifest() {
   return {
     schema: 'riosystems.make-supabase-lead-bridge-manifest.v1',
-    scope: clone(SCOPE),
+    default_regression_scope: clone(DEFAULT_SCOPE),
+    scope_mode: 'explicit_customer_project_uuid',
     providers: ['make-core', 'supabase-free'],
     reuse_verified_make_staging_scenario: true,
     reuse_verified_supabase_crm_foundation: true,
     synthetic_test_data_only: true,
+    pii_in_bridge_envelope: false,
     exact_scope_required: true,
     explicit_external_write_execution_approval_required: true,
     supervised_execution_required: true,

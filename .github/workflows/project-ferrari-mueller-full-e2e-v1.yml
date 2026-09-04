@@ -1,0 +1,152 @@
+name: PROJECT FERRARI Müller Full Cross-Factory E2E V1
+
+on:
+  push:
+    branches:
+      - factory/project-ferrari-mueller-full-e2e-v1
+  pull_request:
+    branches:
+      - factory-control
+    paths:
+      - 'projects/mueller-elektrotechnik-digital-customer-system-v1/**'
+      - 'src/make-supabase-lead-bridge.js'
+      - 'src/make-supabase-lead-payload.js'
+      - 'src/make-staging-execution-runner.js'
+      - 'src/business-staging-write-plan.js'
+      - 'src/posthog-staging-event-schema.js'
+      - 'src/posthog-staging-event-runner.js'
+      - 'src/operator-dashboard-projections-v1.js'
+      - 'scripts/mueller-ferrari-*.mjs'
+      - 'scripts/make-supabase-lead-*.mjs'
+      - 'scripts/make-staging-execution-runner-smoke.mjs'
+      - 'scripts/business-staging-write-plan-smoke.mjs'
+      - 'scripts/posthog-staging-event-smoke.mjs'
+      - '.github/workflows/project-ferrari-mueller-full-e2e-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-ferrari-mueller-full-e2e-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax
+        run: |
+          node --check src/make-supabase-lead-bridge.js
+          node --check src/make-supabase-lead-payload.js
+          node --check src/make-staging-execution-runner.js
+          node --check src/business-staging-write-plan.js
+          node --check src/posthog-staging-event-schema.js
+          node --check src/posthog-staging-event-runner.js
+          node --check src/operator-dashboard-projections-v1.js
+          node --check scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
+          node --check scripts/mueller-ferrari-browser-e2e-v1.mjs
+          node --check scripts/mueller-ferrari-live-make-v1.mjs
+          node --check scripts/mueller-ferrari-live-posthog-v1.mjs
+          node --check scripts/mueller-ferrari-provider-linked-evidence-v1-smoke.mjs
+      - name: Cost, contracts, CRM, review, operator and delivery E2E
+        run: node scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
+      - name: Provider-linked evidence and Operator projection
+        run: node scripts/mueller-ferrari-provider-linked-evidence-v1-smoke.mjs
+      - name: Make Supabase bridge regressions
+        run: |
+          node scripts/make-supabase-lead-bridge-smoke.mjs
+          node scripts/make-supabase-lead-payload-smoke.mjs
+          node scripts/make-supabase-lead-bridge-executor-smoke.mjs
+          node scripts/make-staging-execution-runner-smoke.mjs
+      - name: Supabase staging write regression
+        run: node scripts/business-staging-write-plan-smoke.mjs
+      - name: PostHog privacy and staging regression
+        run: node scripts/posthog-staging-event-smoke.mjs
+      - name: Existing Business CRM V1 regression
+        run: node scripts/business-crm-factory-v1-smoke.mjs
+      - name: Ferrari customer review regression
+        run: node scripts/customer-review-lifecycle-v1-smoke.mjs
+      - name: Human Outcome regression
+        run: node scripts/human-outcome-acceptance-v1-smoke.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start private Müller website
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory projects/mueller-elektrotechnik-digital-customer-system-v1 >/tmp/mueller-ferrari-http.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/mueller-ferrari-http.log
+          exit 1
+      - name: Existing Müller browser regression
+        run: node scripts/mueller-elektrotechnik-browser-qa-v1.mjs
+      - name: Website form to lead and Human Outcome browser E2E
+        run: node scripts/mueller-ferrari-browser-e2e-v1.mjs
+      - name: Safety invariants
+        run: |
+          grep -q '"synthetic_test_data_only":true' projects/mueller-elektrotechnik-digital-customer-system-v1/project.json
+          grep -q '"production_deploy":false' projects/mueller-elektrotechnik-digital-customer-system-v1/project.json
+          if grep -R -E -n 'example\.invalid|@[A-Za-z0-9.-]+|\+49[0-9 ]+' scripts/mueller-ferrari-*.mjs; then
+            echo "PII-shaped Müller Ferrari evidence rejected"
+            exit 1
+          fi
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "Real customer data: false"
+
+  live-make:
+    needs: validate
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[RUN_MUELLER_LIVE_MAKE_ONCE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify Make secret presence without logging value
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+        run: test -n "$MAKE_API_TOKEN"
+      - name: Execute exactly one guarded Müller Make staging run
+        env:
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE_URL: https://eu1.make.com
+          MAKE_TEAM_ID: '939128'
+          MAKE_SCENARIO_ID: '7149691'
+          MAKE_PLAN: core
+        run: node scripts/mueller-ferrari-live-make-v1.mjs
+
+  live-posthog:
+    needs: validate
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[RUN_MUELLER_LIVE_POSTHOG_ONCE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify PostHog secret presence without logging value
+        env:
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+        run: test -n "$POSTHOG_PROJECT_TOKEN"
+      - name: Execute exactly one guarded Müller PostHog staging batch
+        env:
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+        run: node scripts/mueller-ferrari-live-posthog-v1.mjs

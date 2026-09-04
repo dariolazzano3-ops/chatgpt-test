@@ -1,0 +1,107 @@
+{
+  "schema": "aurentara.project-ferrari.mueller-provider-linked-evidence.v1",
+  "project": {
+    "customer_id": "synthetic-mueller-elektrotechnik-saarbruecken",
+    "project_id": "mueller-elektrotechnik-digital-customer-system-v1",
+    "project_uuid": "b3f54cc8-4abf-4f9c-92c9-81a4ebcdd001",
+    "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+    "environment": "staging",
+    "synthetic": true,
+    "real_customer_data": false
+  },
+  "make": {
+    "result": "PASS",
+    "workflow_run_id": 33903852712,
+    "workflow_job_id": 101124293567,
+    "scenario_id": 7149691,
+    "execution_id": "4c41a3d4716541bc8747cea8b0f03b25",
+    "execution_status": "1",
+    "scenario_restored_inactive": true,
+    "pii_in_payload": false,
+    "customer_communication_sent": false,
+    "variable_cost_eur": 0
+  },
+  "supabase_crm": {
+    "result": "PASS",
+    "project_ref": "pgzayxpqiakuvibhonwh",
+    "lead_id": "d959f357-ebb0-405f-aae5-78ba1ace89fc",
+    "lead_idempotency_key": "synthetic-mueller-elektrotechnik-saarbruecken-mueller-elektrotechnik-digital-customer-system-v1-synthetic-lead-001",
+    "lead_count": 1,
+    "matching_project_count": 1,
+    "cross_project_leak_count": 0,
+    "pipeline_key": "inquiries",
+    "initial_stage": "new-inquiry",
+    "current_stage": "qualification",
+    "status": "qualified",
+    "next_action": "CONTACT_SYNTHETIC_LEAD",
+    "last_activity": "SYNTHETIC_PIPELINE_TRANSITION_NEW_INQUIRY_TO_QUALIFICATION",
+    "activity_count": 2,
+    "pii_present": false,
+    "email_present": false,
+    "full_name_present": false,
+    "phone_present": false
+  },
+  "idempotency": {
+    "result": "PASS",
+    "database_retry_performed": true,
+    "additional_make_run_performed": false,
+    "lead_count_after_retry": 1,
+    "lead_event_count_after_retry": 1,
+    "provider_ref_count_after_retry": 1,
+    "automation_activity_count_after_retry": 1,
+    "idempotency_registry_count_after_retry": 1
+  },
+  "pipeline": {
+    "result": "PASS",
+    "allowed_transition": "new-inquiry->qualification",
+    "allowed_transition_applied": true,
+    "invalid_transition": "qualification->quote",
+    "invalid_transition_update_count": 0,
+    "invalid_transition_blocked": true
+  },
+  "operator_snapshot": {
+    "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+    "lead_id": "d959f357-ebb0-405f-aae5-78ba1ace89fc",
+    "pipeline_key": "inquiries",
+    "stage_key": "qualification",
+    "next_action": "CONTACT_SYNTHETIC_LEAD",
+    "last_activity": "SYNTHETIC_PIPELINE_TRANSITION_NEW_INQUIRY_TO_QUALIFICATION",
+    "automation_status": "succeeded",
+    "review_status": "CUSTOMER_APPROVED",
+    "synthetic": true,
+    "pii_present": false
+  },
+  "posthog": {
+    "credential_state": "MISSING_IN_GITHUB_ENVIRONMENT_RIOSYSTEMS_STAGING",
+    "workflow_run_id": 33904274619,
+    "workflow_job_id": 101125633069,
+    "presence_check": "FAIL",
+    "live_batch_result": "BLOCKED_BY_MISSING_CREDENTIAL",
+    "batch_executed": false,
+    "events_sent": 0
+  },
+  "acceptance": {
+    "contract_browser_crm_human_outcome_customer_review_delivery_gate": "PASS",
+    "live_make": "PASS",
+    "live_posthog": "BLOCKED_BY_MISSING_CREDENTIAL",
+    "full_cross_factory_e2e": "INCOMPLETE"
+  },
+  "cost": {
+    "approved_ceiling_eur": 0,
+    "make_variable_cost_eur": 0,
+    "supabase_variable_cost_eur": 0,
+    "posthog_variable_cost_eur": 0,
+    "ai_cost_eur": 0,
+    "automatic_paid_overflow": false
+  },
+  "safety": {
+    "production_deploy": false,
+    "public_launch": false,
+    "dns_changed": false,
+    "billing_enabled": false,
+    "real_customer_data": false,
+    "customer_communication_sent": false,
+    "new_providers": 0,
+    "secrets_exposed": false
+  }
+}
