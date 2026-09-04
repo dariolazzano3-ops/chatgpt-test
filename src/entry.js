@@ -8,7 +8,7 @@ import { handleHamyrenOpenAiSecretPresence } from "./hamyren-openai-secret-prese
 import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic-v1.js";
 import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
-import { handleOperatorDashboard } from "./operator-project-source-intake-storage-dashboard-v1.js";
+import { handleOperatorDashboard } from "./operator-ai/dashboard-v1.js";
 import { applyProjectSourceHumanAcceptanceUi, handleProjectSourceHumanAcceptanceApi } from "./operator-project-source-intake-human-acceptance-ui-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
