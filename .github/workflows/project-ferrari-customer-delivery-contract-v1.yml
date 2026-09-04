@@ -1,0 +1,31 @@
+name: AURENTARA Project Ferrari Customer Delivery Contract V1
+
+on:
+  pull_request:
+    branches:
+      - factory-control
+    paths:
+      - 'src/customer-delivery-contract-v1.js'
+      - 'src/project-control-plane.js'
+      - 'scripts/customer-delivery-contract-v1-smoke.mjs'
+      - '.github/workflows/project-ferrari-customer-delivery-contract-v1.yml'
+  push:
+    branches:
+      - factory/project-ferrari-customer-delivery-contract-v1
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check src/customer-delivery-contract-v1.js
+      - run: node --check src/project-control-plane.js
+      - run: node scripts/customer-delivery-contract-v1-smoke.mjs
+      - run: node scripts/phase2-project-operating-layer-smoke.mjs
