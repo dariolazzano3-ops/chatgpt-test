@@ -53,7 +53,8 @@ jobs:
           node --check src/operator-dashboard-projections-v1.js
           node --check scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
           node --check scripts/mueller-ferrari-browser-e2e-v1.mjs
-          node --check scripts/mueller-ferrari-live-providers-v1.mjs
+          node --check scripts/mueller-ferrari-live-make-v1.mjs
+          node --check scripts/mueller-ferrari-live-posthog-v1.mjs
       - name: Cost, contracts, CRM, review, operator and delivery E2E
         run: node scripts/mueller-ferrari-full-e2e-v1-smoke.mjs
       - name: Make Supabase bridge regressions
@@ -99,11 +100,11 @@ jobs:
           echo "Public launch: false"
           echo "Real customer data: false"
 
-  live-staging-providers:
+  live-make:
     needs: validate
-    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[RUN_MUELLER_LIVE_E2E]') }}
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[RUN_MUELLER_LIVE_MAKE_ONCE]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 6
     environment: riosystems-staging
     steps:
       - uses: actions/checkout@v4
@@ -112,19 +113,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Verify live provider secrets are present without logging values
+      - name: Verify Make secret presence without logging value
         env:
           MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
-          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
-        run: |
-          test -n "$MAKE_API_TOKEN"
-          test -n "$POSTHOG_PROJECT_TOKEN"
-      - name: Execute exactly one guarded Müller Make run and one PostHog batch
+        run: test -n "$MAKE_API_TOKEN"
+      - name: Execute exactly one guarded Müller Make staging run
         env:
           MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
-          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           MAKE_ZONE_URL: https://eu1.make.com
           MAKE_TEAM_ID: '939128'
           MAKE_SCENARIO_ID: '7149691'
           MAKE_PLAN: core
-        run: node scripts/mueller-ferrari-live-providers-v1.mjs
+        run: node scripts/mueller-ferrari-live-make-v1.mjs
+
+  live-posthog:
+    needs: validate
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[RUN_MUELLER_LIVE_POSTHOG_ONCE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    environment: riosystems-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify PostHog secret presence without logging value
+        env:
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+        run: test -n "$POSTHOG_PROJECT_TOKEN"
+      - name: Execute exactly one guarded Müller PostHog staging batch
+        env:
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+        run: node scripts/mueller-ferrari-live-posthog-v1.mjs
