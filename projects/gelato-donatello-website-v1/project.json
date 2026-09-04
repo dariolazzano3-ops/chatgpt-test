@@ -1,0 +1,36 @@
+{
+  "schema": "aurentara.gelato-premium-repair-candidate.v1",
+  "customer_id": "gelato-donatello",
+  "project_id": "gelato-donatello-website-v1",
+  "scope_key": "gelato-donatello:gelato-donatello-website-v1",
+  "name": "Gelato Donatello",
+  "industry": "gelateria",
+  "country": "DE",
+  "language": "de",
+  "environment": "private-staging",
+  "website_standard": "aurentara.premium-website-standard.v1",
+  "purpose": "Evidence-backed technical and conversion repair candidate only",
+  "source_url": "https://gelato-donatello.de/",
+  "expected_page_set": [
+    {
+      "path": "/",
+      "business_purpose": "Private review of evidence-safe Gelato content and repaired technical primary journey",
+      "audience": "Operator and later customer reviewer",
+      "journey_role": "Entry point",
+      "search_intent": "Not indexable in staging",
+      "conversion_role": "Validate CTA architecture without unverified external action",
+      "trust_role": "Show only evidenced or explicitly marked unverified information",
+      "rationale": "Single-page private repair candidate is sufficient for this V1 and does not force a redesign"
+    }
+  ],
+  "safety": {
+    "production_deploy": false,
+    "public_deploy": false,
+    "dns_changes": false,
+    "billing": false,
+    "paid_provider_calls": 0,
+    "external_writes": false,
+    "indexing": "NOINDEX",
+    "field_cwv_claimed": false
+  }
+}
