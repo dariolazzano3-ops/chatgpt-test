@@ -73,63 +73,47 @@ const MARKUP=String.raw`<button id="global-operator-ai-trigger" class="global-op
 </div>`;
 
 const SCRIPT=String.raw`<script id="aurentara-global-operator-ai-access-v1-script">
-(()=>{
-if(window.__aurentaraGlobalOperatorAiAccessV1)return;
+(function(){
+if(window.__aurentaraGlobalOperatorAiAccessV1){return;}
 window.__aurentaraGlobalOperatorAiAccessV1=true;
-
-const trigger=document.getElementById('global-operator-ai-trigger');
-const backdrop=document.getElementById('global-operator-ai-backdrop');
-const panel=document.getElementById('global-operator-ai-panel');
-const closeButton=document.getElementById('global-operator-ai-close');
-const sendButton=document.getElementById('global-operator-ai-send');
-const input=document.getElementById('global-operator-ai-input');
-const output=document.getElementById('global-operator-ai-output');
-const fullButton=document.getElementById('global-operator-ai-full');
-const sectionLabel=document.getElementById('global-operator-ai-section');
-const projectLabel=document.getElementById('global-operator-ai-project');
-if(!trigger||!backdrop||!panel||!closeButton||!sendButton||!input||!output||!fullButton||!sectionLabel||!projectLabel)return;
-
-const LABELS={
-  hq:'HQ',projects:'Projects',missions:'Missions',mission:'Missions',approvals:'Approvals',
-  deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',
-  providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',
-  health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'
-};
-
+var trigger=document.getElementById('global-operator-ai-trigger');
+var backdrop=document.getElementById('global-operator-ai-backdrop');
+var panel=document.getElementById('global-operator-ai-panel');
+var closeButton=document.getElementById('global-operator-ai-close');
+var sendButton=document.getElementById('global-operator-ai-send');
+var input=document.getElementById('global-operator-ai-input');
+var output=document.getElementById('global-operator-ai-output');
+var fullButton=document.getElementById('global-operator-ai-full');
+var sectionLabel=document.getElementById('global-operator-ai-section');
+var projectLabel=document.getElementById('global-operator-ai-project');
+if(!trigger||!backdrop||!panel||!closeButton||!sendButton||!input||!output||!fullButton||!sectionLabel||!projectLabel){return;}
+var LABELS={hq:'HQ',projects:'Projects',missions:'Missions',mission:'Missions',approvals:'Approvals',deliveries:'Results',executions:'Executions',factories:'Factories',capabilities:'Capabilities',providers:'Providers',costs:'Costs',quality:'Quality',alerts:'Blocker / Hinweise',health:'System Health',audit:'Activity',settings:'Settings / Richtlinien'};
 function currentContext(){
-  const dashboardState=typeof state!=='undefined'&&state?state:{};
-  const rawSection=String(dashboardState.section||'hq');
-  const section=LABELS[rawSection]?rawSection:'hq';
-  const scope=String(dashboardState.selectedScope||'').slice(0,640)||null;
-  const items=dashboardState.data&&dashboardState.data.projects&&Array.isArray(dashboardState.data.projects.items)?dashboardState.data.projects.items:[];
-  const detail=dashboardState.detail&&dashboardState.detail.project?dashboardState.detail.project:null;
-  const project=detail&&detail.scope_key===scope?detail:items.find(function(item){return item&&item.scope_key===scope})||null;
-  return {
-    section:section,
-    section_label:LABELS[section]||'HQ',
-    view_identity:'masterdashboard:'+section,
-    selected_project_scope:scope,
-    selected_project_name:project&&(project.name||project.project_name||project.project_id)||null,
-    conversation_project_scope:scope
-  };
+  var dashboardState=typeof state!=='undefined'&&state?state:{};
+  var rawSection=String(dashboardState.section||'hq');
+  var section=LABELS[rawSection]?rawSection:'hq';
+  var scope=String(dashboardState.selectedScope||'').slice(0,640)||null;
+  var items=dashboardState.data&&dashboardState.data.projects&&Array.isArray(dashboardState.data.projects.items)?dashboardState.data.projects.items:[];
+  var detail=dashboardState.detail&&dashboardState.detail.project?dashboardState.detail.project:null;
+  var project=null;
+  if(detail&&detail.scope_key===scope){project=detail;}
+  if(!project&&scope){for(var i=0;i<items.length;i+=1){if(items[i]&&items[i].scope_key===scope){project=items[i];break;}}}
+  return {section:section,section_label:LABELS[section]||'HQ',view_identity:'masterdashboard:'+section,selected_project_scope:scope,selected_project_name:project&&(project.name||project.project_name||project.project_id)||null,conversation_project_scope:scope};
 }
-
 function refreshContext(){
-  const context=currentContext();
+  var context=currentContext();
   sectionLabel.textContent=context.section_label;
-  projectLabel.textContent=context.selected_project_name||'Nicht ausgewählt';
+  projectLabel.textContent=context.selected_project_name||'No project selected';
   return context;
 }
-
 function openPanel(){
   refreshContext();
   backdrop.classList.add('open');
   backdrop.setAttribute('aria-hidden','false');
   trigger.setAttribute('aria-expanded','true');
   document.body.style.overflow='hidden';
-  setTimeout(function(){input.focus()},0);
+  setTimeout(function(){input.focus();},0);
 }
-
 function closePanel(){
   backdrop.classList.remove('open');
   backdrop.setAttribute('aria-hidden','true');
@@ -137,133 +121,99 @@ function closePanel(){
   document.body.style.overflow='';
   trigger.focus();
 }
-
-function block(title,text,className){
-  const root=document.createElement('div');
-  if(className)root.className=className;
-  const heading=document.createElement('b');
+function makeBlock(title,text){
+  var root=document.createElement('div');
+  var heading=document.createElement('b');
+  var body=document.createElement('div');
   heading.textContent=title;
-  const body=document.createElement('div');
   body.className='small';
   body.textContent=text;
-  root.append(heading,body);
+  root.appendChild(heading);
+  root.appendChild(body);
   return root;
 }
-
+function clearOutput(){
+  while(output.firstChild){output.removeChild(output.firstChild);}
+}
 function renderResult(data){
   output.hidden=false;
-  output.replaceChildren();
-
-  const answerRoot=document.createElement('div');
-  const eyebrow=document.createElement('div');
+  clearOutput();
+  var answerRoot=document.createElement('div');
+  var eyebrow=document.createElement('div');
+  var answer=document.createElement('div');
   eyebrow.className='eyebrow';
   eyebrow.textContent='Antwort';
-  const answer=document.createElement('div');
   answer.className='global-operator-ai-answer';
-  answer.textContent=String(data&&data.summary||'Keine Antwort verfügbar.');
-  answerRoot.append(eyebrow,answer);
+  answer.textContent=String(data&&data.summary||'Keine Antwort verfuegbar.');
+  answerRoot.appendChild(eyebrow);
+  answerRoot.appendChild(answer);
   output.appendChild(answerRoot);
-
-  output.appendChild(block('Next Action',String(data&&data.next_action&&data.next_action.message||'Keine weitere Aktion ermittelt.')));
-
-  const blockersRoot=document.createElement('div');
-  const blockersTitle=document.createElement('b');
+  output.appendChild(makeBlock('Next Action',String(data&&data.next_action&&data.next_action.message||'Keine weitere Aktion ermittelt.')));
+  var blockersRoot=document.createElement('div');
+  var blockersTitle=document.createElement('b');
+  var blockersList=document.createElement('div');
   blockersTitle.textContent='Blocker';
-  const blockersList=document.createElement('div');
   blockersList.className='global-operator-ai-blockers';
-  const blockers=Array.isArray(data&&data.blockers)?data.blockers:[];
+  var blockers=Array.isArray(data&&data.blockers)?data.blockers:[];
   if(blockers.length){
-    blockers.slice(0,5).forEach(function(item){
-      const row=document.createElement('span');
-      row.className='small';
-      row.textContent=String(item&&item.code||item&&item.message||item||'');
-      blockersList.appendChild(row);
-    });
+    for(var j=0;j<blockers.length&&j<5;j+=1){
+      var item=blockers[j];
+      var blockerRow=document.createElement('span');
+      blockerRow.className='small';
+      blockerRow.textContent=String(item&&item.code||item&&item.message||item||'');
+      blockersList.appendChild(blockerRow);
+    }
   }else{
-    const row=document.createElement('span');
-    row.className='small';
-    row.textContent='Keine priorisierten Blocker.';
-    blockersList.appendChild(row);
+    var emptyBlocker=document.createElement('span');
+    emptyBlocker.className='small';
+    emptyBlocker.textContent='Keine priorisierten Blocker.';
+    blockersList.appendChild(emptyBlocker);
   }
-  blockersRoot.append(blockersTitle,blockersList);
+  blockersRoot.appendChild(blockersTitle);
+  blockersRoot.appendChild(blockersList);
   output.appendChild(blockersRoot);
-
-  const inference=data&&data.inference||{};
-  const usage=inference.usage||null;
-  const cost=Number(inference.estimated_cost_usd);
-  const model=document.createElement('div');
+  var inference=data&&data.inference||{};
+  var usage=inference.usage||null;
+  var cost=Number(inference.estimated_cost_usd);
+  var model=document.createElement('div');
+  var modelText='AI: '+(inference.status==='VERIFIED'?'REAL AI CONNECTED':'FAIL-SAFE')+' | '+String(inference.model||'gpt-5.6-luna');
   model.className='global-operator-ai-model';
-  let text='AI: '+(inference.status==='VERIFIED'?'REAL AI CONNECTED':'FAIL-SAFE')+' · '+String(inference.model||'gpt-5.6-luna');
-  if(usage)text+=' · '+String(usage.total_tokens)+' Tokens';
-  if(Number.isFinite(cost))text+=' · $'+String(cost);
-  model.textContent=text;
+  if(usage){modelText+=' | '+String(usage.total_tokens)+' Tokens';}
+  if(Number.isFinite(cost)){modelText+=' | $'+String(cost);}
+  model.textContent=modelText;
   output.appendChild(model);
 }
-
-function renderWorking(){
+function renderMessage(className,text){
   output.hidden=false;
-  output.replaceChildren();
-  const row=document.createElement('div');
-  row.className='small';
-  row.textContent='Operator AI wertet den verifizierten Kontext aus…';
+  clearOutput();
+  var row=document.createElement('div');
+  row.className=className;
+  row.textContent=text;
   output.appendChild(row);
 }
-
-function renderError(error){
-  output.hidden=false;
-  output.replaceChildren();
-  const row=document.createElement('div');
-  row.className='error';
-  row.textContent=String(error&&error.message||error||'Operator AI Anfrage fehlgeschlagen.');
-  output.appendChild(row);
-}
-
 trigger.addEventListener('click',openPanel);
 closeButton.addEventListener('click',closePanel);
-backdrop.addEventListener('click',function(event){if(event.target===backdrop)closePanel()});
-document.addEventListener('keydown',function(event){if(event.key==='Escape'&&backdrop.classList.contains('open'))closePanel()});
-
-sendButton.addEventListener('click',async function(){
-  const message=input.value.trim();
-  if(!message)return;
-  const ui=refreshContext();
+backdrop.addEventListener('click',function(event){if(event.target===backdrop){closePanel();}});
+document.addEventListener('keydown',function(event){if(event.key==='Escape'&&backdrop.classList.contains('open')){closePanel();}});
+sendButton.addEventListener('click',function(){
+  var message=input.value.trim();
+  if(!message){return;}
+  var ui=refreshContext();
   sendButton.disabled=true;
-  renderWorking();
-  try{
-    const response=await fetch('/operator/api/operator-ai/message',{
-      method:'POST',
-      headers:{'content-type':'application/json'},
-      body:JSON.stringify({
-        message:message,
-        project_scope:ui.selected_project_scope,
-        conversation_project_scope:ui.conversation_project_scope,
-        ui_context:ui
-      })
-    });
-    const data=await response.json().catch(function(){return {error:'INVALID_RESPONSE'}});
-    if(!response.ok)throw new Error(data.error||('HTTP '+response.status));
-    renderResult(data);
-  }catch(error){
-    renderError(error);
-  }finally{
-    sendButton.disabled=false;
-  }
+  renderMessage('small','Operator AI analysiert den verifizierten Kontext...');
+  fetch('/operator/api/operator-ai/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:message,project_scope:ui.selected_project_scope,conversation_project_scope:ui.conversation_project_scope,ui_context:ui})})
+    .then(function(response){return response.json().catch(function(){return {error:'INVALID_RESPONSE'};}).then(function(data){if(!response.ok){throw new Error(data.error||('HTTP '+response.status));}return data;});})
+    .then(function(data){renderResult(data);})
+    .catch(function(error){renderMessage('error',String(error&&error.message||error||'Operator AI request failed.'));})
+    .then(function(){sendButton.disabled=false;});
 });
-
-fullButton.addEventListener('click',function(){
-  closePanel();
-  if(typeof window.aurentaraOpenOperatorAiV1==='function')window.aurentaraOpenOperatorAiV1();
-});
-
+fullButton.addEventListener('click',function(){closePanel();if(typeof window.aurentaraOpenOperatorAiV1==='function'){window.aurentaraOpenOperatorAiV1();}});
 window.aurentaraGlobalOperatorAiContextV1=currentContext;
 window.aurentaraOpenGlobalOperatorAiV1=openPanel;
 window.aurentaraCloseGlobalOperatorAiV1=closePanel;
-
-const main=document.querySelector('.main')||document.body;
-new MutationObserver(function(){
-  if(backdrop.classList.contains('open'))refreshContext();
-}).observe(main,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-})();
+var main=document.querySelector('.main')||document.body;
+new MutationObserver(function(){if(backdrop.classList.contains('open')){refreshContext();}}).observe(main,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+}());
 </script>`;
 
 export function injectGlobalOperatorAiAccessUi(source=''){
