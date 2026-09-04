@@ -18,6 +18,7 @@ export function prepareZeroCostPilot(input = {}) {
     name: input.name || input.project_id,
     objective: input.objective || input.prompt || input.goal,
     budget_cost_units: 0,
+    customer_review_required: false,
     actor: input.actor || 'operator'
   });
   if (!project.ok) return project;
@@ -29,6 +30,7 @@ export function prepareZeroCostPilot(input = {}) {
     project: project.project,
     blueprint: project.blueprint,
     providers: createZeroCostMockProviders(),
+    customer_review_exclusion: 'INTERNAL_SYNTHETIC_ZERO_COST_PILOT',
     production_deploy: false
   };
 }
@@ -61,6 +63,8 @@ export function pilotOrchestratorManifest() {
     paid_budget: 0,
     external_writes: false,
     public_access: false,
+    customer_review_required: false,
+    customer_review_exclusion: 'INTERNAL_SYNTHETIC_ZERO_COST_PILOT',
     production_deploy: false
   };
 }
