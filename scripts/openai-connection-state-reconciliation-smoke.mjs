@@ -13,12 +13,13 @@ assert.equal(evidence.connection.credential_valid, true);
 assert.equal(evidence.connection.connected_staging, true);
 assert.equal(evidence.connection.http_status, 200);
 assert.equal(evidence.connection.authenticated, true);
-assert.equal(evidence.source.verification_method, 'GET /v1/models');
-assert.equal(evidence.execution.inference_performed, false);
-assert.equal(evidence.execution.prompt_submitted, false);
-assert.equal(evidence.execution.token_generation_requested, false);
+assert.equal(evidence.source.verification_method, 'GET /v1/models + bounded POST /v1/responses');
+assert.equal(evidence.execution.inference_performed, true);
+assert.equal(evidence.execution.inference_verified, true);
+assert.equal(evidence.execution.token_generation_verified, true);
+assert.equal(evidence.execution.model, 'gpt-5.6-luna');
 assert.equal(evidence.execution.paid_execution_approved, false);
-assert.equal(evidence.execution.routing_ready, false);
+assert.equal(evidence.execution.routing_ready, true);
 assert.equal(evidence.cost_guard.variable_cost_eur, 0);
 assert.equal(evidence.cost_guard.automatic_paid_overflow, false);
 assert.equal(evidence.safety.secret_value_exposed, false);
@@ -34,14 +35,16 @@ assert.equal(openAiInventory.availability, 'AVAILABLE');
 assert.equal(openAiInventory.verification, 'CONNECTION_VERIFIED_STAGING');
 assert.equal(openAiInventory.connection_state, 'CONNECTED_STAGING');
 assert.equal(openAiInventory.credential_state, 'PRESENT_VALID');
-assert.equal(openAiInventory.inference_verified, false);
-assert.equal(openAiInventory.routing_ready, false);
+assert.equal(openAiInventory.inference_verified, true);
+assert.equal(openAiInventory.token_generation_verified, true);
+assert.equal(openAiInventory.routing_ready, true);
 assert.equal(openAiInventory.paid_execution_approved, false);
 assert.equal(openAiInventory.automatic_paid_overflow, false);
 assert.equal(openAiInventory.production_eligible, false);
 assert.equal(openAiInventory.restrictions.includes('BUDGET_GATE'), true);
 assert.equal(openAiInventory.restrictions.includes('PAID_EXECUTION_APPROVAL_REQUIRED'), true);
-assert.equal(openAiInventory.restrictions.includes('INFERENCE_NOT_VERIFIED'), true);
+assert.equal(openAiInventory.restrictions.includes('OPERATOR_AI_BOUNDED_STAGING_ONLY'), true);
+assert.equal(openAiInventory.restrictions.includes('INFERENCE_NOT_VERIFIED'), false);
 assert.equal(openAiInventory.restrictions.includes('PRODUCTION_DISABLED'), true);
 
 const matrix = providerActivationMatrix();
@@ -50,8 +53,8 @@ assert.ok(openAiMatrix);
 assert.equal(openAiMatrix.connection_state, 'CONNECTED_STAGING');
 assert.equal(openAiMatrix.activation, 'connected_staging_budget_gate');
 assert.equal(openAiMatrix.credential, 'present_valid');
-assert.equal(openAiMatrix.inference_verified, false);
-assert.equal(openAiMatrix.routing_ready, false);
+assert.equal(openAiMatrix.inference_verified, true);
+assert.equal(openAiMatrix.routing_ready, true);
 assert.equal(openAiMatrix.paid_execution, 'approval_required');
 assert.equal(openAiMatrix.paid_execution_approved, false);
 assert.equal(openAiMatrix.automatic_paid_overflow, false);
@@ -70,8 +73,9 @@ const reconciled = reconcileOpenAiConnectionTruth({
 assert.equal(reconciled.connection_state, 'CONNECTED_STAGING');
 assert.equal(reconciled.verification, 'CONNECTION_VERIFIED_STAGING');
 assert.equal(reconciled.credential_state, 'PRESENT_VALID');
-assert.equal(reconciled.inference_verified, false);
-assert.equal(reconciled.routing_ready, false);
+assert.equal(reconciled.inference_verified, true);
+assert.equal(reconciled.token_generation_verified, true);
+assert.equal(reconciled.routing_ready, true);
 assert.equal(reconciled.paid_execution_approved, false);
 assert.equal(reconciled.automatic_paid_overflow, false);
 assert.equal(reconciled.production_eligible, false);
@@ -82,8 +86,8 @@ const stack = providerStackV1();
 assert.deepEqual(stack.factories.ai.free_staging_path, ['riosystems-ai-local-policy','cloudflare-workers-ai-free']);
 assert.equal(stack.factories.ai.cloudflare_ai_runtime_verified, true);
 assert.equal(stack.factories.ai.openai_connected_staging, true);
-assert.equal(stack.factories.ai.openai_inference_verified, false);
-assert.equal(stack.factories.ai.openai_routing_ready, false);
+assert.equal(stack.factories.ai.openai_inference_verified, true);
+assert.equal(stack.factories.ai.openai_routing_ready, true);
 assert.equal(stack.factories.ai.openai_paid_execution_approved, false);
 assert.equal(stack.activation_policy.paid_execution_requires_explicit_approval, true);
 assert.equal(stack.activation_policy.automatic_paid_overflow, false);
@@ -99,7 +103,8 @@ for (const providerId of ['cloudflare-workers-free','cloudflare-workers-ai-free'
 
 const seal = operatorProviderPreflightSealManifest();
 assert.equal(seal.openai_connection_evidence_reconciled, true);
-assert.equal(seal.openai_inference_verification_not_implied, true);
+assert.equal(seal.openai_inference_verification_requires_explicit_evidence, true);
+assert.equal(seal.openai_inference_verified_from_bounded_probe, true);
 assert.equal(seal.openai_paid_execution_remains_gated, true);
 assert.equal(seal.production_deploy, false);
 assert.equal(seal.external_writes, false);
@@ -111,8 +116,8 @@ console.log(JSON.stringify({
   suite: 'openai-connection-state-reconciliation-v1',
   provider: 'openai-api',
   connected_staging: true,
-  inference_verified: false,
-  routing_ready: false,
+  inference_verified: true,
+  routing_ready: true,
   paid_execution_approved: false,
   zero_cost_staging_ai: zeroCostAi[0].id,
   production_deploy: false

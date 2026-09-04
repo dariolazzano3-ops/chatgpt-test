@@ -5,9 +5,11 @@ const EVIDENCE = Object.freeze({
   source: Object.freeze({
     verification: 'protected_staging_runtime_diagnostic',
     diagnostic_schema: 'aurentara.openai-connection-check.v1',
-    verification_method: 'GET /v1/models',
-    merge_pr: 335,
-    merge_commit: 'ac5c370a66fd8796955cb1a920a46442da1212e5'
+    verification_method: 'GET /v1/models + bounded POST /v1/responses',
+    merge_pr: 391,
+    merge_commit: '32d468a75e9addb0f67f874bb62e7fc959e629b1',
+    inference_workflow_run: 33871189004,
+    inference_probe_pr: 393
   }),
   connection: Object.freeze({
     credential_present: true,
@@ -18,14 +20,20 @@ const EVIDENCE = Object.freeze({
     external_request_performed: true
   }),
   execution: Object.freeze({
-    inference_performed: false,
-    prompt_submitted: false,
-    token_generation_requested: false,
+    inference_performed: true,
+    inference_verified: true,
+    token_generation_verified: true,
+    model: 'gpt-5.6-luna',
+    probe_input_tokens: 31,
+    probe_output_tokens: 11,
+    probe_total_tokens: 42,
+    probe_estimated_cost_usd: 0.0000194,
     paid_execution_approved: false,
-    routing_ready: false
+    routing_ready: true
   }),
   cost_guard: Object.freeze({
     variable_cost_eur: 0,
+    verified_probe_cost_usd: 0.0000194,
     automatic_paid_overflow: false
   }),
   safety: Object.freeze({
@@ -49,12 +57,13 @@ export function isOpenAiStagingConnected() {
     && EVIDENCE.connection.connected_staging === true
     && EVIDENCE.connection.http_status === 200
     && EVIDENCE.connection.authenticated === true
-    && EVIDENCE.source.verification_method === 'GET /v1/models'
-    && EVIDENCE.execution.inference_performed === false
-    && EVIDENCE.execution.prompt_submitted === false
-    && EVIDENCE.execution.token_generation_requested === false
+    && EVIDENCE.source.verification_method === 'GET /v1/models + bounded POST /v1/responses'
+    && EVIDENCE.execution.inference_performed === true
+    && EVIDENCE.execution.inference_verified === true
+    && EVIDENCE.execution.token_generation_verified === true
+    && EVIDENCE.execution.model === 'gpt-5.6-luna'
     && EVIDENCE.execution.paid_execution_approved === false
-    && EVIDENCE.execution.routing_ready === false
+    && EVIDENCE.execution.routing_ready === true
     && EVIDENCE.cost_guard.variable_cost_eur === 0
     && EVIDENCE.cost_guard.automatic_paid_overflow === false
     && EVIDENCE.safety.secret_value_exposed === false

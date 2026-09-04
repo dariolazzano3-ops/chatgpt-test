@@ -50,7 +50,10 @@ export function reconcileOpenAiConnectionTruth(provider = {}) {
     && connection.connected_staging === true
     && connection.http_status === 200
     && connection.authenticated === true
-    && execution.inference_performed === false
+    && execution.inference_performed === true
+    && execution.inference_verified === true
+    && execution.token_generation_verified === true
+    && execution.routing_ready === true
     && execution.paid_execution_approved === false
     && costGuard.variable_cost_eur === 0
     && costGuard.automatic_paid_overflow === false
@@ -62,8 +65,9 @@ export function reconcileOpenAiConnectionTruth(provider = {}) {
     connection_state: 'CONNECTED_STAGING',
     verification: 'CONNECTION_VERIFIED_STAGING',
     credential_state: 'PRESENT_VALID',
-    inference_verified: false,
-    routing_ready: false,
+    inference_verified: true,
+    token_generation_verified: true,
+    routing_ready: true,
     paid_execution_approved: false,
     automatic_paid_overflow: false,
     production_eligible: false,
@@ -131,7 +135,8 @@ export function operatorProviderPreflightSealManifest() {
     read_only_evidence_is_not_active_runtime: true,
     not_connected_never_runtime_eligible: true,
     openai_connection_evidence_reconciled: true,
-    openai_inference_verification_not_implied: true,
+    openai_inference_verification_requires_explicit_evidence: true,
+    openai_inference_verified_from_bounded_probe: true,
     openai_paid_execution_remains_gated: true,
     same_existing_control_plane: true,
     production_deploy: false,

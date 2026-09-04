@@ -1,0 +1,107 @@
+name: AURENTARA Operator AI Real Inference Acceptance V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/operator-ai-real-inference-acceptance-request.json'
+      - '.github/workflows/operator-ai-real-inference-acceptance-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-operator-ai-real-inference-acceptance-v1
+  cancel-in-progress: false
+
+jobs:
+  authorize-and-accept:
+    if: >-
+      github.event.pull_request.head.ref == 'factory/operator-ai-real-inference-acceptance-run-v1' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'dariolazzano3-ops' &&
+      github.event.pull_request.title == '[PAID STAGING ACCEPTANCE] AURENTARA Operator AI V1' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: riosystems-staging
+    env:
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      ENDPOINT: https://riosystems-staging.gelato-donatello-dario-a5a5376c.workers.dev/factory/diagnostics/operator-ai-real-inference-acceptance
+      CONFIRMATION: AURENTARA_OPERATOR_AI_REAL_ACCEPTANCE_V1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+
+      - name: Authorize exact one-file final paid acceptance
+        run: |
+          set -euo pipefail
+          test -n "$API_TOKEN"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/operator-ai-real-inference-acceptance-request.json"
+          git fetch --no-tags origin factory-control
+          test "$(git rev-parse HEAD^)" = "$(git rev-parse origin/factory-control)"
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const r=JSON.parse(fs.readFileSync('.github/operator-ai-real-inference-acceptance-request.json','utf8'));
+          const valid=
+            r.schema==='aurentara.operator-ai-real-inference-acceptance-request.v1' &&
+            r.target==='riosystems-staging' &&
+            r.canonical_ref==='factory-control' &&
+            /^[0-9a-f]{40}$/.test(r.canonical_sha||'') &&
+            r.canonical_sha===process.env.BASE_SHA &&
+            r.confirmation==='AURENTARA_OPERATOR_AI_REAL_ACCEPTANCE_V1' &&
+            r.previous_paid_calls===1 &&
+            r.max_paid_calls_this_acceptance===1 &&
+            r.max_total_paid_calls===2 &&
+            Number(r.call_1_cost_usd)===0.0000194 &&
+            Number(r.max_total_cost_usd)<=0.25 &&
+            r.production_deploy===false &&
+            r.external_writes===false &&
+            r.level_4_status==='NOT_ACTIVATED';
+          if(!valid) process.exit(1);
+          NODE
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
+      - name: Execute exactly one final real Operator AI staging acceptance
+        run: |
+          set -euo pipefail
+          CANONICAL_SHA="$(node -p "require('./.github/operator-ai-real-inference-acceptance-request.json').canonical_sha")"
+          response="$(curl --fail-with-body --silent --show-error             -X POST             -H "Authorization: Bearer ${API_TOKEN}"             -H "content-type: application/json"             -H "x-aurentara-operator-ai-acceptance-confirmation: ${CONFIRMATION}"             --data "{\"expected_canonical_sha\":\"${CANONICAL_SHA}\"}"             "${ENDPOINT}")"
+          RESPONSE="$response" node - <<'NODE'
+          const data=JSON.parse(process.env.RESPONSE);
+          const request=require('./.github/operator-ai-real-inference-acceptance-request.json');
+          if(data.ok!==true) throw new Error(data.error||'OPERATOR_AI_REAL_ACCEPTANCE_FAILED');
+          if(data.deployed_canonical_sha!==request.canonical_sha) throw new Error('DEPLOYED_CANONICAL_MISMATCH');
+          if(data.project_scope!=='synthetic-operator-ai:real-inference-acceptance-v1') throw new Error('SYNTHETIC_PROJECT_SCOPE_MISMATCH');
+          if(data.provider!=='openai-api'||data.model!=='gpt-5.6-luna'||data.inference_status!=='VERIFIED') throw new Error('REAL_INFERENCE_NOT_VERIFIED');
+          if(!data.usage||!Number.isFinite(Number(data.usage.total_tokens))) throw new Error('USAGE_MISSING');
+          if(data.paid_inference_calls!==1) throw new Error('PAID_CALL_COUNT_INVALID');
+          if(!Number.isFinite(Number(data.estimated_cost_usd))||Number(data.estimated_cost_usd)>0.01) throw new Error('CALL_2_COST_CEILING_EXCEEDED');
+          if(data.tool_calls!==0||data.execution_started!==false||data.level_4_status!=='NOT_ACTIVATED'||data.secret_value_exposed!==false||data.production_deploy!==false||data.external_writes!==false) throw new Error('ACCEPTANCE_SAFETY_FAILED');
+          const totalCalls=request.previous_paid_calls+data.paid_inference_calls;
+          const totalCost=Number(request.call_1_cost_usd)+Number(data.estimated_cost_usd);
+          if(totalCalls>request.max_total_paid_calls||totalCost>request.max_total_cost_usd) throw new Error('TOTAL_RUN_COST_GUARD_EXCEEDED');
+          console.log(JSON.stringify({
+            ok:true,
+            schema:data.schema,
+            deployed_canonical_sha:data.deployed_canonical_sha,
+            project_scope:data.project_scope,
+            provider:data.provider,
+            model:data.model,
+            inference_status:data.inference_status,
+            usage:data.usage,
+            call_2_cost_usd:data.estimated_cost_usd,
+            total_paid_calls:totalCalls,
+            total_cost_usd:Number(totalCost.toFixed(8)),
+            tool_calls:0,
+            execution_started:false,
+            level_4_status:'NOT_ACTIVATED',
+            secret_value_exposed:false,
+            production_deploy:false,
+            external_writes:false
+          },null,2));
+          NODE

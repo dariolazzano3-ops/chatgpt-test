@@ -9,6 +9,7 @@ import { handleFramerConnectionDiagnostic } from "./framer-connection-diagnostic
 import { handleFinalProviderConnectionDiagnostic } from "./final-provider-connection-diagnostics-v1.js";
 import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-ai/dashboard-v1.js";
+import { handleOperatorAiRealInferenceAcceptance } from "./operator-ai/live-acceptance-v1.js";
 import { applyProjectSourceHumanAcceptanceUi, handleProjectSourceHumanAcceptanceApi } from "./operator-project-source-intake-human-acceptance-ui-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
@@ -208,6 +209,10 @@ export default {
     }
 
     if (url.pathname === "/mcp") return handleMcp(request, env);
+    if (url.pathname === "/factory/diagnostics/operator-ai-real-inference-acceptance") {
+      const acceptanceResponse = await handleOperatorAiRealInferenceAcceptance(request, env);
+      if (acceptanceResponse) return acceptanceResponse;
+    }
     if (url.pathname === "/factory/diagnostics/openai-secret-presence") {
       const presenceResponse = handleOpenAiSecretPresence(request, env);
       if (presenceResponse) return presenceResponse;

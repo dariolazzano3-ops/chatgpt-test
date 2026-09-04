@@ -5,6 +5,7 @@ import { buildOperatorAiDecisionSupport } from './decision-support-v1.js';
 import { createOperatorAiExecutionBrief } from './execution-brief-v1.js';
 import { renderOperatorAiMasterprompt } from './prompt-renderer-v1.js';
 import { compileProjectBlueprint } from '../project-blueprint.js';
+import { runOperatorAiInference, operatorAiInferenceManifest } from './inference-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -209,6 +210,66 @@ export function handleOperatorAiMessage(input = {}, contextInput = {}, options =
   };
 }
 
+export async function handleOperatorAiMessageWithInference(input = {}, contextInput = {}, options = {}) {
+  const deterministic = handleOperatorAiMessage(input, contextInput, options);
+  if (!deterministic.ok) {
+    return {
+      ...deterministic,
+      ai_response_mode: 'DETERMINISTIC_BLOCKED',
+      inference: { ok: false, status: 'BLOCKED_BEFORE_INFERENCE', error: deterministic.error || deterministic.status, paid_inference_calls: 0, production_deploy: false, external_writes: false }
+    };
+  }
+
+  const inference = await runOperatorAiInference({
+    message: input.message || input.text,
+    deterministic,
+    env: options.env || {},
+    fetch_impl: options.fetch_impl
+  });
+
+  if (!inference.ok) {
+    if (inference.error === 'OPERATOR_AI_SECRET_REQUEST_BLOCKED') {
+      return {
+        ...deterministic,
+        ok: false,
+        status: 'BLOCKED',
+        error: inference.error,
+        summary: 'Secret-, Credential- oder Token-Werte werden von Operator AI nicht offengelegt.',
+        ai_response_mode: 'DETERMINISTIC_BLOCKED',
+        inference,
+        paid_provider_calls: 0,
+        variable_cost_usd: 0,
+        production_deploy: false,
+        external_writes: false
+      };
+    }
+    return {
+      ...deterministic,
+      ai_response_mode: 'DETERMINISTIC_FAIL_SAFE',
+      inference,
+      paid_provider_calls: Number(inference.paid_inference_calls || 0),
+      variable_cost_usd: Number(inference.estimated_cost_usd || 0),
+      production_deploy: false,
+      external_writes: false
+    };
+  }
+
+  const out = inference.output;
+  return {
+    ...deterministic,
+    ai_response_mode: 'REAL_LLM_ASSISTED',
+    summary: out.answer,
+    why: out.reasoning_summary,
+    next_action: deterministic.next_action,
+    llm_response: out,
+    inference: { ...inference, output: undefined },
+    paid_provider_calls: 1,
+    variable_cost_usd: inference.estimated_cost_usd,
+    production_deploy: false,
+    external_writes: false
+  };
+}
+
 export function operatorAiServiceManifest() {
-  return { schema: 'aurentara.operator-ai.service.v1', one_central_operator_ai: true, deterministic_guardrails_first: true, ai_provider_calls_v1: 0, safe_internal_execution_default: 'NOT_ACTIVATED', max_autonomy_default: 3, second_mission_engine: false, second_state_system: false, production_deploy: false, external_writes: false };
+  return { schema: 'aurentara.operator-ai.service.v1', one_central_operator_ai: true, deterministic_guardrails_first: true, real_inference: operatorAiInferenceManifest(), ai_provider_calls_v1: 'BOUNDED_STAGING_ONLY', safe_internal_execution_default: 'NOT_ACTIVATED', max_autonomy_default: 3, second_mission_engine: false, second_state_system: false, production_deploy: false, external_writes: false };
 }

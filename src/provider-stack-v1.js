@@ -86,8 +86,8 @@ export function providerStackV1() {
       cloudflare_ai_blocker: isCloudflareWorkersAiStagingVerified() ? null : 'CLOUDFLARE_WORKERS_AI_PERMISSION_REQUIRED',
       openai_connected_staging: isOpenAiStagingConnected(),
       openai_connection_evidence: openAiEvidence,
-      openai_inference_verified: false,
-      openai_routing_ready: false,
+      openai_inference_verified: openAiEvidence.execution?.inference_verified === true,
+      openai_routing_ready: openAiEvidence.execution?.routing_ready === true,
       openai_paid_execution_approved: false
     },
     business: {
@@ -205,7 +205,7 @@ export function providerActivationMatrix() {
         connection_state: openAiConnectedStaging ? 'CONNECTED_STAGING' : 'NOT_CONNECTED',
         activation: openAiConnectedStaging ? 'connected_staging_budget_gate' : 'credential_and_budget_gate_required',
         credential: openAiConnectedStaging ? 'present_valid' : 'not_verified', connection_evidence: openAi,
-        inference_verified: false, routing_ready: false, paid_execution: 'approval_required',
+        inference_verified: openAi.execution?.inference_verified === true, routing_ready: openAi.execution?.routing_ready === true, paid_execution: 'approval_required',
         paid_execution_approved: false, automatic_paid_overflow: false, production_eligible: false
       },
       {

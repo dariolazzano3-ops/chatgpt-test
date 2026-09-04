@@ -1,6 +1,6 @@
 import { handleOperatorDashboard as handleExistingOperatorDashboard } from '../operator-project-source-intake-storage-dashboard-v1.js';
 import { authorizeOperator } from '../operator-dashboard-http-v1.js';
-import { handleOperatorAiMessage } from './service-v1.js';
+import { handleOperatorAiMessage, handleOperatorAiMessageWithInference } from './service-v1.js';
 import { resolveOperatorAiIntent } from './intent-v1.js';
 import { resolveOperatorAiProject } from './project-resolution-v1.js';
 import { interpretOperatorAiResult } from './result-interpreter-v1.js';
@@ -14,6 +14,7 @@ import { operatorAiExecutionBriefManifest } from './execution-brief-v1.js';
 import { operatorAiPromptRendererManifest } from './prompt-renderer-v1.js';
 import { operatorAiResultInterpreterManifest } from './result-interpreter-v1.js';
 import { operatorAiServiceManifest } from './service-v1.js';
+import { operatorAiInferenceManifest, operatorAiInferenceRuntimeStatus } from './inference-v1.js';
 
 const clean = (value, max = 6000) => String(value ?? '').trim().slice(0, max);
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -141,9 +142,9 @@ async function api(path,opt={}){const r=await fetch('/operator/api/operator-ai'+
 function badge(v){const s=String(v||'UNKNOWN').toUpperCase();const tone=s.includes('BLOCK')||s.includes('FAIL')?'blocked':s.includes('READY')||s.includes('VERIFIED')||s.includes('FRESH')?'ready':s.includes('APPROVAL')||s.includes('STALE')?'attention':'active';return '<span class="badge '+tone+'">'+h(s)+'</span>'}
 function base(){section.innerHTML='<div class="operator-ai-shell"><div><div class="operator-ai-hero"><div class="eyebrow" style="color:#bfc5bb">AURENTARA SYSTEMS · ONE CENTRAL AI</div><h2 style="font-size:24px;margin:4px 0 6px">Was möchtest du tun?</h2><div class="small">Status verstehen, nächsten Schritt finden, Masterprompt erzeugen oder sichere Execution vorbereiten. Production bleibt approval-gated.</div><div class="operator-ai-compose"><textarea id="operator-ai-input" placeholder="z. B. Wie steht Gelato gerade?"></textarea><div class="actions"><button class="btn primary" id="operator-ai-send">AN OPERATOR AI SENDEN</button><button class="btn" id="operator-ai-context">KONTEXT AKTUALISIEREN</button></div></div><div class="operator-ai-meta" id="operator-ai-meta"></div></div><div class="operator-ai-tabs" id="operator-ai-tabs">'+['CHAT','BRIEF','MASTERPROMPT','RUN','RESULT'].map(x=>'<button data-ai-tab="'+x+'">'+x+'</button>').join('')+'</div><div id="operator-ai-output" class="card"></div></div><aside class="stack"><div class="card"><h2>Safety</h2><div class="operator-ai-launch-lock"><strong>Production locked</strong><div class="small">Keine Chat-Aussage ersetzt formale Approval Records.</div></div><div class="row"><span>Aktiver Autonomie-Max</span><strong>Level 3</strong></div><div class="row"><span>Level 4</span><span>NOT ACTIVATED</span></div><div class="row"><span>Level 5</span><span>APPROVAL-GATED</span></div></div><div class="card" id="operator-ai-context-card"><h2>Project Context</h2><div class="small">Noch nicht geladen.</div></div></aside></div>';document.getElementById('operator-ai-send').onclick=send;document.getElementById('operator-ai-context').onclick=loadContext;document.querySelectorAll('[data-ai-tab]').forEach(x=>x.onclick=()=>{activeTab=x.dataset.aiTab;renderLast()});renderLast()}
 function renderLast(){document.querySelectorAll('[data-ai-tab]').forEach(x=>x.classList.toggle('active',x.dataset.aiTab===activeTab));const out=document.getElementById('operator-ai-output');if(!out)return;if(!last){out.innerHTML='<div class="empty">Schreibe eine Anweisung. Statusfragen bleiben garantiert read-only.</div>';return}const b=last.execution_brief;const prompt=last.masterprompt||'';const blockers=rows(last.blockers);if(activeTab==='CHAT'){out.innerHTML='<div class="eyebrow">SUMMARY</div><h2>'+h(last.summary)+'</h2><div class="operator-ai-next"><b>NEXT ACTION</b><div>'+h(last.next_action?.message||'Keine weitere Aktion ermittelt.')+'</div></div><h3>WHY</h3><div class="small">'+h(last.why||'–')+'</div><h3>BLOCKERS</h3>'+(blockers.length?blockers.map(x=>'<div class="operator-ai-blocker"><b>'+h(x.code)+'</b><div class="small">'+h(x.message||x.classification)+'</div></div>').join(''):'<div class="small">Keine priorisierten Blocker.</div>')}else if(activeTab==='BRIEF'){out.innerHTML=b?'<h2>Execution Brief</h2><pre>'+h(JSON.stringify(b,null,2))+'</pre>':'<div class="empty">Für diese Read-only-Antwort wurde kein Execution Brief benötigt.</div>'}else if(activeTab==='MASTERPROMPT'){out.innerHTML=prompt?'<h2>Masterprompt</h2><pre class="operator-ai-prompt">'+h(prompt)+'</pre>':'<div class="empty">Kein Masterprompt für diese Anfrage.</div>'}else if(activeTab==='RUN'){const e=last.execution||{};out.innerHTML='<h2>Run State</h2><div class="operator-ai-grid"><div class="kv"><b>Execution requested</b><span>'+h(String(e.requested))+'</span></div><div class="kv"><b>Requested autonomy</b><span>'+h(e.requested_autonomy)+'</span></div><div class="kv"><b>Actual autonomy</b><span>'+h(e.actual_autonomy)+'</span></div><div class="kv"><b>Started</b><span>'+h(String(e.started))+'</span></div></div><div class="callout warn" style="margin-top:12px"><b>'+h(e.safe_internal_execution_status||'NOT_ACTIVATED')+'</b><div class="small">V1 bereitet bis Level 3 vor. Keine ungesicherte interne oder externe Wirkung.</div></div>'}else{out.innerHTML='<h2>Result</h2><div class="empty">Result Interpretation wird nach einem bestehenden Runtime-Run angezeigt. In V1 startet diese Oberfläche selbst keine Level-4/5-Execution.</div>'}}
-function renderContext(d){const card=document.getElementById('operator-ai-context-card');if(!card)return;const p=d?.project_state?.project||d?.project_state||{};card.innerHTML='<h2>Project Context</h2><div class="row"><span>Project</span><strong>'+h(p.name||p.project_name||d.project_ref||'Nicht ausgewählt')+'</strong></div><div class="row"><span>Canonical</span><span class="operator-ai-inline-code">'+h(d?.canonical_source?.canonical_head||'UNKNOWN')+'</span></div><div class="row"><span>Freshness</span>'+badge(d?.freshness?.canonical)+'</div><div class="row"><span>Unknowns</span><strong>'+rows(d?.unknowns).length+'</strong></div>'}
-async function loadContext(){try{const d=await api('/context');renderContext(d.context_snapshot||d)}catch(e){const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
-async function send(){const input=document.getElementById('operator-ai-input');const message=input?.value.trim();if(!message)return;const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="empty">Operator AI wertet den verifizierten Kontext aus…</div>';try{last=await api('/message',{method:'POST',body:JSON.stringify({message})});const meta=document.getElementById('operator-ai-meta');if(meta)meta.innerHTML=badge(last.intent?.intent)+' '+badge('LEVEL '+last.execution?.actual_autonomy)+' '+badge(last.execution?.started?'STARTED':'NOT STARTED');renderContext(last.context_snapshot);activeTab='CHAT';renderLast()}catch(e){if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
+function renderContext(d){const card=document.getElementById('operator-ai-context-card');if(!card)return;const s=d?.context_snapshot||d||{},rt=d?.inference_runtime||d?.inference||{},p=s?.project_state?.project||s?.project_state||{};const ai=rt?.status==='VERIFIED'||rt?.inference_enabled===true?'REAL AI CONNECTED':'AI FAIL-SAFE';card.innerHTML='<h2>Project Context</h2><div class="row"><span>Project</span><strong>'+h(p.name||p.project_name||s.project_ref||'Nicht ausgewählt')+'</strong></div><div class="row"><span>Canonical</span><span class="operator-ai-inline-code">'+h(s?.canonical_source?.canonical_head||'UNKNOWN')+'</span></div><div class="row"><span>Freshness</span>'+badge(s?.freshness?.canonical)+'</div><div class="row"><span>AI</span>'+badge(ai)+'</div><div class="row"><span>Model</span><strong>'+h(rt?.model||'gpt-5.6-luna')+'</strong></div><div class="row"><span>Unknowns</span><strong>'+rows(s?.unknowns).length+'</strong></div>'}
+async function loadContext(){try{const d=await api('/context');renderContext(d)}catch(e){const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
+async function send(){const input=document.getElementById('operator-ai-input');const message=input?.value.trim();if(!message)return;const out=document.getElementById('operator-ai-output');if(out)out.innerHTML='<div class="empty">Operator AI wertet den verifizierten Kontext aus…</div>';try{last=await api('/message',{method:'POST',body:JSON.stringify({message})});const meta=document.getElementById('operator-ai-meta');const ai=last.inference?.status==='VERIFIED'?'REAL AI CONNECTED':'AI FAIL-SAFE';const usage=last.inference?.usage;const ev=usage?'<span class="badge active">'+h(last.inference?.model||'gpt-5.6-luna')+' · '+h(usage.total_tokens)+' tokens</span>':'';if(meta)meta.innerHTML=badge(last.intent?.intent)+' '+badge('LEVEL '+last.execution?.actual_autonomy)+' '+badge(ai)+' '+ev;renderContext(last);activeTab='CHAT';renderLast()}catch(e){if(out)out.innerHTML='<div class="error">'+h(e.message)+'</div>'}}
 function open(){show();if(!document.getElementById('operator-ai-input'))base();void loadContext()}
 window.aurentaraOpenOperatorAiV1=open;
 })();
@@ -168,7 +169,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
         schema: 'aurentara.operator-ai.bundle.v1',
         contracts: operatorAiContractsManifest(), intent: operatorAiIntentManifest(), project_resolution: operatorAiProjectResolutionManifest(),
         context: operatorAiContextSnapshotManifest(), decision_support: operatorAiDecisionSupportManifest(), execution_brief: operatorAiExecutionBriefManifest(),
-        prompt_renderer: operatorAiPromptRendererManifest(), result_interpreter: operatorAiResultInterpreterManifest(), service: operatorAiServiceManifest(),
+        prompt_renderer: operatorAiPromptRendererManifest(), result_interpreter: operatorAiResultInterpreterManifest(), service: operatorAiServiceManifest(), inference: operatorAiInferenceManifest(),
         dashboard_integrated: true, safe_internal_execution_status: 'NOT_ACTIVATED', active_autonomy_levels: [0,1,2,3], production_deploy: false, external_writes: false
       });
     }
@@ -184,7 +185,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
       const selected = context.selected_project_scope ? context.projects.find((p) => p.scope_key === context.selected_project_scope) : null;
       const syntheticMessage = selected ? `Wie steht ${selected.name || selected.project_id}?` : 'Wie steht das ausgewählte Projekt?';
       const result = handleOperatorAiMessage({ message: syntheticMessage }, context, { safe_internal_execution_active: false });
-      return json({ schema: 'aurentara.operator-ai.context-response.v1', context_snapshot: result.context_snapshot || null, project_resolution: result.project_resolution || null, production_deploy: false });
+      return json({ schema: 'aurentara.operator-ai.context-response.v1', context_snapshot: result.context_snapshot || null, project_resolution: result.project_resolution || null, inference_runtime: operatorAiInferenceRuntimeStatus(env), production_deploy: false });
     }
 
     if (request.method === 'POST' && url.pathname === '/operator/api/operator-ai/message') {
@@ -231,7 +232,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
         };
         context.cost_preflight_ref = context.cost_state.preflight_ref;
       }
-      const result = handleOperatorAiMessage({ message, conversation_project_scope: clean(body.conversation_project_scope,500) || null }, context, { safe_internal_execution_active: false });
+      const result = await handleOperatorAiMessageWithInference({ message, conversation_project_scope: clean(body.conversation_project_scope,500) || null }, context, { safe_internal_execution_active: false, env, fetch_impl: options.fetch_impl });
       return json(result, result.ok === false ? 409 : 200);
     }
 
@@ -258,12 +259,14 @@ export function operatorAiDashboardManifest() {
     central_input: true,
     project_context_visible: true,
     cost_risk_evidence_visible: true,
+    real_inference_connected_staging: true,
+    model: 'gpt-5.6-luna',
     safe_internal_execution_status: 'NOT_ACTIVATED',
     active_autonomy_levels: [0,1,2,3],
     new_database: false,
     production_deploy: false,
     external_writes: false,
-    paid_provider_calls: 0,
+    paid_provider_calls: 'BOUNDED_PER_REQUEST',
     variable_cost_eur: 0
   };
 }
