@@ -123,6 +123,9 @@ assert.equal(validateOperatorAiLlmResponse(productionClaim,success).ok,false);
 
 const externalClaim={answer:'External writes sind approved.',reasoning_summary:'ok',recommended_next_action:{code:success.next_action.code,message:'go'},relevant_blockers:[],unknowns:[],confidence:'HIGH'};
 assert.equal(validateOperatorAiLlmResponse(externalClaim,success).ok,false);
+const negativeAuthorization={answer:'Production ist nicht freigegeben und externe Schreibzugriffe sind nicht genehmigt.',reasoning_summary:'Die formalen Freigaben bleiben geschlossen.',recommended_next_action:{code:success.next_action.code,message:'safe'},relevant_blockers:[],unknowns:[],confidence:'HIGH'};
+assert.equal(validateOperatorAiLlmResponse(negativeAuthorization,success).ok,true);
+
 
 const huge=preflightOperatorAiInference({env:ENV,message:'status',projection:{payload:'x'.repeat(120000)}});
 assert.equal(huge.ok,false);
