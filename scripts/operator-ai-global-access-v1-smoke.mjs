@@ -4,7 +4,7 @@ import { GLOBAL_OPERATOR_AI_SECTIONS, sanitizeGlobalOperatorAiUiContext, injectG
 import { handleOperatorAiMessage } from '../src/operator-ai/service-v1.js';
 import { buildOperatorAiLlmContextProjection } from '../src/operator-ai/inference-v1.js';
 
-const MATRIX=['hq','projects','mission','approvals','deliveries','executions','factories','capabilities','providers','costs','quality','health','audit','settings'];
+const MATRIX=['hq','projects','missions','approvals','deliveries','executions','factories','capabilities','providers','costs','quality','health','audit','settings'];
 const manifest=globalOperatorAiAccessManifest();
 assert.equal(manifest.schema,'aurentara.global-operator-ai-access.v1');
 assert.equal(manifest.dashboard_wide_trigger,true);
@@ -12,7 +12,7 @@ assert.equal(manifest.nav_rebuild_independent,true);
 assert.equal(manifest.sidepanel,true);
 assert.equal(manifest.full_workspace_preserved,true);
 for(const section of MATRIX) assert.ok(manifest.sections.includes(section),section+' must be globally covered');
-assert.ok(manifest.sections.includes('missions'));
+assert.ok(manifest.sections.includes('mission'),'internal new-mission section remains supported as context');
 assert.ok(manifest.sections.includes('alerts'));
 assert.equal(manifest.desktop_drawer,true);
 assert.equal(manifest.mobile_drawer,true);
