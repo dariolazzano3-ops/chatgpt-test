@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - 'factory/gelato-premium-evidence-critical-repair-v1'
+      - 'factory/gelato-preview-safety-seal-v1'
     paths:
       - '.github/workflows/gelato-preview-safety-cleanup-v1.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +15,7 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     environment: staging
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -62,33 +64,64 @@ jobs:
             --project-name "$CLOUDFLARE_PAGES_PROJECT" \
             --branch "$TARGET_BRANCH"
 
-      - name: Delete older target-branch deployments
+      - name: Wait for preview deployment visibility
         shell: bash
         run: |
           set -euo pipefail
           cd /tmp
-          npx --yes wrangler@4 pages deployment list \
-            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-            --environment preview \
-            --json > /tmp/pages-deployments.json
-
-          node <<'NODE'
+          FOUND=false
+          for ATTEMPT in 1 2 3 4 5 6 7 8 9 10; do
+            npx --yes wrangler@4 pages deployment list \
+              --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+              --environment preview \
+              --json > /tmp/pages-deployments.json
+            if node <<'NODE'
           const fs=require('fs');
           const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments.json','utf8'));
-          if(!Array.isArray(data)) throw new Error('PAGES_DEPLOYMENT_LIST_NOT_ARRAY');
+          if(!Array.isArray(data)) process.exit(2);
           const target=process.env.TARGET_BRANCH;
+          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
           const rows=data.filter((d)=>{
             const branch=d?.deployment_trigger?.metadata?.branch
               ?? d?.source?.config?.branch
               ?? d?.source?.branch
               ?? null;
-            const aliases=Array.isArray(d?.aliases)?d.aliases:[];
-            return branch===target || aliases.some((a)=>String(a).includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'));
+            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
+            return branch===target || aliases.some((a)=>a.includes(aliasHost));
+          });
+          process.exit(rows.length ? 0 : 1);
+          NODE
+            then
+              FOUND=true
+              break
+            fi
+            sleep 5
+          done
+          test "$FOUND" = 'true' || { echo "Target preview deployment did not become visible"; exit 1; }
+
+      - name: Delete older target-branch deployments
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          node <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments.json','utf8'));
+          if(!Array.isArray(data)) throw new Error('PAGES_DEPLOYMENT_LIST_NOT_ARRAY');
+          const target=process.env.TARGET_BRANCH;
+          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
+          const rows=data.filter((d)=>{
+            const branch=d?.deployment_trigger?.metadata?.branch
+              ?? d?.source?.config?.branch
+              ?? d?.source?.branch
+              ?? null;
+            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
+            return branch===target || aliases.some((a)=>a.includes(aliasHost));
           }).sort((a,b)=>String(b.created_on||'').localeCompare(String(a.created_on||'')));
           if(!rows.length) throw new Error('TARGET_BRANCH_DEPLOYMENTS_NOT_FOUND');
           const keep=rows[0];
           const aliases=Array.isArray(keep.aliases)?keep.aliases.map(String):[];
-          if(!aliases.some((a)=>a.includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'))){
+          if(!aliases.some((a)=>a.includes(aliasHost))){
             throw new Error('LATEST_TOMBSTONE_ALIAS_NOT_CONFIRMED');
           }
           fs.writeFileSync('/tmp/keep-id.txt',String(keep.id||''));
@@ -97,7 +130,9 @@ jobs:
             target_branch_deployments:rows.length,
             keeping_latest_tombstone:true,
             older_deployments_to_delete:Math.max(0,rows.length-1),
-            production_deploy:false
+            production_deploy:false,
+            dns_changes:false,
+            billing:false
           }));
           NODE
 
@@ -115,40 +150,43 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp
-          npx --yes wrangler@4 pages deployment list \
-            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
-            --environment preview \
-            --json > /tmp/pages-deployments-after.json
-          node <<'NODE'
+          VERIFIED=false
+          for ATTEMPT in 1 2 3 4 5 6 7 8 9 10; do
+            npx --yes wrangler@4 pages deployment list \
+              --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+              --environment preview \
+              --json > /tmp/pages-deployments-after.json
+            if node <<'NODE'
           const fs=require('fs');
           const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments-after.json','utf8'));
+          if(!Array.isArray(data)) process.exit(2);
           const target=process.env.TARGET_BRANCH;
+          const aliasHost=new URL(process.env.EXPECTED_ALIAS).host;
+          const keep=fs.readFileSync('/tmp/keep-id.txt','utf8').trim();
           const rows=data.filter((d)=>{
             const branch=d?.deployment_trigger?.metadata?.branch
               ?? d?.source?.config?.branch
               ?? d?.source?.branch
               ?? null;
-            const aliases=Array.isArray(d?.aliases)?d.aliases:[];
-            return branch===target || aliases.some((a)=>String(a).includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'));
+            const aliases=Array.isArray(d?.aliases)?d.aliases.map(String):[];
+            return branch===target || aliases.some((a)=>a.includes(aliasHost));
           });
-          const keep=fs.readFileSync('/tmp/keep-id.txt','utf8').trim();
-          if(rows.length!==1) throw new Error('TARGET_BRANCH_OLD_DEPLOYMENTS_REMAIN:'+rows.length);
-          if(String(rows[0].id||'')!==keep) throw new Error('LATEST_TOMBSTONE_CHANGED');
-          console.log(JSON.stringify({
-            target_branch_deployments_remaining:1,
-            content_state:'PRIVATE_PREVIEW_DISABLED_TOMBSTONE_ONLY',
-            old_gelato_preview_deployments_remaining:0,
-            production_deploy:false,
-            dns_changes:false,
-            billing:false
-          }));
+          process.exit(rows.length===1 && String(rows[0].id||'')===keep ? 0 : 1);
           NODE
+            then
+              VERIFIED=true
+              break
+            fi
+            sleep 5
+          done
+          test "$VERIFIED" = 'true' || { echo "Old target-branch deployments remain"; exit 1; }
+          echo '{"target_branch_deployments_remaining":1,"content_state":"PRIVATE_PREVIEW_DISABLED_TOMBSTONE_ONLY","old_gelato_preview_deployments_remaining":0,"production_deploy":false,"dns_changes":false,"billing":false}'
 
       - name: Verify alias serves tombstone
         shell: bash
         run: |
           set -euo pipefail
-          BODY=$(curl -fsS --retry 5 --retry-delay 2 "$EXPECTED_ALIAS/")
+          BODY=$(curl -fsS --retry 8 --retry-delay 3 "$EXPECTED_ALIAS/")
           printf '%s' "$BODY" | grep -q 'PRIVATE PREVIEW DISABLED'
           ! printf '%s' "$BODY" | grep -q 'Gelato Donatello'
           echo "External branch alias contains no Gelato candidate content."
