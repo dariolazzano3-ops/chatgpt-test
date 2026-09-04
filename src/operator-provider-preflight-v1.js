@@ -76,7 +76,8 @@ function providerExecutable(evidence = {}) {
 function providerPresentationGroup({ availability, connection, configured, executable, evidence = {} } = {}) {
   const text = activationText(evidence);
   if (String(availability || '').toUpperCase().includes('UNAVAILABLE') || text.includes('failed')) return 'BLOCKIERT';
-  if (executable === 'VERIFIED_STAGING') return 'EINSATZBEREIT';
+  if (connection === 'NOT_CONNECTED') return 'NICHT_VERBUNDEN';
+  if (executable === 'VERIFIED_STAGING' && connection === 'CONNECTED_STAGING') return 'EINSATZBEREIT';
   if (['CONNECTED_STAGING','READ_ONLY_VERIFIED'].includes(connection)) return 'STAGING_VERIFIZIERT';
   if (configured === 'CONFIGURED') return 'KONFIGURIERT_NICHT_VERIFIZIERT';
   return 'NICHT_VERBUNDEN';
