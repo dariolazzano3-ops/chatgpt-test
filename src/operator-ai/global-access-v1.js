@@ -266,7 +266,7 @@ const SCRIPT=String.raw`<script id="aurentara-global-operator-ai-access-v1-scrip
 export function injectGlobalOperatorAiAccessUi(source=''){
   if(!source||source.includes('aurentara-global-operator-ai-access-v1-script'))return source;
   const addon=`${STYLE}${MARKUP}${SCRIPT}`;
-  return source.includes('</body>')?source.replace('</body>',`${addon}</body>`):`${source}${addon}`;
+  return source.includes('</body>')?source.replace('</body>',()=>`${addon}</body>`):`${source}${addon}`;
 }
 
 export function globalOperatorAiAccessManifest(){
