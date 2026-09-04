@@ -87,6 +87,7 @@ export function handleOperatorAiMessage(input = {}, contextInput = {}, options =
     canonical_source: contextInput.canonical_source,
     project_state: contextInput.project_state || project,
     project_context: contextInput.project_context,
+    ui_context_hint: contextInput.ui_context_hint,
     mission_state: contextInput.mission_state,
     quality_state: contextInput.quality_state,
     provider_state: contextInput.provider_state,
