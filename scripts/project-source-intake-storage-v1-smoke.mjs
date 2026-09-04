@@ -330,22 +330,14 @@ response = await handleOperatorDashboard(new Request('https://operator.example/o
 assert.equal(response.status, 400);
 assert.equal((await response.json()).error, 'PROJECT_SOURCE_MANUAL_CATEGORY_FIELD_MISMATCH');
 
-// Conflict semantics are tested separately on an isolated project state.
-// Conflict-free manual facts remain UNVERIFIED; a contradictory value on the same canonical field becomes SOURCE_CONFLICT.
-response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({
-    scope_key: other.scope_key,
-    context_scope_key: other.scope_key,
-    facts: [{ category: 'DESCRIPTION', value: 'Isolated baseline description' }]
-  })
-}), env, {}, handlerOptions);
-assert.equal(response.status, 201);
-let isolatedManual = await response.json();
-assert.equal(isolatedManual.facts[0].field_path, 'content.summary');
-assert.equal(isolatedManual.facts[0].origin, 'MANUAL');
-assert.equal(isolatedManual.facts[0].verification_status, 'UNVERIFIED');
+// Conflict semantics are tested separately on the isolated mapping project.
+// The mapping loop already created the conflict-free content.summary baseline.
+let isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
+let isolatedBaseline = isolatedRead.body.state.facts.filter((fact) => fact.field_path === 'content.summary');
+assert.equal(isolatedBaseline.length, 1);
+assert.equal(isolatedBaseline[0].origin, 'MANUAL');
+assert.equal(isolatedBaseline[0].verification_status, 'UNVERIFIED');
+assert.equal(isolatedBaseline[0].value, 'Gelato Donatello Beschreibung');
 
 response = await handleOperatorDashboard(new Request('https://operator.example/operator/api/project-source-intake/manual', {
   method: 'POST',
@@ -357,12 +349,12 @@ response = await handleOperatorDashboard(new Request('https://operator.example/o
   })
 }), env, {}, handlerOptions);
 assert.equal(response.status, 201);
-isolatedManual = await response.json();
+let isolatedManual = await response.json();
 assert.equal(isolatedManual.facts[0].field_path, 'content.summary');
 assert.equal(isolatedManual.facts[0].origin, 'MANUAL');
 assert.equal(isolatedManual.facts[0].verification_status, 'SOURCE_CONFLICT');
 
-const isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
+isolatedRead = await service.getProjectSourceIntake({ scope_key: other.scope_key });
 const isolatedConflicts = isolatedRead.body.state.facts.filter((fact) => fact.field_path === 'content.summary');
 assert.equal(isolatedConflicts.length, 2);
 assert.equal(isolatedConflicts.every((fact) => fact.verification_status === 'SOURCE_CONFLICT'), true);
