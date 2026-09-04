@@ -163,6 +163,10 @@ assert.match(html, /Dateien ausgewählt/);
 assert.match(html, /Dieses Dateiformat wird aktuell nicht unterstützt/);
 assert.match(html, /PROJECT_SOURCE_UPLOAD_MIME_UNSUPPORTED/);
 assert.match(html, /Name bearbeiten/);
+assert.match(html, /Herunterladen/);
+assert.match(html, /INLINE_PREVIEW_MIME/);
+assert.match(html, /\/operator\/api\/project-source-intake\/preview\?scope_key=/);
+assert.match(html, /data-polish-download/);
 assert.match(html, /Name wird gespeichert…/);
 assert.match(html, /✅ Name gespeichert/);
 assert.match(html, /\/operator\/api\/project-source-intake'\+path/);
@@ -202,6 +206,9 @@ assert.equal(manifest.multi_file_selection_feedback, true);
 assert.equal(manifest.client_mime_precheck_matches_server_allowlist, true);
 assert.equal(manifest.server_mime_validation_authoritative, true);
 assert.equal(manifest.source_display_name_editing, true);
+assert.equal(manifest.private_preview_action, true);
+assert.equal(manifest.explicit_download_action, true);
+assert.equal(manifest.unsafe_mime_inline_preview, false);
 assert.equal(manifest.storage_object_rename, false);
 assert.equal(manifest.german_source_presentation, true);
 assert.equal(manifest.project_context_retained_without_reload, true);
@@ -216,6 +223,9 @@ console.log(JSON.stringify({
   local_upload_error: 'PASS',
   multi_file_selection_feedback: 'PASS',
   display_name_rename: 'PASS',
+  private_preview_action: 'PASS',
+  explicit_download_action: 'PASS',
+  unsafe_mime_inline_preview: false,
   rename_persisted_after_reload: 'PASS',
   rename_storage_ref_unchanged: 'PASS',
   rename_hash_unchanged: 'PASS',
