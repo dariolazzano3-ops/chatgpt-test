@@ -25,7 +25,7 @@ function groupRows(rows = [], keyFn) {
   return [...groups.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pending_plans = [], ui_audit = [] } = {}) {
+export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pending_plans = [], ui_audit = [], crm_snapshot = null } = {}) {
   const projects = runtime.command_center_state?.portfolio?.projects || [];
   const project = projects.find((item) => item.scope_key === scope_key);
   if (!project) return { ok: false, error: 'OPERATOR_PROJECT_DETAIL_NOT_FOUND', scope_key, production_deploy: false };
@@ -55,9 +55,29 @@ export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pendi
       })
     : (pending.at(-1)?.selected_capabilities || []).map((task) => ({ ...clone(task), status: 'PLANNED', reality: 'PLANNED' }));
 
+  const crmSnapshotValid = !crm_snapshot
+    || (
+      crm_snapshot.scope_key === scope_key
+      && crm_snapshot.synthetic === true
+      && crm_snapshot.pii_present !== true
+    );
+  const crm = crmSnapshotValid && crm_snapshot ? {
+    scope_key,
+    lead_id: crm_snapshot.lead_id || null,
+    pipeline_key: crm_snapshot.pipeline_key || null,
+    stage_key: crm_snapshot.stage_key || null,
+    next_action: crm_snapshot.next_action || null,
+    last_activity: crm_snapshot.last_activity || null,
+    automation_status: crm_snapshot.automation_status || null,
+    review_status: crm_snapshot.review_status || null,
+    synthetic: true,
+    pii_present: false
+  } : null;
+
   const blockers = [
     ...(project.blocked ? [project.blocker || 'PROJECT_BLOCKED'] : []),
-    ...(latest?.quality?.failures || [])
+    ...(latest?.quality?.failures || []),
+    ...(!crmSnapshotValid ? ['CRM_OPERATOR_SNAPSHOT_SCOPE_OR_PRIVACY_REJECTED'] : [])
   ].filter(Boolean);
 
   let progress = 0;
@@ -102,7 +122,8 @@ export function buildOperatorProjectDetail({ runtime = {}, scope_key = '', pendi
       delivery,
       deliverables: clone(delivery?.deliverables || []),
       quality: clone(latest?.quality || null),
-      execution_evidence: clone(delivery?.execution_evidence || null)
+      execution_evidence: clone(delivery?.execution_evidence || null),
+      crm
     },
     reality: latest ? 'SYNTHETIC' : pending.length ? 'PLANNED' : 'NOT_VERIFIED',
     production_deploy: false
