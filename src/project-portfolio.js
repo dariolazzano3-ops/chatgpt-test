@@ -2,6 +2,32 @@ const clean = (value, max = 240) => String(value || '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
+function customerReviewSummary(review = null) {
+  if (!review || review.schema !== 'aurentara.customer-review-lifecycle.v1') return null;
+  return {
+    schema: review.schema,
+    status: clean(review.status, 80) || null,
+    review_revision: Math.max(0, finite(review.review_revision, 0)),
+    normal_revision_count: Math.max(0, finite(review.normal_revision_count, 0)),
+    preview_id: clean(review.current_preview?.preview_id, 200) || null,
+    source_revision: clean(review.current_preview?.source_revision, 160) || null,
+    unresolved_feedback_count: (review.feedback || []).filter((item) => item.resolved !== true).length,
+    approval_count: (review.approvals || []).filter((item) => item.granted === true).length,
+    production_deploy: false
+  };
+}
+
+function reviewNextAction(review = null) {
+  const status = review?.status || null;
+  if (status === 'AWAITING_PRIVATE_PREVIEW') return 'PREPARE_PRIVATE_PREVIEW';
+  if (status === 'PREVIEW_REPAIR_REQUIRED') return 'REPAIR_PRIVATE_PREVIEW';
+  if (status === 'CUSTOMER_REVIEW') return 'AWAIT_CUSTOMER_REVIEW';
+  if (status === 'REVISION_REQUIRED') return 'CUSTOMER_REVISION_REQUIRED';
+  if (status === 'SCOPE_REASSESSMENT_REQUIRED') return 'REASSESS_SCOPE_AND_COST';
+  if (status === 'CUSTOMER_APPROVED') return 'DELIVERY_REVIEW';
+  return null;
+}
+
 export function createProjectPortfolio(input = {}) {
   const operatorId = clean(input.operator_id, 160);
   if (!operatorId) return { ok: false, error: 'PORTFOLIO_OPERATOR_REQUIRED' };
@@ -20,6 +46,7 @@ export function createProjectPortfolio(input = {}) {
 export function upsertPortfolioProject(portfolio = {}, project = {}, metadata = {}) {
   if (!project.customer_id || !project.project_id || !project.scope_key) return { ok: false, error: 'PORTFOLIO_PROJECT_INVALID' };
   const next = clone(portfolio);
+  const review = customerReviewSummary(project.customer_review);
   const record = {
     customer_id: project.customer_id,
     project_id: project.project_id,
@@ -30,10 +57,11 @@ export function upsertPortfolioProject(portfolio = {}, project = {}, metadata = 
     capability_count: (project.capabilities || []).length,
     mission_count: (project.missions || []).length,
     delivery_count: (project.deliveries || []).length,
+    customer_review: review,
     priority: Math.max(0, finite(metadata.priority, 100)),
-    blocked: metadata.blocked === true,
-    blocker_count: Math.max(0, finite(metadata.blocker_count, 0)),
-    next_action: clean(metadata.next_action, 500) || null,
+    blocked: metadata.blocked === true || review?.status === 'SCOPE_REASSESSMENT_REQUIRED',
+    blocker_count: Math.max(0, finite(metadata.blocker_count, 0)) + (review?.status === 'SCOPE_REASSESSMENT_REQUIRED' ? 1 : 0),
+    next_action: clean(metadata.next_action, 500) || reviewNextAction(review),
     production_deploy: false
   };
   const index = (next.projects || []).findIndex((item) => item.scope_key === record.scope_key);
@@ -70,6 +98,7 @@ export function portfolioSnapshot(portfolio = {}) {
     operator_id: portfolio.operator_id || null,
     project_count: projects.length,
     blocked_count: projects.filter((item) => item.blocked).length,
+    customer_review_pending_count: projects.filter((item) => item.customer_review && item.customer_review.status !== 'CUSTOMER_APPROVED').length,
     total_budget_cost_units: projects.reduce((sum, item) => sum + finite(item.budget_cost_units, 0), 0),
     states: byState,
     production_deploy: false
@@ -77,5 +106,12 @@ export function portfolioSnapshot(portfolio = {}) {
 }
 
 export function projectPortfolioManifest() {
-  return { version: 'riosystems.project-portfolio.v1', single_operator_multi_customer: true, deterministic_operator_queue: true, dashboard_snapshot_ready: true, production_deploy: false };
+  return {
+    version: 'riosystems.project-portfolio.v1',
+    single_operator_multi_customer: true,
+    deterministic_operator_queue: true,
+    dashboard_snapshot_ready: true,
+    customer_review_projection: true,
+    production_deploy: false
+  };
 }
