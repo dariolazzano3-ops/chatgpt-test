@@ -53,6 +53,32 @@ export function handleOperatorAiMessage(input = {}, contextInput = {}, options =
   }
 
   const project = projectResolution.project || {};
+  const scopedContextRefs = [
+    contextInput.project_state?.scope_key,
+    contextInput.project_state?.project?.scope_key,
+    contextInput.project_context?.scope_key,
+    contextInput.project_context?.identity?.scope_key,
+    contextInput.project_context?.project?.scope_key
+  ].map((value) => clean(value, 500)).filter(Boolean);
+  const mismatchedScope = project.scope_key && scopedContextRefs.find((scope) => scope !== project.scope_key);
+  if (mismatchedScope) {
+    return {
+      ok: false,
+      schema: 'aurentara.operator-ai.response.v1',
+      status: 'BLOCKED',
+      error: 'OPERATOR_AI_PROJECT_CONTEXT_MISMATCH',
+      intent,
+      project_resolution: projectResolution,
+      summary: 'Der geladene Projektkontext passt nicht zum aufgelösten Projekt. Aus Sicherheitsgründen wurde keine projektübergreifende Auswertung oder Execution zugelassen.',
+      next_action: { code: 'REFRESH_PROJECT_CONTEXT', classification: 'OPERATOR_REQUIRED', message: 'Projektkontext für das aufgelöste Projekt neu laden.' },
+      context_scope: mismatchedScope,
+      resolved_scope: project.scope_key,
+      execution_requested: intent.execution_requested,
+      execution_started: false,
+      production_deploy: false,
+      external_writes: false
+    };
+  }
   const snapshot = buildOperatorAiContextSnapshot({
     ...clone(contextInput.snapshot_input || {}),
     project_ref: project.scope_key || contextInput.project_ref || null,
@@ -72,7 +98,7 @@ export function handleOperatorAiMessage(input = {}, contextInput = {}, options =
     conflicts: contextInput.conflicts
   }, { now: options.now });
 
-  const decision = buildOperatorAiDecisionSupport({ snapshot, quality_target: intent.quality_target, required_provider_ids: contextInput.required_provider_ids });
+  const decision = buildOperatorAiDecisionSupport({ snapshot, quality_target: intent.quality_target, required_provider_ids: contextInput.required_provider_ids, production_intent: intent.production_intent });
   const hardAutonomyMax = options.safe_internal_execution_active === true ? 4 : 3;
   const actualAutonomy = Math.min(intent.requested_autonomy, hardAutonomyMax, intent.explicit_no_execution && intent.requested_autonomy > 3 ? 3 : 5);
   const needsBrief = PLAN_INTENTS.has(intent.intent);
