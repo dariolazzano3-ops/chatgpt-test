@@ -1,0 +1,255 @@
+{
+  "schema": "aurentara.gelato-premium-evidence-repair.v1",
+  "project_ref": {
+    "customer_id": "gelato-donatello",
+    "project_id": "gelato-donatello-website-v1",
+    "scope_key": "gelato-donatello:gelato-donatello-website-v1"
+  },
+  "baseline": {
+    "premium_score": 24.2,
+    "source": "GELATO PREMIUM STANDARD – REAL ACCEPTANCE V1",
+    "authoritative_handoff": true
+  },
+  "source_capture": {
+    "source_id": "gelato-live-owned-website",
+    "source_type": "OWNED_WEBSITE",
+    "locator": "https://gelato-donatello.de/",
+    "ownership_status": "UNKNOWN",
+    "website_usage": {
+      "content": false,
+      "structure_reference": false,
+      "design_reference": false
+    },
+    "usage_state": "FAIL_CLOSED_PENDING_RIGHTS_EVIDENCE",
+    "capture_date": "2026-09-04",
+    "live_source_read_only": true
+  },
+  "facts": [
+    {
+      "fact_id": "project-business-name",
+      "field_path": "business.name",
+      "value": "Gelato Donatello",
+      "origin": "MANUAL",
+      "verification_status": "OPERATOR_CONFIRMED",
+      "source_refs": [
+        "canonical-project-identity"
+      ],
+      "publishable_in_private_candidate": true
+    },
+    {
+      "fact_id": "operator-flavor-count",
+      "field_path": "products.flavor_count",
+      "value": 40,
+      "origin": "MANUAL",
+      "verification_status": "OPERATOR_CONFIRMED",
+      "source_refs": [
+        "operator-input-2026-08-12"
+      ],
+      "publishable_in_private_candidate": true
+    },
+    {
+      "fact_id": "operator-flavor-mocca",
+      "field_path": "products.flavors.includes_mocca",
+      "value": true,
+      "origin": "MANUAL",
+      "verification_status": "OPERATOR_CONFIRMED",
+      "source_refs": [
+        "operator-input-2026-08-12"
+      ],
+      "publishable_in_private_candidate": true
+    },
+    {
+      "fact_id": "live-over-45",
+      "field_path": "products.flavor_count_claim",
+      "value": "über 45 verschiedene Eissorten",
+      "origin": "EXTRACTED",
+      "verification_status": "SOURCE_CONFLICT",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false,
+      "conflicts_with": [
+        "operator-flavor-count"
+      ]
+    },
+    {
+      "fact_id": "live-history-1965",
+      "field_path": "trust.history_since",
+      "value": 1965,
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-second-generation",
+      "field_path": "trust.second_generation",
+      "value": true,
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-address",
+      "field_path": "business.address",
+      "value": "Hauptstraße 4, 66346 Köllerbach",
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-main-phone",
+      "field_path": "contact.phone_homepage",
+      "value": "06806 9394980",
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-imprint-phone",
+      "field_path": "contact.phone_imprint",
+      "value": "+49 176 200 150 65",
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-imprint"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-opening-hours",
+      "field_path": "business.opening_hours",
+      "value": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-owned-website"
+      ],
+      "publishable_in_private_candidate": false
+    },
+    {
+      "fact_id": "live-legal-entity",
+      "field_path": "legal.entity",
+      "value": "Gelato Donatello UG (haftungsbeschränkt)",
+      "origin": "EXTRACTED",
+      "verification_status": "UNVERIFIED",
+      "source_refs": [
+        "gelato-live-imprint"
+      ],
+      "publishable_in_private_candidate": false
+    }
+  ],
+  "research_observations": [
+    {
+      "observation_id": "legal-entity-external-conflict-candidate",
+      "state": "NOT_VERIFIED",
+      "policy": "Research may trigger customer/legal verification but cannot become a customer fact",
+      "note": "Baseline audit found public third-party indications that may conflict with the live imprint legal form."
+    }
+  ],
+  "trust_policy": {
+    "chain": [
+      "claim",
+      "source",
+      "verification",
+      "placement"
+    ],
+    "unverified_live_claims_rendered_as_customer_marketing": false,
+    "fabricated_claims": false,
+    "fabricated_reviews": false
+  },
+  "assets": [
+    {
+      "asset_id": "live-logo",
+      "role": "logo",
+      "quality_state": "NOT_APPROVED",
+      "rights_state": "UNKNOWN",
+      "publishable": false
+    },
+    {
+      "asset_id": "live-storefront-imagery",
+      "role": "real_business_photography",
+      "quality_state": "NOT_APPROVED",
+      "rights_state": "UNKNOWN",
+      "publishable": false
+    },
+    {
+      "asset_id": "live-flavor-imagery",
+      "role": "product_photography",
+      "quality_state": "NOT_APPROVED",
+      "rights_state": "UNKNOWN",
+      "publishable": false
+    }
+  ],
+  "asset_policy": {
+    "rights_and_quality_separate": true,
+    "unknown_rights_never_published": true,
+    "fake_business_photography_allowed": false,
+    "repair_candidate_uses_unverified_assets": false,
+    "customer_asset_guide_required": true,
+    "photo_brief_required": true
+  },
+  "conversion_plan": {
+    "primary_cta": "Sorten ansehen",
+    "secondary_cta": "Kontaktangaben prüfen",
+    "conversion_channels": [
+      "onsite-navigation-only"
+    ],
+    "contact_friction": "No unverified phone/email action is enabled",
+    "mobile_cta": "Sorten ansehen",
+    "form_field_rationale": "No form is enabled until a confirmed customer contact flow exists",
+    "confirmation": "No external submit exists in this staging candidate",
+    "error_states": "No external submit exists in this staging candidate",
+    "trust_near_cta": "Evidence state is visible before any unverified contact information",
+    "business_conversion_channel_state": "NOT_VERIFIED"
+  },
+  "legal": {
+    "state": "LEGAL_REVIEW_REQUIRED",
+    "technical_readiness": "PARTIAL",
+    "legal_review_claimed": false,
+    "customer_approval_claimed": false,
+    "missing_required_inputs": [
+      "current legal entity",
+      "current responsible person",
+      "current contact details",
+      "current privacy processing inventory",
+      "cookie/tracking requirements"
+    ]
+  },
+  "human_review": {
+    "state": "CHANGES_REQUIRED",
+    "automatic_human_approval": false
+  },
+  "customer_review": {
+    "approval_claimed": false
+  },
+  "true_external_blockers": [
+    "Customer Fact Confirmation",
+    "Customer Content Decision",
+    "Asset Rights Evidence",
+    "Legal Review / Legal Inputs",
+    "Human Quality Approval",
+    "Customer Approval",
+    "Production / DNS / Billing Approval"
+  ],
+  "safety": {
+    "production_deploy": false,
+    "public_deploy": false,
+    "dns_changes": false,
+    "billing": false,
+    "paid_provider_calls": 0,
+    "external_writes": false,
+    "field_cwv_claimed": false
+  }
+}
