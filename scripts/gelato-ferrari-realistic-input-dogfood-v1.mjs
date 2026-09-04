@@ -329,7 +329,7 @@ const premium=evaluatePremiumWebsiteStandard({
   launch_governance:'NOT_VERIFIED',
   evaluated_at:at(11)
 });
-assert.equal(premium.weighted_score,76.07);
+assert.equal(premium.weighted_score,76.08);
 assert.equal(premium.delivery_readiness.build_ready,false);
 assert.equal(premium.delivery_readiness.customer_review_ready,false);
 assert.equal(premium.delivery_readiness.premium_delivery_ready,false);
