@@ -228,6 +228,21 @@ export async function handleOperatorAiMessageWithInference(input = {}, contextIn
   });
 
   if (!inference.ok) {
+    if (inference.error === 'OPERATOR_AI_SECRET_REQUEST_BLOCKED') {
+      return {
+        ...deterministic,
+        ok: false,
+        status: 'BLOCKED',
+        error: inference.error,
+        summary: 'Secret-, Credential- oder Token-Werte werden von Operator AI nicht offengelegt.',
+        ai_response_mode: 'DETERMINISTIC_BLOCKED',
+        inference,
+        paid_provider_calls: 0,
+        variable_cost_usd: 0,
+        production_deploy: false,
+        external_writes: false
+      };
+    }
     return {
       ...deterministic,
       ai_response_mode: 'DETERMINISTIC_FAIL_SAFE',
