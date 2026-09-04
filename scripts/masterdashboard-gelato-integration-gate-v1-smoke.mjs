@@ -255,6 +255,7 @@ assert.equal(approved.body.real_provider_calls, 0);
 assert.equal(approved.body.external_writes, 0);
 assert.equal(approved.body.production_deploy, false);
 assert.equal(approved.body.quality_score, 100);
+assert.equal(approved.body.approved_plan_token, preflight.body.plan_token);
 
 const deliveries = await call('/operator/api/deliveries');
 assert.equal(deliveries.response.status, 200);
@@ -274,7 +275,13 @@ assert.ok(['ESTIMATED_ZERO','VERIFIED_ACTUAL','UNKNOWN','NOT_RECONCILED'].includ
 const audit = await call('/operator/api/audit');
 assert.equal(audit.response.status, 200);
 assert.ok((audit.body.items || []).some((item) => item.scope_key === gelato.scope_key && item.event === 'MISSION_PLAN_CREATED'));
-assert.ok((audit.body.items || []).some((item) => item.scope_key === gelato.scope_key && /APPROV/.test(item.event || '')));
+assert.ok(
+  (audit.body.items || []).some((item) =>
+    item.scope_key === gelato.scope_key
+    && ['SYNTHETIC_UNIVERSAL_MISSION_RECORDED','SUPERVISED_SYNTHETIC_STAGING_COMPLETED','QUALITY_GATE_PASSED','UNIFIED_DELIVERY_AVAILABLE'].includes(item.event)
+  ),
+  'Activity must contain authoritative post-execution evidence for the Gelato mission'
+);
 
 const afterProject = await call('/operator/api/project-detail/' + encodeURIComponent(gelato.scope_key));
 assert.equal(afterProject.response.status, 200);
