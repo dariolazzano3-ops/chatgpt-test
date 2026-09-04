@@ -33,6 +33,7 @@
         "RIOSYSTEMS_ENVIRONMENT": "staging",
         "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",
         "RIOSYSTEMS_EXTERNAL_WRITES": "false",
+        "AURENTARA_OPERATOR_AI_REAL_INFERENCE_ENABLED": "true",
         "RIOSYSTEMS_OPERATOR_RUNTIME_STORE": "supabase",
         "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL": "https://pgzayxpqiakuvibhonwh.supabase.co",
         "RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE": "riosystems_operator_runtime_v1",
