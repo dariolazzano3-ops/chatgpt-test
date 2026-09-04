@@ -1,0 +1,11 @@
+{
+  "schema": "aurentara.project-ferrari.mueller-live-posthog-request.v1",
+  "scope_key": "synthetic-mueller-elektrotechnik-saarbruecken:mueller-elektrotechnik-digital-customer-system-v1",
+  "provider": "posthog-free",
+  "batch_count": 1,
+  "synthetic_test_data_only": true,
+  "real_customer_data": false,
+  "max_variable_cost_eur": 0,
+  "automatic_paid_overflow": false,
+  "production_deploy": false
+}
