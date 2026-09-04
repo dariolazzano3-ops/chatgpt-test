@@ -1,0 +1,154 @@
+name: GELATO Preview Safety Cleanup V1
+
+on:
+  push:
+    branches:
+      - 'factory/gelato-premium-evidence-critical-repair-v1'
+    paths:
+      - '.github/workflows/gelato-preview-safety-cleanup-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: chatgpt-factory-preview
+      RIOSYSTEMS_ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+      TARGET_BRANCH: factory/gelato-premium-evidence-critical-repair-v1
+      EXPECTED_ALIAS: https://factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev
+    steps:
+      - name: Require staging-only zero-cost cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = 'true'
+          test "$TARGET_BRANCH" != 'main'
+          test "$TARGET_BRANCH" != 'factory-control'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Publish neutral tombstone to preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/gelato-preview-disabled
+          cat > /tmp/gelato-preview-disabled/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="robots" content="noindex,nofollow,noarchive">
+            <title>Private Preview Disabled</title>
+          </head>
+          <body><main><h1>PRIVATE PREVIEW DISABLED</h1><p>This branch is not published for external review.</p></main></body>
+          </html>
+          HTML
+          cat > /tmp/gelato-preview-disabled/_headers <<'HEADERS'
+          /*
+            X-Robots-Tag: noindex, nofollow, noarchive
+            Cache-Control: no-store
+            Referrer-Policy: no-referrer
+            X-Content-Type-Options: nosniff
+          HEADERS
+          cd /tmp
+          npx --yes wrangler@4 pages deploy /tmp/gelato-preview-disabled \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+            --branch "$TARGET_BRANCH"
+
+      - name: Delete older target-branch deployments
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 pages deployment list \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+            --environment preview \
+            --json > /tmp/pages-deployments.json
+
+          node <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments.json','utf8'));
+          if(!Array.isArray(data)) throw new Error('PAGES_DEPLOYMENT_LIST_NOT_ARRAY');
+          const target=process.env.TARGET_BRANCH;
+          const rows=data.filter((d)=>{
+            const branch=d?.deployment_trigger?.metadata?.branch
+              ?? d?.source?.config?.branch
+              ?? d?.source?.branch
+              ?? null;
+            const aliases=Array.isArray(d?.aliases)?d.aliases:[];
+            return branch===target || aliases.some((a)=>String(a).includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'));
+          }).sort((a,b)=>String(b.created_on||'').localeCompare(String(a.created_on||'')));
+          if(!rows.length) throw new Error('TARGET_BRANCH_DEPLOYMENTS_NOT_FOUND');
+          const keep=rows[0];
+          const aliases=Array.isArray(keep.aliases)?keep.aliases.map(String):[];
+          if(!aliases.some((a)=>a.includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'))){
+            throw new Error('LATEST_TOMBSTONE_ALIAS_NOT_CONFIRMED');
+          }
+          fs.writeFileSync('/tmp/keep-id.txt',String(keep.id||''));
+          fs.writeFileSync('/tmp/delete-ids.txt',rows.slice(1).map((d)=>String(d.id||'')).filter(Boolean).join('\n'));
+          console.log(JSON.stringify({
+            target_branch_deployments:rows.length,
+            keeping_latest_tombstone:true,
+            older_deployments_to_delete:Math.max(0,rows.length-1),
+            production_deploy:false
+          }));
+          NODE
+
+          if [ -s /tmp/delete-ids.txt ]; then
+            while IFS= read -r DEPLOYMENT_ID; do
+              test -n "$DEPLOYMENT_ID" || continue
+              npx --yes wrangler@4 pages deployment delete "$DEPLOYMENT_ID" \
+                --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+                --force
+            done < /tmp/delete-ids.txt
+          fi
+
+      - name: Verify cleanup state
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 pages deployment list \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT" \
+            --environment preview \
+            --json > /tmp/pages-deployments-after.json
+          node <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/pages-deployments-after.json','utf8'));
+          const target=process.env.TARGET_BRANCH;
+          const rows=data.filter((d)=>{
+            const branch=d?.deployment_trigger?.metadata?.branch
+              ?? d?.source?.config?.branch
+              ?? d?.source?.branch
+              ?? null;
+            const aliases=Array.isArray(d?.aliases)?d.aliases:[];
+            return branch===target || aliases.some((a)=>String(a).includes('factory-gelato-premium-evide.chatgpt-factory-preview.pages.dev'));
+          });
+          const keep=fs.readFileSync('/tmp/keep-id.txt','utf8').trim();
+          if(rows.length!==1) throw new Error('TARGET_BRANCH_OLD_DEPLOYMENTS_REMAIN:'+rows.length);
+          if(String(rows[0].id||'')!==keep) throw new Error('LATEST_TOMBSTONE_CHANGED');
+          console.log(JSON.stringify({
+            target_branch_deployments_remaining:1,
+            content_state:'PRIVATE_PREVIEW_DISABLED_TOMBSTONE_ONLY',
+            old_gelato_preview_deployments_remaining:0,
+            production_deploy:false,
+            dns_changes:false,
+            billing:false
+          }));
+          NODE
+
+      - name: Verify alias serves tombstone
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY=$(curl -fsS --retry 5 --retry-delay 2 "$EXPECTED_ALIAS/")
+          printf '%s' "$BODY" | grep -q 'PRIVATE PREVIEW DISABLED'
+          ! printf '%s' "$BODY" | grep -q 'Gelato Donatello'
+          echo "External branch alias contains no Gelato candidate content."

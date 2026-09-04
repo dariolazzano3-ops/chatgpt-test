@@ -1,0 +1,124 @@
+{
+  "schema": "aurentara.gelato-live-baseline-evidence.v1",
+  "source_url": "https://gelato-donatello.de/",
+  "capture_mode": "READ_ONLY",
+  "captured_at": "2026-09-04T08:25:28.085Z",
+  "evidence_run": {
+    "workflow": "GELATO Premium Evidence + Critical Repair V1",
+    "run_id": 33853310655,
+    "head_sha": "07764cc82bf224e3d6faf8d5e1b63f9b719cc49d"
+  },
+  "field_cwv_claimed": false,
+  "customer_fact_status": "EXTRACTED_NOT_CUSTOMER_CONFIRMED",
+  "viewports": {
+    "desktop": {
+      "status": 200,
+      "lang": "de",
+      "h1_count": 1,
+      "nav_landmark_count": 1,
+      "canonical": "https://gelato-donatello.de/",
+      "robots_meta": "index, follow",
+      "image_count": 36,
+      "image_missing_alt_count": 0,
+      "tel_link_count": 0,
+      "mail_link_count": 0,
+      "horizontal_overflow_px": 0,
+      "third_party_origins": [
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://maps.googleapis.com",
+        "https://www.google.com"
+      ],
+      "console_resource_404": true,
+      "body_has_over_45_claim": true
+    },
+    "tablet": {
+      "status": 200,
+      "lang": "de",
+      "h1_count": 1,
+      "nav_landmark_count": 1,
+      "canonical": "https://gelato-donatello.de/",
+      "robots_meta": "index, follow",
+      "image_count": 31,
+      "image_missing_alt_count": 0,
+      "tel_link_count": 0,
+      "mail_link_count": 0,
+      "horizontal_overflow_px": 0,
+      "third_party_origins": [
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://maps.googleapis.com",
+        "https://www.google.com"
+      ],
+      "console_resource_404": true,
+      "body_has_over_45_claim": true
+    },
+    "mobile": {
+      "status": 200,
+      "lang": "de",
+      "h1_count": 1,
+      "nav_landmark_count": 1,
+      "canonical": "https://gelato-donatello.de/",
+      "robots_meta": "index, follow",
+      "image_count": 31,
+      "image_missing_alt_count": 0,
+      "tel_link_count": 0,
+      "mail_link_count": 0,
+      "horizontal_overflow_px": 0,
+      "third_party_origins": [
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://maps.googleapis.com",
+        "https://www.google.com"
+      ],
+      "console_resource_404": true,
+      "body_has_over_45_claim": true
+    },
+    "small_mobile": {
+      "status": 200,
+      "lang": "de",
+      "h1_count": 1,
+      "nav_landmark_count": 1,
+      "canonical": "https://gelato-donatello.de/",
+      "robots_meta": "index, follow",
+      "image_count": 31,
+      "image_missing_alt_count": 0,
+      "tel_link_count": 0,
+      "mail_link_count": 0,
+      "horizontal_overflow_px": 0,
+      "third_party_origins": [
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://maps.googleapis.com",
+        "https://www.google.com"
+      ],
+      "console_resource_404": true,
+      "body_has_over_45_claim": true
+    }
+  },
+  "routes": {
+    "robots": {
+      "status": 200
+    },
+    "sitemap_index": {
+      "status": 200
+    },
+    "random_not_found": {
+      "status": 404
+    }
+  },
+  "cookie_count_after_read_only_load": 0,
+  "source_conflict": {
+    "operator_confirmed_flavor_count": 40,
+    "live_over_45_claim_present": true,
+    "status": "SOURCE_CONFLICT",
+    "render_as_customer_fact": false
+  },
+  "rights_policy": {
+    "screenshots_committed": false,
+    "live_assets_copied": false,
+    "rights_state": "UNKNOWN"
+  },
+  "production_deploy": false,
+  "external_write_performed_by_capture": false
+}
