@@ -292,8 +292,8 @@ for (const [category, fieldPath, value] of manualCategoryCases) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      scope_key: gelato.scope_key,
-      context_scope_key: gelato.scope_key,
+      scope_key: other.scope_key,
+      context_scope_key: other.scope_key,
       facts: [{ category, value }]
     })
   }), env, {}, handlerOptions);
