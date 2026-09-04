@@ -36,7 +36,7 @@ const next=msg('Was soll ich als Nächstes machen?');
 assert.equal(next.decision_support.recommendation_count,1);assert.ok(next.next_action);
 
 const promptOnly=msg('Erstelle mir nur den Masterprompt um Gelato zu verbessern.');
-assert.equal(promptOnly.intent.intent,'PROMPT_GENERATION_REQUEST');assert.equal(promptOnly.intent.explicit_no_execution,true);assert.ok(promptOnly.execution_brief);assert.ok(promptOnly.masterprompt.includes('PRODUCTION'));assert.equal(promptOnly.execution.started,false);
+assert.equal(promptOnly.intent.intent,'PROMPT_GENERATION_REQUEST');assert.equal(promptOnly.intent.explicit_no_execution,true);assert.ok(promptOnly.execution_brief);assert.ok(promptOnly.masterprompt.includes('Production authorized: false'));assert.equal(promptOnly.execution.started,false);
 
 const prepare=msg('Bereite alles für Gelato vor, aber starte nichts.');
 assert.equal(prepare.intent.intent,'EXECUTION_PREPARATION_REQUEST');assert.equal(prepare.intent.explicit_no_execution,true);assert.equal(prepare.execution.actual_autonomy,3);assert.equal(prepare.execution.started,false);
