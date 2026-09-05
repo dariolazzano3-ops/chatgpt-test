@@ -139,7 +139,8 @@ function resolveProviderRoutes(project = {}, review = {}, options = {}) {
       : controlledPaidProviderEligibility(project, provider || { id: request.provider_id });
     const executorAvailable = typeof providerExecutors[request.provider_id] === 'function' || genericExecutorAvailable;
     const capabilityAccepted = Boolean(descriptor?.accepted_capabilities?.includes(request.capability));
-    const eligible = providerPolicy.ok === true && runtimeVerified && executorAvailable && capabilityAccepted && Boolean(descriptor);
+    const writePolicyEligible = descriptor?.external_write !== true || options.synthetic_acceptance === true;
+    const eligible = providerPolicy.ok === true && runtimeVerified && executorAvailable && capabilityAccepted && writePolicyEligible && Boolean(descriptor);
     return {
       ...request,
       executor_id: descriptor?.executor_id || null,
@@ -152,7 +153,8 @@ function resolveProviderRoutes(project = {}, review = {}, options = {}) {
       reason: !descriptor ? 'PROVIDER_EXECUTOR_NOT_AVAILABLE'
         : !capabilityAccepted ? 'PROVIDER_CAPABILITY_NOT_ACCEPTED'
           : !executorAvailable ? 'PROVIDER_EXECUTOR_NOT_CONFIGURED'
-            : providerPolicy.reason || providerPolicy.error || (eligible ? 'EXECUTION_READY' : 'NOT_ELIGIBLE')
+            : !writePolicyEligible ? 'PROVIDER_EXTERNAL_WRITE_POLICY_BLOCKED'
+              : providerPolicy.reason || providerPolicy.error || (eligible ? 'EXECUTION_READY' : 'NOT_ELIGIBLE')
     };
   });
 
@@ -301,7 +303,9 @@ async function defaultLiveStagingExecutor(contract = {}, options = {}) {
   };
   const executed = await executeCanonicalProviderRoute(envelope, {
     current_runtime_verified_provider_ids: [...verified],
-    executors: providerExecutors
+    executors: providerExecutors,
+    synthetic_acceptance: options.synthetic_acceptance === true,
+    cost_approval_validated: contract.paid_provider_calls === 'ALLOWED_WITHIN_PROJECT_BUDGET'
   });
   if (!executed.ok || executed.status !== 'COMPLETED') {
     return { ok: false, error: executed.error || executed.result?.error?.code || 'PROVIDER_EXECUTION_FAILED', status: 'FAILED', qa: { passed: false }, provider_truth: executed.provider_truth || null, variable_cost_eur: money(executed.raw_result?.actual_cost_eur || executed.raw_result?.variable_cost_eur || 0), production_deploy: false };
