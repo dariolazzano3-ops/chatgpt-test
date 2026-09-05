@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createOperatorRuntime } from '../src/operator-runtime-v1.js';
 import { createMemoryOperatorRuntimeStore } from '../src/operator-runtime-store-v1.js';
 import { createOperatorRuntimeApiService } from '../src/operator-runtime-api-v1.js';
@@ -11,13 +12,25 @@ import {
   runtimeProjectPreviewArtifact
 } from '../src/project-preview-access-v1.js';
 
-const HEAD='1f514c28f0be99d11c669f5680f8be4b57cf4e71';
+const HEAD='7ff78b4b2a302c814d775664c9543954fa3c8309';
 const operatorId='operator:preview-system@example.test';
 const gelato={
   customer_id:'gelato-donatello',
   project_id:'gelato-donatello-website-v1',
   scope_key:'gelato-donatello:gelato-donatello-website-v1',
   name:'Gelato Donatello',
+  industry:'gelateria',
+  country:'DE',
+  language:'de',
+  state:'ACTIVE',
+  blocked:false,
+  production_deploy:false
+};
+const legacyScopedGelato={
+  customer_id:'gelato-donatello',
+  project_id:'gelato-donatello',
+  scope_key:'gelato-donatello:gelato-donatello-website-v1',
+  name:'Gelato Donatello Legacy Runtime Identity',
   industry:'gelateria',
   country:'DE',
   language:'de',
@@ -51,7 +64,14 @@ const noPreview={
 };
 
 assert.deepEqual(projectPreviewDirectoryCandidates({project:gelato}),['projects/gelato-donatello-website-v1']);
+assert.deepEqual(projectPreviewDirectoryCandidates({project:legacyScopedGelato}),[
+  'projects/gelato-donatello-website-v1',
+  'projects/gelato-donatello'
+]);
 assert.deepEqual(projectPreviewDirectoryCandidates({project:cafe}),['projects/cafe-luna-website-v1']);
+
+const entrySource=await readFile(new URL('../src/entry.js',import.meta.url),'utf8');
+assert.match(entrySource,/startsWith\("\/operator\/project-preview\/"\)/);
 
 const external=resolveProjectPreviewAccess({
   project:{...cafe,preview_url:'https://example.pages.dev/review/123'}
@@ -228,6 +248,8 @@ console.log(JSON.stringify({
   runtime_web_factory_preview:'PASS',
   no_hardcoded_project_registry:true,
   every_project_same_preview_contract:true,
+  scope_key_identity_discovery:'PASS',
+  operator_preview_route_dispatch:'PASS',
   missing_preview_fail_closed:'PASS',
   final_human_approval_preview_availability_gate:'PASS',
   production_deploy:false,
