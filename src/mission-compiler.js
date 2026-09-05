@@ -52,21 +52,22 @@ export function compileMissionPackage(input = {}) {
   const project = clean(input.project || input.project_slug || projectContext?.project?.project_id, 120) || null;
   const sourceOfTruthResult = buildSourceOfTruth(input.source_of_truth || input); if (!sourceOfTruthResult.ok) return sourceOfTruthResult; const sourceOfTruth = sourceOfTruthResult.context;
   const plan = buildOrchestrationPlan({ prompt }); if (!plan.ok) return plan; plan.project = project;
-  const created = createMission({ plan, source_of_truth: sourceOfTruth }); if (!created.ok) return created;
+  const projectContextBinding = projectContext ? {
+    schema: 'aurentara.project-knowledge-snapshot-ref.v1',
+    scope_key: projectContext.project.scope_key,
+    knowledge_revision: projectContext.knowledge_revision,
+    content_pack_ref: clone(projectContext.content_pack_ref),
+    visual_pack_ref: clone(projectContext.visual_pack_ref),
+    readiness_ref: clone(projectContext.readiness_ref),
+    immutable_for_mission: true
+  } : null;
+  const created = createMission({ plan, source_of_truth: sourceOfTruth, project_context_binding: projectContextBinding }); if (!created.ok) return created;
   if (projectContext) {
     created.customer_id = projectContext.project.customer_id;
     created.project_id = projectContext.project.project_id;
     created.scope_key = projectContext.project.scope_key;
     created.project_context = clone(projectContext);
-    created.project_context_binding = {
-      schema: 'aurentara.project-knowledge-snapshot-ref.v1',
-      scope_key: projectContext.project.scope_key,
-      knowledge_revision: projectContext.knowledge_revision,
-      content_pack_ref: clone(projectContext.content_pack_ref),
-      visual_pack_ref: clone(projectContext.visual_pack_ref),
-      readiness_ref: clone(projectContext.readiness_ref),
-      immutable_for_mission: true
-    };
+    created.project_context_binding = clone(projectContextBinding);
   }
   const businessContracts = {}; const automationContracts = {}; const aiContracts = {};
   for (const task of created.tasks) { if (task.domain === 'business') businessContracts[task.task_id] = businessContract(task, prompt, created.project); if (task.domain === 'automation') automationContracts[task.task_id] = automationContract(task, prompt); if (task.domain === 'ai') aiContracts[task.task_id] = { task_type: 'generate', output: { format: 'text', max_chars: 100000 }, max_attempts: Math.min(task.max_attempts || 1, 3) }; }
