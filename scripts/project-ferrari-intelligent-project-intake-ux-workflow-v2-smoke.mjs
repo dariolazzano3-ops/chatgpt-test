@@ -18,6 +18,7 @@ import {
   buildDeterministicProjectKnowledgeStructure,
   buildProjectKnowledgeReviewView,
   prepareProjectKnowledgeReview,
+  stageProjectKnowledgeReview,
   approveProjectKnowledgeReview,
   knowledgeUseGate
 } from '../src/project-source-knowledge-review-v1.js';
@@ -166,20 +167,21 @@ assert.equal(view.available_sections.some((section) => section.id === 'CONFLICTS
 assert.equal(view.available_sections.some((section) => section.id === 'OPEN_QUESTIONS' && section.label === 'Offene Fragen'), true);
 assert.equal(createContentPack(state).error, 'PROJECT_KNOWLEDGE_APPROVAL_REQUIRED');
 
-// Scenarios 11 and 14: explicit confirmation and conflict resolution are mandatory.
-let approval = approveProjectKnowledgeReview(state, {
+// Scenarios 11 and 14: the catch net must be cleared before information can enter the project-knowledge draft.
+let staging = stageProjectKnowledgeReview(state, {
   review_seen: true,
-  approval_confirmed: false
+  stage_confirmed: false
 }, { actor_id: identity.operator_id });
-assert.equal(approval.ok, false);
-assert.equal(approval.error, 'PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED');
+assert.equal(staging.ok, false);
+assert.equal(staging.error, 'PROJECT_KNOWLEDGE_STAGE_EXPLICIT_CONFIRMATION_REQUIRED');
 
-approval = approveProjectKnowledgeReview(state, {
+staging = stageProjectKnowledgeReview(state, {
   review_seen: true,
-  approval_confirmed: true
+  stage_confirmed: true
 }, { actor_id: identity.operator_id });
-assert.equal(approval.ok, false);
-assert.equal(approval.error, 'PROJECT_KNOWLEDGE_CONFLICTS_MUST_BE_RESOLVED');
+assert.equal(staging.ok, false);
+assert.equal(staging.error, 'PROJECT_KNOWLEDGE_CATCH_NET_REVIEW_REQUIRED');
+assert.equal(staging.catch_net.counts.source_conflicts, 2);
 
 const resolved = reviewProjectFact(state, 'fact-price-a', {
   verification_status: 'OPERATOR_CONFIRMED',
@@ -191,7 +193,25 @@ assert.equal(state.facts.find((item) => item.fact_id === 'fact-price-a').verific
 assert.equal(state.facts.find((item) => item.fact_id === 'fact-price-b').verification_status, 'REJECTED');
 assert.equal(buildProjectKnowledgeReviewView(state).conflict_count, 0);
 
-// Scenario 12: final human approval unlocks the existing gate.
+// Scenario 12: reviewed information first enters the inert project-knowledge draft.
+staging = stageProjectKnowledgeReview(state, {
+  review_seen: true,
+  stage_confirmed: true
+}, { actor_id: identity.operator_id, at: '2026-09-05T20:16:30.000Z' });
+assert.equal(staging.ok, true);
+state = staging.state;
+assert.equal(state.knowledge_review.status, 'STAGED');
+assert.equal(knowledgeUseGate(state).allowed, false);
+assert.equal(createContentPack(state).error, 'PROJECT_KNOWLEDGE_APPROVAL_REQUIRED');
+
+let approval = approveProjectKnowledgeReview(state, {
+  review_seen: true,
+  approval_confirmed: false
+}, { actor_id: identity.operator_id });
+assert.equal(approval.ok, false);
+assert.equal(approval.error, 'PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED');
+
+// The second explicit action makes the exact staged revision usable by Ferrari.
 approval = approveProjectKnowledgeReview(state, {
   review_seen: true,
   approval_confirmed: true
@@ -303,6 +323,9 @@ assert.match(html, /Für Ferrari freigeben/);
 const reviewEnhanced = await applyProjectKnowledgeReviewUi(new Response(baseHtml, { headers: { 'content-type': 'text/html; charset=utf-8' } }));
 const reviewHtml = await reviewEnhanced.text();
 assert.match(reviewHtml, /data-knowledge-fact-reject/);
+assert.match(reviewHtml, /Auffangnetz/);
+assert.match(reviewHtml, /data-knowledge-stage/);
+assert.match(reviewHtml, /Projektwissen bereitstellen/);
 assert.match(reviewHtml, /view\.available_sections\|\|view\.sections/);
 assert.match(reviewHtml, /Quellen:/);
 
