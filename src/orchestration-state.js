@@ -49,7 +49,8 @@ export function createMission(input = {}) {
     prompt: plan.prompt,
     project: plan.project,
     source_of_truth: sourceOfTruth,
-    tasks: tasks.map(({ started_at, completed_at, last_error, ...task }) => task)
+    tasks: tasks.map(({ started_at, completed_at, last_error, ...task }) => task),
+    ...(input.project_context_binding ? { project_context_binding: cloneMission(input.project_context_binding) } : {})
   };
   return {
     ok: true,
@@ -60,6 +61,7 @@ export function createMission(input = {}) {
     prompt: plan.prompt,
     project: plan.project,
     source_of_truth: sourceOfTruth,
+    ...(input.project_context_binding ? { project_context_binding: cloneMission(input.project_context_binding) } : {}),
     mission_revision: sourceOfTruth.mission_revision,
     status: tasks.every((task) => task.state === "BLOCKED") ? "BLOCKED" : "READY",
     revision: 1,
