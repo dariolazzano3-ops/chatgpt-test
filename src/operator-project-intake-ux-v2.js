@@ -167,7 +167,7 @@ export async function handleProjectIntakeUxV2Api(request, env = {}, ctx = {}, op
 
 function injectProjectIntakeUxV2(html = '') {
   if (!html.includes('aurentara-project-source-storage-v1-ui') || html.includes('aurentara-project-intake-ux-v2')) return html;
-  const addon = \`<style id="aurentara-project-intake-ux-v2-style">
+  const addon = `<style id="aurentara-project-intake-ux-v2-style">
 .source-basket-v2-active>.source-upload-grid,.source-basket-v2-active>details.details{display:none!important}
 .source-basket-v2{margin:14px 0;display:grid;gap:12px}
 .source-basket-phases{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
@@ -253,7 +253,7 @@ async function refresh(root,scope){const p=await payload(scope);root.__sourcePay
 function activate(root){if(!root||root.dataset.intakeUxV2==='true')return;root.dataset.intakeUxV2='true';const h2=root.querySelector('h2');if(h2)h2.textContent='Wäschekorb / Rohmaterial';const eyebrow=root.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='PROJECT FERRARI · INTELLIGENT PROJECT INTAKE';makeComposer(root);const scope=root.dataset.scope||root.__sourcePayload?.identity?.scope_key;if(scope)refresh(root,scope).catch(()=>{})}
 function tick(){document.querySelectorAll('[data-project-source-intake]').forEach(root=>{activate(root);const p=root.__sourcePayload;if(p){const cards=root.querySelector('[data-source-cards]');if(cards&&!cards.querySelector('[data-v2-source-card]'))renderCards(root,p);decorateKnowledge(root,p)}})}
 new MutationObserver(tick).observe(document.documentElement,{childList:true,subtree:true});tick();setInterval(tick,1200)
-})()</script>\`;
+})()</script>`;
   return html.includes('</body>') ? html.replace('</body>', addon + '</body>') : html + addon;
 }
 
