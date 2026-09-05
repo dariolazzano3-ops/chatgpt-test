@@ -28,7 +28,7 @@ export function validateProjectIdentity(input = {}) {
 
 export function createProjectSourceIntakeState(input = {}) {
   const identity = validateProjectIdentity(input); if (!identity.ok) return identity; const at = iso(input.at);
-  return { ok: true, state: { schema: 'aurentara.project-source-intake.v1', ...identity.project, knowledge_revision: 1, record_revision: 1, sources: [], facts: [], assets: [], content_packs: [], visual_packs: [], readiness_snapshots: [], created_at: at, updated_at: at, audit: [{ event: 'PROJECT_SOURCE_INTAKE_CREATED', at, actor: identity.project.operator_id }], safety: { production_deploy: false, external_writes: false, paid_provider_calls: 0, variable_cost_eur: 0 } }, production_deploy: false };
+  return { ok: true, state: { schema: 'aurentara.project-source-intake.v1', ...identity.project, knowledge_revision: 1, record_revision: 1, sources: [], facts: [], assets: [], content_packs: [], visual_packs: [], readiness_snapshots: [], human_decisions: [], created_at: at, updated_at: at, audit: [{ event: 'PROJECT_SOURCE_INTAKE_CREATED', at, actor: identity.project.operator_id }], safety: { production_deploy: false, external_writes: false, paid_provider_calls: 0, variable_cost_eur: 0 } }, production_deploy: false };
 }
 
 function validState(state = {}) { return state?.schema === 'aurentara.project-source-intake.v1' && validateProjectIdentity(state).ok && Number.isInteger(state.knowledge_revision) && state.knowledge_revision >= 1; }
@@ -122,6 +122,38 @@ export function upsertProjectFact(state = {}, input = {}, options = {}) {
 
 export function reviewProjectFact(state = {}, factId, decision = {}, options = {}) { const scope = assertScope(state); if (!scope.ok) return scope; const target = (state.facts || []).find((fact) => fact.fact_id === clean(factId, 200)); if (!target) return { ok: false, error: 'PROJECT_FACT_NOT_FOUND' }; const verification = enumValue(decision.verification_status || decision.status, FACT_VERIFICATION, null); if (!['OPERATOR_CONFIRMED', 'CUSTOMER_CONFIRMED', 'VERIFIED', 'REJECTED', 'OUTDATED'].includes(verification)) return { ok: false, error: 'PROJECT_FACT_REVIEW_STATUS_INVALID' }; const at = iso(options.at || decision.at); const next = mutate(state, 'PROJECT_FACT_REVIEWED', at, { fact_id: target.fact_id, field_path: target.field_path }); next.facts = next.facts.map((fact) => { if (fact.fact_id === target.fact_id) return { ...fact, verification_status: verification, verified_by: clean(decision.verified_by, 200) || state.operator_id || null, verified_at: ['REJECTED', 'OUTDATED'].includes(verification) ? null : at, version: Number(fact.version || 1) + 1, updated_at: at }; if (USABLE_FACT_STATES.has(verification) && fact.field_path === target.field_path && normalizedValue(fact.value) !== normalizedValue(target.value) && fact.verification_status === 'SOURCE_CONFLICT') return { ...fact, verification_status: 'REJECTED', version: Number(fact.version || 1) + 1, updated_at: at }; return fact; }); return { ok: true, state: next, fact: clone(next.facts.find((fact) => fact.fact_id === target.fact_id)), changed: true }; }
 
+export function recordProjectHumanDecision(state = {}, input = {}, options = {}) {
+  const scope = assertScope(state, input);
+  if (!scope.ok) return scope;
+  const questionId = clean(input.question_id, 200);
+  const actorType = clean(input.actor_type, 80).toUpperCase();
+  if (!questionId) return { ok: false, error: 'PROJECT_HUMAN_DECISION_QUESTION_REQUIRED' };
+  if (!['HUMAN_OPERATOR', 'CUSTOMER'].includes(actorType)) return { ok: false, error: 'PROJECT_HUMAN_DECISION_ACTOR_TYPE_INVALID' };
+  if (input.decision === undefined || input.decision === null) return { ok: false, error: 'PROJECT_HUMAN_DECISION_REQUIRED' };
+  const at = iso(options.at || input.at);
+  const next = mutate(state, 'PROJECT_HUMAN_DECISION_RECORDED', at, {
+    question_id: questionId,
+    actor_type: actorType,
+    resulting_state_transition: clean(input.resulting_state_transition, 240) || null
+  }, { knowledge_change: input.knowledge_change !== false });
+  const record = {
+    decision_id: clean(input.decision_id, 240) || `${state.scope_key}:${questionId}`,
+    project_id: state.project_id,
+    scope_key: state.scope_key,
+    question_id: questionId,
+    decision: clone(input.decision),
+    actor_type: actorType,
+    actor_id: clean(input.actor_id, 200) || state.operator_id || null,
+    decided_at: at,
+    resulting_fact_ids: unique(Array.isArray(input.resulting_fact_ids) ? input.resulting_fact_ids.map((value) => clean(value, 200)) : []),
+    resulting_state_transition: clean(input.resulting_state_transition, 240) || null,
+    approval: input.approval ? clone(input.approval) : null,
+    status: clean(input.status, 80).toUpperCase() || 'RESOLVED'
+  };
+  next.human_decisions = [...(next.human_decisions || []).filter((item) => item.question_id !== questionId), record];
+  return { ok: true, state: next, decision: clone(record), changed: true, production_deploy: false };
+}
+
 export function confirmTrustedBaseline(state = {}, options = {}) { const scope = assertScope(state); if (!scope.ok) return scope; const conflictFields = new Set((state.facts || []).filter((fact) => fact.verification_status === 'SOURCE_CONFLICT').map((fact) => fact.field_path)); const candidates = (state.facts || []).filter((fact) => fact.verification_status === 'UNVERIFIED' && ['EXTRACTED', 'MANUAL'].includes(fact.origin) && !fact.critical && !conflictFields.has(fact.field_path)); if (!candidates.length) return { ok: true, state: clone(state), confirmed_count: 0, changed: false }; const at = iso(options.at); const next = mutate(state, 'PROJECT_TRUSTED_BASELINE_CONFIRMED', at, { count: candidates.length }); const ids = new Set(candidates.map((fact) => fact.fact_id)); next.facts = next.facts.map((fact) => ids.has(fact.fact_id) ? { ...fact, verification_status: 'OPERATOR_CONFIRMED', verified_by: state.operator_id || 'operator', verified_at: at, version: Number(fact.version || 1) + 1, updated_at: at } : fact); return { ok: true, state: next, confirmed_count: candidates.length, changed: true }; }
 
 function rightsFlags(rightsStatus, input = {}) { const rights = enumValue(rightsStatus, RIGHTS_STATUSES, 'UNKNOWN'); const allowed = PUBLISHABLE_RIGHTS.has(rights); return { rights_status: rights, publishable: allowed && input.publishable !== false, editable: allowed && input.editable !== false, derivative_allowed: allowed && input.derivative_allowed !== false }; }
@@ -175,4 +207,4 @@ export function evaluatePremiumDiscoveryReadiness(state = {}, input = {}) {
     research_policy:{extracted_or_inferred_may_support_market_competitor_search_decisions:true,unverified_research_may_become_customer_fact:false,unverified_research_may_become_trust_claim:false},critical_customer_facts_verified_only:true,unverified_critical_fact_count:unverifiedCritical.length,rights_and_asset_quality_separate:true,production_deploy:false,paid_provider_calls:0}};
 }
 
-export function projectSourceIntakeManifest() { return { schema: 'aurentara.project-source-intake.v1', version: '1.2', contracts: ['ProjectSource', 'WebsiteUsage', 'ProjectFact', 'ProjectAsset', 'ContentPack', 'VisualPack', 'ContentReadinessSnapshot', 'PremiumDiscoveryReadinessProjection'], project_scope_enforced: true, opaque_existing_scope_key: true, deterministic_readiness: true, critical_conflicts_auto_resolved: false, reference_assets_publishable_by_default: false, website_usage_effective_rights_matrix: true, binary_data_in_runtime_json: false, paid_provider_calls: 0, variable_cost_eur: 0, production_deploy: false }; }
+export function projectSourceIntakeManifest() { return { schema: 'aurentara.project-source-intake.v1', version: '1.2', contracts: ['ProjectSource', 'WebsiteUsage', 'ProjectFact', 'ProjectAsset', 'ContentPack', 'VisualPack', 'ContentReadinessSnapshot', 'PremiumDiscoveryReadinessProjection', 'HumanDecision'], project_scope_enforced: true, opaque_existing_scope_key: true, deterministic_readiness: true, critical_conflicts_auto_resolved: false, reference_assets_publishable_by_default: false, website_usage_effective_rights_matrix: true, binary_data_in_runtime_json: false, paid_provider_calls: 0, variable_cost_eur: 0, production_deploy: false }; }

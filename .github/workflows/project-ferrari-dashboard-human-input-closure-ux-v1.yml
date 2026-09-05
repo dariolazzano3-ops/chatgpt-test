@@ -1,0 +1,57 @@
+name: PROJECT FERRARI Dashboard Human Input Closure UX V1
+# exact-head acceptance retrigger
+
+on:
+  push:
+    branches:
+      - factory/project-ferrari-dashboard-human-input-closure-ux-v1
+      - factory-control
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-ferrari-dashboard-human-input-closure-ux-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax
+        run: |
+          node --check src/project-source-intake-v1.js
+          node --check src/operator-dashboard-human-input-closure-v1.js
+          node --check scripts/gelato-ferrari-auto-customer-input-closure-v1.mjs
+          node --check scripts/project-ferrari-dashboard-human-input-closure-v1-smoke.mjs
+          node --check scripts/project-ferrari-dashboard-human-input-closure-v1-browser.mjs
+      - name: Dashboard Human Input Closure backend acceptance
+        run: node scripts/project-ferrari-dashboard-human-input-closure-v1-smoke.mjs
+      - name: Dashboard Human Input Closure browser human outcome
+        run: node scripts/project-ferrari-dashboard-human-input-closure-v1-browser.mjs
+      - name: Existing Project Source human acceptance regression
+        run: node scripts/project-source-human-acceptance-ui-v1-smoke.mjs
+      - name: Existing Project Source desktop mobile browser regression
+        run: node scripts/project-source-human-ux-browser-v1.mjs
+      - name: Gelato automatic closure evidence regression
+        run: node scripts/gelato-ferrari-auto-customer-input-closure-evidence-v1-smoke.mjs
+      - name: Existing Gelato Ferrari dogfood regression
+        run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
+      - name: Masterdashboard Gelato integration regression
+        run: node scripts/masterdashboard-gelato-integration-gate-v1-smoke.mjs
+      - name: Safety
+        run: |
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "DNS changed: false"
+          echo "Billing changed: false"
+          echo "Paid overflow: false"
+          echo "Paid provider calls: 0"

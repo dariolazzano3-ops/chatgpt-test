@@ -130,31 +130,322 @@
   "human_questions": [
     {
       "id": "CONTACT_DETAILS",
-      "question": "Welche Kontaktdaten sollen aktuell veröffentlicht werden? Telefon: 06806 9394980 oder +49 176 200 150 65; Adresse: Hauptstraße 4, 66346 Köllerbach oder Hauptstraße 4, 66346 Püttlingen; ist fabrizio.lazzano@freenet.de weiterhin korrekt?"
+      "type": "COMPOSITE",
+      "required": true,
+      "reason": "CONFLICT: Homepage und Legal-Seiten zeigen zwei Telefonnummern und zwei Ortsangaben. Die gefundene E-Mail ist ein High-Confidence-Candidate.",
+      "question": "Welche der gefundenen Kontaktangaben sind aktuell korrekt?",
+      "evidence": [
+        "homepage",
+        "impressum",
+        "datenschutzerklaerung"
+      ],
+      "controls": [
+        {
+          "id": "phone",
+          "type": "MULTI_CHOICE",
+          "label": "Telefon",
+          "field_path": "business.phone",
+          "candidates": [
+            {
+              "value": "06806 9394980",
+              "label": "06806 9394980",
+              "evidence": "homepage"
+            },
+            {
+              "value": "+49 176 200 150 65",
+              "label": "+49 176 200 150 65",
+              "evidence": "impressum/privacy"
+            }
+          ],
+          "allow_other": true,
+          "materialize_candidates": true,
+          "candidate_origin": "EXTRACTED",
+          "critical": true,
+          "collapse_single": true
+        },
+        {
+          "id": "address",
+          "type": "SINGLE_CHOICE",
+          "label": "Adresse",
+          "field_path": "business.address",
+          "candidates": [
+            {
+              "value": "Hauptstraße 4, 66346 Köllerbach",
+              "label": "Hauptstraße 4, 66346 Köllerbach",
+              "evidence": "homepage"
+            },
+            {
+              "value": "Hauptstraße 4, 66346 Püttlingen",
+              "label": "Hauptstraße 4, 66346 Püttlingen",
+              "evidence": "impressum/privacy"
+            }
+          ],
+          "allow_other": true,
+          "materialize_candidates": true,
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        },
+        {
+          "id": "email",
+          "type": "CONFIRMATION",
+          "label": "E-Mail",
+          "field_path": "business.email",
+          "candidate": "fabrizio.lazzano@freenet.de",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "fabrizio.lazzano@freenet.de",
+              "label": "fabrizio.lazzano@freenet.de",
+              "evidence": "impressum"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        }
+      ]
     },
     {
       "id": "OPENING_HOURS",
-      "question": "Sind diese Öffnungszeiten aktuell korrekt: \"Täglich von 12.00 bis 22.00 (von März bis Oktober)\"?"
+      "type": "CONFIRMATION",
+      "required": true,
+      "reason": "HIGH_CONFIDENCE_CANDIDATE aus der Homepage; saisonale Öffnungszeiten sind zeitkritisch.",
+      "question": "Sind die extrahierten Öffnungszeiten aktuell korrekt?",
+      "evidence": [
+        "homepage"
+      ],
+      "controls": [
+        {
+          "id": "opening_hours",
+          "type": "CONFIRMATION",
+          "label": "Öffnungszeiten",
+          "field_path": "business.opening_hours",
+          "candidate": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+              "label": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+              "evidence": "homepage"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        }
+      ]
     },
     {
       "id": "LEGAL_CURRENTNESS",
-      "question": "Sind diese rechtlichen Angaben aktuell: Gelato Donatello UG (haftungsbeschränkt); Herr Fabrizio Lazzano; USt-ID DE 306 726 779? Soll die bestehende Datenschutzerklärung weiterhin als rechtliche Ausgangsbasis dienen?"
+      "type": "COMPOSITE",
+      "required": true,
+      "reason": "HIGH_CONFIDENCE_CANDIDATES aus Impressum/Datenschutz; rechtliche Aktualität benötigt menschliche Verantwortung.",
+      "question": "Sind die gefundenen Angaben zu Legal Entity, Verantwortlichem und USt-ID aktuell korrekt?",
+      "evidence": [
+        "impressum",
+        "datenschutzerklaerung"
+      ],
+      "aggregate_field_path": "legal.details",
+      "controls": [
+        {
+          "id": "entity",
+          "aggregate_key": "entity",
+          "type": "CONFIRMATION",
+          "label": "Legal Entity",
+          "field_path": "legal.entity",
+          "candidate": "Gelato Donatello UG (haftungsbeschränkt)",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "Gelato Donatello UG (haftungsbeschränkt)",
+              "label": "Gelato Donatello UG (haftungsbeschränkt)",
+              "evidence": "impressum/privacy"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        },
+        {
+          "id": "responsible_person",
+          "aggregate_key": "responsible_person",
+          "type": "CONFIRMATION",
+          "label": "Verantwortlicher",
+          "field_path": "legal.responsible_person",
+          "candidate": "Herr Fabrizio Lazzano",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "Herr Fabrizio Lazzano",
+              "label": "Herr Fabrizio Lazzano",
+              "evidence": "impressum"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        },
+        {
+          "id": "vat_id",
+          "aggregate_key": "vat_id",
+          "type": "CONFIRMATION",
+          "label": "USt-ID",
+          "field_path": "legal.vat_id",
+          "candidate": "DE 306 726 779",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "DE 306 726 779",
+              "label": "DE 306 726 779",
+              "evidence": "impressum"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        },
+        {
+          "id": "privacy_basis",
+          "aggregate_key": "privacy_basis",
+          "type": "CONFIRMATION",
+          "label": "Datenschutz-Ausgangsbasis",
+          "field_path": "legal.privacy_basis",
+          "candidate": "https://gelato-donatello.de/datenschutzerklaerung/",
+          "requires_correction_when_rejected": true,
+          "materialize_candidates": true,
+          "candidates": [
+            {
+              "value": "https://gelato-donatello.de/datenschutzerklaerung/",
+              "label": "Bestehende Datenschutzerklärung",
+              "evidence": "datenschutzerklaerung"
+            }
+          ],
+          "candidate_origin": "EXTRACTED",
+          "critical": true
+        }
+      ]
     },
     {
       "id": "TARGET_CUSTOMERS",
-      "question": "Welche Zielgruppen sollen wir final priorisieren: lokale Eisgäste/Laufkundschaft, Familien, Eistorten-/Feierkunden, Eisvitrinen-/Eventkunden oder eine andere Priorität?"
+      "type": "MULTI_CHOICE",
+      "required": true,
+      "reason": "System-Inferenz kann die Auswahl eingrenzen, die finale Positionierungsentscheidung bleibt menschlich.",
+      "question": "Welche Zielgruppen sollen für Gelato final priorisiert werden?",
+      "evidence": [
+        "existing website",
+        "confirmed offers",
+        "system inference"
+      ],
+      "controls": [
+        {
+          "id": "target_customers",
+          "type": "MULTI_CHOICE",
+          "label": "Priorisierte Zielgruppen",
+          "field_path": "target.customers",
+          "candidates": [
+            {
+              "value": "lokale Laufkundschaft und Eisgäste",
+              "label": "Lokale Eisgäste / Laufkundschaft"
+            },
+            {
+              "value": "Familien",
+              "label": "Familien"
+            },
+            {
+              "value": "Kunden für Feiern/Eistorten",
+              "label": "Eistorten- / Feierkunden"
+            },
+            {
+              "value": "Kunden für Eisvitrinen-/Eventbedarf",
+              "label": "Eisvitrinen- / Eventkunden"
+            }
+          ],
+          "allow_other": true,
+          "materialize_candidates": false,
+          "candidate_origin": "INFERRED"
+        }
+      ]
     },
     {
       "id": "PRIMARY_CONVERSION",
-      "question": "Was soll die Website primär auslösen: Vor-Ort-Besuch, Anruf/Kontakt, Eistorten-Anfrage, Eisvitrinen-Anfrage oder etwas anderes?"
+      "type": "SINGLE_CHOICE",
+      "required": true,
+      "reason": "Die Website zeigt Kontakt, während die bestätigten Angebote mehrere plausible Conversion-Ziele unterstützen.",
+      "question": "Was ist der primäre Conversion-Kanal der Website?",
+      "evidence": [
+        "website CTA",
+        "confirmed offers",
+        "system inference"
+      ],
+      "controls": [
+        {
+          "id": "primary_conversion",
+          "type": "SINGLE_CHOICE",
+          "label": "Primäre Conversion",
+          "field_path": "website.primary_conversion",
+          "candidates": [
+            {
+              "value": "Vor-Ort-Besuch",
+              "label": "Vor-Ort-Besuch"
+            },
+            {
+              "value": "Anruf/Kontakt",
+              "label": "Anruf / Kontakt"
+            },
+            {
+              "value": "Eistorten-Anfrage",
+              "label": "Eistorten-Anfrage"
+            },
+            {
+              "value": "Eisvitrinen-Anfrage",
+              "label": "Eisvitrinen-Anfrage"
+            }
+          ],
+          "allow_other": true,
+          "materialize_candidates": false,
+          "candidate_origin": "INFERRED"
+        }
+      ]
     },
     {
       "id": "FINAL_ASSET_QUALITY_APPROVAL",
-      "question": "Sind die fünf bereits rechtegeklärten Projektassets qualitativ für die finale Premium-Website freigegeben?"
+      "type": "APPROVAL",
+      "effect": "ASSET_QUALITY",
+      "required": true,
+      "reason": "Fünf Projektassets sind rechtegeklärt; Qualitätsfreigabe bleibt bewusst getrennt von Rechten.",
+      "question": "Sind die fünf bereits rechtegeklärten Assets auch qualitativ für die Website freigegeben?",
+      "evidence": [
+        "5 project assets",
+        "rights cleared"
+      ],
+      "controls": [
+        {
+          "id": "asset_quality",
+          "type": "APPROVAL",
+          "label": "Asset Quality Approval",
+          "help": "JA setzt nur die vorhandenen Projektassets auf Qualitätsstatus VERIFIED. Rechte werden nicht verändert."
+        }
+      ]
     },
     {
       "id": "FINAL_HUMAN_QUALITY_APPROVAL",
-      "question": "Besteht die finale Human Quality Approval für die fertige Gelato-Vorschau?"
+      "type": "APPROVAL",
+      "effect": "HUMAN_APPROVAL",
+      "required": true,
+      "reason": "Der Premium Website Standard verbietet eine automatische finale Human Approval.",
+      "question": "Besteht nach Sichtprüfung die finale Human Quality Approval?",
+      "evidence": [
+        "actual private preview required"
+      ],
+      "controls": [
+        {
+          "id": "human_quality",
+          "type": "APPROVAL",
+          "label": "Final Human Quality Approval",
+          "requires_preview_seen": true,
+          "help": "Eine positive Freigabe ist nur zulässig, wenn die tatsächliche Vorschau gesehen wurde."
+        }
+      ]
     }
   ],
   "customer_delivery_contract_ref": "projects/gelato-donatello-website-v1/customer-delivery-contract-v1.json",
