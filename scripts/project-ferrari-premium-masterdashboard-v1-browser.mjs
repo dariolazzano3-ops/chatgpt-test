@@ -52,10 +52,18 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'desktop portfolio horizontal overflow');
   await page.screenshot({path:outDir+'/portfolio-desktop.png',fullPage:true});
 
-  const gelato=page.locator('.pm-open[data-scope*="gelato-donatello"]').first();
-  const opener=await gelato.count()?gelato:page.locator('.pm-open').first();
+  const gelato=page.locator('.pm-list .pm-open[data-scope*="gelato-donatello"]').first();
+  const scoped=page.locator('.pm-list .pm-open').filter({has:page.locator('xpath=self::*[@data-scope and string-length(@data-scope)>0]')}).first();
+  const opener=await gelato.count()?gelato:scoped;
+  const chosenScope=await opener.getAttribute('data-scope');
+  assert.ok(chosenScope,'browser acceptance requires an openable project scope');
+  const detailProbe=await page.request.get(origin+'/operator/api/project-detail/'+encodeURIComponent(chosenScope));
+  assert.equal(detailProbe.status(),200,'selected project detail API must be available');
   await opener.click();
-  await page.waitForSelector('.pm-workspace');
+  await page.waitForTimeout(800);
+  if(await page.locator('.pm-workspace').count()===0){
+    throw new Error('Premium workspace did not open. scope='+chosenScope+' pageErrors='+JSON.stringify(errors)+' errorSurface='+JSON.stringify(await page.locator('#error').innerText().catch(()=>''))+' projects='+JSON.stringify((await page.locator('#projects').innerText()).slice(0,1800)));
+  }
   assert.equal(await page.locator('.pm-next').isVisible(),true);
   for(const label of ['Übersicht','Quellen','Projektwissen','Umsetzung','Preview','Prüfungen','Aktivität']){
     assert.equal(await page.getByRole('button',{name:label,exact:true}).count()>0,true,'missing project tab '+label);
@@ -78,10 +86,12 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'iPhone portfolio horizontal overflow');
   await page.screenshot({path:outDir+'/portfolio-iphone.png',fullPage:true});
 
-  const mobileGelato=page.locator('.pm-open[data-scope*="gelato-donatello"]').first();
-  const mobileOpener=await mobileGelato.count()?mobileGelato:page.locator('.pm-open').first();
+  const mobileGelato=page.locator('.pm-list .pm-open[data-scope*="gelato-donatello"]').first();
+  const mobileScoped=page.locator('.pm-list .pm-open').filter({has:page.locator('xpath=self::*[@data-scope and string-length(@data-scope)>0]')}).first();
+  const mobileOpener=await mobileGelato.count()?mobileGelato:mobileScoped;
   await mobileOpener.click();
-  await page.waitForSelector('.pm-workspace');
+  await page.waitForTimeout(500);
+  assert.equal(await page.locator('.pm-workspace').count(),1,'mobile premium workspace must open');
   assert.equal(await page.locator('.pm-next').isVisible(),true,'mobile next action must remain visible');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'iPhone workspace horizontal overflow');
   await page.screenshot({path:outDir+'/project-overview-iphone.png',fullPage:true});
