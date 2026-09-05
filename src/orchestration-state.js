@@ -213,6 +213,30 @@ function canonicalExecutionBindingForTask(mission = {}, task = {}) {
   };
 }
 
+export function executionContractSecurityBinding(contract = {}) {
+  return {
+    provider_execution_version: contract.provider_execution_version || null,
+    mission_id: contract.mission_id || null,
+    task_id: contract.task_id || null,
+    execution_id: contract.execution_id || null,
+    customer_id: contract.customer_id || null,
+    project_id: contract.project_id || null,
+    project_scope_key: contract.project_scope_key || null,
+    capability: contract.capability || null,
+    factory: contract.factory || null,
+    knowledge_revision: contract.knowledge_revision ?? null,
+    provider_route: cloneMission(contract.provider_route || null),
+    executor_id: contract.executor_id || null,
+    environment: contract.environment || null,
+    write_policy: contract.write_policy || null,
+    production_policy: contract.production_policy || null
+  };
+}
+
+export function executionContractSecurityHash(contract = {}) {
+  return digest(executionContractSecurityBinding(contract));
+}
+
 export function buildTaskExecutionContract(mission, taskId) {
   const task = findTask(mission || {}, taskId);
   if (!task) return { ok: false, error: "MISSION_TASK_NOT_FOUND" };
@@ -222,9 +246,10 @@ export function buildTaskExecutionContract(mission, taskId) {
   if (!execution.ok) return { ...execution, task_id: taskId, production_deploy: false };
   const dependencyOutputs = {};
   for (const dependencyId of task.depends_on || []) dependencyOutputs[dependencyId] = findTask(mission, dependencyId)?.outputs || {};
-  return {
+  const contract = {
     ok: true,
     contract_version: 3,
+    execution_contract_revision: 1,
     mission_id: mission.mission_id,
     state_revision: Number(mission.revision || 0),
     mission_revision: mission.mission_revision || mission.source_of_truth?.mission_revision || null,
@@ -271,6 +296,8 @@ export function buildTaskExecutionContract(mission, taskId) {
     required_result: { status: ["COMPLETED", "FAILED"], outputs_object_required_on_success: true, error_object_required_on_failure: true },
     safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, canonical_execution_contract: true, external_writes: false, optimistic_concurrency_control: true }
   };
+  contract.execution_contract_hash = executionContractSecurityHash(contract);
+  return contract;
 }
 
 export function resumeMission(missionInput, options = {}) {
