@@ -337,8 +337,8 @@ export function finalizeOperatorLiveStagingExecution(runtime = {}, executionId =
   let budgetError = null;
   if (controlled && nextProject) {
     const accounting = actualCost > 0
-      ? settleControlledPaidStagingCost(nextProject, { reservation_id: id, actual_cost_units: actualCost })
-      : releaseControlledPaidStagingCost(nextProject, { reservation_id: id, reason: safe.ok === true ? 'ZERO_ACTUAL_COST' : 'EXECUTION_FAILED_WITHOUT_REPORTED_COST' });
+      ? settleControlledPaidStagingCost(nextProject, { reservation_id: id, execution_id: id, actual_cost_units: actualCost })
+      : releaseControlledPaidStagingCost(nextProject, { reservation_id: id, execution_id: id, reason: safe.ok === true ? 'ZERO_ACTUAL_COST' : 'EXECUTION_FAILED_WITHOUT_REPORTED_COST' });
     if (!accounting.ok) budgetError = accounting.error || 'PROJECT_BUDGET_SETTLEMENT_FAILED';
     else nextProject = accounting.project;
   }
