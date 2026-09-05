@@ -28,7 +28,7 @@ function approvalFlags(records, scope, route, binding = null, strict = false) {
     ...scope,
     provider_id: route.provider.id,
     capability: route.capability,
-    ...(binding ? { binding, require_execution_binding: strict } : {})
+    ...(strict && binding ? { binding, require_execution_binding: true } : {})
   };
   const cost = evaluateApproval(records, { ...requestBase, approval_type: 'provider_cost' });
   const external = evaluateApproval(records, { ...requestBase, approval_type: 'external_provider' });
