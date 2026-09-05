@@ -1,0 +1,9 @@
+{
+  "schema": "riosystems-staging-deploy-request-v1",
+  "target": "riosystems-staging",
+  "canonical_ref": "factory-control",
+  "canonical_sha": "026c9582d5a82b6ede2af2bc6c7e6f45143262e6",
+  "confirmation": "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST",
+  "production_deploy": false,
+  "external_writes": false
+}
