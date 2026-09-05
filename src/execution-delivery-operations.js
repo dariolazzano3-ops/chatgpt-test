@@ -355,7 +355,7 @@ export async function finalizeOperationalDeliveryAndWriteback(project = {}, run 
       { at: options.at }
     );
     if (!runtimeWriteback.ok) return { ...runtimeWriteback, project: projectWriteback.project, finalization, production_deploy: false };
-    if (options.runtime_store) {
+    if (options.runtime_store && runtimeWriteback.changed === true) {
       if (typeof options.runtime_store.compareAndSwap !== 'function') {
         return { ok: false, error: 'OPERATOR_RUNTIME_CAS_STORE_REQUIRED', project: projectWriteback.project, runtime: runtimeWriteback.runtime, production_deploy: false };
       }
@@ -363,6 +363,8 @@ export async function finalizeOperationalDeliveryAndWriteback(project = {}, run 
       if (!persistence.ok) {
         return { ...persistence, error: persistence.error || 'OPERATOR_RUNTIME_CAS_WRITEBACK_FAILED', project: projectWriteback.project, runtime: runtimeWriteback.runtime, production_deploy: false };
       }
+    } else if (options.runtime_store && runtimeWriteback.changed !== true) {
+      persistence = { ok: true, changed: false, duplicate: true, runtime: clone(runtimeWriteback.runtime) };
     }
   }
 
