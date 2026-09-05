@@ -12,6 +12,7 @@ const inventory = providerActivationInventory();
 assert.equal(inventory.production_deploy, false);
 assert.equal(inventory.secrets_embedded, false);
 assert.equal(inventory.pricing_must_be_reverified_before_activation, true);
+assert.equal(inventory.historical_evidence_is_not_current_runtime, true);
 
 const framerEvidence = framerStagingConnectionEvidence();
 assert.equal(isFramerStagingConnected(), true);
@@ -63,7 +64,9 @@ const matrix = providerActivationMatrix();
 const framerMatrix = matrix.providers.find((item) => item.id === 'framer-server-api');
 assert.ok(framerMatrix);
 assert.equal(framerMatrix.connection_state, 'CONNECTED_STAGING');
-assert.equal(framerMatrix.activation, 'live_staging_verified_read_only_connection');
+assert.equal(framerMatrix.activation, 'historical_read_only_connection_evidence');
+assert.equal(framerMatrix.current_runtime_verified, false);
+assert.equal(framerMatrix.runtime_truth.actual_executor_availability, 'NOT_CURRENTLY_VERIFIED');
 assert.equal(framerMatrix.account, 'ready');
 assert.equal(framerMatrix.project_binding, 'present');
 assert.equal(framerMatrix.credential, 'present_valid');
@@ -110,13 +113,26 @@ assert.equal(initial.automatic_paid_overflow, false);
 assert.equal(initial.production_deploy, false);
 assert.equal(initial.blockers.some((item) => item.code === 'PROVIDER_ACCOUNT_BINDING_REQUIRED'), true);
 
-const readyReadOnly = evaluateProviderActivationInventory({
+const routeReadyOnly = evaluateProviderActivationInventory({
   required_capabilities: ['ai.generate'],
   zero_cost_only: true,
   account_bindings: ['cloudflare-workers-ai-free'],
   credential_refs: ['cloudflare-workers-ai-free']
 });
+assert.equal(routeReadyOnly.ready_for_route_resolution, true);
+assert.equal(routeReadyOnly.ready_for_real_staging, false);
+assert.equal(routeReadyOnly.ready_for_execution, false);
+assert.equal(routeReadyOnly.blockers.some((item) => item.code === 'PROVIDER_CURRENT_RUNTIME_VERIFICATION_REQUIRED'), true);
+
+const readyReadOnly = evaluateProviderActivationInventory({
+  required_capabilities: ['ai.generate'],
+  zero_cost_only: true,
+  account_bindings: ['cloudflare-workers-ai-free'],
+  credential_refs: ['cloudflare-workers-ai-free'],
+  current_runtime_verified_provider_ids: ['cloudflare-workers-ai-free']
+});
 assert.equal(readyReadOnly.ready_for_real_staging, true);
+assert.equal(readyReadOnly.ready_for_execution, true);
 
 const writeStillBlocked = evaluateProviderActivationInventory({
   required_capabilities: ['business.configure'],
@@ -135,6 +151,8 @@ assert.equal(framerSpecialist.some((item) => item.id === 'framer-server-api' && 
 
 const manifest = providerActivationInventoryManifest();
 assert.equal(manifest.paid_overflow_disabled, true);
+assert.equal(manifest.historical_evidence_is_not_current_runtime, true);
+assert.equal(manifest.current_runtime_executor_verification_required, true);
 console.log(JSON.stringify({
   ok: true,
   suite: 'provider-activation-inventory',
