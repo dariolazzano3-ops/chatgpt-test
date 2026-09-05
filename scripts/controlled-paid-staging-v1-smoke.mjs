@@ -154,6 +154,7 @@ assert.equal(controlledPaidStagingSnapshot(reserved.runtime.command_center_state
 
 const finalized = finalizeOperatorLiveStagingExecution(reserved.runtime, reserved.run.execution_id, {
   ok: true, status: 'LIVE_PROVIDER_VERIFIED', qa: { passed: true }, synthetic_only: false,
+  planned_provider: 'cloudflare-workers-free', dispatched_provider: 'cloudflare-workers-free', actual_provider: 'cloudflare-workers-free', executor_id: 'cloudflare-staging-preview-v1',
   real_customer_data: false, variable_cost_eur: 2.5, paid_overflow: false, production_deploy: false,
   external_customer_writes: false, public_deploy: false, dns_change: false, billing: false, checkout: false, public_indexing: false
 }, reserved.runtime.revision, { at: '2026-09-03T00:02:00.000Z' });
