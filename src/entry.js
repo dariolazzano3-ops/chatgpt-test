@@ -11,6 +11,7 @@ import { operatorHumanUxFinalManifest } from "./operator-human-ux-final-v1.js";
 import { handleOperatorDashboard } from "./operator-project-preview-access-v1.js";
 import { handleOperatorAiRealInferenceAcceptance } from "./operator-ai/live-acceptance-v1.js";
 import { applyProjectSourceHumanAcceptanceUi, handleProjectSourceHumanAcceptanceApi } from "./operator-project-source-intake-human-acceptance-ui-v1.js";
+import { applyProjectKnowledgeReviewUi, handleProjectKnowledgeReviewApi } from "./operator-project-source-intake-knowledge-review-v1.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
@@ -147,10 +148,12 @@ export default {
         throw error;
       }
       const operatorOptions = runtimeService ? { runtime_service: runtimeService } : {};
+      const projectKnowledgeReviewResponse = await handleProjectKnowledgeReviewApi(request, env, ctx, operatorOptions);
+      if (projectKnowledgeReviewResponse) return projectKnowledgeReviewResponse;
       const projectSourceHumanUxResponse = await handleProjectSourceHumanAcceptanceApi(request, env, ctx, operatorOptions);
       if (projectSourceHumanUxResponse) return projectSourceHumanUxResponse;
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, operatorOptions);
-      if (operatorResponse) return applyOperatorBranding(await applyProjectSourceHumanAcceptanceUi(operatorResponse));
+      if (operatorResponse) return applyOperatorBranding(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse)));
     }
 
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
