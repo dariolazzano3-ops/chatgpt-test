@@ -7,6 +7,7 @@ import {
   buildProjectKnowledgeReviewView
 } from './project-source-knowledge-review-v1.js';
 import { organizeProjectKnowledgeWithAi } from './project-source-knowledge-organizer-v1.js';
+import { extractProjectImageKnowledgeWithVision } from './project-source-image-vision-extraction-v1.js';
 import { reviewProjectFact } from './project-source-intake-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
@@ -72,10 +73,28 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
   const actorId = auth.operator_id || auth.email || read.body.identity?.operator_id || 'operator';
 
   if (url.pathname.endsWith('/prepare')) {
+    const extractImages = typeof options.image_vision_extractor === 'function'
+      ? options.image_vision_extractor
+      : extractProjectImageKnowledgeWithVision;
+    const vision = await extractImages(read.body.state, env, {
+      allow_paid_inference: body.allow_ai === true,
+      storage_client: options.project_source_storage_client,
+      storage_fetcher: options.project_source_storage_fetcher,
+      fetch_impl: options.image_vision_fetch_impl
+    });
+    if (!vision.ok || !vision.state) {
+      return json({
+        error: vision.error || 'PROJECT_IMAGE_VISION_EXTRACTION_FAILED',
+        image_vision: vision,
+        production_deploy: false,
+        external_writes: false
+      }, 400);
+    }
+
     const organize = typeof options.knowledge_organizer === 'function'
       ? options.knowledge_organizer
       : organizeProjectKnowledgeWithAi;
-    const organized = await organize(read.body.state, env, {
+    const organized = await organize(vision.state, env, {
       allow_paid_inference: body.allow_ai === true,
       fetch_impl: options.knowledge_organizer_fetch_impl
     });
@@ -83,10 +102,11 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
       return json({
         error: organized.error || 'PROJECT_KNOWLEDGE_ORGANIZATION_FAILED',
         organizer: organized,
+        image_vision: vision,
         production_deploy: false
       }, 400);
     }
-    const prepared = prepareProjectKnowledgeReview(read.body.state, {
+    const prepared = prepareProjectKnowledgeReview(vision.state, {
       ...organized.structure,
       ai_used: organized.ai_used === true,
       provider: organized.provider || organized.structure.provider,
@@ -98,6 +118,17 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
     return json({
       ok: true,
       review: buildProjectKnowledgeReviewView(prepared.state),
+      image_vision: {
+        requested_image_count: Number(vision.requested_image_count || 0),
+        extracted_image_count: Number(vision.extracted_image_count || 0),
+        skipped_image_count: Number(vision.skipped_image_count || 0),
+        extracted_fact_count: Number(vision.extracted_fact_count || 0),
+        paid_provider_calls: Number(vision.paid_provider_calls || 0),
+        estimated_cost_usd: Number(vision.estimated_cost_usd || 0),
+        provider: vision.provider || null,
+        model: vision.model || null,
+        results: Array.isArray(vision.results) ? vision.results : []
+      },
       organizer: {
         status: organized.status,
         ai_used: organized.ai_used === true,
@@ -223,7 +254,7 @@ const fmt=v=>typeof v==='string'?v:JSON.stringify(v,null,2);
 const api=async(path,body,method='POST')=>{const res=await fetch('/operator/api/project-source-intake/review/'+path,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)});const data=await res.json().catch(()=>({}));if(!res.ok){const e=new Error(data.error||('HTTP_'+res.status));e.data=data;throw e}return data};
 const sourceApi=async scope=>{const res=await fetch('/operator/api/project-source-intake?scope_key='+encodeURIComponent(scope));const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||('HTTP_'+res.status));return data};
 const stateText=status=>({NOT_STARTED:'Noch nicht aufbereitet',COLLECTING:'Rohquellen werden gesammelt',IN_REVIEW:'Strukturierte Projektakte wartet auf deine Prüfung',CHANGES_PENDING:'Neue Änderungen vorhanden. Freigabe ist pausiert.',APPROVED:'Projektwissen ist für Ferrari freigegeben'}[status]||status);
-const errorText=e=>({PROJECT_KNOWLEDGE_CONFLICTS_MUST_BE_RESOLVED:'Es gibt noch widersprüchliche Angaben. Bitte diese zuerst korrigieren.',PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED:'Bitte die Projektakte zuerst prüfen und den Freigabe-Haken setzen.',PROJECT_KNOWLEDGE_REVIEW_NOT_PREPARED:'Bitte zuerst mit KI aufbereiten.',PROJECT_KNOWLEDGE_REVIEW_EMPTY:'Ohne Rohmaterial kann nichts freigegeben werden.',PROJECT_KNOWLEDGE_REVIEW_REOPEN_REQUIRED:'Bitte die Freigabe zuerst wieder zur Bearbeitung öffnen.'}[e?.data?.error||e?.message]||('Aktion fehlgeschlagen: '+(e?.data?.error||e?.message||'UNKNOWN')));
+const errorText=e=>({PROJECT_KNOWLEDGE_CONFLICTS_MUST_BE_RESOLVED:'Es gibt noch widersprüchliche Angaben. Bitte diese zuerst korrigieren.',PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED:'Bitte die Projektakte zuerst prüfen und den Freigabe-Haken setzen.',PROJECT_KNOWLEDGE_REVIEW_NOT_PREPARED:'Bitte zuerst mit KI aufbereiten.',PROJECT_KNOWLEDGE_REVIEW_EMPTY:'Ohne Rohmaterial kann nichts freigegeben werden.',PROJECT_KNOWLEDGE_REVIEW_REOPEN_REQUIRED:'Bitte die Freigabe zuerst wieder zur Bearbeitung öffnen.',PROJECT_IMAGE_VISION_BATCH_LIMIT_EXCEEDED:'Bitte maximal 6 Bilder gleichzeitig zum Informationen-Auslesen markieren.',PROJECT_IMAGE_VISION_STORAGE_READ_FAILED:'Ein markiertes Bild konnte nicht sicher aus dem privaten Speicher geladen werden.',PROJECT_IMAGE_VISION_OPENAI_CREDENTIAL_REQUIRED:'Die Bildanalyse ist im Staging gerade nicht verfügbar.',PROJECT_IMAGE_VISION_REAL_INFERENCE_NOT_ENABLED:'Die Bildanalyse ist im Staging gerade nicht aktiviert.',PROJECT_IMAGE_VISION_STAGING_SAFETY_CONTRACT_NOT_MET:'Die Bildanalyse ist nur im sicheren privaten Staging erlaubt.',PROJECT_IMAGE_VISION_COST_CEILING_EXCEEDED:'Die Bildanalyse wurde durch das Kostenlimit gestoppt.'}[e?.data?.error||e?.message]||('Aktion fehlgeschlagen: '+(e?.data?.error||e?.message||'UNKNOWN')));
 function rootScope(root){return root?.__sourcePayload?.identity?.scope_key||root?.dataset?.scope||''}
 function ensurePanel(root){let panel=root.querySelector('[data-knowledge-review-panel]');if(panel)return panel;panel=document.createElement('div');panel.className='knowledge-review-v1';panel.dataset.knowledgeReviewPanel='true';const grid=root.querySelector('.source-upload-grid');(grid||root.firstChild)?.insertAdjacentElement(grid?'beforebegin':'afterend',panel);const h2=root.querySelector('h2');if(h2&&/Project Sources/i.test(h2.textContent||''))h2.textContent='Wäschekorb / Rohquellen';return panel}
 function renderItem(item,scope,status){const editable=status!=='APPROVED';const val=item.type==='FACT'?fmt(item.value):(item.type==='SOURCE'?(item.source_type||'Quelle'):(item.usage_role||'Bild'));const fact=item.type==='FACT';const conflict=fact&&item.verification_status==='SOURCE_CONFLICT';const origin=(item.source_refs||[]).length?' · Quellen: '+item.source_refs.join(', '):(item.source_id?' · Quelle: '+item.source_id:'');return '<div class="knowledge-item" data-knowledge-item="'+esc(item.type)+':'+esc(item.id)+'"><div class="knowledge-item-row"><div><strong>'+esc(item.label||item.id)+'</strong><div class="knowledge-item-value">'+esc(val)+'</div><div class="knowledge-item-meta">'+esc(item.type+(item.field_path?' · '+item.field_path:'')+(item.verification_status?' · '+item.verification_status:'')+origin)+'</div></div>'+(editable?'<div class="source-tools">'+(conflict?'<button class="btn primary" data-knowledge-conflict-confirm="'+esc(item.id)+'">Diese Angabe bestätigen</button>':'')+(fact?'<button class="btn" data-knowledge-fact-reject="'+esc(item.id)+'">Ignorieren</button>':'')+'<button class="btn" data-knowledge-edit="'+esc(item.type)+':'+esc(item.id)+'">Bearbeiten</button></div>':'')+'</div></div>'}

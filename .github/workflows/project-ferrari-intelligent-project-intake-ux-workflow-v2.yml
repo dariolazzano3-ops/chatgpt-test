@@ -10,6 +10,7 @@ on:
       - 'src/project-source-workspace-intake-v1.js'
       - 'src/project-source-knowledge-review-v1.js'
       - 'src/project-source-knowledge-organizer-v1.js'
+      - 'src/project-source-image-vision-extraction-v1.js'
       - 'src/operator-project-source-intake-storage-dashboard-v1.js'
       - 'src/operator-project-source-intake-human-acceptance-ui-v1.js'
       - 'src/operator-project-source-intake-knowledge-review-v1.js'
@@ -17,6 +18,7 @@ on:
       - 'src/entry.js'
       - 'scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs'
       - 'scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs'
+      - 'scripts/project-ferrari-image-vision-extraction-v1-smoke.mjs'
       - '.github/workflows/project-ferrari-intelligent-project-intake-ux-workflow-v2.yml'
   pull_request:
     branches: [factory-control]
@@ -25,12 +27,15 @@ on:
       - 'src/project-source-workspace-intake-v1.js'
       - 'src/project-source-knowledge-review-v1.js'
       - 'src/project-source-knowledge-organizer-v1.js'
+      - 'src/project-source-image-vision-extraction-v1.js'
       - 'src/operator-project-source-intake-storage-dashboard-v1.js'
       - 'src/operator-project-source-intake-human-acceptance-ui-v1.js'
       - 'src/operator-project-source-intake-knowledge-review-v1.js'
       - 'src/operator-project-intake-ux-v2.js'
       - 'src/entry.js'
       - 'scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs'
+      - 'scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs'
+      - 'scripts/project-ferrari-image-vision-extraction-v1-smoke.mjs'
       - '.github/workflows/project-ferrari-intelligent-project-intake-ux-workflow-v2.yml'
   workflow_dispatch:
 
@@ -60,15 +65,20 @@ jobs:
           node --check src/project-source-workspace-intake-v1.js
           node --check src/project-source-knowledge-review-v1.js
           node --check src/project-source-knowledge-organizer-v1.js
+          node --check src/project-source-image-vision-extraction-v1.js
           node --check src/operator-project-source-intake-storage-dashboard-v1.js
           node --check src/operator-project-source-intake-knowledge-review-v1.js
           node --check src/operator-project-intake-ux-v2.js
           node --check src/entry.js
           node --check scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
           node --check scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs
+          node --check scripts/project-ferrari-image-vision-extraction-v1-smoke.mjs
 
       - name: Intelligent Project Intake UX and Workflow V2 acceptance
         run: node scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
+
+      - name: Image Vision Extraction acceptance
+        run: node scripts/project-ferrari-image-vision-extraction-v1-smoke.mjs
 
       - name: Existing Intelligent Intake and Knowledge Approval regression
         run: node scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs
