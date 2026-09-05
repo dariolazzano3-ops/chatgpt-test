@@ -110,6 +110,11 @@ try {
   workspacePage.on('pageerror', (error) => workspaceErrors.push(String(error)));
   await workspacePage.goto(`${origin}/operator/workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`, { waitUntil: 'domcontentloaded' });
   await workspacePage.waitForFunction(() => !document.body.classList.contains('loading') && document.querySelector('#header')?.textContent?.includes('Project Header'));
+  assert.equal(
+    await workspacePage.locator('#aurentara-premium-masterdashboard-v1-script').count(),
+    0,
+    'Premium Masterdashboard code must not leak into the dedicated existing project workspace route'
+  );
   const workspaceText = await workspacePage.locator('body').innerText();
   for (const label of ['Project Header', 'Live Preview', 'Change Request', 'QA Panel', 'Version / Iteration History', 'Human Review', 'Production OFF', 'Billing OFF', 'Real Customer Data NONE']) {
     assert.match(workspaceText, visibleLabel(label));

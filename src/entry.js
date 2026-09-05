@@ -157,7 +157,12 @@ export default {
       const projectSourceHumanUxResponse = await handleProjectSourceHumanAcceptanceApi(request, env, ctx, operatorOptions);
       if (projectSourceHumanUxResponse) return projectSourceHumanUxResponse;
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, operatorOptions);
-      if (operatorResponse) return applyPremiumMasterdashboard(await applyOperatorBranding(await applyProjectIntakeUxV2(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse)))));
+      if (operatorResponse) {
+        const enhancedOperatorResponse = await applyOperatorBranding(await applyProjectIntakeUxV2(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse))));
+        return (url.pathname === "/operator" || url.pathname === "/operator/")
+          ? applyPremiumMasterdashboard(enhancedOperatorResponse)
+          : enhancedOperatorResponse;
+      }
     }
 
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
