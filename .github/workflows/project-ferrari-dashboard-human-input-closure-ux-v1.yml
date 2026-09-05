@@ -1,4 +1,5 @@
 name: PROJECT FERRARI Dashboard Human Input Closure UX V1
+# exact-head acceptance retrigger
 
 on:
   push:
