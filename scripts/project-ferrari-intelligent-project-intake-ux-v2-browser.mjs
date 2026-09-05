@@ -152,7 +152,7 @@ async function runDesktop() {
 
   console.log('V2_BROWSER_STAGE partial-upload');
   await page.locator('[data-v2-upload]').click();
-  await page.waitForFunction(() => document.querySelector('[data-v2-progress-label]')?.textContent?.includes('2 von 3 hochgeladen'));
+  await page.waitForFunction(() => document.querySelector('[data-v2-progress-label]')?.textContent?.includes('2 von 3 hochgeladen'), null, { timeout: 5000 });
   assert.equal(uploadCalls, 3);
   assert.equal(await page.locator('[data-v2-progress-bar]').getAttribute('value'), '3');
   assert.equal(await page.locator('.source-selection-state[data-state="success"]').count(), 2);
@@ -161,7 +161,7 @@ async function runDesktop() {
 
   console.log('V2_BROWSER_STAGE retry');
   await page.locator('[data-v2-upload]').click();
-  await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 3);
+  await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 3, null, { timeout: 5000 });
   assert.equal(uploadCalls, 4);
   assert.equal(await page.locator('[data-v2-source-card]').count(), 3);
   assert.equal(await page.locator('.source-card-v2-media').count(), 3);
@@ -171,7 +171,7 @@ async function runDesktop() {
   console.log('V2_BROWSER_STAGE manual-note');
   await page.locator('[data-v2-note]').fill('Eisbecher Fantasimo jetzt neu auf der Karte');
   await page.locator('[data-v2-note-save]').click();
-  await page.waitForFunction(() => document.body.innerText.includes('Eisbecher Fantasimo jetzt neu auf der Karte'));
+  await page.waitForFunction(() => document.body.innerText.includes('Eisbecher Fantasimo jetzt neu auf der Karte'), null, { timeout: 5000 });
   assert.equal(await page.locator('[data-v2-source-card]').count(), 4);
   assert.match(await page.locator('[data-v2-source-card="src-browser-note"]').innerText(), /Manuelle Information/);
 
@@ -199,7 +199,7 @@ async function runMobile() {
   console.log('V2_BROWSER_STAGE mobile');
   await page.goto('https://intake-v2-mobile.test/operator', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-source-basket-v2]');
-  await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 4);
+  await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 4, null, { timeout: 5000 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   assert.equal(await page.locator('[data-v2-upload]').isVisible(), true);
   const uploadBox = await page.locator('[data-v2-upload]').boundingBox();
