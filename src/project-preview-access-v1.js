@@ -138,7 +138,14 @@ export function projectPreviewDirectoryCandidates(payload = {}, options = {}) {
     ...(Array.isArray(options.additional_project_roots) ? options.additional_project_roots : [])
   ]) addDirectory(set, value);
 
+  const scopeKey = clean(options.scope_key || project.scope_key || payload.scope_key, 640);
+  const customerId = safeProjectToken(project.customer_id);
+  const scopeProjectId = customerId && scopeKey.startsWith(customerId + ':')
+    ? safeProjectToken(scopeKey.slice(customerId.length + 1))
+    : null;
+
   for (const token of [
+    scopeProjectId,
     safeProjectToken(project.project_id),
     safeProjectToken(project.project_slug),
     safeProjectToken(payload?.results?.delivery?.project_slug)
@@ -294,6 +301,7 @@ export function projectPreviewAccessManifest() {
     canonical_project_artifacts_discovered_generically: true,
     canonical_artifact_exact_deployed_sha_required: true,
     project_scope_required: true,
+    scope_key_project_identity_reused: true,
     no_new_preview_engine: true,
     no_new_provider: true,
     no_public_preview: true,
