@@ -108,9 +108,10 @@ function businessNameVariants(values = []) {
   }));
 }
 
-function entityFocusText(pages = [], businessNames = [], radius = 1400) {
+function entityFocusText(pages = [], businessNames = [], radius = 1800) {
   const variants = businessNameVariants(businessNames);
   const windows = [];
+  const boundary = /(?:Ähnliche Anbieter|Weitere Anbieter|Andere Anbieter|Similar restaurants|Nearby restaurants|Häufige Fragen|H&auml;ufige Fragen|Top Branchen|Über 11880\.com|Für Firmeninhaber|Weitere Unternehmen)/i;
   for (const page of arr(pages)) {
     const text = clean(page?.visible_text, 100_000);
     const lower = text.toLowerCase();
@@ -120,7 +121,13 @@ function entityFocusText(pages = [], businessNames = [], radius = 1400) {
       while (needle && from < lower.length) {
         const index = lower.indexOf(needle, from);
         if (index < 0) break;
-        windows.push(text.slice(Math.max(0, index - radius), Math.min(text.length, index + needle.length + radius)));
+        const start = Math.max(0, index - 200);
+        let window = text.slice(start, Math.min(text.length, index + needle.length + radius));
+        const businessOffset = index - start;
+        const tail = window.slice(businessOffset + needle.length);
+        const boundaryMatch = tail.match(boundary);
+        if (boundaryMatch && boundaryMatch.index >= 0) window = window.slice(0, businessOffset + needle.length + boundaryMatch.index);
+        windows.push(window);
         from = index + Math.max(needle.length, 1);
         if (windows.length >= 12) break;
       }
@@ -164,7 +171,14 @@ function canonicalAddress(value = '') {
   }
   const street = raw.match(/([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]*(?:straße|str\.?|weg|platz|allee|gasse|ring|markt)\s+\d+[a-zA-Z]?)/i)?.[1];
   const postalCity = raw.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+(?:[-\s][A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+){0,2})/i);
-  if (street && postalCity) return clean(`${street.replace(/\s+/g,' ')}, ${postalCity[1]} ${postalCity[2]}`, 500);
+  if (street && postalCity) {
+    const stop = new Set(['telefon','telefonnummer','tel','deutschland','germany','anfahrt','öffnungszeiten','wie','wir','keine','details']);
+    const city = postalCity[2].split(/\s+/).filter(Boolean).filter((token, index, all) => {
+      const stopped = all.slice(0, index).some((prior) => stop.has(normalizeText(prior))) || stop.has(normalizeText(token));
+      return !stopped;
+    }).join(' ');
+    if (city) return clean(`${street.replace(/\s+/g,' ')}, ${postalCity[1]} ${city}`, 500);
+  }
   return raw.length <= 160 && /\b\d{5}\b/.test(raw) ? raw : null;
 }
 
@@ -202,16 +216,20 @@ function extractLegalEntities(text = '', businessName = '') {
     .map((match) => clean(match[1], 180));
   const businessTokens = targetBusinessTokens(businessName);
   if (!businessTokens.length) return uniq(matches).slice(0, 12);
+  const baseName = clean(businessName, 300).replace(/\s+(?:GmbH|UG\s*\(haftungsbeschränkt\)|GbR|AG|OHG|KG|e\.K\.)\s*$/i, '').trim();
   return uniq(matches.filter((value) => {
     const normalized = normalizeText(value);
     return businessTokens.every((token) => normalized.includes(token));
+  }).map((value) => {
+    const index = value.toLowerCase().lastIndexOf(baseName.toLowerCase());
+    return index >= 0 ? clean(value.slice(index), 180) : value;
   })).slice(0, 12);
 }
 
 function extractResponsiblePeople(text = '') {
   const out = [];
   const patterns = [
-    /(?:Geschäftsführer(?:in)?|Inhaber(?:in)?)\s*:?\s*(?:Herr\s+|Frau\s+)?([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)/gi,
+    /\b(?:Geschäftsführer(?:in)?|Inhaber(?:in)?)\b\s*:?\s*(?:Herr\s+|Frau\s+)?([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)/gi,
     /([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)\s+(?:Geschäftsführer(?:in)?|Inhaber(?:in)?)/gi
   ];
   for (const pattern of patterns) for (const match of clean(text, 120_000).matchAll(pattern)) out.push(clean(match[1], 160));
