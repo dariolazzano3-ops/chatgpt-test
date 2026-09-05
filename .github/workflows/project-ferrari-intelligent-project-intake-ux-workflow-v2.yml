@@ -39,7 +39,7 @@ permissions:
 
 concurrency:
   group: project-ferrari-intelligent-project-intake-ux-workflow-v2-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   acceptance:
