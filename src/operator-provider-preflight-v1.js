@@ -3,6 +3,7 @@ import { authorizeOperator } from './operator-dashboard-http-v1.js';
 import { providerActivationInventory } from './provider-activation-inventory.js';
 import { providerActivationMatrix } from './provider-stack-v1.js';
 import { createApprovalRecord } from './runtime-approvals.js';
+import { canonicalProviderExecutorDescriptor } from './execution-adapters.js';
 import {
   quickMissionCostEstimate,
   deepMissionCostPreflight,
@@ -62,9 +63,10 @@ function providerConfigured(provider = {}, evidence = {}, connection = 'NOT_CONN
   return credentialReady && accountReady ? 'CONFIGURED' : 'NOT_VERIFIED';
 }
 
-function providerExecutable(evidence = {}) {
-  return evidence?.runtime_truth?.current_runtime_verified === true
+function providerExecutable(providerId, evidence = {}) {
+  const currentRuntimeVerified = evidence?.runtime_truth?.current_runtime_verified === true
     || evidence?.current_runtime_verified === true;
+  return currentRuntimeVerified && Boolean(canonicalProviderExecutorDescriptor(providerId));
 }
 
 function providerPresentationGroup({ availability, connection, configured, executable, evidence = {} } = {}) {
@@ -86,7 +88,9 @@ export function buildProviderEcosystemProjection() {
     const connection = evidence ? matrixConnection(evidence) : 'NOT_CONNECTED';
     const runtimeTruth = evidence?.runtime_truth || provider.runtime_truth || null;
     const currentRuntimeVerified = runtimeTruth?.current_runtime_verified === true || evidence?.current_runtime_verified === true;
-    const activeRuntime = provider.runtime_eligible !== false && currentRuntimeVerified;
+    const executorDescriptor = canonicalProviderExecutorDescriptor(provider.id);
+    const canonicalExecutorAvailable = Boolean(executorDescriptor);
+    const activeRuntime = provider.runtime_eligible !== false && currentRuntimeVerified && canonicalExecutorAvailable;
     const verification = currentRuntimeVerified
       ? 'CURRENT_RUNTIME_VERIFIED'
       : connection === 'CONNECTED_STAGING'
@@ -95,7 +99,7 @@ export function buildProviderEcosystemProjection() {
           ? 'HISTORICAL_VERIFIED_READ_ONLY'
           : provider.verification === 'EVIDENCE_DRIVEN' ? 'NOT_VERIFIED' : (provider.verification || 'NOT_CONNECTED');
     const configured = providerConfigured(provider, evidence || {}, connection);
-    const executable = providerExecutable(evidence || {}) ? 'VERIFIED_STAGING' : (connection === 'NOT_CONNECTED' ? 'NOT_CONNECTED' : 'NOT_VERIFIED');
+    const executable = providerExecutable(provider.id, evidence || {}) ? 'VERIFIED_STAGING' : (connection === 'NOT_CONNECTED' ? 'NOT_CONNECTED' : 'NOT_VERIFIED');
     const productionCapable = provider.production_eligible === true ? 'VERIFIED' : provider.production_eligible === false ? 'BLOCKED' : 'NOT_VERIFIED';
     const presentationGroup = providerPresentationGroup({
       availability: provider.availability,
@@ -117,6 +121,9 @@ export function buildProviderEcosystemProjection() {
       runtime_eligible: provider.runtime_eligible !== false,
       active_runtime: activeRuntime,
       current_runtime_verified: currentRuntimeVerified,
+      canonical_executor_available: canonicalExecutorAvailable,
+      canonical_executor_id: executorDescriptor?.executor_id || null,
+      runtime_execution_route_status: activeRuntime ? 'CANONICAL_EXECUTION_ROUTE_AVAILABLE' : 'SELECTION_ONLY_NOT_RUNTIME_EXECUTION',
       runtime_truth: clone(runtimeTruth),
       capabilities: clone(provider.capabilities || []),
       cost_mode: provider.cost_mode || 'UNKNOWN',
@@ -151,6 +158,10 @@ export function buildProviderEcosystemProjection() {
     historical_connection_is_not_current_runtime: true,
     not_connected_never_runtime_eligible: providers.every((provider) => provider.connection_state !== 'NOT_CONNECTED' || provider.active_runtime === false),
     active_runtime_requires_current_runtime_verification: providers.every((provider) => provider.active_runtime !== true || provider.current_runtime_verified === true),
+    active_runtime_requires_canonical_executor: providers.every((provider) => provider.active_runtime !== true || provider.canonical_executor_available === true),
+    provider_selection_without_executor_is_runtime_execution: false,
+    legacy_provider_selection_runtime_route: 'DEPRECATED',
+    canonical_runtime_execution_source: 'execution-adapters.executeCanonicalProviderRoute',
     paid_provider_activation: false,
     secrets_exposed: false,
     production_deploy: false,
@@ -402,6 +413,9 @@ export function operatorProviderPreflightManifest() {
     history_endpoint: '/operator/api/estimate-history',
     mission_studio_integrated: true,
     provider_page_split_ecosystem_and_active_runtime: true,
+    legacy_classification: 'ADAPT',
+    provider_selection_without_executor_runtime_route: 'DEPRECATED',
+    canonical_runtime_execution_source: 'execution-adapters.executeCanonicalProviderRoute',
     ...missionCostPreflightManifest(),
     paid_provider_activation: false,
     production_deploy: false,

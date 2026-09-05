@@ -174,6 +174,10 @@ export function runtimeCostLedgerManifest() {
     supports: ['reserve', 'settle', 'release', 'idempotent_reservation', 'idempotent_terminal_replay', 'execution_binding', 'project_scope_validation'],
     scope_isolated: true,
     retry_double_billing_blocked: true,
+    legacy_classification: 'ADAPT',
+    legacy_cost_truth_status: 'MIGRATED_TO_CANONICAL_RUNTIME_COST_LEDGER',
+    canonical_cost_truth: true,
+    parallel_cost_engine: false,
     production_deploy: false
   };
 }

@@ -177,3 +177,20 @@ export function assertMissionProjectIsolation(a={},b={}){
   const A=ids(a),B=ids(b),overlap=[...A].filter((id)=>B.has(id));
   return {ok:overlap.length===0,status:overlap.length?"ISOLATION_FAILED":"ISOLATED",overlap};
 }
+
+export function universalMissionRunManifest() {
+  return {
+    schema: 'riosystems.universal-mission-run.manifest.v1',
+    legacy_classification: 'KEEP',
+    runtime_role: 'SYNTHETIC_TEST_HARNESS',
+    canonical_runtime_execution_route: false,
+    synthetic_only: true,
+    real_provider_calls: false,
+    provider_selection_is_fixture_only: true,
+    legacy_specialist_names_are_not_canonical_factories: true,
+    canonical_factories: ['web','automation','ai','business'],
+    specialist_domains: ['growth_gtm','business_crm','analytics'],
+    production_deploy: false,
+    external_writes: false
+  };
+}

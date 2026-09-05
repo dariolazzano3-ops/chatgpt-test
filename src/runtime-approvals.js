@@ -87,5 +87,18 @@ export function evaluateApproval(records = [], request = {}, now = new Date()) {
 }
 
 export function runtimeApprovalManifest() {
-  return { version: 'riosystems.approval.v1', scope: 'customer_project', supports_expiry: true, supports_provider_binding: true, supports_capability_binding: true, supports_execution_contract_binding: true, binding_fields: ['mission','execution_contract_revision_hash','knowledge_revision','provider_route','cost_ceiling','environment','write_scope','production_scope','expiry','actor'], production_deploy: false };
+  return {
+    version: 'riosystems.approval.v1',
+    scope: 'customer_project',
+    supports_expiry: true,
+    supports_provider_binding: true,
+    supports_capability_binding: true,
+    supports_execution_contract_binding: true,
+    binding_fields: ['mission','execution_contract_revision_hash','knowledge_revision','provider_route','cost_ceiling','environment','write_scope','production_scope','expiry','actor'],
+    legacy_classification: 'ADAPT',
+    legacy_approval_status: 'MIGRATED_TO_CANONICAL_SCOPED_APPROVAL',
+    canonical_approval_truth: true,
+    parallel_approval_system: false,
+    production_deploy: false
+  };
 }

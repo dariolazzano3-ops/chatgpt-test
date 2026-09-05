@@ -396,5 +396,25 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
 }
 
 export function operatorControlledPaidStagingDashboardManifest() {
-  return { schema: 'aurentara.controlled-paid-staging-dashboard.v1', wraps_existing_dashboard: true, same_runtime_service: true, legacy_mission_compiler_kept_zero_cost_synthetic_for_planning_only: true, server_side_project_execution_policy_resolution: true, server_side_cost_preflight: true, server_side_provider_eligibility: true, durable_plan_contract_reused: true, live_staging_runtime_reused: true, provider_routes_drive_actual_executor: true, planned_dispatched_actual_truth_required: true, safe_default_fallback_unchanged: true, production_deploy: false, public_deploy: false, external_customer_writes: false };
+  return {
+    schema: 'aurentara.controlled-paid-staging-dashboard.v1',
+    legacy_classification: 'ADAPT',
+    migration_status: 'MIGRATED_TO_CANONICAL_EXECUTION_CONTRACT',
+    wraps_existing_dashboard: true,
+    same_runtime_service: true,
+    legacy_mission_compiler_kept_zero_cost_synthetic_for_planning_only: true,
+    legacy_provider_selection_without_executor_runtime_route: 'DEPRECATED',
+    canonical_executor_source: 'execution-adapters.executeCanonicalProviderRoute',
+    server_side_project_execution_policy_resolution: true,
+    server_side_cost_preflight: true,
+    server_side_provider_eligibility: true,
+    durable_plan_contract_reused: true,
+    live_staging_runtime_reused: true,
+    provider_routes_drive_actual_executor: true,
+    planned_dispatched_actual_truth_required: true,
+    safe_default_fallback_unchanged: true,
+    production_deploy: false,
+    public_deploy: false,
+    external_customer_writes: false
+  };
 }
