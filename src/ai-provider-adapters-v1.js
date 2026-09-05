@@ -115,6 +115,8 @@ export function createOpenAIAdapter(options = {}) {
         error: response?.error || null,
         retryable: response?.retryable === true,
         provider: descriptor.id,
+        actual_provider: descriptor.id,
+        executor_id: 'openai-api-adapter-v1',
         provider_model: models[request.route?.logical_model || 'Luna'],
         logical_model: request.route?.logical_model || 'Luna',
         output: clone(response?.output),
