@@ -231,7 +231,10 @@ export function buildTaskExecutionContract(mission, taskId) {
     expected_parent_sha: mission.source_of_truth?.expected_parent_sha || null,
     source_of_truth: cloneMission(mission.source_of_truth || null),
     task_id: task.task_id,
+    execution_id: execution.binding.execution_id,
+    provider_execution_version: execution.binding.provider_execution_version,
     capability: task.capability,
+    factory: execution.binding.factory,
     domain: task.domain,
     engine: task.engine,
     goal: task.goal,
@@ -266,7 +269,7 @@ export function buildTaskExecutionContract(mission, taskId) {
     prompt: mission.prompt,
     dependency_outputs: dependencyOutputs,
     required_result: { status: ["COMPLETED", "FAILED"], outputs_object_required_on_success: true, error_object_required_on_failure: true },
-    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, canonical_execution_contract: true, production_deploy: false, external_writes: false, optimistic_concurrency_control: true }
+    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, canonical_execution_contract: true, external_writes: false, optimistic_concurrency_control: true }
   };
 }
 
