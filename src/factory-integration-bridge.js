@@ -1,4 +1,5 @@
 import { prepareIntegrationExecution } from './integration-runtime.js';
+import { normalizeExecutionCapabilityId } from './capability-router.js';
 
 const clean = (value, max = 160) => String(value || '').trim().slice(0, max);
 
@@ -9,26 +10,9 @@ const ENGINE_CAPABILITIES = {
   web: ['web.build', 'web.deploy', 'web.analytics']
 };
 
-const LEGACY_CAPABILITY_ALIASES = {
-  web_generate: 'web.build',
-  web_rebuild: 'web.build',
-  web_evolve: 'web.build',
-  automation_build: 'automation.run',
-  ai_system_build: 'ai.generate',
-  business_system_build: 'business.configure'
-};
-
 export function integrationCapabilityForTask(task = {}) {
   const engine = ['web','automation','ai','business'].includes(task.domain) ? task.domain : clean(task.engine, 80);
-  const explicit = clean(task.capability, 120);
-  if (explicit) return LEGACY_CAPABILITY_ALIASES[explicit] || explicit;
-  const fallback = {
-    ai: 'ai.generate',
-    automation: 'automation.run',
-    business: 'business.configure',
-    web: 'web.build'
-  };
-  return fallback[engine] || `${engine || 'unknown'}.execute`;
+  return normalizeExecutionCapabilityId(task.capability, engine) || `${engine || 'unknown'}.execute`;
 }
 
 export function buildFactoryIntegrationPlan(mission = {}, catalog = {}, context = {}) {
@@ -69,7 +53,7 @@ export function factoryIntegrationBridgeManifest() {
     engines: Object.keys(ENGINE_CAPABILITIES),
     capability_matrix: ENGINE_CAPABILITIES,
     supports_supervised_real_integrations: true,
-    legacy_capability_aliases: { ...LEGACY_CAPABILITY_ALIASES },
+    capability_normalization_source: 'src/capability-router.js',
     hard_provider_eligibility_supported: true,
     production_deploy: false
   };

@@ -178,7 +178,8 @@ for (const provider of ecosystem.provider_ecosystem.filter((item) => item.connec
 const activepiecesEcosystem = ecosystem.provider_ecosystem.find((item) => item.id === 'activepieces-cloud-free');
 assert.ok(activepiecesEcosystem);
 assert.equal(activepiecesEcosystem.connection_state, 'CONNECTED_STAGING');
-assert.equal(activepiecesEcosystem.verification, 'VERIFIED_STAGING');
+assert.equal(activepiecesEcosystem.verification, 'HISTORICAL_VERIFIED_STAGING');
+assert.equal(activepiecesEcosystem.current_runtime_verified, false);
 assert.equal(activepiecesEcosystem.active_runtime, false);
 assert.equal(activepiecesEcosystem.runtime_eligible, false);
 assert.equal(activepiecesEcosystem.restrictions.includes('SECONDARY_ONLY'), true);
@@ -190,8 +191,9 @@ assert.equal(activepiecesEcosystem.production_deploy, false);
 const framerEcosystem = ecosystem.provider_ecosystem.find((item) => item.id === 'framer-server-api');
 assert.ok(framerEcosystem);
 assert.equal(framerEcosystem.connection_state, 'CONNECTED_STAGING');
-assert.equal(framerEcosystem.verification, 'VERIFIED_STAGING');
-assert.equal(framerEcosystem.active_runtime, true);
+assert.equal(framerEcosystem.verification, 'HISTORICAL_VERIFIED_STAGING');
+assert.equal(framerEcosystem.current_runtime_verified, false);
+assert.equal(framerEcosystem.active_runtime, false);
 assert.equal(framerEcosystem.restrictions.includes('SPECIALIST_ONLY'), true);
 assert.equal(framerEcosystem.restrictions.includes('MUTATING_EXECUTION_APPROVAL_REQUIRED'), true);
 assert.equal(framerEcosystem.evidence.provider_writes, 0);
@@ -200,6 +202,8 @@ assert.equal(framerEcosystem.evidence.publish_verified, false);
 assert.equal(framerEcosystem.evidence.production_eligible, false);
 assert.equal(framerEcosystem.secrets_exposed, false);
 assert.equal(framerEcosystem.production_deploy, false);
+assert.equal(ecosystem.historical_connection_is_not_current_runtime, true);
+assert.equal(ecosystem.active_runtime_requires_current_runtime_verification, true);
 
 // F) Cheapest provider may be selected when it satisfies quality/reliability/safety/governance.
 const routeF = selectCostAwareProvider({
