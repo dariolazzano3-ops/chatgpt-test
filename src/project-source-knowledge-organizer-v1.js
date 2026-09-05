@@ -16,7 +16,7 @@ export const PROJECT_KNOWLEDGE_ORGANIZER_SCHEMA = {
   properties: {
     sections: {
       type: 'array',
-      maxItems: 9,
+      maxItems: PROJECT_KNOWLEDGE_REVIEW_SECTIONS.length,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -74,6 +74,9 @@ function buildProjection(state = {}) {
       display_name: source.display_name,
       mime_type: source.mime_type || null,
       rights_status: source.ownership_status || null,
+      image_purpose: source.image_purpose || null,
+      information_extraction_requested: ['INFORMATION_EXTRACTION','BOTH'].includes(source.image_purpose),
+      visual_usage_requested: ['VISUAL_USAGE','BOTH'].includes(source.image_purpose),
       text_content: clean(source.source_metadata?.text_content, 7000) || null
     })),
     facts: arr(state.facts).filter((fact) => !['REJECTED', 'OUTDATED'].includes(fact.verification_status)).slice(0, 180).map((fact) => ({
@@ -88,6 +91,7 @@ function buildProjection(state = {}) {
       id: asset.asset_id,
       source_id: asset.source_id || null,
       usage_role: asset.usage_role,
+      image_purpose: asset.image_purpose || null,
       rights_status: asset.rights_status,
       publishable: asset.publishable === true
     }))
@@ -157,6 +161,8 @@ export async function organizeProjectKnowledgeWithAi(state = {}, env = {}, optio
               'Never invent customer facts, approvals, rights, prices, legal details, or assets.',
               'Only reference IDs present in the supplied JSON.',
               'Group each relevant item into the most useful allowed section.',
+              'Respect image_purpose: INFORMATION_EXTRACTION means the image is an information-source candidate, VISUAL_USAGE means a visual-asset candidate, BOTH means both. Purpose never grants publication rights.',
+              'If sources disagree, preserve the conflict for human review rather than choosing a winner.',
               'Use concise German summaries because this operator workspace is German.',
               'Do not approve anything. Human approval happens later.'
             ].join(' '),
