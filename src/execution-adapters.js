@@ -214,17 +214,34 @@ export function validateAdapterResult(envelope = {}, result = {}) {
     providerTruth = validateProviderExecutionTruth(envelope, result);
     if (!providerTruth.ok) return providerTruth;
   }
+  const executionEvidence = providerTruth ? {
+    schema: 'riosystems.execution-evidence.v1',
+    execution_id: envelope.execution_id || null,
+    provider_execution_version: envelope.provider_execution_version || null,
+    planned_provider: providerTruth.planned_provider || null,
+    dispatched_provider: providerTruth.dispatched_provider || null,
+    actual_provider: providerTruth.actual_provider || null,
+    executor_id: providerTruth.executor_id || null,
+    provider_route: envelope.provider_route || null,
+    actual_cost_eur: Number.isFinite(Number(result.actual_cost_eur)) ? Number(result.actual_cost_eur) : null,
+    evidence: result.evidence && typeof result.evidence === 'object' ? { ...result.evidence } : null,
+    production_deploy: false
+  } : null;
   return {
     ok: true,
     result: {
       status: result.status,
-      outputs: result.outputs || {},
+      outputs: result.status === 'COMPLETED'
+        ? { ...(result.outputs || {}), ...(executionEvidence ? { execution_evidence: executionEvidence } : {}) }
+        : (result.outputs || {}),
       error: result.error || null,
       external_job_id: clean(result.external_job_id, 200) || null,
       planned_provider: providerTruth?.planned_provider || null,
       dispatched_provider: providerTruth?.dispatched_provider || null,
       actual_provider: providerTruth?.actual_provider || null,
       executor_id: providerTruth?.executor_id || null,
+      actual_cost_eur: executionEvidence?.actual_cost_eur ?? null,
+      evidence: executionEvidence?.evidence || null,
       production_deploy: false
     }
   };
