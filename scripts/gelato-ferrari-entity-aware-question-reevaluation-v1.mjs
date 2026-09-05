@@ -92,3 +92,6 @@ console.log('---UPDATED_CLOSURE_JSON---');
 console.log(JSON.stringify(nextClosure,null,2));
 console.log('---UPDATED_MULTI_SOURCE_JSON---');
 console.log(JSON.stringify(nextMulti,null,2));
+
+console.log('CANONICAL_CLOSURE_BASE64='+Buffer.from(JSON.stringify(nextClosure,null,2)+'\n').toString('base64'));
+console.log('CANONICAL_MULTI_BASE64='+Buffer.from(JSON.stringify(nextMulti,null,2)+'\n').toString('base64'));
