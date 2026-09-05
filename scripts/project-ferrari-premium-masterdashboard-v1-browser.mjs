@@ -52,12 +52,27 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'desktop portfolio horizontal overflow');
   await page.screenshot({path:outDir+'/portfolio-desktop.png',fullPage:true});
 
+  const projectsProbe=await page.request.get(origin+'/operator/api/projects');
+  const projectsPayload=await projectsProbe.json();
+  const portfolioRows=(projectsPayload.items||[]).map(p=>({scope_key:p.scope_key,project_id:p.project_id,customer_id:p.customer_id,name:p.name,runtime_registration:p.runtime_registration||null}));
+  const renderedOpeners=await page.locator('.pm-list .pm-open').evaluateAll(nodes=>nodes.map(n=>({scope_key:n.dataset.scope||'',label:(n.textContent||'').trim()})));
   const gelato=page.locator('.pm-list .pm-open[data-scope*="gelato-donatello"]').first();
   const scoped=page.locator('.pm-list .pm-open').filter({has:page.locator('xpath=self::*[@data-scope and string-length(@data-scope)>0]')}).first();
   const opener=await gelato.count()?gelato:scoped;
   const chosenScope=await opener.getAttribute('data-scope');
   assert.ok(chosenScope,'browser acceptance requires an openable project scope');
+  const chosenProject=(projectsPayload.items||[]).find(p=>p.scope_key===chosenScope)||null;
   const detailProbe=await page.request.get(origin+'/operator/api/project-detail/'+encodeURIComponent(chosenScope));
+  const detailBody=await detailProbe.text();
+  console.log('PREMIUM_PROJECT_OPENING_DIAGNOSTIC '+JSON.stringify({
+    projects_status:projectsProbe.status(),
+    portfolio_rows:portfolioRows,
+    rendered_openers:renderedOpeners,
+    chosen_scope:chosenScope,
+    chosen_project:chosenProject&&{scope_key:chosenProject.scope_key,project_id:chosenProject.project_id,customer_id:chosenProject.customer_id,name:chosenProject.name,runtime_registration:chosenProject.runtime_registration||null},
+    detail_status:detailProbe.status(),
+    detail_body:detailBody.slice(0,2000)
+  }));
   assert.equal(detailProbe.status(),200,'selected project detail API must be available');
   await opener.click();
   await page.waitForTimeout(800);
