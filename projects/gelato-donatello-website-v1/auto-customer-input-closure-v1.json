@@ -203,7 +203,218 @@
           "candidate_origin": "EXTRACTED",
           "critical": true
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "CONFLICT_REMAINS",
+        "field_paths": [
+          "business.phone",
+          "business.address",
+          "business.email"
+        ],
+        "evidence": [
+          {
+            "field_path": "business.phone",
+            "classification": "CONFLICT",
+            "conflict": true,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "06806 9394980",
+                "independent_source_count": 4,
+                "weighted_support": 251.2,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  },
+                  {
+                    "source_id": "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+                    "source_url": "https://www.11880.com/branchenbuch/puettlingen/070941287B112915352/gelato-donatello-gmbh.html",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2026-08-12T00:00:00.000Z"
+                  },
+                  {
+                    "source_id": "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+                    "source_url": "https://branchenbuch.meinestadt.de/puettlingen/company/15122700",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_HIGH_CONFIDENCE",
+                    "entity_match_score": 0.46,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  },
+                  {
+                    "source_id": "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen",
+                    "source_url": "https://restaurantguru.com/Gelato-Donatello-GmbH-Puttlingen",
+                    "source_role": "THIRD_PARTY_DIRECTORY",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2025-12-27T00:00:00.000Z"
+                  }
+                ]
+              },
+              {
+                "value": "+49 176 200 150 65",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field_path": "business.email",
+            "classification": "HIGH_CONFIDENCE_CANDIDATE",
+            "conflict": false,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "fabrizio.lazzano@freenet.de",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field_path": "business.address",
+            "classification": "CONFLICT",
+            "conflict": true,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "Hauptstraße 4, 66346 Köllerbach",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              },
+              {
+                "value": "Hauptstraße 4, 66346 Püttlingen",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              },
+              {
+                "value": "Hauptstr. 4, 66346 Püttlingen",
+                "independent_source_count": 2,
+                "weighted_support": 128,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+                    "source_url": "https://www.11880.com/branchenbuch/puettlingen/070941287B112915352/gelato-donatello-gmbh.html",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2026-08-12T00:00:00.000Z"
+                  },
+                  {
+                    "source_id": "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+                    "source_url": "https://branchenbuch.meinestadt.de/puettlingen/company/15122700",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_HIGH_CONFIDENCE",
+                    "entity_match_score": 0.46,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "confirmation_reason": "Mehrere eindeutig zugeordnete Quellen widersprechen sich; keine Majority-Vote-Auflösung.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "OPENING_HOURS",
@@ -233,7 +444,72 @@
           "candidate_origin": "EXTRACTED",
           "critical": true
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "CONFLICT_REMAINS",
+        "field_paths": [
+          "business.opening_hours"
+        ],
+        "evidence": [
+          {
+            "field_path": "business.opening_hours",
+            "classification": "CONFLICT",
+            "conflict": true,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              },
+              {
+                "value": "Opening hours Sunday Sun 12PM-9:30PM Monday Mon 1PM-9:30PM Tuesday Tue 1PM-9:30PM Wednesday Wed 1PM-9:30PM Thursday Thu 1PM-9:30PM Friday Fri 1PM-9:30PM Saturday Sat 1PM-9:3",
+                "independent_source_count": 1,
+                "weighted_support": 31.2,
+                "freshness": {
+                  "timestamp": "2025-12-27T00:00:00.000Z",
+                  "age_days": 252.4,
+                  "time_sensitive": true,
+                  "state": "AGING",
+                  "score": 0.65
+                },
+                "sources": [
+                  {
+                    "source_id": "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen",
+                    "source_url": "https://restaurantguru.com/Gelato-Donatello-GmbH-Puttlingen",
+                    "source_role": "THIRD_PARTY_DIRECTORY",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2025-12-27T00:00:00.000Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "confirmation_reason": "Mehrere eindeutig zugeordnete Quellen widersprechen sich; keine Majority-Vote-Auflösung.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "LEGAL_CURRENTNESS",
@@ -323,7 +599,156 @@
           "candidate_origin": "EXTRACTED",
           "critical": true
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "CONFLICT_REMAINS",
+        "field_paths": [
+          "legal.entity",
+          "legal.responsible_person",
+          "legal.vat_id",
+          "legal.privacy_basis",
+          "legal.details"
+        ],
+        "evidence": [
+          {
+            "field_path": "legal.entity",
+            "classification": "CONFLICT",
+            "conflict": true,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "Gelato Donatello UG (haftungsbeschränkt)",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              },
+              {
+                "value": "Gelato Donatello GmbH",
+                "independent_source_count": 3,
+                "weighted_support": 159.2,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+                    "source_url": "https://www.11880.com/branchenbuch/puettlingen/070941287B112915352/gelato-donatello-gmbh.html",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2026-08-12T00:00:00.000Z"
+                  },
+                  {
+                    "source_id": "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+                    "source_url": "https://branchenbuch.meinestadt.de/puettlingen/company/15122700",
+                    "source_role": "REPUTABLE_BUSINESS_LISTING",
+                    "entity_match_state": "ENTITY_MATCH_HIGH_CONFIDENCE",
+                    "entity_match_score": 0.46,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  },
+                  {
+                    "source_id": "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen",
+                    "source_url": "https://restaurantguru.com/Gelato-Donatello-GmbH-Puttlingen",
+                    "source_role": "THIRD_PARTY_DIRECTORY",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 0.74,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": "2025-12-27T00:00:00.000Z"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field_path": "legal.responsible_person",
+            "classification": "HIGH_CONFIDENCE_CANDIDATE",
+            "conflict": false,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "Fabrizio Lazzano",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field_path": "legal.vat_id",
+            "classification": "HIGH_CONFIDENCE_CANDIDATE",
+            "conflict": false,
+            "authoritative_fact_count": 0,
+            "candidates": [
+              {
+                "value": "DE 306 726 779",
+                "independent_source_count": 1,
+                "weighted_support": 92,
+                "freshness": {
+                  "timestamp": "2026-09-05T10:26:30.075Z",
+                  "age_days": 0,
+                  "time_sensitive": true,
+                  "state": "FRESH",
+                  "score": 1
+                },
+                "sources": [
+                  {
+                    "source_id": "primary-anchor-website",
+                    "source_url": "https://gelato-donatello.de/",
+                    "source_role": "ANCHOR_OWNED_WEBSITE",
+                    "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+                    "entity_match_score": 1,
+                    "fetched_at": "2026-09-05T10:26:30.075Z",
+                    "visible_updated_at": null
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "confirmation_reason": "Mehrere eindeutig zugeordnete Quellen widersprechen sich; keine Majority-Vote-Auflösung.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "TARGET_CUSTOMERS",
@@ -364,7 +789,17 @@
           "materialize_candidates": false,
           "candidate_origin": "INFERRED"
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "HUMAN_ONLY",
+        "field_paths": [
+          "target.customers"
+        ],
+        "evidence": [],
+        "confirmation_reason": "Diese Entscheidung bleibt menschliches Urteil und darf nicht aus beobachtetem Verhalten abgeleitet werden.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "PRIMARY_CONVERSION",
@@ -405,7 +840,17 @@
           "materialize_candidates": false,
           "candidate_origin": "INFERRED"
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "HUMAN_ONLY",
+        "field_paths": [
+          "website.primary_conversion"
+        ],
+        "evidence": [],
+        "confirmation_reason": "Diese Entscheidung bleibt menschliches Urteil und darf nicht aus beobachtetem Verhalten abgeleitet werden.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "FINAL_ASSET_QUALITY_APPROVAL",
@@ -425,7 +870,15 @@
           "label": "Asset Quality Approval",
           "help": "JA setzt nur die vorhandenen Projektassets auf Qualitätsstatus VERIFIED. Rechte werden nicht verändert."
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "HUMAN_ONLY",
+        "field_paths": [],
+        "evidence": [],
+        "confirmation_reason": "Diese Entscheidung bleibt menschliches Urteil und darf nicht aus beobachtetem Verhalten abgeleitet werden.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     },
     {
       "id": "FINAL_HUMAN_QUALITY_APPROVAL",
@@ -445,7 +898,15 @@
           "requires_preview_seen": true,
           "help": "Eine positive Freigabe ist nur zulässig, wenn die tatsächliche Vorschau gesehen wurde."
         }
-      ]
+      ],
+      "multi_source_verification": {
+        "research_state": "HUMAN_ONLY",
+        "field_paths": [],
+        "evidence": [],
+        "confirmation_reason": "Diese Entscheidung bleibt menschliches Urteil und darf nicht aus beobachtetem Verhalten abgeleitet werden.",
+        "automatic_customer_confirmation": false,
+        "majority_vote_used": false
+      }
     }
   ],
   "customer_delivery_contract_ref": "projects/gelato-donatello-website-v1/customer-delivery-contract-v1.json",
@@ -475,12 +936,21 @@
     "retries": 0,
     "external_waiting_time_seconds": 0,
     "provider_runs": 0,
-    "actual_variable_cost_eur": 0
+    "actual_variable_cost_eur": 0,
+    "human_questions_before_multi_source": 7,
+    "human_questions_after_multi_source": 7,
+    "automatically_resolved_by_multi_source": 0,
+    "human_copy_paste_avoided": 7,
+    "multi_source_operator_touches": 0,
+    "multi_source_active_operator_minutes": 0,
+    "multi_source_provider_runs": 9,
+    "multi_source_variable_cost_eur": 0
   },
   "result": {
     "auto_customer_input_closure": "PASS",
     "customer_input_closure": "BLOCKED_BY_EXTERNAL_INPUT",
-    "gelato_full_dogfood_ready": false
+    "gelato_full_dogfood_ready": false,
+    "entity_aware_multi_source_verification": "PASS"
   },
   "safety": {
     "scraped_is_confirmed": false,
@@ -495,5 +965,26 @@
     "ai_inference_calls": 0,
     "forms_submitted": 0,
     "post_requests": 0
+  },
+  "multi_source_verification": {
+    "schema": "aurentara.gelato-human-question-multi-source-reevaluation.v1",
+    "evidence_ref": "projects/gelato-donatello-website-v1/entity-aware-multi-source-verification-v1.json",
+    "human_questions_before": 7,
+    "human_questions_after": 7,
+    "automatically_closed": 0,
+    "human_only": [
+      "TARGET_CUSTOMERS",
+      "PRIMARY_CONVERSION",
+      "FINAL_ASSET_QUALITY_APPROVAL",
+      "FINAL_HUMAN_QUALITY_APPROVAL"
+    ],
+    "conflicts": [
+      "CONTACT_DETAILS",
+      "OPENING_HOURS",
+      "LEGAL_CURRENTNESS"
+    ],
+    "corroborated_but_confirmation_required": [],
+    "automatic_customer_confirmation": false,
+    "majority_vote_used": false
   }
 }
