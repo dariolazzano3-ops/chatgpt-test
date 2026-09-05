@@ -9,10 +9,11 @@ import {
   resolveProjectPreviewAccess,
   canonicalPreviewRawUrl,
   projectPreviewDirectoryCandidates,
-  runtimeProjectPreviewArtifact
+  runtimeProjectPreviewArtifact,
+  bundledProjectPreviewArtifact
 } from '../src/project-preview-access-v1.js';
 
-const HEAD='7ff78b4b2a302c814d775664c9543954fa3c8309';
+const HEAD='026c9582d5a82b6ede2af2bc6c7e6f45143262e6';
 const operatorId='operator:preview-system@example.test';
 const gelato={
   customer_id:'gelato-donatello',
@@ -50,6 +51,18 @@ const cafe={
   blocked:false,
   production_deploy:false
 };
+const arbitraryCanonical={
+  customer_id:'mueller-elektrotechnik',
+  project_id:'mueller-elektrotechnik-digital-customer-system-v1',
+  scope_key:'mueller-elektrotechnik:mueller-elektrotechnik-digital-customer-system-v1',
+  name:'Müller Elektrotechnik',
+  industry:'elektrotechnik',
+  country:'DE',
+  language:'de',
+  state:'READY',
+  blocked:false,
+  production_deploy:false
+};
 const noPreview={
   customer_id:'internal-ops',
   project_id:'internal-crm-v1',
@@ -69,6 +82,16 @@ assert.deepEqual(projectPreviewDirectoryCandidates({project:legacyScopedGelato})
   'projects/gelato-donatello'
 ]);
 assert.deepEqual(projectPreviewDirectoryCandidates({project:cafe}),['projects/cafe-luna-website-v1']);
+assert.deepEqual(projectPreviewDirectoryCandidates({project:arbitraryCanonical}),['projects/mueller-elektrotechnik-digital-customer-system-v1']);
+
+const bundledGelato=bundledProjectPreviewArtifact({project:gelato});
+assert.ok(bundledGelato);
+assert.equal(bundledGelato.source_path,'projects/gelato-donatello-website-v1/ferrari-preview-v1.html');
+assert.match(bundledGelato.html,/Gelato Donatello/i);
+
+const bundledArbitrary=bundledProjectPreviewArtifact({project:arbitraryCanonical});
+assert.ok(bundledArbitrary);
+assert.equal(bundledArbitrary.source_path,'projects/mueller-elektrotechnik-digital-customer-system-v1/index.html');
 
 const entrySource=await readFile(new URL('../src/entry.js',import.meta.url),'utf8');
 assert.match(entrySource,/startsWith\("\/operator\/project-preview\/"\)/);
@@ -114,7 +137,7 @@ assert.equal(missing.reason,'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_OR_REGIST
 
 const created=createOperatorRuntime({
   operator_id:operatorId,
-  portfolio:{operator_id:operatorId,projects:[gelato,cafe,noPreview],production_deploy:false}
+  portfolio:{operator_id:operatorId,projects:[gelato,arbitraryCanonical,noPreview],production_deploy:false}
 });
 assert.equal(created.ok,true);
 created.runtime.selected_project_scope=gelato.scope_key;
@@ -129,44 +152,9 @@ const env={
   CF_VERSION_METADATA:{id:'preview-system-version',tag:HEAD,timestamp:'2026-09-05T16:30:00.000Z'}
 };
 
-const listings={
-  'projects/gelato-donatello-website-v1':[
-    {type:'file',name:'customer-delivery-contract-v1.json',path:'projects/gelato-donatello-website-v1/customer-delivery-contract-v1.json'},
-    {type:'file',name:'ferrari-preview-v1.html',path:'projects/gelato-donatello-website-v1/ferrari-preview-v1.html'}
-  ],
-  'projects/cafe-luna-website-v1':[
-    {type:'file',name:'index.html',path:'projects/cafe-luna-website-v1/index.html'},
-    {type:'file',name:'styles.css',path:'projects/cafe-luna-website-v1/styles.css'}
-  ]
-};
-function directoryFromUrl(url){
-  const marker='/contents/';
-  const raw=String(url);
-  const start=raw.indexOf(marker);
-  if(start<0)return null;
-  const rest=raw.slice(start+marker.length).split('?')[0];
-  return decodeURIComponent(rest);
-}
 const options={
   runtime_service:service,
-  authorize,
-  project_preview_directory_fetch:async(url)=>{
-    const directory=directoryFromUrl(url);
-    const body=listings[directory];
-    return body
-      ? new Response(JSON.stringify(body),{status:200,headers:{'content-type':'application/json'}})
-      : new Response(JSON.stringify({message:'Not Found'}),{status:404,headers:{'content-type':'application/json'}});
-  },
-  project_preview_fetch:async(url)=>{
-    const raw=String(url);
-    if(raw.includes('/projects/gelato-donatello-website-v1/ferrari-preview-v1.html')){
-      return new Response('<!doctype html><html><body><h1>Gelato Donatello Generic Discovery</h1></body></html>',{status:200});
-    }
-    if(raw.includes('/projects/cafe-luna-website-v1/index.html')){
-      return new Response('<!doctype html><html><body><h1>Café Luna Generic Discovery</h1></body></html>',{status:200});
-    }
-    return new Response('missing',{status:404});
-  }
+  authorize
 };
 
 async function call(path,init={}){
@@ -179,15 +167,16 @@ let response=await call('/operator/api/project-detail/'+encodeURIComponent(gelat
 assert.equal(response.status,200);
 let body=await response.json();
 assert.equal(body.project_preview_access.available,true);
-assert.equal(body.project_preview_access.access_kind,'CANONICAL_ARTIFACT_PROXY');
+assert.equal(body.project_preview_access.access_kind,'BUNDLED_PROJECT_ARTIFACT');
 assert.equal(body.project_preview_access.source_path,'projects/gelato-donatello-website-v1/ferrari-preview-v1.html');
-assert.equal(body.project_preview_access.provider,'CANONICAL_PROJECT_ARTIFACT');
+assert.equal(body.project_preview_access.provider,'RIOSYSTEMS_BUILD_PREVIEW_INDEX');
 
-response=await call('/operator/api/project-detail/'+encodeURIComponent(cafe.scope_key));
+response=await call('/operator/api/project-detail/'+encodeURIComponent(arbitraryCanonical.scope_key));
 assert.equal(response.status,200);
 body=await response.json();
 assert.equal(body.project_preview_access.available,true);
-assert.equal(body.project_preview_access.source_path,'projects/cafe-luna-website-v1/index.html');
+assert.equal(body.project_preview_access.access_kind,'BUNDLED_PROJECT_ARTIFACT');
+assert.equal(body.project_preview_access.source_path,'projects/mueller-elektrotechnik-digital-customer-system-v1/index.html');
 
 response=await call('/operator/api/project-detail/'+encodeURIComponent(noPreview.scope_key));
 assert.equal(response.status,200);
@@ -197,18 +186,19 @@ assert.equal(body.project_preview_access.status,'NOT_AVAILABLE');
 
 response=await call('/operator/project-preview/'+encodeURIComponent(gelato.scope_key));
 assert.equal(response.status,200);
-assert.match(await response.text(),/Gelato Donatello Generic Discovery/);
+assert.match(await response.text(),/Gelato Donatello/i);
 
-response=await call('/operator/project-preview/'+encodeURIComponent(cafe.scope_key));
+response=await call('/operator/project-preview/'+encodeURIComponent(arbitraryCanonical.scope_key));
 assert.equal(response.status,200);
-assert.match(await response.text(),/Café Luna Generic Discovery/);
+assert.match(response.headers.get('x-aurentara-project-preview-provider')||'',/RIOSYSTEMS_BUILD_PREVIEW_INDEX/);
+assert.match(await response.text(),/<html/i);
 
 response=await call('/operator/project-preview/'+encodeURIComponent(noPreview.scope_key));
 assert.equal(response.status,404);
 body=await response.json();
 assert.equal(body.error,'PROJECT_PREVIEW_NOT_AVAILABLE');
 
-const canonicalAccess=resolveProjectPreviewAccess({project:cafe},{deployed_sha:HEAD,canonical_source_path:'projects/cafe-luna-website-v1/index.html'});
+const canonicalAccess=resolveProjectPreviewAccess({project:noPreview},{deployed_sha:HEAD,canonical_source_path:'projects/internal-crm-v1/index.html'});
 assert.equal(canonicalAccess.available,true);
 assert.match(canonicalPreviewRawUrl(canonicalAccess),new RegExp(HEAD));
 
@@ -237,15 +227,19 @@ assert.equal(manifest.every_project_uses_same_preview_contract,true);
 assert.equal(manifest.project_specific_hardcoded_preview_registry,false);
 assert.equal(manifest.runtime_web_factory_artifacts_reused,true);
 assert.equal(manifest.canonical_project_artifacts_discovered_generically,true);
+assert.equal(manifest.build_time_project_preview_index,true);
+assert.equal(manifest.build_time_preview_index_runtime_network_dependency,false);
+assert.equal(manifest.build_time_preview_index_support,true);
 assert.equal(manifest.hardcoded_project_preview_exceptions,false);
 assert.equal(manifest.production_deploy,false);
 
 console.log(JSON.stringify({
   ok:true,
   suite:'project-ferrari-system-wide-preview-access-v2',
-  gelato_generic_discovery:'PASS',
-  arbitrary_project_generic_discovery:'PASS',
+  gelato_build_time_preview:'PASS',
+  arbitrary_project_build_time_preview:'PASS',
   runtime_web_factory_preview:'PASS',
+  build_time_preview_runtime_network_dependency:false,
   no_hardcoded_project_registry:true,
   every_project_same_preview_contract:true,
   scope_key_identity_discovery:'PASS',
