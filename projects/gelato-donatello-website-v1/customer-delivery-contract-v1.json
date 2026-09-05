@@ -1,0 +1,144 @@
+{
+  "schema": "aurentara.customer-delivery-contract.v1",
+  "customer_id": "gelato-donatello",
+  "project_id": "gelato-donatello-website-v1",
+  "scope_key": "gelato-donatello:gelato-donatello-website-v1",
+  "customer_problem": "Die bestehende Gelato-Website evidence-backed modernisieren und als private Premium-Vorschau mit bestätigten Inhalten bereitstellen.",
+  "desired_outcomes": [
+    "confirmed-content premium private preview",
+    "rights-safe visual pack",
+    "customer-reviewable website candidate"
+  ],
+  "business_profile": {
+    "model_draft": {
+      "field": "business_model",
+      "value": "Lokales Eiscafé / Gelateria mit Vor-Ort-Verkauf, Eistorten sowie ergänzendem Event-/Eisvitrinen-Angebot.",
+      "confidence": "HIGH",
+      "publish_as_customer_claim": false,
+      "human_confirmation_required_for_internal_build": false
+    },
+    "target_customer_draft": {
+      "field": "target_customer_draft",
+      "value": [
+        "lokale Laufkundschaft und Eisgäste",
+        "Familien",
+        "Kunden für Feiern/Eistorten",
+        "Kunden für Eisvitrinen-/Eventbedarf"
+      ],
+      "confidence": "MEDIUM_HIGH",
+      "publish_as_customer_claim": false,
+      "human_confirmation_required": true
+    },
+    "conversion_candidates": {
+      "field": "conversion_candidates",
+      "value": [
+        "Vor-Ort-Besuch",
+        "Anruf/Kontakt",
+        "Eistorten-Anfrage",
+        "Eisvitrinen-Anfrage"
+      ],
+      "confidence": "MEDIUM_HIGH",
+      "publish_as_customer_claim": false,
+      "human_confirmation_required": true
+    },
+    "observed_source": "LIVE_EXISTING_WEBSITE_PLUS_CANONICAL_CONFIRMED_INPUTS",
+    "authoritative": false
+  },
+  "requested_capabilities": [
+    "web_presence"
+  ],
+  "required_capabilities": [
+    "web_presence"
+  ],
+  "optional_capabilities": [],
+  "excluded_capabilities": [
+    "lead_capture",
+    "business_crm",
+    "automation_followup",
+    "analytics",
+    "ai_assistance"
+  ],
+  "required_customer_inputs": [
+    "target_customers",
+    "primary_conversion_channel",
+    "current_contact_details",
+    "opening_hours_confirmation",
+    "legal_details",
+    "final_asset_quality_approval"
+  ],
+  "missing_inputs": [
+    "target_customers",
+    "primary_conversion_channel",
+    "current_contact_details",
+    "opening_hours_confirmation",
+    "legal_details",
+    "final_asset_quality_approval"
+  ],
+  "human_decisions_required": [
+    "final target customer confirmation",
+    "primary conversion channel",
+    "current contact details because phone/address conflict",
+    "opening hours currentness",
+    "legal details currentness",
+    "final visual asset quality approval",
+    "final human quality approval"
+  ],
+  "source_readiness": "READY_WITH_WARNINGS",
+  "rights_readiness": "READY",
+  "provider_plan": {
+    "route": "existing-ferrari-web-factory",
+    "providers": [
+      "project-source-intake",
+      "web-factory"
+    ]
+  },
+  "cost_preflight": {
+    "approved_ceiling_eur": 0,
+    "actual_variable_cost_eur": 0,
+    "paid_overflow": false
+  },
+  "quality_contract": {
+    "schema": "aurentara.premium-website-standard.v1",
+    "browser_qa_required": true,
+    "human_outcome_required": true,
+    "unconfirmed_critical_facts_publishable": false
+  },
+  "acceptance_criteria": [
+    "source_provenance",
+    "critical_fact_resolution",
+    "rights_enforcement",
+    "premium_standard",
+    "human_outcome",
+    "customer_review",
+    "delivery_gate"
+  ],
+  "customer_review_required": true,
+  "production_approval_required": true,
+  "delivery_definition": {
+    "kind": "private_premium_customer_review_candidate",
+    "public": false,
+    "production": false
+  },
+  "scope_confirmation_status": "HUMAN_CONFIRMED",
+  "current_status": "CUSTOMER_INPUT_CLOSURE",
+  "discovery": {
+    "schema": "aurentara.ferrari-requirements-draft.v1",
+    "customer_wish": "Die bestehende Gelato-Website evidence-backed modernisieren und als private Premium-Vorschau mit bestätigten Inhalten bereitstellen.",
+    "requested_capabilities": [
+      "web_presence"
+    ],
+    "authoritative": false,
+    "scope_confirmation_required": true,
+    "production_deploy": false,
+    "paid_provider_calls_authorized": false
+  },
+  "safety": {
+    "production_deploy": false,
+    "public_launch": false,
+    "dns_changes": false,
+    "billing": false,
+    "automatic_paid_provider_calls": false,
+    "uncontrolled_external_writes": false,
+    "automatic_customer_communication": false
+  }
+}

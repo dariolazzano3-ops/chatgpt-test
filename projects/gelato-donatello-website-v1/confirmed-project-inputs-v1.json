@@ -1,0 +1,85 @@
+{
+  "schema": "aurentara.gelato-confirmed-project-inputs.v1",
+  "project_ref": {
+    "customer_id": "gelato-donatello",
+    "project_id": "gelato-donatello-website-v1",
+    "scope_key": "gelato-donatello:gelato-donatello-website-v1"
+  },
+  "provenance": {
+    "source": "CANONICAL_PROJECT_FERRARI_GELATO_REALISTIC_INPUT_DOGFOOD_V1",
+    "canonical_head_at_normalization": "b7dcaa661616e91c8a7ff546ab9aecebfc147123",
+    "rule": "Only inputs already marked OPERATOR_CONFIRMED in the canonical Gelato dogfood are normalized here."
+  },
+  "facts": [
+    {
+      "field_path": "business.name",
+      "value": "Gelato Donatello",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.products",
+      "value": [
+        "Eis",
+        "Eisbecher",
+        "Spaghetti-Eis",
+        "Shakes",
+        "Joghurt",
+        "Kinderangebote",
+        "Eistorten",
+        "Eisbomben",
+        "Eisvitrinen-Vermietung"
+      ],
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.pricing",
+      "value": {
+        "kugel_eis_eur": 1.6,
+        "sahne_eur": 1.2,
+        "sosse_eur": 1,
+        "cremes_likoere_eur": 1.5,
+        "eistorten_eur": {
+          "18_cm": 65,
+          "20_cm": 75,
+          "24_cm": 95,
+          "26_cm": 109
+        },
+        "eisbombe_aufschlag_eur": 10,
+        "premiumsorten_aufschlag_eur": 5,
+        "eisvitrine": {
+          "miete_eur": 250,
+          "kaution_eur": 100,
+          "eis_liter": 5,
+          "sorten": 4,
+          "zubehoer_inklusive": true
+        }
+      },
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "products.flavor_count",
+      "value": 40,
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "products.mocca_included",
+      "value": true,
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "website.primary_goal",
+      "value": "Sortiment und bestätigte Preise verständlich präsentieren; externe Kontakt- oder Bestellwege erst nach Customer Confirmation aktivieren.",
+      "verification_status": "OPERATOR_CONFIRMED"
+    }
+  ],
+  "asset_rights": {
+    "source_intake_observed_at": "2026-09-03T21:38:00.191Z",
+    "owned_confirmed_asset_count": 5,
+    "publishable_asset_count": 5,
+    "quality_approval_separate": true
+  },
+  "safety": {
+    "production_deploy": false,
+    "public_launch": false
+  }
+}
