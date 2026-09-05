@@ -118,7 +118,7 @@ export function buildOperatorAiCanonicalExecutionPreparation(brief = {}, context
   }
 
   const runtime = evaluateMissionRuntime(compiled.package, {
-    ...clone(runtimeConfig),
+    ...runtimeConfig,
     customer_id: projectContext.project.customer_id,
     project_id: projectContext.project.project_id,
     require_canonical_execution_binding: true
