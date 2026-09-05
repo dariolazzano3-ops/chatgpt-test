@@ -196,6 +196,8 @@ for(const candidate of candidates){
     entity_match_score:match.score,
     matched_signals:match.signals,
     accepted,
+    project_source_id:ingested.source?.source_id||null,
+    source_role:candidate.source_role,
     facts_ingested:ingested.facts_ingested||0,
     evidence:{
       business_name:evidence.business_name,
