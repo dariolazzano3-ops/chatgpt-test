@@ -94,11 +94,11 @@ async function runViewport(name,viewport){
   assert.equal(await root.locator('[data-human-question="BUSINESS_MODEL"]').count(),0,name);
 
   const contact=root.locator('[data-human-question="CONTACT_DETAILS"]');
-  assert.equal(await contact.getByText('06806 9394980',{exact:false}).isVisible(),true);
-  assert.equal(await contact.getByText('+49 176 200 150 65',{exact:false}).isVisible(),true);
-  assert.equal(await contact.getByText('Hauptstraße 4, 66346 Köllerbach',{exact:false}).isVisible(),true);
-  assert.equal(await contact.getByText('Hauptstraße 4, 66346 Püttlingen',{exact:false}).isVisible(),true);
-  assert.equal(await contact.getByText('fabrizio.lazzano@freenet.de',{exact:false}).isVisible(),true);
+  assert.equal(await contact.getByText('06806 9394980',{exact:false}).first().isVisible(),true);
+  assert.equal(await contact.getByText('+49 176 200 150 65',{exact:false}).first().isVisible(),true);
+  assert.equal(await contact.getByText('Hauptstraße 4, 66346 Köllerbach',{exact:false}).first().isVisible(),true);
+  assert.equal(await contact.getByText('Hauptstraße 4, 66346 Püttlingen',{exact:false}).first().isVisible(),true);
+  assert.equal(await contact.getByText('fabrizio.lazzano@freenet.de',{exact:false}).first().isVisible(),true);
 
   await contact.locator('[data-control-id="phone"] input[type=checkbox]').first().check();
   await contact.locator('[data-control-id="address"] input[type=radio][value="0"]').check();
