@@ -12,6 +12,7 @@ import { handleOperatorDashboard } from "./operator-project-preview-access-v1.js
 import { handleOperatorAiRealInferenceAcceptance } from "./operator-ai/live-acceptance-v1.js";
 import { applyProjectSourceHumanAcceptanceUi, handleProjectSourceHumanAcceptanceApi } from "./operator-project-source-intake-human-acceptance-ui-v1.js";
 import { applyProjectKnowledgeReviewUi, handleProjectKnowledgeReviewApi } from "./operator-project-source-intake-knowledge-review-v1.js";
+import { applyProjectIntakeUxV2, handleProjectIntakeUxV2Api } from "./operator-project-intake-ux-v2.js";
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
@@ -148,12 +149,14 @@ export default {
         throw error;
       }
       const operatorOptions = runtimeService ? { runtime_service: runtimeService } : {};
+      const projectIntakeUxV2Response = await handleProjectIntakeUxV2Api(request, env, ctx, operatorOptions);
+      if (projectIntakeUxV2Response) return projectIntakeUxV2Response;
       const projectKnowledgeReviewResponse = await handleProjectKnowledgeReviewApi(request, env, ctx, operatorOptions);
       if (projectKnowledgeReviewResponse) return projectKnowledgeReviewResponse;
       const projectSourceHumanUxResponse = await handleProjectSourceHumanAcceptanceApi(request, env, ctx, operatorOptions);
       if (projectSourceHumanUxResponse) return projectSourceHumanUxResponse;
       const operatorResponse = await handleOperatorDashboard(request, env, ctx, operatorOptions);
-      if (operatorResponse) return applyOperatorBranding(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse)));
+      if (operatorResponse) return applyOperatorBranding(await applyProjectIntakeUxV2(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse))));
     }
 
     if (url.pathname === "/customer" || url.pathname === "/customer/" || url.pathname.startsWith("/customer/api/")) {
