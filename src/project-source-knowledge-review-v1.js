@@ -1,3 +1,5 @@
+import { buildProjectKnowledgeCatchNet, evaluateProjectFactCatchNet } from './project-source-knowledge-catch-net-v1.js';
+
 const clone = (value) => structuredClone(value ?? null);
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const iso = (value) => clean(value, 80) || new Date().toISOString();
@@ -8,8 +10,10 @@ export const PROJECT_KNOWLEDGE_REVIEW_SECTIONS = Object.freeze([
   { id: 'PRICING', label: 'Preise' },
   { id: 'CONTACT', label: 'Kontakt & Standort' },
   { id: 'OPENING_HOURS', label: 'Öffnungszeiten' },
+  { id: 'TARGET_CUSTOMERS', label: 'Zielgruppen' },
   { id: 'BRAND', label: 'Marke & Gestaltung' },
   { id: 'WEBSITE', label: 'Website-Ziele' },
+  { id: 'SALES_CONVERSION', label: 'Vertrieb & Conversion' },
   { id: 'OPEN_QUESTIONS', label: 'Offene Fragen' },
   { id: 'CONFLICTS', label: 'Widersprüchliche Angaben' },
   { id: 'VISUALS', label: 'Bilder & Medien' },
@@ -35,8 +39,10 @@ function sectionForFact(path = '') {
   if (/^(business\.(name|identity|industry|model)|company\.)/.test(p)) return 'COMPANY';
   if (/(price|pricing|preise)/.test(p)) return 'PRICING';
   if (/(opening_hours|opening\.hours|hours)/.test(p)) return 'OPENING_HOURS';
+  if (/^(target\.|audience\.|business\.target_)/.test(p)) return 'TARGET_CUSTOMERS';
   if (/(phone|email|address|contact|location|region|service_area)/.test(p)) return 'CONTACT';
   if (/^(brand\.|visual\.)/.test(p)) return 'BRAND';
+  if (/^(sales\.|conversion\.)/.test(p) || /^website\.(primary_conversion|secondary_conversion)/.test(p)) return 'SALES_CONVERSION';
   if (/^website\./.test(p)) return 'WEBSITE';
   if (/^(legal\.|business\.legal)/.test(p)) return 'LEGAL';
   if (/(product|service|offering|sortiment|menu|angebot)/.test(p)) return 'OFFERINGS';
@@ -59,6 +65,7 @@ function factLabel(path = '') {
     'content.summary': 'Beschreibung',
     'website.primary_goal': 'Primäres Website-Ziel',
     'website.primary_conversion': 'Primäre Conversion',
+    'target.customers': 'Zielgruppen',
     'brand.positioning': 'Markenpositionierung',
     'brand.tone': 'Tonalität',
     'legal.details': 'Rechtliche Angaben'
@@ -90,6 +97,8 @@ function deterministicItems(state = {}) {
       value: clone(fact.value),
       verification_status: fact.verification_status,
       source_refs: clone(fact.source_refs || []),
+      confidence: Number.isFinite(Number(fact.confidence)) ? Number(fact.confidence) : null,
+      catch_net: evaluateProjectFactCatchNet(state, fact),
       critical: fact.critical === true,
       editable: true
     });
@@ -210,7 +219,7 @@ export function knowledgeUseGate(state = {}) {
 }
 
 export function invalidateProjectKnowledgeApproval(review = null, event = 'PROJECT_KNOWLEDGE_CHANGED', at = null) {
-  if (!review || review.status !== 'APPROVED') return review ? clone(review) : null;
+  if (!review || !['STAGED', 'APPROVED'].includes(review.status)) return review ? clone(review) : null;
   return {
     ...clone(review),
     status: 'CHANGES_PENDING',
@@ -252,6 +261,9 @@ export function prepareProjectKnowledgeReview(state = {}, structure = {}, option
     sections: clone(sections),
     notes: Array.isArray(structure.notes) ? structure.notes.map((note) => clean(note, 500)).filter(Boolean).slice(0, 12) : [],
     review_seen: false,
+    staged_at: null,
+    staged_by: null,
+    staged_knowledge_revision: null,
     approved_at: null,
     approved_by: null,
     approved_knowledge_revision: null,
@@ -283,7 +295,7 @@ function moveReviewItem(review, type, id, targetSectionId) {
 
 export function editProjectKnowledgeReviewItem(state = {}, input = {}, options = {}) {
   if (!validState(state)) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_STATE_REQUIRED' };
-  if (!state.knowledge_review || state.knowledge_review.status === 'APPROVED') return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_REOPEN_REQUIRED' };
+  if (!state.knowledge_review || ['STAGED', 'APPROVED'].includes(state.knowledge_review.status)) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_REOPEN_REQUIRED' };
   const type = clean(input.item_type, 40).toUpperCase();
   const targetId = clean(input.item_id, 240);
   if (!['FACT', 'SOURCE', 'ASSET'].includes(type) || !targetId) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_ITEM_REQUIRED' };
@@ -337,27 +349,34 @@ export function editProjectKnowledgeReviewItem(state = {}, input = {}, options =
   return { ok: true, state: next, review: clone(next.knowledge_review), changed: true, production_deploy: false, external_writes: false };
 }
 
-export function approveProjectKnowledgeReview(state = {}, input = {}, options = {}) {
+export function stageProjectKnowledgeReview(state = {}, input = {}, options = {}) {
   if (!validState(state)) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_STATE_REQUIRED' };
   if (!state.knowledge_review || !['IN_REVIEW', 'CHANGES_PENDING', 'COLLECTING'].includes(state.knowledge_review.status)) {
     return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_NOT_READY' };
   }
   if (!state.knowledge_review.prepared_at) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_NOT_PREPARED' };
-  const activeItemCount = (state.sources || []).filter((source) => !source.deleted_at).length + (state.facts || []).filter((fact) => !FACT_IGNORED.has(fact.verification_status)).length + (state.assets || []).length;
+  const activeItemCount = (state.sources || []).filter((source) => !source.deleted_at).length
+    + (state.facts || []).filter((fact) => !FACT_IGNORED.has(fact.verification_status)).length
+    + (state.assets || []).length;
   if (!activeItemCount) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_EMPTY' };
-  if (input.review_seen !== true || input.approval_confirmed !== true) {
-    return { ok: false, error: 'PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED' };
+  if (input.review_seen !== true || input.stage_confirmed !== true) {
+    return { ok: false, error: 'PROJECT_KNOWLEDGE_STAGE_EXPLICIT_CONFIRMATION_REQUIRED' };
   }
-  const conflicts = (state.facts || []).filter((fact) => fact.verification_status === 'SOURCE_CONFLICT');
-  if (conflicts.length) {
-    return { ok: false, error: 'PROJECT_KNOWLEDGE_CONFLICTS_MUST_BE_RESOLVED', conflict_fact_ids: conflicts.map((fact) => fact.fact_id) };
+  const catchNet = buildProjectKnowledgeCatchNet(state);
+  if (!catchNet.clear) {
+    return {
+      ok: false,
+      error: 'PROJECT_KNOWLEDGE_CATCH_NET_REVIEW_REQUIRED',
+      unresolved_fact_ids: catchNet.unresolved_fact_ids,
+      catch_net: catchNet
+    };
   }
+
   const at = iso(options.at);
   const actor = clean(options.actor_id, 240) || state.operator_id || 'operator';
-  const next = mutateReviewState(state, 'PROJECT_KNOWLEDGE_APPROVED_FOR_USE', actor, at, true);
+  const next = mutateReviewState(state, 'PROJECT_KNOWLEDGE_STAGED', actor, at, true);
   next.facts = (next.facts || []).map((fact) => {
-    if (FACT_IGNORED.has(fact.verification_status)) return fact;
-    if (FACT_CONFIRMED.has(fact.verification_status)) return fact;
+    if (FACT_IGNORED.has(fact.verification_status) || FACT_CONFIRMED.has(fact.verification_status)) return fact;
     return {
       ...fact,
       verification_status: 'OPERATOR_CONFIRMED',
@@ -367,8 +386,81 @@ export function approveProjectKnowledgeReview(state = {}, input = {}, options = 
       updated_at: at
     };
   });
-  next.sources = (next.sources || []).map((source) => source.deleted_at ? source : { ...source, knowledge_approved: true, knowledge_approved_at: at });
-  next.assets = (next.assets || []).map((asset) => ({ ...asset, knowledge_approved: true, knowledge_approved_at: at }));
+  next.sources = (next.sources || []).map((source) => source.deleted_at ? source : {
+    ...source,
+    knowledge_staged: true,
+    knowledge_staged_at: at
+  });
+  next.assets = (next.assets || []).map((asset) => ({
+    ...asset,
+    knowledge_staged: true,
+    knowledge_staged_at: at
+  }));
+  next.knowledge_review = {
+    ...clone(state.knowledge_review),
+    status: 'STAGED',
+    gate_active: true,
+    review_seen: true,
+    staged_at: at,
+    staged_by: actor,
+    staged_knowledge_revision: next.knowledge_revision,
+    approved_at: null,
+    approved_by: null,
+    approved_knowledge_revision: null,
+    invalidated_at: null,
+    invalidated_by_event: null
+  };
+  next.knowledge_review.sections = normalizeSections(next, next.knowledge_review);
+  return {
+    ok: true,
+    state: next,
+    review: clone(next.knowledge_review),
+    staged_fact_count: next.facts.filter((fact) => FACT_CONFIRMED.has(fact.verification_status)).length,
+    staged_asset_count: next.assets.filter((asset) => asset.knowledge_staged === true).length,
+    catch_net: buildProjectKnowledgeCatchNet(next),
+    changed: true,
+    production_deploy: false,
+    external_writes: false
+  };
+}
+
+export function approveProjectKnowledgeReview(state = {}, input = {}, options = {}) {
+  if (!validState(state)) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_STATE_REQUIRED' };
+  if (!state.knowledge_review || state.knowledge_review.status !== 'STAGED') {
+    return { ok: false, error: 'PROJECT_KNOWLEDGE_MUST_BE_STAGED_BEFORE_APPROVAL' };
+  }
+  if (!state.knowledge_review.staged_at || !state.knowledge_review.staged_knowledge_revision) {
+    return { ok: false, error: 'PROJECT_KNOWLEDGE_STAGE_REQUIRED' };
+  }
+  if (Number(state.knowledge_review.staged_knowledge_revision) !== Number(state.knowledge_revision)) {
+    return { ok: false, error: 'PROJECT_KNOWLEDGE_STAGE_STALE' };
+  }
+  if (input.review_seen !== true || input.approval_confirmed !== true) {
+    return { ok: false, error: 'PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED' };
+  }
+  const catchNet = buildProjectKnowledgeCatchNet(state);
+  if (!catchNet.clear) {
+    return {
+      ok: false,
+      error: 'PROJECT_KNOWLEDGE_CATCH_NET_REVIEW_REQUIRED',
+      unresolved_fact_ids: catchNet.unresolved_fact_ids,
+      catch_net: catchNet
+    };
+  }
+
+  const at = iso(options.at);
+  const actor = clean(options.actor_id, 240) || state.operator_id || 'operator';
+  const next = mutateReviewState(state, 'PROJECT_KNOWLEDGE_APPROVED_FOR_USE', actor, at, false);
+  next.sources = (next.sources || []).map((source) => source.deleted_at ? source : {
+    ...source,
+    knowledge_approved: true,
+    knowledge_approved_at: at
+  });
+  next.assets = (next.assets || []).map((asset) => ({
+    ...asset,
+    knowledge_approved: true,
+    knowledge_approved_at: at
+  }));
   next.knowledge_review = {
     ...clone(state.knowledge_review),
     status: 'APPROVED',
@@ -415,32 +507,40 @@ export function buildProjectKnowledgeReviewView(state = {}) {
   const review = state.knowledge_review ? clone(state.knowledge_review) : null;
   const sections = review?.sections?.length ? normalizeSections(state, review) : deterministic.sections;
   const gate = knowledgeUseGate(state);
+  const catchNet = buildProjectKnowledgeCatchNet(state);
+  const status = review?.status || 'NOT_STARTED';
   return {
     ok: true,
     schema: 'aurentara.project-knowledge-review-view.v1',
-    status: review?.status || 'NOT_STARTED',
+    status,
     gate,
     stages: [
-      { id: 'COLLECT', label: '1. Wäschekorb', complete: (state.sources || []).some((source) => !source.deleted_at) },
-      { id: 'ORGANIZE', label: '2. KI sortiert', complete: Boolean(review?.prepared_at) },
-      { id: 'REVIEW', label: '3. Prüfen & bearbeiten', complete: review?.status === 'APPROVED' || review?.review_seen === true },
-      { id: 'APPROVE', label: '4. Für Nutzung freigeben', complete: review?.status === 'APPROVED' }
+      { id: 'COLLECT', label: '1. Material sammeln', complete: (state.sources || []).some((source) => !source.deleted_at) },
+      { id: 'ORGANIZE', label: '2. KI aufbereiten', complete: Boolean(review?.prepared_at) },
+      { id: 'REVIEW', label: '3. Informationen prüfen', complete: ['STAGED', 'APPROVED'].includes(status) || review?.review_seen === true },
+      { id: 'APPROVE', label: '4. Projektwissen bereitstellen', complete: status === 'APPROVED' }
     ],
     sections,
     available_sections: clone(PROJECT_KNOWLEDGE_REVIEW_SECTIONS),
+    catch_net: catchNet,
     source_count: deterministic.source_count,
     fact_count: deterministic.fact_count,
     asset_count: deterministic.asset_count,
     organized_by: review?.organization_source || null,
     organizer_provider: review?.organizer_provider || null,
     organizer_model: review?.organizer_model || null,
+    staged_at: review?.staged_at || null,
+    staged_by: review?.staged_by || null,
+    staged_knowledge_revision: review?.staged_knowledge_revision || null,
     approved_at: review?.approved_at || null,
     approved_by: review?.approved_by || null,
     approved_knowledge_revision: review?.approved_knowledge_revision || null,
     current_knowledge_revision: Number(state.knowledge_revision || 1),
-    conflict_count: (state.facts || []).filter((fact) => fact.verification_status === 'SOURCE_CONFLICT').length,
+    conflict_count: catchNet.counts.source_conflicts,
     notes: clone(review?.notes || []),
-    review_required: review?.status !== 'APPROVED',
+    review_required: status !== 'APPROVED',
+    project_knowledge_staged: status === 'STAGED',
+    project_knowledge_ready: status === 'APPROVED',
     production_deploy: false,
     external_writes: false
   };
@@ -449,10 +549,13 @@ export function buildProjectKnowledgeReviewView(state = {}) {
 export function projectKnowledgeReviewManifest() {
   return {
     schema: 'aurentara.project-knowledge-review.v1',
-    flow: ['RAW_SOURCE_BASKET', 'AI_ORGANIZATION', 'HUMAN_EDITABLE_REVIEW', 'EXPLICIT_APPROVAL', 'FACTORY_USE'],
+    flow: ['RAW_SOURCE_BASKET', 'AI_EXTRACTION_AND_ORGANIZATION', 'HUMAN_EDITABLE_REVIEW', 'PROJECT_KNOWLEDGE_STAGING', 'EXPLICIT_READY_APPROVAL', 'FACTORY_USE'],
     project_scoped: true,
     hard_usage_gate_after_review_starts: true,
     changes_invalidate_approval: true,
+    catch_net_required_before_staging: true,
+    staging_does_not_unlock_factories: true,
+    project_knowledge_ready_requires_second_explicit_action: true,
     rights_remain_authoritative: true,
     creates_new_factory: false,
     creates_new_provider: false,
