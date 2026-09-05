@@ -183,7 +183,7 @@ const questions = [
       {
         id:'phone',type:'MULTI_CHOICE',label:'Telefon',field_path:'business.phone',
         candidates:phoneCandidates.map((value,index)=>({value,label:value,evidence:index===0?'homepage':'impressum/privacy'})),
-        allow_other:true,materialize_candidates:true,candidate_origin:'EXTRACTED',critical:true
+        allow_other:true,collapse_single:true,materialize_candidates:true,candidate_origin:'EXTRACTED',critical:true
       },
       {
         id:'address',type:'SINGLE_CHOICE',label:'Adresse',field_path:'business.address',
