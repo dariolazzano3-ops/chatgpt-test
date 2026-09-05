@@ -62,6 +62,12 @@ export function effectiveProjectWebsiteUsage(source = {}) {
 }
 
 function sourceAllowsDimension(source = {}, dimension = 'content') {
+  if (source?.source_type === 'IMAGE_VISUAL') {
+    const purpose = enumValue(source.image_purpose, PROJECT_IMAGE_PURPOSES, 'VISUAL_USAGE');
+    if (dimension === 'content') return ['INFORMATION_EXTRACTION', 'BOTH'].includes(purpose);
+    if (dimension === 'design_reference') return ['VISUAL_USAGE', 'BOTH'].includes(purpose);
+    return true;
+  }
   if (!WEBSITE_SOURCE_TYPES.has(source?.source_type)) return true;
   return effectiveProjectWebsiteUsage(source).effective_usage?.[dimension] === true;
 }
