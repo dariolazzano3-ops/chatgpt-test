@@ -6,6 +6,7 @@ on:
       - factory/project-ferrari-system-wide-preview-access-v2
       - factory/project-ferrari-preview-discovery-scope-route-fix-v2
       - factory/project-ferrari-build-time-preview-index-v1
+      - factory/project-ferrari-preview-style-bundle-v1
       - factory-control
 
 permissions:
