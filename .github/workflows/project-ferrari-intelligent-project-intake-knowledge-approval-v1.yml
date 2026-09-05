@@ -1,0 +1,54 @@
+name: PROJECT FERRARI Intelligent Project Intake & Knowledge Approval V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/project-source-knowledge-review-v1.js'
+      - 'src/project-source-knowledge-organizer-v1.js'
+      - 'src/operator-project-source-intake-knowledge-review-v1.js'
+      - 'src/project-source-intake-v1.js'
+      - 'src/project-source-workspace-intake-v1.js'
+      - 'src/operator-project-source-intake-workspace-v1.js'
+      - 'src/operator-project-source-intake-storage-dashboard-v1.js'
+      - 'src/entry.js'
+      - 'scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs'
+      - '.github/workflows/project-ferrari-intelligent-project-intake-knowledge-approval-v1.yml'
+  push:
+    branches: [factory-control]
+    paths:
+      - 'src/project-source-knowledge-review-v1.js'
+      - 'src/project-source-knowledge-organizer-v1.js'
+      - 'src/operator-project-source-intake-knowledge-review-v1.js'
+      - 'src/project-source-intake-v1.js'
+      - 'src/project-source-workspace-intake-v1.js'
+      - 'src/operator-project-source-intake-workspace-v1.js'
+      - 'src/operator-project-source-intake-storage-dashboard-v1.js'
+      - 'src/entry.js'
+      - 'scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs'
+      - '.github/workflows/project-ferrari-intelligent-project-intake-knowledge-approval-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Intelligent intake knowledge approval acceptance
+        run: node scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs
+      - name: Project Source Intake regression
+        run: node scripts/project-source-intake-v1-smoke.mjs
+      - name: Project Source Human Acceptance regression
+        run: node scripts/project-source-human-acceptance-ui-v1-smoke.mjs
+      - name: Project Knowledge Binding repair regression
+        run: node scripts/project-repair-wave2-project-knowledge-binding-smoke.mjs
+      - name: Ferrari Human Input Closure regression
+        run: node scripts/project-ferrari-dashboard-human-input-closure-v1-smoke.mjs
