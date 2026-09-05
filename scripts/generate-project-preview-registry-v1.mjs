@@ -20,6 +20,7 @@ async function readJson(file) {
 }
 
 function projectMeta(raw = {}, dirName = '') {
+  raw = raw && typeof raw === 'object' ? raw : {};
   const nested = raw?.project && typeof raw.project === 'object' ? raw.project : {};
   const workspace = raw?.operator_workspace && typeof raw.operator_workspace === 'object' ? raw.operator_workspace : {};
   const projectId = safeToken(raw.project_id)
