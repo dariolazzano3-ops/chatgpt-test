@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - run: npm install
       - name: Premium dashboard syntax
         run: node --check src/operator-premium-masterdashboard-v1.js
@@ -31,7 +31,19 @@ jobs:
         run: node scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
       - name: Existing knowledge approval regression
         run: node scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs
+      - name: Generate deterministic project preview index
+        run: node scripts/generate-project-preview-index-v1.mjs
       - name: Existing preview access regression
         run: node scripts/project-ferrari-project-scoped-preview-access-v1-smoke.mjs
+      - name: Premium Desktop and iPhone browser acceptance
+        run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
       - name: Operator AI global access regression
         run: node scripts/operator-ai-global-access-v1-smoke.mjs
+
+      - name: Upload premium visual acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-ferrari-premium-masterdashboard-v1-visual-evidence
+          path: artifacts/project-ferrari-premium-masterdashboard-v1
+          if-no-files-found: warn
