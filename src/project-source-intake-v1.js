@@ -120,6 +120,25 @@ export function upsertProjectFact(state = {}, input = {}, options = {}) {
   const next = mutate(state, (effectiveConflicts.length || confirmedPrecedence) ? 'PROJECT_FACT_CONFLICT_DETECTED' : 'PROJECT_FACT_REGISTERED', at, { fact_id: fact.fact_id, field_path: fieldPath, confirmed_precedence_preserved: confirmedPrecedence }); if (effectiveConflicts.length) { const ids = new Set(effectiveConflicts.map((item) => item.fact_id)); next.facts = next.facts.map((item) => ids.has(item.fact_id) ? { ...item, verification_status: 'SOURCE_CONFLICT', version: Number(item.version || 1) + 1, updated_at: at } : item); } next.facts.push(fact); return { ok: true, state: next, fact: clone(fact), changed: true, conflict: conflicts.length > 0, confirmed_precedence_preserved: confirmedPrecedence };
 }
 
+export function annotateProjectFactEvidence(state = {}, factId, input = {}, options = {}) {
+  const scope = assertScope(state, input);
+  if (!scope.ok) return scope;
+  const idValue = clean(factId || input.fact_id, 200);
+  const target = (state.facts || []).find((fact) => fact.fact_id === idValue);
+  if (!target) return { ok: false, error: 'PROJECT_FACT_NOT_FOUND' };
+  const classification = clean(input.evidence_classification, 80).toUpperCase() || target.evidence_classification || null;
+  const confidence = Number.isFinite(Number(input.confidence)) ? Math.max(0, Math.min(1, Number(input.confidence))) : target.confidence;
+  const corroboration = input.corroboration && typeof input.corroboration === 'object' ? clone(input.corroboration) : target.corroboration || null;
+  const at = iso(options.at || input.at);
+  if (classification === target.evidence_classification && confidence === target.confidence && JSON.stringify(corroboration) === JSON.stringify(target.corroboration || null)) {
+    return { ok: true, state: clone(state), fact: clone(target), changed: false };
+  }
+  const next = mutate(state, 'PROJECT_FACT_EVIDENCE_ANNOTATED', at, { fact_id: target.fact_id, field_path: target.field_path, evidence_classification: classification }, { knowledge_change: false });
+  const updated = { ...target, evidence_classification: classification, confidence, corroboration, version: Number(target.version || 1) + 1, updated_at: at };
+  next.facts = next.facts.map((fact) => fact.fact_id === target.fact_id ? updated : fact);
+  return { ok: true, state: next, fact: clone(updated), changed: true };
+}
+
 export function reviewProjectFact(state = {}, factId, decision = {}, options = {}) { const scope = assertScope(state); if (!scope.ok) return scope; const target = (state.facts || []).find((fact) => fact.fact_id === clean(factId, 200)); if (!target) return { ok: false, error: 'PROJECT_FACT_NOT_FOUND' }; const verification = enumValue(decision.verification_status || decision.status, FACT_VERIFICATION, null); if (!['OPERATOR_CONFIRMED', 'CUSTOMER_CONFIRMED', 'VERIFIED', 'REJECTED', 'OUTDATED'].includes(verification)) return { ok: false, error: 'PROJECT_FACT_REVIEW_STATUS_INVALID' }; const at = iso(options.at || decision.at); const next = mutate(state, 'PROJECT_FACT_REVIEWED', at, { fact_id: target.fact_id, field_path: target.field_path }); next.facts = next.facts.map((fact) => { if (fact.fact_id === target.fact_id) return { ...fact, verification_status: verification, verified_by: clean(decision.verified_by, 200) || state.operator_id || null, verified_at: ['REJECTED', 'OUTDATED'].includes(verification) ? null : at, version: Number(fact.version || 1) + 1, updated_at: at }; if (USABLE_FACT_STATES.has(verification) && fact.field_path === target.field_path && normalizedValue(fact.value) !== normalizedValue(target.value) && fact.verification_status === 'SOURCE_CONFLICT') return { ...fact, verification_status: 'REJECTED', version: Number(fact.version || 1) + 1, updated_at: at }; return fact; }); return { ok: true, state: next, fact: clone(next.facts.find((fact) => fact.fact_id === target.fact_id)), changed: true }; }
 
 export function recordProjectHumanDecision(state = {}, input = {}, options = {}) {
@@ -207,4 +226,4 @@ export function evaluatePremiumDiscoveryReadiness(state = {}, input = {}) {
     research_policy:{extracted_or_inferred_may_support_market_competitor_search_decisions:true,unverified_research_may_become_customer_fact:false,unverified_research_may_become_trust_claim:false},critical_customer_facts_verified_only:true,unverified_critical_fact_count:unverifiedCritical.length,rights_and_asset_quality_separate:true,production_deploy:false,paid_provider_calls:0}};
 }
 
-export function projectSourceIntakeManifest() { return { schema: 'aurentara.project-source-intake.v1', version: '1.3', contracts: ['ProjectSource', 'WebsiteUsage', 'ProjectFact', 'ProjectAsset', 'ContentPack', 'VisualPack', 'ContentReadinessSnapshot', 'PremiumDiscoveryReadinessProjection', 'HumanDecision'], public_web_source_metadata: true, fact_provenance_snapshots: true, confirmed_fact_precedence_for_external_candidates: true, project_scope_enforced: true, opaque_existing_scope_key: true, deterministic_readiness: true, critical_conflicts_auto_resolved: false, reference_assets_publishable_by_default: false, website_usage_effective_rights_matrix: true, binary_data_in_runtime_json: false, paid_provider_calls: 0, variable_cost_eur: 0, production_deploy: false }; }
+export function projectSourceIntakeManifest() { return { schema: 'aurentara.project-source-intake.v1', version: '1.3', contracts: ['ProjectSource', 'WebsiteUsage', 'ProjectFact', 'ProjectAsset', 'ContentPack', 'VisualPack', 'ContentReadinessSnapshot', 'PremiumDiscoveryReadinessProjection', 'HumanDecision', 'FactEvidenceAnnotation'], public_web_source_metadata: true, fact_provenance_snapshots: true, confirmed_fact_precedence_for_external_candidates: true, project_scope_enforced: true, opaque_existing_scope_key: true, deterministic_readiness: true, critical_conflicts_auto_resolved: false, reference_assets_publishable_by_default: false, website_usage_effective_rights_matrix: true, binary_data_in_runtime_json: false, paid_provider_calls: 0, variable_cost_eur: 0, production_deploy: false }; }
