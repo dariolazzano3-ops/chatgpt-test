@@ -40,6 +40,25 @@ try{
   browser=await chromium.launch({headless:true,channel:'chrome'});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   page.on('pageerror',e=>errors.push(String(e)));
+
+  const initialSnapshotProbe=await page.request.get(origin+'/operator/api/snapshot');
+  assert.equal(initialSnapshotProbe.status(),200,'local canonical runtime snapshot must be available');
+  const initialSnapshot=await initialSnapshotProbe.json();
+  const initialRevision=Number(initialSnapshot?.runtime?.revision);
+  assert.equal(Number.isInteger(initialRevision),true,'local canonical runtime revision must be available');
+  const gelatoCreate=await page.request.post(origin+'/operator/api/projects/create',{data:{
+    expected_revision:initialRevision,
+    customer_id:'gelato-donatello',
+    project_id:'gelato-donatello-website-v1',
+    scope_key:'gelato-donatello:gelato-donatello-website-v1',
+    business_name:'Gelato Donatello',
+    industry:'gelateria',
+    country:'DE',
+    language:'de',
+    mission_context:'PROJECT FERRARI deterministic local browser dogfood through the canonical CREATE_PROJECT runtime contract.'
+  }});
+  assert.ok([200,201].includes(gelatoCreate.status()),'Gelato canonical local runtime project must be created or already exist');
+
   await page.goto(origin+'/operator',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!document.body.classList.contains('loading'));
   await page.locator('[data-goto="projects"]').first().click();
@@ -56,7 +75,29 @@ try{
   const projectsPayload=await projectsProbe.json();
   const portfolioRows=(projectsPayload.items||[]).map(p=>({scope_key:p.scope_key,project_id:p.project_id,customer_id:p.customer_id,name:p.name,runtime_registration:p.runtime_registration||null}));
   const renderedOpeners=await page.locator('.pm-list .pm-open').evaluateAll(nodes=>nodes.map(n=>({scope_key:n.dataset.scope||'',label:(n.textContent||'').trim()})));
-  const gelato=page.locator('.pm-list .pm-open[data-scope*="gelato-donatello"]').first();
+  const renderedOpenableScopes=new Set(renderedOpeners.map(item=>item.scope_key).filter(Boolean));
+  const openableRows=(projectsPayload.items||[]).filter(p=>p.project_detail_openable===true);
+  const nonOpenableRows=(projectsPayload.items||[]).filter(p=>p.project_detail_openable===false);
+  assert.ok(openableRows.length>0,'Premium portfolio must contain at least one canonical project-detail-openable row');
+  for(const project of openableRows){
+    assert.ok(project.scope_key,'every openable Premium project must have a non-empty scope_key');
+    const probe=await page.request.get(origin+'/operator/api/project-detail/'+encodeURIComponent(project.scope_key));
+    assert.equal(probe.status(),200,'openable Premium project detail must return 200: '+project.scope_key);
+    const detail=await probe.json();
+    assert.equal(detail?.project?.scope_key,project.scope_key,'project detail scope must match requested Premium scope: '+project.scope_key);
+    assert.equal(renderedOpenableScopes.has(project.scope_key),true,'openable Premium project must render an open action: '+project.scope_key);
+  }
+  for(const project of nonOpenableRows){
+    assert.equal(renderedOpenableScopes.has(project.scope_key),false,'non-openable Premium project must not render project-detail open action: '+project.scope_key);
+  }
+  const gelatoProject=(projectsPayload.items||[]).find(p=>p.scope_key==='gelato-donatello:gelato-donatello-website-v1');
+  assert.ok(gelatoProject,'Gelato Donatello must be present in deterministic local browser dogfood');
+  assert.equal(gelatoProject.project_detail_openable,true,'Gelato Donatello must be marked project-detail-openable');
+  const gelatoDetailProbe=await page.request.get(origin+'/operator/api/project-detail/'+encodeURIComponent(gelatoProject.scope_key));
+  assert.equal(gelatoDetailProbe.status(),200,'Gelato Donatello project detail must return 200');
+  const gelatoDetail=await gelatoDetailProbe.json();
+  assert.equal(gelatoDetail?.project?.scope_key,gelatoProject.scope_key,'Gelato Donatello detail must preserve canonical scope_key');
+  const gelato=page.locator('.pm-list .pm-open[data-scope="gelato-donatello:gelato-donatello-website-v1"]').first();
   const scoped=page.locator('.pm-list .pm-open').filter({has:page.locator('xpath=self::*[@data-scope and string-length(@data-scope)>0]')}).first();
   const opener=await gelato.count()?gelato:scoped;
   const chosenScope=await opener.getAttribute('data-scope');
@@ -80,6 +121,7 @@ try{
     throw new Error('Premium workspace did not open. scope='+chosenScope+' pageErrors='+JSON.stringify(errors)+' errorSurface='+JSON.stringify(await page.locator('#error').innerText().catch(()=>''))+' projects='+JSON.stringify((await page.locator('#projects').innerText()).slice(0,1800)));
   }
   assert.equal(await page.locator('.pm-next').isVisible(),true);
+  assert.match(await page.locator('.pm-workspace-head').innerText(),/Gelato Donatello/i,'Gelato Donatello canonical scope must open the Premium workspace');
   for(const label of ['Übersicht','Quellen','Projektwissen','Umsetzung','Preview','Prüfungen','Aktivität']){
     assert.equal(await page.getByRole('button',{name:label,exact:true}).count()>0,true,'missing project tab '+label);
   }

@@ -399,9 +399,10 @@ async function customApi(service, operatorId, path, request, body) {
     if (!base.ok) return { status: base.status || 500, body: base.body };
     const items = (base.body?.items || []).map((project) => {
       const detail = buildOperatorProjectDetail({ runtime, scope_key: project.scope_key, pending_plans: pending, ui_audit: uiAudit });
-      if (!detail.ok) return project;
+      if (!detail.ok) return { ...project, project_detail_openable: false };
       return {
         ...project,
+        project_detail_openable: true,
         mission_status: detail.project.mission_status,
         progress_percent: detail.project.progress_percent,
         current_cost_eur: detail.project.current_cost_eur,

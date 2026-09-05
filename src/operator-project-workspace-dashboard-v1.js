@@ -194,7 +194,10 @@ async function decorateProjectsResponse(response, env) {
         reality: 'REPOSITORY_ACCEPTED_RC',
         filter_tags: ['active', 'staging', 'workspace'],
         preview_status: previewUrl(env) ? 'AVAILABLE' : 'NOT_AVAILABLE',
-        runtime_registration: 'PENDING_UNTIL_PREFLIGHT'
+        runtime_registration: 'PENDING_UNTIL_PREFLIGHT',
+        project_detail_openable: false,
+        project_open_contract: 'DEDICATED_PROJECT_WORKSPACE',
+        project_workspace_route: `/operator/workspace/${encodeURIComponent(entry.scope_key)}`
       });
     }
     return json({ ...body, items, project_workspace_v1: true, production_deploy: false });
