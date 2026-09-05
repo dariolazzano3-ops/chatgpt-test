@@ -27,6 +27,7 @@ export const PROJECT_SOURCE_PREVIEW_MIME_TYPES = Object.freeze([
   'text/plain'
 ]);
 const PROJECT_SOURCE_PREVIEW_MIME_SET = new Set(PROJECT_SOURCE_PREVIEW_MIME_TYPES);
+const PROJECT_SOURCE_AI_TEXT_MIME_SET = new Set(['text/plain', 'text/markdown', 'text/csv', 'application/json']);
 
 export const PROJECT_SOURCE_MANUAL_CATEGORIES = Object.freeze([
   { id: 'OFFERING', label: 'Leistung / Angebot', field_path: 'business.offerings' },
@@ -150,7 +151,14 @@ async function handleUpload(request, env, service, options = {}) {
 
   let state = read.body.state;
   const intakeItems = [];
-  for (const item of uploaded.items) {
+  for (let index = 0; index < uploaded.items.length; index += 1) {
+    const item = uploaded.items[index];
+    const originalFile = files[index] || null;
+    const mimeType = clean(item.mime_type || originalFile?.type, 180).toLowerCase();
+    let extractedText = '';
+    if (item.kind !== 'image' && originalFile && PROJECT_SOURCE_AI_TEXT_MIME_SET.has(mimeType) && Number(originalFile.size || 0) <= 200_000) {
+      try { extractedText = clean(await originalFile.text(), 100_000); } catch { extractedText = ''; }
+    }
     const common = {
       source_id: item.source_id,
       filename: item.filename,
@@ -163,13 +171,13 @@ async function handleUpload(request, env, service, options = {}) {
     };
     const integrated = item.kind === 'image'
       ? intakeImageSource(state, { ...common, asset_id: `asset_${item.source_id}`, rights_status: rights, usage_role: usageRole, publishable: PUBLISHABLE_RIGHTS.has(rights) })
-      : intakeFileSource(state, common);
+      : intakeFileSource(state, { ...common, extracted_text: extractedText });
     if (!integrated.ok) {
       await rollback(storage, uploaded.items, read.body.identity);
       return json({ ...integrated, storage_rollback: true, production_deploy: false }, 400);
     }
     state = integrated.state;
-    intakeItems.push({ source: integrated.source, asset: integrated.asset || null, parser_status: integrated.parser_status || null, storage: item });
+    intakeItems.push({ source: integrated.source, asset: integrated.asset || null, parser_status: integrated.parser_status || null, text_available_for_structuring: Boolean(extractedText), storage: item });
   }
 
   let replacement = null;
@@ -196,7 +204,7 @@ async function handleUpload(request, env, service, options = {}) {
   const latest = await loadIntake(service, scopeKey);
   return json({
     ok: true,
-    items: intakeItems.map((item) => ({ source: item.source, asset: item.asset, parser_status: item.parser_status, storage_ref: item.storage.storage_ref, filename_was_sanitized: item.storage.filename_was_sanitized })),
+    items: intakeItems.map((item) => ({ source: item.source, asset: item.asset, parser_status: item.parser_status, text_available_for_structuring: item.text_available_for_structuring, storage_ref: item.storage.storage_ref, filename_was_sanitized: item.storage.filename_was_sanitized })),
     replacement,
     workspace: latest.ok ? workspacePayload(latest.body).workspace : null,
     runtime_revision: saved.body.runtime_revision,
