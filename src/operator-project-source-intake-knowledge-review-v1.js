@@ -2,12 +2,14 @@ import { authorizeOperator } from './operator-dashboard-http-v1.js';
 import {
   prepareProjectKnowledgeReview,
   editProjectKnowledgeReviewItem,
+  stageProjectKnowledgeReview,
   approveProjectKnowledgeReview,
   reopenProjectKnowledgeReview,
   buildProjectKnowledgeReviewView
 } from './project-source-knowledge-review-v1.js';
 import { organizeProjectKnowledgeWithAi } from './project-source-knowledge-organizer-v1.js';
 import { extractProjectImageKnowledgeWithVision } from './project-source-image-vision-extraction-v1.js';
+import { extractProjectTextKnowledgeWithAi } from './project-source-text-knowledge-extraction-v1.js';
 import { reviewProjectFact } from './project-source-intake-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
@@ -15,6 +17,7 @@ const ROUTES = new Set([
   '/operator/api/project-source-intake/review/prepare',
   '/operator/api/project-source-intake/review/item',
   '/operator/api/project-source-intake/review/fact-decision',
+  '/operator/api/project-source-intake/review/stage',
   '/operator/api/project-source-intake/review/approve',
   '/operator/api/project-source-intake/review/reopen'
 ]);
@@ -91,10 +94,27 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
       }, 400);
     }
 
+    const extractText = typeof options.text_knowledge_extractor === 'function'
+      ? options.text_knowledge_extractor
+      : extractProjectTextKnowledgeWithAi;
+    const textExtraction = await extractText(vision.state, env, {
+      allow_paid_inference: body.allow_ai === true,
+      fetch_impl: options.text_knowledge_fetch_impl
+    });
+    if (!textExtraction.ok || !textExtraction.state) {
+      return json({
+        error: textExtraction.error || 'PROJECT_TEXT_KNOWLEDGE_EXTRACTION_FAILED',
+        image_vision: vision,
+        text_extraction: textExtraction,
+        production_deploy: false,
+        external_writes: false
+      }, 400);
+    }
+
     const organize = typeof options.knowledge_organizer === 'function'
       ? options.knowledge_organizer
       : organizeProjectKnowledgeWithAi;
-    const organized = await organize(vision.state, env, {
+    const organized = await organize(textExtraction.state, env, {
       allow_paid_inference: body.allow_ai === true,
       fetch_impl: options.knowledge_organizer_fetch_impl
     });
@@ -103,10 +123,11 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
         error: organized.error || 'PROJECT_KNOWLEDGE_ORGANIZATION_FAILED',
         organizer: organized,
         image_vision: vision,
+        text_extraction: textExtraction,
         production_deploy: false
       }, 400);
     }
-    const prepared = prepareProjectKnowledgeReview(vision.state, {
+    const prepared = prepareProjectKnowledgeReview(textExtraction.state, {
       ...organized.structure,
       ai_used: organized.ai_used === true,
       provider: organized.provider || organized.structure.provider,
@@ -129,6 +150,17 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
         model: vision.model || null,
         results: Array.isArray(vision.results) ? vision.results : []
       },
+      text_extraction: {
+        requested_source_count: Number(textExtraction.requested_source_count || 0),
+        extracted_source_count: Number(textExtraction.extracted_source_count || 0),
+        skipped_source_count: Number(textExtraction.skipped_source_count || 0),
+        extracted_fact_count: Number(textExtraction.extracted_fact_count || 0),
+        paid_provider_calls: Number(textExtraction.paid_provider_calls || 0),
+        estimated_cost_usd: Number(textExtraction.estimated_cost_usd || 0),
+        provider: textExtraction.provider || null,
+        model: textExtraction.model || null,
+        results: Array.isArray(textExtraction.results) ? textExtraction.results : []
+      },
       organizer: {
         status: organized.status,
         ai_used: organized.ai_used === true,
@@ -140,6 +172,7 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
       },
       runtime_revision: saved.body.runtime_revision,
       gate_active: true,
+      factories_may_use_approved_knowledge: false,
       production_deploy: false,
       external_writes: false
     }, 201);
@@ -180,6 +213,28 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
       review: buildProjectKnowledgeReviewView(edited.state),
       runtime_revision: saved.body.runtime_revision,
       gate_active: true,
+      production_deploy: false,
+      external_writes: false
+    });
+  }
+
+  if (url.pathname.endsWith('/stage')) {
+    const staged = stageProjectKnowledgeReview(read.body.state, {
+      review_seen: body.review_seen === true,
+      stage_confirmed: body.stage_confirmed === true
+    }, { actor_id: actorId });
+    if (!staged.ok) return json(staged, 400);
+    const saved = await save(service, read, staged.state, 'PROJECT_KNOWLEDGE_STAGED');
+    if (!saved.ok) return json(saved.body, saved.status || 409);
+    return json({
+      ok: true,
+      review: buildProjectKnowledgeReviewView(staged.state),
+      staged_fact_count: staged.staged_fact_count,
+      staged_asset_count: staged.staged_asset_count,
+      catch_net: staged.catch_net,
+      runtime_revision: saved.body.runtime_revision,
+      gate_active: true,
+      factories_may_use_approved_knowledge: false,
       production_deploy: false,
       external_writes: false
     });
