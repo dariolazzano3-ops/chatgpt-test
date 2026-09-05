@@ -37,12 +37,19 @@ function activationText(row = {}) {
 }
 
 function matrixConnection(row = {}) {
+  const explicit = clean(row.connection_state, 120).toUpperCase();
+  if (['CONNECTED_STAGING','READ_ONLY_VERIFIED','NOT_CONNECTED'].includes(explicit)) return explicit;
   const text = activationText(row);
   if (!text) return 'NOT_CONNECTED';
+  if (text.includes('historical_read_only_connection_evidence')) return 'CONNECTED_STAGING';
+  if (text.includes('historical_connected_staging_evidence')) return 'CONNECTED_STAGING';
+  if (text.includes('historical_staging_execution_evidence')) return 'CONNECTED_STAGING';
+  if (text.includes('historical_read_and_staging')) return 'CONNECTED_STAGING';
+  if (text.includes('historical_staging_inference_evidence')) return 'CONNECTED_STAGING';
   if (text.includes('live_staging_verified') || text.includes('staging_deploy_verified') || text.includes('staging_write_verified') || text.includes('staging_analytics_verified') || text.includes('live_read_and_staging')) return 'CONNECTED_STAGING';
-  if (text.includes('permission_required') || text.includes('credential') || text.includes('budget_gate')) return 'NOT_CONNECTED';
+  if (text.includes('permission_required') || text.includes('credential')) return 'NOT_CONNECTED';
   if (text.includes('verification_incomplete') || text.includes('only_if_')) return 'NOT_CONNECTED';
-  if (text.includes('live_read_verified')) return 'READ_ONLY_VERIFIED';
+  if (text.includes('live_read_verified') || text.includes('historical_read_evidence')) return 'READ_ONLY_VERIFIED';
   return 'NOT_CONNECTED';
 }
 
@@ -56,21 +63,8 @@ function providerConfigured(provider = {}, evidence = {}, connection = 'NOT_CONN
 }
 
 function providerExecutable(evidence = {}) {
-  if (!evidence || typeof evidence !== 'object') return false;
-  const explicit = [
-    evidence.staging_deploy_verified,
-    evidence.staging_inference_verified,
-    evidence.staging_write_verified,
-    evidence.staging_analytics_verified
-  ].some((value) => value === true);
-  if (explicit) return true;
-  const text = activationText(evidence);
-  if (text.includes('read_only') || text.includes('read-only')) return false;
-  return text === 'live_staging_verified'
-    || text.includes('staging_deploy_verified')
-    || text.includes('staging_write_verified')
-    || text.includes('staging_analytics_verified')
-    || text.includes('live_staging_inference_verified');
+  return evidence?.runtime_truth?.current_runtime_verified === true
+    || evidence?.current_runtime_verified === true;
 }
 
 function providerPresentationGroup({ availability, connection, configured, executable, evidence = {} } = {}) {
@@ -90,12 +84,16 @@ export function buildProviderEcosystemProjection() {
   const providers = asArray(inventory.providers).map((provider) => {
     const evidence = matrixById.get(provider.id) || null;
     const connection = evidence ? matrixConnection(evidence) : 'NOT_CONNECTED';
-    const activeRuntime = provider.runtime_eligible !== false && ['CONNECTED_STAGING', 'READ_ONLY_VERIFIED'].includes(connection);
-    const verification = connection === 'CONNECTED_STAGING'
-      ? 'VERIFIED_STAGING'
-      : connection === 'READ_ONLY_VERIFIED'
-        ? 'VERIFIED_READ_ONLY'
-        : provider.verification === 'EVIDENCE_DRIVEN' ? 'NOT_VERIFIED' : (provider.verification || 'NOT_CONNECTED');
+    const runtimeTruth = evidence?.runtime_truth || provider.runtime_truth || null;
+    const currentRuntimeVerified = runtimeTruth?.current_runtime_verified === true || evidence?.current_runtime_verified === true;
+    const activeRuntime = provider.runtime_eligible !== false && currentRuntimeVerified;
+    const verification = currentRuntimeVerified
+      ? 'CURRENT_RUNTIME_VERIFIED'
+      : connection === 'CONNECTED_STAGING'
+        ? 'HISTORICAL_VERIFIED_STAGING'
+        : connection === 'READ_ONLY_VERIFIED'
+          ? 'HISTORICAL_VERIFIED_READ_ONLY'
+          : provider.verification === 'EVIDENCE_DRIVEN' ? 'NOT_VERIFIED' : (provider.verification || 'NOT_CONNECTED');
     const configured = providerConfigured(provider, evidence || {}, connection);
     const executable = providerExecutable(evidence || {}) ? 'VERIFIED_STAGING' : (connection === 'NOT_CONNECTED' ? 'NOT_CONNECTED' : 'NOT_VERIFIED');
     const productionCapable = provider.production_eligible === true ? 'VERIFIED' : provider.production_eligible === false ? 'BLOCKED' : 'NOT_VERIFIED';
@@ -118,6 +116,8 @@ export function buildProviderEcosystemProjection() {
       restrictions: clone(provider.restrictions || []),
       runtime_eligible: provider.runtime_eligible !== false,
       active_runtime: activeRuntime,
+      current_runtime_verified: currentRuntimeVerified,
+      runtime_truth: clone(runtimeTruth),
       capabilities: clone(provider.capabilities || []),
       cost_mode: provider.cost_mode || 'UNKNOWN',
       evidence: evidence ? clone(evidence) : null,
@@ -127,7 +127,7 @@ export function buildProviderEcosystemProjection() {
         available: provider.availability || 'NOT_VERIFIED',
         configured,
         connected: connection,
-        staging_verified: connection === 'CONNECTED_STAGING' ? 'VERIFIED_STAGING' : connection === 'READ_ONLY_VERIFIED' ? 'VERIFIED_READ_ONLY' : 'NOT_VERIFIED',
+        staging_verified: currentRuntimeVerified ? 'CURRENT_RUNTIME_VERIFIED' : connection === 'CONNECTED_STAGING' ? 'HISTORICAL_VERIFIED_STAGING' : connection === 'READ_ONLY_VERIFIED' ? 'HISTORICAL_VERIFIED_READ_ONLY' : 'NOT_VERIFIED',
         executable,
         production_capable: productionCapable
       },
@@ -148,7 +148,9 @@ export function buildProviderEcosystemProjection() {
     },
     active_runtime_routes: providers.filter((provider) => provider.active_runtime === true),
     strategic_selection_is_not_technical_connection: true,
+    historical_connection_is_not_current_runtime: true,
     not_connected_never_runtime_eligible: providers.every((provider) => provider.connection_state !== 'NOT_CONNECTED' || provider.active_runtime === false),
+    active_runtime_requires_current_runtime_verification: providers.every((provider) => provider.active_runtime !== true || provider.current_runtime_verified === true),
     paid_provider_activation: false,
     secrets_exposed: false,
     production_deploy: false,
