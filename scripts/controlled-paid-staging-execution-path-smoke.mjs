@@ -73,6 +73,7 @@ assert.equal(blocked.json.project_policy.reserved_eur, 24.5);
 let executorCalls = 0;
 let capturedContract = null;
 const executionHarness = harness(activeProject(), {
+  current_runtime_verified_provider_ids: ['posthog-free'],
   live_staging_executor: async (contract) => {
     executorCalls += 1;
     capturedContract = structuredClone(contract);
