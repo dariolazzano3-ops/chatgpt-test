@@ -37,6 +37,54 @@ const strategic = (input = {}) => ({
   ...input
 });
 
+const truthState = (value, fallback = 'NOT_VERIFIED') => String(value || fallback).trim().toUpperCase();
+
+export function providerRuntimeTruth(providerOrId, options = {}) {
+  const provider = typeof providerOrId === 'string'
+    ? PROVIDERS.find((item) => item.id === providerOrId)
+    : providerOrId;
+  if (!provider) return null;
+
+  const currentRuntimeVerified = new Set(Array.isArray(options.current_runtime_verified_provider_ids)
+    ? options.current_runtime_verified_provider_ids
+    : []);
+  const runtimeVerified = currentRuntimeVerified.has(provider.id);
+  const restrictions = new Set(provider.restrictions || []);
+  const routingEligibility = provider.runtime_eligible === false || provider.routing_ready === false
+    ? 'NOT_ROUTING_ELIGIBLE'
+    : provider.routing_scope === 'specialist_only' || restrictions.has('SPECIALIST_ONLY')
+      ? 'SPECIALIST_ONLY'
+      : 'ELIGIBLE_FOR_ROUTE_EVALUATION';
+  const historicalExecutionEvidence = provider.inference_verified === true
+    || provider.flow_execution_verified === true
+    || provider.staging_write_verified === true
+    || provider.publish_verified === true;
+
+  return {
+    schema: 'riosystems.provider-runtime-truth.v1',
+    provider_id: provider.id,
+    strategic_selection: provider.strategic_state === 'SELECTED' ? 'SELECTED' : 'NOT_SELECTED',
+    connection: truthState(provider.connection_state, provider.verification === 'NOT_CONNECTED' ? 'NOT_CONNECTED' : 'NOT_VERIFIED'),
+    credential: provider.credentials_required === false ? 'NOT_REQUIRED' : truthState(provider.credential_state),
+    verification: truthState(provider.verification),
+    routing_eligibility: routingEligibility,
+    execution_readiness: runtimeVerified
+      ? 'CURRENT_RUNTIME_VERIFIED'
+      : historicalExecutionEvidence
+        ? 'HISTORICAL_EXECUTION_EVIDENCE_REVALIDATION_REQUIRED'
+        : provider.runtime_eligible === true
+          ? 'EXECUTOR_NOT_CURRENTLY_VERIFIED'
+          : 'NOT_EXECUTION_READY',
+    actual_executor_availability: runtimeVerified ? 'CURRENT_RUNTIME_VERIFIED' : 'NOT_CURRENTLY_VERIFIED',
+    production_eligibility: provider.production_eligible === true ? 'ELIGIBLE' : 'NOT_ELIGIBLE',
+    evidence_freshness: provider.verified_at ? 'HISTORICAL_EVIDENCE_REVALIDATION_REQUIRED' : 'NOT_VERIFIED',
+    verified_at: provider.verified_at || null,
+    current_runtime_verified: runtimeVerified,
+    requires_runtime_revalidation: !runtimeVerified,
+    production_deploy: false
+  };
+}
+
 const PROVIDERS = [
   {
     id: 'framer-server-api',
@@ -322,12 +370,13 @@ const PROVIDERS = [
   }
 ];
 
-export function providerActivationInventory() {
+export function providerActivationInventory(options = {}) {
   return {
     schema: 'riosystems.provider-activation-inventory.v1',
     verified_at: VERIFIED_AT,
-    providers: clone(PROVIDERS),
+    providers: PROVIDERS.map((provider) => ({ ...clone(provider), runtime_truth: providerRuntimeTruth(provider, options) })),
     strategic_selection_is_not_runtime_connection: true,
+    historical_evidence_is_not_current_runtime: true,
     pricing_must_be_reverified_before_activation: true,
     secrets_embedded: false,
     production_deploy: false
@@ -348,6 +397,7 @@ export function evaluateProviderActivationInventory(input = {}) {
   const required = [...new Set(Array.isArray(input.required_capabilities) ? input.required_capabilities : [])];
   const accountBindings = new Set(Array.isArray(input.account_bindings) ? input.account_bindings : []);
   const credentialRefs = new Set(Array.isArray(input.credential_refs) ? input.credential_refs : []);
+  const currentRuntimeVerified = new Set(Array.isArray(input.current_runtime_verified_provider_ids) ? input.current_runtime_verified_provider_ids : []);
   const blockers = [];
   const plan = [];
 
@@ -363,6 +413,10 @@ export function evaluateProviderActivationInventory(input = {}) {
     if (!accountBound) blockers.push({ code: 'PROVIDER_ACCOUNT_BINDING_REQUIRED', provider_id: selected.id, capability });
     if (!credentialReady) blockers.push({ code: 'PROVIDER_CREDENTIAL_REFERENCE_REQUIRED', provider_id: selected.id, capability });
     if (selected.external_write && input.external_write_approved !== true) blockers.push({ code: 'EXTERNAL_WRITE_APPROVAL_REQUIRED', provider_id: selected.id, capability });
+    const runtimeTruth = providerRuntimeTruth(selected, { current_runtime_verified_provider_ids: [...currentRuntimeVerified] });
+    if (runtimeTruth?.current_runtime_verified !== true) {
+      blockers.push({ code: 'PROVIDER_CURRENT_RUNTIME_VERIFICATION_REQUIRED', provider_id: selected.id, capability });
+    }
     plan.push({
       capability,
       provider_id: selected.id,
@@ -370,6 +424,7 @@ export function evaluateProviderActivationInventory(input = {}) {
       credential_reference_ready: credentialReady,
       external_write: selected.external_write,
       cost_mode: selected.cost_mode,
+      runtime_truth: runtimeTruth,
       automatic_paid_overflow: false
     });
   }
@@ -377,10 +432,13 @@ export function evaluateProviderActivationInventory(input = {}) {
   return {
     ok: true,
     zero_cost_path_available: !blockers.some((item) => item.code === 'ZERO_COST_PROVIDER_NOT_AVAILABLE'),
+    ready_for_route_resolution: !blockers.some((item) => ['ZERO_COST_PROVIDER_NOT_AVAILABLE','PROVIDER_ACCOUNT_BINDING_REQUIRED','PROVIDER_CREDENTIAL_REFERENCE_REQUIRED','EXTERNAL_WRITE_APPROVAL_REQUIRED'].includes(item.code)),
     ready_for_real_staging: blockers.length === 0,
+    ready_for_execution: blockers.length === 0,
+    readiness_scope: 'CURRENT_RUNTIME_EXECUTOR_REQUIRED',
     plan,
     blockers,
-    user_action_required: blockers.some((item) => ['PROVIDER_ACCOUNT_BINDING_REQUIRED','PROVIDER_CREDENTIAL_REFERENCE_REQUIRED','EXTERNAL_WRITE_APPROVAL_REQUIRED'].includes(item.code)),
+    user_action_required: blockers.some((item) => ['PROVIDER_ACCOUNT_BINDING_REQUIRED','PROVIDER_CREDENTIAL_REFERENCE_REQUIRED','EXTERNAL_WRITE_APPROVAL_REQUIRED','PROVIDER_CURRENT_RUNTIME_VERIFICATION_REQUIRED'].includes(item.code)),
     automatic_paid_overflow: false,
     production_deploy: false
   };
@@ -391,6 +449,8 @@ export function providerActivationInventoryManifest() {
     version: 'riosystems.provider-activation-inventory.v1',
     provider_ecosystem_catalog: true,
     strategic_selection_is_not_runtime_connection: true,
+    historical_evidence_is_not_current_runtime: true,
+    current_runtime_executor_verification_required: true,
     zero_cost_first: true,
     pricing_reverification_required: true,
     paid_overflow_disabled: true,
