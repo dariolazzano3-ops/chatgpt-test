@@ -108,6 +108,8 @@ export async function executeCanonicalProviderRoute(envelope = {}, runtime = {})
         actual_provider: clean(raw?.actual_provider, 120) || null,
         executor_id: clean(raw?.executor_id, 160) || null,
         external_job_id: clean(raw?.external_job_id || raw?.execution_id, 200) || null,
+        actual_cost_eur: Number.isFinite(Number(raw?.actual_cost_eur)) ? Number(raw.actual_cost_eur) : null,
+        evidence: raw?.evidence && typeof raw.evidence === 'object' ? { ...raw.evidence } : null,
         production_deploy: raw?.production_deploy === true
       }
     : {
@@ -119,6 +121,8 @@ export async function executeCanonicalProviderRoute(envelope = {}, runtime = {})
         actual_provider: clean(raw?.actual_provider, 120) || null,
         executor_id: clean(raw?.executor_id, 160) || null,
         external_job_id: clean(raw?.external_job_id || raw?.execution_id, 200) || null,
+        actual_cost_eur: Number.isFinite(Number(raw?.actual_cost_eur)) ? Number(raw.actual_cost_eur) : null,
+        evidence: raw?.evidence && typeof raw.evidence === 'object' ? { ...raw.evidence } : null,
         production_deploy: raw?.production_deploy === true
       };
   const validated = validateAdapterResult(envelope, adapterResult);
