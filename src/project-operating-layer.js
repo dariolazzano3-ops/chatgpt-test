@@ -88,16 +88,106 @@ export function attachProjectMission(project = {}, mission = {}) {
 export function recordProjectDelivery(project = {}, delivery = {}) {
   const deliveryId = clean(delivery.delivery_id || delivery.id, 180);
   if (!deliveryId) return { ok: false, error: 'DELIVERY_ID_REQUIRED' };
+  const existing = (project.deliveries || []).find((item) => item.delivery_id === deliveryId);
+  if (existing) {
+    const sameMission = (existing.mission_id || null) === (clean(delivery.mission_id, 180) || null);
+    if (!sameMission) return { ok: false, error: 'DELIVERY_IDEMPOTENCY_CONFLICT', delivery_id: deliveryId, production_deploy: false };
+    return { ok: true, project: clone(project), changed: false, duplicate: true, delivery: clone(existing), production_deploy: false };
+  }
   const next = clone(project);
-  next.deliveries = [...(next.deliveries || []), {
+  const record = {
     delivery_id: deliveryId,
     mission_id: clean(delivery.mission_id, 180) || null,
     structural_completion: delivery.structural_completion === true,
     external_activation_ready: delivery.external_activation_ready === true,
+    standard_results: clone(delivery.standard_results || delivery.standard_delivery_results || []),
+    actual_cost_eur: Number.isFinite(Number(delivery.actual_cost_eur)) ? Number(delivery.actual_cost_eur) : null,
+    qa_result: clone(delivery.qa_result || delivery.quality || null),
+    customer_review_state: clean(delivery.customer_review_state, 120) || null,
+    preview: clean(delivery.preview, 2000) || null,
+    evidence_refs: clone(delivery.evidence_refs || []),
     production_deploy: false
+  };
+  next.deliveries = [...(next.deliveries || []), record];
+  next.audit = [...(next.audit || []), { event: 'PROJECT_DELIVERY_RECORDED', delivery_id: deliveryId, mission_id: record.mission_id, actor: 'system' }];
+  return { ok: true, project: next, changed: true, duplicate: false, delivery: clone(record), production_deploy: false };
+}
+
+export function writeBackProjectDeliveryState(project = {}, delivery = {}, options = {}) {
+  if (!project.customer_id || !project.project_id || !project.scope_key) return { ok: false, error: 'PROJECT_SCOPE_REQUIRED', production_deploy: false };
+  const deliveryProject = delivery.project || {};
+  if (deliveryProject.customer_id && deliveryProject.customer_id !== project.customer_id) return { ok: false, error: 'DELIVERY_CUSTOMER_SCOPE_MISMATCH', production_deploy: false };
+  if (deliveryProject.project_id && deliveryProject.project_id !== project.project_id) return { ok: false, error: 'DELIVERY_PROJECT_SCOPE_MISMATCH', production_deploy: false };
+  if (deliveryProject.scope_key && deliveryProject.scope_key !== project.scope_key) return { ok: false, error: 'DELIVERY_SCOPE_KEY_MISMATCH', production_deploy: false };
+  const deliveryId = clean(delivery.delivery_id || delivery.id, 180);
+  if (!deliveryId) return { ok: false, error: 'DELIVERY_ID_REQUIRED', production_deploy: false };
+  const beforeRevision = Math.max(0, Number(project.project_revision || 0));
+  const recorded = recordProjectDelivery(project, {
+    ...delivery,
+    delivery_id: deliveryId,
+    standard_results: delivery.standard_results || delivery.standard_delivery_results || []
+  });
+  if (!recorded.ok) return recorded;
+  if (recorded.duplicate) {
+    return {
+      ok: true,
+      project: recorded.project,
+      changed: false,
+      duplicate: true,
+      project_revision_before: beforeRevision,
+      project_revision_after: beforeRevision,
+      delivery_ref: deliveryId,
+      production_deploy: false
+    };
+  }
+  const next = recorded.project;
+  const standardResults = Array.isArray(delivery.standard_results || delivery.standard_delivery_results)
+    ? clone(delivery.standard_results || delivery.standard_delivery_results)
+    : [];
+  next.capabilities = (next.capabilities || []).map((capability) => {
+    const matches = standardResults.filter((result) =>
+      result?.capability === capability.id
+      || (capability.factory && result?.factory === capability.factory)
+    );
+    if (!matches.length) return capability;
+    const completed = matches.every((result) =>
+      result?.quality?.status === 'PASS'
+      && result?.provider_truth_valid !== false
+      && result?.next_action !== 'PROVIDER_TRUTH_REQUIRED'
+    );
+    return completed ? { ...capability, status: 'COMPLETED' } : capability;
+  });
+  if (delivery.mission_id) {
+    next.missions = (next.missions || []).map((mission) =>
+      mission.mission_id === delivery.mission_id
+        ? { ...mission, status: delivery.structural_completion === true ? 'DELIVERED' : (mission.status || 'ATTACHED') }
+        : mission
+    );
+  }
+  const totalActualCost = standardResults.reduce((sum, result) => sum + (Number.isFinite(Number(result?.actual_cost_eur)) ? Number(result.actual_cost_eur) : 0), 0);
+  next.project_revision = beforeRevision + 1;
+  next.last_delivery_ref = deliveryId;
+  next.last_actual_cost_eur = Number.isFinite(Number(delivery.actual_cost_eur)) ? Number(delivery.actual_cost_eur) : totalActualCost;
+  next.last_quality = clone(delivery.qa_result || delivery.quality || null);
+  if (delivery.structural_completion === true && next.state === 'ACTIVE') next.state = 'DELIVERED';
+  next.audit = [...(next.audit || []), {
+    event: 'PROJECT_DELIVERY_STATE_WRITTEN_BACK',
+    delivery_id: deliveryId,
+    mission_id: clean(delivery.mission_id, 180) || null,
+    project_revision_before: beforeRevision,
+    project_revision_after: next.project_revision,
+    actor: clean(options.actor, 160) || 'system'
   }];
-  next.audit = [...(next.audit || []), { event: 'PROJECT_DELIVERY_RECORDED', delivery_id: deliveryId, actor: 'system' }];
-  return { ok: true, project: next };
+  return {
+    ok: true,
+    project: next,
+    changed: true,
+    duplicate: false,
+    project_revision_before: beforeRevision,
+    project_revision_after: next.project_revision,
+    delivery_ref: deliveryId,
+    production_deploy: false
+  };
 }
 
 export function recordProjectCustomerReview(project = {}, review = {}, options = {}) {
@@ -140,6 +230,9 @@ export function projectOperatingLayerManifest() {
     capability_portfolio: true,
     mission_binding: true,
     delivery_history: true,
+    idempotent_delivery_writeback: true,
+    standard_delivery_result_writeback: true,
+    project_revision_writeback: true,
     customer_review_binding: true,
     production_deploy: false
   };
