@@ -291,7 +291,10 @@ assert.match(html, /data-v2-progress/);
 assert.match(html, /Wird hochgeladen/);
 assert.match(html, /Erfolgreiche Dateien bleiben gespeichert/);
 assert.match(html, /source-card-v2-media/);
-assert.match(html, /data-v2-purpose/);
+assert.match(html, /data-v2-purpose-toggle/);
+assert.match(html, /Visuell verwenden/);
+assert.match(html, /Informationen auslesen/);
+assert.doesNotMatch(html, /<select data-v2-purpose=/);
 assert.match(html, /@media\(max-width:760px\)/);
 assert.match(html, /aria-live="polite"/);
 assert.match(html, /Mit KI aufbereiten/);
@@ -325,6 +328,8 @@ console.log(JSON.stringify({
   upload_progress: 'PASS',
   image_preview_cards: 'PASS',
   image_purpose_classification: 'PASS',
+  image_usage_toggle_buttons: 'PASS',
+  image_information_extraction_toggle_buttons: 'PASS',
   direct_manual_note_input: 'PASS',
   ai_structuring_gate: 'PASS',
   editable_human_review: 'PASS',
