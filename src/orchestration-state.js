@@ -49,7 +49,8 @@ export function createMission(input = {}) {
     prompt: plan.prompt,
     project: plan.project,
     source_of_truth: sourceOfTruth,
-    tasks: tasks.map(({ started_at, completed_at, last_error, ...task }) => task)
+    tasks: tasks.map(({ started_at, completed_at, last_error, ...task }) => task),
+    ...(input.project_context_binding ? { project_context_binding: cloneMission(input.project_context_binding) } : {})
   };
   return {
     ok: true,
@@ -60,6 +61,7 @@ export function createMission(input = {}) {
     prompt: plan.prompt,
     project: plan.project,
     source_of_truth: sourceOfTruth,
+    ...(input.project_context_binding ? { project_context_binding: cloneMission(input.project_context_binding) } : {}),
     mission_revision: sourceOfTruth.mission_revision,
     status: tasks.every((task) => task.state === "BLOCKED") ? "BLOCKED" : "READY",
     revision: 1,
@@ -123,9 +125,60 @@ export function transitionMissionTask(missionInput, taskId, action, payload = {}
   return { ok: true, mission, previous_revision: revisionCheck.actual_revision };
 }
 
+function projectKnowledgeSnapshotForMission(mission = {}) {
+  const context = mission.project_context || null;
+  const binding = mission.project_context_binding || null;
+  if (!context && !binding) return { ok: true, required: false, snapshot: null, ref: null };
+  if (!context || context.schema !== 'aurentara.project-mission-context.v1') return { ok: false, error: 'PROJECT_MISSION_CONTEXT_REQUIRED' };
+  if (!binding || binding.schema !== 'aurentara.project-knowledge-snapshot-ref.v1') return { ok: false, error: 'PROJECT_KNOWLEDGE_SNAPSHOT_REF_REQUIRED' };
+  const project = context.project || {};
+  const revision = Number(context.knowledge_revision);
+  if (!project.scope_key || !project.customer_id || !project.project_id || !Number.isInteger(revision) || revision < 1) return { ok: false, error: 'PROJECT_KNOWLEDGE_SNAPSHOT_INVALID' };
+  if (mission.scope_key && mission.scope_key !== project.scope_key) return { ok: false, error: 'PROJECT_KNOWLEDGE_SCOPE_MISMATCH' };
+  if (mission.customer_id && mission.customer_id !== project.customer_id) return { ok: false, error: 'PROJECT_KNOWLEDGE_CUSTOMER_MISMATCH' };
+  if (mission.project_id && mission.project_id !== project.project_id) return { ok: false, error: 'PROJECT_KNOWLEDGE_PROJECT_MISMATCH' };
+  if (mission.project && mission.project !== project.project_id) return { ok: false, error: 'PROJECT_KNOWLEDGE_PROJECT_MISMATCH' };
+  if (binding.scope_key !== project.scope_key || Number(binding.knowledge_revision) !== revision) return { ok: false, error: 'PROJECT_KNOWLEDGE_BINDING_STALE' };
+  if ([context.content_pack_ref?.knowledge_revision, context.visual_pack_ref?.knowledge_revision, context.readiness_ref?.knowledge_revision].some((value) => Number(value) !== revision)) return { ok: false, error: 'PROJECT_KNOWLEDGE_PACK_STALE' };
+  if (binding.content_pack_ref?.pack_id !== context.content_pack_ref?.pack_id || Number(binding.content_pack_ref?.version) !== Number(context.content_pack_ref?.version)) return { ok: false, error: 'PROJECT_CONTENT_PACK_BINDING_STALE' };
+  if (binding.visual_pack_ref?.pack_id !== context.visual_pack_ref?.pack_id || Number(binding.visual_pack_ref?.version) !== Number(context.visual_pack_ref?.version)) return { ok: false, error: 'PROJECT_VISUAL_PACK_BINDING_STALE' };
+  if (binding.readiness_ref?.readiness_id !== context.readiness_ref?.readiness_id || Number(binding.readiness_ref?.knowledge_revision) !== revision) return { ok: false, error: 'PROJECT_READINESS_BINDING_STALE' };
+  if (context.readiness_ref?.status === 'BLOCKED') return { ok: false, error: 'PROJECT_CONTENT_READINESS_BLOCKED' };
+  if ((context.open_critical_conflicts || []).length) return { ok: false, error: 'PROJECT_CRITICAL_CONFLICT_UNRESOLVED' };
+  const publishableRights = new Set(['OWNED_CONFIRMED','CUSTOMER_LICENSED','CUSTOMER_ASSERTED']);
+  const invalidAsset = (context.approved_assets || context.assets || []).find((asset) => asset.publishable !== true || !publishableRights.has(asset.rights_status));
+  if (invalidAsset) return { ok: false, error: 'PROJECT_APPROVED_ASSET_RIGHTS_INVALID', asset_id: invalidAsset.asset_id || null };
+  return {
+    ok: true,
+    required: true,
+    ref: cloneMission(binding),
+    snapshot: {
+      schema: 'aurentara.project-knowledge-task-snapshot.v1',
+      project_scope_key: project.scope_key,
+      customer_id: project.customer_id,
+      project_id: project.project_id,
+      knowledge_revision: revision,
+      content_pack_ref: cloneMission(context.content_pack_ref),
+      visual_pack_ref: cloneMission(context.visual_pack_ref),
+      readiness_ref: cloneMission(context.readiness_ref),
+      fact_version_refs: cloneMission(context.fact_version_refs || []),
+      source_refs: cloneMission(context.source_refs || []),
+      rights_constraints: cloneMission(context.rights_constraints || {}),
+      human_decision_refs: cloneMission(context.human_decision_refs || []),
+      approved_assets: cloneMission(context.approved_assets || context.assets || []),
+      open_critical_conflicts: cloneMission(context.open_critical_conflicts || []),
+      website_sources: cloneMission(context.website_sources || []),
+      quality_contract: cloneMission(context.quality_contract || {}),
+      deployment_policy: cloneMission(context.deployment_policy || { staging_only: true, production_deploy: false })
+    }
+  };
+}
+
 export function buildTaskExecutionContract(mission, taskId) {
   const task = findTask(mission || {}, taskId);
   if (!task) return { ok: false, error: "MISSION_TASK_NOT_FOUND" };
+  const knowledge = projectKnowledgeSnapshotForMission(mission || {});
+  if (!knowledge.ok) return { ...knowledge, task_id: taskId, production_deploy: false };
   const dependencyOutputs = {};
   for (const dependencyId of task.depends_on || []) dependencyOutputs[dependencyId] = findTask(mission, dependencyId)?.outputs || {};
   return {
@@ -146,10 +199,25 @@ export function buildTaskExecutionContract(mission, taskId) {
     recovery_key: task.recovery_key || missionRecoveryKey(mission, task),
     max_attempts: task.max_attempts,
     project: mission.project || null,
+    customer_id: knowledge.snapshot?.customer_id || mission.customer_id || null,
+    project_id: knowledge.snapshot?.project_id || mission.project_id || mission.project || null,
+    project_scope_key: knowledge.snapshot?.project_scope_key || mission.scope_key || null,
+    knowledge_snapshot_ref: cloneMission(knowledge.ref),
+    project_knowledge: cloneMission(knowledge.snapshot),
+    knowledge_revision: knowledge.snapshot?.knowledge_revision || null,
+    content_pack_ref: cloneMission(knowledge.snapshot?.content_pack_ref || null),
+    visual_pack_ref: cloneMission(knowledge.snapshot?.visual_pack_ref || null),
+    readiness_ref: cloneMission(knowledge.snapshot?.readiness_ref || null),
+    fact_version_refs: cloneMission(knowledge.snapshot?.fact_version_refs || []),
+    source_refs: cloneMission(knowledge.snapshot?.source_refs || []),
+    rights_constraints: cloneMission(knowledge.snapshot?.rights_constraints || {}),
+    human_decision_refs: cloneMission(knowledge.snapshot?.human_decision_refs || []),
+    approved_assets: cloneMission(knowledge.snapshot?.approved_assets || []),
+    open_critical_conflicts: cloneMission(knowledge.snapshot?.open_critical_conflicts || []),
     prompt: mission.prompt,
     dependency_outputs: dependencyOutputs,
     required_result: { status: ["COMPLETED", "FAILED"], outputs_object_required_on_success: true, error_object_required_on_failure: true },
-    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, optimistic_concurrency_control: true }
+    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, optimistic_concurrency_control: true }
   };
 }
 

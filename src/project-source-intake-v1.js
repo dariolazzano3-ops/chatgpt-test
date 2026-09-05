@@ -188,7 +188,80 @@ function factFor(state, paths = []) { return usableFacts(state, 'content').find(
 export function evaluateContentReadiness(state = {}, input = {}) { const scope = assertScope(state); if (!scope.ok) return scope; const blockers = []; const warnings = []; const unresolvedCritical = (state.facts || []).filter((fact) => fact.critical && fact.verification_status === 'SOURCE_CONFLICT' && factAllowsDimension(state, fact, 'content')); if (unresolvedCritical.length) blockers.push({ code: 'CRITICAL_CONTENT_CONFLICT', fields: unique(unresolvedCritical.map((fact) => fact.field_path)) }); const requireFact = (code, paths) => { if (!factFor(state, paths)) blockers.push({ code, fields: paths }); }; requireFact('BUSINESS_IDENTITY_REQUIRED', ['business.name', 'business.identity']); requireFact('OFFERINGS_REQUIRED', ['business.offerings', 'business.services', 'business.products']); requireFact('PRIMARY_WEBSITE_GOAL_REQUIRED', ['website.primary_goal']); if (!factFor(state, ['content.summary', 'content.existing', 'business.description']) && usableFacts(state, 'content').length < 4) blockers.push({ code: 'SUFFICIENT_CONTENT_BASIS_REQUIRED' }); if (input.will_show_pricing === true) requireFact('PRICING_REQUIRED_FOR_RENDER', ['business.pricing', 'business.price', 'pricing']); if (input.will_show_opening_hours === true) requireFact('OPENING_HOURS_REQUIRED_FOR_RENDER', ['business.opening_hours', 'contact.opening_hours']); if (input.will_show_address === true) requireFact('ADDRESS_REQUIRED_FOR_RENDER', ['business.address', 'contact.address']); if (input.will_show_phone === true) requireFact('PHONE_REQUIRED_FOR_RENDER', ['business.phone', 'contact.phone']); if (input.will_show_email === true) requireFact('EMAIL_REQUIRED_FOR_RENDER', ['business.email', 'contact.email']); if (input.legal_required === true) requireFact('LEGAL_DETAILS_REQUIRED', ['business.legal', 'legal.details']); if (input.requires_assets === true && !(state.assets || []).some((asset) => asset.publishable === true && PUBLISHABLE_RIGHTS.has(asset.rights_status) && assetAllowsDimension(state, asset, 'design_reference'))) blockers.push({ code: 'PUBLISHABLE_ASSET_REQUIRED' }); const intended = new Set(Array.isArray(input.intended_asset_ids) ? input.intended_asset_ids.map((value) => clean(value, 200)) : []); for (const idValue of intended) { const asset = (state.assets || []).find((item) => item.asset_id === idValue); if (!asset) blockers.push({ code: 'INTENDED_ASSET_NOT_FOUND', asset_id: idValue }); else if (!PUBLISHABLE_RIGHTS.has(asset.rights_status) || asset.publishable !== true) blockers.push({ code: 'ASSET_RIGHTS_BLOCKED', asset_id: asset.asset_id, rights_status: asset.rights_status }); else if (!assetAllowsDimension(state, asset, 'design_reference')) blockers.push({ code: 'ASSET_USAGE_BLOCKED', asset_id: asset.asset_id, required_usage: 'design_reference' }); } if (input.production_locked === false) blockers.push({ code: 'PRODUCTION_MUST_REMAIN_LOCKED' }); const optional = ['social.links', 'testimonials', 'seo.secondary', 'gallery', 'company.story']; const optionalFound = optional.filter((path) => Boolean(factFor(state, [path]))); if (optionalFound.length < optional.length) warnings.push({ code: 'OPTIONAL_CONTENT_INCOMPLETE', completed: optionalFound.length, total: optional.length }); const noncriticalConflicts = (state.facts || []).filter((fact) => !fact.critical && fact.verification_status === 'SOURCE_CONFLICT' && factAllowsDimension(state, fact, 'content')); if (noncriticalConflicts.length) warnings.push({ code: 'NONCRITICAL_CONTENT_CONFLICT', fields: unique(noncriticalConflicts.map((fact) => fact.field_path)) }); const status = blockers.length ? 'BLOCKED' : warnings.length ? 'READY_WITH_WARNINGS' : 'READY'; return { ok: true, snapshot: { readiness_id: clean(input.readiness_id, 200) || id('readiness'), schema: 'aurentara.content-readiness.v1', scope_key: state.scope_key, status, knowledge_revision: state.knowledge_revision, blockers, warnings, optional_completion_pct: Math.round((optionalFound.length / optional.length) * 100), evaluated_at: iso(input.at), authoritative: true, ai_estimate_used: false, production_deploy: false } }; }
 export function recordContentReadiness(state = {}, input = {}) { const evaluated = evaluateContentReadiness(state, input); if (!evaluated.ok) return evaluated; const next = mutate(state, 'PROJECT_CONTENT_READINESS_RECORDED', evaluated.snapshot.evaluated_at, { readiness_id: evaluated.snapshot.readiness_id, status: evaluated.snapshot.status }, { knowledge_change: false }); next.readiness_snapshots.push(evaluated.snapshot); return { ok: true, state: next, snapshot: clone(evaluated.snapshot), changed: true }; }
 
-export function buildProjectMissionContext(state = {}, input = {}) { const scope = assertScope(state); if (!scope.ok) return scope; const contentPack = input.content_pack || state.content_packs?.at(-1); const visualPack = input.visual_pack || state.visual_packs?.at(-1); const readiness = input.readiness || state.readiness_snapshots?.at(-1); if (!contentPack || !visualPack || !readiness) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_PACKS_REQUIRED' }; if ([contentPack.scope_key, visualPack.scope_key, readiness.scope_key].some((value) => value !== state.scope_key)) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_SCOPE_MISMATCH' }; if ([contentPack.knowledge_revision, visualPack.knowledge_revision, readiness.knowledge_revision].some((revision) => Number(revision) !== Number(state.knowledge_revision))) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_STALE_PACK_OR_READINESS' }; if (readiness.status === 'BLOCKED') return { ok: false, error: 'PROJECT_CONTENT_READINESS_BLOCKED' }; const websiteSources = (state.sources || []).filter((source) => !source.deleted_at && WEBSITE_SOURCE_TYPES.has(source.source_type)).map((source) => { const usage = effectiveProjectWebsiteUsage(source); return { source_id: source.source_id, source_type: source.source_type, rights_status: usage.rights_status, locator: source.locator || null, usage: clone(usage.usage), effective_usage: clone(usage.effective_usage), usage_state: usage.usage_state }; }); return { ok: true, context: { schema: 'aurentara.project-mission-context.v1', project: { operator_id: state.operator_id || null, customer_id: state.customer_id, project_id: state.project_id, scope_key: state.scope_key }, knowledge_revision: state.knowledge_revision, content_pack_ref: { pack_id: contentPack.pack_id, version: contentPack.version, knowledge_revision: contentPack.knowledge_revision }, visual_pack_ref: { pack_id: visualPack.pack_id, version: visualPack.version, knowledge_revision: visualPack.knowledge_revision }, readiness_ref: { readiness_id: readiness.readiness_id, status: readiness.status, knowledge_revision: readiness.knowledge_revision }, verified_content: clone(contentPack.canonical_values || {}), visual_context: clone(visualPack.brand_information || {}), visual_references: clone(visualPack.visual_references || []), assets: clone(visualPack.approved_assets || []), website_sources: websiteSources, constraints: clone(input.constraints || []), quality_contract: clone(input.quality_contract || { provenance_required: true, rights_enforced: true, website_usage_enforced: true, critical_conflicts_blocked: true }), deployment_policy: clone(input.deployment_policy || { staging_only: true, production_deploy: false }) }, production_deploy: false }; }
+export function buildProjectMissionContext(state = {}, input = {}) {
+  const scope = assertScope(state); if (!scope.ok) return scope;
+  const contentPack = input.content_pack || state.content_packs?.at(-1);
+  const visualPack = input.visual_pack || state.visual_packs?.at(-1);
+  const readiness = input.readiness || state.readiness_snapshots?.at(-1);
+  if (!contentPack || !visualPack || !readiness) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_PACKS_REQUIRED' };
+  if ([contentPack.scope_key, visualPack.scope_key, readiness.scope_key].some((value) => value !== state.scope_key)) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_SCOPE_MISMATCH' };
+  if ([contentPack.knowledge_revision, visualPack.knowledge_revision, readiness.knowledge_revision].some((revision) => Number(revision) !== Number(state.knowledge_revision))) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_STALE_PACK_OR_READINESS' };
+  if (readiness.status === 'BLOCKED') return { ok: false, error: 'PROJECT_CONTENT_READINESS_BLOCKED' };
+
+  const websiteSources = (state.sources || []).filter((source) => !source.deleted_at && WEBSITE_SOURCE_TYPES.has(source.source_type)).map((source) => {
+    const usage = effectiveProjectWebsiteUsage(source);
+    return { source_id: source.source_id, source_type: source.source_type, rights_status: usage.rights_status, locator: source.locator || null, usage: clone(usage.usage), effective_usage: clone(usage.effective_usage), usage_state: usage.usage_state };
+  });
+  const factVersionRefs = (contentPack.fact_refs || []).map((ref) => ({
+    fact_id: ref.fact_id,
+    field_path: ref.field_path,
+    version: Number(ref.version || 0),
+    source_refs: clone(ref.source_refs || [])
+  }));
+  const sourceRefs = unique([
+    ...factVersionRefs.flatMap((ref) => ref.source_refs || []),
+    ...(visualPack.approved_assets || []).map((asset) => asset.source_id),
+    ...(visualPack.visual_references || []).map((asset) => asset.source_id)
+  ]);
+  const humanDecisionRefs = (state.human_decisions || []).map((decision) => ({
+    question_id: decision.question_id || null,
+    status: decision.status || null,
+    decided_at: decision.decided_at || null,
+    resulting_fact_ids: clone(decision.resulting_fact_ids || []),
+    resulting_state_transition: decision.resulting_state_transition || null
+  }));
+  const openCriticalConflicts = (state.facts || []).filter((fact) => fact.critical === true && fact.verification_status === 'SOURCE_CONFLICT').map((fact) => ({
+    fact_id: fact.fact_id,
+    field_path: fact.field_path,
+    version: Number(fact.version || 0),
+    source_refs: clone(fact.source_refs || [])
+  }));
+  const approvedAssets = clone(visualPack.approved_assets || []);
+  const rightsConstraints = {
+    publishable_rights: [...PUBLISHABLE_RIGHTS],
+    approved_asset_ids: approvedAssets.map((asset) => asset.asset_id),
+    non_publishable_reference_assets_forbidden: true,
+    website_source_usage_enforced: true,
+    reference_content_copy_forbidden: true
+  };
+
+  return {
+    ok: true,
+    context: {
+      schema: 'aurentara.project-mission-context.v1',
+      project: { operator_id: state.operator_id || null, customer_id: state.customer_id, project_id: state.project_id, scope_key: state.scope_key },
+      knowledge_revision: state.knowledge_revision,
+      content_pack_ref: { pack_id: contentPack.pack_id, version: contentPack.version, knowledge_revision: contentPack.knowledge_revision },
+      visual_pack_ref: { pack_id: visualPack.pack_id, version: visualPack.version, knowledge_revision: visualPack.knowledge_revision },
+      readiness_ref: { readiness_id: readiness.readiness_id, status: readiness.status, knowledge_revision: readiness.knowledge_revision },
+      fact_version_refs: factVersionRefs,
+      source_refs: sourceRefs,
+      human_decision_refs: humanDecisionRefs,
+      rights_constraints: rightsConstraints,
+      approved_assets: approvedAssets,
+      open_critical_conflicts: openCriticalConflicts,
+      verified_content: clone(contentPack.canonical_values || {}),
+      visual_context: clone(visualPack.brand_information || {}),
+      visual_references: clone(visualPack.visual_references || []),
+      assets: approvedAssets,
+      website_sources: websiteSources,
+      constraints: clone(input.constraints || []),
+      quality_contract: clone(input.quality_contract || { provenance_required: true, rights_enforced: true, website_usage_enforced: true, critical_conflicts_blocked: true }),
+      deployment_policy: clone(input.deployment_policy || { staging_only: true, production_deploy: false })
+    },
+    production_deploy: false
+  };
+}
 
 
 export function evaluatePremiumDiscoveryReadiness(state = {}, input = {}) {
