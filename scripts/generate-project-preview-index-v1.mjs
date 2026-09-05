@@ -46,7 +46,7 @@ function inlineLocalStyles(projectDir,html){
     const cssPath=path.resolve(projectDir,local);
     if(!cssPath.startsWith(projectDir+path.sep)||!fs.existsSync(cssPath)||!fs.statSync(cssPath).isFile()) continue;
     const css=fs.readFileSync(cssPath,'utf8').replace(/<\/style/gi,'<\\/style');
-    out=out.replace(tag,\`<style data-aurentara-preview-bundled-css="\${local.replace(/"/g,'&quot;')}">\n\${css}\n</style>\`);
+    out=out.replace(tag,`<style data-aurentara-preview-bundled-css="${local.replace(/"/g,'&quot;')}">\n${css}\n</style>`);
     stylesInlined+=1;
   }
   return {html:out,styles_inlined:stylesInlined};
