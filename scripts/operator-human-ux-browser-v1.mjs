@@ -151,12 +151,26 @@ try {
   }
   assert.ok(legacyOpenIndex >= 0, 'legacy project detail action must remain available');
   await opens.nth(legacyOpenIndex).click();
-  await page.waitForFunction(() => {
-    const root = document.getElementById('project-detail');
-    return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
-  });
-  const projectText = await page.locator('#project-detail').innerText();
-  for (const label of ['Projektstatus', 'Aktueller Zustand', 'Capabilities', 'Ergebnisse', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+  if (premiumPortfolio) {
+    await page.waitForFunction(() => {
+      const premium = document.querySelector('.pm-workspace-head');
+      const legacy = document.querySelector('#project-detail [data-human-project-priority]');
+      return Boolean(premium && legacy);
+    });
+    const projectText = await page.locator('#projects').innerText();
+    for (const label of ['Projektstatus', 'Kosten & Safety', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+    for (const label of ['Übersicht', 'Quellen', 'Projektwissen', 'Umsetzung', 'Preview', 'Prüfungen', 'Aktivität']) {
+      assert.equal(await page.locator(`.pm-tab:has-text("${label}")`).count(), 1, `Premium project workspace must expose ${label}`);
+    }
+    assert.equal(await page.locator('#project-detail [data-human-project-priority]').count(), 1, 'Premium workspace must reuse the existing human project-detail contract');
+  } else {
+    await page.waitForFunction(() => {
+      const root = document.getElementById('project-detail');
+      return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
+    });
+    const projectText = await page.locator('#project-detail').innerText();
+    for (const label of ['Projektstatus', 'Aktueller Zustand', 'Capabilities', 'Ergebnisse', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+  }
   const projectRaw = page.locator('#project-detail details.human-raw');
   if (await projectRaw.count()) {
     assert.equal(await projectRaw.first().getAttribute('open'), null);
