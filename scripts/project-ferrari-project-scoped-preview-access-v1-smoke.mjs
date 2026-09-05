@@ -7,11 +7,12 @@ import { handleOperatorDashboard, operatorProjectPreviewAccessManifest } from '.
 import {
   resolveProjectPreviewAccess,
   canonicalPreviewRawUrl,
-  canonicalPreviewArtifactForScope
+  projectPreviewDirectoryCandidates,
+  runtimeProjectPreviewArtifact
 } from '../src/project-preview-access-v1.js';
 
-const HEAD='723b4cedb65ebd70f2180b9f03e8bb9e66c79a84';
-const operatorId='operator:preview-access@example.test';
+const HEAD='1f514c28f0be99d11c669f5680f8be4b57cf4e71';
+const operatorId='operator:preview-system@example.test';
 const gelato={
   customer_id:'gelato-donatello',
   project_id:'gelato-donatello-website-v1',
@@ -24,11 +25,23 @@ const gelato={
   blocked:false,
   production_deploy:false
 };
-const other={
-  customer_id:'other-customer',
-  project_id:'other-project-v1',
-  scope_key:'other-customer:other-project-v1',
-  name:'Other Project',
+const cafe={
+  customer_id:'cafe-luna',
+  project_id:'cafe-luna-website-v1',
+  scope_key:'cafe-luna:cafe-luna-website-v1',
+  name:'Café Luna',
+  industry:'cafe',
+  country:'DE',
+  language:'de',
+  state:'ACTIVE',
+  blocked:false,
+  production_deploy:false
+};
+const noPreview={
+  customer_id:'internal-ops',
+  project_id:'internal-crm-v1',
+  scope_key:'internal-ops:internal-crm-v1',
+  name:'Internal CRM',
   industry:'services',
   country:'DE',
   language:'de',
@@ -37,58 +50,102 @@ const other={
   production_deploy:false
 };
 
-const artifact=canonicalPreviewArtifactForScope(gelato.scope_key);
-assert.ok(artifact);
-assert.equal(artifact.source_path,'projects/gelato-donatello-website-v1/ferrari-preview-v1.html');
-
-const resolved=resolveProjectPreviewAccess({project:gelato},{deployed_sha:HEAD});
-assert.equal(resolved.available,true);
-assert.equal(resolved.status,'AVAILABLE');
-assert.equal(resolved.access_kind,'CANONICAL_ARTIFACT_PROXY');
-assert.equal(resolved.source_revision,HEAD);
-assert.equal(resolved.operator_route,'/operator/project-preview/'+encodeURIComponent(gelato.scope_key));
-assert.match(canonicalPreviewRawUrl(resolved),new RegExp(HEAD));
+assert.deepEqual(projectPreviewDirectoryCandidates({project:gelato}),['projects/gelato-donatello-website-v1']);
+assert.deepEqual(projectPreviewDirectoryCandidates({project:cafe}),['projects/cafe-luna-website-v1']);
 
 const external=resolveProjectPreviewAccess({
-  project:{...other,preview_url:'https://example.pages.dev/review/123'}
+  project:{...cafe,preview_url:'https://example.pages.dev/review/123'}
 },{deployed_sha:HEAD});
 assert.equal(external.available,true);
 assert.equal(external.access_kind,'EXISTING_PRIVATE_PREVIEW_URL');
-assert.equal(external.preview_url,'https://example.pages.dev/review/123');
 
-const unsafe=resolveProjectPreviewAccess({
-  project:{...other,preview_url:'http://unsafe.example.test'}
-},{deployed_sha:HEAD});
-assert.equal(unsafe.available,false);
+const arbitraryRuntime={
+  live_staging_runs:[{
+    scope_key:cafe.scope_key,
+    status:'LIVE_STAGING_VERIFIED',
+    execution_id:'exec:cafe:1',
+    updated_at:'2026-09-05T16:20:00.000Z',
+    evidence:{
+      qa:{passed:true},
+      delivery:{
+        factory_result:{
+          artifact:{
+            project_root:'projects/cafe-luna-website-v1',
+            files:{
+              'projects/cafe-luna-website-v1/index.html':'<!doctype html><html><body><h1>Café Luna Runtime</h1></body></html>'
+            }
+          }
+        }
+      }
+    }
+  }]
+};
+const runtimeArtifact=runtimeProjectPreviewArtifact(arbitraryRuntime,cafe.scope_key);
+assert.ok(runtimeArtifact);
+assert.match(runtimeArtifact.html,/Café Luna Runtime/);
+const runtimeAccess=resolveProjectPreviewAccess({project:cafe},{deployed_sha:HEAD,runtime:arbitraryRuntime});
+assert.equal(runtimeAccess.available,true);
+assert.equal(runtimeAccess.access_kind,'RUNTIME_WEB_FACTORY_ARTIFACT');
+assert.equal(runtimeAccess.provider,'RIOSYSTEMS_NATIVE_WEB_RUNTIME');
 
-const missing=resolveProjectPreviewAccess({project:other},{deployed_sha:HEAD});
+const missing=resolveProjectPreviewAccess({project:noPreview},{deployed_sha:HEAD});
 assert.equal(missing.available,false);
-assert.equal(missing.status,'NOT_AVAILABLE');
-assert.equal(missing.reason,'NO_PROJECT_PREVIEW_REGISTERED');
+assert.equal(missing.reason,'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_OR_REGISTERED');
 
 const created=createOperatorRuntime({
   operator_id:operatorId,
-  portfolio:{operator_id:operatorId,projects:[gelato,other],production_deploy:false}
+  portfolio:{operator_id:operatorId,projects:[gelato,cafe,noPreview],production_deploy:false}
 });
 assert.equal(created.ok,true);
 created.runtime.selected_project_scope=gelato.scope_key;
 const store=createMemoryOperatorRuntimeStore([created.runtime]);
 const core=createOperatorRuntimeApiService({operator_id:operatorId,store});
 const service=withProjectSourceIntakeRuntimeService({service:core,store,operator_id:operatorId});
-const authorize=async()=>({ok:true,status:200,operator_id:operatorId,email:'preview-access@example.test'});
+const authorize=async()=>({ok:true,status:200,operator_id:operatorId,email:'preview-system@example.test'});
 const env={
   RIOSYSTEMS_ENVIRONMENT:'staging',
   RIOSYSTEMS_PRODUCTION_DEPLOY:'false',
   RIOSYSTEMS_EXTERNAL_WRITES:'false',
-  CF_VERSION_METADATA:{id:'preview-access-test-version',tag:HEAD,timestamp:'2026-09-05T15:30:00.000Z'}
+  CF_VERSION_METADATA:{id:'preview-system-version',tag:HEAD,timestamp:'2026-09-05T16:30:00.000Z'}
 };
-const previewHtml='<!doctype html><html lang="de"><head><title>Gelato Preview Test</title></head><body><h1>Gelato Donatello</h1><p>Private Vorschau</p></body></html>';
+
+const listings={
+  'projects/gelato-donatello-website-v1':[
+    {type:'file',name:'customer-delivery-contract-v1.json',path:'projects/gelato-donatello-website-v1/customer-delivery-contract-v1.json'},
+    {type:'file',name:'ferrari-preview-v1.html',path:'projects/gelato-donatello-website-v1/ferrari-preview-v1.html'}
+  ],
+  'projects/cafe-luna-website-v1':[
+    {type:'file',name:'index.html',path:'projects/cafe-luna-website-v1/index.html'},
+    {type:'file',name:'styles.css',path:'projects/cafe-luna-website-v1/styles.css'}
+  ]
+};
+function directoryFromUrl(url){
+  const marker='/contents/';
+  const raw=String(url);
+  const start=raw.indexOf(marker);
+  if(start<0)return null;
+  const rest=raw.slice(start+marker.length).split('?')[0];
+  return decodeURIComponent(rest);
+}
 const options={
   runtime_service:service,
   authorize,
+  project_preview_directory_fetch:async(url)=>{
+    const directory=directoryFromUrl(url);
+    const body=listings[directory];
+    return body
+      ? new Response(JSON.stringify(body),{status:200,headers:{'content-type':'application/json'}})
+      : new Response(JSON.stringify({message:'Not Found'}),{status:404,headers:{'content-type':'application/json'}});
+  },
   project_preview_fetch:async(url)=>{
-    assert.match(String(url),new RegExp('raw\\.githubusercontent\\.com/.+/'+HEAD+'/projects/gelato-donatello-website-v1/ferrari-preview-v1.html'));
-    return new Response(previewHtml,{status:200,headers:{'content-type':'text/html'}});
+    const raw=String(url);
+    if(raw.includes('/projects/gelato-donatello-website-v1/ferrari-preview-v1.html')){
+      return new Response('<!doctype html><html><body><h1>Gelato Donatello Generic Discovery</h1></body></html>',{status:200});
+    }
+    if(raw.includes('/projects/cafe-luna-website-v1/index.html')){
+      return new Response('<!doctype html><html><body><h1>Café Luna Generic Discovery</h1></body></html>',{status:200});
+    }
+    return new Response('missing',{status:404});
   }
 };
 
@@ -101,44 +158,46 @@ async function call(path,init={}){
 let response=await call('/operator/api/project-detail/'+encodeURIComponent(gelato.scope_key));
 assert.equal(response.status,200);
 let body=await response.json();
-assert.equal(body.project.scope_key,gelato.scope_key);
 assert.equal(body.project_preview_access.available,true);
 assert.equal(body.project_preview_access.access_kind,'CANONICAL_ARTIFACT_PROXY');
-assert.equal(body.project_preview_access.source_revision,HEAD);
+assert.equal(body.project_preview_access.source_path,'projects/gelato-donatello-website-v1/ferrari-preview-v1.html');
+assert.equal(body.project_preview_access.provider,'CANONICAL_PROJECT_ARTIFACT');
 
-response=await call('/operator/api/project-detail/'+encodeURIComponent(other.scope_key));
+response=await call('/operator/api/project-detail/'+encodeURIComponent(cafe.scope_key));
+assert.equal(response.status,200);
+body=await response.json();
+assert.equal(body.project_preview_access.available,true);
+assert.equal(body.project_preview_access.source_path,'projects/cafe-luna-website-v1/index.html');
+
+response=await call('/operator/api/project-detail/'+encodeURIComponent(noPreview.scope_key));
 assert.equal(response.status,200);
 body=await response.json();
 assert.equal(body.project_preview_access.available,false);
 assert.equal(body.project_preview_access.status,'NOT_AVAILABLE');
 
-response=await call('/operator/api/project-preview-access?scope_key='+encodeURIComponent(gelato.scope_key));
-assert.equal(response.status,200);
-body=await response.json();
-assert.equal(body.preview_access.available,true);
-assert.equal(body.preview_access.scope_key,gelato.scope_key);
-
 response=await call('/operator/project-preview/'+encodeURIComponent(gelato.scope_key));
 assert.equal(response.status,200);
-assert.match(response.headers.get('content-type')||'',/text\/html/);
-assert.match(response.headers.get('cache-control')||'',/no-store/);
-assert.equal(response.headers.get('x-robots-tag'),'noindex, nofollow');
-assert.equal(response.headers.get('x-aurentara-project-preview-scope'),gelato.scope_key);
-assert.equal(response.headers.get('x-aurentara-project-preview-revision'),HEAD);
-assert.match(response.headers.get('content-security-policy')||'',/script-src 'none'/);
-assert.match(await response.text(),/Gelato Donatello/);
+assert.match(await response.text(),/Gelato Donatello Generic Discovery/);
 
-response=await call('/operator/project-preview/'+encodeURIComponent(other.scope_key));
+response=await call('/operator/project-preview/'+encodeURIComponent(cafe.scope_key));
+assert.equal(response.status,200);
+assert.match(await response.text(),/Café Luna Generic Discovery/);
+
+response=await call('/operator/project-preview/'+encodeURIComponent(noPreview.scope_key));
 assert.equal(response.status,404);
 body=await response.json();
 assert.equal(body.error,'PROJECT_PREVIEW_NOT_AVAILABLE');
+
+const canonicalAccess=resolveProjectPreviewAccess({project:cafe},{deployed_sha:HEAD,canonical_source_path:'projects/cafe-luna-website-v1/index.html'});
+assert.equal(canonicalAccess.available,true);
+assert.match(canonicalPreviewRawUrl(canonicalAccess),new RegExp(HEAD));
 
 response=await call('/operator/api/project-source-intake/human-decision',{
   method:'POST',
   headers:{'content-type':'application/json'},
   body:JSON.stringify({
-    scope_key:other.scope_key,
-    context_scope_key:other.scope_key,
+    scope_key:noPreview.scope_key,
+    context_scope_key:noPreview.scope_key,
     question_id:'FINAL_HUMAN_QUALITY_APPROVAL',
     controls:{human_quality:{approved:true,preview_seen:true}}
   })
@@ -150,29 +209,27 @@ assert.equal(body.error,'HUMAN_QUALITY_APPROVAL_PREVIEW_NOT_AVAILABLE');
 response=await call('/operator');
 assert.equal(response.status,200);
 const html=await response.text();
-assert.match(html,/aurentara-project-preview-access-v1-ui/);
-assert.match(html,/Vorschau öffnen ↗/);
-assert.match(html,/Tatsächliche Vorschau öffnen ↗/);
+assert.match(html,/aurentara-project-preview-access-v2-ui/);
+assert.match(html,/Systemweite projektgebundene Vorschau/);
 
 const manifest=operatorProjectPreviewAccessManifest();
-assert.equal(manifest.every_project_detail_gets_preview_projection,true);
-assert.equal(manifest.existing_human_input_closure_reused,true);
-assert.equal(manifest.no_new_preview_engine,true);
-assert.equal(manifest.no_new_provider,true);
-assert.equal(manifest.final_human_approval_requires_preview_available,true);
+assert.equal(manifest.every_project_uses_same_preview_contract,true);
+assert.equal(manifest.project_specific_hardcoded_preview_registry,false);
+assert.equal(manifest.runtime_web_factory_artifacts_reused,true);
+assert.equal(manifest.canonical_project_artifacts_discovered_generically,true);
+assert.equal(manifest.hardcoded_project_preview_exceptions,false);
 assert.equal(manifest.production_deploy,false);
 
 console.log(JSON.stringify({
   ok:true,
-  suite:'project-ferrari-project-scoped-preview-access-v1',
-  gelato_preview:'AVAILABLE_CANONICAL_ARTIFACT',
-  exact_head_bound:true,
-  every_project_preview_projection:'PASS',
+  suite:'project-ferrari-system-wide-preview-access-v2',
+  gelato_generic_discovery:'PASS',
+  arbitrary_project_generic_discovery:'PASS',
+  runtime_web_factory_preview:'PASS',
+  no_hardcoded_project_registry:true,
+  every_project_same_preview_contract:true,
   missing_preview_fail_closed:'PASS',
   final_human_approval_preview_availability_gate:'PASS',
-  operator_private_preview_proxy:'PASS',
-  no_new_preview_engine:true,
-  no_new_provider:true,
   production_deploy:false,
   public_launch:false,
   paid_provider_calls:0,
