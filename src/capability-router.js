@@ -44,6 +44,36 @@ const CAPABILITY_ALIASES = Object.freeze({
   business_app: 'app_build'
 });
 
+const EXECUTION_CAPABILITY_ALIASES = Object.freeze({
+  web_generate: 'web.build',
+  web_rebuild: 'web.build',
+  web_evolve: 'web.build',
+  web: 'web.build',
+  website: 'web.build',
+  web_edit: 'web.build',
+  web_build: 'web.build',
+  automation_build: 'automation.run',
+  automation: 'automation.run',
+  workflow: 'automation.run',
+  lead_flow: 'automation.run',
+  ai_system_build: 'ai.generate',
+  ai: 'ai.generate',
+  support_ai: 'ai.generate',
+  business_system_build: 'business.configure',
+  business: 'business.configure',
+  crm: 'business.configure',
+  lead_system: 'business.configure',
+  sales_pipeline: 'business.configure',
+  offer_flow: 'business.configure'
+});
+
+const EXECUTION_CAPABILITY_FALLBACKS = Object.freeze({
+  web: 'web.build',
+  automation: 'automation.run',
+  ai: 'ai.generate',
+  business: 'business.configure'
+});
+
 const COMPLEXITY_ORDER = Object.freeze({ low: 1, medium: 2, high: 3, critical: 4 });
 const RISK_ORDER = Object.freeze({ low: 1, medium: 2, high: 3, critical: 4 });
 const COST_ORDER = Object.freeze({ zero: 0, low: 1, medium: 2, high: 3 });
@@ -54,6 +84,23 @@ function hit(value, words) { return words.some((word) => value.includes(word)); 
 function unique(values = []) { return [...new Set(values.filter(Boolean))]; }
 function normalizeLevel(value, order, fallback) { const normalized = text(value); return Object.hasOwn(order, normalized) ? normalized : fallback; }
 function resolveCapabilityAlias(value) { const normalized = text(value); return CAPABILITIES[normalized] ? normalized : (CAPABILITY_ALIASES[normalized] || null); }
+
+export function normalizeCapabilityId(value) {
+  return resolveCapabilityAlias(value);
+}
+
+export function normalizeExecutionCapabilityId(value, fallbackFactory = null) {
+  const normalized = text(value);
+  if (EXECUTION_CAPABILITY_ALIASES[normalized]) return EXECUTION_CAPABILITY_ALIASES[normalized];
+  if (/^(web|automation|ai|business)\.[a-z0-9._-]+$/.test(normalized)) return normalized;
+  return EXECUTION_CAPABILITY_FALLBACKS[text(fallbackFactory)] || null;
+}
+
+export function capabilityFactoryFor(value, fallbackFactory = null) {
+  const capability = normalizeExecutionCapabilityId(value, fallbackFactory);
+  const factory = capability?.split('.')[0] || text(fallbackFactory);
+  return ['web','automation','ai','business'].includes(factory) ? factory : null;
+}
 
 export function listCapabilities() { return Object.entries(CAPABILITIES).map(([id, capability]) => ({ id, ...capability, policy: CAPABILITY_POLICY[id] || null })); }
 export function routeCapability(input = {}) {
