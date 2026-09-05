@@ -92,6 +92,9 @@ jobs:
       - name: Project Repair knowledge binding protection gate
         run: node scripts/project-repair-wave2-project-knowledge-binding-smoke.mjs
 
+      - name: Cloudflare Access Read-only Verification regression
+        run: node scripts/cloudflare-access-readonly-verifier-v1-smoke.mjs
+
       - name: Install Chromium for Desktop and Mobile regressions
         run: npx playwright install --with-deps chromium
 
