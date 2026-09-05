@@ -27,10 +27,7 @@ export function createMission(input = {}) {
   const createdAt = now();
   const tasks = plan.tasks.map((task) => ({
     task_id: task.task_id,
-    execution_id: execution.binding.execution_id,
-    provider_execution_version: execution.binding.provider_execution_version,
     capability: task.capability,
-    factory: execution.binding.factory,
     domain: task.domain,
     engine: task.engine,
     goal: task.goal,
