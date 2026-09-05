@@ -213,6 +213,10 @@ export async function handleOperatorAiCanonicalExecutionRequest(input = {}, cont
   if (options.safe_internal_execution_active !== true) {
     return { ...deterministic, status: 'PREPARED_BUT_BLOCKED', error: 'SAFE_INTERNAL_EXECUTION_NOT_ACTIVATED', production_deploy: false, external_writes: false };
   }
+  const hardBlocker = (deterministic.blockers || []).find((item) => item.priority === 'P0');
+  if (hardBlocker) {
+    return { ...deterministic, status: 'PREPARED_BUT_BLOCKED', error: hardBlocker.code || 'OPERATOR_AI_P0_BLOCKER', execution: { ...deterministic.execution, started: false }, production_deploy: false, external_writes: false };
+  }
   const preparation = deterministic.canonical_execution;
   if (!preparation?.ok || preparation.ready_for_submission !== true) {
     return { ...deterministic, status: 'PREPARED_BUT_BLOCKED', error: preparation?.error || 'OPERATOR_AI_CANONICAL_PREPARATION_REQUIRED', production_deploy: false, external_writes: false };
