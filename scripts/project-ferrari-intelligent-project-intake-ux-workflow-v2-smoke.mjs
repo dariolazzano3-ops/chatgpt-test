@@ -22,6 +22,7 @@ import {
   knowledgeUseGate
 } from '../src/project-source-knowledge-review-v1.js';
 import { buildProjectSourceIntakeWorkspaceSections } from '../src/operator-project-source-intake-workspace-v1.js';
+import { applyProjectKnowledgeReviewUi } from '../src/operator-project-source-intake-knowledge-review-v1.js';
 import {
   handleProjectIntakeUxV2Api,
   applyProjectIntakeUxV2,
@@ -160,6 +161,9 @@ view = buildProjectKnowledgeReviewView(state);
 assert.equal(view.status, 'IN_REVIEW');
 assert.equal(view.gate.allowed, false);
 assert.equal(view.conflict_count, 2);
+assert.equal(view.sections.find((section) => section.id === 'CONFLICTS')?.items?.length, 2);
+assert.equal(view.available_sections.some((section) => section.id === 'CONFLICTS' && section.label === 'Widersprüchliche Angaben'), true);
+assert.equal(view.available_sections.some((section) => section.id === 'OPEN_QUESTIONS' && section.label === 'Offene Fragen'), true);
 assert.equal(createContentPack(state).error, 'PROJECT_KNOWLEDGE_APPROVAL_REQUIRED');
 
 // Scenarios 11 and 14: explicit confirmation and conflict resolution are mandatory.
@@ -292,6 +296,12 @@ assert.match(html, /@media\(max-width:760px\)/);
 assert.match(html, /aria-live="polite"/);
 assert.match(html, /Mit KI aufbereiten/);
 assert.match(html, /Für Ferrari freigeben/);
+
+const reviewEnhanced = await applyProjectKnowledgeReviewUi(new Response(baseHtml, { headers: { 'content-type': 'text/html; charset=utf-8' } }));
+const reviewHtml = await reviewEnhanced.text();
+assert.match(reviewHtml, /data-knowledge-fact-reject/);
+assert.match(reviewHtml, /view\.available_sections\|\|view\.sections/);
+assert.match(reviewHtml, /Quellen:/);
 
 const manifest = projectIntakeUxV2Manifest();
 assert.equal(manifest.existing_source_registry_reused, true);
