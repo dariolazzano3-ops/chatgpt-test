@@ -23,7 +23,7 @@ export function buildAdapterDispatchEnvelope(contract = {}) {
   const resolved = resolveExecutionAdapter(contract); if (!resolved.ok) return resolved;
   return {
     ok: true,
-    envelope_version: 2,
+    envelope_version: 1,
     adapter_id: resolved.adapter.id,
     engine: resolved.adapter.engine,
     underlying_engine: resolved.underlying_engine,
