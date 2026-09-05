@@ -3,21 +3,19 @@ import { authorizeOperator } from './operator-dashboard-http-v1.js';
 import { buildOperatorDeploymentIdentity } from './operator-deployment-identity-v1.js';
 import {
   resolveProjectPreviewAccess,
-  canonicalPreviewRawUrl,
-  projectPreviewDirectoryCandidates,
+  bundledProjectPreviewArtifact,
   runtimeProjectPreviewArtifact,
   projectPreviewAccessManifest
 } from './project-preview-access-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
-const REPOSITORY_FULL_NAME = 'dariolazzano3-ops/chatgpt-test';
 
 function json(body, status = 200, source = null) {
   const headers = source ? new Headers(source.headers) : new Headers();
   headers.set('content-type', 'application/json; charset=utf-8');
   headers.set('cache-control', 'no-store');
   headers.set('x-content-type-options', 'nosniff');
-  headers.set('x-aurentara-project-preview-access-v2', 'enabled');
+  headers.set('x-aurentara-project-preview-access-v3', 'enabled');
   return new Response(JSON.stringify(body, null, 2), { status, headers });
 }
 
@@ -54,77 +52,11 @@ async function projectDetailPayload(request, env, ctx, options, scopeKey) {
   }
 }
 
-function encodedRepoPath(path = '') {
-  return String(path || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-}
-
-function canonicalDirectoryUrl(directory, sha) {
-  return 'https://api.github.com/repos/' + REPOSITORY_FULL_NAME + '/contents/' + encodedRepoPath(directory) + '?ref=' + encodeURIComponent(sha);
-}
-
-function chooseHtmlArtifact(items = []) {
-  const html = items.filter((item) => item?.type === 'file' && typeof item?.name === 'string' && /\.html?$/i.test(item.name));
-  if (!html.length) return null;
-  html.sort((a, b) => {
-    const rank = (item) => {
-      const name = String(item.name || '').toLowerCase();
-      if (name === 'index.html') return 0;
-      if (name.includes('preview')) return 1;
-      return 2;
-    };
-    return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
-  });
-  return clean(html[0]?.path, 1200) || null;
-}
-
-async function discoverCanonicalHtml(payload, sha, options = {}) {
-  if (!/^[0-9a-f]{40}$/.test(sha)) return null;
-  const directories = projectPreviewDirectoryCandidates(payload);
-  if (!directories.length) return null;
-  const fetchImpl = typeof options.project_preview_directory_fetch === 'function'
-    ? options.project_preview_directory_fetch
-    : fetch;
-
-  for (const directory of directories) {
-    let response;
-    try {
-      response = await fetchImpl(canonicalDirectoryUrl(directory, sha), {
-        method: 'GET',
-        headers: {
-          accept: 'application/vnd.github+json',
-          'user-agent': 'aurentara-project-preview-access-v2'
-        },
-        redirect: 'follow'
-      });
-    } catch {
-      continue;
-    }
-    if (!response?.ok) continue;
-    let items;
-    try { items = await response.json(); } catch { continue; }
-    if (!Array.isArray(items)) continue;
-    const sourcePath = chooseHtmlArtifact(items);
-    if (sourcePath) return sourcePath;
-  }
-  return null;
-}
-
 async function accessForPayload(payload = {}, env = {}, options = {}, scopeKey = '', runtime = null) {
-  const sha = deployedSha(env, options);
-  let access = resolveProjectPreviewAccess(payload, {
-    scope_key: scopeKey || payload?.project?.scope_key,
-    deployed_sha: sha,
-    runtime
-  });
-  if (access.available) return access;
-
-  const sourcePath = await discoverCanonicalHtml(payload, sha, options);
-  if (!sourcePath) return access;
   return resolveProjectPreviewAccess(payload, {
     scope_key: scopeKey || payload?.project?.scope_key,
-    deployed_sha: sha,
-    runtime,
-    canonical_source_path: sourcePath
+    deployed_sha: deployedSha(env, options),
+    runtime
   });
 }
 
@@ -179,26 +111,24 @@ async function serveProjectPreview(request, env, ctx, options, scopeKey) {
     return previewHtmlResponse(artifact.html, access, scopeKey);
   }
 
-  const rawUrl = canonicalPreviewRawUrl(access);
-  if (!rawUrl) return json({ error: 'PROJECT_PREVIEW_CANONICAL_ARTIFACT_INVALID', preview_access: access, production_deploy: false }, 409);
-  const fetchImpl = typeof options.project_preview_fetch === 'function' ? options.project_preview_fetch : fetch;
-  let upstream;
-  try {
-    upstream = await fetchImpl(rawUrl, { method: 'GET', headers: { accept: 'text/html' }, redirect: 'follow' });
-  } catch {
-    return json({ error: 'PROJECT_PREVIEW_CANONICAL_ARTIFACT_FETCH_FAILED', preview_access: access, production_deploy: false }, 502);
+  if (access.access_kind === 'BUNDLED_CANONICAL_PROJECT_ARTIFACT') {
+    const artifact = bundledProjectPreviewArtifact(resolved.detail.payload, { scope_key: scopeKey });
+    if (!artifact || artifact.registry_key !== access.bundle_key || artifact.source_path !== access.source_path) {
+      return json({ error: 'PROJECT_PREVIEW_BUNDLED_ARTIFACT_STALE', preview_access: access, production_deploy: false }, 409);
+    }
+    return previewHtmlResponse(artifact.html, access, scopeKey);
   }
-  if (!upstream?.ok) return json({ error: 'PROJECT_PREVIEW_CANONICAL_ARTIFACT_FETCH_FAILED', status: upstream?.status || 502, preview_access: access, production_deploy: false }, 502);
-  return previewHtmlResponse(await upstream.text(), access, scopeKey);
+
+  return json({ error: 'PROJECT_PREVIEW_ACCESS_KIND_UNSUPPORTED', preview_access: access, production_deploy: false }, 409);
 }
 
 function uiInjection() {
-  return `<style id="aurentara-project-preview-access-v2-style">
+  return `<style id="aurentara-project-preview-access-v3-style">
 .project-preview-access-v1{margin-top:14px;min-width:0;max-width:100%;overflow:hidden}.project-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;min-width:0}.project-preview-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;min-width:0;max-width:100%}.project-preview-kv{border:1px solid var(--soft);border-radius:10px;padding:9px;min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.project-preview-kv .mono{white-space:normal;overflow-wrap:anywhere;word-break:break-word}.project-preview-final-action{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--soft);min-width:0;max-width:100%;overflow:hidden}.project-preview-final-action .btn{max-width:100%;white-space:normal;text-align:center;overflow-wrap:anywhere}@media(max-width:760px){.project-preview-meta{grid-template-columns:minmax(0,1fr)}.project-preview-access-v1 .btn,.project-preview-final-action .btn{width:100%;min-height:46px}}
-</style><script id="aurentara-project-preview-access-v2-ui">(()=>{if(window.__aurentaraProjectPreviewAccessV2)return;window.__aurentaraProjectPreviewAccessV2=true;
+</style><script id="aurentara-project-preview-access-v3-ui">(()=>{if(window.__aurentaraProjectPreviewAccessV3)return;window.__aurentaraProjectPreviewAccessV3=true;
 const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let current=null;
-const reason=a=>a?.reason==='PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_OR_REGISTERED'?'Für dieses Projekt wurde noch keine visuelle Preview materialisiert oder registriert. Sobald eine Factory eine Preview liefert, erscheint sie hier automatisch.':a?.reason==='NO_PROJECT_PREVIEW_SOURCE_YET'?'Für dieses Projekt existiert noch kein visueller Preview-Output. Die Preview wird automatisch eingebunden, sobald ein passender Factory-Output vorhanden ist.':'Für dieses Projekt ist aktuell noch keine echte Preview verfügbar.';
+const reason=a=>a?.reason==='PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_IN_BUILD'?'Für dieses Projekt wurde noch keine visuelle Preview materialisiert oder registriert. Sobald eine Factory eine Preview liefert, erscheint sie hier automatisch.':a?.reason==='NO_PROJECT_PREVIEW_SOURCE_YET'?'Für dieses Projekt existiert noch kein visueller Preview-Output. Die Preview wird automatisch eingebunden, sobald ein passender Factory-Output vorhanden ist.':'Für dieses Projekt ist aktuell noch keine echte Preview verfügbar.';
 const previewCard=(d)=>{const root=document.getElementById('project-detail');if(!root)return;const p=d?.project||{},a=d?.project_preview_access||null;current=a;let card=root.querySelector('[data-project-preview-access]');if(card)card.remove();card=document.createElement('div');card.className='card project-preview-access-v1';card.dataset.projectPreviewAccess='true';const available=a?.available===true;const route=a?.operator_route||'';card.innerHTML='<div class="project-preview-head"><div><div class="eyebrow">Project Preview</div><h2 style="margin:3px 0">Vorschau</h2><div class="small">Systemweite projektgebundene Vorschau für '+e(p.name||p.project_id||'dieses Projekt')+'</div></div><span class="badge '+(available?'ready':'attention')+'">'+e(a?.status||'NOT_AVAILABLE')+'</span></div>'+(available?'<div class="project-preview-meta"><div class="project-preview-kv"><b>Quelle</b>'+e(a.provider||'Project Preview')+'</div><div class="project-preview-kv"><b>Revision</b><span class="mono">'+e(a.source_revision||'runtime preview')+'</span></div><div class="project-preview-kv"><b>Scope</b><span class="mono">'+e(a.scope_key||p.scope_key||'')+'</span></div></div><div class="actions" style="margin-top:10px"><a class="btn primary" data-project-preview-open href="'+e(route)+'" target="_blank" rel="noopener noreferrer">Vorschau öffnen ↗</a></div>':'<div class="callout warn" style="margin-top:10px"><strong>Preview noch nicht verfügbar.</strong><div class="small">'+e(reason(a))+'</div></div>');root.prepend(card);enhanceFinal()};
 const enhanceFinal=()=>{const q=document.querySelector('[data-human-question="FINAL_HUMAN_QUALITY_APPROVAL"]');if(!q)return;const available=current?.available===true;let box=q.querySelector('[data-project-preview-final-action]');if(!box){box=document.createElement('div');box.className='project-preview-final-action';box.dataset.projectPreviewFinalAction='true';box.innerHTML=available?'<strong>Finale Sichtprüfung</strong><div class="small">Öffne zuerst die tatsächliche projektgebundene Vorschau. Kehre danach zu dieser Freigabe zurück.</div><a class="btn primary" style="margin-top:8px" href="'+e(current.operator_route||'')+'" target="_blank" rel="noopener noreferrer">Tatsächliche Vorschau öffnen ↗</a>':'<strong>Finale Sichtprüfung blockiert</strong><div class="small">Für dieses Projekt ist noch keine Preview verfügbar. Eine positive Human Quality Approval ist deshalb nicht zulässig.</div>';const controls=q.querySelector('.human-input-controls');if(controls)q.insertBefore(box,controls);else q.prepend(box);}const yes=q.querySelector('input[type=radio][value="yes"]'),seen=q.querySelector('input[data-human-preview]');if(yes)yes.disabled=!available;if(seen)seen.disabled=!available;};
 const old=window.renderProjectDetail;if(typeof old==='function')window.renderProjectDetail=function(d){old(d);previewCard(d);setTimeout(enhanceFinal,0)};
@@ -207,7 +137,7 @@ const observer=new MutationObserver(()=>enhanceFinal());observer.observe(documen
 }
 
 function injectUi(source = '') {
-  if (source.includes('aurentara-project-preview-access-v2-ui')) return source;
+  if (source.includes('aurentara-project-preview-access-v3-ui')) return source;
   const ui = uiInjection();
   return source.includes('</body>') ? source.replace('</body>', ui + '</body>') : source + ui;
 }
@@ -264,7 +194,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
     const source = await response.text();
     const headers = new Headers(response.headers);
     headers.delete('content-length');
-    headers.set('x-aurentara-project-preview-access-v2', 'enabled');
+    headers.set('x-aurentara-project-preview-access-v3', 'enabled');
     return new Response(injectUi(source), { status: response.status, statusText: response.statusText, headers });
   }
   return response;
@@ -283,6 +213,9 @@ export function operatorProjectPreviewAccessManifest() {
     hardcoded_project_preview_exceptions: false,
     runtime_artifact_preview_support: true,
     generic_canonical_project_artifact_discovery: true,
+    build_time_project_preview_registry: true,
+    runtime_github_preview_lookup: false,
+    bundled_local_stylesheets: true,
     desktop_mobile: true,
     production_deploy: false
   };
