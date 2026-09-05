@@ -187,6 +187,12 @@ function plausibleOpeningHours(value = '') {
   if (!raw || raw.length > 320) return false;
   return /\b\d{1,2}[:.]\d{2}\b|\b\d{1,2}\s*(?:AM|PM)\b/i.test(raw);
 }
+function canonicalOpeningHours(value = '') {
+  const raw = clean(value, 500);
+  const daily = raw.match(/Täglich\s+von\s+\d{1,2}[.:]\d{2}\s+bis\s+\d{1,2}[.:]\d{2}(?:\s*\(von\s+[A-Za-zÄÖÜäöüß]+\s+bis\s+[A-Za-zÄÖÜäöüß]+\))?/i);
+  if (daily) return clean(daily[0], 320);
+  return raw;
+}
 
 function targetBusinessTokens(businessName = '') {
   return normalizeText(businessName)
@@ -237,7 +243,10 @@ function extractResponsiblePeople(text = '') {
 }
 
 function extractVatIds(text = '') {
-  return uniq([...clean(text, 120_000).matchAll(/\bDE\s*\d{9}\b/gi)].map((match) => match[0].replace(/\s+/g, ' ').toUpperCase())).slice(0, 12);
+  return uniq([...clean(text, 120_000).matchAll(/\bDE(?:\s*\d){9}\b/gi)].map((match) => {
+    const digits = match[0].replace(/\D/g, '').slice(-9);
+    return digits.length === 9 ? `DE ${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6,9)}` : clean(match[0],80).toUpperCase();
+  })).slice(0, 12);
 }
 
 function extractDomainMentions(text = '') {
@@ -286,7 +295,7 @@ export function extractBusinessEvidenceFromImport(importResult = {}, input = {})
   const rawOpening = uniq([
     ...pages.flatMap((page) => arr(page?.opening_hour_candidates)),
     ...arr(input.opening_hour_candidates)
-  ]).map((value) => clean(value, 500)).filter(plausibleOpeningHours);
+  ]).map(canonicalOpeningHours).filter(plausibleOpeningHours);
   const openingHours = rawOpening.filter((value) => !entityFocused || arr(input.opening_hour_candidates).includes(value) || evidenceValueAppears(value, evidenceText));
 
   const products = entityFocused
