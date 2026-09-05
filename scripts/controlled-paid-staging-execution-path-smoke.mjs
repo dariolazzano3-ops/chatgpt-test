@@ -74,6 +74,7 @@ let executorCalls = 0;
 let capturedContract = null;
 const executionHarness = harness(activeProject(), {
   current_runtime_verified_provider_ids: ['posthog-free'],
+  synthetic_acceptance: true,
   live_staging_executor: async (contract) => {
     executorCalls += 1;
     capturedContract = structuredClone(contract);
