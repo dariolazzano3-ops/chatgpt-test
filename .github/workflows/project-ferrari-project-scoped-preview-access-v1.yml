@@ -5,6 +5,7 @@ on:
     branches:
       - factory/project-ferrari-system-wide-preview-access-v2
       - factory/project-ferrari-preview-discovery-scope-route-fix-v2
+      - factory/project-ferrari-build-time-preview-index-v1
       - factory-control
 
 permissions:
@@ -26,8 +27,11 @@ jobs:
         with:
           node-version: 24
       - run: npm install
+      - name: Generate deterministic project preview index
+        run: node scripts/generate-project-preview-index-v1.mjs
       - name: Syntax
         run: |
+          node --check src/generated-project-preview-index-v1.js
           node --check src/project-preview-access-v1.js
           node --check src/operator-project-preview-access-v1.js
           node --check scripts/project-ferrari-project-scoped-preview-access-v1-smoke.mjs
