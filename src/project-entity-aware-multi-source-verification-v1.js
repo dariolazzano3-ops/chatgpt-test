@@ -101,6 +101,93 @@ function visibleTexts(importResult = {}) {
   return arr(importResult.pages).map((page) => clean(page.visible_text, 100_000)).filter(Boolean);
 }
 
+function businessNameVariants(values = []) {
+  return uniq(arr(values).map((value) => clean(value, 300)).filter(Boolean).flatMap((value) => {
+    const stripped = value.replace(/\s+(?:GmbH|UG\s*\(haftungsbeschränkt\)|GbR|AG|OHG|KG|e\.K\.)\s*$/i, '').trim();
+    return uniq([value, stripped]).filter((item) => item.length >= 4);
+  }));
+}
+
+function entityFocusText(pages = [], businessNames = [], radius = 1400) {
+  const variants = businessNameVariants(businessNames);
+  const windows = [];
+  for (const page of arr(pages)) {
+    const text = clean(page?.visible_text, 100_000);
+    const lower = text.toLowerCase();
+    for (const variant of variants) {
+      const needle = variant.toLowerCase();
+      let from = 0;
+      while (needle && from < lower.length) {
+        const index = lower.indexOf(needle, from);
+        if (index < 0) break;
+        windows.push(text.slice(Math.max(0, index - radius), Math.min(text.length, index + needle.length + radius)));
+        from = index + Math.max(needle.length, 1);
+        if (windows.length >= 12) break;
+      }
+      if (windows.length >= 12) break;
+    }
+    if (windows.length >= 12) break;
+  }
+  return clean(windows.join('\n'), 24_000);
+}
+
+function evidenceValueAppears(value, focus = '') {
+  const needle = normalizeText(typeof value === 'string' ? value : JSON.stringify(value));
+  const haystack = normalizeText(focus);
+  if (!needle || !haystack) return false;
+  if (needle.length <= 160) return haystack.includes(needle);
+  const tokens = needle.split(' ').filter((token) => token.length >= 4).slice(0, 12);
+  return tokens.length >= 2 && tokens.filter((token) => haystack.includes(token)).length >= Math.min(3, tokens.length);
+}
+
+function plausiblePhone(value = '') {
+  const raw = clean(value, 120);
+  const normalized = normalizePhone(raw);
+  return normalized.length >= 9 && normalized.length <= 15 && (/^\+/.test(raw) || /^0/.test(raw));
+}
+
+function plausibleEmail(value = '') {
+  const raw = normalizeEmail(value);
+  return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(raw) && !/@2x\./i.test(raw);
+}
+
+function canonicalAddress(value = '') {
+  const raw = clean(value, 800);
+  if (!raw) return null;
+  if (/^\{/.test(raw)) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.streetAddress && parsed.postalCode && parsed.addressLocality) {
+        return clean(`${parsed.streetAddress}, ${parsed.postalCode} ${parsed.addressLocality}`, 500);
+      }
+    } catch {}
+  }
+  const street = raw.match(/([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]*(?:straße|str\.?|weg|platz|allee|gasse|ring|markt)\s+\d+[a-zA-Z]?)/i)?.[1];
+  const postalCity = raw.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+(?:[-\s][A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+){0,2})/i);
+  if (street && postalCity) return clean(`${street.replace(/\s+/g,' ')}, ${postalCity[1]} ${postalCity[2]}`, 500);
+  return raw.length <= 160 && /\b\d{5}\b/.test(raw) ? raw : null;
+}
+
+function plausibleOpeningHours(value = '') {
+  const raw = clean(value, 500);
+  if (!raw || raw.length > 320) return false;
+  return /\b\d{1,2}[:.]\d{2}\b|\b\d{1,2}\s*(?:AM|PM)\b/i.test(raw);
+}
+
+function targetBusinessTokens(businessName = '') {
+  return normalizeText(businessName)
+    .replace(/\b(gmbh|ug|haftungsbeschrankt|gbr|ag|ohg|kg|e k)\b/g, ' ')
+    .split(' ')
+    .filter((token) => token.length >= 4);
+}
+
+function socialLooksEntitySpecific(url = '', businessNames = []) {
+  let path = '';
+  try { path = new URL(url).pathname.toLowerCase(); } catch { return false; }
+  const tokens = businessNameVariants(businessNames).flatMap(targetBusinessTokens);
+  return tokens.length > 0 && tokens.filter((token) => path.includes(token)).length >= Math.min(2, new Set(tokens).size);
+}
+
 function firstBusinessName(importResult = {}, input = {}) {
   if (clean(input.business_name, 300)) return clean(input.business_name, 300);
   const candidates = [
@@ -113,15 +200,18 @@ function firstBusinessName(importResult = {}, input = {}) {
 function extractLegalEntities(text = '', businessName = '') {
   const matches = [...clean(text, 120_000).matchAll(/\b([A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9&.'\- ]{1,90}?(?:GmbH|UG\s*\(haftungsbeschränkt\)|GbR|AG|OHG|KG|e\.K\.))/g)]
     .map((match) => clean(match[1], 180));
-  const businessTokens = normalizeText(businessName).split(' ').filter((token) => token.length > 2);
-  const filtered = matches.filter((value) => !businessTokens.length || businessTokens.some((token) => normalizeText(value).includes(token)));
-  return uniq(filtered.length ? filtered : matches).slice(0, 12);
+  const businessTokens = targetBusinessTokens(businessName);
+  if (!businessTokens.length) return uniq(matches).slice(0, 12);
+  return uniq(matches.filter((value) => {
+    const normalized = normalizeText(value);
+    return businessTokens.every((token) => normalized.includes(token));
+  })).slice(0, 12);
 }
 
 function extractResponsiblePeople(text = '') {
   const out = [];
   const patterns = [
-    /(?:Geschäftsführer(?:in)?|Verantwortlich(?:er|e)?(?:\s+für[^:\n]{0,80})?|Inhaber(?:in)?|Management)\s*:?\s*(?:Herr\s+|Frau\s+)?([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)/gi,
+    /(?:Geschäftsführer(?:in)?|Inhaber(?:in)?)\s*:?\s*(?:Herr\s+|Frau\s+)?([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)/gi,
     /([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.'\-]+)\s+(?:Geschäftsführer(?:in)?|Inhaber(?:in)?)/gi
   ];
   for (const pattern of patterns) for (const match of clean(text, 120_000).matchAll(pattern)) out.push(clean(match[1], 160));
@@ -150,64 +240,82 @@ export function extractBusinessEvidenceFromImport(importResult = {}, input = {})
   const pages = arr(importResult.pages);
   const text = visibleTexts(importResult).join('\n');
   const businessName = firstBusinessName(importResult, input);
-  const phones = uniq([
+  const targetNames = uniq([businessName, ...arr(input.business_name_candidates)]).filter(Boolean);
+  const entityFocused = input.entity_focus === true;
+  const focusText = entityFocused ? entityFocusText(pages, targetNames) : text;
+  const evidenceText = focusText || (entityFocused ? '' : text);
+
+  const rawPhones = uniq([
     ...arr(importResult.business_facts?.phones),
     ...pages.flatMap((page) => arr(page?.contacts?.phones)),
     ...arr(input.phone_candidates)
-  ]).map((value) => clean(value, 120)).filter(Boolean);
-  const emails = uniq([
+  ]).map((value) => clean(value, 120)).filter(plausiblePhone);
+  const phones = rawPhones.filter((value) => !entityFocused || arr(input.phone_candidates).includes(value) || evidenceValueAppears(value, evidenceText));
+
+  const rawEmails = uniq([
     ...arr(importResult.business_facts?.emails),
     ...pages.flatMap((page) => arr(page?.contacts?.emails)),
     ...arr(input.email_candidates)
-  ]).map((value) => clean(value, 320)).filter(Boolean);
-  const addresses = uniq([
+  ]).map((value) => clean(value, 320)).filter(plausibleEmail);
+  const emails = rawEmails.filter((value) => !entityFocused || arr(input.email_candidates).includes(value) || evidenceValueAppears(value, evidenceText));
+
+  const rawAddresses = uniq([
     ...pages.flatMap((page) => arr(page?.address_candidates)),
     ...arr(input.address_candidates)
-  ]).map((value) => clean(value, 500)).filter(Boolean);
-  const openingHours = uniq([
+  ]).map(canonicalAddress).filter(Boolean);
+  const addresses = uniq(rawAddresses.filter((value) => !entityFocused || arr(input.address_candidates).some((item)=>canonicalAddress(item)===value) || evidenceValueAppears(value, evidenceText)));
+
+  const rawOpening = uniq([
     ...pages.flatMap((page) => arr(page?.opening_hour_candidates)),
     ...arr(input.opening_hour_candidates)
-  ]).map((value) => clean(value, 500)).filter(Boolean);
-  const products = uniq([
-    ...pages.flatMap((page) => arr(page?.service_product_candidates)),
-    ...arr(input.product_candidates)
-  ]).map((value) => clean(value, 500)).filter(Boolean);
-  const socialLinks = uniq([
+  ]).map((value) => clean(value, 500)).filter(plausibleOpeningHours);
+  const openingHours = rawOpening.filter((value) => !entityFocused || arr(input.opening_hour_candidates).includes(value) || evidenceValueAppears(value, evidenceText));
+
+  const products = entityFocused
+    ? uniq(arr(input.product_candidates).map((value)=>clean(value,500)).filter(Boolean))
+    : uniq([...pages.flatMap((page) => arr(page?.service_product_candidates)), ...arr(input.product_candidates)]).map((value) => clean(value, 500)).filter(Boolean);
+
+  const scrapedSocial = uniq([
     ...arr(importResult.extracted_candidates?.social_links),
-    ...pages.flatMap((page) => arr(page?.social_links)),
-    ...arr(input.social_links)
+    ...pages.flatMap((page) => arr(page?.social_links))
   ]).map((value) => clean(value, 2000)).filter(Boolean);
-  const ctas = uniq([
-    ...arr(importResult.conversion_inventory?.detected_ctas),
-    ...pages.flatMap((page) => arr(page?.ctas))
-  ]).map((value) => clean(value, 160)).filter(Boolean);
+  const socialLinks = uniq([
+    ...arr(input.social_links).map((value)=>clean(value,2000)).filter(Boolean),
+    ...scrapedSocial.filter((url) => !entityFocused || socialLooksEntitySpecific(url, targetNames))
+  ]);
+
+  const ctas = entityFocused
+    ? uniq(arr(input.conversion_signals).map((value)=>clean(value,160)).filter(Boolean))
+    : uniq([...arr(importResult.conversion_inventory?.detected_ctas), ...pages.flatMap((page) => arr(page?.ctas)), ...arr(input.conversion_signals)]).map((value) => clean(value, 160)).filter(Boolean);
 
   return {
     schema: 'aurentara.business-public-source-evidence.v1',
     source_url: clean(input.source_url || importResult.canonical_source_url || importResult.source_url, 2000) || null,
     business_name: businessName,
-    business_name_candidates: uniq([businessName, ...arr(input.business_name_candidates)]).filter(Boolean),
+    business_name_candidates: targetNames,
     domains: uniq([
       normalizeDomain(input.source_url || importResult.canonical_source_url || importResult.source_url),
-      ...extractDomainMentions(text),
-      ...arr(input.domain_candidates).map(normalizeDomain)
+      ...extractDomainMentions(evidenceText)
     ]).filter(Boolean),
+    discovery_declared_domains: uniq(arr(input.domain_candidates).map(normalizeDomain).filter(Boolean)),
     phones,
     normalized_phones: uniq(phones.map(normalizePhone).filter(Boolean)),
     emails,
     normalized_emails: uniq(emails.map(normalizeEmail).filter(Boolean)),
     addresses,
     address_cores: uniq(addresses.map(addressCore).filter(Boolean)),
-    city_region: inferCitySignals(addresses, text),
+    city_region: inferCitySignals(addresses, evidenceText),
     opening_hours: openingHours,
-    legal_entities: uniq([...extractLegalEntities(text, businessName), ...arr(input.legal_entity_candidates).map((v)=>clean(v,180))]),
-    responsible_people: uniq([...extractResponsiblePeople(text), ...arr(input.responsible_person_candidates).map((v)=>clean(v,160))]),
-    vat_ids: uniq([...extractVatIds(text), ...arr(input.vat_id_candidates).map((v)=>clean(v,80))]),
+    legal_entities: uniq([...extractLegalEntities(evidenceText, businessName), ...arr(input.legal_entity_candidates).map((v)=>clean(v,180))]),
+    responsible_people: uniq([...extractResponsiblePeople(evidenceText), ...arr(input.responsible_person_candidates).map((v)=>clean(v,160))]),
+    vat_ids: uniq([...extractVatIds(evidenceText), ...arr(input.vat_id_candidates).map((v)=>clean(v,80))]),
     social_links: socialLinks,
     products_services: products,
     conversion_signals: ctas,
     brand_signals: uniq(pages.flatMap((page) => [page?.brand_signals?.og_site_name, page?.brand_signals?.og_image, page?.brand_signals?.favicon]).filter(Boolean)),
-    text_excerpt: clean(text, 12_000),
+    text_excerpt: clean(evidenceText, 12_000),
+    entity_focus_applied: entityFocused,
+    entity_focus_found: !entityFocused || Boolean(focusText),
     fetched_at: clean(input.fetched_at, 80) || new Date().toISOString(),
     visible_updated_at: clean(input.visible_updated_at, 80) || null
   };
@@ -255,10 +363,10 @@ function nameMatches(fingerprint = {}, evidence = {}) {
   return candidates.some((candidate) => fp.some((name) => candidate.includes(name) || name.includes(candidate)));
 }
 
-function domainMatches(fingerprint = {}, evidence = {}, meta = {}) {
+function domainMatches(fingerprint = {}, evidence = {}) {
   const anchor = normalizeDomain(fingerprint.anchor_domain);
-  const declared = uniq([...arr(evidence.domains), ...arr(meta.declared_domains), meta.declared_domain].filter(Boolean)).map(normalizeDomain);
-  return Boolean(anchor && declared.includes(anchor));
+  const observed = uniq(arr(evidence.domains).filter(Boolean)).map(normalizeDomain);
+  return Boolean(anchor && observed.includes(anchor));
 }
 
 export function evaluateBusinessEntityMatch(fingerprint = {}, sourceEvidence = {}, sourceMeta = {}) {
