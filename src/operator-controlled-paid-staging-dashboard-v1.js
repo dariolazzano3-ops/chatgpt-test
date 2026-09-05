@@ -37,31 +37,49 @@ function activationText(row = {}) {
 function matrixConnection(row = {}) {
   const text = activationText(row);
   if (!text) return 'NOT_CONNECTED';
-  if (text.includes('live_staging_verified') || text.includes('staging_deploy_verified') || text.includes('staging_write_verified') || text.includes('staging_analytics_verified') || text.includes('live_read_and_staging')) return 'CONNECTED_STAGING';
-  if (text.includes('live_read_verified')) return 'READ_ONLY_VERIFIED';
+  if (
+    text.includes('historical_connected_staging_evidence')
+    || text.includes('historical_staging_execution_evidence')
+    || text.includes('historical_read_and_staging')
+    || text.includes('historical_staging_inference_evidence')
+    || text.includes('live_staging_verified')
+    || text.includes('staging_deploy_verified')
+    || text.includes('staging_write_verified')
+    || text.includes('staging_analytics_verified')
+    || text.includes('live_read_and_staging')
+  ) return 'CONNECTED_STAGING';
+  if (text.includes('historical_read_only_connection_evidence') || text.includes('live_read_verified') || text.includes('historical_read_evidence')) return 'READ_ONLY_VERIFIED';
   return 'NOT_CONNECTED';
 }
 
-function providerProjection() {
-  const inventory = providerActivationInventory();
+function providerProjection(options = {}) {
+  const currentRuntimeVerifiedProviderIds = Array.isArray(options.current_runtime_verified_provider_ids)
+    ? options.current_runtime_verified_provider_ids
+    : [];
+  const inventory = providerActivationInventory({ current_runtime_verified_provider_ids: currentRuntimeVerifiedProviderIds });
   const matrix = providerActivationMatrix();
   const matrixById = new Map((matrix.providers || []).map((row) => [row.id, row]));
   return (inventory.providers || []).map((provider) => {
     const evidence = matrixById.get(provider.id) || null;
     const connection = evidence ? matrixConnection(evidence) : 'NOT_CONNECTED';
-    const verification = connection === 'CONNECTED_STAGING'
-      ? 'VERIFIED_STAGING'
-      : connection === 'READ_ONLY_VERIFIED'
-        ? 'VERIFIED_READ_ONLY'
-        : 'NOT_VERIFIED';
+    const currentRuntimeVerified = provider.runtime_truth?.current_runtime_verified === true;
+    const verification = currentRuntimeVerified
+      ? 'CURRENT_RUNTIME_VERIFIED'
+      : connection === 'CONNECTED_STAGING'
+        ? 'HISTORICAL_VERIFIED_STAGING'
+        : connection === 'READ_ONLY_VERIFIED'
+          ? 'HISTORICAL_VERIFIED_READ_ONLY'
+          : 'NOT_VERIFIED';
     return {
       id: provider.id,
       connection_state: connection,
       verification,
+      current_runtime_verified: currentRuntimeVerified,
       runtime_eligible: provider.runtime_eligible !== false,
-      active_runtime: provider.runtime_eligible !== false && ['CONNECTED_STAGING', 'READ_ONLY_VERIFIED'].includes(connection),
+      active_runtime: provider.runtime_eligible !== false && currentRuntimeVerified,
       capabilities: clone(provider.capabilities || []),
       restrictions: clone(provider.restrictions || []),
+      runtime_truth: clone(provider.runtime_truth || null),
       evidence: evidence ? clone(evidence) : null
     };
   });
@@ -78,8 +96,8 @@ function providerIdsFromReview(review = {}) {
   return ids;
 }
 
-function resolveProviderRoutes(project = {}, review = {}) {
-  const byId = new Map(providerProjection().map((provider) => [provider.id, provider]));
+function resolveProviderRoutes(project = {}, review = {}, options = {}) {
+  const byId = new Map(providerProjection(options).map((provider) => [provider.id, provider]));
   const requested = providerIdsFromReview(review);
   const routes = requested.map((id) => {
     const provider = byId.get(id) || { id, connection_state: 'NOT_CONNECTED', verification: 'NOT_VERIFIED', active_runtime: false, runtime_eligible: false, restrictions: [] };
@@ -167,7 +185,7 @@ function approvalBinding(project = {}, review = {}, cost = {}, providers = {}) {
   };
 }
 
-async function controlledPreflight(service, runtime, project, body = {}) {
+async function controlledPreflight(service, runtime, project, body = {}, options = {}) {
   const input = safeMissionInput(body, project);
   if (!input.mission_text) return { status: 400, body: { error: 'MISSION_TEXT_REQUIRED', production_deploy: false } };
   const review = buildReview(input);
@@ -175,7 +193,7 @@ async function controlledPreflight(service, runtime, project, body = {}) {
   const cost = serverCostPreflight(input, review);
   const projectedCost = money(cost.recommended_cost_ceiling_eur || cost.high_estimate_eur || cost.estimated_cost_eur || 0);
   const budgetGate = evaluateControlledPaidStagingBudget(project, projectedCost);
-  const providers = resolveProviderRoutes(project, review);
+  const providers = resolveProviderRoutes(project, review, options);
   const binding = approvalBinding(project, review, cost, providers);
   if (!budgetGate.ok) {
     return { status: 409, body: { schema: 'aurentara.controlled-paid-staging.mission-preflight.v1', status: 'PROJECT_BUDGET_REAPPROVAL_REQUIRED', project_policy: controlledPaidStagingSnapshot(project), cost_preflight: cost, budget_gate: budgetGate, provider_routes: providers, approval_binding: binding, execution_started: false, production_deploy: false } };
@@ -224,7 +242,7 @@ async function controlledDecision(service, runtime, project, body = {}, request,
   const projectedCost = money(cost.recommended_cost_ceiling_eur || cost.high_estimate_eur || cost.estimated_cost_eur || 0);
   const budgetGate = evaluateControlledPaidStagingBudget(project, projectedCost);
   if (!budgetGate.ok) return { status: 409, body: { error: 'PROJECT_BUDGET_EXCEEDED', budget_gate: budgetGate, production_deploy: false } };
-  const providers = resolveProviderRoutes(project, review); const eligible = providers.eligible_routes;
+  const providers = resolveProviderRoutes(project, review, options); const eligible = providers.eligible_routes;
   if (!eligible.length) return { status: 409, body: { error: 'NO_CONTROLLED_PAID_STAGING_PROVIDER_ROUTE_ELIGIBLE', provider_routes: providers, production_deploy: false } };
   if (body.readiness_only === true) return { status: 200, body: { schema: 'aurentara.controlled-paid-staging.execution-readiness.v1', status: 'EXECUTION_READY', project_policy: controlledPaidStagingSnapshot(project), cost_preflight: cost, budget_gate: budgetGate, provider_routes: providers, approval_binding: approvalBinding(project, review, cost, providers), execution_started: false, paid_provider_calls: 0, actual_cost_eur: 0, production_deploy: false } };
   const executor = typeof options.live_staging_executor === 'function' ? options.live_staging_executor : (contract) => defaultLiveStagingExecutor(contract, request, env, ctx);
@@ -263,7 +281,7 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
   let body = {}; if (['POST','PUT','PATCH'].includes(request.method)) { try { body = await request.clone().json(); } catch { body = {}; } }
   const scopeKey = clean(body.scope_key, 300) || runtime.selected_project_scope; const project = findProject(runtime, scopeKey); const policy = project ? controlledPaidStagingSnapshot(project) : null;
   if (!policy?.active) return handleExistingDashboard(request, env, ctx, options);
-  if (url.pathname === '/operator/api/mission-preflight' && request.method === 'POST') { const result = await controlledPreflight(service, runtime, project, body); return json(result.body, result.status); }
+  if (url.pathname === '/operator/api/mission-preflight' && request.method === 'POST') { const result = await controlledPreflight(service, runtime, project, body, options); return json(result.body, result.status); }
   if ((url.pathname === '/operator/api/mission-plan-decision' || url.pathname === '/operator/api/mission-approve') && request.method === 'POST') { const normalized = url.pathname.endsWith('/mission-approve') ? { ...body, decision: 'approve' } : body; const result = await controlledDecision(service, runtime, project, normalized, request, env, ctx, options); return json(result.body, result.status); }
   return handleExistingDashboard(request, env, ctx, options);
 }

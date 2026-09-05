@@ -1,6 +1,7 @@
 import { createProviderRegistry, routeProvider, evaluateRuntimeGovernance } from './runtime-governance.js';
 import { createCostLedger, reserveCost, costLedgerSnapshot } from './runtime-cost-ledger.js';
-import { evaluateApproval } from './runtime-approvals.js';
+import { evaluateApproval, createExecutionApprovalBinding } from './runtime-approvals.js';
+import { buildTaskExecutionContract } from './orchestration-state.js';
 import { createProjectBoundary } from './runtime-project-boundary.js';
 import { buildProviderAttemptPlan } from './provider-runtime.js';
 
@@ -22,10 +23,44 @@ function missionCapabilities(pkg = {}) {
   return out;
 }
 
-function approvalFlags(records, scope, route) {
-  const cost = evaluateApproval(records, { ...scope, approval_type: 'provider_cost', provider_id: route.provider.id, capability: route.capability });
-  const external = evaluateApproval(records, { ...scope, approval_type: 'external_provider', provider_id: route.provider.id, capability: route.capability });
+function approvalFlags(records, scope, route, binding = null, strict = false) {
+  const requestBase = {
+    ...scope,
+    provider_id: route.provider.id,
+    capability: route.capability,
+    ...(strict && binding ? { binding, require_execution_binding: true } : {})
+  };
+  const cost = evaluateApproval(records, { ...requestBase, approval_type: 'provider_cost' });
+  const external = evaluateApproval(records, { ...requestBase, approval_type: 'external_provider' });
   return { cost_approved: cost.approved === true, external_provider_approved: external.approved === true, records: { cost, external } };
+}
+
+function routeBoundExecutionContract(pkg = {}, item = {}, route = {}, scope = {}) {
+  const mission = clone(pkg.mission || {});
+  const task = (mission.tasks || []).find((entry) => entry.task_id === item.task_id);
+  if (!task) return { ok: false, error: 'MISSION_TASK_NOT_FOUND' };
+  task.execution_contract_binding = {
+    ...(task.execution_contract_binding || {}),
+    mission_id: mission.mission_id,
+    task_id: task.task_id,
+    factory: item.engine,
+    capability: task.capability,
+    project_scope_key: `${scope.customer_id}:${scope.project_id}`,
+    provider_route: {
+      provider_id: route.provider.id,
+      capability: route.capability,
+      route_primary: route.primary || route.provider.id,
+      fallback_provider_ids: (route.fallbacks || []).map((provider) => provider.id)
+    },
+    executor_id: null,
+    environment: 'staging',
+    write_policy: 'NO_EXTERNAL_WRITES',
+    production_policy: 'PRODUCTION_DISABLED'
+  };
+  mission.customer_id = mission.customer_id || scope.customer_id;
+  mission.project_id = mission.project_id || scope.project_id;
+  mission.scope_key = mission.scope_key || `${scope.customer_id}:${scope.project_id}`;
+  return buildTaskExecutionContract(mission, task.task_id);
 }
 
 export function evaluateMissionRuntime(pkg = {}, config = {}) {
@@ -52,7 +87,22 @@ export function evaluateMissionRuntime(pkg = {}, config = {}) {
       tasks.push({ ...item, route });
       continue;
     }
-    const flags = approvalFlags(approvals, scope, route);
+    const strictExecutionBinding = config.require_canonical_execution_binding === true || Boolean(pkg.mission?.project_context_binding);
+    const canonicalContract = routeBoundExecutionContract(pkg, item, route, scope);
+    if (strictExecutionBinding && !canonicalContract.ok) {
+      blockers.push({ task_id: item.task_id, engine: item.engine, capability: item.capability, provider_id: route.provider.id, code: canonicalContract.error || 'CANONICAL_EXECUTION_CONTRACT_REQUIRED' });
+      tasks.push({ ...item, route: { ...route, runner: undefined }, canonical_execution_contract: canonicalContract });
+      continue;
+    }
+    const approvalBinding = canonicalContract.ok
+      ? createExecutionApprovalBinding(canonicalContract, {
+          provider_id: route.provider.id,
+          cost_ceiling_eur: route.provider.estimated_cost_units,
+          write_scope: 'NO_EXTERNAL_WRITES',
+          production_scope: 'PRODUCTION_DISABLED'
+        })
+      : null;
+    const flags = approvalFlags(approvals, scope, route, approvalBinding, strictExecutionBinding);
     const governance = evaluateRuntimeGovernance({
       project: scope,
       provider: route.provider,
@@ -61,7 +111,16 @@ export function evaluateMissionRuntime(pkg = {}, config = {}) {
       production_deploy: false
     });
     const attemptPlan = buildProviderAttemptPlan(route, health);
-    const task = { ...item, route: { ...route, runner: undefined }, governance, approval_evidence: flags.records, attempt_plan: attemptPlan };
+    const task = {
+      ...item,
+      route: { ...route, runner: undefined },
+      governance,
+      approval_evidence: flags.records,
+      approval_binding: approvalBinding,
+      canonical_execution_contract: canonicalContract.ok ? canonicalContract : null,
+      strict_execution_binding: strictExecutionBinding,
+      attempt_plan: attemptPlan
+    };
     if (!governance.ok || governance.blocked || !attemptPlan.ok) {
       const codes = governance.blockers?.map((entry) => entry.code) || [];
       if (!attemptPlan.ok) codes.push(attemptPlan.error);
@@ -70,10 +129,32 @@ export function evaluateMissionRuntime(pkg = {}, config = {}) {
       continue;
     }
     const reservationId = `${pkg.mission.mission_id}:${item.task_id}:${route.provider.id}`;
-    const reserved = reserveCost(ledger, { reservation_id: reservationId, cost_units: route.provider.estimated_cost_units, provider_id: route.provider.id, capability: item.capability, mission_id: pkg.mission.mission_id, task_id: item.task_id });
+    const reserved = reserveCost(ledger, {
+      reservation_id: reservationId,
+      cost_units: route.provider.estimated_cost_units,
+      provider_id: route.provider.id,
+      capability: item.capability,
+      mission_id: pkg.mission.mission_id,
+      task_id: item.task_id,
+      execution_id: canonicalContract.ok ? canonicalContract.execution_id : null,
+      customer_id: scope.customer_id,
+      project_id: scope.project_id,
+      scope_key: `${scope.customer_id}:${scope.project_id}`,
+      binding: approvalBinding
+    });
     if (!reserved.ok) blockers.push({ task_id: item.task_id, engine: item.engine, capability: item.capability, provider_id: route.provider.id, code: reserved.error });
     else ledger = reserved.ledger;
-    tasks.push({ ...task, reservation: reserved.ok ? { reservation_id: reservationId, reserved_cost_units: reserved.reserved_cost_units, duplicate: reserved.duplicate === true } : null });
+    const approvalIds = [flags.records.cost?.approval?.approval_id, flags.records.external?.approval?.approval_id].filter(Boolean);
+    const boundContract = canonicalContract.ok ? {
+      ...canonicalContract,
+      budget_reservation_ref: reserved.ok ? { reservation_id: reservationId, reserved_cost_units: reserved.reserved_cost_units } : null,
+      approval_ref: approvalIds.length ? { approval_ids: approvalIds } : null
+    } : null;
+    tasks.push({
+      ...task,
+      canonical_execution_contract: boundContract,
+      reservation: reserved.ok ? { reservation_id: reservationId, reserved_cost_units: reserved.reserved_cost_units, duplicate: reserved.duplicate === true, execution_id: canonicalContract.ok ? canonicalContract.execution_id : null } : null
+    });
   }
 
   const boundaryResult = createProjectBoundary({ ...scope, project_root: config.project_root || `projects/${scope.project_id}`, allowed_paths: config.allowed_paths, owner: config.owner });
@@ -101,6 +182,10 @@ export function runtimeControlPlaneManifest() {
     mission_pipeline_integration: true,
     customer_project_isolation: true,
     durable_cost_ledger_contract: true,
+    canonical_execution_contract_binding: true,
+    strict_execution_binding_for_project_knowledge_missions: true,
+    reservation_before_dispatch: true,
+    approval_binding_revalidated_on_security_change: true,
     automatic_external_activation: false,
     production_deploy: false
   };
