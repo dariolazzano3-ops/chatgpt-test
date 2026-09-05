@@ -368,6 +368,65 @@ function valueKey(fieldPath = '', value) {
   return normalizeText(typeof value === 'string' ? value : JSON.stringify(value));
 }
 
+export function ingestAnchorBusinessEvidence(state = {}, input = {}, options = {}) {
+  const evidence = input.evidence || {};
+  const sourceUrl = clean(input.source_url || evidence.source_url, 2000);
+  if (!sourceUrl) return { ok:false,error:'ANCHOR_SOURCE_URL_REQUIRED' };
+  const fetchedAt = clean(input.fetched_at || evidence.fetched_at, 80) || new Date().toISOString();
+  const registered = registerProjectSource(state, {
+    source_id: clean(input.source_id, 200) || 'primary-anchor-website',
+    source_type:'OWNED_WEBSITE',
+    source_role:'ANCHOR_OWNED_WEBSITE',
+    locator:sourceUrl,
+    source_url:sourceUrl,
+    display_name:clean(input.display_name,300) || 'Primary anchor website',
+    ownership_status:'OWNED_CONFIRMED',
+    ingestion_status:'PRIMARY_ANCHOR_EVIDENCE',
+    fetched_at:fetchedAt,
+    visible_updated_at:clean(input.visible_updated_at || evidence.visible_updated_at,80) || null,
+    entity_match_state:'ENTITY_MATCH_CONFIRMED',
+    entity_match_score:1,
+    source_weight:BUSINESS_PUBLIC_SOURCE_WEIGHTS.ANCHOR_OWNED_WEBSITE,
+    source_metadata:{primary_anchor:true,rights_use:'OWNED_CONTENT_AND_FACT_EVIDENCE',automatic_customer_confirmation:false},
+    website_usage:{content:true,structure_reference:false,design_reference:false}
+  }, {at:options.at || fetchedAt});
+  if(!registered.ok) return registered;
+  let next=registered.state;
+  const facts=[];
+  for(const candidate of factCandidatesFromEvidence(evidence)){
+    const freshness=evaluateSourceFreshness(registered.source,candidate.field_path,options);
+    const provenance=[{
+      source_id:registered.source.source_id,
+      source_url:sourceUrl,
+      source_type:'ANCHOR_OWNED_WEBSITE',
+      fetched_at:fetchedAt,
+      visible_updated_at:input.visible_updated_at || evidence.visible_updated_at || null,
+      entity_match_state:'ENTITY_MATCH_CONFIRMED',
+      entity_match_score:1,
+      source_weight:BUSINESS_PUBLIC_SOURCE_WEIGHTS.ANCHOR_OWNED_WEBSITE,
+      freshness_state:freshness.state,
+      extracted_value:clone(candidate.value),
+      existing_verification_state:'UNVERIFIED'
+    }];
+    const added=upsertProjectFact(next,{
+      field_path:candidate.field_path,
+      value:clone(candidate.value),
+      origin:'EXTRACTED',
+      verification_status:'UNVERIFIED',
+      source_refs:[registered.source.source_id],
+      provenance,
+      evidence_classification:'HIGH_CONFIDENCE_CANDIDATE',
+      confidence:Math.min(0.98,0.82+(freshness.score*0.16)),
+      critical:candidate.critical,
+      preserve_confirmed_precedence:true
+    },{at:options.at || fetchedAt});
+    if(!added.ok) return added;
+    next=added.state;
+    facts.push(added.fact);
+  }
+  return {ok:true,state:next,source:registered.source,facts,facts_ingested:facts.length,production_deploy:false,paid_provider_calls:0,variable_cost_eur:0};
+}
+
 export function ingestEntityMatchedPublicSource(state = {}, input = {}, options = {}) {
   const sourceUrl = clean(input.source_url || input.evidence?.source_url, 2000);
   const match = input.entity_match;
@@ -450,25 +509,25 @@ export function ingestEntityMatchedPublicSource(state = {}, input = {}, options 
 export function corroborateProjectFacts(state = {}, options = {}) {
   let next=clone(state);
   const sources=new Map(arr(next.sources).map((source)=>[source.source_id,source]));
-  const externalFacts=arr(next.facts).filter((fact)=>arr(fact.source_refs).some((id)=>sources.get(id)?.source_type==='PUBLIC_WEB_SOURCE'));
+  const isResearchSource=(source)=>source&&['OWNED_WEBSITE','PUBLIC_WEB_SOURCE'].includes(source.source_type); const externalFacts=arr(next.facts).filter((fact)=>arr(fact.source_refs).some((id)=>isResearchSource(sources.get(id))));
   const fields=uniq(externalFacts.map((fact)=>fact.field_path));
   const summaries=[];
 
   for(const fieldPath of fields){
     const allFieldFacts=arr(next.facts).filter((fact)=>fact.field_path===fieldPath && !['REJECTED','OUTDATED'].includes(fact.verification_status));
     const authoritative=allFieldFacts.filter((fact)=>['CUSTOMER_CONFIRMED','OPERATOR_CONFIRMED','VERIFIED'].includes(fact.verification_status));
-    const external=allFieldFacts.filter((fact)=>arr(fact.source_refs).some((id)=>sources.get(id)?.source_type==='PUBLIC_WEB_SOURCE'));
+    const external=allFieldFacts.filter((fact)=>arr(fact.source_refs).some((id)=>isResearchSource(sources.get(id))));
     const groups=new Map();
     for(const fact of external){
       const key=valueKey(fieldPath,fact.value);
-      const support=arr(fact.source_refs).map((id)=>sources.get(id)).filter((source)=>source?.source_type==='PUBLIC_WEB_SOURCE'&&['ENTITY_MATCH_CONFIRMED','ENTITY_MATCH_HIGH_CONFIDENCE'].includes(source.entity_match_state));
+      const support=arr(fact.source_refs).map((id)=>sources.get(id)).filter((source)=>isResearchSource(source)&&(source.source_type==='OWNED_WEBSITE'||['ENTITY_MATCH_CONFIRMED','ENTITY_MATCH_HIGH_CONFIDENCE'].includes(source.entity_match_state)));
       const current=groups.get(key)||{key,value:clone(fact.value),facts:[],source_ids:new Set(),weighted_support:0,freshest:null};
       current.facts.push(fact);
       for(const source of support){
         if(current.source_ids.has(source.source_id)) continue;
         current.source_ids.add(source.source_id);
         const freshness=evaluateSourceFreshness(source,fieldPath,options);
-        current.weighted_support += Number(source.source_weight||0) * freshness.score;
+        current.weighted_support += Number(source.source_weight || (source.source_type==='OWNED_WEBSITE'?BUSINESS_PUBLIC_SOURCE_WEIGHTS.ANCHOR_OWNED_WEBSITE:0)) * freshness.score;
         if(!current.freshest || (freshness.timestamp && Date.parse(freshness.timestamp)>Date.parse(current.freshest.timestamp||0))) current.freshest=freshness;
       }
       groups.set(key,current);
@@ -556,6 +615,7 @@ export function entityAwareMultiSourceVerificationManifest() {
     schema:'aurentara.entity-aware-multi-source-verification.v1',
     existing_project_source_intake_reused:true,
     existing_website_import_reused:true,
+    anchor_ingested_as_existing_owned_website:true,
     existing_fact_engine_reused:true,
     existing_fact_conflicts_reused:true,
     project_scoped:true,
