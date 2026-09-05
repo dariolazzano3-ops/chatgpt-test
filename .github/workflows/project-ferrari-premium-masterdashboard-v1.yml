@@ -39,6 +39,13 @@ jobs:
         run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
       - name: Operator AI global access regression
         run: node scripts/operator-ai-global-access-v1-smoke.mjs
+      - name: Premium safety and integration regression
+        run: |
+          node scripts/operator-project-workspace-reconciliation-v1-smoke.mjs
+          node scripts/masterdashboard-gelato-integration-gate-v1-smoke.mjs
+          node scripts/mission-safety-smoke.mjs
+          node scripts/edit-regression-guard-smoke.mjs
+          node scripts/riosystems-integrated-regression-gate.mjs
 
       - name: Upload premium visual acceptance evidence
         if: always()
