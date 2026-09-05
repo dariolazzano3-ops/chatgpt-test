@@ -36,17 +36,17 @@ function readJson(file){
 function inlineLocalStyles(projectDir,html){
   let out=html;
   let stylesInlined=0;
-  const tags=[...html.matchAll(/<link\\b[^>]*>/gi)].map(m=>m[0]);
+  const tags=[...html.matchAll(/<link\b[^>]*>/gi)].map(m=>m[0]);
   for(const tag of tags){
-    const rel=tag.match(/\\brel\\s*=\\s*["']([^"']+)["']/i)?.[1]||'';
-    const href=tag.match(/\\bhref\\s*=\\s*["']([^"']+)["']/i)?.[1]||'';
-    if(!/\\bstylesheet\\b/i.test(rel)||!href||/^(?:https?:|\\/\\/|data:|\\/)/i.test(href)) continue;
-    const local=href.replace(/^\\.\\//,'').split(/[?#]/)[0];
+    const rel=tag.match(/\brel\s*=\s*["']([^"']+)["']/i)?.[1]||'';
+    const href=tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1]||'';
+    if(!/\bstylesheet\b/i.test(rel)||!href||/^(?:https?:|\/\/|data:|\/)/i.test(href)) continue;
+    const local=href.replace(/^\.\//,'').split(/[?#]/)[0];
     if(!local||local.includes('..')) continue;
     const cssPath=path.resolve(projectDir,local);
     if(!cssPath.startsWith(projectDir+path.sep)||!fs.existsSync(cssPath)||!fs.statSync(cssPath).isFile()) continue;
-    const css=fs.readFileSync(cssPath,'utf8').replace(/<\\/style/gi,'<\\\\/style');
-    out=out.replace(tag,`<style data-aurentara-preview-bundled-css="${local.replace(/"/g,'&quot;')}">\\n${css}\\n</style>`);
+    const css=fs.readFileSync(cssPath,'utf8').replace(/<\/style/gi,'<\\/style');
+    out=out.replace(tag,\`<style data-aurentara-preview-bundled-css="\${local.replace(/"/g,'&quot;')}">\n\${css}\n</style>\`);
     stylesInlined+=1;
   }
   return {html:out,styles_inlined:stylesInlined};
