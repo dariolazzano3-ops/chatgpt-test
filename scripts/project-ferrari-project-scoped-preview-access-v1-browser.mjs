@@ -19,8 +19,8 @@ function extractTag(id,tag){
   assert.ok(match,'missing '+tag+'#'+id);
   return match[0];
 }
-const style=extractTag('aurentara-project-preview-access-v2-style','style');
-const script=extractTag('aurentara-project-preview-access-v2-ui','script');
+const style=extractTag('aurentara-project-preview-access-v3-style','style');
+const script=extractTag('aurentara-project-preview-access-v3-ui','script');
 
 function pageHtml(project,access){
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -34,18 +34,18 @@ ${script}
 
 const cafeProject={project_id:'cafe-luna-website-v1',scope_key:cafeScope,name:'Café Luna'};
 const available={
-  schema:'aurentara.project-preview-access.v2',
+  schema:'aurentara.project-preview-access.v3',
   project_id:'cafe-luna-website-v1',
   scope_key:cafeScope,
   status:'AVAILABLE',
   available:true,
-  provider:'CANONICAL_PROJECT_ARTIFACT',
+  provider:'RIOSYSTEMS_BUILD_TIME_PROJECT_PREVIEW',
   operator_route:'/operator/project-preview/'+encodeURIComponent(cafeScope),
   source_revision:HEAD
 };
 const missingProject={project_id:'internal-crm-v1',scope_key:'internal-ops:internal-crm-v1',name:'Internal CRM'};
 const missing={
-  schema:'aurentara.project-preview-access.v2',
+  schema:'aurentara.project-preview-access.v3',
   project_id:'internal-crm-v1',
   scope_key:missingProject.scope_key,
   status:'NOT_AVAILABLE',
@@ -53,7 +53,7 @@ const missing={
   provider:null,
   operator_route:null,
   source_revision:null,
-  reason:'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_OR_REGISTERED'
+  reason:'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_IN_BUILD'
 };
 
 async function run(name,viewport,project,access,expectedAvailable){
@@ -98,7 +98,7 @@ const missingState=await run('missing-preview',{width:390,height:844},missingPro
 
 console.log(JSON.stringify({
   ok:true,
-  suite:'project-ferrari-system-wide-preview-access-v2-browser',
+  suite:'project-ferrari-buildtime-preview-bundle-v3-browser',
   desktop,
   mobile,
   missing_state:missingState,
