@@ -122,6 +122,7 @@ async function runDesktop() {
   });
 
   const page = await context.newPage();
+  page.setDefaultTimeout(5000);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
   await page.goto('https://intake-v2.test/operator', { waitUntil: 'domcontentloaded' });
@@ -132,6 +133,7 @@ async function runDesktop() {
   await page.waitForSelector('[data-source-basket-v2]');
 
   const fileInput = page.locator('[data-v2-files]');
+  console.log('V2_BROWSER_STAGE selection');
   await fileInput.setInputFiles([
     { name: 'menu-screenshot.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('image-one') },
     { name: 'gelato-product.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('image-two') },
@@ -148,6 +150,7 @@ async function runDesktop() {
   assert.equal(await selected.nth(1).locator('select').inputValue(), 'VISUAL_USAGE');
   await selected.nth(2).locator('select').selectOption('BOTH');
 
+  console.log('V2_BROWSER_STAGE partial-upload');
   await page.locator('[data-v2-upload]').click();
   await page.waitForFunction(() => document.querySelector('[data-v2-progress-label]')?.textContent?.includes('2 von 3 hochgeladen'));
   assert.equal(uploadCalls, 3);
@@ -156,6 +159,7 @@ async function runDesktop() {
   assert.equal(await page.locator('.source-selection-state[data-state="error"]').count(), 1);
   assert.match(await page.locator('[data-v2-upload]').innerText(), /erneut versuchen/i);
 
+  console.log('V2_BROWSER_STAGE retry');
   await page.locator('[data-v2-upload]').click();
   await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 3);
   assert.equal(uploadCalls, 4);
@@ -164,6 +168,7 @@ async function runDesktop() {
   assert.equal(await page.getByRole('button', { name: /^Ansehen$/i }).count(), 0);
   assert.equal(await page.locator('[data-v2-purpose]').count(), 3);
 
+  console.log('V2_BROWSER_STAGE manual-note');
   await page.locator('[data-v2-note]').fill('Eisbecher Fantasimo jetzt neu auf der Karte');
   await page.locator('[data-v2-note-save]').click();
   await page.waitForFunction(() => document.body.innerText.includes('Eisbecher Fantasimo jetzt neu auf der Karte'));
@@ -188,8 +193,10 @@ async function runMobile() {
     return route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: JSON.stringify({ ok: true }) });
   });
   const page = await context.newPage();
+  page.setDefaultTimeout(5000);
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
+  console.log('V2_BROWSER_STAGE mobile');
   await page.goto('https://intake-v2-mobile.test/operator', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-source-basket-v2]');
   await page.waitForFunction(() => document.querySelectorAll('[data-v2-source-card]').length === 4);
