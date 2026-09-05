@@ -224,7 +224,8 @@ state=corroborated.state;
 const accepted=discoveries.filter((item)=>item.accepted);
 const rejected=discoveries.filter((item)=>!item.accepted);
 const factsExtracted=state.facts.length;
-const corroboratedCandidateGroups=corroborated.summaries.flatMap((item)=>item.candidate_groups||[]).filter((group)=>Number(group.independent_source_count||0)>=2);\nconst factsCorroborated=corroboratedCandidateGroups.length;
+const corroboratedCandidateGroups=corroborated.summaries.flatMap((item)=>item.candidate_groups||[]).filter((group)=>Number(group.independent_source_count||0)>=2);
+const factsCorroborated=corroboratedCandidateGroups.length;
 const conflicts=corroborated.summaries.filter((item)=>item.conflict);
 
 const evidence={
