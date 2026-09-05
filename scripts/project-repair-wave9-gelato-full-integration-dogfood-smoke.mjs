@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { compileMissionPackage } from '../src/mission-compiler.js';
 import { evaluateMissionRuntime } from '../src/runtime-control-plane.js';
 import { createProviderRegistry } from '../src/runtime-governance.js';
-import {
-  buildAdapterDispatchEnvelope,
-  executeCanonicalProviderRoute
-} from '../src/execution-adapters.js';
+import { executeReadyMissionTasks } from '../src/mission-execution-router.js';
 import {
   createCustomerProject,
   assignProjectCapabilities,
@@ -24,12 +22,48 @@ import { createOperatorRuntimeApiService } from '../src/operator-runtime-api-v1.
 import { interpretOperatorAiResult } from '../src/operator-ai/result-interpreter-v1.js';
 import { operatorStagingDeploymentEvidenceManifest } from '../src/operator-staging-deployment-evidence-v1.js';
 
-const canonicalHead = 'be28878bc76cb71623805941e04bb39baecb2e34';
-const canonicalTree = '91b272351c72aa1cdb9e35fb19f43364578d1cb7';
+const checkoutHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const checkoutTree = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim();
+const expectedCanonical = String(process.env.RIOSYSTEMS_TEST_EXPECTED_CANONICAL || checkoutHead).trim();
+assert.match(expectedCanonical, /^[0-9a-f]{40}$/i, 'Expected canonical must be an exact Git SHA');
+assert.equal(expectedCanonical, checkoutHead, 'Wave 9 expected canonical must equal the actual CI checkout HEAD');
+
+if (process.env.RIOSYSTEMS_CANONICAL_FIXTURE_ONLY === '1') {
+  console.log(JSON.stringify({
+    ok: true,
+    fixture_only: true,
+    test_expected_canonical: expectedCanonical,
+    ci_checkout_head: checkoutHead,
+    canonical_tree: checkoutTree
+  }, null, 2));
+  process.exit(0);
+}
+
+const canonicalHead = checkoutHead;
+const canonicalTree = checkoutTree;
 const scopeKey = 'gelato-donatello:gelato-donatello-website-v1';
 
 function readJson(path) {
   return JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+}
+
+function executionBindingFromRuntime(contract = {}) {
+  return {
+    mission_id: contract.mission_id,
+    task_id: contract.task_id,
+    factory: contract.factory,
+    capability: contract.capability,
+    project_scope_key: contract.project_scope_key,
+    execution_id: contract.execution_id,
+    provider_route: structuredClone(contract.provider_route || null),
+    executor_id: contract.executor_id || null,
+    budget_reservation_ref: structuredClone(contract.budget_reservation_ref || null),
+    approval_ref: structuredClone(contract.approval_ref || null),
+    environment: contract.environment || 'staging',
+    write_policy: contract.write_policy || 'NO_EXTERNAL_WRITES',
+    production_policy: contract.production_policy || 'PRODUCTION_DISABLED',
+    evidence_policy: structuredClone(contract.evidence_policy || {})
+  };
 }
 
 const confirmed = readJson('../projects/gelato-donatello-website-v1/confirmed-project-inputs-v1.json');
@@ -94,6 +128,7 @@ const projectContext = {
     version: 1
   })),
   source_refs: [
+    confirmed.provenance.source,
     'primary-anchor-website',
     ...multiSource.discovery.results.filter((item) => item.accepted === true).map((item) => item.project_source_id)
   ],
@@ -111,6 +146,11 @@ const projectContext = {
   assets: [],
   open_critical_conflicts: [],
   verified_content: verifiedContent,
+  content_provenance: confirmed.facts.map((fact) => ({
+    field_path: fact.field_path,
+    source_refs: [confirmed.provenance.source],
+    verification_status: fact.verification_status
+  })),
   visual_context: {
     rights_ready_asset_count: confirmed.asset_rights.publishable_asset_count,
     final_quality_approval_required: true
@@ -197,64 +237,55 @@ assert.equal(runtimeTask.canonical_execution_contract.project_scope_key, scopeKe
 assert.equal(runtimeTask.canonical_execution_contract.environment, 'staging');
 assert.equal(runtimeTask.canonical_execution_contract.write_policy, 'NO_EXTERNAL_WRITES');
 assert.equal(runtimeTask.canonical_execution_contract.production_policy, 'PRODUCTION_DISABLED');
-
-const envelope = buildAdapterDispatchEnvelope(runtimeTask.canonical_execution_contract);
-assert.equal(envelope.ok, true);
-assert.equal(envelope.project_scope_key, scopeKey);
-assert.equal(envelope.provider_route.provider_id, 'riosystems-native-web');
-
-const executed = await executeCanonicalProviderRoute(envelope, {
-  current_runtime_verified_provider_ids: ['riosystems-native-web'],
-  synthetic_acceptance: true,
-  executors: {
-    'riosystems-native-web': async ({ provider_id, descriptor }) => ({
-      ok: true,
-      status: 'COMPLETED',
-      outputs: {
-        preview_url: 'projects/gelato-donatello-website-v1/ferrari-preview-v1.html',
-        artifact_ref: 'projects/gelato-donatello-website-v1/ferrari-preview-v1.html',
-        evidence_mode: 'SAFE_INJECTED_STAGING_ACCEPTANCE'
-      },
-      actual_provider: provider_id,
-      executor_id: descriptor.executor_id,
-      external_job_id: 'wave9-gelato-private-acceptance',
-      actual_cost_eur: 0,
-      production_deploy: false
-    })
-  }
-});
-assert.equal(executed.ok, true);
-assert.equal(executed.status, 'COMPLETED');
-assert.equal(executed.provider_truth.planned_provider, 'riosystems-native-web');
-assert.equal(executed.provider_truth.dispatched_provider, 'riosystems-native-web');
-assert.equal(executed.provider_truth.actual_provider, 'riosystems-native-web');
-assert.equal(executed.provider_truth.executor_id, 'web-factory-native-v1');
-assert.equal(executed.raw_result.actual_cost_eur, 0);
-assert.equal(executed.result.production_deploy, false);
+assert.equal(runtimeTask.canonical_execution_contract.provider_route.provider_id, 'riosystems-native-web');
 
 const mission = structuredClone(compiled.package.mission);
 const missionTask = mission.tasks.find((task) => task.task_id === runtimeTask.task_id);
 assert.ok(missionTask);
-missionTask.state = 'COMPLETED';
-missionTask.attempt = 1;
-missionTask.inputs = {
-  ...(missionTask.inputs || {}),
-  dispatch_envelope: envelope
-};
-missionTask.outputs = {
-  preview_url: executed.raw_result.outputs.preview_url,
-  qa_status: 'passed',
-  artifacts: [{
-    type: 'website',
-    ref: executed.raw_result.outputs.artifact_ref
-  }],
-  execution_evidence: {
-    dispatched_provider: executed.provider_truth.dispatched_provider,
-    actual_provider: executed.provider_truth.actual_provider,
-    executor_id: executed.provider_truth.executor_id
+missionTask.execution_contract_binding = executionBindingFromRuntime(runtimeTask.canonical_execution_contract);
+
+const canonicalExecution = await executeReadyMissionTasks(
+  mission,
+  { default: { authorized: true, production_deploy: false } },
+  {
+    current_runtime_verified_provider_ids: ['riosystems-native-web'],
+    cost_ledger: runtime.ledger,
+    project_slug: 'gelato-donatello-website-v1',
+    max_tasks: 1,
+    production_deploy: false,
+    external_writes: false
   }
-};
-mission.status = 'COMPLETED';
+);
+
+assert.equal(canonicalExecution.ok, true);
+assert.equal(canonicalExecution.executed_count, 1);
+assert.equal(canonicalExecution.pending_external_tasks.length, 0);
+assert.equal(canonicalExecution.results.length, 1);
+assert.equal(canonicalExecution.results[0].ok, true);
+assert.equal(canonicalExecution.results[0].execution_mode, 'canonical_provider_route');
+assert.equal(canonicalExecution.results[0].provider_truth.planned_provider, 'riosystems-native-web');
+assert.equal(canonicalExecution.results[0].provider_truth.dispatched_provider, 'riosystems-native-web');
+assert.equal(canonicalExecution.results[0].provider_truth.actual_provider, 'riosystems-native-web');
+assert.equal(canonicalExecution.results[0].provider_truth.executor_id, 'web-factory-native-v1');
+
+const executedMission = canonicalExecution.mission;
+const executedTask = executedMission.tasks.find((task) => task.task_id === runtimeTask.task_id);
+assert.equal(executedTask.state, 'COMPLETED');
+assert.equal(executedTask.outputs.execution_evidence.actual_provider, 'riosystems-native-web');
+assert.equal(executedTask.outputs.execution_evidence.executor_id, 'web-factory-native-v1');
+assert.equal(executedTask.outputs.execution_evidence.actual_cost_eur, 0);
+assert.equal(executedTask.outputs.execution_evidence.provider_call_count, 0);
+assert.equal(executedTask.outputs.execution_evidence.external_write_state, 'NO_EXTERNAL_CUSTOMER_WRITE');
+assert.equal(executedTask.outputs.qa_status, 'PASS');
+assert.ok(executedTask.outputs.artifact_ref);
+assert.equal(executedTask.outputs.preview_url, null);
+assert.equal(executedTask.outputs.cost_settlement.actual_cost_units, 0);
+
+const settledEntries = canonicalExecution.cost_ledger?.entries || [];
+assert.equal(settledEntries.some((entry) => entry.type === 'reserve' && entry.reservation_id === runtimeTask.reservation.reservation_id), true);
+assert.equal(settledEntries.some((entry) => entry.type === 'settle' && entry.reservation_id === runtimeTask.reservation.reservation_id && Number(entry.actual_cost_units) === 0), true);
+assert.equal(canonicalExecution.cost_ledger.reserved_cost_units, 0);
+assert.equal(canonicalExecution.cost_ledger.spent_cost_units, 0);
 
 let project = createCustomerProject({
   customer_id: confirmed.project_ref.customer_id,
@@ -266,15 +297,15 @@ let project = createCustomerProject({
 }).project;
 project.delivery_contract = structuredClone(deliveryContract);
 project = assignProjectCapabilities(project, [{
-  id: missionTask.capability,
-  factory: missionTask.domain || missionTask.engine,
+  id: executedTask.capability,
+  factory: executedTask.domain || executedTask.engine,
   required: true
 }]).project;
 project = attachProjectMission(project, {
-  mission_id: mission.mission_id,
+  mission_id: executedMission.mission_id,
   customer_id: project.customer_id,
   project_id: project.project_id,
-  status: mission.status,
+  status: executedMission.status,
   source_revision: canonicalHead
 }).project;
 project = transitionCustomerProject(project, { state: 'READY', actor: 'wave9-acceptance' }).project;
@@ -284,12 +315,12 @@ let run = createExecutionRun(project, { run_id: 'run-wave9-gelato-full-integrati
 run = checkpointExecution(run, {
   status: 'RUNNING',
   actor: 'wave9-acceptance',
-  mission_id: mission.mission_id
+  mission_id: executedMission.mission_id
 }).run;
 run = checkpointExecution(run, {
   status: 'QA',
   actor: 'wave9-acceptance',
-  mission_id: mission.mission_id
+  mission_id: executedMission.mission_id
 }).run;
 
 const runtimeCreated = createOperatorRuntime({
@@ -308,28 +339,32 @@ const service = createOperatorRuntimeApiService({
   initial_runtime: runtimeCreated.runtime
 });
 
+const providerTruth = canonicalExecution.results[0].provider_truth;
 const deliveryAttempt = await finalizeUnifiedOperationalDelivery(
   project,
   run,
-  { mission },
+  { mission: executedMission },
   {
     qa_passed: true,
     scope_verified: true,
     costs_reconciled: true,
     execution_results: {
-      [missionTask.task_id]: {
-        execution_id: envelope.execution_id,
-        provider_truth: executed.provider_truth,
+      [executedTask.task_id]: {
+        execution_id: runtimeTask.canonical_execution_contract.execution_id,
+        provider_truth: providerTruth,
         actual_cost_eur: 0,
-        preview_url: executed.raw_result.outputs.preview_url,
-        artifacts: missionTask.outputs.artifacts
+        preview_url: executedTask.outputs.preview_url,
+        artifacts: [{
+          type: 'website',
+          ref: executedTask.outputs.artifact_ref
+        }]
       }
     },
     task_quality: {
-      [missionTask.task_id]: {
+      [executedTask.task_id]: {
         status: 'PASS',
-        score: 100,
-        evidence: 'confirmed-content private acceptance'
+        score: Number(executedTask.outputs.qa_score || 100),
+        evidence: 'real internal native web factory canonical execution'
       }
     },
     actor: 'operator-wave9-gelato',
@@ -342,7 +377,7 @@ const deliveryAttempt = await finalizeUnifiedOperationalDelivery(
       passed: true,
       quality: {
         status: 'PASS',
-        score: 100
+        score: Number(executedTask.outputs.qa_score || 100)
       }
     })
   }
@@ -390,6 +425,8 @@ assert.equal(stagingManifest.validate_only_never_counts_as_deploy, true);
 console.log(JSON.stringify({
   ok: true,
   suite: 'project-repair-wave9-gelato-full-integration-dogfood-v1',
+  test_expected_canonical: expectedCanonical,
+  ci_checkout_head: checkoutHead,
   canonical_head: canonicalHead,
   canonical_tree: canonicalTree,
   scope_key: scopeKey,
@@ -401,8 +438,16 @@ console.log(JSON.stringify({
   canonical_mission_compiler: 'PASS',
   project_knowledge_binding: 'PASS',
   runtime_control_plane: 'PASS',
-  canonical_provider_executor_truth: 'PASS',
-  cost_actual_eur: executed.raw_result.actual_cost_eur,
+  mission_router_canonical_provider_execution: 'PASS',
+  native_web_executor: 'REAL_INTERNAL_WEB_FACTORY',
+  synthetic_injected_executor_final_proof: false,
+  planned_provider: providerTruth.planned_provider,
+  dispatched_provider: providerTruth.dispatched_provider,
+  actual_provider: providerTruth.actual_provider,
+  executor_id: providerTruth.executor_id,
+  cost_actual_eur: 0,
+  cost_reservation: 'PASS',
+  cost_settlement: 'PASS',
   paid_provider_calls: 0,
   external_writes: 0,
   qa: 'PASS',

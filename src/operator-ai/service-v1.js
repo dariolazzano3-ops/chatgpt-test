@@ -174,9 +174,17 @@ export async function submitOperatorAiCanonicalExecution(preparation = {}, appro
     return { ok: false, status: 'BLOCKED', error: 'OPERATOR_AI_EXTERNAL_SIDE_EFFECT_POLICY_REJECTED', execution_started: false, production_deploy: false, external_writes: false };
   }
 
+  const runtimeVerifiedProviderIds = [...new Set((preparation.runtime?.tasks || [])
+    .filter((task) => task?.canonical_execution_contract?.provider_route?.provider_id && task?.governance?.blocked !== true)
+    .map((task) => task.canonical_execution_contract.provider_route.provider_id))];
+
   const execution = await executeReadyMissionTasks(preparation.package.mission, approvals, {
     ...clone(preparation.package.contracts || {}),
     ...(options.execution_options || {}),
+    current_runtime_verified_provider_ids: options.execution_options?.current_runtime_verified_provider_ids || runtimeVerifiedProviderIds,
+    cost_ledger: options.execution_options?.cost_ledger || preparation.runtime?.ledger || null,
+    production_deploy: false,
+    external_writes: false,
     max_tasks: options.max_tasks
   });
   const failedResults = (execution.results || []).filter((item) => item.ok !== true);
@@ -512,5 +520,5 @@ export async function handleOperatorAiMessageWithInference(input = {}, contextIn
 }
 
 export function operatorAiServiceManifest() {
-  return { schema: 'aurentara.operator-ai.service.v1', one_central_operator_ai: true, deterministic_guardrails_first: true, real_inference: operatorAiInferenceManifest(), ai_provider_calls_v1: 'BOUNDED_STAGING_ONLY', safe_internal_execution_default: 'NOT_ACTIVATED', max_autonomy_default: 3, canonical_mission_compiler: 'mission-compiler.compileMissionPackage', canonical_runtime_binding: 'runtime-control-plane.evaluateMissionRuntime', canonical_execution_backbone: 'mission-execution-router.executeReadyMissionTasks', canonical_result_interpreter: 'operator-ai.result-interpreter-v1', second_mission_engine: false, second_state_system: false, production_deploy: false, external_writes: false };
+  return { schema: 'aurentara.operator-ai.service.v1', one_central_operator_ai: true, deterministic_guardrails_first: true, real_inference: operatorAiInferenceManifest(), ai_provider_calls_v1: 'BOUNDED_STAGING_ONLY', safe_internal_execution_default: 'NOT_ACTIVATED', max_autonomy_default: 3, canonical_mission_compiler: 'mission-compiler.compileMissionPackage', canonical_runtime_binding: 'runtime-control-plane.evaluateMissionRuntime', canonical_execution_backbone: 'mission-execution-router.executeReadyMissionTasks', canonical_provider_executor: 'execution-adapters.executeCanonicalProviderRoute', canonical_result_interpreter: 'operator-ai.result-interpreter-v1', second_mission_engine: false, second_state_system: false, production_deploy: false, external_writes: false };
 }
