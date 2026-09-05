@@ -170,43 +170,97 @@ const businessUnderstanding = {
   ]
 };
 
+const privacyBasis = legalLinks.find((value) => /datenschutz/i.test(value)) || legalLinks[1] || null;
 const questions = [
   {
     id:'CONTACT_DETAILS',
-    reason:'CONFLICT: homepage and legal pages expose two phone numbers and two locality labels.',
-    question:'Welche Kontaktdaten sollen aktuell veröffentlicht werden? Telefon: 06806 9394980 oder +49 176 200 150 65; Adresse: Hauptstraße 4, 66346 Köllerbach oder Hauptstraße 4, 66346 Püttlingen; ist fabrizio.lazzano@freenet.de weiterhin korrekt?'
+    type:'COMPOSITE',
+    required:true,
+    reason:'CONFLICT: Homepage und Legal-Seiten zeigen zwei Telefonnummern und zwei Ortsangaben. Die gefundene E-Mail ist ein High-Confidence-Candidate.',
+    question:'Welche der gefundenen Kontaktangaben sind aktuell korrekt?',
+    evidence:['homepage','impressum','datenschutzerklaerung'],
+    controls:[
+      {
+        id:'phone',type:'MULTI_CHOICE',label:'Telefon',field_path:'business.phone',
+        candidates:phoneCandidates.map((value,index)=>({value,label:value,evidence:index===0?'homepage':'impressum/privacy'})),
+        allow_other:true,materialize_candidates:true,candidate_origin:'EXTRACTED',critical:true
+      },
+      {
+        id:'address',type:'SINGLE_CHOICE',label:'Adresse',field_path:'business.address',
+        candidates:unique([rootAddress,imprintAddress]).map((value,index)=>({value,label:value,evidence:index===0?'homepage':'impressum/privacy'})),
+        allow_other:true,materialize_candidates:true,candidate_origin:'EXTRACTED',critical:true
+      },
+      {
+        id:'email',type:'CONFIRMATION',label:'E-Mail',field_path:'business.email',
+        candidate:emailCandidates[0] || null,requires_correction_when_rejected:true,
+        materialize_candidates:true,
+        candidates:(emailCandidates[0]?[{value:emailCandidates[0],label:emailCandidates[0],evidence:'impressum'}]:[]),
+        candidate_origin:'EXTRACTED',critical:true
+      }
+    ]
   },
   {
-    id:'OPENING_HOURS',
-    reason:'HIGH_CONFIDENCE_CANDIDATE from homepage, but seasonal opening hours are time-sensitive.',
-    question:`Sind diese Öffnungszeiten aktuell korrekt: "${openingHourCandidate}"?`
+    id:'OPENING_HOURS',type:'CONFIRMATION',required:true,
+    reason:'HIGH_CONFIDENCE_CANDIDATE aus der Homepage; saisonale Öffnungszeiten sind zeitkritisch.',
+    question:'Sind die extrahierten Öffnungszeiten aktuell korrekt?',
+    evidence:['homepage'],
+    controls:[{
+      id:'opening_hours',type:'CONFIRMATION',label:'Öffnungszeiten',field_path:'business.opening_hours',
+      candidate:openingHourCandidate,requires_correction_when_rejected:true,materialize_candidates:true,
+      candidates:openingHourCandidate?[{value:openingHourCandidate,label:openingHourCandidate,evidence:'homepage'}]:[],
+      candidate_origin:'EXTRACTED',critical:true
+    }]
   },
   {
-    id:'LEGAL_CURRENTNESS',
-    reason:'HIGH_CONFIDENCE_CANDIDATE from imprint/privacy, but legal currentness requires human responsibility.',
-    question:`Sind diese rechtlichen Angaben aktuell: ${legalEntity}; ${responsiblePerson}; USt-ID ${vatId}? Soll die bestehende Datenschutzerklärung weiterhin als rechtliche Ausgangsbasis dienen?`
+    id:'LEGAL_CURRENTNESS',type:'COMPOSITE',required:true,
+    reason:'HIGH_CONFIDENCE_CANDIDATES aus Impressum/Datenschutz; rechtliche Aktualität benötigt menschliche Verantwortung.',
+    question:'Sind die gefundenen Angaben zu Legal Entity, Verantwortlichem und USt-ID aktuell korrekt?',
+    evidence:['impressum','datenschutzerklaerung'],
+    aggregate_field_path:'legal.details',
+    controls:[
+      {id:'entity',aggregate_key:'entity',type:'CONFIRMATION',label:'Legal Entity',field_path:'legal.entity',candidate:legalEntity,requires_correction_when_rejected:true,materialize_candidates:true,candidates:legalEntity?[{value:legalEntity,label:legalEntity,evidence:'impressum/privacy'}]:[],candidate_origin:'EXTRACTED',critical:true},
+      {id:'responsible_person',aggregate_key:'responsible_person',type:'CONFIRMATION',label:'Verantwortlicher',field_path:'legal.responsible_person',candidate:responsiblePerson,requires_correction_when_rejected:true,materialize_candidates:true,candidates:responsiblePerson?[{value:responsiblePerson,label:responsiblePerson,evidence:'impressum'}]:[],candidate_origin:'EXTRACTED',critical:true},
+      {id:'vat_id',aggregate_key:'vat_id',type:'CONFIRMATION',label:'USt-ID',field_path:'legal.vat_id',candidate:vatId,requires_correction_when_rejected:true,materialize_candidates:true,candidates:vatId?[{value:vatId,label:vatId,evidence:'impressum'}]:[],candidate_origin:'EXTRACTED',critical:true},
+      {id:'privacy_basis',aggregate_key:'privacy_basis',type:'CONFIRMATION',label:'Datenschutz-Ausgangsbasis',field_path:'legal.privacy_basis',candidate:privacyBasis,requires_correction_when_rejected:true,materialize_candidates:true,candidates:privacyBasis?[{value:privacyBasis,label:'Bestehende Datenschutzerklärung',evidence:'datenschutzerklaerung'}]:[],candidate_origin:'EXTRACTED',critical:true}
+    ]
   },
   {
-    id:'TARGET_CUSTOMERS',
-    reason:'SYSTEM_INFERENCE can narrow the choice but cannot make the final business-positioning decision.',
-    question:'Welche Zielgruppen sollen wir final priorisieren: lokale Eisgäste/Laufkundschaft, Familien, Eistorten-/Feierkunden, Eisvitrinen-/Eventkunden oder eine andere Priorität?'
+    id:'TARGET_CUSTOMERS',type:'MULTI_CHOICE',required:true,
+    reason:'System-Inferenz kann die Auswahl eingrenzen, die finale Positionierungsentscheidung bleibt menschlich.',
+    question:'Welche Zielgruppen sollen für Gelato final priorisiert werden?',
+    evidence:['existing website','confirmed offers','system inference'],
+    controls:[{
+      id:'target_customers',type:'MULTI_CHOICE',label:'Priorisierte Zielgruppen',field_path:'target.customers',
+      candidates:businessUnderstanding.system_inferences[1].value.map((value)=>({value,label:value})),
+      allow_other:true,materialize_candidates:false,candidate_origin:'INFERRED'
+    }]
   },
   {
-    id:'PRIMARY_CONVERSION',
-    reason:'Website exposes Kontakt, while confirmed offers support several plausible conversion goals.',
-    question:'Was soll die Website primär auslösen: Vor-Ort-Besuch, Anruf/Kontakt, Eistorten-Anfrage, Eisvitrinen-Anfrage oder etwas anderes?'
+    id:'PRIMARY_CONVERSION',type:'SINGLE_CHOICE',required:true,
+    reason:'Die Website zeigt Kontakt, während die bestätigten Angebote mehrere plausible Conversion-Ziele unterstützen.',
+    question:'Was ist der primäre Conversion-Kanal der Website?',
+    evidence:['website CTA','confirmed offers','system inference'],
+    controls:[{
+      id:'primary_conversion',type:'SINGLE_CHOICE',label:'Primäre Conversion',field_path:'website.primary_conversion',
+      candidates:businessUnderstanding.system_inferences[2].value.map((value)=>({value,label:value})),
+      allow_other:true,materialize_candidates:false,candidate_origin:'INFERRED'
+    }]
   },
   {
-    id:'FINAL_ASSET_QUALITY_APPROVAL',
-    reason:'Five project assets are rights-cleared, but visual quality approval is intentionally separate from rights.',
-    question:'Sind die fünf bereits rechtegeklärten Projektassets qualitativ für die finale Premium-Website freigegeben?'
+    id:'FINAL_ASSET_QUALITY_APPROVAL',type:'APPROVAL',effect:'ASSET_QUALITY',required:true,
+    reason:'Fünf Projektassets sind rechtegeklärt; Qualitätsfreigabe bleibt bewusst getrennt von Rechten.',
+    question:'Sind die fünf bereits rechtegeklärten Assets auch qualitativ für die Website freigegeben?',
+    evidence:['5 project assets','rights cleared'],
+    controls:[{id:'asset_quality',type:'APPROVAL',label:'Asset Quality Approval',help:'JA setzt nur die vorhandenen Projektassets auf Qualitätsstatus VERIFIED. Rechte werden nicht verändert.'}]
   },
   {
-    id:'FINAL_HUMAN_QUALITY_APPROVAL',
-    reason:'Premium Website Standard forbids automatic final human approval.',
-    question:'Besteht die finale Human Quality Approval für die fertige Gelato-Vorschau?'
+    id:'FINAL_HUMAN_QUALITY_APPROVAL',type:'APPROVAL',effect:'HUMAN_APPROVAL',required:true,
+    reason:'Der Premium Website Standard verbietet eine automatische finale Human Approval.',
+    question:'Besteht nach Sichtprüfung die finale Human Quality Approval?',
+    evidence:['actual private preview required'],
+    controls:[{id:'human_quality',type:'APPROVAL',label:'Final Human Quality Approval',requires_preview_seen:true,help:'Eine positive Freigabe ist nur zulässig, wenn die tatsächliche Vorschau gesehen wurde.'}]
   }
-];
+]
 
 const contract = createCustomerDeliveryContractV1({
   customer_id:'gelato-donatello',
