@@ -21,7 +21,37 @@ export function resolveExecutionAdapter(contract = {}) {
 }
 export function buildAdapterDispatchEnvelope(contract = {}) {
   const resolved = resolveExecutionAdapter(contract); if (!resolved.ok) return resolved;
-  return { ok: true, envelope_version: 1, adapter_id: resolved.adapter.id, engine: resolved.adapter.engine, underlying_engine: resolved.underlying_engine, mission_id: contract.mission_id, task_id: contract.task_id, capability: contract.capability, goal: contract.goal, project: contract.project || null, attempt: contract.attempt, max_attempts: contract.max_attempts, dependency_outputs: contract.dependency_outputs || {}, execution: { automatic: false, dispatch_authorized: false, production_deploy: false, manual_production_approval_required: true } };
+  return {
+    ok: true,
+    envelope_version: 2,
+    adapter_id: resolved.adapter.id,
+    engine: resolved.adapter.engine,
+    underlying_engine: resolved.underlying_engine,
+    mission_id: contract.mission_id,
+    task_id: contract.task_id,
+    capability: contract.capability,
+    goal: contract.goal,
+    project: contract.project || null,
+    customer_id: contract.customer_id || null,
+    project_id: contract.project_id || null,
+    project_scope_key: contract.project_scope_key || null,
+    knowledge_snapshot_ref: contract.knowledge_snapshot_ref || null,
+    project_knowledge: contract.project_knowledge || null,
+    knowledge_revision: contract.knowledge_revision || null,
+    content_pack_ref: contract.content_pack_ref || null,
+    visual_pack_ref: contract.visual_pack_ref || null,
+    readiness_ref: contract.readiness_ref || null,
+    fact_version_refs: contract.fact_version_refs || [],
+    source_refs: contract.source_refs || [],
+    rights_constraints: contract.rights_constraints || {},
+    human_decision_refs: contract.human_decision_refs || [],
+    approved_assets: contract.approved_assets || [],
+    open_critical_conflicts: contract.open_critical_conflicts || [],
+    attempt: contract.attempt,
+    max_attempts: contract.max_attempts,
+    dependency_outputs: contract.dependency_outputs || {},
+    execution: { automatic: false, dispatch_authorized: false, production_deploy: false, manual_production_approval_required: true }
+  };
 }
 export function authorizeAdapterDispatch(envelope = {}, approval = {}) {
   if (!envelope.ok) return { ok: false, error: "INVALID_DISPATCH_ENVELOPE" };
