@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { normalizePremiumProjectLifecycle, derivePremiumProjectProgress, derivePremiumNextBestAction, buildPremiumProjectViewModel, injectPremiumMasterdashboard, premiumMasterdashboardManifest } from '../src/operator-premium-masterdashboard-v1.js';
+const gelato={name:'Gelato Donatello',scope_key:'gelato:website-v1',environment:'staging',state:'ACTIVE',open_approval_count:0,blocker_count:0,progress_percent:0,current_cost_eur:0.83};
+let ctx={source_count:12,fact_count:84,conflict_count:4,knowledge_review:{status:'IN_REVIEW',conflict_count:4,catch_net:{clear:false}}};
+let life=normalizePremiumProjectLifecycle(gelato,ctx);
+assert.deepEqual([life.phase,life.health,life.environment],['KNOWLEDGE','NEEDS_ATTENTION','STAGING']);
+assert.equal(derivePremiumNextBestAction(gelato,ctx).label,'4 Angaben prüfen');
+assert.equal(derivePremiumProjectProgress(gelato,ctx).label,'Phase 2 von 6');
+ctx={...ctx,conflict_count:0,knowledge_review:{status:'STAGED',conflict_count:0,catch_net:{clear:true}}};
+assert.equal(derivePremiumNextBestAction(gelato,ctx).label,'Projektwissen bereitstellen');
+ctx={...ctx,knowledge_review:{status:'APPROVED'},preview:{available:true}};
+assert.equal(derivePremiumNextBestAction(gelato,ctx).label,'Preview öffnen');
+const vm=buildPremiumProjectViewModel(gelato,ctx);assert.equal(vm.production_deploy,false);assert.equal(vm.external_writes,false);
+const html=injectPremiumMasterdashboard('<!doctype html><html><body><section id="projects"></section></body></html>');
+for(const marker of ['AURENTARA SYSTEMS','Benötigen Aufmerksamkeit','Projektwissen','Preview','Prüfungen','pm-tools','INFORMATION_EXTRACTION','Technische Details','Production locked'])assert.ok(html.includes(marker),marker);
+assert.equal((html.match(/aurentara-premium-masterdashboard-v1-script/g)||[]).length,1);assert.equal(injectPremiumMasterdashboard(html),html);
+const manifest=premiumMasterdashboardManifest();assert.equal(manifest.duplicate_runtime_truth,false);assert.equal(manifest.production_deploy,false);assert.equal(manifest.existing_project_knowledge_reused,true);
+console.log('PROJECT FERRARI Premium Masterdashboard V1 smoke: PASS');

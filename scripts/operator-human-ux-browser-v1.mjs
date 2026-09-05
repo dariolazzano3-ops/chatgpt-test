@@ -69,23 +69,52 @@ try {
   assert.equal((await page.locator('body').innerText()).includes('[object Object]'), false, 'shared structured presenter must prevent [object Object]');
 
   await go(page, 'projects', 'Projekte');
-  assert.match(await page.locator('#projects').innerText(), /Projektportfolio/);
+  const projectsSurface = page.locator('#projects');
+  const premiumPortfolio = await projectsSurface.locator('.pm-summary').count() === 1;
+  const projectsText = await projectsSurface.innerText();
+  if (premiumPortfolio) {
+    assert.match(projectsText, /AURENTARA SYSTEMS/);
+    assert.match(projectsText, /Alle Kunden- und internen Projekte steuern/);
+  } else {
+    assert.match(projectsText, /Projektportfolio/);
+  }
   const create = page.locator('#projects details.human-create');
-  await create.waitFor();
+  if (premiumPortfolio) {
+    assert.equal(await create.count(), 1, 'Premium portfolio must preserve the existing project-create control');
+    assert.equal(await create.isVisible(), false, 'Premium project-create control starts collapsed behind the primary action');
+    await page.locator('#pm-new-project').click();
+    await create.waitFor({ state: 'visible' });
+  } else {
+    await create.waitFor();
+  }
   assert.equal(await create.getAttribute('open'), null);
   assert.equal(await page.locator('#refresh').isVisible(), false);
 
   const opens = page.locator('#projects .project-open');
   assert.ok(await opens.count() > 0);
-  const workspaceOpen = page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
+  const workspaceOpen = premiumPortfolio
+    ? page.locator('#projects .project-workspace-open')
+    : page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
   await workspaceOpen.first().waitFor();
   assert.equal(await workspaceOpen.count(), 1, 'exactly one projected website workspace action expected');
   assert.equal(await workspaceOpen.first().getAttribute('data-scope'), AURENTARA_WEBSITE_SCOPE);
+  if (premiumPortfolio) {
+    assert.equal(
+      await workspaceOpen.first().getAttribute('href'),
+      '/operator/workspace/' + encodeURIComponent(AURENTARA_WEBSITE_SCOPE),
+      'Premium projected website workspace must preserve the existing dedicated workspace route'
+    );
+  }
 
   const workspacePage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   workspacePage.on('pageerror', (error) => workspaceErrors.push(String(error)));
   await workspacePage.goto(`${origin}/operator/workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`, { waitUntil: 'domcontentloaded' });
   await workspacePage.waitForFunction(() => !document.body.classList.contains('loading') && document.querySelector('#header')?.textContent?.includes('Project Header'));
+  assert.equal(
+    await workspacePage.locator('#aurentara-premium-masterdashboard-v1-script').count(),
+    0,
+    'Premium Masterdashboard code must not leak into the dedicated existing project workspace route'
+  );
   const workspaceText = await workspacePage.locator('body').innerText();
   for (const label of ['Project Header', 'Live Preview', 'Change Request', 'QA Panel', 'Version / Iteration History', 'Human Review', 'Production OFF', 'Billing OFF', 'Real Customer Data NONE']) {
     assert.match(workspaceText, visibleLabel(label));
@@ -122,12 +151,26 @@ try {
   }
   assert.ok(legacyOpenIndex >= 0, 'legacy project detail action must remain available');
   await opens.nth(legacyOpenIndex).click();
-  await page.waitForFunction(() => {
-    const root = document.getElementById('project-detail');
-    return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
-  });
-  const projectText = await page.locator('#project-detail').innerText();
-  for (const label of ['Projektstatus', 'Aktueller Zustand', 'Capabilities', 'Ergebnisse', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+  if (premiumPortfolio) {
+    await page.waitForFunction(() => {
+      const premium = document.querySelector('.pm-workspace-head');
+      const legacy = document.querySelector('#project-detail [data-human-project-priority]');
+      return Boolean(premium && legacy);
+    });
+    const projectText = await page.locator('#projects').innerText();
+    for (const label of ['Projektstatus', 'Kosten & Safety', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+    for (const label of ['Übersicht', 'Quellen', 'Projektwissen', 'Umsetzung', 'Preview', 'Prüfungen', 'Aktivität']) {
+      assert.equal(await page.locator(`.pm-tab:has-text("${label}")`).count(), 1, `Premium project workspace must expose ${label}`);
+    }
+    assert.equal(await page.locator('#project-detail [data-human-project-priority]').count(), 1, 'Premium workspace must reuse the existing human project-detail contract');
+  } else {
+    await page.waitForFunction(() => {
+      const root = document.getElementById('project-detail');
+      return Boolean(root?.querySelector('[data-human-project-priority]') && root.textContent?.includes('Projektstatus') && root.textContent?.includes('Nächste Aktion'));
+    });
+    const projectText = await page.locator('#project-detail').innerText();
+    for (const label of ['Projektstatus', 'Aktueller Zustand', 'Capabilities', 'Ergebnisse', 'Nächste Aktion']) assert.match(projectText, visibleLabel(label));
+  }
   const projectRaw = page.locator('#project-detail details.human-raw');
   if (await projectRaw.count()) {
     assert.equal(await projectRaw.first().getAttribute('open'), null);

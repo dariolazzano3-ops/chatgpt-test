@@ -1,6 +1,7 @@
 import { createOperatorRuntime } from './operator-runtime-v1.js';
 import { createOperatorRuntimeApiService } from './operator-runtime-api-v1.js';
 import { createOperatorRuntimeStoreFromEnv } from './operator-runtime-store-supabase-v1.js';
+import { createMemoryOperatorRuntimeStore } from './operator-runtime-store-v1.js';
 import { withControlledPaidStagingActivationService } from './operator-controlled-paid-staging-runtime-service-v1.js';
 import { withProjectSourceIntakeRuntimeService } from './operator-project-source-intake-runtime-v1.js';
 
@@ -27,31 +28,31 @@ function createInitialRuntime(operatorId, at = null) {
 
 export function createDurableOperatorRuntimeServiceFromEnv(env = {}, options = {}) {
   const mode = clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_STORE, 80).toLowerCase();
-  if (!mode || mode === 'memory') {
-    if (clean(env.RIOSYSTEMS_ENVIRONMENT, 80).toLowerCase() === 'staging') throw new Error('OPERATOR_RUNTIME_DURABLE_STORE_REQUIRED_IN_STAGING');
-    return null;
-  }
+  const memoryMode = !mode || mode === 'memory';
+  if (memoryMode && clean(env.RIOSYSTEMS_ENVIRONMENT, 80).toLowerCase() === 'staging') throw new Error('OPERATOR_RUNTIME_DURABLE_STORE_REQUIRED_IN_STAGING');
   const email = clean(env.RIOSYSTEMS_OPERATOR_EMAIL, 320).toLowerCase();
   if (!email) throw new Error('RIOSYSTEMS_OPERATOR_EMAIL_REQUIRED');
   const operatorId = `operator:${email}`;
-  const store = createOperatorRuntimeStoreFromEnv(env, options);
+  const initialRuntime = createInitialRuntime(operatorId, options.at);
+  const store = memoryMode
+    ? createMemoryOperatorRuntimeStore([initialRuntime])
+    : createOperatorRuntimeStoreFromEnv(env, options);
   if (!store) return null;
-  const coreService = createOperatorRuntimeApiService({ operator_id: operatorId, store, initial_runtime: createInitialRuntime(operatorId, options.at) });
+  const coreService = createOperatorRuntimeApiService({ operator_id: operatorId, store, initial_runtime: initialRuntime });
   const paidStagingService = withControlledPaidStagingActivationService({ service: coreService, store, operator_id: operatorId });
   return withProjectSourceIntakeRuntimeService({ service: paidStagingService, store, operator_id: operatorId });
 }
 
 export function getDurableOperatorRuntimeService(env = {}, options = {}) {
-  const mode = clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_STORE, 80).toLowerCase();
-  if (!mode || mode === 'memory') return createDurableOperatorRuntimeServiceFromEnv(env, options);
+  const mode = clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_STORE, 80).toLowerCase() || 'memory';
   const email = clean(env.RIOSYSTEMS_OPERATOR_EMAIL, 320).toLowerCase();
-  const url = clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL, 2000);
-  const table = clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE || 'riosystems_operator_runtime_v1', 120);
+  const url = mode === 'memory' ? 'memory' : clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL, 2000);
+  const table = mode === 'memory' ? 'memory' : clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE || 'riosystems_operator_runtime_v1', 120);
   const key = `${mode}:${email}:${url}:${table}`;
   if (!services.has(key)) services.set(key, createDurableOperatorRuntimeServiceFromEnv(env, options));
   return services.get(key);
 }
 
 export function operatorRuntimeBootstrapManifest() {
-  return { schema: 'riosystems.operator-runtime-bootstrap.v1', staging_store_required: 'supabase', fail_closed: true, memory_allowed_in_staging: false, synthetic_seed_only: true, controlled_paid_staging_activation_persisted: true, project_source_intake_metadata_persisted: true, browser_secrets: false, production_deploy: false };
+  return { schema: 'riosystems.operator-runtime-bootstrap.v1', staging_store_required: 'supabase', fail_closed: true, memory_allowed_in_staging: false, local_memory_service_shared_across_operator_layers: true, synthetic_seed_only: true, controlled_paid_staging_activation_persisted: true, project_source_intake_metadata_persisted: true, browser_secrets: false, production_deploy: false };
 }
