@@ -146,9 +146,17 @@ async function runDesktop() {
   assert.match(await selected.nth(0).innerText(), /menu-screenshot\.jpg/);
   assert.match(await selected.nth(1).innerText(), /gelato-product\.jpg/);
   assert.match(await selected.nth(2).innerText(), /flyer\.jpg/);
-  assert.equal(await selected.nth(0).locator('select').inputValue(), 'INFORMATION_EXTRACTION');
-  assert.equal(await selected.nth(1).locator('select').inputValue(), 'VISUAL_USAGE');
-  await selected.nth(2).locator('select').selectOption('BOTH');
+  const firstInfo = selected.nth(0).getByRole('button', { name: /Informationen auslesen/i });
+  const firstVisual = selected.nth(0).getByRole('button', { name: /Visuell verwenden/i });
+  const secondInfo = selected.nth(1).getByRole('button', { name: /Informationen auslesen/i });
+  const secondVisual = selected.nth(1).getByRole('button', { name: /Visuell verwenden/i });
+  assert.match(await firstInfo.getAttribute('class'), /active/);
+  assert.doesNotMatch(await firstVisual.getAttribute('class'), /active/);
+  assert.match(await secondVisual.getAttribute('class'), /active/);
+  assert.doesNotMatch(await secondInfo.getAttribute('class'), /active/);
+  await selected.nth(2).getByRole('button', { name: /Visuell verwenden/i }).click();
+  assert.match(await selected.nth(2).getByRole('button', { name: /Visuell verwenden/i }).getAttribute('class'), /active/);
+  assert.match(await selected.nth(2).getByRole('button', { name: /Informationen auslesen/i }).getAttribute('class'), /active/);
 
   console.log('V2_BROWSER_STAGE partial-upload');
   await page.locator('[data-v2-upload]').click();
@@ -166,7 +174,9 @@ async function runDesktop() {
   assert.equal(await page.locator('[data-v2-source-card]').count(), 3);
   assert.equal(await page.locator('.source-card-v2-media').count(), 3);
   assert.equal(await page.getByRole('button', { name: /^Ansehen$/i }).count(), 0);
-  assert.equal(await page.locator('[data-v2-purpose]').count(), 3);
+  assert.equal(await page.locator('[data-v2-purpose-toggle]').count(), 6);
+  assert.equal(await page.getByRole('button', { name: /Visuell verwenden/i }).count() >= 3, true);
+  assert.equal(await page.getByRole('button', { name: /Informationen auslesen/i }).count() >= 3, true);
 
   console.log('V2_BROWSER_STAGE manual-note');
   await page.locator('[data-v2-note]').fill('Eisbecher Fantasimo jetzt neu auf der Karte');
@@ -216,6 +226,8 @@ console.log(JSON.stringify({
   ok: true,
   suite: 'project-ferrari-intelligent-project-intake-ux-v2-browser',
   selection_previews: 'PASS',
+  image_usage_toggle_buttons: 'PASS',
+  information_extraction_toggle_buttons: 'PASS',
   per_file_progress: 'PASS',
   partial_failure: 'PASS',
   retry: 'PASS',
