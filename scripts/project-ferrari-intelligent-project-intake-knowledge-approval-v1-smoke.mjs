@@ -172,7 +172,25 @@ const organizer = async (current) => ({
     ]
   }
 });
-const options = { runtime_service: service, authorize, knowledge_organizer: organizer };
+const textExtractor = async (current) => ({
+  ok: true,
+  state: structuredClone(current),
+  requested_source_count: 0,
+  extracted_source_count: 0,
+  skipped_source_count: 0,
+  extracted_fact_count: 0,
+  paid_provider_calls: 0,
+  estimated_cost_usd: 0,
+  results: [],
+  production_deploy: false,
+  external_writes: false
+});
+const options = {
+  runtime_service: service,
+  authorize,
+  knowledge_organizer: organizer,
+  text_knowledge_extractor: textExtractor
+};
 
 let response = await handleProjectKnowledgeReviewApi(new Request('https://operator.example/operator/api/project-source-intake/review/prepare', {
   method: 'POST',
@@ -214,6 +232,28 @@ assert.equal(response.status, 200);
 body = await response.json();
 assert.equal(body.review.status, 'IN_REVIEW');
 assert.equal(state.facts.find((fact) => fact.fact_id === 'fact-summary').value.includes('Vermietung'), true);
+
+response = await handleProjectKnowledgeReviewApi(new Request('https://operator.example/operator/api/project-source-intake/review/stage', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ scope_key: scope, context_scope_key: scope, review_seen: true, stage_confirmed: false })
+}), {}, {}, options);
+assert.equal(response.status, 400);
+body = await response.json();
+assert.equal(body.error, 'PROJECT_KNOWLEDGE_STAGE_EXPLICIT_CONFIRMATION_REQUIRED');
+
+response = await handleProjectKnowledgeReviewApi(new Request('https://operator.example/operator/api/project-source-intake/review/stage', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ scope_key: scope, context_scope_key: scope, review_seen: true, stage_confirmed: true })
+}), {}, {}, options);
+assert.equal(response.status, 200);
+body = await response.json();
+assert.equal(body.factories_may_use_approved_knowledge, false);
+assert.equal(body.gate_active, true);
+assert.equal(state.knowledge_review.status, 'STAGED');
+assert.equal(knowledgeUseGate(state).allowed, false);
+assert.equal(state.assets.find((item) => item.asset_id === 'asset-hero').knowledge_staged, true);
 
 response = await handleProjectKnowledgeReviewApi(new Request('https://operator.example/operator/api/project-source-intake/review/approve', {
   method: 'POST',
@@ -282,13 +322,14 @@ const enhanced = await applyProjectKnowledgeReviewUi(new Response(sourceHtml, { 
 const html = await enhanced.text();
 assert.equal(enhanced.headers.get('x-aurentara-project-knowledge-review-ui'), 'v1');
 assert.equal(enhanced.headers.has('content-length'), false);
-assert.match(html, /Vom Wäschekorb zur sauberen Projektakte/);
-assert.match(html, /Mit KI aufräumen/);
-assert.match(html, /Für Nutzung freigeben/);
-assert.match(html, /Ferrari darf jetzt mit diesen bestätigten Informationen arbeiten/);
-assert.match(html, /Nutzung gesperrt/);
+assert.match(html, /Vom Wäschekorb zum geprüften Projektwissen/);
+assert.match(html, /Mit KI aufbereiten/);
+assert.match(html, /Diese Informationen übernehmen/);
+assert.match(html, /Projektwissen bereitstellen/);
+assert.match(html, /Auffangnetz/);
 assert.match(html, /project-source-intake\/review\//);
 assert.match(html, /api\('prepare'/);
+assert.match(html, /api\('stage'/);
 assert.match(html, /api\('approve'/);
 
 const reviewManifest = projectKnowledgeReviewManifest();
@@ -305,6 +346,9 @@ assert.equal(organizerManifest.production_deploy, false);
 const uiManifest = projectKnowledgeReviewUiManifest();
 assert.equal(uiManifest.raw_source_basket, true);
 assert.equal(uiManifest.ai_organization_action, true);
+assert.equal(uiManifest.explicit_stage_checkbox, true);
+assert.equal(uiManifest.catch_net_visible, true);
+assert.equal(uiManifest.staged_project_knowledge_state, true);
 assert.equal(uiManifest.explicit_final_checkbox, true);
 assert.equal(uiManifest.factories_locked_during_review, true);
 assert.equal(uiManifest.dashboard_redesign, false);
