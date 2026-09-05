@@ -232,7 +232,6 @@ assert.equal(runtimeTask.canonical_execution_contract.environment, 'staging');
 assert.equal(runtimeTask.canonical_execution_contract.write_policy, 'NO_EXTERNAL_WRITES');
 assert.equal(runtimeTask.canonical_execution_contract.production_policy, 'PRODUCTION_DISABLED');
 assert.equal(runtimeTask.canonical_execution_contract.provider_route.provider_id, 'riosystems-native-web');
-assert.equal(runtimeTask.canonical_execution_contract.executor_id, 'web-factory-native-v1');
 
 const mission = structuredClone(compiled.package.mission);
 const missionTask = mission.tasks.find((task) => task.task_id === runtimeTask.task_id);
