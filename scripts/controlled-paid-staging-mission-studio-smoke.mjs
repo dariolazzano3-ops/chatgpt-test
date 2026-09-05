@@ -57,7 +57,7 @@ created.runtime.selected_project_scope = gelatoScope;
 const store = createMemoryOperatorRuntimeStore([created.runtime]);
 const service = createOperatorRuntimeApiService({ operator_id: operatorId, store });
 const authorize = async () => ({ ok: true, operator_id: operatorId, email: 'acceptance@aurentara.test' });
-const options = { runtime_service: service, authorize };
+const options = { runtime_service: service, authorize, current_runtime_verified_provider_ids: ['posthog-free'] };
 const env = {};
 const ctx = {};
 
@@ -142,6 +142,7 @@ assert.equal(readiness.json.project_policy.project_budget_ceiling_eur, 25);
 assert.equal(readiness.json.budget_gate.ok, true);
 assert.ok(Array.isArray(readiness.json.provider_routes.eligible_routes));
 assert.ok(readiness.json.provider_routes.eligible_routes.length >= 1);
+assert.equal(readiness.json.provider_routes.eligible_routes.some((route) => route.provider_id === 'posthog-free'), true);
 
 // CASE 4: other projects remain on the existing synthetic zero-cost adapter.
 const selectSnapshot = await service.handle({ method: 'GET', path: '/snapshot' });
