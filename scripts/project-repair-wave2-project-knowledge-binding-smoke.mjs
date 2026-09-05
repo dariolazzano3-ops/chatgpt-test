@@ -71,6 +71,18 @@ assert.equal(mission.project_context_binding.immutable_for_mission, true);
 assert.equal(mission.scope_key, 'repair-customer:repair-project');
 assert.equal(compiled.package.safeguards.project_context_bound_to_mission, true);
 
+const sameKnowledgeDifferentPack = context();
+sameKnowledgeDifferentPack.visual_pack_ref = { pack_id: 'visual-pack-7b', version: 3, knowledge_revision: 7 };
+const recompiled = compileMissionPackage({
+  prompt: 'Baue eine Website, ein CRM, eine Support-KI und eine Lead-Automation.',
+  project_context: sameKnowledgeDifferentPack,
+  customer_id: 'repair-customer',
+  project_id: 'repair-project',
+  scope_key: 'repair-customer:repair-project'
+});
+assert.equal(recompiled.ok, true);
+assert.notEqual(recompiled.package.mission.mission_id, mission.mission_id);
+
 projectContext.verified_content['business.name'] = 'MUTATED AFTER COMPILE';
 assert.equal(mission.project_context.verified_content['business.name'], 'Repair Fixture');
 
