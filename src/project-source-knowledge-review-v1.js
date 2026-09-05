@@ -9,6 +9,7 @@ export const PROJECT_KNOWLEDGE_REVIEW_SECTIONS = Object.freeze([
   { id: 'CONTACT', label: 'Kontakt & Standort' },
   { id: 'OPENING_HOURS', label: 'Öffnungszeiten' },
   { id: 'BRAND', label: 'Marke & Gestaltung' },
+  { id: 'WEBSITE', label: 'Website-Ziele' },
   { id: 'VISUALS', label: 'Bilder & Medien' },
   { id: 'LEGAL', label: 'Rechtliches' },
   { id: 'OTHER', label: 'Weitere Informationen' }
@@ -17,6 +18,7 @@ export const PROJECT_KNOWLEDGE_REVIEW_SECTIONS = Object.freeze([
 const SECTION_IDS = new Set(PROJECT_KNOWLEDGE_REVIEW_SECTIONS.map((item) => item.id));
 const FACT_CONFIRMED = new Set(['OPERATOR_CONFIRMED', 'CUSTOMER_CONFIRMED', 'VERIFIED']);
 const FACT_IGNORED = new Set(['REJECTED', 'OUTDATED']);
+const IMAGE_PURPOSES = new Set(['INFORMATION_EXTRACTION', 'VISUAL_USAGE', 'BOTH']);
 
 function validState(state = {}) {
   return state?.schema === 'aurentara.project-source-intake.v1'
@@ -32,6 +34,7 @@ function sectionForFact(path = '') {
   if (/(opening_hours|opening\.hours|hours)/.test(p)) return 'OPENING_HOURS';
   if (/(phone|email|address|contact|location|region|service_area)/.test(p)) return 'CONTACT';
   if (/^(brand\.|visual\.)/.test(p)) return 'BRAND';
+  if (/^website\./.test(p)) return 'WEBSITE';
   if (/^(legal\.|business\.legal)/.test(p)) return 'LEGAL';
   if (/(product|service|offering|sortiment|menu|angebot)/.test(p)) return 'OFFERINGS';
   return 'OTHER';
@@ -99,6 +102,7 @@ function deterministicItems(state = {}) {
       mime_type: source.mime_type || null,
       rights_status: source.ownership_status || null,
       storage_ref: source.storage_ref || null,
+      image_purpose: source.source_type === 'IMAGE_VISUAL' ? (IMAGE_PURPOSES.has(source.image_purpose) ? source.image_purpose : 'VISUAL_USAGE') : null,
       editable: true
     });
   }
@@ -109,6 +113,7 @@ function deterministicItems(state = {}) {
       section_id: 'VISUALS',
       label: asset.usage_role || 'Projektbild',
       usage_role: asset.usage_role,
+      image_purpose: IMAGE_PURPOSES.has(asset.image_purpose) ? asset.image_purpose : 'VISUAL_USAGE',
       source_id: asset.source_id || null,
       rights_status: asset.rights_status,
       publishable: asset.publishable === true,
@@ -308,7 +313,8 @@ export function editProjectKnowledgeReviewItem(state = {}, input = {}, options =
     next.assets = (next.assets || []).map((asset) => {
       if (asset.asset_id !== targetId) return asset;
       found = true;
-      return { ...asset, usage_role: clean(input.usage_role, 120) || asset.usage_role, knowledge_approved: false, review_edited_at: at };
+      const requestedPurpose = clean(input.image_purpose, 80).toUpperCase();
+      return { ...asset, usage_role: clean(input.usage_role, 120) || asset.usage_role, image_purpose: IMAGE_PURPOSES.has(requestedPurpose) ? requestedPurpose : (asset.image_purpose || 'VISUAL_USAGE'), knowledge_approved: false, review_edited_at: at };
     });
   }
   if (!found) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_ITEM_NOT_FOUND' };
@@ -330,6 +336,9 @@ export function approveProjectKnowledgeReview(state = {}, input = {}, options = 
   if (!state.knowledge_review || !['IN_REVIEW', 'CHANGES_PENDING', 'COLLECTING'].includes(state.knowledge_review.status)) {
     return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_NOT_READY' };
   }
+  if (!state.knowledge_review.prepared_at) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_NOT_PREPARED' };
+  const activeItemCount = (state.sources || []).filter((source) => !source.deleted_at).length + (state.facts || []).filter((fact) => !FACT_IGNORED.has(fact.verification_status)).length + (state.assets || []).length;
+  if (!activeItemCount) return { ok: false, error: 'PROJECT_KNOWLEDGE_REVIEW_EMPTY' };
   if (input.review_seen !== true || input.approval_confirmed !== true) {
     return { ok: false, error: 'PROJECT_KNOWLEDGE_EXPLICIT_APPROVAL_REQUIRED' };
   }
@@ -421,6 +430,10 @@ export function buildProjectKnowledgeReviewView(state = {}) {
     approved_at: review?.approved_at || null,
     approved_by: review?.approved_by || null,
     approved_knowledge_revision: review?.approved_knowledge_revision || null,
+    current_knowledge_revision: Number(state.knowledge_revision || 1),
+    conflict_count: (state.facts || []).filter((fact) => fact.verification_status === 'SOURCE_CONFLICT').length,
+    notes: clone(review?.notes || []),
+    review_required: review?.status !== 'APPROVED',
     production_deploy: false,
     external_writes: false
   };
