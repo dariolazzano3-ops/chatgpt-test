@@ -33,6 +33,24 @@ function rankHtml(file,projectDir){
 function readJson(file){
   try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch{return null}
 }
+function inlineLocalStyles(projectDir,html){
+  let out=html;
+  let stylesInlined=0;
+  const tags=[...html.matchAll(/<link\\b[^>]*>/gi)].map(m=>m[0]);
+  for(const tag of tags){
+    const rel=tag.match(/\\brel\\s*=\\s*["']([^"']+)["']/i)?.[1]||'';
+    const href=tag.match(/\\bhref\\s*=\\s*["']([^"']+)["']/i)?.[1]||'';
+    if(!/\\bstylesheet\\b/i.test(rel)||!href||/^(?:https?:|\\/\\/|data:|\\/)/i.test(href)) continue;
+    const local=href.replace(/^\\.\\//,'').split(/[?#]/)[0];
+    if(!local||local.includes('..')) continue;
+    const cssPath=path.resolve(projectDir,local);
+    if(!cssPath.startsWith(projectDir+path.sep)||!fs.existsSync(cssPath)||!fs.statSync(cssPath).isFile()) continue;
+    const css=fs.readFileSync(cssPath,'utf8').replace(/<\\/style/gi,'<\\\\/style');
+    out=out.replace(tag,`<style data-aurentara-preview-bundled-css="${local.replace(/"/g,'&quot;')}">\\n${css}\\n</style>`);
+    stylesInlined+=1;
+  }
+  return {html:out,styles_inlined:stylesInlined};
+}
 
 const entries=[];
 let total=0;
@@ -42,11 +60,13 @@ if(fs.existsSync(root)){
     const htmlFiles=walk(projectDir).filter(f=>/\.html?$/i.test(f)&&path.basename(f).toLowerCase()!=='404.html').sort((a,b)=>rankHtml(a,projectDir)-rankHtml(b,projectDir)||a.localeCompare(b));
     if(!htmlFiles.length) continue;
     const chosen=htmlFiles[0];
-    const stat=fs.statSync(chosen);
-    if(stat.size>MAX_FILE_BYTES) continue;
-    if(total+stat.size>MAX_TOTAL_BYTES) continue;
-    const html=fs.readFileSync(chosen,'utf8');
-    total+=Buffer.byteLength(html);
+    const rawHtml=fs.readFileSync(chosen,'utf8');
+    const bundled=inlineLocalStyles(projectDir,rawHtml);
+    const html=bundled.html;
+    const htmlBytes=Buffer.byteLength(html);
+    if(htmlBytes>MAX_FILE_BYTES) continue;
+    if(total+htmlBytes>MAX_TOTAL_BYTES) continue;
+    total+=htmlBytes;
     const meta=readJson(path.join(projectDir,'project.json'))||{};
     const inferredProjectId=safeToken(dirent.name);
     const projectId=safeToken(meta.project_id)||inferredProjectId;
@@ -59,6 +79,7 @@ if(fs.existsSync(root)){
       scope_key:scopeKey||null,
       name:clean(meta.name)||dirent.name,
       source_path:sourcePath,
+      styles_inlined:bundled.styles_inlined,
       content_sha256:crypto.createHash('sha256').update(html).digest('hex'),
       html
     });
@@ -80,4 +101,4 @@ const payload={
 };
 const source='export const GENERATED_PROJECT_PREVIEW_INDEX = Object.freeze('+JSON.stringify(payload,null,2)+');\n';
 fs.writeFileSync(out,source);
-console.log(JSON.stringify({ok:true,project_count:entries.length,total_html_bytes:total,projects:entries.map(x=>({project_id:x.project_id,scope_key:x.scope_key,source_path:x.source_path}))},null,2));
+console.log(JSON.stringify({ok:true,project_count:entries.length,total_html_bytes:total,projects:entries.map(x=>({project_id:x.project_id,scope_key:x.scope_key,source_path:x.source_path,styles_inlined:x.styles_inlined}))},null,2));
