@@ -189,7 +189,12 @@ export function reserveControlledPaidStagingCost(project = {}, request = {}) {
     provider_id: request.provider_id,
     capability: request.capability,
     mission_id: request.mission_id,
-    task_id: request.task_id
+    task_id: request.task_id,
+    execution_id: request.execution_id,
+    customer_id: project.customer_id,
+    project_id: project.project_id,
+    scope_key: project.scope_key,
+    binding: request.binding
   });
   if (!reserved.ok) return { ...reserved, gate, project: clone(project), production_deploy: false };
   const next = clone(project);
@@ -200,7 +205,12 @@ export function reserveControlledPaidStagingCost(project = {}, request = {}) {
 export function settleControlledPaidStagingCost(project = {}, request = {}) {
   const ledger = ledgerFromProject(project);
   if (!ledger) return { ok: false, error: 'CONTROLLED_PAID_STAGING_LEDGER_REQUIRED', project: clone(project), production_deploy: false };
-  const settled = settleCost(ledger, request);
+  const settled = settleCost(ledger, {
+    ...request,
+    customer_id: project.customer_id,
+    project_id: project.project_id,
+    scope_key: project.scope_key
+  });
   if (!settled.ok) return { ...settled, project: clone(project), production_deploy: false };
   const next = clone(project);
   next.controlled_paid_staging.cost_ledger = settled.ledger;
@@ -210,7 +220,12 @@ export function settleControlledPaidStagingCost(project = {}, request = {}) {
 export function releaseControlledPaidStagingCost(project = {}, request = {}) {
   const ledger = ledgerFromProject(project);
   if (!ledger) return { ok: false, error: 'CONTROLLED_PAID_STAGING_LEDGER_REQUIRED', project: clone(project), production_deploy: false };
-  const released = releaseCost(ledger, request);
+  const released = releaseCost(ledger, {
+    ...request,
+    customer_id: project.customer_id,
+    project_id: project.project_id,
+    scope_key: project.scope_key
+  });
   if (!released.ok) return { ...released, project: clone(project), production_deploy: false };
   const next = clone(project);
   next.controlled_paid_staging.cost_ledger = released.ledger;
@@ -225,6 +240,8 @@ export function controlledPaidStagingManifest() {
     max_project_execution_budget_eur: CONTROLLED_PAID_STAGING_MAX_EUR,
     existing_cost_ledger_reused: true,
     existing_mission_preflight_reused: true,
+    execution_bound_cost_reservation_supported: true,
+    terminal_cost_idempotency_supported: true,
     automatic_budget_increase: false,
     automatic_paid_overflow: false,
     production_deploy: false,
