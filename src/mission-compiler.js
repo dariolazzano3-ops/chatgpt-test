@@ -35,6 +35,11 @@ function validateProjectContext(context, input = {}) {
   if (context.schema !== 'aurentara.project-mission-context.v1' || !context.project?.scope_key || !context.content_pack_ref || !context.visual_pack_ref || !context.readiness_ref) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_INVALID' };
   const revision = Number(context.knowledge_revision); if (!Number.isInteger(revision) || revision < 1) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_REVISION_INVALID' };
   if ([context.content_pack_ref.knowledge_revision, context.visual_pack_ref.knowledge_revision, context.readiness_ref.knowledge_revision].some((value) => Number(value) !== revision)) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_STALE_PACK_OR_READINESS' };
+  if (context.readiness_ref.status === 'BLOCKED') return { ok: false, error: 'PROJECT_CONTENT_READINESS_BLOCKED' };
+  if ((context.open_critical_conflicts || []).length) return { ok: false, error: 'PROJECT_CRITICAL_CONFLICT_UNRESOLVED' };
+  const publishableRights = new Set(['OWNED_CONFIRMED','CUSTOMER_LICENSED','CUSTOMER_ASSERTED']);
+  const invalidAsset = (context.approved_assets || context.assets || []).find((asset) => asset.publishable !== true || !publishableRights.has(asset.rights_status));
+  if (invalidAsset) return { ok: false, error: 'PROJECT_APPROVED_ASSET_RIGHTS_INVALID', asset_id: invalidAsset.asset_id || null };
   if (input.scope_key && clean(input.scope_key, 320) !== context.project.scope_key) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_SCOPE_MISMATCH' };
   if (input.customer_id && clean(input.customer_id, 160) !== context.project.customer_id) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_CUSTOMER_MISMATCH' };
   if (input.project_id && clean(input.project_id, 160) !== context.project.project_id) return { ok: false, error: 'PROJECT_MISSION_CONTEXT_PROJECT_MISMATCH' };
@@ -48,18 +53,33 @@ export function compileMissionPackage(input = {}) {
   const sourceOfTruthResult = buildSourceOfTruth(input.source_of_truth || input); if (!sourceOfTruthResult.ok) return sourceOfTruthResult; const sourceOfTruth = sourceOfTruthResult.context;
   const plan = buildOrchestrationPlan({ prompt }); if (!plan.ok) return plan; plan.project = project;
   const created = createMission({ plan, source_of_truth: sourceOfTruth }); if (!created.ok) return created;
+  if (projectContext) {
+    created.customer_id = projectContext.project.customer_id;
+    created.project_id = projectContext.project.project_id;
+    created.scope_key = projectContext.project.scope_key;
+    created.project_context = clone(projectContext);
+    created.project_context_binding = {
+      schema: 'aurentara.project-knowledge-snapshot-ref.v1',
+      scope_key: projectContext.project.scope_key,
+      knowledge_revision: projectContext.knowledge_revision,
+      content_pack_ref: clone(projectContext.content_pack_ref),
+      visual_pack_ref: clone(projectContext.visual_pack_ref),
+      readiness_ref: clone(projectContext.readiness_ref),
+      immutable_for_mission: true
+    };
+  }
   const businessContracts = {}; const automationContracts = {}; const aiContracts = {};
   for (const task of created.tasks) { if (task.domain === 'business') businessContracts[task.task_id] = businessContract(task, prompt, created.project); if (task.domain === 'automation') automationContracts[task.task_id] = automationContract(task, prompt); if (task.domain === 'ai') aiContracts[task.task_id] = { task_type: 'generate', output: { format: 'text', max_chars: 100000 }, max_attempts: Math.min(task.max_attempts || 1, 3) }; }
   const packageValue = {
     package_version: 'mission.package.v1', compiler_version: '4.10', mission: created, source_of_truth: sourceOfTruth,
     project_context: projectContext,
-    project_context_binding: projectContext ? { scope_key: projectContext.project.scope_key, knowledge_revision: projectContext.knowledge_revision, content_pack_ref: clone(projectContext.content_pack_ref), visual_pack_ref: clone(projectContext.visual_pack_ref), readiness_ref: clone(projectContext.readiness_ref) } : null,
+    project_context_binding: clone(created.project_context_binding || null),
     contracts: { business_contracts: businessContracts, automation_contracts: automationContracts, ai_contracts: aiContracts, web: { project_name: clean(input.project_name || input.project || created.project || `Mission ${created.mission_id.slice(-8)}`, 120), project_context: projectContext } },
     approvals: { automatic: false, per_engine_explicit: true, required_engines: [...new Set(created.tasks.map((task) => ['web', 'automation', 'ai', 'business'].includes(task.domain) ? task.domain : task.engine).filter(Boolean))] },
     activation_requirements: activationRequirements(created, prompt, projectContext),
-    safeguards: { automatic_multi_factory_execution: false, business_external_writes: false, ai_provider_implicit_activation: false, automation_external_transport_implicit: false, stale_revision_execution_blocked: true, project_content_readiness_required: Boolean(projectContext), project_context_stale_execution_blocked: Boolean(projectContext), source_of_truth_separate_from_project_knowledge: true, production_deploy: false }
+    safeguards: { automatic_multi_factory_execution: false, business_external_writes: false, ai_provider_implicit_activation: false, automation_external_transport_implicit: false, stale_revision_execution_blocked: true, project_content_readiness_required: Boolean(projectContext), project_context_stale_execution_blocked: Boolean(projectContext), project_context_bound_to_mission: Boolean(projectContext), source_of_truth_separate_from_project_knowledge: true, production_deploy: false }
   };
   return { ok: true, package: packageValue };
 }
 
-export function missionCompilerManifest() { return { version: '4.10', engine_revision: 'max-source-of-truth-1', input: 'single_high_level_prompt', output: 'durable_mission_plus_factory_contracts', compiled_engines: ['web', 'automation', 'ai', 'business'], project_identity_separate_from_routing: true, deterministic_safe_contract_synthesis: true, source_of_truth_contract: true, project_source_intake_extension: 'aurentara.project-mission-context.v1', git_source_of_truth_separate: true, full_sha_revision_binding_supported: true, explicit_adapter_approvals_required: true, external_activation_requirements_exposed: true, automatic_multi_factory_execution: false, production_deploy: false }; }
+export function missionCompilerManifest() { return { version: '4.10', engine_revision: 'max-source-of-truth-1', input: 'single_high_level_prompt', output: 'durable_mission_plus_factory_contracts', compiled_engines: ['web', 'automation', 'ai', 'business'], project_identity_separate_from_routing: true, deterministic_safe_contract_synthesis: true, source_of_truth_contract: true, project_source_intake_extension: 'aurentara.project-mission-context.v1', project_context_bound_to_mission: true, git_source_of_truth_separate: true, full_sha_revision_binding_supported: true, explicit_adapter_approvals_required: true, external_activation_requirements_exposed: true, automatic_multi_factory_execution: false, production_deploy: false }; }
