@@ -78,7 +78,8 @@ export function intakeManualSource(state = {}, input = {}, options = {}) {
     display_name: clean(input.display_name || 'Manual project input', 300),
     ownership_status: input.ownership_status || 'CUSTOMER_ASSERTED',
     ingestion_status: 'IMPORTED',
-    content_hash: clean(input.content_hash, 240) || null
+    content_hash: clean(input.content_hash, 240) || null,
+    source_metadata: input.source_metadata && typeof input.source_metadata === 'object' ? structuredClone(input.source_metadata) : ((Array.isArray(input.facts) && input.facts.length) ? { manual_text: clean(input.facts[0]?.value, 8000) || null } : null)
   }, options);
   if (!registered.ok) return registered;
   let next = registered.state;
@@ -137,7 +138,8 @@ export function intakeImageSource(state = {}, input = {}, options = {}) {
     ownership_status: input.ownership_status || 'UNKNOWN',
     ingestion_status: 'IMPORTED',
     content_hash: clean(input.content_hash, 240) || null,
-    usage_attestation: input.usage_attestation || null
+    usage_attestation: input.usage_attestation || null,
+    image_purpose: input.image_purpose || 'VISUAL_USAGE'
   }, options);
   if (!source.ok) return source;
   const asset = registerProjectAsset(source.state, {
@@ -148,6 +150,7 @@ export function intakeImageSource(state = {}, input = {}, options = {}) {
     hash: input.content_hash,
     dimensions: input.dimensions,
     usage_role: input.usage_role || 'VISUAL_REFERENCE',
+    image_purpose: input.image_purpose || source.source.image_purpose || 'VISUAL_USAGE',
     rights_status: input.rights_status || input.ownership_status,
     publishable: input.publishable
   }, options);
