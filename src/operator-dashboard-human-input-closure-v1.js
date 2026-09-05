@@ -144,7 +144,7 @@ function normalizeControlDecision(control = {}, raw = {}) {
     const other = clean(raw.other_value, 4000);
     if (other && control.allow_other === true) selected.push(other);
     if (!selected.length) return { ok: false, error: 'HUMAN_DECISION_MULTI_CHOICE_REQUIRED', control_id: control.id };
-    return { ok: true, value: clone(selected), used_existing_candidate: !other && selected.length === requested.length };
+    return { ok: true, value: clone(control.collapse_single === true && selected.length === 1 ? selected[0] : selected), used_existing_candidate: !other && selected.length === requested.length };
   }
   if (type === 'APPROVAL') {
     if (typeof raw.approved !== 'boolean') return { ok: false, error: 'HUMAN_DECISION_APPROVAL_REQUIRED', control_id: control.id };
