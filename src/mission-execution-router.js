@@ -18,6 +18,9 @@ export function missionExecutionRouterManifest() {
     ai_execution: 'injected_runner_only',
     business_execution: 'bounded_local_configuration',
     explicit_dispatch_approval_required: true,
+    canonical_execution_contract: 'riosystems.provider-execution.v1',
+    shared_contract_for_all_factories: true,
+    universal_synthetic_path_classification: 'SYNTHETIC_TEST_HARNESS',
     automatic_cross_factory_execution: false,
     production_deploy: false
   };
