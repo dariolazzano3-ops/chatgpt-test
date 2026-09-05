@@ -115,7 +115,8 @@ export function intakeFileSource(state = {}, input = {}, options = {}) {
     ownership_status: input.ownership_status || 'CUSTOMER_ASSERTED',
     ingestion_status: parsedText ? 'IMPORTED' : parserStatus,
     content_hash: clean(input.content_hash, 240) || null,
-    usage_attestation: input.usage_attestation || null
+    usage_attestation: input.usage_attestation || null,
+    source_metadata: parsedText ? { ...(input.source_metadata || {}), text_content: parsedText, text_extraction: 'DETERMINISTIC_TEXT_NATIVE_V1' } : (input.source_metadata || null)
   }, options);
   if (!registered.ok) return registered;
   return { ok: true, state: registered.state, source: registered.source, parser_status: parserStatus, extracted_text: parsedText || null, binary_in_runtime_json: false, variable_cost_eur: 0, paid_provider_calls: 0, production_deploy: false };
