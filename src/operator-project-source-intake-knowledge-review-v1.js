@@ -7,6 +7,7 @@ import {
   buildProjectKnowledgeReviewView
 } from './project-source-knowledge-review-v1.js';
 import { organizeProjectKnowledgeWithAi } from './project-source-knowledge-organizer-v1.js';
+import { extractProjectImageKnowledgeWithVision } from './project-source-image-vision-extraction-v1.js';
 import { reviewProjectFact } from './project-source-intake-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
@@ -72,10 +73,28 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
   const actorId = auth.operator_id || auth.email || read.body.identity?.operator_id || 'operator';
 
   if (url.pathname.endsWith('/prepare')) {
+    const extractImages = typeof options.image_vision_extractor === 'function'
+      ? options.image_vision_extractor
+      : extractProjectImageKnowledgeWithVision;
+    const vision = await extractImages(read.body.state, env, {
+      allow_paid_inference: body.allow_ai === true,
+      storage_client: options.project_source_storage_client,
+      storage_fetcher: options.project_source_storage_fetcher,
+      fetch_impl: options.image_vision_fetch_impl
+    });
+    if (!vision.ok || !vision.state) {
+      return json({
+        error: vision.error || 'PROJECT_IMAGE_VISION_EXTRACTION_FAILED',
+        image_vision: vision,
+        production_deploy: false,
+        external_writes: false
+      }, 400);
+    }
+
     const organize = typeof options.knowledge_organizer === 'function'
       ? options.knowledge_organizer
       : organizeProjectKnowledgeWithAi;
-    const organized = await organize(read.body.state, env, {
+    const organized = await organize(vision.state, env, {
       allow_paid_inference: body.allow_ai === true,
       fetch_impl: options.knowledge_organizer_fetch_impl
     });
@@ -83,10 +102,11 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
       return json({
         error: organized.error || 'PROJECT_KNOWLEDGE_ORGANIZATION_FAILED',
         organizer: organized,
+        image_vision: vision,
         production_deploy: false
       }, 400);
     }
-    const prepared = prepareProjectKnowledgeReview(read.body.state, {
+    const prepared = prepareProjectKnowledgeReview(vision.state, {
       ...organized.structure,
       ai_used: organized.ai_used === true,
       provider: organized.provider || organized.structure.provider,
@@ -98,6 +118,17 @@ export async function handleProjectKnowledgeReviewApi(request, env = {}, ctx = {
     return json({
       ok: true,
       review: buildProjectKnowledgeReviewView(prepared.state),
+      image_vision: {
+        requested_image_count: Number(vision.requested_image_count || 0),
+        extracted_image_count: Number(vision.extracted_image_count || 0),
+        skipped_image_count: Number(vision.skipped_image_count || 0),
+        extracted_fact_count: Number(vision.extracted_fact_count || 0),
+        paid_provider_calls: Number(vision.paid_provider_calls || 0),
+        estimated_cost_usd: Number(vision.estimated_cost_usd || 0),
+        provider: vision.provider || null,
+        model: vision.model || null,
+        results: Array.isArray(vision.results) ? vision.results : []
+      },
       organizer: {
         status: organized.status,
         ai_used: organized.ai_used === true,
