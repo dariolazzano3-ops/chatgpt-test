@@ -133,16 +133,14 @@ const readiness = await call('/operator/api/mission-plan-decision', {
   projected_cost_eur: 0.01,
   variable_cost_ceiling_eur: 999
 });
-assert.equal(readiness.response.status, 200);
-assert.equal(readiness.json.status, 'EXECUTION_READY');
-assert.equal(readiness.json.execution_started, false);
-assert.equal(readiness.json.paid_provider_calls, 0);
-assert.equal(readiness.json.actual_cost_eur, 0);
-assert.equal(readiness.json.project_policy.project_budget_ceiling_eur, 25);
-assert.equal(readiness.json.budget_gate.ok, true);
+assert.equal(readiness.response.status, 409);
+assert.equal(readiness.json.error, 'NO_CONTROLLED_PAID_STAGING_TARGET_PROVIDER_ROUTE_ELIGIBLE');
+assert.equal(readiness.json.execution_started, undefined);
 assert.ok(Array.isArray(readiness.json.provider_routes.eligible_routes));
-assert.ok(readiness.json.provider_routes.eligible_routes.length >= 1);
-assert.equal(readiness.json.provider_routes.eligible_routes.some((route) => route.provider_id === 'posthog-free'), true);
+assert.equal(readiness.json.provider_routes.eligible_routes.some((route) => route.provider_id === 'posthog-free'), false);
+assert.equal(readiness.json.provider_routes.routes.some((route) => route.provider_id === 'posthog-free' && route.source_capability === 'analytics'), true);
+assert.equal(readiness.json.provider_routes.execution_routes.length, 0);
+assert.equal(readiness.json.provider_routes.provider_capability_binding_enforced, true);
 
 // CASE 4: other projects remain on the existing synthetic zero-cost adapter.
 const selectSnapshot = await service.handle({ method: 'GET', path: '/snapshot' });
@@ -172,7 +170,7 @@ console.log(JSON.stringify({
     frontend_policy_manipulation: 'PASS',
     production_external_write_lock: 'PASS',
     provider_eligibility: 'PASS',
-    durable_approval_readiness: 'PASS',
+    durable_approval_readiness_fail_closed_without_target_executor: 'PASS',
     other_project_safe_default: 'PASS',
     dashboard_budget_projection: 'PASS'
   },
