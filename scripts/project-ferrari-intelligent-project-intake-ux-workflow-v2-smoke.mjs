@@ -276,7 +276,7 @@ assert.equal(workspace.sections.project_knowledge.length >= 2, true);
 assert.equal(workspace.knowledge_review.status, 'CHANGES_PENDING');
 
 // Scenarios 2, 3, 4, 15, 16, 17: UI contract contains previews, progress, partial failure, thumbnails and responsive layout.
-const baseHtml = '<!doctype html><html><body><div class="card source-intake-v1" data-project-source-intake="true" data-scope="' + scope + '><div class="source-upload-grid"></div><div data-source-status></div><div class="source-cards" data-source-cards></div></div><script id="aurentara-project-source-storage-v1-ui"></script></body></html>';
+const baseHtml = '<!doctype html><html><body><div class="card source-intake-v1" data-project-source-intake="true" data-scope="' + scope + '"><div class="source-upload-grid"></div><div data-source-status></div><div class="source-cards" data-source-cards></div></div><script id="aurentara-project-source-storage-v1-ui"></script></body></html>';
 const enhanced = await applyProjectIntakeUxV2(new Response(baseHtml, { headers: { 'content-type': 'text/html; charset=utf-8' } }));
 const html = await enhanced.text();
 assert.equal(enhanced.headers.get('x-aurentara-project-intake-ux'), 'v2');
