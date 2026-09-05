@@ -27,7 +27,10 @@ export function createMission(input = {}) {
   const createdAt = now();
   const tasks = plan.tasks.map((task) => ({
     task_id: task.task_id,
+    execution_id: execution.binding.execution_id,
+    provider_execution_version: execution.binding.provider_execution_version,
     capability: task.capability,
+    factory: execution.binding.factory,
     domain: task.domain,
     engine: task.engine,
     goal: task.goal,
@@ -174,11 +177,52 @@ function projectKnowledgeSnapshotForMission(mission = {}) {
   };
 }
 
+const EXECUTION_FACTORIES = new Set(['web','automation','ai','business']);
+
+function canonicalExecutionBindingForTask(mission = {}, task = {}) {
+  const binding = task.execution_contract_binding && typeof task.execution_contract_binding === 'object' ? task.execution_contract_binding : {};
+  const factory = EXECUTION_FACTORIES.has(task.domain) ? task.domain : (EXECUTION_FACTORIES.has(task.engine) ? task.engine : null);
+  if (!factory) return { ok: false, error: 'CANONICAL_EXECUTION_FACTORY_UNSUPPORTED', factory: task.domain || task.engine || null };
+  const scopeKey = mission.scope_key || mission.project_context?.project?.scope_key || null;
+  if (binding.mission_id && binding.mission_id !== mission.mission_id) return { ok: false, error: 'EXECUTION_BINDING_MISSION_MISMATCH' };
+  if (binding.task_id && binding.task_id !== task.task_id) return { ok: false, error: 'EXECUTION_BINDING_TASK_MISMATCH' };
+  if (binding.factory && binding.factory !== factory) return { ok: false, error: 'EXECUTION_BINDING_FACTORY_MISMATCH' };
+  if (binding.capability && binding.capability !== task.capability) return { ok: false, error: 'EXECUTION_BINDING_CAPABILITY_MISMATCH' };
+  if (binding.project_scope_key && scopeKey && binding.project_scope_key !== scopeKey) return { ok: false, error: 'EXECUTION_BINDING_SCOPE_MISMATCH' };
+  if (binding.environment && binding.environment !== 'staging') return { ok: false, error: 'EXECUTION_ENVIRONMENT_NOT_ALLOWED' };
+  if (binding.write_policy && binding.write_policy !== 'NO_EXTERNAL_WRITES') return { ok: false, error: 'EXECUTION_WRITE_POLICY_NOT_ALLOWED' };
+  if (binding.production_policy && binding.production_policy !== 'PRODUCTION_DISABLED') return { ok: false, error: 'EXECUTION_PRODUCTION_POLICY_NOT_ALLOWED' };
+  const executionAttempt = task.state === 'READY' ? Number(task.attempt || 0) + 1 : Math.max(1, Number(task.attempt || 0));
+  const executionId = clean(binding.execution_id, 200) || `execution-${digest({ mission_id: mission.mission_id, task_id: task.task_id, attempt: executionAttempt }).slice(0, 24)}`;
+  return {
+    ok: true,
+    binding: {
+      provider_execution_version: 'riosystems.provider-execution.v1',
+      execution_id: executionId,
+      factory,
+      provider_route: cloneMission(binding.provider_route || null),
+      executor_id: clean(binding.executor_id, 160) || null,
+      budget_reservation_ref: cloneMission(binding.budget_reservation_ref || null),
+      approval_ref: cloneMission(binding.approval_ref || null),
+      environment: 'staging',
+      write_policy: 'NO_EXTERNAL_WRITES',
+      production_policy: 'PRODUCTION_DISABLED',
+      evidence_policy: cloneMission(binding.evidence_policy || {
+        actual_provider_from_executor_required: true,
+        executor_identity_required: true,
+        provider_execution_truth_validation_required: true
+      })
+    }
+  };
+}
+
 export function buildTaskExecutionContract(mission, taskId) {
   const task = findTask(mission || {}, taskId);
   if (!task) return { ok: false, error: "MISSION_TASK_NOT_FOUND" };
   const knowledge = projectKnowledgeSnapshotForMission(mission || {});
   if (!knowledge.ok) return { ...knowledge, task_id: taskId, production_deploy: false };
+  const execution = canonicalExecutionBindingForTask(mission || {}, task);
+  if (!execution.ok) return { ...execution, task_id: taskId, production_deploy: false };
   const dependencyOutputs = {};
   for (const dependencyId of task.depends_on || []) dependencyOutputs[dependencyId] = findTask(mission, dependencyId)?.outputs || {};
   return {
@@ -214,10 +258,18 @@ export function buildTaskExecutionContract(mission, taskId) {
     human_decision_refs: cloneMission(knowledge.snapshot?.human_decision_refs || []),
     approved_assets: cloneMission(knowledge.snapshot?.approved_assets || []),
     open_critical_conflicts: cloneMission(knowledge.snapshot?.open_critical_conflicts || []),
+    provider_route: cloneMission(execution.binding.provider_route),
+    executor_id: execution.binding.executor_id,
+    budget_reservation_ref: cloneMission(execution.binding.budget_reservation_ref),
+    approval_ref: cloneMission(execution.binding.approval_ref),
+    environment: execution.binding.environment,
+    write_policy: execution.binding.write_policy,
+    production_policy: execution.binding.production_policy,
+    evidence_policy: cloneMission(execution.binding.evidence_policy),
     prompt: mission.prompt,
     dependency_outputs: dependencyOutputs,
     required_result: { status: ["COMPLETED", "FAILED"], outputs_object_required_on_success: true, error_object_required_on_failure: true },
-    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, optimistic_concurrency_control: true }
+    safeguards: { production_deploy: false, manual_production_approval_required: true, cross_factory_side_effects_require_explicit_contract: true, stale_revision_execution_blocked: true, project_knowledge_fail_closed: knowledge.required === true, canonical_execution_contract: true, production_deploy: false, external_writes: false, optimistic_concurrency_control: true }
   };
 }
 
