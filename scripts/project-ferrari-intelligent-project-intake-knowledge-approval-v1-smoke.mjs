@@ -287,7 +287,8 @@ assert.match(html, /Mit KI aufräumen/);
 assert.match(html, /Für Nutzung freigeben/);
 assert.match(html, /Ferrari darf jetzt mit diesen bestätigten Informationen arbeiten/);
 assert.match(html, /Nutzung gesperrt/);
-assert.match(html, /project-source-intake\/review\//);\nassert.match(html, /api\('prepare'/);
+assert.match(html, /project-source-intake\/review\//);
+assert.match(html, /api\('prepare'/);
 assert.match(html, /api\('approve'/);
 
 const reviewManifest = projectKnowledgeReviewManifest();
