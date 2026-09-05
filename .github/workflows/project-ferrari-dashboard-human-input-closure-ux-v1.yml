@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - factory/project-ferrari-dashboard-human-input-closure-ux-v1
+      - factory-control
 
 permissions:
   contents: read
