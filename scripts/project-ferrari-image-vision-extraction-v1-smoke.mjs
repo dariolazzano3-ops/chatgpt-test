@@ -18,7 +18,7 @@ const identity = {
   scope_key: 'gelato-donatello:gelato-donatello-website-v1'
 };
 
-let state = createProjectSourceIntakeState(identity, { at: '2026-09-05T21:20:00.000Z' }).state;
+let state = createProjectSourceIntakeState({ ...identity, at: '2026-09-05T21:20:00.000Z' }).state;
 
 let image = intakeImageSource(state, {
   source_id: 'src-menu-photo',
