@@ -16,6 +16,11 @@ export function resolveExecutionAdapter(contract = {}) {
   const adapter = ADAPTERS[adapterKey];
   if (!adapter) return { ok: false, error: "EXECUTION_ADAPTER_NOT_FOUND", engine: legacyEngine || domain };
   if (!adapter.available) return { ok: false, error: "EXECUTION_ADAPTER_UNAVAILABLE", engine: adapterKey, adapter: { ...adapter } };
+  if (contract.factory && contract.factory !== adapter.engine) return { ok: false, error: "EXECUTION_FACTORY_ADAPTER_MISMATCH", factory: contract.factory, adapter_engine: adapter.engine };
+  if (contract.provider_execution_version && contract.provider_execution_version !== 'riosystems.provider-execution.v1') return { ok: false, error: "PROVIDER_EXECUTION_VERSION_UNSUPPORTED" };
+  if (contract.environment && contract.environment !== 'staging') return { ok: false, error: "EXECUTION_ENVIRONMENT_NOT_ALLOWED" };
+  if (contract.write_policy && contract.write_policy !== 'NO_EXTERNAL_WRITES') return { ok: false, error: "EXECUTION_WRITE_POLICY_NOT_ALLOWED" };
+  if (contract.production_policy && contract.production_policy !== 'PRODUCTION_DISABLED') return { ok: false, error: "EXECUTION_PRODUCTION_POLICY_NOT_ALLOWED" };
   if (contract.state !== "READY") return { ok: false, error: "EXECUTION_CONTRACT_NOT_READY", state: contract.state, adapter: { ...adapter } };
   return { ok: true, adapter: { ...adapter, accepts: [...adapter.accepts] }, underlying_engine: legacyEngine || null };
 }
@@ -29,7 +34,10 @@ export function buildAdapterDispatchEnvelope(contract = {}) {
     underlying_engine: resolved.underlying_engine,
     mission_id: contract.mission_id,
     task_id: contract.task_id,
+    execution_id: contract.execution_id || null,
+    provider_execution_version: contract.provider_execution_version || null,
     capability: contract.capability,
+    factory: contract.factory || resolved.adapter.engine,
     goal: contract.goal,
     project: contract.project || null,
     customer_id: contract.customer_id || null,
@@ -47,10 +55,18 @@ export function buildAdapterDispatchEnvelope(contract = {}) {
     human_decision_refs: contract.human_decision_refs || [],
     approved_assets: contract.approved_assets || [],
     open_critical_conflicts: contract.open_critical_conflicts || [],
+    provider_route: contract.provider_route || null,
+    executor_id: contract.executor_id || null,
+    budget_reservation_ref: contract.budget_reservation_ref || null,
+    approval_ref: contract.approval_ref || null,
+    environment: contract.environment || 'staging',
+    write_policy: contract.write_policy || 'NO_EXTERNAL_WRITES',
+    production_policy: contract.production_policy || 'PRODUCTION_DISABLED',
+    evidence_policy: contract.evidence_policy || {},
     attempt: contract.attempt,
     max_attempts: contract.max_attempts,
     dependency_outputs: contract.dependency_outputs || {},
-    execution: { automatic: false, dispatch_authorized: false, production_deploy: false, manual_production_approval_required: true }
+    execution: { automatic: false, dispatch_authorized: false, production_deploy: false, external_writes: false, manual_production_approval_required: true, canonical_execution_contract: true }
   };
 }
 export function authorizeAdapterDispatch(envelope = {}, approval = {}) {
