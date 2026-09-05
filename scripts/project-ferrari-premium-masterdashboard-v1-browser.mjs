@@ -39,7 +39,7 @@ try{
   await waitForWorker();
   browser=await chromium.launch({headless:true,channel:'chrome'});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
-  page.on('pageerror',e=>errors.push(String(e)));
+  page.on('pageerror',e=>errors.push(e?.stack||String(e)));
 
   const initialSnapshotProbe=await page.request.get(origin+'/operator/api/snapshot');
   assert.equal(initialSnapshotProbe.status(),200,'local canonical runtime snapshot must be available');
