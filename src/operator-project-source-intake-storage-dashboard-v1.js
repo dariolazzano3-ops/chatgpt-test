@@ -7,7 +7,7 @@ import {
   intakeWebsiteSource,
   buildWorkspacePacksAndReadiness
 } from './project-source-workspace-intake-v1.js';
-import { deleteProjectSource, updateProjectSourceWebsiteUsage, effectiveProjectWebsiteUsage } from './project-source-intake-v1.js';
+import { deleteProjectSource, updateProjectSourceWebsiteUsage, effectiveProjectWebsiteUsage, PROJECT_IMAGE_PURPOSES } from './project-source-intake-v1.js';
 import { buildProjectSourceIntakeWorkspaceSections } from './operator-project-source-intake-workspace-v1.js';
 import {
   createProjectSourceStorageClient,
@@ -101,6 +101,11 @@ function workspacePayload(read = {}) {
       direct_browser_storage_access: false,
       binary_in_runtime_json: false,
       max_files_per_request: PROJECT_SOURCE_UPLOAD_LIMITS.max_files_per_request,
+      max_total_bytes: PROJECT_SOURCE_UPLOAD_LIMITS.max_total_bytes,
+      max_file_bytes: PROJECT_SOURCE_UPLOAD_LIMITS.max_file_bytes,
+      max_image_bytes: PROJECT_SOURCE_UPLOAD_LIMITS.max_image_bytes,
+      max_text_bytes: PROJECT_SOURCE_UPLOAD_LIMITS.max_text_bytes,
+      image_purposes: PROJECT_IMAGE_PURPOSES,
       allowed_mime_types: PROJECT_SOURCE_STORAGE_MIME_TYPES
     },
     variable_cost_eur: 0,
@@ -144,6 +149,8 @@ async function handleUpload(request, env, service, options = {}) {
 
   const rights = rightsValue(form.get('rights_status'));
   const usageRole = clean(form.get('usage_role'), 120) || 'PROJECT_VISUAL';
+  const imagePurpose = clean(form.get('image_purpose'), 80).toUpperCase() || 'VISUAL_USAGE';
+  if (!PROJECT_IMAGE_PURPOSES.includes(imagePurpose)) return json({ error: 'PROJECT_IMAGE_PURPOSE_INVALID', allowed: PROJECT_IMAGE_PURPOSES, production_deploy: false }, 400);
   let storage;
   try { storage = storageClient(env, options); } catch { return json({ error: 'PROJECT_SOURCE_STORAGE_NOT_CONFIGURED', secret_exposed: false, production_deploy: false }, 503); }
   const uploaded = await storage.uploadMany(files, read.body.identity);
@@ -170,7 +177,7 @@ async function handleUpload(request, env, service, options = {}) {
       usage_attestation: { source: 'operator_upload', rights_status: rights, scope_key: read.body.identity.scope_key }
     };
     const integrated = item.kind === 'image'
-      ? intakeImageSource(state, { ...common, asset_id: `asset_${item.source_id}`, rights_status: rights, usage_role: usageRole, publishable: PUBLISHABLE_RIGHTS.has(rights) })
+      ? intakeImageSource(state, { ...common, asset_id: `asset_${item.source_id}`, rights_status: rights, usage_role: usageRole, image_purpose: imagePurpose, publishable: PUBLISHABLE_RIGHTS.has(rights) })
       : intakeFileSource(state, { ...common, extracted_text: extractedText });
     if (!integrated.ok) {
       await rollback(storage, uploaded.items, read.body.identity);
@@ -211,6 +218,7 @@ async function handleUpload(request, env, service, options = {}) {
     binary_data_in_runtime_json: false,
     multi_upload: files.length > 1,
     bulk_rights_status: rights,
+    image_purpose: imagePurpose,
     mobile_compatible_multipart: true,
     variable_cost_eur: 0,
     paid_provider_calls: 0,
