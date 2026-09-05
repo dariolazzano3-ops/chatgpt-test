@@ -54,6 +54,8 @@ export function factoryIntegrationBridgeManifest() {
     capability_matrix: ENGINE_CAPABILITIES,
     supports_supervised_real_integrations: true,
     capability_normalization_source: 'src/capability-router.js',
+    canonical_execution_contract_source: 'src/orchestration-state.js#buildTaskExecutionContract',
+    shared_execution_envelope_source: 'src/execution-adapters.js#buildAdapterDispatchEnvelope',
     hard_provider_eligibility_supported: true,
     production_deploy: false
   };
