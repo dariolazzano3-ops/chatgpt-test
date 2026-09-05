@@ -214,13 +214,62 @@ export function runOperatorSyntheticMission(runtime = {}, input = {}, expectedRe
   return { ok: true, runtime: next, changed: true, run, production_deploy: false };
 }
 
+export function recordOperatorRuntimeProjectWriteback(runtime = {}, project = {}, delivery = {}, expectedRevision, options = {}) {
+  if (!validRuntime(runtime)) return { ok: false, error: 'VALID_OPERATOR_RUNTIME_REQUIRED', production_deploy: false };
+  const revision = checkRevision(runtime, expectedRevision);
+  if (!revision.ok) return revision;
+  const scope = clean(project.scope_key || delivery?.project?.scope_key, 260);
+  if (!scope) return { ok: false, error: 'PROJECT_SCOPE_REQUIRED', production_deploy: false };
+  const currentProject = projectByScope(runtime, scope);
+  if (!currentProject) return { ok: false, error: 'OPERATOR_RUNTIME_PROJECT_NOT_FOUND', scope_key: scope, production_deploy: false };
+  if (project.customer_id !== currentProject.customer_id || project.project_id !== currentProject.project_id || project.scope_key !== currentProject.scope_key) {
+    return { ok: false, error: 'OPERATOR_RUNTIME_PROJECT_WRITEBACK_SCOPE_MISMATCH', scope_key: scope, production_deploy: false };
+  }
+  const before = JSON.stringify(currentProject);
+  const after = JSON.stringify(project);
+  if (before === after) {
+    return {
+      ok: true,
+      runtime: clone(runtime),
+      project: clone(currentProject),
+      changed: false,
+      duplicate: true,
+      runtime_revision_before: runtime.revision,
+      runtime_revision_after: runtime.revision,
+      production_deploy: false
+    };
+  }
+  const next = advanceRuntime(runtime, {
+    event: 'PROJECT_DELIVERY_STATE_WRITTEN_BACK',
+    scope_key: scope,
+    mission_id: delivery.mission_id || null
+  }, options.at);
+  next.command_center_state = clone(runtime.command_center_state);
+  next.command_center_state.portfolio = clone(runtime.command_center_state.portfolio || {});
+  next.command_center_state.portfolio.projects = (runtime.command_center_state.portfolio?.projects || []).map((item) =>
+    item.scope_key === scope ? clone(project) : clone(item)
+  );
+  if (next.selected_project_scope === scope) next.selected_project_scope = scope;
+  return {
+    ok: true,
+    runtime: next,
+    project: clone(project),
+    changed: true,
+    duplicate: false,
+    runtime_revision_before: runtime.revision,
+    runtime_revision_after: next.revision,
+    delivery_ref: delivery.delivery_id || delivery.id || null,
+    production_deploy: false
+  };
+}
+
 export function operatorRuntimeManifest() {
   return {
     schema: 'riosystems.operator-runtime.v1',
     mode: 'single_operator_stateful_control_runtime',
     state_revision_guard: 'compare_and_swap_required_for_mutations',
     consumes: ['operator-control-plane-v1','operator-dashboard-v1','command-center','universal-mission-run-v1'],
-    local_mutations: ['select_project','record_command_center_state','record_synthetic_universal_mission'],
+    local_mutations: ['select_project','record_command_center_state','record_synthetic_universal_mission','record_project_delivery_writeback'],
     automatic_dispatch: false,
     external_writes: false,
     automatic_paid_overflow: false,
