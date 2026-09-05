@@ -53,6 +53,10 @@ const fp=fpResult.fingerprint;
 assert.equal(fp.anchor_domain,'gelato-donatello.de');
 assert.ok(fp.normalized_phones.length>=2);
 assert.ok(fp.legal_entities.some((v)=>/UG/i.test(v)));
+assert.ok(fp.vat_ids.includes('DE 306 726 779'));
+const anchorEvidenceCheck=extractBusinessEvidenceFromImport(anchorImport,{source_url:'https://gelato-donatello.de/',business_name:'Gelato Donatello',fetched_at:at});
+assert.ok(anchorEvidenceCheck.opening_hours.includes('Täglich von 12.00 bis 22.00 (von März bis Oktober)'));
+
 
 const listingEvidence=extractBusinessEvidenceFromImport({
   source_url:'https://directory.example/gelato',
