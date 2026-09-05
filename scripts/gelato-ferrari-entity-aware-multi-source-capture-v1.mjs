@@ -143,7 +143,7 @@ for(const candidate of candidates){
   providerRuns+=1;
   const imported=await importProjectWebsiteSource({
     source_url:candidate.url,
-    max_pages:4,
+    max_pages:1,
     max_depth:1,
     discover_sitemap:false
   });
@@ -163,6 +163,7 @@ for(const candidate of candidates){
     source_url:imported.canonical_source_url||candidate.url,
     business_name_candidates:candidate.business_name_candidates,
     domain_candidates:candidate.declared_domains,
+    entity_focus:true,
     social_links:candidate.social_links,
     fetched_at:fetchedAt,
     visible_updated_at:candidate.visible_updated_at
