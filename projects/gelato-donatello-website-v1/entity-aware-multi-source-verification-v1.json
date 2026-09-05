@@ -5,41 +5,806 @@
     "project_id": "gelato-donatello-website-v1",
     "scope_key": "gelato-donatello:gelato-donatello-website-v1"
   },
-  "generated_at": null,
-  "primary_anchor": null,
+  "generated_at": "2026-09-05T10:26:30.075Z",
+  "primary_anchor": {
+    "source_url": "https://gelato-donatello.de/",
+    "robots_status": "RESPECTED",
+    "pages_analyzed": 3,
+    "fingerprint": {
+      "schema": "aurentara.business-entity-fingerprint.v1",
+      "project_id": "gelato-donatello-website-v1",
+      "scope_key": "gelato-donatello:gelato-donatello-website-v1",
+      "anchor_source_url": "https://gelato-donatello.de/",
+      "anchor_domain": "gelato-donatello.de",
+      "business_names": [
+        "Gelato Donatello"
+      ],
+      "city_region": [
+        "Köllerbach",
+        "Püttlingen",
+        "Saarbrücken"
+      ],
+      "addresses": [
+        "Hauptstraße 4, 66346 Köllerbach",
+        "Hauptstraße 4, 66346 Püttlingen"
+      ],
+      "address_cores": [
+        "hauptstrasse kollerbach|4|66346",
+        "hauptstrasse puttlingen|4|66346"
+      ],
+      "phones": [
+        "06806 9394980",
+        "+49 176 200 150 65"
+      ],
+      "normalized_phones": [
+        "068069394980",
+        "017620015065"
+      ],
+      "emails": [
+        "fabrizio.lazzano@freenet.de"
+      ],
+      "normalized_emails": [
+        "fabrizio.lazzano@freenet.de"
+      ],
+      "legal_entities": [
+        "Gelato Donatello UG (haftungsbeschränkt)"
+      ],
+      "responsible_people": [
+        "Fabrizio Lazzano"
+      ],
+      "vat_ids": [
+        "DE 306 726 779"
+      ],
+      "social_links": [],
+      "brand_signals": [
+        "Gelato Donatello"
+      ],
+      "generated_at": "2026-09-05T10:26:30.075Z",
+      "global_entity_database_created": false
+    }
+  },
   "discovery": {
     "anchor_linked_candidates": [],
-    "research_candidates": [],
-    "sources_discovered": 0,
-    "sources_accepted": 0,
-    "sources_rejected": 0,
-    "results": []
+    "research_candidates": [
+      {
+        "url": "https://openregister.de/company/DE-HRB-V1109-103261",
+        "source_role": "OFFICIAL_BUSINESS_REGISTER",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "OpenRegister Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ]
+      },
+      {
+        "url": "https://www.companyhouse.de/Gelato-Donatello-GmbH-Puettlingen",
+        "source_role": "OFFICIAL_BUSINESS_REGISTER",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "CompanyHouse Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "visible_updated_at": "2025-11-04T00:00:00.000Z"
+      },
+      {
+        "url": "https://www.11880.com/branchenbuch/puettlingen/070941287B112915352/gelato-donatello-gmbh.html",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "11880 Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "visible_updated_at": "2026-08-12T00:00:00.000Z"
+      },
+      {
+        "url": "https://branchenbuch.meinestadt.de/puettlingen/company/15122700",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "meinestadt Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ]
+      },
+      {
+        "url": "https://www.dnb.com/business-directory/company-profiles.gelato_donatello_gmbh.8e01e73eb43737ffb365ac9b5169991b.html",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "D&B Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ]
+      },
+      {
+        "url": "https://www.viaductus.de/firma/DE-V1109-HRB-103261-gelato-donatello-gmbh-puettlingen",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Viaductus Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ]
+      },
+      {
+        "url": "https://restaurantguru.com/Gelato-Donatello-GmbH-Puttlingen",
+        "source_role": "THIRD_PARTY_DIRECTORY",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Restaurant Guru Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "social_links": [
+          "https://www.instagram.com/gelatodonatello/"
+        ],
+        "visible_updated_at": "2025-12-27T00:00:00.000Z"
+      },
+      {
+        "url": "https://www.regional.de/Saarland/Eiscafe-in-Voelklingen.htm",
+        "source_role": "THIRD_PARTY_DIRECTORY",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Regional Saarland listing",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ]
+      },
+      {
+        "url": "https://www.instagram.com/gelatodonatello/",
+        "source_role": "SECONDARY_WEB_SOURCE",
+        "discovery_method": "INDIRECT_SOCIAL_HANDLE_FROM_BUSINESS_LISTING",
+        "display_name": "Instagram @gelatodonatello",
+        "business_name_candidates": [
+          "Gelato Donatello"
+        ]
+      }
+    ],
+    "sources_discovered": 9,
+    "sources_accepted": 3,
+    "sources_rejected": 6,
+    "results": [
+      {
+        "url": "https://openregister.de/company/DE-HRB-V1109-103261",
+        "source_role": "OFFICIAL_BUSINESS_REGISTER",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "OpenRegister Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "HTTP_403",
+        "robots_status": null,
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      },
+      {
+        "url": "https://www.companyhouse.de/Gelato-Donatello-GmbH-Puettlingen",
+        "source_role": "OFFICIAL_BUSINESS_REGISTER",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "CompanyHouse Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "visible_updated_at": "2025-11-04T00:00:00.000Z",
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "HTTP_403",
+        "robots_status": null,
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      },
+      {
+        "url": "https://www.11880.com/branchenbuch/puettlingen/070941287B112915352/gelato-donatello-gmbh.html",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "11880 Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "visible_updated_at": "2026-08-12T00:00:00.000Z",
+        "fetch_status": "FETCHED",
+        "robots_status": "RESPECTED",
+        "pages_analyzed": 1,
+        "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+        "entity_match_score": 0.74,
+        "matched_signals": {
+          "business_name": true,
+          "same_domain": true,
+          "phone": true,
+          "email": false,
+          "address": false,
+          "city_region": true,
+          "legal_entity": false,
+          "responsible_person": false,
+          "vat_id": false,
+          "official_social_link": false,
+          "brand_identity": false
+        },
+        "accepted": true,
+        "project_source_id": "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+        "facts_ingested": 4,
+        "evidence": {
+          "business_name": "Gelato Donatello GmbH",
+          "phones": [
+            "06806) 9394980",
+            "06806 9394980"
+          ],
+          "emails": [],
+          "addresses": [
+            "Hauptstr. 4, 66346 Püttlingen"
+          ],
+          "opening_hours": [],
+          "legal_entities": [
+            "Gelato Donatello GmbH"
+          ],
+          "responsible_people": [],
+          "vat_ids": [],
+          "social_links": [],
+          "products_services": [],
+          "conversion_signals": [],
+          "fetched_at": "2026-09-05T10:26:30.075Z",
+          "visible_updated_at": "2026-08-12T00:00:00.000Z"
+        }
+      },
+      {
+        "url": "https://branchenbuch.meinestadt.de/puettlingen/company/15122700",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "meinestadt Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "fetch_status": "FETCHED",
+        "robots_status": "RESPECTED",
+        "pages_analyzed": 1,
+        "entity_match_state": "ENTITY_MATCH_HIGH_CONFIDENCE",
+        "entity_match_score": 0.46,
+        "matched_signals": {
+          "business_name": true,
+          "same_domain": false,
+          "phone": true,
+          "email": false,
+          "address": false,
+          "city_region": true,
+          "legal_entity": false,
+          "responsible_person": false,
+          "vat_id": false,
+          "official_social_link": false,
+          "brand_identity": false
+        },
+        "accepted": true,
+        "project_source_id": "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+        "facts_ingested": 3,
+        "evidence": {
+          "business_name": "Gelato Donatello GmbH",
+          "phones": [
+            "06806 9394980"
+          ],
+          "emails": [],
+          "addresses": [
+            "Hauptstr. 4, 66346 Püttlingen"
+          ],
+          "opening_hours": [],
+          "legal_entities": [
+            "Gelato Donatello GmbH"
+          ],
+          "responsible_people": [],
+          "vat_ids": [],
+          "social_links": [],
+          "products_services": [],
+          "conversion_signals": [],
+          "fetched_at": "2026-09-05T10:26:30.075Z",
+          "visible_updated_at": null
+        }
+      },
+      {
+        "url": "https://www.dnb.com/business-directory/company-profiles.gelato_donatello_gmbh.8e01e73eb43737ffb365ac9b5169991b.html",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "D&B Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "HTTP_403",
+        "robots_status": null,
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      },
+      {
+        "url": "https://www.viaductus.de/firma/DE-V1109-HRB-103261-gelato-donatello-gmbh-puettlingen",
+        "source_role": "REPUTABLE_BUSINESS_LISTING",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Viaductus Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "HTTP_410",
+        "robots_status": null,
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      },
+      {
+        "url": "https://restaurantguru.com/Gelato-Donatello-GmbH-Puttlingen",
+        "source_role": "THIRD_PARTY_DIRECTORY",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Restaurant Guru Gelato Donatello GmbH",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "social_links": [
+          "https://www.instagram.com/gelatodonatello/"
+        ],
+        "visible_updated_at": "2025-12-27T00:00:00.000Z",
+        "fetch_status": "FETCHED",
+        "robots_status": "RESPECTED",
+        "pages_analyzed": 1,
+        "entity_match_state": "ENTITY_MATCH_CONFIRMED",
+        "entity_match_score": 0.74,
+        "matched_signals": {
+          "business_name": true,
+          "same_domain": true,
+          "phone": true,
+          "email": false,
+          "address": false,
+          "city_region": true,
+          "legal_entity": false,
+          "responsible_person": false,
+          "vat_id": false,
+          "official_social_link": false,
+          "brand_identity": false
+        },
+        "accepted": true,
+        "project_source_id": "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen",
+        "facts_ingested": 4,
+        "evidence": {
+          "business_name": "Gelato Donatello GmbH",
+          "phones": [
+            "+49 6806 9394980"
+          ],
+          "emails": [],
+          "addresses": [],
+          "opening_hours": [
+            "Opening hours Sunday Sun 12PM-9:30PM Monday Mon 1PM-9:30PM Tuesday Tue 1PM-9:30PM Wednesday Wed 1PM-9:30PM Thursday Thu 1PM-9:30PM Friday Fri 1PM-9:30PM Saturday Sat 1PM-9:3"
+          ],
+          "legal_entities": [
+            "Gelato Donatello GmbH"
+          ],
+          "responsible_people": [],
+          "vat_ids": [],
+          "social_links": [
+            "https://www.instagram.com/gelatodonatello/"
+          ],
+          "products_services": [],
+          "conversion_signals": [],
+          "fetched_at": "2026-09-05T10:26:30.075Z",
+          "visible_updated_at": "2025-12-27T00:00:00.000Z"
+        }
+      },
+      {
+        "url": "https://www.regional.de/Saarland/Eiscafe-in-Voelklingen.htm",
+        "source_role": "THIRD_PARTY_DIRECTORY",
+        "discovery_method": "PUBLIC_SEARCH_RESULT",
+        "display_name": "Regional Saarland listing",
+        "business_name_candidates": [
+          "Gelato Donatello GmbH"
+        ],
+        "declared_domains": [
+          "gelato-donatello.de"
+        ],
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "ROBOTS_HTTP_403",
+        "robots_status": "BLOCKED",
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      },
+      {
+        "url": "https://www.instagram.com/gelatodonatello/",
+        "source_role": "SECONDARY_WEB_SOURCE",
+        "discovery_method": "INDIRECT_SOCIAL_HANDLE_FROM_BUSINESS_LISTING",
+        "display_name": "Instagram @gelatodonatello",
+        "business_name_candidates": [
+          "Gelato Donatello"
+        ],
+        "fetch_status": "REJECTED_BY_EXISTING_IMPORT_GUARDS",
+        "fetch_error": "ROBOTS_DISALLOWS_IMPORT",
+        "robots_status": "RESPECTED",
+        "entity_match_state": "NOT_EVALUATED_FETCH_BLOCKED",
+        "accepted": false
+      }
+    ]
   },
   "fact_corroboration": {
-    "summaries": [],
-    "facts_extracted": 0,
-    "facts_corroborated": 0,
-    "conflicts_found": 0,
+    "summaries": [
+      {
+        "field_path": "business.phone",
+        "classification": "CONFLICT",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "06806 9394980",
+            "independent_source_count": 4,
+            "supporting_source_ids": [
+              "primary-anchor-website",
+              "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+              "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+              "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen"
+            ],
+            "weighted_support": 251.2,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          },
+          {
+            "value": "+49 176 200 150 65",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": true,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "business.email",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "fabrizio.lazzano@freenet.de",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "business.address",
+        "classification": "CONFLICT",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "Hauptstraße 4, 66346 Köllerbach",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          },
+          {
+            "value": "Hauptstraße 4, 66346 Püttlingen",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          },
+          {
+            "value": "Hauptstr. 4, 66346 Püttlingen",
+            "independent_source_count": 2,
+            "supporting_source_ids": [
+              "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+              "public-branchenbuch-meinestadt-de-puettlingen-company-15122700"
+            ],
+            "weighted_support": 128,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": true,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "business.opening_hours",
+        "classification": "CONFLICT",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          },
+          {
+            "value": "Opening hours Sunday Sun 12PM-9:30PM Monday Mon 1PM-9:30PM Tuesday Tue 1PM-9:30PM Wednesday Wed 1PM-9:30PM Thursday Thu 1PM-9:30PM Friday Fri 1PM-9:30PM Saturday Sat 1PM-9:3",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen"
+            ],
+            "weighted_support": 31.2,
+            "freshness": {
+              "timestamp": "2025-12-27T00:00:00.000Z",
+              "age_days": 252.4,
+              "time_sensitive": true,
+              "state": "AGING",
+              "score": 0.65
+            }
+          }
+        ],
+        "conflict": true,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "legal.entity",
+        "classification": "CONFLICT",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "Gelato Donatello UG (haftungsbeschränkt)",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          },
+          {
+            "value": "Gelato Donatello GmbH",
+            "independent_source_count": 3,
+            "supporting_source_ids": [
+              "public-www-11880-com-branchenbuch-puettlingen-070941287b112915352-gelato-donatello-gmbh-html",
+              "public-branchenbuch-meinestadt-de-puettlingen-company-15122700",
+              "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen"
+            ],
+            "weighted_support": 159.2,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": true,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "legal.responsible_person",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "Fabrizio Lazzano",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "legal.vat_id",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": "DE 306 726 779",
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": true,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "business.product_observations",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": [
+              "Toggle navigation Home",
+              "Unsere Geschichte",
+              "Unsere Eissorten",
+              "Kontakt",
+              "Home",
+              "Unsere Story",
+              "Adresse Hauptstraße 4, 66346 Köllerbach",
+              "Telefonnummer 06806 9394980",
+              "Öffnungszeiten Täglich von 12.00 bis 22.00 (von März bis Oktober)",
+              "Impressum",
+              "Datenschutzerklärung"
+            ],
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": false,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "website.observed_conversion_signals",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": [
+              "Kontakt"
+            ],
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "primary-anchor-website"
+            ],
+            "weighted_support": 92,
+            "freshness": {
+              "timestamp": "2026-09-05T10:26:30.075Z",
+              "age_days": 0,
+              "time_sensitive": false,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      },
+      {
+        "field_path": "social.links",
+        "classification": "HIGH_CONFIDENCE_CANDIDATE",
+        "authoritative_fact_count": 0,
+        "candidate_groups": [
+          {
+            "value": [
+              "https://www.instagram.com/gelatodonatello/"
+            ],
+            "independent_source_count": 1,
+            "supporting_source_ids": [
+              "public-restaurantguru-com-gelato-donatello-gmbh-puttlingen"
+            ],
+            "weighted_support": 48,
+            "freshness": {
+              "timestamp": "2025-12-27T00:00:00.000Z",
+              "age_days": 252.4,
+              "time_sensitive": false,
+              "state": "FRESH",
+              "score": 1
+            }
+          }
+        ],
+        "conflict": 0,
+        "majority_vote_used": false
+      }
+    ],
+    "facts_extracted": 17,
+    "facts_corroborated": 3,
+    "conflicts_found": 4,
     "conflicts_resolved_automatically": 0,
     "majority_vote_used": false,
     "automatic_customer_confirmation": false
   },
+  "project_state_projection": {
+    "source_count": 4,
+    "fact_count": 17,
+    "scope_key": "gelato-donatello:gelato-donatello-website-v1",
+    "foreign_scope_mutations": 0
+  },
   "efficiency": {
     "anchor_sources": 1,
-    "sources_discovered": 0,
-    "sources_accepted": 0,
-    "sources_rejected": 0,
-    "facts_extracted": 0,
-    "facts_corroborated": 0,
-    "conflicts_found": 0,
+    "sources_discovered": 9,
+    "sources_accepted": 3,
+    "sources_rejected": 6,
+    "facts_extracted": 17,
+    "facts_corroborated": 3,
+    "conflicts_found": 4,
     "conflicts_resolved_automatically": 0,
     "human_questions_before": 7,
     "human_questions_after": 7,
-    "human_copy_paste_avoided": 0,
+    "human_copy_paste_avoided": 7,
     "operator_touches": 0,
     "active_operator_minutes": 0,
-    "fetch_errors": 0,
-    "provider_runs": 0,
+    "fetch_errors": 6,
+    "provider_runs": 9,
     "variable_cost_eur": 0
   },
   "safety": {
@@ -55,5 +820,22 @@
     "billing": false,
     "paid_overflow": false,
     "paid_provider_calls": 0
+  },
+  "human_question_reevaluation": {
+    "before": 7,
+    "after": 7,
+    "automatically_closed": 0,
+    "human_only": [
+      "TARGET_CUSTOMERS",
+      "PRIMARY_CONVERSION",
+      "FINAL_ASSET_QUALITY_APPROVAL",
+      "FINAL_HUMAN_QUALITY_APPROVAL"
+    ],
+    "conflicts": [
+      "CONTACT_DETAILS",
+      "OPENING_HOURS",
+      "LEGAL_CURRENTNESS"
+    ],
+    "corroborated_but_confirmation_required": []
   }
 }
