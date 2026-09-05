@@ -13,7 +13,7 @@ export function listExecutionAdapters() { return Object.values(ADAPTERS).map((ad
 export function canonicalProviderExecutorDescriptor(providerId) {
   switch (clean(providerId, 120)) {
     case 'riosystems-native-web':
-      return { provider_id: 'riosystems-native-web', executor_id: 'web-factory-native-v1', accepted_capabilities: ['web.build'], environment: 'staging', external_write: true, cost_behavior: 'zero_variable_cost_expected', approval_requirements: ['supervised_execution','external_write_if_materialized'], retry_policy: 'bounded_by_mission_max_attempts', production_eligible: false };
+      return { provider_id: 'riosystems-native-web', executor_id: 'web-factory-native-v1', accepted_capabilities: ['web.build'], environment: 'staging', external_write: false, internal_project_artifact: true, cost_behavior: 'zero_variable_cost_expected', approval_requirements: ['supervised_execution'], retry_policy: 'bounded_by_mission_max_attempts', production_eligible: false };
     case 'cloudflare-workers-free':
       return { provider_id: 'cloudflare-workers-free', executor_id: 'cloudflare-staging-preview-v1', accepted_capabilities: ['web.deploy'], environment: 'staging', external_write: true, cost_behavior: 'free_tier_hard_fail', approval_requirements: ['supervised_execution','external_write'], retry_policy: 'no_automatic_paid_overflow', production_eligible: false };
     case 'openai-api':
@@ -99,6 +99,10 @@ export async function executeCanonicalProviderRoute(envelope = {}, runtime = {})
   } catch (error) {
     return { ok: false, error: 'PROVIDER_EXECUTOR_THROWN', provider_id: plannedProvider, message: clean(error?.message, 300) || null };
   }
+  if (raw?.production_deploy === true) return { ok: false, error: 'PRODUCTION_SIDE_EFFECT_REJECTED', provider_id: plannedProvider };
+  if (raw?.external_side_effect_performed === true && envelope.write_policy === 'NO_EXTERNAL_WRITES') {
+    return { ok: false, error: 'PROVIDER_EXTERNAL_WRITE_POLICY_VIOLATED', provider_id: plannedProvider, write_policy: envelope.write_policy };
+  }
   const status = raw?.status === 'FAILED' || raw?.ok === false ? 'FAILED' : 'COMPLETED';
   const adapterResult = status === 'COMPLETED'
     ? {
@@ -134,6 +138,9 @@ export async function executeCanonicalProviderRoute(envelope = {}, runtime = {})
       executor_id: validated.result.executor_id
     },
     raw_result: raw ?? null,
+    actual_cost_eur: Number.isFinite(Number(raw?.actual_cost_eur)) ? Number(raw.actual_cost_eur) : null,
+    provider_call_count: Number.isFinite(Number(raw?.provider_call_count)) ? Number(raw.provider_call_count) : null,
+    external_write_state: clean(raw?.external_write_state, 120) || null,
     production_deploy: false
   };
 }
