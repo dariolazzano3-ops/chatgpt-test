@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   createProjectSourceIntakeState,
   createContentPack,
-  updateProjectImagePurpose
+  updateProjectImagePurpose,
+  reviewProjectFact
 } from '../src/project-source-intake-v1.js';
 import { intakeImageSource } from '../src/project-source-workspace-intake-v1.js';
 import {
@@ -154,8 +155,20 @@ assert.equal(extracted.paid_provider_calls, 0);
 assert.equal(storageReads, 1);
 assert.equal(visionCalls, 1);
 
-// INFORMATION_EXTRACTION makes image-derived facts content-eligible.
+// Extracted image facts stay unavailable until a human confirms them.
 let pack = createContentPack(state, { at: '2026-09-05T21:23:00.000Z' });
+assert.equal(pack.ok, true);
+assert.equal(pack.pack.fact_refs.some((ref) => ref.fact_id === priceFact.fact_id), false);
+
+const confirmed = reviewProjectFact(state, priceFact.fact_id, {
+  verification_status: 'OPERATOR_CONFIRMED',
+  verified_by: identity.operator_id
+}, { at: '2026-09-05T21:23:30.000Z' });
+assert.equal(confirmed.ok, true);
+state = confirmed.state;
+
+// INFORMATION_EXTRACTION makes the human-confirmed image fact content-eligible.
+pack = createContentPack(state, { at: '2026-09-05T21:23:31.000Z' });
 assert.equal(pack.ok, true);
 assert.equal(pack.pack.fact_refs.some((ref) => ref.fact_id === priceFact.fact_id), true);
 
