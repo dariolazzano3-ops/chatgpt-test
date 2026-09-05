@@ -160,7 +160,8 @@
           "allow_other": true,
           "materialize_candidates": true,
           "candidate_origin": "EXTRACTED",
-          "critical": true
+          "critical": true,
+          "collapse_single": true
         },
         {
           "id": "address",
