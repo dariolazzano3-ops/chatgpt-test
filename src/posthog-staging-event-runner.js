@@ -44,6 +44,7 @@ export async function sendPostHogStagingBatchOnce(plan = {}, runtime = {}) {
   } finally { clearTimeout(timer); }
   if (!response?.ok) return { ok: false, error: 'POSTHOG_STAGING_BATCH_REJECTED', status: Number(response?.status) || null, requests_attempted: 1, external_side_effect_performed: true, production_deploy: false };
   return { ok: true, schema: 'riosystems.posthog-staging-batch-result.v1', stage: 'POSTHOG_SYNTHETIC_STAGING_BATCH_ACCEPTED',
+    actual_provider: 'posthog-free', executor_id: 'posthog-staging-runner-v1',
     status: Number(response.status) || null, scope_key: plan.scope_key, flow_id: plan.flow_id,
     events_sent: plan.events.map((event) => event.event), event_count: plan.events.length, requests_attempted: 1,
     retries_performed: 0, project_token_returned: false, person_profiles_created: false, geoip_enrichment_disabled_per_event: true,
