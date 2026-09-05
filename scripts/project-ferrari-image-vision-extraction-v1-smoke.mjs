@@ -86,13 +86,21 @@ const fetchImpl = async (url, init = {}) => {
       facts: [
         {
           field_path: 'business.pricing',
-          value: 'Kugel Eis 1,60 €; Sahne 1,20 €; Soße 1,00 €',
-          confidence: 0.99
+          item_key: 'kugel_eis',
+          label: 'Kugel Eis',
+          value: '1,60 €',
+          confidence: 0.99,
+          category_confidence: 0.99,
+          evidence_excerpt: 'Kugel Eis 1,60 €'
         },
         {
           field_path: 'business.products',
-          value: 'Vanille; Schokolade; Stracciatella; Pistazie',
-          confidence: 0.97
+          item_key: 'pistazie',
+          label: 'Pistazie',
+          value: 'Pistazie',
+          confidence: 0.97,
+          category_confidence: 0.98,
+          evidence_excerpt: 'Pistazie'
         }
       ]
     }),
@@ -130,14 +138,18 @@ assert.equal(storageReads, 1);
 assert.equal(visionCalls, 1);
 
 state = extracted.state;
-const priceFact = state.facts.find((fact) => fact.field_path === 'business.pricing');
-const productFact = state.facts.find((fact) => fact.field_path === 'business.products');
+const priceFact = state.facts.find((fact) => fact.field_path === 'business.pricing.item.kugel_eis');
+const productFact = state.facts.find((fact) => fact.field_path === 'business.products.item.pistazie');
 assert.ok(priceFact);
 assert.ok(productFact);
 assert.equal(priceFact.verification_status, 'UNVERIFIED');
 assert.deepEqual(priceFact.source_refs, ['src-menu-photo']);
 assert.equal(priceFact.evidence_classification, 'IMAGE_VISION');
 assert.equal(priceFact.provenance[0].extraction_method, 'OPENAI_VISION');
+assert.equal(priceFact.provenance[0].semantic_field_path, 'business.pricing');
+assert.equal(priceFact.provenance[0].item_key, 'kugel_eis');
+assert.equal(priceFact.provenance[0].category_confidence, 0.99);
+assert.match(priceFact.provenance[0].evidence_excerpt, /Kugel Eis/);
 assert.equal(priceFact.provenance[0].source_content_hash, 'sha256:menu-v1');
 assert.equal(priceFact.provenance[0].model, 'gpt-5.6-luna');
 
@@ -199,6 +211,8 @@ const manifest = projectImageVisionExtractionManifest();
 assert.equal(manifest.existing_openai_provider_reused, true);
 assert.equal(manifest.existing_private_project_storage_reused, true);
 assert.equal(manifest.extracted_fact_state, 'UNVERIFIED');
+assert.equal(manifest.atomic_claims, true);
+assert.equal(manifest.category_confidence_recorded, true);
 assert.equal(manifest.human_review_required, true);
 assert.equal(manifest.automatic_on_upload, false);
 assert.equal(manifest.triggered_by_knowledge_prepare, true);
