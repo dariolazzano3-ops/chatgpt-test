@@ -2,6 +2,7 @@ const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const arr = (value) => Array.isArray(value) ? value : [];
 const CONFIRMED = new Set(['OPERATOR_CONFIRMED', 'CUSTOMER_CONFIRMED', 'VERIFIED']);
 const IGNORED = new Set(['REJECTED', 'OUTDATED']);
+const optionalNumber = (value) => value === null || value === undefined || value === '' ? null : (Number.isFinite(Number(value)) ? Number(value) : null);
 
 export const PROJECT_KNOWLEDGE_CATCH_NET_THRESHOLDS = Object.freeze({
   extraction_confidence: 0.80,
@@ -16,8 +17,8 @@ function provenanceFlags(state = {}, fact = {}) {
   const sources = sourceMap(state);
   const flags = new Set();
   for (const item of arr(fact.provenance)) {
-    const categoryConfidence = Number(item?.category_confidence);
-    if (Number.isFinite(categoryConfidence) && categoryConfidence < PROJECT_KNOWLEDGE_CATCH_NET_THRESHOLDS.category_confidence) {
+    const categoryConfidence = optionalNumber(item?.category_confidence);
+    if (categoryConfidence !== null && categoryConfidence < PROJECT_KNOWLEDGE_CATCH_NET_THRESHOLDS.category_confidence) {
       flags.add('CATEGORY_UNCERTAIN');
     }
     if (item?.category_mismatch === true) flags.add('CATEGORY_MISMATCH');
@@ -42,13 +43,13 @@ export function evaluateProjectFactCatchNet(state = {}, fact = {}) {
   const ignored = IGNORED.has(status);
   const flags = provenanceFlags(state, fact);
   const path = clean(fact.field_path, 320).toLowerCase();
-  const confidence = Number(fact.confidence);
+  const confidence = optionalNumber(fact.confidence);
 
   if (status === 'SOURCE_CONFLICT') flags.add('SOURCE_CONFLICT');
   if (/^(question|questions|open_question|open_questions|missing|unknown)(\.|$)/.test(path)) flags.add('OPEN_QUESTION');
   if (/^(other|misc|unknown)(\.|$)/.test(path)) flags.add('UNCATEGORIZED');
   if (clean(fact.origin, 80).toUpperCase() === 'EXTRACTED'
-      && Number.isFinite(confidence)
+      && confidence !== null
       && confidence < PROJECT_KNOWLEDGE_CATCH_NET_THRESHOLDS.extraction_confidence) {
     flags.add('LOW_CONFIDENCE');
   }
@@ -62,7 +63,7 @@ export function evaluateProjectFactCatchNet(state = {}, fact = {}) {
     fact_id: fact.fact_id || null,
     field_path: fact.field_path || null,
     verification_status: status || null,
-    confidence: Number.isFinite(confidence) ? confidence : null,
+    confidence,
     flags: reviewFlags,
     blocking,
     resolved_by_human: confirmed,
