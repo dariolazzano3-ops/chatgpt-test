@@ -70,6 +70,39 @@ const listingEvidence=extractBusinessEvidenceFromImport({
   business_facts:{phones:['06806 9394980'],emails:[]},
   conversion_inventory:{detected_ctas:['Anrufen']}
 },{source_url:'https://directory.example/gelato',fetched_at:at});
+const focusedListingEvidence=extractBusinessEvidenceFromImport({
+  source_url:'https://directory.example/gelato',
+  canonical_source_url:'https://directory.example/gelato',
+  pages:[{
+    url:'https://directory.example/gelato',
+    title:'Gelato Donatello GmbH',
+    headings:{h1:['Gelato Donatello GmbH']},
+    visible_text:'Gelato Donatello GmbH Hauptstraße 4, 66346 Püttlingen Telefon 06806 9394980 Webseite https://gelato-donatello.de/ Öffnungszeiten Mo 13:00-21:30. Weitere Anbieter: Fremde Eisdiele Marktstr. 7, 66333 Völklingen. Hilfe Hotline 0800 8811880.',
+    contacts:{phones:['06806 9394980','0800 8811880'],emails:['help@directory.example']},
+    address_candidates:['Hauptstraße 4, 66346 Püttlingen','Marktstr. 7, 66333 Völklingen'],
+    opening_hour_candidates:['Mo 13:00-21:30'],
+    service_product_candidates:['Eiscafé'],
+    social_links:['https://www.instagram.com/directory.example/'],
+    ctas:['Anrufen'],
+    brand_signals:{og_site_name:'Directory'}
+  }],
+  business_facts:{phones:['06806 9394980','0800 8811880'],emails:['help@directory.example']},
+  extracted_candidates:{social_links:['https://www.instagram.com/directory.example/']},
+  conversion_inventory:{detected_ctas:['Anrufen']}
+},{
+  source_url:'https://directory.example/gelato',
+  business_name_candidates:['Gelato Donatello GmbH'],
+  entity_focus:true,
+  fetched_at:at
+});
+assert.deepEqual(focusedListingEvidence.phones,['06806 9394980']);
+assert.equal(focusedListingEvidence.emails.includes('help@directory.example'),false);
+assert.equal(focusedListingEvidence.addresses.some((v)=>/Völklingen/i.test(v)),false);
+assert.equal(focusedListingEvidence.social_links.length,0);
+assert.equal(focusedListingEvidence.conversion_signals.length,0);
+assert.equal(focusedListingEvidence.entity_focus_applied,true);
+assert.equal(focusedListingEvidence.entity_focus_found,true);
+
 const matchA=evaluateBusinessEntityMatch(fp,listingEvidence,{declared_domains:['gelato-donatello.de']});
 assert.ok(['ENTITY_MATCH_CONFIRMED','ENTITY_MATCH_HIGH_CONFIDENCE'].includes(matchA.state));
 assert.equal(matchA.facts_may_be_ingested,true);
