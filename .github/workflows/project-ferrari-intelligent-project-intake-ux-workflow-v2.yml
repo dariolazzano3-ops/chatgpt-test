@@ -101,6 +101,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Intelligent Intake V2 browser acceptance
+        timeout-minutes: 3
         run: node scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs
 
       - name: Existing Source Intake Desktop and Mobile regression
