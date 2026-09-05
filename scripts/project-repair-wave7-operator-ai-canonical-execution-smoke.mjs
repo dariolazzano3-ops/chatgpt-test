@@ -25,7 +25,7 @@ const projectContext = {
   visual_pack_ref: { pack_id: 'visual-wave7', version: 1, knowledge_revision: 7 },
   readiness_ref: { readiness_id: 'ready-wave7', status: 'READY', knowledge_revision: 7 },
   fact_version_refs: [],
-  source_refs: [],
+  source_refs: ['wave7-fixture-source'],
   rights_constraints: {
     publishable_rights: ['OWNED_CONFIRMED','CUSTOMER_LICENSED','CUSTOMER_ASSERTED'],
     approved_asset_ids: [],
@@ -39,6 +39,11 @@ const projectContext = {
     'business.name': 'Wave 7 Fixture',
     'website.primary_goal': 'Qualified leads'
   },
+  content_provenance: [{
+    field_path: 'business.name',
+    source_refs: ['wave7-fixture-source'],
+    verification_status: 'OPERATOR_CONFIRMED'
+  }],
   visual_context: {},
   visual_references: [],
   website_sources: [],
