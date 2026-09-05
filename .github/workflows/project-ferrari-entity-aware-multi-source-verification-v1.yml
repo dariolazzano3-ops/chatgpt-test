@@ -1,0 +1,66 @@
+name: PROJECT FERRARI Entity-Aware Multi-Source Verification V1
+
+on:
+  push:
+    branches:
+      - factory/project-ferrari-entity-aware-multi-source-verification-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-ferrari-entity-aware-multi-source-verification-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Syntax
+        run: |
+          node --check src/project-source-intake-v1.js
+          node --check src/project-entity-aware-multi-source-verification-v1.js
+          node --check src/project-human-question-multi-source-evidence-v1.js
+          node --check src/operator-dashboard-human-input-closure-v1.js
+          node --check scripts/gelato-ferrari-entity-aware-multi-source-capture-v1.mjs
+          node --check scripts/gelato-ferrari-entity-aware-question-reevaluation-v1.mjs
+          node --check scripts/project-ferrari-entity-aware-multi-source-verification-v1-smoke.mjs
+          node --check scripts/project-ferrari-entity-aware-multi-source-browser-v1.mjs
+      - name: Entity-aware verification core acceptance
+        run: node scripts/project-ferrari-entity-aware-multi-source-verification-v1-smoke.mjs
+      - name: Live Gelato entity-aware public source capture
+        run: node scripts/gelato-ferrari-entity-aware-multi-source-capture-v1.mjs
+      - name: Existing Gelato Auto Customer Input Closure rerun
+        run: node scripts/gelato-ferrari-auto-customer-input-closure-v1.mjs
+      - name: Re-evaluate Gelato human questions
+        run: node scripts/gelato-ferrari-entity-aware-question-reevaluation-v1.mjs
+      - name: Gelato multi-source evidence acceptance
+        run: node scripts/gelato-ferrari-entity-aware-multi-source-evidence-v1-smoke.mjs
+      - name: Existing dashboard human input closure regression
+        run: node scripts/project-ferrari-dashboard-human-input-closure-v1-smoke.mjs
+      - name: Entity-aware dashboard Desktop and Mobile
+        run: node scripts/project-ferrari-entity-aware-multi-source-browser-v1.mjs
+      - name: Existing Project Source extracted facts regression
+        run: node scripts/project-source-website-extracted-facts-v1-smoke.mjs
+      - name: Existing Project Source Intake acceptance
+        run: node scripts/project-source-intake-v1-acceptance.mjs
+      - name: Existing Gelato Ferrari dogfood regression
+        run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
+      - name: Safety
+        run: |
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "DNS changed: false"
+          echo "Billing: false"
+          echo "Paid overflow: false"
+          echo "Paid provider calls: 0"
+          echo "Login bypass: false"
+          echo "Anti-bot bypass: false"
