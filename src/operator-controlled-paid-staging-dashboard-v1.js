@@ -16,7 +16,7 @@ import {
 } from './operator-controlled-paid-staging-v1.js';
 import { providerActivationInventory } from './provider-activation-inventory.js';
 import { providerActivationMatrix } from './provider-stack-v1.js';
-import { handleFactory } from './factory.js';
+import { canonicalProviderExecutorDescriptor, executeCanonicalProviderRoute } from './execution-adapters.js';
 
 const clone = (value) => structuredClone(value ?? null);
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
@@ -85,36 +85,90 @@ function providerProjection(options = {}) {
   });
 }
 
-function providerIdsFromReview(review = {}) {
-  const ids = [];
+const LEGACY_CAPABILITY_TO_EXECUTION = Object.freeze({
+  web_presence: 'web.build',
+  business_crm: 'business.crm.write',
+  automation_followup: 'automation.run',
+  ai_assistance: 'ai.generate',
+  analytics: 'business.analytics'
+});
+
+function normalizeLegacyProviderRoute(providerId, sourceCapability, role = 'primary') {
+  const rawProviderId = clean(providerId, 160);
+  const capability = LEGACY_CAPABILITY_TO_EXECUTION[clean(sourceCapability, 120)] || null;
+  if (!rawProviderId || !capability) return null;
+  if (sourceCapability === 'web_presence' && ['riosystems-native-web+cloudflare-pages-free','riosystems-native-web-local-artifact'].includes(rawProviderId)) {
+    return { provider_id: 'riosystems-native-web', source_provider_id: rawProviderId, capability: 'web.build', source_capability: 'web_presence', role };
+  }
+  return { provider_id: rawProviderId, source_provider_id: rawProviderId, capability, source_capability: clean(sourceCapability, 120), role };
+}
+
+function providerRouteRequestsFromReview(review = {}) {
+  const routes = [];
+  const seen = new Set();
   for (const task of review.plan?.selected_capabilities || []) {
-    for (const value of [task?.provider?.primary, task?.provider?.fallback]) {
-      const id = clean(value, 160);
-      if (id && !ids.includes(id)) ids.push(id);
+    for (const [role, value] of [['primary', task?.provider?.primary], ['fallback', task?.provider?.fallback]]) {
+      const route = normalizeLegacyProviderRoute(value, task?.capability, role);
+      if (!route) continue;
+      const key = `${route.provider_id}:${route.capability}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      routes.push(route);
     }
   }
-  return ids;
+  return routes;
 }
 
 function resolveProviderRoutes(project = {}, review = {}, options = {}) {
   const byId = new Map(providerProjection(options).map((provider) => [provider.id, provider]));
-  const requested = providerIdsFromReview(review);
-  const routes = requested.map((id) => {
-    const provider = byId.get(id) || { id, connection_state: 'NOT_CONNECTED', verification: 'NOT_VERIFIED', active_runtime: false, runtime_eligible: false, restrictions: [] };
-    const eligibility = controlledPaidProviderEligibility(project, provider);
+  const requested = providerRouteRequestsFromReview(review);
+  const currentRuntimeVerified = new Set(Array.isArray(options.current_runtime_verified_provider_ids) ? options.current_runtime_verified_provider_ids : []);
+  const providerExecutors = options.provider_executors && typeof options.provider_executors === 'object' ? options.provider_executors : {};
+  const genericExecutorAvailable = typeof options.live_staging_executor === 'function';
+  const requestedOutcomes = new Set(Array.isArray(options.requested_outcomes) ? options.requested_outcomes.map((value) => clean(value, 120)).filter(Boolean) : []);
+
+  const routes = requested.map((request) => {
+    const descriptor = canonicalProviderExecutorDescriptor(request.provider_id);
+    const provider = byId.get(request.provider_id) || null;
+    const internalNative = request.provider_id === 'riosystems-native-web';
+    const runtimeVerified = internalNative
+      ? currentRuntimeVerified.has(request.provider_id) || typeof providerExecutors[request.provider_id] === 'function' || genericExecutorAvailable
+      : provider?.current_runtime_verified === true;
+    const providerPolicy = internalNative
+      ? { ok: runtimeVerified, reason: runtimeVerified ? 'INTERNAL_EXECUTOR_CURRENTLY_AVAILABLE' : 'INTERNAL_EXECUTOR_NOT_CURRENTLY_VERIFIED' }
+      : controlledPaidProviderEligibility(project, provider || { id: request.provider_id });
+    const executorAvailable = typeof providerExecutors[request.provider_id] === 'function' || genericExecutorAvailable;
+    const capabilityAccepted = Boolean(descriptor?.accepted_capabilities?.includes(request.capability));
+    const eligible = providerPolicy.ok === true && runtimeVerified && executorAvailable && capabilityAccepted && Boolean(descriptor);
     return {
-      provider_id: id,
-      controlled_paid_staging_eligible: eligibility.ok === true,
-      connection_state: provider.connection_state,
-      verification: provider.verification,
-      restrictions: clone(provider.restrictions || []),
-      reason: eligibility.reason || eligibility.error || 'NOT_ELIGIBLE'
+      ...request,
+      executor_id: descriptor?.executor_id || null,
+      controlled_paid_staging_eligible: eligible,
+      connection_state: internalNative ? (runtimeVerified ? 'INTERNAL_RUNTIME_READY' : 'NOT_VERIFIED') : (provider?.connection_state || 'NOT_CONNECTED'),
+      verification: internalNative ? (runtimeVerified ? 'CURRENT_RUNTIME_VERIFIED' : 'NOT_VERIFIED') : (provider?.verification || 'NOT_VERIFIED'),
+      current_runtime_verified: runtimeVerified,
+      executor_available: executorAvailable,
+      restrictions: clone(provider?.restrictions || []),
+      reason: !descriptor ? 'PROVIDER_EXECUTOR_NOT_AVAILABLE'
+        : !capabilityAccepted ? 'PROVIDER_CAPABILITY_NOT_ACCEPTED'
+          : !executorAvailable ? 'PROVIDER_EXECUTOR_NOT_CONFIGURED'
+            : providerPolicy.reason || providerPolicy.error || (eligible ? 'EXECUTION_READY' : 'NOT_ELIGIBLE')
     };
   });
+
+  const eligibleRoutes = routes.filter((route) => route.controlled_paid_staging_eligible === true);
+  const executionRoutes = requestedOutcomes.size
+    ? eligibleRoutes.filter((route) => requestedOutcomes.has(route.source_capability))
+    : eligibleRoutes.filter((route) => route.role === 'primary');
+
   return {
     routes,
-    eligible_routes: routes.filter((route) => route.controlled_paid_staging_eligible === true),
-    paid_provider_truth_enforced_server_side: true
+    eligible_routes: eligibleRoutes,
+    execution_routes: executionRoutes,
+    target_capabilities: [...requestedOutcomes],
+    paid_provider_truth_enforced_server_side: true,
+    provider_capability_binding_enforced: true,
+    actual_executor_availability_required: true
   };
 }
 
@@ -193,7 +247,7 @@ async function controlledPreflight(service, runtime, project, body = {}, options
   const cost = serverCostPreflight(input, review);
   const projectedCost = money(cost.recommended_cost_ceiling_eur || cost.high_estimate_eur || cost.estimated_cost_eur || 0);
   const budgetGate = evaluateControlledPaidStagingBudget(project, projectedCost);
-  const providers = resolveProviderRoutes(project, review, options);
+  const providers = resolveProviderRoutes(project, review, { ...options, requested_outcomes: input.requested_outcomes });
   const binding = approvalBinding(project, review, cost, providers);
   if (!budgetGate.ok) {
     return { status: 409, body: { schema: 'aurentara.controlled-paid-staging.mission-preflight.v1', status: 'PROJECT_BUDGET_REAPPROVAL_REQUIRED', project_policy: controlledPaidStagingSnapshot(project), cost_preflight: cost, budget_gate: budgetGate, provider_routes: providers, approval_binding: binding, execution_started: false, production_deploy: false } };
@@ -213,16 +267,67 @@ async function controlledPreflight(service, runtime, project, body = {}, options
   };
 }
 
-async function defaultLiveStagingExecutor(contract = {}, request, env, ctx) {
-  const capabilityNames = (contract.selected_capabilities || []).map((item) => clean(item?.capability || item?.id || item, 120));
-  if (!capabilityNames.includes('web_presence')) return { ok: false, error: 'CONTROLLED_PAID_STAGING_EXECUTOR_ONLY_WIRED_FOR_WEB_PRESENCE', status: 'FAILED', qa: { passed: false }, variable_cost_eur: 0, real_customer_data: false, external_customer_writes: false, production_deploy: false };
-  const url = new URL(request.url); url.pathname = '/factory/generate/run'; url.search = '';
-  const factoryRequest = new Request(url.toString(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: clean(contract.mission?.mission_text, 4000), project_name: clean(contract.mission?.business_name || 'Gelato Donatello', 160), project_slug: clean(contract.project_id, 160), limits: { max_iterations: 1, api_budget_eur: money(contract.variable_cost_ceiling_eur), auto_deploy: false, require_approval_before_production: true } }) });
-  const response = await handleFactory(factoryRequest, env, ctx);
-  if (!response) return { ok: false, error: 'WEB_FACTORY_EXECUTOR_NOT_AVAILABLE', status: 'FAILED', qa: { passed: false }, variable_cost_eur: 0, production_deploy: false };
-  let result = null; try { result = await response.json(); } catch { result = null; }
-  const ok = response.ok && result?.ok === true && result?.production_deployed !== true;
-  return { ok, error: ok ? null : clean(result?.error || `WEB_FACTORY_HTTP_${response.status}`, 240), status: ok ? 'DELIVERED' : 'FAILED', qa: { passed: ok }, delivery: result, synthetic_only: false, real_customer_data: false, external_customer_writes: false, public_deploy: false, dns_change: false, billing: false, checkout: false, public_indexing: false, paid_overflow: false, variable_cost_eur: money(result?.variable_cost_eur || 0), production_deploy: false };
+async function defaultLiveStagingExecutor(contract = {}, options = {}) {
+  const routes = Array.isArray(contract.provider_routes) ? contract.provider_routes : [];
+  if (routes.length !== 1) {
+    return { ok: false, error: routes.length ? 'CONTROLLED_PAID_STAGING_PROVIDER_ROUTE_AMBIGUOUS' : 'CONTROLLED_PAID_STAGING_PROVIDER_ROUTE_REQUIRED', status: 'FAILED', qa: { passed: false }, variable_cost_eur: 0, production_deploy: false };
+  }
+  const route = routes[0];
+  const descriptor = canonicalProviderExecutorDescriptor(route.provider_id);
+  if (!descriptor) return { ok: false, error: 'PROVIDER_EXECUTOR_NOT_AVAILABLE', status: 'FAILED', qa: { passed: false }, variable_cost_eur: 0, production_deploy: false };
+
+  const providerExecutors = options.provider_executors && typeof options.provider_executors === 'object' ? { ...options.provider_executors } : {};
+  if (typeof options.live_staging_executor === 'function' && typeof providerExecutors[route.provider_id] !== 'function') {
+    providerExecutors[route.provider_id] = async ({ envelope }) => options.live_staging_executor({ ...contract, canonical_provider_envelope: envelope });
+  }
+  const verified = new Set(Array.isArray(options.current_runtime_verified_provider_ids) ? options.current_runtime_verified_provider_ids : []);
+  if (route.provider_id === 'riosystems-native-web' && typeof providerExecutors[route.provider_id] === 'function') verified.add(route.provider_id);
+
+  const envelope = {
+    ok: true,
+    envelope_version: 1,
+    mission_id: contract.mission_id,
+    task_id: clean(route.source_capability || route.capability, 160) || 'legacy-controlled-paid-staging-task',
+    execution_id: clean(contract.execution_id, 220) || clean(contract.idempotency_key, 220) || null,
+    provider_execution_version: 'riosystems.provider-execution.v1',
+    capability: route.capability,
+    factory: route.capability.startsWith('web.') ? 'web' : route.capability.startsWith('automation.') ? 'automation' : route.capability.startsWith('ai.') ? 'ai' : 'business',
+    provider_route: { provider_id: route.provider_id, capability: route.capability },
+    executor_id: descriptor.executor_id,
+    environment: 'staging',
+    write_policy: 'NO_EXTERNAL_WRITES',
+    production_policy: 'PRODUCTION_DISABLED',
+    execution: { production_deploy: false, external_writes: false, canonical_execution_contract: true }
+  };
+  const executed = await executeCanonicalProviderRoute(envelope, {
+    current_runtime_verified_provider_ids: [...verified],
+    executors: providerExecutors
+  });
+  if (!executed.ok || executed.status !== 'COMPLETED') {
+    return { ok: false, error: executed.error || executed.result?.error?.code || 'PROVIDER_EXECUTION_FAILED', status: 'FAILED', qa: { passed: false }, provider_truth: executed.provider_truth || null, variable_cost_eur: money(executed.raw_result?.actual_cost_eur || executed.raw_result?.variable_cost_eur || 0), production_deploy: false };
+  }
+  return {
+    ok: true,
+    status: 'LIVE_PROVIDER_VERIFIED',
+    qa: { passed: true },
+    planned_provider: executed.provider_truth.planned_provider,
+    dispatched_provider: executed.provider_truth.dispatched_provider,
+    actual_provider: executed.provider_truth.actual_provider,
+    executor_id: executed.provider_truth.executor_id,
+    provider_truth: executed.provider_truth,
+    delivery: executed.raw_result,
+    synthetic_only: false,
+    real_customer_data: false,
+    external_customer_writes: false,
+    public_deploy: false,
+    dns_change: false,
+    billing: false,
+    checkout: false,
+    public_indexing: false,
+    paid_overflow: false,
+    variable_cost_eur: money(executed.raw_result?.actual_cost_eur || executed.raw_result?.variable_cost_eur || 0),
+    production_deploy: false
+  };
 }
 
 async function controlledDecision(service, runtime, project, body = {}, request, env, ctx, options = {}) {
@@ -242,10 +347,10 @@ async function controlledDecision(service, runtime, project, body = {}, request,
   const projectedCost = money(cost.recommended_cost_ceiling_eur || cost.high_estimate_eur || cost.estimated_cost_eur || 0);
   const budgetGate = evaluateControlledPaidStagingBudget(project, projectedCost);
   if (!budgetGate.ok) return { status: 409, body: { error: 'PROJECT_BUDGET_EXCEEDED', budget_gate: budgetGate, production_deploy: false } };
-  const providers = resolveProviderRoutes(project, review, options); const eligible = providers.eligible_routes;
-  if (!eligible.length) return { status: 409, body: { error: 'NO_CONTROLLED_PAID_STAGING_PROVIDER_ROUTE_ELIGIBLE', provider_routes: providers, production_deploy: false } };
+  const providers = resolveProviderRoutes(project, review, { ...options, requested_outcomes: input.requested_outcomes }); const eligible = providers.execution_routes;
+  if (!eligible.length) return { status: 409, body: { error: 'NO_CONTROLLED_PAID_STAGING_TARGET_PROVIDER_ROUTE_ELIGIBLE', provider_routes: providers, production_deploy: false } };
   if (body.readiness_only === true) return { status: 200, body: { schema: 'aurentara.controlled-paid-staging.execution-readiness.v1', status: 'EXECUTION_READY', project_policy: controlledPaidStagingSnapshot(project), cost_preflight: cost, budget_gate: budgetGate, provider_routes: providers, approval_binding: approvalBinding(project, review, cost, providers), execution_started: false, paid_provider_calls: 0, actual_cost_eur: 0, production_deploy: false } };
-  const executor = typeof options.live_staging_executor === 'function' ? options.live_staging_executor : (contract) => defaultLiveStagingExecutor(contract, request, env, ctx);
+  const executor = (contract) => defaultLiveStagingExecutor(contract, options);
   const result = await service.runLiveStaging({ plan_token: token, expected_revision: runtime.revision, confirmation_text: CONTROLLED_PAID_STAGING_CONFIRMATION, idempotency_key: `dashboard:${project.project_id}:${plan.mission_id}`, environment: 'staging', variable_cost_ceiling_eur: projectedCost, provider_routes: eligible, provider_eligibility_pass: true, project_scope_pass: true, production_authorized: false, synthetic_only: false, paid_overflow: false, external_customer_writes: false, public_deploy: false, dns_change: false, billing: false, checkout: false, public_indexing: false, real_customer_data: false }, { executor });
   const latest = await service.handle({ method: 'GET', path: '/snapshot' });
   const run = (latest.runtime?.live_staging_runs || []).find((item) => item.plan_token === token) || null;
@@ -287,5 +392,5 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
 }
 
 export function operatorControlledPaidStagingDashboardManifest() {
-  return { schema: 'aurentara.controlled-paid-staging-dashboard.v1', wraps_existing_dashboard: true, same_runtime_service: true, legacy_mission_compiler_kept_zero_cost_synthetic_for_planning_only: true, server_side_project_execution_policy_resolution: true, server_side_cost_preflight: true, server_side_provider_eligibility: true, durable_plan_contract_reused: true, live_staging_runtime_reused: true, safe_default_fallback_unchanged: true, production_deploy: false, public_deploy: false, external_customer_writes: false };
+  return { schema: 'aurentara.controlled-paid-staging-dashboard.v1', wraps_existing_dashboard: true, same_runtime_service: true, legacy_mission_compiler_kept_zero_cost_synthetic_for_planning_only: true, server_side_project_execution_policy_resolution: true, server_side_cost_preflight: true, server_side_provider_eligibility: true, durable_plan_contract_reused: true, live_staging_runtime_reused: true, provider_routes_drive_actual_executor: true, planned_dispatched_actual_truth_required: true, safe_default_fallback_unchanged: true, production_deploy: false, public_deploy: false, external_customer_writes: false };
 }
