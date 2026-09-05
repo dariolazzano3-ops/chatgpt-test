@@ -183,7 +183,7 @@ export function buildTaskExecutionContract(mission, taskId) {
   for (const dependencyId of task.depends_on || []) dependencyOutputs[dependencyId] = findTask(mission, dependencyId)?.outputs || {};
   return {
     ok: true,
-    contract_version: 4,
+    contract_version: 3,
     mission_id: mission.mission_id,
     state_revision: Number(mission.revision || 0),
     mission_revision: mission.mission_revision || mission.source_of_truth?.mission_revision || null,
