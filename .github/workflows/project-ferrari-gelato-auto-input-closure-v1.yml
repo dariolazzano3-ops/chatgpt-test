@@ -1,0 +1,33 @@
+name: PROJECT FERRARI Gelato Auto Customer Input Closure V1
+
+on:
+  push:
+    branches:
+      - factory/project-ferrari-gelato-auto-input-closure-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-ferrari-gelato-auto-input-closure-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Live Gelato source capture using existing scraper
+        run: node scripts/gelato-ferrari-live-source-closure-capture-v1.mjs
+      - name: Safety
+        run: |
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "Paid provider calls: 0"
