@@ -101,7 +101,7 @@ async function runViewport(name,viewport){
   assert.equal(await contact.getByText('fabrizio.lazzano@freenet.de',{exact:false}).isVisible(),true);
 
   await contact.locator('[data-control-id="phone"] input[type=checkbox]').first().check();
-  await contact.locator('[data-control-id="address"] select').selectOption('0');
+  await contact.locator('[data-control-id="address"] input[type=radio][value="0"]').check();
   await contact.locator('[data-control-id="email"] input[type=radio][value=yes]').check();
   const save=contact.getByRole('button',{name:'Confirm / Save'});
   if(viewport.width<=760){
