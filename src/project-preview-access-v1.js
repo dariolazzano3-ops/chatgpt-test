@@ -1,3 +1,4 @@
+import { GENERATED_PROJECT_PREVIEW_INDEX } from './generated-project-preview-index-v1.js';
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 
@@ -167,6 +168,32 @@ export function runtimeProjectPreviewArtifact(runtime = {}, scopeKey = '') {
   };
 }
 
+export function bundledProjectPreviewArtifact(payload = {}, options = {}) {
+  const project = payload?.project || {};
+  const scopeKey = clean(options.scope_key || project.scope_key || payload.scope_key, 640);
+  const projectId = safeProjectToken(project.project_id || options.project_id);
+  const customerId = safeProjectToken(project.customer_id);
+  const scopeProjectId = customerId && scopeKey.startsWith(customerId + ':')
+    ? safeProjectToken(scopeKey.slice(customerId.length + 1))
+    : null;
+  const byScope = GENERATED_PROJECT_PREVIEW_INDEX?.by_scope || {};
+  const byProject = GENERATED_PROJECT_PREVIEW_INDEX?.by_project || {};
+  const entry = (scopeKey && byScope[scopeKey])
+    || (scopeProjectId && byProject[scopeProjectId])
+    || (projectId && byProject[projectId])
+    || null;
+  if (!entry || typeof entry.html !== 'string' || !safeRepoPath(entry.source_path)) return null;
+  return {
+    project_id: clean(entry.project_id, 240) || projectId || scopeProjectId || null,
+    customer_id: clean(entry.customer_id, 240) || customerId || null,
+    scope_key: clean(entry.scope_key, 640) || scopeKey || null,
+    name: clean(entry.name, 320) || clean(project.name, 320) || null,
+    source_path: safeRepoPath(entry.source_path),
+    content_sha256: clean(entry.content_sha256, 80) || null,
+    html: entry.html
+  };
+}
+
 export function resolveProjectPreviewAccess(payload = {}, options = {}) {
   const project = payload?.project || {};
   const scopeKey = clean(options.scope_key || project.scope_key || payload.scope_key, 640);
@@ -231,6 +258,33 @@ export function resolveProjectPreviewAccess(payload = {}, options = {}) {
   }
 
   const deployedSha = clean(options.deployed_sha, 80).toLowerCase();
+  const bundledArtifact = bundledProjectPreviewArtifact(payload, { scope_key: scopeKey, project_id: projectId });
+  if (bundledArtifact) {
+    const revision = /^[0-9a-f]{40}$/.test(deployedSha) ? deployedSha : bundledArtifact.content_sha256;
+    return {
+      schema: PROJECT_PREVIEW_ACCESS_SCHEMA,
+      project_id: projectId || bundledArtifact.project_id,
+      scope_key: scopeKey,
+      status: 'AVAILABLE',
+      available: true,
+      access_kind: 'BUNDLED_PROJECT_ARTIFACT',
+      provider: 'RIOSYSTEMS_BUILD_PREVIEW_INDEX',
+      operator_route: '/operator/project-preview/' + encodeURIComponent(scopeKey),
+      preview_url: null,
+      preview_id: scopeKey + ':bundled-preview:' + clean(revision || 'artifact', 16),
+      source_revision: revision || null,
+      source_path: bundledArtifact.source_path,
+      content_sha256: bundledArtifact.content_sha256,
+      exact_head_bound: /^[0-9a-f]{40}$/.test(deployedSha),
+      private_access_verified: true,
+      qa_passed: null,
+      human_outcome_accepted: null,
+      project_scoped: true,
+      production_deploy: false,
+      public_launch: false
+    };
+  }
+
   const canonicalSourcePath = safeRepoPath(options.canonical_source_path || '');
   if (canonicalSourcePath && /^[0-9a-f]{40}$/.test(deployedSha)) {
     return {
@@ -298,7 +352,10 @@ export function projectPreviewAccessManifest() {
     existing_preview_urls_reused: true,
     existing_customer_review_preview_reused: true,
     runtime_web_factory_artifacts_reused: true,
+    build_time_project_preview_index: true,
+    build_time_preview_index_runtime_network_dependency: false,
     canonical_project_artifacts_discovered_generically: true,
+    canonical_project_artifacts_bundled_generically: true,
     canonical_artifact_exact_deployed_sha_required: true,
     project_scope_required: true,
     scope_key_project_identity_reused: true,

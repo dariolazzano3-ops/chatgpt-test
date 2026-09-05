@@ -6,6 +6,7 @@ import {
   canonicalPreviewRawUrl,
   projectPreviewDirectoryCandidates,
   runtimeProjectPreviewArtifact,
+  bundledProjectPreviewArtifact,
   projectPreviewAccessManifest
 } from './project-preview-access-v1.js';
 
@@ -179,6 +180,14 @@ async function serveProjectPreview(request, env, ctx, options, scopeKey) {
     return previewHtmlResponse(artifact.html, access, scopeKey);
   }
 
+  if (access.access_kind === 'BUNDLED_PROJECT_ARTIFACT') {
+    const artifact = bundledProjectPreviewArtifact(resolved.detail.payload, { scope_key: scopeKey });
+    if (!artifact || artifact.source_path !== access.source_path || (access.content_sha256 && artifact.content_sha256 !== access.content_sha256)) {
+      return json({ error: 'PROJECT_PREVIEW_BUNDLED_ARTIFACT_STALE', preview_access: access, production_deploy: false }, 409);
+    }
+    return previewHtmlResponse(artifact.html, access, scopeKey);
+  }
+
   const rawUrl = canonicalPreviewRawUrl(access);
   if (!rawUrl) return json({ error: 'PROJECT_PREVIEW_CANONICAL_ARTIFACT_INVALID', preview_access: access, production_deploy: false }, 409);
   const fetchImpl = typeof options.project_preview_fetch === 'function' ? options.project_preview_fetch : fetch;
@@ -282,6 +291,7 @@ export function operatorProjectPreviewAccessManifest() {
     system_wide_project_preview_contract: true,
     hardcoded_project_preview_exceptions: false,
     runtime_artifact_preview_support: true,
+    build_time_preview_index_support: true,
     generic_canonical_project_artifact_discovery: true,
     desktop_mobile: true,
     production_deploy: false
