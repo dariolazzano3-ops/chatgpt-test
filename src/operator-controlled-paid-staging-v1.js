@@ -141,7 +141,7 @@ export function controlledPaidProviderEligibility(project = {}, provider = {}) {
   const id = clean(provider.id, 160);
   const allowlisted = Array.isArray(policy.provider_allowlist) && policy.provider_allowlist.includes(id);
   const connected = ['CONNECTED_STAGING', 'READ_ONLY_VERIFIED'].includes(clean(provider.connection_state, 80).toUpperCase());
-  const verified = ['VERIFIED_STAGING', 'VERIFIED_READ_ONLY', 'CONNECTION_VERIFIED_STAGING'].includes(clean(provider.verification, 100).toUpperCase());
+  const verified = ['CURRENT_RUNTIME_VERIFIED', 'VERIFIED_STAGING', 'VERIFIED_READ_ONLY', 'CONNECTION_VERIFIED_STAGING'].includes(clean(provider.verification, 100).toUpperCase());
   const executable = provider.active_runtime === true && provider.runtime_eligible !== false;
   const writeRestricted = Array.isArray(provider.restrictions) && provider.restrictions.some((value) => /WRITE_NOT_VERIFIED|PUBLISH_NOT_VERIFIED|INFERENCE_NOT_VERIFIED|FLOW_EXECUTION_NOT_VERIFIED/.test(String(value)));
   const paidEligible = allowlisted && connected && verified && executable && !writeRestricted;
