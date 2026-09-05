@@ -69,18 +69,42 @@ try {
   assert.equal((await page.locator('body').innerText()).includes('[object Object]'), false, 'shared structured presenter must prevent [object Object]');
 
   await go(page, 'projects', 'Projekte');
-  assert.match(await page.locator('#projects').innerText(), /Projektportfolio/);
+  const projectsSurface = page.locator('#projects');
+  const premiumPortfolio = await projectsSurface.locator('.pm-summary').count() === 1;
+  const projectsText = await projectsSurface.innerText();
+  if (premiumPortfolio) {
+    assert.match(projectsText, /AURENTARA SYSTEMS/);
+    assert.match(projectsText, /Alle Kunden- und internen Projekte steuern/);
+  } else {
+    assert.match(projectsText, /Projektportfolio/);
+  }
   const create = page.locator('#projects details.human-create');
-  await create.waitFor();
+  if (premiumPortfolio) {
+    assert.equal(await create.count(), 1, 'Premium portfolio must preserve the existing project-create control');
+    assert.equal(await create.isVisible(), false, 'Premium project-create control starts collapsed behind the primary action');
+    await page.locator('#pm-new-project').click();
+    await create.waitFor({ state: 'visible' });
+  } else {
+    await create.waitFor();
+  }
   assert.equal(await create.getAttribute('open'), null);
   assert.equal(await page.locator('#refresh').isVisible(), false);
 
   const opens = page.locator('#projects .project-open');
   assert.ok(await opens.count() > 0);
-  const workspaceOpen = page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
+  const workspaceOpen = premiumPortfolio
+    ? page.locator('#projects .project-workspace-open')
+    : page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
   await workspaceOpen.first().waitFor();
   assert.equal(await workspaceOpen.count(), 1, 'exactly one projected website workspace action expected');
   assert.equal(await workspaceOpen.first().getAttribute('data-scope'), AURENTARA_WEBSITE_SCOPE);
+  if (premiumPortfolio) {
+    assert.equal(
+      await workspaceOpen.first().getAttribute('href'),
+      '/operator/workspace/' + encodeURIComponent(AURENTARA_WEBSITE_SCOPE),
+      'Premium projected website workspace must preserve the existing dedicated workspace route'
+    );
+  }
 
   const workspacePage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   workspacePage.on('pageerror', (error) => workspaceErrors.push(String(error)));

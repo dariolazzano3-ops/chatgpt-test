@@ -90,6 +90,13 @@ try{
   for(const project of nonOpenableRows){
     assert.equal(renderedOpenableScopes.has(project.scope_key),false,'non-openable Premium project must not render project-detail open action: '+project.scope_key);
   }
+  const aurentaraWorkspace=page.locator('.pm-list .project-workspace-open[data-scope="aurentara-systems-internal:riosystems-public-website-v1"]');
+  assert.equal(await aurentaraWorkspace.count(),1,'AURENTARA repository-only project must preserve exactly one dedicated workspace action');
+  assert.equal(
+    await aurentaraWorkspace.getAttribute('href'),
+    '/operator/workspace/'+encodeURIComponent('aurentara-systems-internal:riosystems-public-website-v1'),
+    'AURENTARA dedicated workspace route must preserve canonical scope identity'
+  );
   const gelatoProject=(projectsPayload.items||[]).find(p=>p.scope_key==='gelato-donatello:gelato-donatello-website-v1');
   assert.ok(gelatoProject,'Gelato Donatello must be present in deterministic local browser dogfood');
   assert.equal(gelatoProject.project_detail_openable,true,'Gelato Donatello must be marked project-detail-openable');
