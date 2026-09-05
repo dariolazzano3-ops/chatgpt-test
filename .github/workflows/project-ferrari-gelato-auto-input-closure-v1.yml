@@ -26,6 +26,10 @@ jobs:
       - run: npm install
       - name: Live Gelato source capture using existing scraper
         run: node scripts/gelato-ferrari-live-source-closure-capture-v1.mjs
+      - name: Gelato automatic customer input closure
+        run: node scripts/gelato-ferrari-auto-customer-input-closure-v1.mjs
+      - name: Existing Gelato Ferrari dogfood regression
+        run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
       - name: Safety
         run: |
           echo "Production deploy: false"
