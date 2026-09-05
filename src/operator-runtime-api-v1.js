@@ -3,6 +3,7 @@ import {
   buildOperatorRuntimeSnapshot,
   selectOperatorRuntimeProject,
   recordOperatorRuntimeCommandState,
+  recordOperatorRuntimeProjectDelivery,
   runOperatorSyntheticMission
 } from './operator-runtime-v1.js';
 import {
@@ -319,6 +320,15 @@ export function createOperatorRuntimeApiService({ operator_id, store, initial_ru
       }, saved.runtime, { changed: true });
     },
 
+    async recordCanonicalProjectDelivery(input = {}, options = {}) {
+      const current = await ensureRuntime();
+      const project = input.project && typeof input.project === 'object' ? input.project : null;
+      const delivery = input.delivery && typeof input.delivery === 'object' ? input.delivery : null;
+      if (!project || !delivery) return response(400, { error: 'PROJECT_AND_DELIVERY_REQUIRED', production_deploy: false }, current);
+      const mutation = recordOperatorRuntimeProjectDelivery(current, project, delivery, Number(input.expected_revision), { at: options.at });
+      return saveMutation(current, mutation, 200);
+    },
+
     async runLiveStaging(input = {}, options = {}) {
       const current = await ensureRuntime();
       if (typeof options.executor !== 'function') return response(503, { error: 'LIVE_STAGING_EXECUTOR_NOT_CONFIGURED', production_deploy: false }, current);
@@ -389,7 +399,7 @@ export function operatorRuntimeApiManifest() {
       'POST /universal-missions',
       'POST /commands'
     ],
-    service_methods: ['recordMissionPlan','listMissionPlans','decideMissionPlan','approveSyntheticMissionPlan','runLiveStaging'],
+    service_methods: ['recordMissionPlan','listMissionPlans','decideMissionPlan','approveSyntheticMissionPlan','recordCanonicalProjectDelivery','runLiveStaging'],
     mutations_require_runtime_revision: true,
     supervised_dispatch_preparation_only: true,
     live_staging_two_phase_reservation: true,
