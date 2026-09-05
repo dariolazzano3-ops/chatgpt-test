@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - factory/project-ferrari-system-wide-preview-access-v2
+      - factory/project-ferrari-preview-discovery-scope-route-fix-v2
       - factory-control
 
 permissions:
