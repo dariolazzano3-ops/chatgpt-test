@@ -1,0 +1,38 @@
+name: PROJECT FERRARI Premium Masterdashboard V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+  push:
+    branches:
+      - factory/ferrari-premium-masterdashboard-v1
+      - factory-control
+
+permissions:
+  contents: read
+
+jobs:
+  premium-masterdashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Premium dashboard syntax
+        run: node --check src/operator-premium-masterdashboard-v1.js
+      - name: Premium dashboard acceptance
+        run: node scripts/project-ferrari-premium-masterdashboard-v1-smoke.mjs
+      - name: Existing project workspace regression
+        run: node scripts/operator-project-workspace-v1-smoke.mjs
+      - name: Existing intelligent intake regression
+        run: node scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
+      - name: Existing knowledge approval regression
+        run: node scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs
+      - name: Existing preview access regression
+        run: node scripts/project-ferrari-project-scoped-preview-access-v1-smoke.mjs
+      - name: Operator AI global access regression
+        run: node scripts/operator-ai-global-access-v1-smoke.mjs
