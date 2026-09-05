@@ -28,6 +28,8 @@ jobs:
         run: node scripts/gelato-ferrari-live-source-closure-capture-v1.mjs
       - name: Gelato automatic customer input closure
         run: node scripts/gelato-ferrari-auto-customer-input-closure-v1.mjs
+      - name: Closure evidence and contract regression
+        run: node scripts/gelato-ferrari-auto-customer-input-closure-evidence-v1-smoke.mjs
       - name: Existing Gelato Ferrari dogfood regression
         run: node scripts/gelato-ferrari-realistic-input-dogfood-v1.mjs
       - name: Safety
