@@ -198,18 +198,22 @@ async function executeCanonicalProviderMissionTask(mission, taskId, approval = {
     external_writes: false
   });
 
-  if (!executed.ok) {
+  if (!executed.ok || executed.status !== 'COMPLETED') {
+    const providerError = executed.result?.error || {};
     const failed = transitionMissionTask(started.mission, taskId, 'fail', {
-      code: executed.error || 'CANONICAL_PROVIDER_EXECUTION_FAILED',
-      message: executed.message || null,
-      retryable: false
+      code: executed.error || providerError.code || 'CANONICAL_PROVIDER_EXECUTION_FAILED',
+      message: executed.message || providerError.message || null,
+      retryable: providerError.retryable === true
     });
     return {
       ...executed,
+      ok: false,
+      error: executed.error || providerError.code || 'CANONICAL_PROVIDER_EXECUTION_FAILED',
       mission: failed.ok ? failed.mission : started.mission,
       cost_ledger: options.cost_ledger || null,
       execution_attempted: true,
       execution_mode: 'canonical_provider_route',
+      provider_truth: executed.provider_truth || null,
       production_deploy: false
     };
   }
