@@ -6,6 +6,7 @@ const scope = 'gelato-donatello:gelato-donatello-website-v1';
 const base = '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{--line:#ddd;--muted:#666}.card{padding:16px}.source-cards{display:grid;gap:10px}.source-tools{display:flex;gap:8px;flex-wrap:wrap}.btn{min-height:40px}.field{display:grid;gap:6px}input,select,textarea,button{font:inherit;max-width:100%;box-sizing:border-box}</style></head><body><div class="card source-intake-v1" data-project-source-intake="true" data-scope="' + scope + '"><div class="eyebrow">PROJECT SOURCES</div><h2>Project Sources</h2><div class="source-upload-grid"></div><details class="details"><summary>Weitere Source Actions</summary></details><div data-source-status>Loading…</div><div class="source-cards" data-source-cards></div></div><script id="aurentara-project-source-storage-v1-ui"></script></body></html>';
 const enhanced = await applyProjectIntakeUxV2(new Response(base, { headers: { 'content-type': 'text/html; charset=utf-8' } }));
 const html = await enhanced.text();
+assert.match(html, /id="aurentara-project-intake-ux-v2"/, 'V2 script must be injected before browser execution');
 
 const sources = [];
 const facts = [];
@@ -124,6 +125,10 @@ async function runDesktop() {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
   await page.goto('https://intake-v2.test/operator', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
+  if (await page.locator('[data-source-basket-v2]').count() === 0) {
+    throw new Error('V2 basket did not activate. pageErrors=' + JSON.stringify(pageErrors) + ' scripts=' + JSON.stringify(await page.locator('script').evaluateAll((nodes) => nodes.map((node) => node.id))));
+  }
   await page.waitForSelector('[data-source-basket-v2]');
 
   const fileInput = page.locator('[data-v2-files]');
