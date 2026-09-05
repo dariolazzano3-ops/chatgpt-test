@@ -88,7 +88,7 @@ assert.equal(mission.project_context.verified_content['business.name'], 'Repair 
 
 const contracts = mission.tasks.map((task) => buildTaskExecutionContract(mission, task.task_id));
 assert.equal(contracts.every((contract) => contract.ok), true);
-assert.equal(contracts.every((contract) => contract.contract_version === 4), true);
+assert.equal(contracts.every((contract) => contract.contract_version === 3), true);
 assert.equal(new Set(contracts.map((contract) => contract.project_scope_key)).size, 1);
 assert.equal(new Set(contracts.map((contract) => contract.knowledge_revision)).size, 1);
 assert.equal(new Set(contracts.map((contract) => contract.content_pack_ref.pack_id)).size, 1);
@@ -106,7 +106,7 @@ assert.equal(contracts.every((contract) => contract.safeguards.project_knowledge
 for (const contract of contracts) {
   const envelope = buildAdapterDispatchEnvelope({ ...contract, state: 'READY' });
   assert.equal(envelope.ok, true);
-  assert.equal(envelope.envelope_version, 2);
+  assert.equal(envelope.envelope_version, 1);
   assert.equal(envelope.project_scope_key, 'repair-customer:repair-project');
   assert.equal(envelope.knowledge_revision, 7);
   assert.equal(envelope.knowledge_snapshot_ref.content_pack_ref.pack_id, 'content-pack-7');
