@@ -1,0 +1,67 @@
+{
+  "schema": "aurentara.project-ferrari-dashboard-human-input-closure-ux-evidence.v1",
+  "project_ref": {
+    "customer_id": "gelato-donatello",
+    "project_id": "gelato-donatello-website-v1",
+    "scope_key": "gelato-donatello:gelato-donatello-website-v1"
+  },
+  "implementation": {
+    "branch": "factory/project-ferrari-dashboard-human-input-closure-ux-v1",
+    "canonical_base_head": "511b4a3332009a3bf65f9c8980fdc53cb62a5315",
+    "accepted_feature_head": "47d43b35384aec45481824cd6f7db7ecf74c1c5a",
+    "workflow_run_id": 33937955129,
+    "result": "PASS"
+  },
+  "acceptance": {
+    "exact_open_human_questions": 7,
+    "automatically_resolved_inputs_reasked": false,
+    "candidates_from_existing_evidence": true,
+    "operator_decision_save": "PASS",
+    "project_fact_update": "PASS",
+    "rejected_candidate_preservation": "PASS",
+    "controlled_conflict_resolution": "PASS",
+    "existing_readiness_recalculation": "PASS",
+    "open_input_count_update": "PASS",
+    "cross_project_mutation": "BLOCKED",
+    "desktop": "PASS",
+    "mobile": "PASS",
+    "browser_human_outcome": "PASS",
+    "existing_source_intake_regression": "PASS",
+    "existing_gelato_ferrari_regression": "PASS",
+    "masterdashboard_gelato_integration_regression": "PASS"
+  },
+  "architecture_reuse": {
+    "existing_masterdashboard": true,
+    "existing_project_detail": true,
+    "existing_project_source_intake": true,
+    "existing_project_fact_engine": true,
+    "existing_content_readiness": true,
+    "existing_premium_readiness": true,
+    "existing_customer_delivery_contract": true,
+    "existing_runtime_approval_record": true,
+    "new_dashboard": false,
+    "new_project_system": false,
+    "new_fact_engine": false,
+    "new_readiness_engine": false,
+    "new_approval_engine": false,
+    "new_provider": false
+  },
+  "safety": {
+    "real_gelato_human_decisions_mutated": false,
+    "synthetic_acceptance_fixture_only": true,
+    "ai_auto_confirmation": false,
+    "production_deploy": false,
+    "public_launch": false,
+    "dns_changed": false,
+    "billing_changed": false,
+    "paid_overflow": false,
+    "paid_provider_calls": 0,
+    "variable_cost_eur": 0
+  },
+  "current_real_gelato_state": {
+    "customer_input_closure": "BLOCKED_BY_EXTERNAL_INPUT",
+    "full_dogfood": "NOT_YET_PASS",
+    "human_questions_remaining": 7,
+    "note": "Real remaining decisions must be answered by the human operator through the dashboard path after canonical acceptance."
+  }
+}
