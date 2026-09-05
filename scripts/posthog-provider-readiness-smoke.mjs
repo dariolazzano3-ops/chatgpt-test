@@ -17,7 +17,9 @@ assert.equal(stack.factories.business.analytics_staging_evidence.safety.producti
 
 const matrix = providerActivationMatrix();
 const posthog = matrix.providers.find((item) => item.id === 'posthog-free');
-assert.equal(posthog?.activation, 'live_read_and_staging_analytics_verified');
+assert.equal(posthog?.activation, 'historical_read_and_staging_analytics_evidence');
+assert.equal(posthog?.current_runtime_verified, false);
+assert.equal(posthog?.runtime_truth.actual_executor_availability, 'NOT_CURRENTLY_VERIFIED');
 assert.equal(posthog?.project_read, 'verified');
 assert.equal(posthog?.staging_analytics_verified, true);
 assert.equal(posthog?.staging_analytics_evidence.scope.flow_id, 'block4-posthog-staging-001');
