@@ -88,16 +88,36 @@ export function attachProjectMission(project = {}, mission = {}) {
 export function recordProjectDelivery(project = {}, delivery = {}) {
   const deliveryId = clean(delivery.delivery_id || delivery.id, 180);
   if (!deliveryId) return { ok: false, error: 'DELIVERY_ID_REQUIRED' };
+  const existing = (project.deliveries || []).find((item) => item.delivery_id === deliveryId);
+  if (existing) return { ok: true, project: clone(project), delivery: clone(existing), changed: false, idempotent_replay: true, production_deploy: false };
   const next = clone(project);
-  next.deliveries = [...(next.deliveries || []), {
+  const entry = {
     delivery_id: deliveryId,
     mission_id: clean(delivery.mission_id, 180) || null,
+    execution_id: clean(delivery.execution_id, 180) || null,
+    capability: clean(delivery.capability, 160) || null,
+    factory: clean(delivery.factory || delivery.engine, 80) || null,
+    planned_provider: clean(delivery.planned_provider, 120) || null,
+    actual_provider: clean(delivery.actual_provider, 120) || null,
+    executor_id: clean(delivery.executor_id, 160) || null,
+    actual_cost: Number.isFinite(Number(delivery.actual_cost)) ? Number(delivery.actual_cost) : 0,
+    quality: delivery.quality && typeof delivery.quality === 'object' ? clone(delivery.quality) : null,
+    preview: delivery.preview && typeof delivery.preview === 'object' ? clone(delivery.preview) : null,
+    customer_review_state: clean(delivery.customer_review_state, 100) || null,
+    next_action: clean(delivery.next_action, 240) || null,
     structural_completion: delivery.structural_completion === true,
     external_activation_ready: delivery.external_activation_ready === true,
     production_deploy: false
+  };
+  next.deliveries = [...(next.deliveries || []), entry];
+  next.audit = [...(next.audit || []), {
+    event: 'PROJECT_DELIVERY_RECORDED',
+    delivery_id: deliveryId,
+    mission_id: entry.mission_id,
+    execution_id: entry.execution_id,
+    actor: 'system'
   }];
-  next.audit = [...(next.audit || []), { event: 'PROJECT_DELIVERY_RECORDED', delivery_id: deliveryId, actor: 'system' }];
-  return { ok: true, project: next };
+  return { ok: true, project: next, delivery: clone(entry), changed: true, production_deploy: false };
 }
 
 export function recordProjectCustomerReview(project = {}, review = {}, options = {}) {

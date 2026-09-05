@@ -175,6 +175,47 @@ export function recordOperatorRuntimeCommandState(runtime = {}, commandCenterSta
   return { ok: true, runtime: next, changed: true, production_deploy: false };
 }
 
+export function recordOperatorRuntimeProjectDelivery(runtime = {}, project = {}, delivery = {}, expectedRevision, options = {}) {
+  if (!validRuntime(runtime)) return { ok: false, error: 'VALID_OPERATOR_RUNTIME_REQUIRED', production_deploy: false };
+  const revision = checkRevision(runtime, expectedRevision);
+  if (!revision.ok) return revision;
+  const scope = clean(project.scope_key || delivery.scope_key, 260);
+  if (!scope) return { ok: false, error: 'PROJECT_SCOPE_REQUIRED', production_deploy: false };
+  const index = (runtime.command_center_state?.portfolio?.projects || []).findIndex((item) => item.scope_key === scope);
+  if (index < 0) return { ok: false, error: 'OPERATOR_RUNTIME_PROJECT_NOT_FOUND', scope_key: scope, production_deploy: false };
+  const currentProject = runtime.command_center_state.portfolio.projects[index];
+  if (project.customer_id && project.customer_id !== currentProject.customer_id) return { ok: false, error: 'OPERATOR_RUNTIME_DELIVERY_CUSTOMER_SCOPE_MISMATCH', production_deploy: false };
+  if (project.project_id && project.project_id !== currentProject.project_id) return { ok: false, error: 'OPERATOR_RUNTIME_DELIVERY_PROJECT_SCOPE_MISMATCH', production_deploy: false };
+
+  const before = JSON.stringify(currentProject);
+  const after = JSON.stringify(project);
+  if (before === after) return { ok: true, runtime: clone(runtime), changed: false, project: clone(currentProject), production_deploy: false };
+
+  const next = advanceRuntime(runtime, {
+    event: 'CANONICAL_PROJECT_DELIVERY_RECORDED',
+    scope_key: scope,
+    mission_id: delivery.mission_id
+  }, options.at);
+  next.command_center_state.portfolio.projects[index] = clone(project);
+
+  const missionId = clean(delivery.mission_id, 180);
+  if (missionId) {
+    const existingMission = (next.missions || []).findIndex((item) => item.mission_id === missionId);
+    const summary = {
+      mission_id: missionId,
+      scope_key: scope,
+      status: clean(delivery.mission_status || 'DELIVERED', 80),
+      delivery_id: clean(delivery.delivery_id || delivery.id, 180) || null,
+      quality_status: clean(delivery.quality?.status, 80) || null,
+      actual_cost: Number.isFinite(Number(delivery.actual_cost)) ? Number(delivery.actual_cost) : 0,
+      production_deploy: false
+    };
+    if (existingMission >= 0) next.missions[existingMission] = { ...next.missions[existingMission], ...summary };
+    else next.missions = [...(next.missions || []), summary];
+  }
+  return { ok: true, runtime: next, changed: true, project: clone(project), production_deploy: false };
+}
+
 export function runOperatorSyntheticMission(runtime = {}, input = {}, expectedRevision, options = {}) {
   if (!validRuntime(runtime)) return { ok: false, error: 'VALID_OPERATOR_RUNTIME_REQUIRED', production_deploy: false };
   const revision = checkRevision(runtime, expectedRevision);
@@ -220,7 +261,7 @@ export function operatorRuntimeManifest() {
     mode: 'single_operator_stateful_control_runtime',
     state_revision_guard: 'compare_and_swap_required_for_mutations',
     consumes: ['operator-control-plane-v1','operator-dashboard-v1','command-center','universal-mission-run-v1'],
-    local_mutations: ['select_project','record_command_center_state','record_synthetic_universal_mission'],
+    local_mutations: ['select_project','record_command_center_state','record_canonical_project_delivery','record_synthetic_universal_mission'],
     automatic_dispatch: false,
     external_writes: false,
     automatic_paid_overflow: false,
