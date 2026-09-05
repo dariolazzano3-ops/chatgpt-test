@@ -128,6 +128,7 @@ const projectContext = {
     version: 1
   })),
   source_refs: [
+    confirmed.provenance.source,
     'primary-anchor-website',
     ...multiSource.discovery.results.filter((item) => item.accepted === true).map((item) => item.project_source_id)
   ],
@@ -145,6 +146,11 @@ const projectContext = {
   assets: [],
   open_critical_conflicts: [],
   verified_content: verifiedContent,
+  content_provenance: confirmed.facts.map((fact) => ({
+    field_path: fact.field_path,
+    source_refs: [confirmed.provenance.source],
+    verification_status: fact.verification_status
+  })),
   visual_context: {
     rights_ready_asset_count: confirmed.asset_rights.publishable_asset_count,
     final_quality_approval_required: true
