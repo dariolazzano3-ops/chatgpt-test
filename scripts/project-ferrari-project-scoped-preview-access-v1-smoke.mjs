@@ -89,6 +89,8 @@ const bundledGelato=bundledProjectPreviewArtifact({project:gelato});
 assert.ok(bundledGelato);
 assert.equal(bundledGelato.source_path,'projects/gelato-donatello-website-v1/ferrari-preview-v1.html');
 assert.match(bundledGelato.html,/Gelato Donatello/i);
+assert.match(bundledGelato.html,/data-aurentara-preview-bundled-css="styles\.css"/);
+assert.doesNotMatch(bundledGelato.html,/href="\.\/styles\.css"/);
 const indexedGelato=GENERATED_PROJECT_PREVIEW_INDEX.by_scope?.[gelato.scope_key];
 assert.ok(indexedGelato,'Gelato must be present in generated build-time preview index');
 assert.ok(Number(indexedGelato.styles_inlined||0)>=1,'Gelato preview must inline at least one local stylesheet');
@@ -243,6 +245,7 @@ console.log(JSON.stringify({
   ok:true,
   suite:'project-ferrari-system-wide-preview-access-v2',
   gelato_build_time_preview:'PASS',
+  gelato_local_styles_bundled:'PASS',
   gelato_local_styles_bundled:'PASS',
   arbitrary_project_build_time_preview:'PASS',
   runtime_web_factory_preview:'PASS',
