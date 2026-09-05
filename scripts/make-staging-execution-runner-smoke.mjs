@@ -57,6 +57,8 @@ const result = await runMakeStagingScenarioOnce(plan, {
 });
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'MAKE_STAGING_EXECUTION_COMPLETE_AND_INACTIVE');
+assert.equal(result.actual_provider, 'make-core');
+assert.equal(result.executor_id, 'make-staging-execution-runner-v1');
 assert.equal(result.scenario_restored_inactive, true);
 assert.deepEqual(calls.map((x) => `${x.method} ${x.path}`), [
   'GET /api/v2/scenarios/7149691',
