@@ -276,6 +276,8 @@ export async function runSupabaseStagingCrmWrite(plan = {}, runtime = {}) {
     schema: 'riosystems.supabase-staging-crm-write-result.v2',
     stage: 'SUPABASE_STAGING_CRM_WRITE_VERIFIED',
     provider_id: 'supabase-free',
+    actual_provider: 'supabase-free',
+    executor_id: 'supabase-staging-write-runner-v2',
     scope_key: plan.scope.scope_key,
     project_uuid: plan.scope.project_uuid,
     synthetic_row_count: 1,
