@@ -34,6 +34,52 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   return buildWebsiteProject(mission, options);
 }
 
+
+export function executeCanonicalNativeWebTask(task = {}, options = {}) {
+  const execution = executeWebFactoryTask(task, options);
+  const actualCost = Number(execution?.variable_cost_eur ?? 0);
+  if (!execution?.ok) {
+    return {
+      ok: false,
+      status: 'FAILED',
+      error: execution?.status || execution?.error || 'NATIVE_WEB_FACTORY_EXECUTION_FAILED',
+      message: execution?.validation?.requirements?.map((item) => item.message).filter(Boolean).join(', ') || null,
+      actual_provider: 'riosystems-native-web',
+      executor_id: 'web-factory-native-v1',
+      actual_cost_eur: Number.isFinite(actualCost) ? actualCost : 0,
+      provider_call_count: 0,
+      external_write_state: 'NO_EXTERNAL_CUSTOMER_WRITE',
+      internal_project_artifact: false,
+      external_side_effect_performed: false,
+      production_deploy: false,
+      factory_result: execution || null
+    };
+  }
+
+  return {
+    ok: true,
+    status: 'COMPLETED',
+    outputs: {
+      build_id: execution.artifact?.build_id || null,
+      artifact_ref: execution.artifact?.project_root || null,
+      preview_url: execution.delivery_manifest?.preview_url || null,
+      qa_status: execution.qa_result?.status || null,
+      qa_score: execution.qa_result?.score ?? null,
+      file_count: Object.keys(execution.artifact?.files || {}).length,
+      delivery_status: execution.delivery_manifest?.deployment_status || null
+    },
+    actual_provider: 'riosystems-native-web',
+    executor_id: 'web-factory-native-v1',
+    actual_cost_eur: Number.isFinite(actualCost) ? actualCost : 0,
+    provider_call_count: 0,
+    external_write_state: 'NO_EXTERNAL_CUSTOMER_WRITE',
+    internal_project_artifact: true,
+    external_side_effect_performed: false,
+    production_deploy: false,
+    factory_result: execution
+  };
+}
+
 export function webFactoryProviderManifest() {
   return {
     schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
