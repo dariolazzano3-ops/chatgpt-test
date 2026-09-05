@@ -13,17 +13,17 @@ export function listExecutionAdapters() { return Object.values(ADAPTERS).map((ad
 export function canonicalProviderExecutorDescriptor(providerId) {
   switch (clean(providerId, 120)) {
     case 'riosystems-native-web':
-      return { provider_id: 'riosystems-native-web', executor_id: 'web-factory-native-v1', accepted_capabilities: ['web.build'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'riosystems-native-web', executor_id: 'web-factory-native-v1', accepted_capabilities: ['web.build'], environment: 'staging', external_write: true, cost_behavior: 'zero_variable_cost_expected', approval_requirements: ['supervised_execution','external_write_if_materialized'], retry_policy: 'bounded_by_mission_max_attempts', production_eligible: false };
     case 'cloudflare-workers-free':
-      return { provider_id: 'cloudflare-workers-free', executor_id: 'cloudflare-staging-preview-v1', accepted_capabilities: ['web.deploy'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'cloudflare-workers-free', executor_id: 'cloudflare-staging-preview-v1', accepted_capabilities: ['web.deploy'], environment: 'staging', external_write: true, cost_behavior: 'free_tier_hard_fail', approval_requirements: ['supervised_execution','external_write'], retry_policy: 'no_automatic_paid_overflow', production_eligible: false };
     case 'openai-api':
-      return { provider_id: 'openai-api', executor_id: 'openai-api-adapter-v1', accepted_capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'openai-api', executor_id: 'openai-api-adapter-v1', accepted_capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'], environment: 'staging', external_write: false, paid: true, cost_behavior: 'reservation_and_ceiling_required', approval_requirements: ['supervised_execution','cost'], retry_policy: 'bounded_by_mission_max_attempts', production_eligible: false };
     case 'make-core':
-      return { provider_id: 'make-core', executor_id: 'make-staging-execution-runner-v1', accepted_capabilities: ['automation.run'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'make-core', executor_id: 'make-staging-execution-runner-v1', accepted_capabilities: ['automation.run'], environment: 'staging', external_write: true, paid: true, cost_behavior: 'reservation_and_ceiling_required', approval_requirements: ['supervised_execution','cost','external_write'], retry_policy: 'single_supervised_run_restore_inactive', production_eligible: false };
     case 'supabase-free':
-      return { provider_id: 'supabase-free', executor_id: 'supabase-staging-write-runner-v2', accepted_capabilities: ['business.configure','business.crm.write','storage.data'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'supabase-free', executor_id: 'supabase-staging-write-runner-v2', accepted_capabilities: ['business.configure','business.crm.write','storage.data'], environment: 'staging', external_write: true, cost_behavior: 'zero_cost_confirmation_required', approval_requirements: ['supervised_execution','external_write','project_scope'], retry_policy: 'idempotent_scope_bound_upsert', production_eligible: false };
     case 'posthog-free':
-      return { provider_id: 'posthog-free', executor_id: 'posthog-staging-runner-v1', accepted_capabilities: ['web.analytics','business.analytics'], environment: 'staging', production_eligible: false };
+      return { provider_id: 'posthog-free', executor_id: 'posthog-staging-runner-v1', accepted_capabilities: ['web.analytics','business.analytics'], environment: 'staging', external_write: true, cost_behavior: 'zero_cost_confirmation_required', approval_requirements: ['supervised_execution','external_write'], retry_policy: 'zero_retries_single_batch', production_eligible: false };
     default:
       return null;
   }
@@ -83,6 +83,13 @@ export async function executeCanonicalProviderRoute(envelope = {}, runtime = {})
   const verified = new Set(Array.isArray(runtime.current_runtime_verified_provider_ids) ? runtime.current_runtime_verified_provider_ids : []);
   if (!verified.has(plannedProvider)) {
     return { ok: false, error: 'PROVIDER_NOT_EXECUTION_READY', provider_id: plannedProvider };
+  }
+  const syntheticAcceptance = runtime.synthetic_acceptance === true;
+  if (descriptor.external_write === true && envelope.write_policy === 'NO_EXTERNAL_WRITES' && !syntheticAcceptance) {
+    return { ok: false, error: 'PROVIDER_EXTERNAL_WRITE_POLICY_BLOCKED', provider_id: plannedProvider, write_policy: envelope.write_policy };
+  }
+  if (descriptor.paid === true && !syntheticAcceptance && runtime.cost_approval_validated !== true) {
+    return { ok: false, error: 'PROVIDER_COST_APPROVAL_NOT_VALIDATED', provider_id: plannedProvider };
   }
   const executor = runtime.executors && typeof runtime.executors[plannedProvider] === 'function' ? runtime.executors[plannedProvider] : null;
   if (!executor) return { ok: false, error: 'PROVIDER_EXECUTOR_NOT_CONFIGURED', provider_id: plannedProvider, executor_id: descriptor.executor_id };
