@@ -250,12 +250,14 @@ export function reserveOperatorLiveStagingExecution(runtime = {}, input = {}, ex
   if (clean(input.confirmation_text, 200) !== expectedConfirmation) return { ok: false, error: 'LIVE_STAGING_CONFIRMATION_REQUIRED', production_deploy: false };
 
   const executionId = `live:${plan.mission_id}:${runtime.revision + 1}`;
+  built.contract.execution_id = executionId;
   let reservedProject = built.project;
   if (built.controlled_paid_staging) {
     const reservation = reserveControlledPaidStagingCost(built.project, {
       reservation_id: executionId,
       estimated_cost_eur: built.contract.variable_cost_ceiling_eur,
       mission_id: plan.mission_id,
+      execution_id: executionId,
       provider_id: clean(input.provider_routes?.[0]?.provider_id || input.provider_routes?.[0]?.id, 120) || null,
       capability: clean(input.provider_routes?.[0]?.capability, 120) || null
     });
@@ -319,18 +321,30 @@ export function finalizeOperatorLiveStagingExecution(runtime = {}, executionId =
   const safetyPass = controlled
     ? commonSafetyPass && actualCost <= Number(current.contract?.project_budget_ceiling_eur || 0)
     : commonSafetyPass && actualCost === 0 && safe.synthetic_only !== false;
+  const providerRoutes = Array.isArray(current.contract?.provider_routes) ? current.contract.provider_routes : [];
+  const providerTruthRequired = controlled && providerRoutes.length > 0;
+  const plannedProvider = clean(providerRoutes[0]?.provider_id || providerRoutes[0]?.id, 120) || null;
+  const providerTruthPass = !providerTruthRequired || (
+    providerRoutes.length === 1
+    && plannedProvider
+    && clean(safe.planned_provider, 120) === plannedProvider
+    && clean(safe.dispatched_provider, 120) === plannedProvider
+    && clean(safe.actual_provider, 120) === plannedProvider
+    && Boolean(clean(safe.executor_id, 160))
+  );
 
   let nextProject = projectByScope(runtime, current.scope_key);
   let budgetError = null;
   if (controlled && nextProject) {
     const accounting = actualCost > 0
-      ? settleControlledPaidStagingCost(nextProject, { reservation_id: id, actual_cost_units: actualCost })
-      : releaseControlledPaidStagingCost(nextProject, { reservation_id: id, reason: safe.ok === true ? 'ZERO_ACTUAL_COST' : 'EXECUTION_FAILED_WITHOUT_REPORTED_COST' });
+      ? settleControlledPaidStagingCost(nextProject, { reservation_id: id, execution_id: id, actual_cost_units: actualCost })
+      : releaseControlledPaidStagingCost(nextProject, { reservation_id: id, execution_id: id, reason: safe.ok === true ? 'ZERO_ACTUAL_COST' : 'EXECUTION_FAILED_WITHOUT_REPORTED_COST' });
     if (!accounting.ok) budgetError = accounting.error || 'PROJECT_BUDGET_SETTLEMENT_FAILED';
     else nextProject = accounting.project;
   }
 
-  const verified = safe.ok === true && safetyPass && !budgetError && safe.qa?.passed === true && ['LIVE_STAGING_VERIFIED','LIVE_STAGING_E2E_VERIFIED','LIVE_PROVIDER_VERIFIED','DELIVERED'].includes(clean(safe.status, 100));
+  const providerTruthError = providerTruthPass ? null : 'PROVIDER_EXECUTION_TRUTH_MISMATCH';
+  const verified = safe.ok === true && safetyPass && providerTruthPass && !budgetError && safe.qa?.passed === true && ['LIVE_STAGING_VERIFIED','LIVE_STAGING_E2E_VERIFIED','LIVE_PROVIDER_VERIFIED','DELIVERED'].includes(clean(safe.status, 100));
   const next = advance(runtime, verified ? (controlled ? 'CONTROLLED_PAID_STAGING_EXECUTION_VERIFIED' : 'LIVE_STAGING_EXECUTION_VERIFIED') : 'LIVE_STAGING_EXECUTION_FAILED', { ...options, scope_key: current.scope_key, mission_id: current.mission_id, plan_token: current.plan_token, execution_id: id });
   if (controlled && nextProject) {
     const projectIndex = projectIndexByScope(next, current.scope_key);
@@ -347,7 +361,7 @@ export function finalizeOperatorLiveStagingExecution(runtime = {}, executionId =
     updated_at: next.updated_at,
     completed_at: next.updated_at
   };
-  return { ok: verified, changed: true, runtime: next, run: clone(next.live_staging_runs[index]), error: verified ? null : budgetError || clean(safe.error, 240) || 'LIVE_STAGING_EXECUTION_NOT_VERIFIED', production_deploy: false };
+  return { ok: verified, changed: true, runtime: next, run: clone(next.live_staging_runs[index]), error: verified ? null : providerTruthError || budgetError || clean(safe.error, 240) || 'LIVE_STAGING_EXECUTION_NOT_VERIFIED', production_deploy: false };
 }
 
 export function operatorFinalizationRuntimeManifest() {
@@ -356,6 +370,7 @@ export function operatorFinalizationRuntimeManifest() {
     durable_mission_plans: true,
     durable_approval_decisions: true,
     live_staging_two_phase_reservation: true,
+    provider_execution_truth_required_for_controlled_routes: true,
     controlled_paid_staging_project_scoped: true,
     existing_cost_ledger_reused: true,
     idempotency_required: true,

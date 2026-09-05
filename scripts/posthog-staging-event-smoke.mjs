@@ -61,6 +61,8 @@ for (const scope of scopes) {
     production_deploy: false
   });
   assert.equal(result.ok, true);
+  assert.equal(result.actual_provider, 'posthog-free');
+  assert.equal(result.executor_id, 'posthog-staging-runner-v1');
   assert.equal(result.event_count, 5);
   assert.equal(result.retries_performed, 0);
   assert.equal(result.project_token_returned, false);

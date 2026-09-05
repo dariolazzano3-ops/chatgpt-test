@@ -84,6 +84,8 @@ const result = await runSupabaseStagingCrmWrite(plan, {
 });
 assert.equal(result.ok, true);
 assert.equal(result.stage, 'SUPABASE_STAGING_CRM_WRITE_VERIFIED');
+assert.equal(result.actual_provider, 'supabase-free');
+assert.equal(result.executor_id, 'supabase-staging-write-runner-v2');
 assert.equal(result.scope_key, plan.scope.scope_key);
 assert.equal(result.project_uuid, input.project_uuid);
 assert.equal(result.synthetic_test_data_only, true);

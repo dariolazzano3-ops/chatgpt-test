@@ -171,6 +171,8 @@ export async function runMakeStagingScenarioOnce(plan = {}, runtime = {}) {
     ok: true,
     schema: 'riosystems.make-staging-execution-result.v1',
     stage: 'MAKE_STAGING_EXECUTION_COMPLETE_AND_INACTIVE',
+    actual_provider: 'make-core',
+    executor_id: 'make-staging-execution-runner-v1',
     scenario_id: plan.scenario_id,
     execution_id: clean(runResult.json?.executionId, 120) || null,
     execution_status: clean(runResult.json?.status, 40) || null,

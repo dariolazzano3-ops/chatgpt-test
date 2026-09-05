@@ -74,12 +74,16 @@ let executorCalls = 0;
 let capturedContract = null;
 const executionHarness = harness(activeProject(), {
   current_runtime_verified_provider_ids: ['posthog-free'],
+  synthetic_acceptance: true,
   live_staging_executor: async (contract) => {
     executorCalls += 1;
     capturedContract = structuredClone(contract);
     return {
       ok: true,
       status: 'LIVE_PROVIDER_VERIFIED',
+      actual_provider: 'riosystems-native-web',
+      executor_id: 'web-factory-native-v1',
+      outputs: { fixture: 'native-web-safe-runner' },
       qa: { passed: true },
       synthetic_only: false,
       variable_cost_eur: 0,
@@ -115,6 +119,9 @@ assert.equal(capturedContract.project_budget_ceiling_eur, 25);
 assert.equal(capturedContract.production_authorized, false);
 assert.equal(capturedContract.external_customer_writes, false);
 assert.equal(capturedContract.public_deploy, false);
+assert.equal(capturedContract.canonical_provider_envelope.provider_route.provider_id, 'riosystems-native-web');
+assert.equal(capturedContract.canonical_provider_envelope.provider_route.capability, 'web.build');
+assert.equal(capturedContract.canonical_provider_envelope.executor_id, 'web-factory-native-v1');
 assert.equal(execute.json.project_policy.current_spend_eur, 0);
 assert.equal(execute.json.project_policy.reserved_eur, 0);
 assert.equal(execute.json.project_policy.remaining_budget_eur, 25);
@@ -126,6 +133,10 @@ assert.equal(snapshot.runtime.live_staging_runs.length, 1);
 assert.equal(snapshot.runtime.live_staging_runs[0].controlled_paid_staging, true);
 assert.equal(snapshot.runtime.live_staging_runs[0].status, 'LIVE_STAGING_VERIFIED');
 assert.equal(snapshot.runtime.live_staging_runs[0].variable_cost_eur, 0);
+assert.equal(snapshot.runtime.live_staging_runs[0].evidence.planned_provider, 'riosystems-native-web');
+assert.equal(snapshot.runtime.live_staging_runs[0].evidence.dispatched_provider, 'riosystems-native-web');
+assert.equal(snapshot.runtime.live_staging_runs[0].evidence.actual_provider, 'riosystems-native-web');
+assert.equal(snapshot.runtime.live_staging_runs[0].evidence.executor_id, 'web-factory-native-v1');
 
 console.log(JSON.stringify({
   ok: true,
