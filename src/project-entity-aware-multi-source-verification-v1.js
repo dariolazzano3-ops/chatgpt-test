@@ -111,7 +111,7 @@ function firstBusinessName(importResult = {}, input = {}) {
 }
 
 function extractLegalEntities(text = '', businessName = '') {
-  const matches = [...clean(text, 120_000).matchAll(/\b([A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9&.'\- ]{1,90}?(?:GmbH|UG\s*\(haftungsbeschränkt\)|GbR|AG|OHG|KG|e\.K\.))\b/g)]
+  const matches = [...clean(text, 120_000).matchAll(/\b([A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9&.'\- ]{1,90}?(?:GmbH|UG\s*\(haftungsbeschränkt\)|GbR|AG|OHG|KG|e\.K\.))/g)]
     .map((match) => clean(match[1], 180));
   const businessTokens = normalizeText(businessName).split(' ').filter((token) => token.length > 2);
   const filtered = matches.filter((value) => !businessTokens.length || businessTokens.some((token) => normalizeText(value).includes(token)));
