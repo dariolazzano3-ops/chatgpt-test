@@ -206,14 +206,19 @@ const submitted = await handleOperatorAiCanonicalExecutionRequest(
   }
 );
 assert.equal(submitted.ok, true);
-assert.equal(submitted.status, 'IN_PROGRESS');
+assert.equal(submitted.status, 'COMPLETED');
 assert.equal(submitted.execution.started, true);
 assert.equal(submitted.execution.backbone, 'mission-execution-router.executeReadyMissionTasks');
 assert.equal(submitted.canonical_execution_result.executed_count, 1);
-assert.equal(submitted.canonical_execution_result.pending_external_tasks.length, 1);
-assert.equal(submitted.result_interpretation.status, 'IN_PROGRESS');
+assert.equal(submitted.canonical_execution_result.pending_external_tasks.length, 0);
+assert.equal(submitted.canonical_execution_result.results[0].execution_mode, 'canonical_provider_route');
+assert.equal(submitted.canonical_execution_result.results[0].provider_truth.planned_provider, 'riosystems-native-web');
+assert.equal(submitted.canonical_execution_result.results[0].provider_truth.dispatched_provider, 'riosystems-native-web');
+assert.equal(submitted.canonical_execution_result.results[0].provider_truth.actual_provider, 'riosystems-native-web');
+assert.equal(submitted.canonical_execution_result.results[0].provider_truth.executor_id, 'web-factory-native-v1');
+assert.equal(submitted.result_interpretation.status, 'COMPLETED');
 assert.equal(submitted.result_interpretation.canonical_execution, true);
-assert.equal(submitted.result_interpretation.pending_external_tasks.length, 1);
+assert.equal(submitted.result_interpretation.pending_external_tasks.length, 0);
 assert.equal(submitted.production_deploy, false);
 assert.equal(submitted.external_writes, false);
 
@@ -243,6 +248,7 @@ assert.equal(serviceManifest.second_state_system, false);
 assert.equal(serviceManifest.canonical_mission_compiler, 'mission-compiler.compileMissionPackage');
 assert.equal(serviceManifest.canonical_runtime_binding, 'runtime-control-plane.evaluateMissionRuntime');
 assert.equal(serviceManifest.canonical_execution_backbone, 'mission-execution-router.executeReadyMissionTasks');
+assert.equal(serviceManifest.canonical_provider_executor, 'execution-adapters.executeCanonicalProviderRoute');
 
 const interpreterManifest = operatorAiResultInterpreterManifest();
 assert.equal(interpreterManifest.canonical_in_progress_distinct_from_success, true);
