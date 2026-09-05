@@ -10,6 +10,8 @@ export const PROJECT_KNOWLEDGE_REVIEW_SECTIONS = Object.freeze([
   { id: 'OPENING_HOURS', label: 'Öffnungszeiten' },
   { id: 'BRAND', label: 'Marke & Gestaltung' },
   { id: 'WEBSITE', label: 'Website-Ziele' },
+  { id: 'OPEN_QUESTIONS', label: 'Offene Fragen' },
+  { id: 'CONFLICTS', label: 'Widersprüchliche Angaben' },
   { id: 'VISUALS', label: 'Bilder & Medien' },
   { id: 'LEGAL', label: 'Rechtliches' },
   { id: 'OTHER', label: 'Weitere Informationen' }
@@ -29,6 +31,7 @@ function validState(state = {}) {
 
 function sectionForFact(path = '') {
   const p = clean(path, 320).toLowerCase();
+  if (/^(question|questions|open_question|open_questions|missing|unknown)\./.test(p)) return 'OPEN_QUESTIONS';
   if (/^(business\.(name|identity|industry|model)|company\.)/.test(p)) return 'COMPANY';
   if (/(price|pricing|preise)/.test(p)) return 'PRICING';
   if (/(opening_hours|opening\.hours|hours)/.test(p)) return 'OPENING_HOURS';
@@ -81,7 +84,7 @@ function deterministicItems(state = {}) {
     items.push({
       type: 'FACT',
       id: fact.fact_id,
-      section_id: sectionForFact(fact.field_path),
+      section_id: fact.verification_status === 'SOURCE_CONFLICT' ? 'CONFLICTS' : sectionForFact(fact.field_path),
       label: factLabel(fact.field_path),
       field_path: fact.field_path,
       value: clone(fact.value),
@@ -140,16 +143,19 @@ function normalizeSections(state = {}, proposed = null) {
       const key = itemKey(type, targetId);
       if (!byKey.has(key) || assigned.has(key)) continue;
       const base = byKey.get(key);
-      refs.push({ ...base, section_id: id });
+      const effectiveId = base.type === 'FACT' && base.verification_status === 'SOURCE_CONFLICT' ? 'CONFLICTS' : id;
+      let section = sections.find((item) => item.id === effectiveId);
+      if (!section) {
+        const def = PROJECT_KNOWLEDGE_REVIEW_SECTIONS.find((item) => item.id === effectiveId);
+        section = { id: effectiveId, label: def?.label || effectiveId, summary: effectiveId === id ? (clean(raw.summary, 700) || null) : null, items: [] };
+        sections.push(section);
+      }
+      section.items.push({ ...base, section_id: effectiveId });
       assigned.add(key);
     }
     if (refs.length) {
-      sections.push({
-        id,
-        label: PROJECT_KNOWLEDGE_REVIEW_SECTIONS.find((item) => item.id === id)?.label || id,
-        summary: clean(raw.summary, 700) || null,
-        items: refs
-      });
+      const section = sections.find((item) => item.id === id);
+      if (section && !section.summary) section.summary = clean(raw.summary, 700) || null;
     }
   }
 
@@ -421,6 +427,7 @@ export function buildProjectKnowledgeReviewView(state = {}) {
       { id: 'APPROVE', label: '4. Für Nutzung freigeben', complete: review?.status === 'APPROVED' }
     ],
     sections,
+    available_sections: clone(PROJECT_KNOWLEDGE_REVIEW_SECTIONS),
     source_count: deterministic.source_count,
     fact_count: deterministic.fact_count,
     asset_count: deterministic.asset_count,
