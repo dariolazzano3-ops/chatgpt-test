@@ -138,7 +138,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/")) {
+    if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/") || url.pathname.startsWith("/operator/project-preview/")) {
       let runtimeService = null;
       try {
         runtimeService = getDurableOperatorRuntimeService(env);
