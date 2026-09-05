@@ -35,7 +35,7 @@ export const PROJECT_IMAGE_VISION_EXTRACTION_SCHEMA = Object.freeze({
   additionalProperties: false,
   required: ['summary', 'facts'],
   properties: {
-    summary: { type: 'string', maxLength: 1200 },
+    summary: { type: 'string' },
     facts: {
       type: 'array',
       maxItems: 24,
@@ -45,8 +45,8 @@ export const PROJECT_IMAGE_VISION_EXTRACTION_SCHEMA = Object.freeze({
         required: ['field_path', 'value', 'confidence'],
         properties: {
           field_path: { type: 'string', enum: [...FIELD_PATHS] },
-          value: { type: 'string', minLength: 1, maxLength: 5000 },
-          confidence: { type: 'number', minimum: 0, maximum: 1 }
+          value: { type: 'string' },
+          confidence: { type: 'number' }
         }
       }
     }
