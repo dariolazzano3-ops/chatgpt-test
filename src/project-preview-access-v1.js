@@ -1,7 +1,9 @@
+import { GENERATED_PROJECT_PREVIEW_REGISTRY_V1 } from './generated-project-preview-registry-v1.js';
+
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 
-export const PROJECT_PREVIEW_ACCESS_SCHEMA = 'aurentara.project-preview-access.v2';
+export const PROJECT_PREVIEW_ACCESS_SCHEMA = 'aurentara.project-preview-access.v3';
 
 function safeHttpsUrl(value = '') {
   const raw = clean(value, 2000);
@@ -154,6 +156,52 @@ export function projectPreviewDirectoryCandidates(payload = {}, options = {}) {
   return [...set].slice(0, 10);
 }
 
+function registryMatchKeys(payload = {}, options = {}) {
+  const project = payload?.project || {};
+  const scopeKey = clean(options.scope_key || project.scope_key || payload.scope_key, 640);
+  const customerId = safeProjectToken(project.customer_id);
+  const scopeProjectId = customerId && scopeKey.startsWith(customerId + ':')
+    ? safeProjectToken(scopeKey.slice(customerId.length + 1))
+    : null;
+  const directories = projectPreviewDirectoryCandidates(payload, options)
+    .map((value) => value.replace(/^projects\//, ''))
+    .filter(Boolean);
+  return {
+    scope_key: scopeKey,
+    project_ids: new Set([
+      scopeProjectId,
+      safeProjectToken(project.project_id),
+      safeProjectToken(project.project_slug),
+      safeProjectToken(payload?.results?.delivery?.project_slug)
+    ].filter(Boolean)),
+    directories: new Set(directories)
+  };
+}
+
+export function bundledProjectPreviewArtifact(payload = {}, options = {}) {
+  const keys = registryMatchKeys(payload, options);
+  for (const entry of GENERATED_PROJECT_PREVIEW_REGISTRY_V1 || []) {
+    if (!entry || typeof entry !== 'object' || !clean(entry.html, 2_000_000)) continue;
+    const exactScope = entry.scope_key && keys.scope_key && entry.scope_key === keys.scope_key;
+    const projectIdMatch = entry.project_id && keys.project_ids.has(entry.project_id);
+    const directoryMatch = keys.directories.has(entry.project_dir) || keys.directories.has(entry.registry_key);
+    if (!exactScope && !projectIdMatch && !directoryMatch) continue;
+    return {
+      registry_key: clean(entry.registry_key, 320),
+      project_dir: clean(entry.project_dir, 320),
+      project_id: clean(entry.project_id, 320) || null,
+      customer_id: clean(entry.customer_id, 320) || null,
+      scope_key: clean(entry.scope_key, 640) || null,
+      name: clean(entry.name, 320) || null,
+      source_path: safeRepoPath(entry.source_path),
+      media_type: clean(entry.media_type, 120) || 'text/html; charset=utf-8',
+      styles_inlined: Math.max(0, Number(entry.styles_inlined || 0)),
+      html: String(entry.html)
+    };
+  }
+  return null;
+}
+
 export function runtimeProjectPreviewArtifact(runtime = {}, scopeKey = '') {
   const key = clean(scopeKey, 640);
   const hit = runtimeHtmlArtifact(runtime, key);
@@ -231,24 +279,24 @@ export function resolveProjectPreviewAccess(payload = {}, options = {}) {
   }
 
   const deployedSha = clean(options.deployed_sha, 80).toLowerCase();
-  const canonicalSourcePath = safeRepoPath(options.canonical_source_path || '');
-  if (canonicalSourcePath && /^[0-9a-f]{40}$/.test(deployedSha)) {
+  const bundledArtifact = bundledProjectPreviewArtifact(payload, { ...options, scope_key: scopeKey });
+  if (bundledArtifact) {
     return {
       schema: PROJECT_PREVIEW_ACCESS_SCHEMA,
       project_id: projectId,
       scope_key: scopeKey,
       status: 'AVAILABLE',
       available: true,
-      access_kind: 'CANONICAL_ARTIFACT_PROXY',
-      provider: 'CANONICAL_PROJECT_ARTIFACT',
+      access_kind: 'BUNDLED_CANONICAL_PROJECT_ARTIFACT',
+      provider: 'RIOSYSTEMS_BUILD_TIME_PROJECT_PREVIEW',
       operator_route: '/operator/project-preview/' + encodeURIComponent(scopeKey),
       preview_url: null,
-      preview_id: scopeKey + ':canonical-preview:' + deployedSha.slice(0, 12),
-      source_revision: deployedSha,
-      source_path: canonicalSourcePath,
-      media_type: 'text/html; charset=utf-8',
-      label: project.name ? project.name + ' Project Preview' : 'Project Preview',
-      exact_head_bound: true,
+      preview_id: scopeKey + ':bundled-preview:' + (bundledArtifact.registry_key || 'project'),
+      source_revision: /^[0-9a-f]{40}$/.test(deployedSha) ? deployedSha : null,
+      source_path: bundledArtifact.source_path,
+      bundle_key: bundledArtifact.registry_key,
+      styles_inlined: bundledArtifact.styles_inlined,
+      exact_head_bound: /^[0-9a-f]{40}$/.test(deployedSha),
       private_access_verified: true,
       qa_passed: null,
       human_outcome_accepted: null,
@@ -274,19 +322,11 @@ export function resolveProjectPreviewAccess(payload = {}, options = {}) {
     source_path: null,
     exact_head_bound: false,
     discovery_candidates: directories,
-    reason: directories.length ? 'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_OR_REGISTERED' : 'NO_PROJECT_PREVIEW_SOURCE_YET',
+    reason: directories.length ? 'PROJECT_PREVIEW_ARTIFACT_NOT_MATERIALIZED_IN_BUILD' : 'NO_PROJECT_PREVIEW_SOURCE_YET',
     project_scoped: true,
     production_deploy: false,
     public_launch: false
   };
-}
-
-export function canonicalPreviewRawUrl(access = {}, repositoryFullName = 'dariolazzano3-ops/chatgpt-test') {
-  if (access?.access_kind !== 'CANONICAL_ARTIFACT_PROXY') return null;
-  if (!/^[0-9a-f]{40}$/.test(clean(access.source_revision, 80))) return null;
-  const path = safeRepoPath(access.source_path);
-  if (!path) return null;
-  return 'https://raw.githubusercontent.com/' + repositoryFullName + '/' + access.source_revision + '/' + path.split('/').map(encodeURIComponent).join('/');
 }
 
 export function projectPreviewAccessManifest() {
@@ -298,8 +338,10 @@ export function projectPreviewAccessManifest() {
     existing_preview_urls_reused: true,
     existing_customer_review_preview_reused: true,
     runtime_web_factory_artifacts_reused: true,
-    canonical_project_artifacts_discovered_generically: true,
-    canonical_artifact_exact_deployed_sha_required: true,
+    build_time_project_artifact_registry: true,
+    runtime_github_discovery_required: false,
+    generated_registry_project_specific_exceptions: false,
+    local_stylesheets_inlined_at_build: true,
     project_scope_required: true,
     scope_key_project_identity_reused: true,
     no_new_preview_engine: true,
