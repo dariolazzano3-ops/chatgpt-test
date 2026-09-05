@@ -16,6 +16,7 @@ on:
       - 'src/operator-project-intake-ux-v2.js'
       - 'src/entry.js'
       - 'scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs'
+      - 'scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs'
       - '.github/workflows/project-ferrari-intelligent-project-intake-ux-workflow-v2.yml'
   pull_request:
     branches: [factory-control]
@@ -64,6 +65,7 @@ jobs:
           node --check src/operator-project-intake-ux-v2.js
           node --check src/entry.js
           node --check scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
+          node --check scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs
 
       - name: Intelligent Project Intake UX and Workflow V2 acceptance
         run: node scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
@@ -97,6 +99,9 @@ jobs:
 
       - name: Install Chromium for Desktop and Mobile regressions
         run: npx playwright install --with-deps chromium
+
+      - name: Intelligent Intake V2 browser acceptance
+        run: node scripts/project-ferrari-intelligent-project-intake-ux-v2-browser.mjs
 
       - name: Existing Source Intake Desktop and Mobile regression
         run: node scripts/project-source-human-ux-browser-v1.mjs
