@@ -128,7 +128,8 @@ function normalizeSections(state = {}, proposed = null) {
     const id = clean(raw.id, 80).toUpperCase();
     if (!SECTION_IDS.has(id)) continue;
     const refs = [];
-    const proposedRefs = Array.isArray(raw.item_refs) ? raw.item_refs : (Array.isArray(raw.items) ? raw.items : []);\n    for (const ref of proposedRefs) {
+    const proposedRefs = Array.isArray(raw.item_refs) ? raw.item_refs : (Array.isArray(raw.items) ? raw.items : []);
+    for (const ref of proposedRefs) {
       const type = clean(ref.type, 40).toUpperCase();
       const targetId = clean(ref.id, 240);
       const key = itemKey(type, targetId);
