@@ -9,6 +9,127 @@ const ADAPTERS = Object.freeze({
 });
 
 export function listExecutionAdapters() { return Object.values(ADAPTERS).map((adapter) => ({ ...adapter, accepts: [...adapter.accepts] })); }
+
+export function canonicalProviderExecutorDescriptor(providerId) {
+  switch (clean(providerId, 120)) {
+    case 'riosystems-native-web':
+      return { provider_id: 'riosystems-native-web', executor_id: 'web-factory-native-v1', accepted_capabilities: ['web.build'], environment: 'staging', production_eligible: false };
+    case 'cloudflare-workers-free':
+      return { provider_id: 'cloudflare-workers-free', executor_id: 'cloudflare-staging-preview-v1', accepted_capabilities: ['web.deploy'], environment: 'staging', production_eligible: false };
+    case 'openai-api':
+      return { provider_id: 'openai-api', executor_id: 'openai-api-adapter-v1', accepted_capabilities: ['ai.generate','ai.analyze','ai.classify','ai.extract'], environment: 'staging', production_eligible: false };
+    case 'make-core':
+      return { provider_id: 'make-core', executor_id: 'make-staging-execution-runner-v1', accepted_capabilities: ['automation.run'], environment: 'staging', production_eligible: false };
+    case 'supabase-free':
+      return { provider_id: 'supabase-free', executor_id: 'supabase-staging-write-runner-v2', accepted_capabilities: ['business.configure','business.crm.write','storage.data'], environment: 'staging', production_eligible: false };
+    case 'posthog-free':
+      return { provider_id: 'posthog-free', executor_id: 'posthog-staging-runner-v1', accepted_capabilities: ['web.analytics','business.analytics'], environment: 'staging', production_eligible: false };
+    default:
+      return null;
+  }
+}
+
+export function validateProviderExecutionTruth(envelope = {}, result = {}) {
+  const plannedProvider = clean(envelope.provider_route?.provider_id, 120);
+  const dispatchedProvider = clean(result.dispatched_provider, 120);
+  const actualProvider = clean(result.actual_provider, 120);
+  const executorId = clean(result.executor_id, 160);
+  if (!plannedProvider) return { ok: false, error: 'PROVIDER_ROUTE_REQUIRED' };
+  const descriptor = canonicalProviderExecutorDescriptor(plannedProvider);
+  if (!descriptor) return { ok: false, error: 'PROVIDER_EXECUTOR_NOT_AVAILABLE', planned_provider: plannedProvider };
+  if (!dispatchedProvider || !actualProvider || !executorId || dispatchedProvider !== plannedProvider || actualProvider !== plannedProvider) {
+    return {
+      ok: false,
+      error: 'PROVIDER_EXECUTION_TRUTH_MISMATCH',
+      planned_provider: plannedProvider,
+      dispatched_provider: dispatchedProvider || null,
+      actual_provider: actualProvider || null,
+      executor_id: executorId || null
+    };
+  }
+  const expectedExecutor = clean(envelope.executor_id, 160) || descriptor.executor_id;
+  if (executorId !== expectedExecutor) {
+    return {
+      ok: false,
+      error: 'PROVIDER_EXECUTOR_ID_MISMATCH',
+      planned_provider: plannedProvider,
+      actual_provider: actualProvider,
+      expected_executor_id: expectedExecutor,
+      actual_executor_id: executorId
+    };
+  }
+  return {
+    ok: true,
+    planned_provider: plannedProvider,
+    dispatched_provider: dispatchedProvider,
+    actual_provider: actualProvider,
+    executor_id: executorId
+  };
+}
+
+export async function executeCanonicalProviderRoute(envelope = {}, runtime = {}) {
+  if (!envelope?.ok) return { ok: false, error: 'INVALID_DISPATCH_ENVELOPE' };
+  if (envelope.provider_execution_version !== 'riosystems.provider-execution.v1') return { ok: false, error: 'PROVIDER_EXECUTION_VERSION_UNSUPPORTED' };
+  if (envelope.environment !== 'staging' || envelope.production_policy !== 'PRODUCTION_DISABLED' || envelope.execution?.production_deploy === true) {
+    return { ok: false, error: 'PROVIDER_EXECUTION_ENVIRONMENT_REJECTED' };
+  }
+  const plannedProvider = clean(envelope.provider_route?.provider_id, 120);
+  const descriptor = canonicalProviderExecutorDescriptor(plannedProvider);
+  if (!descriptor) return { ok: false, error: 'PROVIDER_EXECUTOR_NOT_AVAILABLE', planned_provider: plannedProvider || null };
+  const routeCapability = clean(envelope.provider_route?.capability || envelope.capability, 120);
+  if (!descriptor.accepted_capabilities.includes(routeCapability)) {
+    return { ok: false, error: 'PROVIDER_CAPABILITY_NOT_ACCEPTED', provider_id: plannedProvider, capability: routeCapability };
+  }
+  const verified = new Set(Array.isArray(runtime.current_runtime_verified_provider_ids) ? runtime.current_runtime_verified_provider_ids : []);
+  if (!verified.has(plannedProvider)) {
+    return { ok: false, error: 'PROVIDER_NOT_EXECUTION_READY', provider_id: plannedProvider };
+  }
+  const executor = runtime.executors && typeof runtime.executors[plannedProvider] === 'function' ? runtime.executors[plannedProvider] : null;
+  if (!executor) return { ok: false, error: 'PROVIDER_EXECUTOR_NOT_CONFIGURED', provider_id: plannedProvider, executor_id: descriptor.executor_id };
+  let raw;
+  try {
+    raw = await executor({ envelope, descriptor, provider_id: plannedProvider, capability: routeCapability });
+  } catch (error) {
+    return { ok: false, error: 'PROVIDER_EXECUTOR_THROWN', provider_id: plannedProvider, message: clean(error?.message, 300) || null };
+  }
+  const status = raw?.status === 'FAILED' || raw?.ok === false ? 'FAILED' : 'COMPLETED';
+  const adapterResult = status === 'COMPLETED'
+    ? {
+        status,
+        outputs: raw?.outputs && typeof raw.outputs === 'object' && !Array.isArray(raw.outputs) ? raw.outputs : { provider_result: raw ?? null },
+        dispatched_provider: plannedProvider,
+        actual_provider: clean(raw?.actual_provider, 120) || null,
+        executor_id: clean(raw?.executor_id, 160) || null,
+        external_job_id: clean(raw?.external_job_id || raw?.execution_id, 200) || null,
+        production_deploy: raw?.production_deploy === true
+      }
+    : {
+        status,
+        error: raw?.error && typeof raw.error === 'object' && !Array.isArray(raw.error)
+          ? raw.error
+          : { code: clean(raw?.error, 160) || 'PROVIDER_EXECUTION_FAILED', message: clean(raw?.message, 500) || null, retryable: raw?.retryable === true },
+        dispatched_provider: plannedProvider,
+        actual_provider: clean(raw?.actual_provider, 120) || null,
+        executor_id: clean(raw?.executor_id, 160) || null,
+        external_job_id: clean(raw?.external_job_id || raw?.execution_id, 200) || null,
+        production_deploy: raw?.production_deploy === true
+      };
+  const validated = validateAdapterResult(envelope, adapterResult);
+  if (!validated.ok) return { ...validated, raw_result: raw ?? null };
+  return {
+    ok: true,
+    status: validated.result.status,
+    result: validated.result,
+    provider_truth: {
+      planned_provider: validated.result.planned_provider,
+      dispatched_provider: validated.result.dispatched_provider,
+      actual_provider: validated.result.actual_provider,
+      executor_id: validated.result.executor_id
+    },
+    raw_result: raw ?? null,
+    production_deploy: false
+  };
+}
 export function resolveExecutionAdapter(contract = {}) {
   const domain = clean(contract.domain, 80).toLowerCase();
   const legacyEngine = clean(contract.engine, 80).toLowerCase();
@@ -81,5 +202,23 @@ export function validateAdapterResult(envelope = {}, result = {}) {
   if (!["COMPLETED", "FAILED"].includes(result.status)) return { ok: false, error: "INVALID_ADAPTER_RESULT_STATUS" };
   if (result.status === "COMPLETED" && (!result.outputs || typeof result.outputs !== "object" || Array.isArray(result.outputs))) return { ok: false, error: "ADAPTER_OUTPUTS_REQUIRED" };
   if (result.status === "FAILED" && (!result.error || typeof result.error !== "object" || Array.isArray(result.error))) return { ok: false, error: "ADAPTER_ERROR_REQUIRED" };
-  return { ok: true, result: { status: result.status, outputs: result.outputs || {}, error: result.error || null, external_job_id: clean(result.external_job_id, 200) || null, production_deploy: false } };
+  let providerTruth = null;
+  if (envelope.provider_route?.provider_id) {
+    providerTruth = validateProviderExecutionTruth(envelope, result);
+    if (!providerTruth.ok) return providerTruth;
+  }
+  return {
+    ok: true,
+    result: {
+      status: result.status,
+      outputs: result.outputs || {},
+      error: result.error || null,
+      external_job_id: clean(result.external_job_id, 200) || null,
+      planned_provider: providerTruth?.planned_provider || null,
+      dispatched_provider: providerTruth?.dispatched_provider || null,
+      actual_provider: providerTruth?.actual_provider || null,
+      executor_id: providerTruth?.executor_id || null,
+      production_deploy: false
+    }
+  };
 }
