@@ -3,7 +3,7 @@
   "name": "jarvis-private-staging",
   "main": "src/jarvis/standalone-worker-v1.js",
   "compatibility_date": "2026-08-25",
-  "workers_dev": true,
+  "workers_dev": false,
   "keep_vars": true,
   "vars": {
     "JARVIS_ENVIRONMENT": "private-staging",
@@ -15,7 +15,8 @@
     "JARVIS_PUBLIC_ACCESS": "false",
     "JARVIS_EXTERNAL_WRITES": "false",
     "JARVIS_CALENDAR_WRITE": "false",
-    "JARVIS_FINANCIAL_ACTIONS": "false"
+    "JARVIS_FINANCIAL_ACTIONS": "false",
+    "JARVIS_HOST_MODE": "NEUTRAL_CUSTOM_HOST_REQUIRED"
   },
   "access": {
     "dev": {

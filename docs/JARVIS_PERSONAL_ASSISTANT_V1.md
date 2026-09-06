@@ -55,13 +55,16 @@ The persistence domain provides:
 - temporal memory fields
 - secret/credential sensitivity states excluded from persistence
 
-The migration is applied to the private `riosystems-core` Supabase environment for JARVIS staging acceptance. Production deployment remains OFF.
+The original migration was exercised in a shared technical staging environment only as acceptance evidence. That environment is not an allowed persistent data plane for the standalone JARVIS architecture.
 
-Two store paths exist:
-- `memory-store-supabase-v1.js`: server-side service-role adapter for controlled internal use
-- `memory-store-supabase-user-v1.js`: preferred personal runtime adapter using authenticated-user JWT + Supabase RLS
+Target state:
+- physically separate JARVIS Supabase project
+- separate database credentials
+- separate OAuth vault
+- no AURENTARA/RIOSYSTEMS application binding into JARVIS persistence
+- no automatic reverse connector
 
-The user-scoped adapter never persists the user access token and requires RLS owner scope.
+The current standalone Worker remains unbound to any shared Supabase project until the isolated JARVIS project exists.
 
 ## JARVIS Runtime V1
 
@@ -278,16 +281,30 @@ Its initial data plane is `EPHEMERAL_UNTIL_ISOLATED`. The existing JARVIS test s
 The next isolation milestone is a physically separate JARVIS persistence project. Only after that data plane exists should durable personal memory and Google OAuth be activated on the standalone host.
 
 
-## Dedicated Cloudflare Access V1
+## Neutral Host Isolation V1
 
-The standalone JARVIS workers.dev host receives its own Cloudflare Access application. It does not reuse the AURENTARA /operator application audience.
+The inherited account-level workers.dev hostname has been disabled for JARVIS and is not an allowed future JARVIS endpoint.
 
-Bootstrap rules:
-- target only `jarvis-private-staging.gelato-donatello-dario-a5a5376c.workers.dev`
-- derive the single human operator identity from the existing private operator Access policy
-- reject bypass, everyone, login-method, email-domain, multi-email, or otherwise broad rules
-- create exactly one JARVIS allow policy for that single operator identity
-- write only `JARVIS_OPERATOR_EMAIL` and `JARVIS_ACCESS_AUD` to the JARVIS Worker
-- do not modify an AURENTARA route
-- do not bind shared memory or Google credentials during this step
-- verify an unauthenticated request cannot receive the JARVIS Command Center
+Current policy:
+- `workers_dev = false`
+- no active public or private hostname until a neutral JARVIS host is selected
+- JARVIS hostnames containing legacy business, AURENTARA, RIOSYSTEMS, or HAMYREN naming are rejected
+- AURENTARA routes are not modified
+- no shared application runtime
+- Production OFF
+- Public OFF
+
+The next host activation must use a neutral JARVIS-specific hostname and a dedicated Access application. The prior inherited workers.dev endpoint is historical evidence only and is not part of the current architecture.
+
+## Physical Isolation Next Gate
+
+A standalone persistent JARVIS data plane requires a new Supabase project. Project creation is intentionally approval-gated because Supabase requires an explicit organization choice and cost confirmation.
+
+The standalone JARVIS source package is ready for that project:
+- personal memory migration
+- private RPC gateway
+- encrypted OAuth vault
+- owner isolation
+- audit persistence
+- no HAMYREN data flow
+- no AURENTARA reverse access

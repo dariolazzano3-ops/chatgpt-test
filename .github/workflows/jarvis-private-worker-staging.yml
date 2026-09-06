@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: 'Exact confirmation for private JARVIS workers.dev staging deploy'
+        description: 'Exact confirmation for isolated JARVIS worker package validation'
         required: true
         type: string
 
@@ -103,6 +103,8 @@ jobs:
           grep -q '"JARVIS_PUBLIC_ACCESS": "false"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_PRODUCTION_DEPLOY": "false"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_DATA_PLANE": "EPHEMERAL_UNTIL_ISOLATED"' wrangler.jarvis-private.jsonc
-      - name: Deploy standalone fail-closed JARVIS worker
+      - name: Block deploy until neutral host is explicitly activated
         run: |
-          npx wrangler deploy --config wrangler.jarvis-private.jsonc --tag "${{ needs.authorize.outputs.source_sha }}"
+          set -euo pipefail
+          echo "JARVIS worker package validated. workers.dev is disabled and no neutral custom host is activated."
+          test "$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-private.jsonc','utf8'));process.stdout.write(String(c.workers_dev))")" = "false"
