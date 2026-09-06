@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { captureDomMeasurements, evaluateDomMeasurementIntegrity } from '../src/visual-foundry/dom-measurement.js';
+import { createStencilContract, installReferenceStencil, setStencilMode, removeReferenceStencil } from '../src/visual-foundry/stencil-mode.js';
+import { deriveResponsiveConstraintSet, evaluateCalibrationAnchor } from '../src/visual-foundry/constraint-solver.js';
+import { createSoftRegionLockSet, evaluateSoftLockCandidate, finalizeSoftRegionLocks } from '../src/visual-foundry/soft-region-locks.js';
+import { rankVisualDeltas } from '../src/visual-foundry/visual-priority.js';
+import { evaluateSemanticImplementation } from '../src/visual-foundry/semantic-gate.js';
 
 const runNumber=Number(process.env.GOLD_STANDARD_RUN||1);
 assert.ok([1,2,3].includes(runNumber),'GOLD_STANDARD_RUN must be 1, 2 or 3');
@@ -14,12 +21,16 @@ await mkdir(outDir,{recursive:true});
 const fixture=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-gold-standard-fixture-v1.json','utf8'));
 const referenceSpec=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-spec-v1.json','utf8'));
 const referenceRegistration=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-v1-0.json','utf8'));
+const stencilSession=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-stencil-constraint-session-v1.json','utf8'));
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
 assert.equal(fixture.production_allowed,false);
 assert.equal(referenceSpec.reference_id,referenceRegistration.reference.reference_id);
 assert.equal(referenceRegistration.hash_match,true);
+assert.equal(stencilSession.reference_id,referenceRegistration.reference.reference_id);
+assert.equal(stencilSession.reference_hash,referenceRegistration.reference.hash);
+assert.equal(stencilSession.stencil.fallback_reference_allowed,false);
 
 const child=spawn(process.execPath,[
   'node_modules/wrangler/bin/wrangler.js','dev','--env','staging','--port',String(port),
@@ -54,6 +65,42 @@ function runtimeFingerprint(snapshot={}){
     production_deploy:runtime.production_deploy??snapshot.production_deploy??null,
     external_writes:runtime.external_writes??snapshot.external_writes??null
   };
+}
+
+const sha256=buffer=>crypto.createHash('sha256').update(buffer).digest('hex');
+
+async function resolveVerifiedStencilSource(raw,expectedHash){
+  const source=String(raw||'').trim();
+  if(!source)return {status:'STENCIL_SOURCE_EXTERNAL_NOT_MOUNTED',source:null};
+  let bytes,mime;
+  if(source.startsWith('data:')){
+    const match=source.match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+    if(!match)throw new Error('STENCIL_DATA_URL_INVALID');
+    mime=match[1]||'application/octet-stream';
+    bytes=match[2]?Buffer.from(match[3],'base64'):Buffer.from(decodeURIComponent(match[3]));
+  }else{
+    const filePath=source.startsWith('file:')?new URL(source):path.resolve(source);
+    bytes=await readFile(filePath);
+    const ext=String(source).toLowerCase();
+    mime=ext.endsWith('.png')?'image/png':ext.endsWith('.webp')?'image/webp':'image/jpeg';
+  }
+  const actualHash=sha256(bytes);
+  if(actualHash!==expectedHash)throw new Error('STENCIL_REFERENCE_HASH_MISMATCH');
+  return {status:'VERIFIED',source:'data:'+mime+';base64,'+bytes.toString('base64'),actual_hash:actualHash,bytes:bytes.length,mime};
+}
+
+function geometryBounds(snapshot,id){
+  const item=(snapshot.components||[]).find(x=>x.component_id===id&&x.status==='MEASURED');
+  if(!item)return null;
+  const g=item.geometry;
+  return {x:Number(g.x),y:Number(g.y),width:Number(g.width),height:Number(g.height)};
+}
+function unionBounds(snapshot,ids){
+  const list=ids.map(id=>geometryBounds(snapshot,id)).filter(Boolean);
+  if(!list.length)return null;
+  const x=Math.min(...list.map(x=>x.x)),y=Math.min(...list.map(x=>x.y));
+  const right=Math.max(...list.map(x=>x.x+x.width)),bottom=Math.max(...list.map(x=>x.y+x.height));
+  return {x,y,width:right-x,height:bottom-y};
 }
 
 let browser;
@@ -175,7 +222,7 @@ try{
     }
 
     const ids=[
-      ['sidebar','.side'],['toolbar','.rf-toolbar'],['hero','.rf-hero'],
+      ['sidebar','.side'],['primary_navigation','.rf-hq-nav-main'],['toolbar','.rf-toolbar'],['hero','.rf-hero'],
       ['kpi_active_projects','.rf-kpi:nth-of-type(1)'],['kpi_open_inputs','.rf-kpi:nth-of-type(2)'],
       ['kpi_approvals','.rf-kpi:nth-of-type(3)'],['kpi_preview','.rf-kpi:nth-of-type(4)'],
       ['attention_panel','.rf-attention-anchor'],['operator_ai_panel','.rf-grid-mid > .rf-panel:nth-child(2)'],
@@ -191,13 +238,104 @@ try{
   await page.waitForTimeout(120);
 
   const componentIds=[
-    'sidebar','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
+    'sidebar','primary_navigation','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
     'attention_panel','operator_ai_panel','portfolio_panel','new_project_cta','system_status_panel','cost_panel',
     'activity_panel','milestone_card','decisions_card'
   ];
   const geometry=await captureDomMeasurements(page,{component_ids:componentIds});
   const geometryIntegrity=evaluateDomMeasurementIntegrity(geometry);
   assert.equal(geometryIntegrity.status,'PASS');
+
+  const actualConstraintRegions=[
+    {id:'sidebar',bounds:geometryBounds(geometry,'sidebar')},
+    {id:'primary_navigation',bounds:geometryBounds(geometry,'primary_navigation')},
+    {id:'toolbar',bounds:geometryBounds(geometry,'toolbar')},
+    {id:'hero',bounds:geometryBounds(geometry,'hero')},
+    {id:'kpi_band',bounds:unionBounds(geometry,['kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview'])},
+    {id:'attention_panel',bounds:geometryBounds(geometry,'attention_panel')},
+    {id:'operator_ai_panel',bounds:geometryBounds(geometry,'operator_ai_panel')},
+    {id:'portfolio',bounds:geometryBounds(geometry,'portfolio_panel')},
+    {id:'right_rail',bounds:unionBounds(geometry,['system_status_panel','cost_panel','activity_panel'])},
+    {id:'right_status_stack',bounds:unionBounds(geometry,['system_status_panel','cost_panel'])},
+    {id:'activity_panel',bounds:geometryBounds(geometry,'activity_panel')},
+    {id:'bottom_strip',bounds:unionBounds(geometry,['milestone_card','decisions_card'])}
+  ].filter(x=>x.bounds);
+
+  const constraintSet=deriveResponsiveConstraintSet({
+    canvas:stencilSession.canvas,
+    elements:stencilSession.constraints.elements
+  });
+  const constraintAnchor=evaluateCalibrationAnchor(constraintSet,actualConstraintRegions);
+
+  const lockMeasurement={regions:stencilSession.soft_locks.regions.map(x=>({region_id:x.region_id,score:x.baseline_score}))};
+  const softLockSet=createSoftRegionLockSet({
+    measurement:lockMeasurement,
+    regions:stencilSession.soft_locks.regions.map(x=>x.region_id),
+    tolerance:stencilSession.soft_locks.tolerance_ssim
+  });
+  const externalMetricsRaw=String(process.env.VISUAL_FOUNDRY_REGION_METRICS_JSON||'').trim();
+  let softLockEvaluation={status:'PENDING_REFERENCE_REGION_COMPARE'};
+  let softLockFinalization={status:'PENDING_REFERENCE_REGION_COMPARE'};
+  let priorityRanking={status:'PENDING_ACTUAL_REGION_METRICS',ranked:[]};
+  if(externalMetricsRaw){
+    const regionMetrics=JSON.parse(externalMetricsRaw);
+    const measurement={regions:(regionMetrics.regions||[]).map(r=>({region_id:r.region_id,score:Number(r.ssim)}))};
+    softLockEvaluation=evaluateSoftLockCandidate(softLockSet,measurement);
+    softLockFinalization=finalizeSoftRegionLocks(softLockSet,measurement);
+    const areaByRegion=new Map(referenceSpec.regions.map(r=>[r.region_id,Number(r.bounds.width.value)*Number(r.bounds.height.value)]));
+    const semantics=stencilSession.priority_contract.region_semantics;
+    priorityRanking={
+      status:'EVALUATED',
+      ranked:rankVisualDeltas((regionMetrics.regions||[]).map(r=>({
+        region_id:r.region_id,
+        ssim:Number(r.ssim),
+        pixel_difference_percent:Number(r.pixel_difference_percent),
+        area_px:areaByRegion.get(r.region_id)||1,
+        canvas_area_px:stencilSession.canvas.width*stencilSession.canvas.height,
+        contrast_index:semantics[r.region_id]?.contrast_index??0.5,
+        semantic_type:semantics[r.region_id]?.semantic_type??'NORMAL_UI',
+        criticality:semantics[r.region_id]?.criticality??'MEDIUM'
+      })))
+    };
+  }
+
+  const verifiedStencil=await resolveVerifiedStencilSource(process.env.VISUAL_FOUNDRY_STENCIL_SOURCE,referenceRegistration.reference.hash);
+  let stencilBuildAid={status:verifiedStencil.status,reference_hash:referenceRegistration.reference.hash,fallback_reference_allowed:false};
+  if(verifiedStencil.status==='VERIFIED'){
+    const contract=createStencilContract({
+      reference_id:referenceRegistration.reference.reference_id,
+      reference_hash:referenceRegistration.reference.hash,
+      reference_version:referenceRegistration.reference.version,
+      source:verifiedStencil.source,
+      source_type:'HASH_VERIFIED_LOCAL_BUILD_ASSET',
+      canvas:stencilSession.canvas,
+      mode:'OVERLAY',
+      opacity:stencilSession.stencil.default_opacity
+    });
+    await installReferenceStencil(page,contract);
+    await setStencilMode(page,'OVERLAY',{opacity:stencilSession.stencil.default_opacity});
+    await page.screenshot({path:outDir+'/stencil-overlay.jpeg',type:'jpeg',quality:94,fullPage:false,animations:'disabled'});
+    await setStencilMode(page,'DIFFERENCE');
+    await page.screenshot({path:outDir+'/stencil-difference.jpeg',type:'jpeg',quality:94,fullPage:false,animations:'disabled'});
+    await removeReferenceStencil(page);
+    stencilBuildAid={status:'MOUNTED_VERIFIED_AND_REMOVED_BEFORE_MACHINE_CAPTURE',actual_hash:verifiedStencil.actual_hash,bytes:verifiedStencil.bytes,mime:verifiedStencil.mime,fallback_reference_allowed:false};
+  }
+
+  const semanticImplementation=await evaluateSemanticImplementation(page,{
+    allow_stencil:false,
+    max_structural_absolute_ratio:stencilSession.semantic_gate.max_structural_absolute_ratio
+  });
+
+  await writeFile(outDir+'/stencil-constraint-evidence.json',JSON.stringify({
+    stencil_build_aid:stencilBuildAid,
+    constraint_set:constraintSet,
+    constraint_anchor:constraintAnchor,
+    soft_lock_set:softLockSet,
+    soft_lock_evaluation:softLockEvaluation,
+    soft_lock_finalization:softLockFinalization,
+    priority_ranking:priorityRanking,
+    semantic_implementation:semanticImplementation
+  },null,2));
 
   const desktopLayout=await page.evaluate(()=>({
     width:innerWidth,height:innerHeight,dpr:devicePixelRatio,
@@ -259,6 +397,13 @@ try{
     runtime_screenshot:runtimeScreenshot,
     diff_image:'PENDING_LOCAL_REFERENCE_COMPARISON',
     geometry_snapshot:geometry,
+    constraint_anchor:constraintAnchor,
+    soft_lock_evaluation:softLockEvaluation,
+    soft_lock_finalization:softLockFinalization,
+    priority_ranking:priorityRanking,
+    stencil_build_aid:stencilBuildAid,
+    semantic_implementation:semanticImplementation,
+    semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
     responsive:{
       mode:'INFERRED_RESPONSIVE',
@@ -299,6 +444,9 @@ try{
     starting_commit:runEvidence.starting_commit,
     result_commit:runEvidence.result_commit,
     functional_result:runEvidence.functional_result,
+    constraint_anchor:runEvidence.constraint_anchor.status,
+    semantic_result:runEvidence.semantic_result,
+    stencil_status:runEvidence.stencil_build_aid.status,
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
