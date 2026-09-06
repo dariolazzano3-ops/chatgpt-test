@@ -27,6 +27,7 @@ export { directVisualQuality, reviewCro, applyCroMissionRepairs } from './qualit
 export { createMotionDesignContract, createLocalizationArchitecture } from './motion-localization.js';
 export { STANDARD_WEBSITE_EVENTS, createMigrationPlan, createBusinessIntegrationPlan, createExperimentContract } from './migration-integration.js';
 export { AUTONOMOUS_QUALITY_LEVELS, buildAutonomousPremiumWebsite } from './autonomous-premium.js';
+export { PREMIUM_STATIC_WEB_V1_ID, PREMIUM_STATIC_WEB_V1_TOOLCHAIN, premiumStaticWebV1Manifest, createPremiumStaticWebV1AcceptanceContract, applyPremiumStaticWebV1Profile, materializePremiumStaticWebV1SourcePackage } from './premium-static-web-v1.js';
 
 export { compileWebsiteRequest, getWebsiteRecipe, createWebsiteStrategy, createInformationArchitecture, createUserJourneys, createPageIntentContracts, createProposalMode } from './compiler-strategy-v2.js';
 export { CANONICAL_WEB_COMPONENTS, COMPONENT_VARIANTS, createBrandWebsiteDirection, generateDesignSystemV2, validateDesignTokens, createTypographyContract, createLayoutContract, componentSystemManifest, validateComponentSpec, createStructuredContentContract, planPageContent, createAiContentRequest, checkBrandVoice, checkContentConsistency, createTrustPlan, createFormContract, composePageModel } from './composition-system-v2.js';

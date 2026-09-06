@@ -10,13 +10,19 @@
     "deploy:staging": "node scripts/generate-project-preview-index-v1.mjs && node scripts/staging-deploy-guard.mjs --deploy && wrangler deploy --env staging",
     "dev": "wrangler dev",
     "check:operator-ai": "node scripts/project-repair-wave7-operator-ai-canonical-execution-smoke.mjs && node scripts/human-outcome-acceptance-v1-smoke.mjs && node scripts/operator-ai-v1-smoke.mjs && node scripts/operator-ai-inference-v1-smoke.mjs && node scripts/operator-ai-dashboard-v1-smoke.mjs && node scripts/operator-ai-global-access-v1-smoke.mjs && node scripts/operator-ai-real-inference-live-acceptance-smoke.mjs",
-    "generate:project-previews": "node scripts/generate-project-preview-index-v1.mjs"
+    "generate:project-previews": "node scripts/generate-project-preview-index-v1.mjs",
+    "check:jaguar": "node scripts/project-jaguar-premium-static-web-v1-smoke.mjs"
   },
   "dependencies": {
     "framer-api": "0.1.30"
   },
   "devDependencies": {
     "playwright": "^1.55.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "@axe-core/playwright": "4.13.0",
+    "astro": "7.3.1",
+    "gsap": "3.15.0",
+    "lighthouse": "13.4.1",
+    "sharp": "0.35.4"
   }
 }

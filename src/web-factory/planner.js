@@ -7,6 +7,10 @@ const PAGE_LIBRARY = {
     label: 'Services', purpose: 'Explain the offer, outcomes and fit in enough detail to support a buying decision',
     sections: ['hero', 'services', 'feature_grid', 'faq', 'cta'], seo_intent: 'commercial service intent', cta: 'primary'
   },
+  menu: {
+    label: 'Menu', purpose: 'Present the verified food, drink or product offer and supplied prices clearly without inventing availability',
+    sections: ['hero', 'services', 'feature_grid', 'faq', 'cta'], seo_intent: 'menu product and price intent', cta: 'primary'
+  },
   about: {
     label: 'About', purpose: 'Build trust by explaining positioning, operating principles and proof',
     sections: ['hero', 'about', 'stats', 'testimonials', 'cta'], seo_intent: 'brand trust intent', cta: 'secondary'
@@ -34,8 +38,8 @@ const PAGE_LIBRARY = {
 };
 
 const PAGE_LABELS = {
-  de: { home: 'Startseite', services: 'Leistungen', about: 'Über uns', contact: 'Kontakt', faq: 'FAQ', gallery: 'Galerie', 'legal-notice': 'Impressum', privacy: 'Datenschutz' },
-  en: { home: 'Home', services: 'Services', about: 'About', contact: 'Contact', faq: 'FAQ', gallery: 'Gallery', 'legal-notice': 'Legal Notice', privacy: 'Privacy' }
+  de: { home: 'Startseite', services: 'Leistungen', menu: 'Sortiment', about: 'Über uns', contact: 'Kontakt', faq: 'FAQ', gallery: 'Galerie', 'legal-notice': 'Impressum', privacy: 'Datenschutz' },
+  en: { home: 'Home', services: 'Services', menu: 'Menu', about: 'About', contact: 'Contact', faq: 'FAQ', gallery: 'Gallery', 'legal-notice': 'Legal Notice', privacy: 'Privacy' }
 };
 
 function localizedPageLabel(id, language, fallback) {
@@ -45,7 +49,7 @@ function localizedPageLabel(id, language, fallback) {
 
 const normalizePage = (page) => {
   const slug = String(page || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
-  const aliases = { leistungen: 'services', services: 'services', uber: 'about', 'ueber-uns': 'about', about: 'about', kontakt: 'contact', contact: 'contact', faq: 'faq', home: 'home', start: 'home', galerie: 'gallery', gallery: 'gallery', impressum: 'legal-notice', datenschutz: 'privacy' };
+  const aliases = { leistungen: 'services', services: 'services', menu: 'menu', sortiment: 'menu', speisekarte: 'menu', uber: 'about', 'ueber-uns': 'about', about: 'about', kontakt: 'contact', contact: 'contact', faq: 'faq', home: 'home', start: 'home', galerie: 'gallery', gallery: 'gallery', impressum: 'legal-notice', datenschutz: 'privacy' };
   return aliases[slug] || slug;
 };
 
@@ -55,7 +59,7 @@ function pagePath(id) {
 
 export function planWebsite(mission) {
   const requested = [...new Set((mission.required_pages || []).map(normalizePage).filter(Boolean))];
-  const ordered = [...new Set(['home', ...requested.filter((p) => p !== 'home'), 'services', 'about', 'contact', 'faq'])];
+  const ordered = [...new Set(['home', ...requested.filter((p) => p !== 'home')])];
   if (!ordered.includes('legal-notice')) ordered.push('legal-notice');
   if (!ordered.includes('privacy')) ordered.push('privacy');
 
