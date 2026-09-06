@@ -34,9 +34,9 @@ try{
   assert.equal(one.animation_policy,'DISABLED_AND_FROZEN');
   assert.equal(one.service_workers,'BLOCKED');
   assert.deepEqual(one.screenshot_dimensions,two.screenshot_dimensions);
-  assert.equal(one.screenshot_hash,two.screenshot_hash,'masked deterministic renders must be byte-identical');
+  assert.equal(one.screenshot_pixel_hash,two.screenshot_pixel_hash,'masked deterministic renders must be pixel-identical');
   assert.deepEqual(one.page_errors,[]);
-  const evidence={ok:true,suite:'visual-foundry-wave3-smoke',pinned_browser_environment:'PASS',animation_freeze:'PASS',dynamic_masking:'PASS',deterministic_repeat_render:'PASS',browser_version:one.browser_version,font_manifest_entries:one.font_manifest.length,production_deploy:false,external_writes:false};
+  const evidence={ok:true,suite:'visual-foundry-wave3-smoke',pinned_browser_environment:'PASS',animation_freeze:'PASS',dynamic_masking:'PASS',deterministic_repeat_render:'PASS',pixel_hash_basis:'DECODED_RGBA',browser_version:one.browser_version,font_manifest_entries:one.font_manifest.length,production_deploy:false,external_writes:false};
   await writeFile('artifacts/visual-foundry/wave3/evidence.json',JSON.stringify({evidence,render:one},null,2));
   console.log(JSON.stringify(evidence,null,2));
 }finally{server.close();}
