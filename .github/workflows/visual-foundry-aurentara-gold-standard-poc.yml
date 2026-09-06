@@ -1,5 +1,5 @@
 name: Visual Foundry AURENTARA Gold Standard PoC
-# hardening-v1 visual calibration rerun
+# hardening-v1 regression-protected visual rerun
 
 on:
   workflow_dispatch:
