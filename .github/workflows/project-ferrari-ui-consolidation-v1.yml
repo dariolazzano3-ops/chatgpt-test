@@ -1,0 +1,69 @@
+name: PROJECT FERRARI UI Consolidation V1
+
+on:
+  push:
+    branches:
+      - factory/ferrari-ui-consolidation-v1
+  pull_request:
+    branches: [factory-control]
+
+permissions:
+  contents: read
+
+jobs:
+  ui-consolidation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+
+      - name: Consolidation syntax
+        run: |
+          node --check src/operator-premium-masterdashboard-viewmodel-v1.js
+          node --check src/operator-premium-masterdashboard-ui-style-v1.js
+          node --check src/operator-premium-masterdashboard-ui-script-1-v1.js
+          node --check src/operator-premium-masterdashboard-ui-script-2-v1.js
+          node --check src/operator-premium-masterdashboard-ui-script-3-v1.js
+          node --check scripts/project-ferrari-ui-consolidation-v1-smoke.mjs
+
+      - name: UI consolidation acceptance
+        run: node scripts/project-ferrari-ui-consolidation-v1-smoke.mjs
+
+      - name: Existing premium acceptance
+        run: node scripts/project-ferrari-premium-masterdashboard-v1-smoke.mjs
+
+      - name: Existing project and knowledge regressions
+        run: |
+          node scripts/operator-project-workspace-v1-smoke.mjs
+          node scripts/project-ferrari-intelligent-project-intake-ux-workflow-v2-smoke.mjs
+          node scripts/project-ferrari-intelligent-project-intake-knowledge-approval-v1-smoke.mjs
+
+      - name: Generate deterministic preview index
+        run: node scripts/generate-project-preview-index-v1.mjs
+
+      - name: Existing preview regression
+        run: node scripts/project-ferrari-project-scoped-preview-access-v1-smoke.mjs
+
+      - name: Desktop and iPhone browser acceptance
+        run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
+
+      - name: Safety regression
+        run: |
+          node scripts/operator-ai-global-access-v1-smoke.mjs
+          node scripts/operator-project-workspace-reconciliation-v1-smoke.mjs
+          node scripts/masterdashboard-gelato-integration-gate-v1-smoke.mjs
+          node scripts/mission-safety-smoke.mjs
+          node scripts/edit-regression-guard-smoke.mjs
+          node scripts/riosystems-integrated-regression-gate.mjs
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-ferrari-ui-consolidation-v1-visual-evidence
+          path: artifacts/project-ferrari-premium-masterdashboard-v1
+          if-no-files-found: warn
