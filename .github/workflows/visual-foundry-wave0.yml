@@ -52,6 +52,8 @@ jobs:
       - run: node scripts/visual-foundry-wave12-smoke.mjs
       - run: node --check src/visual-foundry/responsive-engine.js
       - run: node scripts/visual-foundry-wave13-smoke.mjs
+      - run: node --check src/visual-foundry/asset-ledger.js
+      - run: node scripts/visual-foundry-wave14-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,4 +73,5 @@ jobs:
             artifacts/visual-foundry/wave11
             artifacts/visual-foundry/wave12
             artifacts/visual-foundry/wave13
+            artifacts/visual-foundry/wave14
           if-no-files-found: error
