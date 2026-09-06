@@ -1,0 +1,158 @@
+{
+  "schema": "riosystems.visual-fixture.v1",
+  "fixture_id": "aurentara-hq-gold-standard-fixture-v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "version": "1.0",
+  "truth_class": "VISUAL_FIXTURE",
+  "canvas": {
+    "width": 1536,
+    "height": 1024,
+    "device_pixel_ratio": 1
+  },
+  "display": {
+    "kpis": {
+      "active_projects": 4,
+      "open_inputs": 7,
+      "pending_approvals": 3,
+      "preview_ready": 2
+    },
+    "projects": [
+      {
+        "name": "Gelato Donatello",
+        "scope_key": "gelato-donatello:gelato-donatello-website-v1",
+        "phase": "BUILD",
+        "health": "NEEDS_ATTENTION",
+        "environment": "STAGING",
+        "progress_percent": 72,
+        "next_action": "Design zur Freigabe einreichen"
+      },
+      {
+        "name": "AURENTARA Website",
+        "scope_key": "aurentara-systems-internal:riosystems-public-website-v1",
+        "phase": "KNOWLEDGE",
+        "health": "IN ARBEIT",
+        "environment": "DRAFT",
+        "progress_percent": 45,
+        "next_action": "Inhalte optimieren (Startseite)"
+      },
+      {
+        "name": "Bakery Müller",
+        "scope_key": "bakery-mueller:website-v1",
+        "phase": "INTAKE",
+        "health": "BLOCKIERT",
+        "environment": "DRAFT",
+        "progress_percent": 18,
+        "next_action": "Fehlende Inhalte ergänzen"
+      },
+      {
+        "name": "Interne Tools",
+        "scope_key": "internal-tools:operator-suite",
+        "phase": "QA",
+        "health": "HEALTHY",
+        "environment": "STAGING",
+        "progress_percent": 86,
+        "next_action": "Review Sicherheitsrichtlinien"
+      }
+    ],
+    "attention": [
+      {
+        "priority": "Hoch",
+        "project": "Gelato Donatello",
+        "topic": "Designfreigabe",
+        "impact": "Launch verzögert",
+        "due": "heute",
+        "action": "Prüfen"
+      },
+      {
+        "priority": "Mittel",
+        "project": "Bakery Müller",
+        "topic": "Fehlende Inhalte",
+        "impact": "Umsetzung blockiert",
+        "due": "in 2 Tagen",
+        "action": "Öffnen"
+      },
+      {
+        "priority": "Mittel",
+        "project": "AURENTARA Website",
+        "topic": "Team-Bilder",
+        "impact": "Qualität unvollständig",
+        "due": "in 3 Tagen",
+        "action": "Bearbeiten"
+      },
+      {
+        "priority": "Niedrig",
+        "project": "Interne Tools",
+        "topic": "Richtlinien-Review",
+        "impact": "Keine direkte Auswirkung",
+        "due": "in 5 Tagen",
+        "action": "Anzeigen"
+      }
+    ],
+    "system_status": [
+      [
+        "Factories",
+        "4 / 4 online",
+        "ready"
+      ],
+      [
+        "Providers",
+        "4 / 4 verbunden",
+        "ready"
+      ],
+      [
+        "Datenbank",
+        "Online",
+        "ready"
+      ],
+      [
+        "Staging Environment",
+        "Verfügbar",
+        "ready"
+      ],
+      [
+        "Monitorings",
+        "Keine kritischen Fehler",
+        "ready"
+      ]
+    ],
+    "costs": {
+      "budget_plan": "12.000 €",
+      "actual_forecast": "10.400 €",
+      "reserved": "1.200 €",
+      "remaining": "400 €",
+      "usage_percent": 87
+    },
+    "activities": [
+      [
+        "Design-Update hochgeladen",
+        "Gelato Donatello",
+        "vor 2 Stunden"
+      ],
+      [
+        "Inhalte optimiert (Startseite)",
+        "AURENTARA Website",
+        "vor 5 Stunden"
+      ],
+      [
+        "SEO-Check abgeschlossen",
+        "Bakery Müller",
+        "vor 1 Tag"
+      ],
+      [
+        "Kommentar von Kunde",
+        "Gelato Donatello",
+        "vor 1 Tag"
+      ],
+      [
+        "Preview veröffentlicht",
+        "Interne Tools",
+        "vor 2 Tagen"
+      ]
+    ]
+  },
+  "project_knowledge_write_allowed": false,
+  "runtime_truth_write_allowed": false,
+  "production_allowed": false,
+  "public_allowed": false,
+  "persistent_write_allowed": false
+}
