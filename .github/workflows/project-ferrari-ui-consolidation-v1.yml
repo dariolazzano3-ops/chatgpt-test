@@ -52,10 +52,11 @@ jobs:
       - name: Desktop and iPhone browser acceptance
         run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
 
-      - name: Existing human operator browser regressions
-        run: |
-          node scripts/operator-human-ux-browser-v1.mjs
-          node scripts/operator-final-human-ux-mobile-v1.mjs
+      - name: Existing human operator desktop browser regression
+        run: node scripts/operator-human-ux-browser-v1.mjs
+
+      - name: Existing human operator iPhone retention regression
+        run: node scripts/operator-final-human-ux-mobile-v1.mjs
 
       - name: Safety regression
         run: |
