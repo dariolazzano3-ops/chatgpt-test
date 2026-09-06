@@ -3,16 +3,16 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "10c442333338d318497345a65886b42401a7f4c3",
-  "workflow_run_id": 34067726325,
+  "evidence_head": "a1561b29dd172580f04fae5707664eb13262687c",
+  "workflow_run_id": 34067963632,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.391673,
-    "pixel_difference_percent": 14.3804,
+    "ssim": 0.391817,
+    "pixel_difference_percent": 14.3778,
     "geometry_status": "PASS",
     "overflow_px": 0,
-    "color_score": 0.99592,
-    "edge_score": 0.24193
+    "color_score": 0.995896,
+    "edge_score": 0.241986
   },
   "regions": [
     {
@@ -79,10 +79,11 @@
     {
       "region_id": "portfolio",
       "status": "ACCEPTED_GAIN",
-      "ssim": 0.341706,
+      "ssim": 0.342334,
       "baseline_ssim": 0.282044,
-      "pixel_difference_percent": 19.071,
-      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
+      "pixel_difference_percent": 19.0546,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+      "previous_soft_lock_ssim": 0.341706
     },
     {
       "region_id": "system_status",
@@ -119,7 +120,7 @@
     }
   ],
   "active_delta_cluster": "REMAINING_TYPOGRAPHY",
-  "next_candidate": "PORTFOLIO_HEADER_TYPOGRAPHY_LOCAL_REFINEMENT",
+  "next_candidate": "REVIEW_REMAINING_TYPOGRAPHY_LOCAL",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -136,7 +137,8 @@
     "KPI_TYPOGRAPHY_K6",
     "COST_TYPOGRAPHY_C1",
     "ACTIVITY_TYPOGRAPHY_A1",
-    "ATTENTION_HEADER_TYPOGRAPHY_R3"
+    "ATTENTION_HEADER_TYPOGRAPHY_R3",
+    "PORTFOLIO_HEADER_TYPOGRAPHY_P1"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
