@@ -1,0 +1,47 @@
+{
+  "schema": "riosystems.approved-reference-registration-evidence.v1",
+  "reference": {
+    "schema": "riosystems.reference-record.v1",
+    "reference_id": "aurentara-hq-control-center-reference-v1-0",
+    "project_id": "aurentara-masterdashboard",
+    "name": "AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0",
+    "version": "1.0",
+    "status": "APPROVED",
+    "source_type": "UPLOAD",
+    "source_path": "library:/Visual Foundry/References/AURENTARA/AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0.jpeg",
+    "viewport": {
+      "width": 1536,
+      "height": 1024,
+      "device_pixel_ratio": 1
+    },
+    "device_pixel_ratio": 1,
+    "hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+    "created_at": "2026-09-06T19:26:40+02:00",
+    "approved_at": "2026-09-06T19:26:40+02:00",
+    "approved_by": "OPERATOR",
+    "superseded_by": null,
+    "notes": "Operator-supplied visual source of truth for the AURENTARA Gold-Standard PoC. Normalized reference canvas; DPR=1 is a normalization, not a claimed browser/device capture. No other dashboard image may substitute for this reference.",
+    "locked": true,
+    "provenance": "OPERATOR_SUPPLIED",
+    "reference_class": "NORMALIZED_REFERENCE_CANVAS",
+    "source_file_id": "file_00000000cecc81f4bedbe1c660683d23",
+    "source_library_file_id": "libfile_af538a3977188191a9c9c4e9894650e9",
+    "source_mime_type": "image/jpeg",
+    "source_bytes": 543857
+  },
+  "operator_declaration": "This exact uploaded asset is the sole Visual Source of Truth for AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0.",
+  "sha256_verified_before_registration": true,
+  "expected_sha256": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "actual_sha256": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "hash_match": true,
+  "canvas": {
+    "width": 1536,
+    "height": 1024
+  },
+  "dpr_policy": "NORMALIZED_DPR_1_NON_BROWSER_CAPTURE",
+  "ambiguous_approved_reference_count": 0,
+  "replacement_reference_allowed": false,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false
+}
