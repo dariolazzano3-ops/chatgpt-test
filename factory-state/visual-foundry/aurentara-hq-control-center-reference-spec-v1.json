@@ -1,0 +1,979 @@
+{
+  "schema": "riosystems.reference-spec.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "version": "1.0",
+  "viewport": {
+    "width": 1536,
+    "height": 1024,
+    "device_pixel_ratio": 1
+  },
+  "regions": [
+    {
+      "region_id": "sidebar",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 0,
+          "unit": "px",
+          "tolerance": 2,
+          "source_method": "PIXEL",
+          "confidence": 0.99,
+          "human_override": false
+        },
+        "y": {
+          "value": 0,
+          "unit": "px",
+          "tolerance": 2,
+          "source_method": "PIXEL",
+          "confidence": 0.99,
+          "human_override": false
+        },
+        "width": {
+          "value": 216,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        },
+        "height": {
+          "value": 1024,
+          "unit": "px",
+          "tolerance": 0,
+          "source_method": "PIXEL",
+          "confidence": 1,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "primary_navigation",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 14,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "y": {
+          "value": 184,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.88,
+          "human_override": false
+        },
+        "width": {
+          "value": 192,
+          "unit": "px",
+          "tolerance": 5,
+          "source_method": "PIXEL",
+          "confidence": 0.92,
+          "human_override": false
+        },
+        "height": {
+          "value": 688,
+          "unit": "px",
+          "tolerance": 12,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "toolbar",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 216,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        },
+        "y": {
+          "value": 0,
+          "unit": "px",
+          "tolerance": 1,
+          "source_method": "PIXEL",
+          "confidence": 0.99,
+          "human_override": false
+        },
+        "width": {
+          "value": 1320,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        },
+        "height": {
+          "value": 58,
+          "unit": "px",
+          "tolerance": 2,
+          "source_method": "PIXEL",
+          "confidence": 0.97,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "hero",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 216,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        },
+        "y": {
+          "value": 58,
+          "unit": "px",
+          "tolerance": 2,
+          "source_method": "PIXEL",
+          "confidence": 0.97,
+          "human_override": false
+        },
+        "width": {
+          "value": 1320,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        },
+        "height": {
+          "value": 119,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.96,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "kpi_band",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 232,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "y": {
+          "value": 178,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.97,
+          "human_override": false
+        },
+        "width": {
+          "value": 1286,
+          "unit": "px",
+          "tolerance": 5,
+          "source_method": "PIXEL",
+          "confidence": 0.93,
+          "human_override": false
+        },
+        "height": {
+          "value": 96,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.95,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "attention_panel",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 232,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "y": {
+          "value": 285,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "width": {
+          "value": 711,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.87,
+          "human_override": false
+        },
+        "height": {
+          "value": 276,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.87,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "operator_ai_panel",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 955,
+          "unit": "px",
+          "tolerance": 5,
+          "source_method": "PIXEL",
+          "confidence": 0.92,
+          "human_override": false
+        },
+        "y": {
+          "value": 285,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "width": {
+          "value": 563,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.87,
+          "human_override": false
+        },
+        "height": {
+          "value": 276,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.87,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "portfolio",
+      "critical": true,
+      "bounds": {
+        "x": {
+          "value": 232,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "y": {
+          "value": 572,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.95,
+          "human_override": false
+        },
+        "width": {
+          "value": 704,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.88,
+          "human_override": false
+        },
+        "height": {
+          "value": 346,
+          "unit": "px",
+          "tolerance": 7,
+          "source_method": "VISION",
+          "confidence": 0.88,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "system_status",
+      "critical": false,
+      "bounds": {
+        "x": {
+          "value": 948,
+          "unit": "px",
+          "tolerance": 6,
+          "source_method": "VISION",
+          "confidence": 0.86,
+          "human_override": false
+        },
+        "y": {
+          "value": 572,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.95,
+          "human_override": false
+        },
+        "width": {
+          "value": 270,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        },
+        "height": {
+          "value": 173,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "cost_panel",
+      "critical": false,
+      "bounds": {
+        "x": {
+          "value": 948,
+          "unit": "px",
+          "tolerance": 6,
+          "source_method": "VISION",
+          "confidence": 0.86,
+          "human_override": false
+        },
+        "y": {
+          "value": 754,
+          "unit": "px",
+          "tolerance": 6,
+          "source_method": "VISION",
+          "confidence": 0.86,
+          "human_override": false
+        },
+        "width": {
+          "value": 270,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        },
+        "height": {
+          "value": 164,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "activity_panel",
+      "critical": false,
+      "bounds": {
+        "x": {
+          "value": 1227,
+          "unit": "px",
+          "tolerance": 6,
+          "source_method": "VISION",
+          "confidence": 0.86,
+          "human_override": false
+        },
+        "y": {
+          "value": 572,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.95,
+          "human_override": false
+        },
+        "width": {
+          "value": 291,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.83,
+          "human_override": false
+        },
+        "height": {
+          "value": 346,
+          "unit": "px",
+          "tolerance": 8,
+          "source_method": "VISION",
+          "confidence": 0.83,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "region_id": "bottom_strip",
+      "critical": false,
+      "bounds": {
+        "x": {
+          "value": 232,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        },
+        "y": {
+          "value": 931,
+          "unit": "px",
+          "tolerance": 5,
+          "source_method": "PIXEL",
+          "confidence": 0.92,
+          "human_override": false
+        },
+        "width": {
+          "value": 1286,
+          "unit": "px",
+          "tolerance": 5,
+          "source_method": "PIXEL",
+          "confidence": 0.93,
+          "human_override": false
+        },
+        "height": {
+          "value": 76,
+          "unit": "px",
+          "tolerance": 6,
+          "source_method": "VISION",
+          "confidence": 0.87,
+          "human_override": false
+        }
+      }
+    }
+  ],
+  "components": [
+    {
+      "component_id": "sidebar",
+      "region_id": "sidebar",
+      "selector_hint": ".side",
+      "metrics": {
+        "width": {
+          "value": 216,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.98,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "toolbar",
+      "region_id": "toolbar",
+      "selector_hint": ".rf-toolbar",
+      "metrics": {
+        "height": {
+          "value": 58,
+          "unit": "px",
+          "tolerance": 2,
+          "source_method": "PIXEL",
+          "confidence": 0.97,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "hero",
+      "region_id": "hero",
+      "selector_hint": ".rf-hero",
+      "metrics": {
+        "height": {
+          "value": 119,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "PIXEL",
+          "confidence": 0.96,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "kpi_active_projects",
+      "region_id": "kpi_band",
+      "selector_hint": ".rf-kpi:nth-of-type(1)",
+      "metrics": {
+        "height": {
+          "value": 96,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "kpi_open_inputs",
+      "region_id": "kpi_band",
+      "selector_hint": ".rf-kpi:nth-of-type(2)",
+      "metrics": {
+        "height": {
+          "value": 96,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "kpi_approvals",
+      "region_id": "kpi_band",
+      "selector_hint": ".rf-kpi:nth-of-type(3)",
+      "metrics": {
+        "height": {
+          "value": 96,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "kpi_preview",
+      "region_id": "kpi_band",
+      "selector_hint": ".rf-kpi:nth-of-type(4)",
+      "metrics": {
+        "height": {
+          "value": 96,
+          "unit": "px",
+          "tolerance": 4,
+          "source_method": "PIXEL",
+          "confidence": 0.94,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "attention_panel",
+      "region_id": "attention_panel",
+      "selector_hint": ".rf-attention-anchor",
+      "metrics": {}
+    },
+    {
+      "component_id": "operator_ai_panel",
+      "region_id": "operator_ai_panel",
+      "selector_hint": ".rf-grid-mid > .rf-panel:nth-child(2)",
+      "metrics": {}
+    },
+    {
+      "component_id": "portfolio_panel",
+      "region_id": "portfolio",
+      "selector_hint": ".rf-ops-grid > .rf-panel",
+      "metrics": {}
+    },
+    {
+      "component_id": "new_project_cta",
+      "region_id": "portfolio",
+      "selector_hint": "[data-rf-new-project]",
+      "metrics": {
+        "height": {
+          "value": 34,
+          "unit": "px",
+          "tolerance": 3,
+          "source_method": "VISION",
+          "confidence": 0.82,
+          "human_override": false
+        }
+      }
+    },
+    {
+      "component_id": "system_status_panel",
+      "region_id": "system_status",
+      "selector_hint": ".rf-side-stack > .rf-panel:nth-child(1)",
+      "metrics": {}
+    },
+    {
+      "component_id": "cost_panel",
+      "region_id": "cost_panel",
+      "selector_hint": ".rf-side-stack > .rf-panel:nth-child(2)",
+      "metrics": {}
+    },
+    {
+      "component_id": "activity_panel",
+      "region_id": "activity_panel",
+      "selector_hint": ".rf-activity-card",
+      "metrics": {}
+    },
+    {
+      "component_id": "milestone_card",
+      "region_id": "bottom_strip",
+      "selector_hint": "[data-rf-milestone]",
+      "metrics": {}
+    },
+    {
+      "component_id": "decisions_card",
+      "region_id": "bottom_strip",
+      "selector_hint": "[data-rf-decisions]",
+      "metrics": {}
+    }
+  ],
+  "tokens": {
+    "sidebar_width": {
+      "value": 216,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "PIXEL",
+      "confidence": 0.98,
+      "human_override": false
+    },
+    "content_gutter": {
+      "value": 16,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "PIXEL",
+      "confidence": 0.9,
+      "human_override": false
+    },
+    "panel_radius": {
+      "value": 8,
+      "unit": "px",
+      "tolerance": 2,
+      "source_method": "VISION",
+      "confidence": 0.82,
+      "human_override": false
+    },
+    "panel_border": {
+      "value": 1,
+      "unit": "px",
+      "tolerance": 0.5,
+      "source_method": "VISION",
+      "confidence": 0.9,
+      "human_override": false
+    },
+    "major_gap": {
+      "value": 10,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "VISION",
+      "confidence": 0.84,
+      "human_override": false
+    }
+  },
+  "typography": {
+    "identity": {
+      "family": {
+        "value": "UNRESOLVED_REFERENCE_SANS",
+        "unit": "string",
+        "tolerance": 0,
+        "source_method": "VISION",
+        "confidence": 0.35,
+        "human_override": false
+      },
+      "source_note": "Raster reference contains no trustworthy embedded font identity; family is intentionally unresolved."
+    },
+    "hero_title": {
+      "font_size": {
+        "value": 37,
+        "unit": "px",
+        "tolerance": 3,
+        "source_method": "VISION",
+        "confidence": 0.82,
+        "human_override": false
+      },
+      "line_height": {
+        "value": 41,
+        "unit": "px",
+        "tolerance": 4,
+        "source_method": "VISION",
+        "confidence": 0.78,
+        "human_override": false
+      },
+      "letter_spacing": {
+        "value": 2.5,
+        "unit": "px",
+        "tolerance": 1.5,
+        "source_method": "VISION",
+        "confidence": 0.72,
+        "human_override": false
+      },
+      "weight": {
+        "value": 760,
+        "unit": "count",
+        "tolerance": 80,
+        "source_method": "VISION",
+        "confidence": 0.66,
+        "human_override": false
+      }
+    },
+    "panel_title": {
+      "font_size": {
+        "value": 13,
+        "unit": "px",
+        "tolerance": 2,
+        "source_method": "VISION",
+        "confidence": 0.8,
+        "human_override": false
+      },
+      "line_height": {
+        "value": 17,
+        "unit": "px",
+        "tolerance": 2,
+        "source_method": "VISION",
+        "confidence": 0.76,
+        "human_override": false
+      },
+      "weight": {
+        "value": 680,
+        "unit": "count",
+        "tolerance": 80,
+        "source_method": "VISION",
+        "confidence": 0.62,
+        "human_override": false
+      }
+    },
+    "body": {
+      "font_size": {
+        "value": 9,
+        "unit": "px",
+        "tolerance": 1.5,
+        "source_method": "VISION",
+        "confidence": 0.78,
+        "human_override": false
+      },
+      "line_height": {
+        "value": 13,
+        "unit": "px",
+        "tolerance": 2,
+        "source_method": "VISION",
+        "confidence": 0.72,
+        "human_override": false
+      },
+      "weight": {
+        "value": 500,
+        "unit": "count",
+        "tolerance": 100,
+        "source_method": "VISION",
+        "confidence": 0.55,
+        "human_override": false
+      }
+    }
+  },
+  "spacing": {
+    "main_horizontal_padding": {
+      "value": 16,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "PIXEL",
+      "confidence": 0.9,
+      "human_override": false
+    },
+    "panel_gap": {
+      "value": 10,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "VISION",
+      "confidence": 0.84,
+      "human_override": false
+    },
+    "kpi_inner_padding": {
+      "value": 14,
+      "unit": "px",
+      "tolerance": 3,
+      "source_method": "VISION",
+      "confidence": 0.82,
+      "human_override": false
+    },
+    "table_cell_padding": {
+      "value": 9,
+      "unit": "px",
+      "tolerance": 2,
+      "source_method": "VISION",
+      "confidence": 0.8,
+      "human_override": false
+    }
+  },
+  "colors": {
+    "canvas_background": {
+      "value": "#010b18",
+      "unit": "color",
+      "tolerance": 18,
+      "source_method": "PIXEL",
+      "confidence": 0.92,
+      "human_override": false
+    },
+    "panel_background": {
+      "value": "#041425",
+      "unit": "color",
+      "tolerance": 18,
+      "source_method": "PIXEL",
+      "confidence": 0.92,
+      "human_override": false
+    },
+    "panel_secondary": {
+      "value": "#0b2442",
+      "unit": "color",
+      "tolerance": 22,
+      "source_method": "PIXEL",
+      "confidence": 0.84,
+      "human_override": false
+    },
+    "accent_blue": {
+      "value": "#1e98d2",
+      "unit": "color",
+      "tolerance": 28,
+      "source_method": "PIXEL",
+      "confidence": 0.82,
+      "human_override": false
+    },
+    "accent_green": {
+      "value": "#18dda2",
+      "unit": "color",
+      "tolerance": 26,
+      "source_method": "VISION",
+      "confidence": 0.78,
+      "human_override": false
+    },
+    "warning_yellow": {
+      "value": "#f4c83d",
+      "unit": "color",
+      "tolerance": 26,
+      "source_method": "VISION",
+      "confidence": 0.75,
+      "human_override": false
+    },
+    "danger_red": {
+      "value": "#ff5c6c",
+      "unit": "color",
+      "tolerance": 26,
+      "source_method": "VISION",
+      "confidence": 0.75,
+      "human_override": false
+    },
+    "primary_text": {
+      "value": "#e3e9f0",
+      "unit": "color",
+      "tolerance": 22,
+      "source_method": "PIXEL",
+      "confidence": 0.86,
+      "human_override": false
+    },
+    "muted_text": {
+      "value": "#6a7d90",
+      "unit": "color",
+      "tolerance": 24,
+      "source_method": "PIXEL",
+      "confidence": 0.78,
+      "human_override": false
+    }
+  },
+  "effects": {
+    "panel_shadow": {
+      "value": "subtle-dark-blue-glow",
+      "unit": "string",
+      "tolerance": 0,
+      "source_method": "VISION",
+      "confidence": 0.66,
+      "human_override": false
+    },
+    "border_glow": {
+      "value": "blue-1px-low-intensity",
+      "unit": "string",
+      "tolerance": 0,
+      "source_method": "VISION",
+      "confidence": 0.72,
+      "human_override": false
+    },
+    "hero_background": {
+      "value": "earth-horizon-blue-space",
+      "unit": "string",
+      "tolerance": 0,
+      "source_method": "VISION",
+      "confidence": 0.96,
+      "human_override": false
+    }
+  },
+  "assets": [
+    {
+      "asset_id": "reference_full_canvas",
+      "role": "REFERENCE_CANVAS",
+      "fidelity_importance": "CRITICAL",
+      "source": "OPERATOR_SUPPLIED",
+      "required": true
+    },
+    {
+      "asset_id": "hero_earth_horizon",
+      "role": "HERO_BACKGROUND",
+      "fidelity_importance": "CRITICAL",
+      "source": "RASTER_REFERENCE_ONLY",
+      "required": true
+    },
+    {
+      "asset_id": "aurentara_logo",
+      "role": "BRAND_MARK",
+      "fidelity_importance": "CRITICAL",
+      "source": "RASTER_REFERENCE_ONLY",
+      "required": true
+    },
+    {
+      "asset_id": "project_thumbnails",
+      "role": "PROJECT_VISUALS",
+      "fidelity_importance": "MEDIUM",
+      "source": "RASTER_REFERENCE_ONLY",
+      "required": false
+    },
+    {
+      "asset_id": "bottom_quote_landscape",
+      "role": "QUOTE_VISUAL",
+      "fidelity_importance": "LOW",
+      "source": "RASTER_REFERENCE_ONLY",
+      "required": false
+    }
+  ],
+  "responsive_rules": [
+    {
+      "mode": "INFERRED_RESPONSIVE",
+      "viewport": "mobile",
+      "reference_available": false,
+      "claim": "NO_REFERENCE_MATCH_CLAIM"
+    },
+    {
+      "mode": "INFERRED_RESPONSIVE",
+      "viewport": "tablet",
+      "reference_available": false,
+      "claim": "NO_REFERENCE_MATCH_CLAIM"
+    }
+  ],
+  "fixture_contract": {
+    "truth_class": "VISUAL_FIXTURE",
+    "runtime_truth_write_allowed": false,
+    "project_knowledge_write_allowed": false,
+    "production_allowed": false,
+    "public_allowed": false,
+    "deterministic_display_values": true,
+    "reference_visible_kpis": {
+      "active_projects": 4,
+      "open_inputs": 7,
+      "pending_approvals": 3,
+      "preview_ready": 2
+    }
+  },
+  "measurement_confidence": 0.86
+}
