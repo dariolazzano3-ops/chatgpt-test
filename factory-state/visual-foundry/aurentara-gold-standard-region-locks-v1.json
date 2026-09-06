@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "932f52a7948a5c9871e7422595136e4e6f2abdf1",
-  "workflow_run_id": 34063816881,
+  "evidence_head": "302247e05620c05788f52d92e445f990f3051fa2",
+  "workflow_run_id": 34066296823,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.374587,
-    "pixel_difference_percent": 14.6608,
+    "ssim": 0.392218,
+    "pixel_difference_percent": 14.4266,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.994756,
@@ -53,10 +53,10 @@
     },
     {
       "region_id": "kpi_band",
-      "status": "LOCKED_GAIN",
-      "ssim": 0.493198,
+      "status": "ACCEPTED_GAIN",
+      "ssim": 0.52698,
       "baseline_ssim": 0.475942,
-      "pixel_difference_percent": 12.9074,
+      "pixel_difference_percent": 12.7122,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
@@ -117,7 +117,7 @@
     }
   ],
   "active_delta_cluster": "REMAINING_TYPOGRAPHY",
-  "next_candidate": "KPI_TYPOGRAPHY_P1",
+  "next_candidate": "RIGHT_RAIL_TYPOGRAPHY_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -130,7 +130,8 @@
     "SIDEBAR_BRAND_TYPOGRAPHY_B8",
     "OPERATOR_AI_HEADER_H4",
     "HERO_TYPOGRAPHY_T11_V2",
-    "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P2"
+    "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P2",
+    "KPI_TYPOGRAPHY_K6"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
