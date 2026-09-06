@@ -1,0 +1,78 @@
+name: Visual Foundry AURENTARA KPI Typography Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-kpi-typography-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kpi-typography:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: K1
+            label_size: 10.5
+            value_size: 26
+            value_weight: 720
+            meta_size: 8.5
+          - id: K2
+            label_size: 11
+            value_size: 26
+            value_weight: 720
+            meta_size: 9
+          - id: K3
+            label_size: 11
+            value_size: 27
+            value_weight: 720
+            meta_size: 9
+          - id: K4
+            label_size: 11.5
+            value_size: 27
+            value_weight: 700
+            meta_size: 9.5
+          - id: K5
+            label_size: 11.5
+            value_size: 28
+            value_weight: 700
+            meta_size: 9.5
+          - id: K6
+            label_size: 12
+            value_size: 28
+            value_weight: 700
+            meta_size: 10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_HERO_CANDIDATE: REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT
+      VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE: T5
+      VISUAL_FOUNDRY_HERO_TITLE_SCALE_X: 1.32
+      VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX: 5.5
+      VISUAL_FOUNDRY_HERO_TITLE_WEIGHT: 600
+      VISUAL_FOUNDRY_KPI_TYPOGRAPHY_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_KPI_LABEL_SIZE_PX: ${{ matrix.label_size }}
+      VISUAL_FOUNDRY_KPI_VALUE_SIZE_PX: ${{ matrix.value_size }}
+      VISUAL_FOUNDRY_KPI_VALUE_WEIGHT: ${{ matrix.value_weight }}
+      VISUAL_FOUNDRY_KPI_META_SIZE_PX: ${{ matrix.meta_size }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-kpi-typography-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
