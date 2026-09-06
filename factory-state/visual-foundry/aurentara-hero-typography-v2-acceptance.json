@@ -1,0 +1,36 @@
+{
+  "schema": "riosystems.aurentara-hero-typography-v2-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "HERO_TYPOGRAPHY_T11_V2",
+  "sweep_workflow_run": 34064222375,
+  "verification_workflow_run": 34064353111,
+  "verification_head": "5fe29797b190e8d4a3ecd49811f4d9aaac2d643f",
+  "baseline": {
+    "hero_ssim": 0.519889,
+    "hero_title_raster_ssim": 0.228945,
+    "global_ssim": 0.374587,
+    "global_pixel_difference_percent": 14.6608
+  },
+  "accepted": {
+    "hero_ssim": 0.532911,
+    "hero_pixel_difference_percent": 15.0987,
+    "hero_title_raster_ssim": 0.282893,
+    "global_ssim": 0.37768,
+    "global_pixel_difference_percent": 14.5772
+  },
+  "font_status": "METRICALLY_CALIBRATED_SUBSTITUTION",
+  "font_substitution_delta_open": true,
+  "soft_locks": "PASS",
+  "constraint_anchor": "PASS",
+  "semantic": "PASS",
+  "functional": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
