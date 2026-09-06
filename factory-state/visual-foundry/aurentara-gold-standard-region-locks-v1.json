@@ -118,7 +118,7 @@
     }
   ],
   "active_delta_cluster": "REMAINING_TYPOGRAPHY",
-  "next_candidate": "PORTFOLIO_HEADER_TYPOGRAPHY_P1",
+  "next_candidate": "ATTENTION_HEADER_TYPOGRAPHY_H5_LOCAL",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
