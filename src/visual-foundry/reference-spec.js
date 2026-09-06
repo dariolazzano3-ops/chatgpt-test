@@ -60,6 +60,8 @@ function scanMeasurements(value,path='root',issues=[]){
 }
 
 export function createReferenceSpec(input={}) {
+  const providerIssues=scanForbiddenProviderKeys(input);
+  if(providerIssues.length) throw new Error('REFERENCE_SPEC_INVALID:'+providerIssues.map(x=>x.code+'@'+x.path).join(','));
   const referenceId=clean(input.reference_id,160);
   const version=clean(input.version,80);
   if(!referenceId) throw new Error('REFERENCE_SPEC_REFERENCE_ID_REQUIRED');
