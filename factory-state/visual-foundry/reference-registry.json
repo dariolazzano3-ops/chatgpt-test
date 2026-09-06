@@ -1,0 +1,10 @@
+{
+  "schema": "riosystems.reference-registry.v1",
+  "records": [],
+  "policy": {
+    "approved_only_source_of_truth": true,
+    "approved_reference_locked": true,
+    "design_changes_require_change_request_and_new_version": true,
+    "production_deploy": false
+  }
+}
