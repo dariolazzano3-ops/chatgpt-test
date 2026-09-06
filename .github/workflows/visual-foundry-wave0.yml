@@ -5,11 +5,7 @@ on:
     branches:
       - factory/visual-foundry-v1
     paths:
-      - 'src/visual-foundry/**'
-      - 'scripts/visual-foundry-wave0*'
       - '.github/workflows/visual-foundry-wave0.yml'
-      - 'package.json'
-      - 'package-lock.json'
   workflow_dispatch:
 
 permissions:
@@ -43,6 +39,8 @@ jobs:
       - run: node scripts/visual-foundry-wave6-smoke.mjs
       - run: node --check src/visual-foundry/visual-acceptance.js
       - run: node scripts/visual-foundry-wave7-smoke.mjs
+      - run: node --check src/visual-foundry/fixture-mode.js
+      - run: node scripts/visual-foundry-wave8-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -56,4 +54,5 @@ jobs:
             artifacts/visual-foundry/wave5
             artifacts/visual-foundry/wave6
             artifacts/visual-foundry/wave7
+            artifacts/visual-foundry/wave8
           if-no-files-found: error
