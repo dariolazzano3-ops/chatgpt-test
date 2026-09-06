@@ -1,0 +1,45 @@
+{
+  "schema": "riosystems.aurentara-kpi-typography-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "KPI_TYPOGRAPHY_K6",
+  "sweep_workflow_run": 34066190448,
+  "verification_workflow_run": 34066296823,
+  "verification_head": "302247e05620c05788f52d92e445f990f3051fa2",
+  "baseline": {
+    "kpi_ssim": 0.493198,
+    "kpi_pixel_difference_percent": 12.9074,
+    "global_ssim": 0.38226,
+    "global_pixel_difference_percent": 14.4419
+  },
+  "accepted": {
+    "kpi_ssim": 0.52698,
+    "kpi_pixel_difference_percent": 12.7122,
+    "global_ssim": 0.392218,
+    "global_pixel_difference_percent": 14.4266
+  },
+  "typography": {
+    "label_font_size_px": 12,
+    "value_font_size_px": 28,
+    "value_font_weight": 700,
+    "meta_font_size_px": 10,
+    "original_font_identity_claimed": false,
+    "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "overflow_px": 0,
+  "fixture_leak_count": 0,
+  "runtime_truth_mutation_count": 0,
+  "architecture_drift_count": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
