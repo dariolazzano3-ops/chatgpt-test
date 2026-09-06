@@ -54,15 +54,20 @@ const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.c
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
 const heroCandidateEnabled=heroCandidateRequested==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT';
-const sidebarLogoCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_LOGO_CANDIDATE||'').trim();
+const acceptedSidebarLogo=(stencilSession.accepted_candidates||[]).find(x=>['SIDEBAR_LOGO_REFERENCE_EXTRACTED_P2','SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1'].includes(x.candidate_id)&&x.apply_by_default===true);
+const explicitSidebarLogo=String(process.env.VISUAL_FOUNDRY_SIDEBAR_LOGO_CANDIDATE||'').trim();
+const sidebarLogoCandidateId=explicitSidebarLogo||(acceptedSidebarLogo?'SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1':'');
 const sidebarLogoCandidateEnabled=sidebarLogoCandidateId==='SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1';
 const projectThumbnailsCandidateId=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_CANDIDATE||'').trim();
 const projectThumbnailsCandidateEnabled=projectThumbnailsCandidateId==='PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1';
 const projectThumbnailsScope=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_SCOPE||'BOTH').trim().toUpperCase();
-const heroTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE||'').trim();
-const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X||1);
-const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX||NaN);
-const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT||NaN);
+
+const acceptedHeroTypography=(stencilSession.accepted_candidates||[]).find(x=>['HERO_TYPOGRAPHY_T11_V2','HERO_TYPOGRAPHY_T5'].includes(x.candidate_id)&&x.apply_by_default===true);
+const explicitHeroTypography=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE||'').trim();
+const heroTypographyCandidateId=explicitHeroTypography||(acceptedHeroTypography?.candidate_id||'');
+const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X??acceptedHeroTypography?.typography?.scale_x??1);
+const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX??acceptedHeroTypography?.typography?.letter_spacing_px??NaN);
+const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT??acceptedHeroTypography?.typography?.font_weight??NaN);
 const sidebarNavTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_TYPOGRAPHY_CANDIDATE||'').trim();
 const sidebarNavFontSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_SIZE_PX||NaN);
 const sidebarNavFontWeight=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_WEIGHT||NaN);
