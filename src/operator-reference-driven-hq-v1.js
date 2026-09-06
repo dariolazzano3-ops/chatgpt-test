@@ -240,15 +240,6 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-bottom-card{height:76px;min-height:76px;box-sizing:border-box}
 /* AURENTARA_GOLD_STANDARD_VISUAL_CALIBRATION_V1
    Fixture-only appearance calibration. Deterministic candidates are kept only after re-measurement. */
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1{
-  --rf-bg:#010b18;--rf-bg-2:#03101f;--rf-panel:#041425;--rf-panel-2:#071a30;
-  --rf-line:#164c78;--rf-line-soft:#103752;--rf-text:#e3e9f0;--rf-muted:#7d94a8;
-  --rf-gold:#1e98d2;--rf-gold-2:#6dc7ff;--rf-green:#18dda2;--rf-yellow:#f4c83d;
-  --rf-red:#ff5c6c;--rf-blue:#41aef4;--rf-shadow:0 14px 38px rgba(0,27,58,.34)
-}
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .main{
-  background:radial-gradient(circle at 72% -8%,rgba(0,126,238,.16),transparent 35%),linear-gradient(180deg,#010b18,#020d19)
-}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .side{
   padding:14px 10px 14px;background:radial-gradient(circle at 42% 76%,rgba(0,105,195,.14),transparent 35%),linear-gradient(180deg,#020b17,#03101d);
   border-right-color:#123a5c;box-shadow:8px 0 32px rgba(0,24,56,.22)
@@ -299,20 +290,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-operator{
   border-color:#174c76;border-radius:6px;background:#061326
 }
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero{
-  padding-left:26px;padding-right:26px;border-bottom:0;background:
-  radial-gradient(circle at 80% 132%,rgba(30,119,197,.75) 0 40%,rgba(18,74,130,.88) 41% 48%,rgba(56,174,255,.94) 49%,rgba(79,194,255,.36) 50%,transparent 54%),
-  radial-gradient(circle at 79% 125%,rgba(4,42,82,.95) 0 49%,transparent 50%),
-  linear-gradient(90deg,#020b17 0%,#031020 52%,#061c35 100%)
-}
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero:before{
-  background:
-  radial-gradient(circle at 79% 69%,rgba(255,191,91,.55) 0 1px,transparent 2px),
-  radial-gradient(circle at 85% 74%,rgba(255,191,91,.42) 0 1px,transparent 2px),
-  radial-gradient(circle at 91% 63%,rgba(255,210,122,.38) 0 1px,transparent 2px);
-  background-size:37px 29px,53px 41px,61px 47px;opacity:.78
-}
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero:after{display:none}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero{padding-left:26px;padding-right:26px;border-bottom:0}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kicker{
   color:#d7e9f7;font-size:9px;letter-spacing:.25em
 }
