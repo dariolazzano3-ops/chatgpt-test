@@ -246,6 +246,16 @@ try {
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (staticServer?.server) await new Promise((resolve) => staticServer.server.close(resolve));
-  if (chromeProcess && !chromeProcess.killed) chromeProcess.kill('SIGTERM');
-  await rm(temp, { recursive:true, force:true });
+  if (chromeProcess && chromeProcess.exitCode === null) {
+    chromeProcess.kill('SIGTERM');
+    await Promise.race([
+      new Promise((resolve) => chromeProcess.once('exit', resolve)),
+      new Promise((resolve) => setTimeout(resolve, 1500))
+    ]);
+    if (chromeProcess.exitCode === null) {
+      chromeProcess.kill('SIGKILL');
+      await new Promise((resolve) => chromeProcess.once('exit', resolve));
+    }
+  }
+  await rm(temp, { recursive:true, force:true, maxRetries:8, retryDelay:200 });
 }
