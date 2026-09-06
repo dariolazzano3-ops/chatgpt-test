@@ -269,7 +269,7 @@
       },
       {
         "region_id": "cost_panel",
-        "baseline_score": 0.300142
+        "baseline_score": 0.329179
       },
       {
         "region_id": "activity_panel",
@@ -568,6 +568,28 @@
       "accepted_kpi_pixel_difference_percent": 12.7122,
       "baseline_global_ssim": 0.38226,
       "accepted_global_ssim": 0.392218
+    },
+    {
+      "candidate_id": "COST_TYPOGRAPHY_C1",
+      "region_id": "cost_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_workflow_run": 34066794220,
+      "verification_workflow_run": 34066915723,
+      "verification_head": "a1851dd569bcab906ead035c4b4336e05e02825d",
+      "typography": {
+        "primary_font_size_px": 8,
+        "secondary_font_size_px": 8,
+        "secondary_font_weight": 650,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_cost_ssim": 0.300142,
+      "accepted_cost_ssim": 0.329179,
+      "baseline_cost_pixel_difference_percent": 19.4151,
+      "accepted_cost_pixel_difference_percent": 18.6721,
+      "baseline_global_ssim": 0.392218,
+      "accepted_global_ssim": 0.394275
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
