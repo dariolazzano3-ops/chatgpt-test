@@ -40,6 +40,7 @@ export function deriveResponsiveConstraintSet(input={}){
     const fixedWidth=strategy==='FIXED_RAIL'?b.width:null;
     return {
       id,role:clean(item.role||'REGION',80),group_id:item.group_id?clean(item.group_id,120):null,
+      tolerance_px:Number.isFinite(Number(item.tolerance_px))?Math.max(0,Number(item.tolerance_px)):1,
       strategy,
       calibration_anchor:{viewport:clone(canvas),bounds:b},
       parent_bounds:parent,
