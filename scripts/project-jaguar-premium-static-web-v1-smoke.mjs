@@ -156,9 +156,9 @@ try {
   const sourceRoot = path.join(temp, 'source');
   await materializePremiumStaticWebV1SourcePackage(premium.build_profile, sourceRoot);
 
-  const astroBin = path.join(repoRoot, 'node_modules', 'astro', 'astro.js');
+  const astroBin = path.join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'astro.cmd' : 'astro');
   await stat(astroBin);
-  const astro = spawnSync(process.execPath, [astroBin, 'build'], {
+  const astro = spawnSync(astroBin, ['build'], {
     cwd: sourceRoot,
     encoding: 'utf8',
     env: { ...process.env, CI: '1' }
