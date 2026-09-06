@@ -43,6 +43,8 @@ function memoryRow(ownerId, ownerRef, entry) {
   if (!validUuid(ownerId)) throw new Error('JARVIS_MEMORY_OWNER_ID_REQUIRED');
   const owner = clean(ownerRef, 320);
   if (!owner) throw new Error('JARVIS_MEMORY_OWNER_REF_REQUIRED');
+  const entryOwnerRef = clean(entry?.owner_ref, 320);
+  if (entryOwnerRef && entryOwnerRef !== owner) throw new Error('JARVIS_MEMORY_OWNER_REF_MISMATCH');
 
   const normalized = normalizeJarvisMemoryEntryV1(
     { ...entry, owner_ref: owner },
