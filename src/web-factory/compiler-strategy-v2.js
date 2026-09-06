@@ -9,7 +9,7 @@ const RECIPE_LIBRARY = Object.freeze({
   local_business: { match:/local|bakery|bäckerei|handwerk|plumber|electric|cleaning|local service/i, pages:['home','services','about','contact','faq'], trust:['local_presence','reviews','service_area','contact_data'], ctas:['contact','call','quote'], seo:['service + location','brand + location'], warnings:['Do not invent reviews, opening hours, addresses or service areas.'] },
   consulting: { match:/consult|beratung|advisory/i, pages:['home','services','about','insights','contact','faq'], trust:['expertise','methodology','case_evidence','testimonials_if_supplied'], ctas:['discovery_call','qualified_enquiry'], seo:['service expertise','industry problem intent'], warnings:['Do not fabricate client logos, case results or credentials.'] },
   agency: { match:/agency|agentur|studio/i, pages:['home','services','work','about','contact','faq'], trust:['portfolio','process','team','case_evidence'], ctas:['project_enquiry','discovery_call'], seo:['service + market','capability themes'], warnings:['Portfolio work must have explicit rights and provenance.'] },
-  restaurant: { match:/restaurant|cafe|café|food|bistro/i, pages:['home','menu','about','gallery','contact','faq'], trust:['reviews_if_supplied','location','opening_hours_if_supplied','food_imagery'], ctas:['booking','call','directions'], seo:['cuisine + location','restaurant + location'], warnings:['Menu, prices and opening hours must come from supplied data.'] },
+  restaurant: { match:/restaurant|cafe|café|food|bistro|gelateria|gelato|eisdiele|ice cream/i, pages:['home','menu','about','gallery','contact','faq'], trust:['reviews_if_supplied','location','opening_hours_if_supplied','food_imagery'], ctas:['booking','call','directions'], seo:['cuisine + location','restaurant + location'], warnings:['Menu, prices and opening hours must come from supplied data.'] },
   hospitality: { match:/hotel|hospitality|resort|guesthouse/i, pages:['home','stay','experience','gallery','contact','faq'], trust:['reviews_if_supplied','location','amenities','policies'], ctas:['booking','availability'], seo:['stay + location','experience + location'], warnings:['Do not invent availability, amenities or policy details.'] },
   real_estate: { match:/real estate|immobil|realtor/i, pages:['home','services','properties','about','contact','faq'], trust:['local_expertise','listings_if_supplied','credentials','reviews_if_supplied'], ctas:['valuation','viewing','contact'], seo:['property service + location','valuation intent'], warnings:['Listings and market claims must be sourced.'] },
   dentist: { match:/dentist|dental|zahnarzt/i, pages:['home','services','team','contact','faq'], trust:['qualifications','clinic_information','reviews_if_supplied','contact_data'], ctas:['appointment','phone'], seo:['treatment + location','dentist + location'], warnings:['No medical outcome guarantees or invented qualifications.'] },
@@ -48,7 +48,7 @@ export function getWebsiteRecipe(industry = '') {
 function detectIndustry(request = '') {
   const q = text(request, 2000).toLowerCase();
   const candidates = [
-    ['consulting',/consult|beratung|unternehmensberatung|advisory/],['agency',/agency|agentur/],['restaurant',/restaurant|cafe|café|bistro/],
+    ['consulting',/consult|beratung|unternehmensberatung|advisory/],['agency',/agency|agentur/],['restaurant',/restaurant|cafe|café|bistro|gelateria|gelato|eisdiele|ice cream/],
     ['hospitality',/hotel|hospitality|resort/],['real estate',/real estate|immobil/],['dentist',/dentist|dental|zahnarzt/],
     ['law firm',/law firm|legal|kanzlei|anwalt/],['fitness',/fitness|gym|coach/],['ecommerce',/ecommerce|e-commerce|shop/],['SaaS',/saas|software platform|software/],
     ['professional services',/architecture|architect|accounting|engineering|professional service/],['local services',/local business|lokal|bäckerei|bakery|handwerk/]
@@ -128,7 +128,7 @@ export function compileWebsiteRequest(request, context = {}) {
     visual_references:missionCandidate.visual_references,
     competitor_references:missionCandidate.competitor_references,
     content_requirements:{ structured:true, ai_factory_handoff_allowed:true, fabricated_claims_allowed:false },
-    SEO_requirements:{ topics:recipe.SEO_topics, local_intent:/local|bakery|bäckerei|restaurant|dentist|real estate/i.test(industry) },
+    SEO_requirements:{ topics:recipe.SEO_topics, local_intent:/local|bakery|bäckerei|restaurant|gelateria|gelato|eisdiele|ice cream|dentist|real estate/i.test(industry) },
     localization:missionCandidate.localization,
     business_integrations:missionCandidate.integration_requirements,
     quality_level:missionCandidate.quality_level,
