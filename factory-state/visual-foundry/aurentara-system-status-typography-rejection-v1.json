@@ -1,0 +1,89 @@
+{
+  "schema": "riosystems.aurentara-system-status-typography-sweep.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "workflow_run": 34066621867,
+  "sweep_head": "41c10078058057b86043edaff24af2dea2832050",
+  "baseline": {
+    "system_status_ssim": 0.365469,
+    "system_status_pixel_difference_percent": 16.2214,
+    "global_ssim": 0.392218,
+    "global_pixel_difference_percent": 14.4266
+  },
+  "candidates": [
+    {
+      "id": "R1",
+      "primary_size_px": 9,
+      "secondary_size_px": 9,
+      "secondary_weight": 600,
+      "system_status_ssim": 0.362567,
+      "pixel_difference_percent": 16.3905,
+      "global_ssim": 0.392301,
+      "global_pixel_difference_percent": 14.4315,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "R2",
+      "primary_size_px": 9.5,
+      "secondary_size_px": 9.5,
+      "secondary_weight": 600,
+      "system_status_ssim": 0.359604,
+      "pixel_difference_percent": 16.3734,
+      "global_ssim": 0.392072,
+      "global_pixel_difference_percent": 14.431,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "R3",
+      "primary_size_px": 10,
+      "secondary_size_px": 10,
+      "secondary_weight": 600,
+      "system_status_ssim": 0.348701,
+      "pixel_difference_percent": 17.1655,
+      "global_ssim": 0.391573,
+      "global_pixel_difference_percent": 14.4552,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "R4",
+      "primary_size_px": 9,
+      "secondary_size_px": 9,
+      "secondary_weight": 700,
+      "system_status_ssim": 0.362567,
+      "pixel_difference_percent": 16.3905,
+      "global_ssim": 0.392301,
+      "global_pixel_difference_percent": 14.4315,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "R5",
+      "primary_size_px": 9.5,
+      "secondary_size_px": 9.5,
+      "secondary_weight": 700,
+      "system_status_ssim": 0.359604,
+      "pixel_difference_percent": 16.3734,
+      "global_ssim": 0.392072,
+      "global_pixel_difference_percent": 14.431,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "R6",
+      "primary_size_px": 10,
+      "secondary_size_px": 10,
+      "secondary_weight": 700,
+      "system_status_ssim": 0.348701,
+      "pixel_difference_percent": 17.1655,
+      "global_ssim": 0.391573,
+      "global_pixel_difference_percent": 14.4552,
+      "soft_lock": "FAIL"
+    }
+  ],
+  "decision": "KEEP_EXISTING_TYPOGRAPHY_REJECT_ALL_CANDIDATES",
+  "reason": "Every candidate worsens the local System Status region; best candidate still exceeds soft-lock regression tolerance.",
+  "next_delta": "COST_TYPOGRAPHY_P1",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
