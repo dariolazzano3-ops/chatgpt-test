@@ -1,0 +1,89 @@
+{
+  "schema": "riosystems.aurentara-sidebar-nav-typography-sweep.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "workflow_run_id": 34062655706,
+  "sweep_head": "9c8d3a68283547662fe87fb5cacef0fe779d3504",
+  "baseline": {
+    "sidebar_ssim": 0.508022,
+    "primary_navigation_ssim": 0.499364,
+    "global_ssim": 0.371182,
+    "global_pixel_difference_percent": 14.6836
+  },
+  "candidates": [
+    {
+      "id": "S1",
+      "font_size_px": 11,
+      "weight": 500,
+      "global_ssim": 0.37114,
+      "global_pixel_difference_percent": 14.6893,
+      "sidebar_ssim": 0.506238,
+      "primary_navigation_ssim": 0.496312,
+      "sidebar_nav_text_raster_ssim": 0.515093,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "S2",
+      "font_size_px": 11.5,
+      "weight": 500,
+      "global_ssim": 0.370712,
+      "global_pixel_difference_percent": 14.745,
+      "sidebar_ssim": 0.499929,
+      "primary_navigation_ssim": 0.485683,
+      "sidebar_nav_text_raster_ssim": 0.50166,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "S3",
+      "font_size_px": 12,
+      "weight": 500,
+      "global_ssim": 0.370445,
+      "global_pixel_difference_percent": 14.7508,
+      "sidebar_ssim": 0.499164,
+      "primary_navigation_ssim": 0.4844,
+      "sidebar_nav_text_raster_ssim": 0.500049,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "S4",
+      "font_size_px": 11,
+      "weight": 600,
+      "global_ssim": 0.369893,
+      "global_pixel_difference_percent": 14.7964,
+      "sidebar_ssim": 0.500053,
+      "primary_navigation_ssim": 0.485844,
+      "sidebar_nav_text_raster_ssim": 0.501925,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "S5",
+      "font_size_px": 11.5,
+      "weight": 600,
+      "global_ssim": 0.36941,
+      "global_pixel_difference_percent": 14.8525,
+      "sidebar_ssim": 0.494031,
+      "primary_navigation_ssim": 0.4757,
+      "sidebar_nav_text_raster_ssim": 0.489104,
+      "soft_lock": "FAIL"
+    },
+    {
+      "id": "S6",
+      "font_size_px": 12,
+      "weight": 600,
+      "global_ssim": 0.368484,
+      "global_pixel_difference_percent": 14.86,
+      "sidebar_ssim": 0.491616,
+      "primary_navigation_ssim": 0.471639,
+      "sidebar_nav_text_raster_ssim": 0.483995,
+      "soft_lock": "FAIL"
+    }
+  ],
+  "decision": "REJECT_ALL",
+  "reason": "No candidate satisfies soft-lock tolerance. Best candidate S1 regresses primary_navigation by 0.003052 > 0.002.",
+  "next_step": "Measure exact current baseline with sidebar_nav_text_raster, then run a narrower font-size sweep around the current 10.5px / 500 baseline.",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
