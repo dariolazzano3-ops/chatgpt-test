@@ -4,12 +4,17 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import jpeg from 'jpeg-js';
+import pngjs from 'pngjs';
 import { captureDomMeasurements, evaluateDomMeasurementIntegrity } from '../src/visual-foundry/dom-measurement.js';
 import { createStencilContract, installReferenceStencil, setStencilMode, removeReferenceStencil } from '../src/visual-foundry/stencil-mode.js';
 import { deriveResponsiveConstraintSet, evaluateCalibrationAnchor } from '../src/visual-foundry/constraint-solver.js';
 import { createSoftRegionLockSet, evaluateSoftLockCandidate, finalizeSoftRegionLocks } from '../src/visual-foundry/soft-region-locks.js';
 import { rankVisualDeltas } from '../src/visual-foundry/visual-priority.js';
 import { evaluateSemanticImplementation } from '../src/visual-foundry/semantic-gate.js';
+import { compareVisualImages } from '../src/visual-foundry/visual-comparator.js';
+
+const { PNG }=pngjs;
 
 const runNumber=Number(process.env.GOLD_STANDARD_RUN||1);
 assert.ok([1,2,3].includes(runNumber),'GOLD_STANDARD_RUN must be 1, 2 or 3');
@@ -22,6 +27,12 @@ const fixture=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-
 const referenceSpec=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-spec-v1.json','utf8'));
 const referenceRegistration=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-v1-0.json','utf8'));
 const stencilSession=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-stencil-constraint-session-v1.json','utf8'));
+let approvedReferenceB64='';
+for(let i=1;i<=4;i++){
+  approvedReferenceB64+=(await readFile(`factory-state/visual-foundry/reference-assets/aurentara-hq-reference-v1.part0${i}.b64`,'utf8')).replace(/\s+/g,'');
+}
+const approvedReferenceBytes=Buffer.from(approvedReferenceB64,'base64');
+const approvedReferenceHash=crypto.createHash('sha256').update(approvedReferenceBytes).digest('hex');
 const referenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-reference-extracted-assets-v1.json','utf8'));
 const heroAsset=referenceAssets.assets.find(x=>x.asset_id==='hero_earth_reference_extracted');
 assert.ok(heroAsset,'HERO_REFERENCE_EXTRACTED_ASSET_REQUIRED');
@@ -41,6 +52,14 @@ assert.equal(referenceRegistration.hash_match,true);
 assert.equal(stencilSession.reference_id,referenceRegistration.reference.reference_id);
 assert.equal(stencilSession.reference_hash,referenceRegistration.reference.hash);
 assert.equal(stencilSession.stencil.fallback_reference_allowed,false);
+assert.equal(approvedReferenceHash,referenceRegistration.reference.hash,'APPROVED_REFERENCE_TRANSPORT_HASH_MISMATCH');
+const approvedDecoded=jpeg.decode(approvedReferenceBytes,{useTArray:true,formatAsRGBA:true});
+assert.equal(approvedDecoded.width,referenceSpec.viewport.width,'APPROVED_REFERENCE_WIDTH_MISMATCH');
+assert.equal(approvedDecoded.height,referenceSpec.viewport.height,'APPROVED_REFERENCE_HEIGHT_MISMATCH');
+const approvedReferencePng=new PNG({width:approvedDecoded.width,height:approvedDecoded.height});
+approvedReferencePng.data.set(approvedDecoded.data);
+const approvedReferencePngPath=outDir+'/reference-approved.png';
+await writeFile(approvedReferencePngPath,PNG.sync.write(approvedReferencePng));
 
 const child=spawn(process.execPath,[
   'node_modules/wrangler/bin/wrangler.js','dev','--env','staging','--port',String(port),
@@ -369,7 +388,8 @@ try{
     };
   }
 
-  const verifiedStencil=await resolveVerifiedStencilSource(process.env.VISUAL_FOUNDRY_STENCIL_SOURCE,referenceRegistration.reference.hash);
+  const stencilSourceRaw=String(process.env.VISUAL_FOUNDRY_STENCIL_SOURCE||'').trim()||('data:image/jpeg;base64,'+approvedReferenceB64);
+  const verifiedStencil=await resolveVerifiedStencilSource(stencilSourceRaw,referenceRegistration.reference.hash);
   let stencilBuildAid={status:verifiedStencil.status,reference_hash:referenceRegistration.reference.hash,fallback_reference_allowed:false};
   if(verifiedStencil.status==='VERIFIED'){
     const contract=createStencilContract({
@@ -424,9 +444,78 @@ try{
   assert.equal(desktopLayout.dpr,1);
   assert.equal(desktopLayout.fixture_truth_class,'VISUAL_FIXTURE');
 
-  const runtimeScreenshot=outDir+'/runtime-desktop.jpeg';
-  await page.screenshot({path:runtimeScreenshot,type:'jpeg',quality:100,fullPage:false,animations:'disabled'});
+  const runtimeScreenshot=outDir+'/runtime-desktop.png';
+  await page.screenshot({path:runtimeScreenshot,type:'png',fullPage:false,animations:'disabled'});
   await writeFile(outDir+'/desktop-layout-debug.json',JSON.stringify({desktopLayout,geometry},null,2));
+
+  const comparatorRegions=referenceSpec.regions.map(r=>({
+    region_id:r.region_id,
+    critical:r.critical===true,
+    x:Number(r.bounds.x.value),y:Number(r.bounds.y.value),
+    width:Number(r.bounds.width.value),height:Number(r.bounds.height.value)
+  }));
+  const visualComparison=await compareVisualImages({
+    reference_path:approvedReferencePngPath,
+    actual_path:runtimeScreenshot,
+    diff_path:outDir+'/diff-desktop.png',
+    pixel_threshold:0.1,
+    include_antialiasing:false,
+    regions:comparatorRegions
+  });
+  const comparisonMeasurement={regions:visualComparison.regions.map(r=>({region_id:r.region_id,score:Number(r.perceptual_score)}))};
+  softLockEvaluation=evaluateSoftLockCandidate(softLockSet,comparisonMeasurement);
+  softLockFinalization=finalizeSoftRegionLocks(softLockSet,comparisonMeasurement);
+  const areaByRegion=new Map(referenceSpec.regions.map(r=>[r.region_id,Number(r.bounds.width.value)*Number(r.bounds.height.value)]));
+  const semantics=stencilSession.priority_contract.region_semantics;
+  priorityRanking={
+    status:'EVALUATED',
+    ranked:rankVisualDeltas(visualComparison.regions.map(r=>({
+      region_id:r.region_id,
+      ssim:Number(r.perceptual_score),
+      pixel_difference_percent:Number(r.pixel_difference_percent),
+      area_px:areaByRegion.get(r.region_id)||1,
+      canvas_area_px:stencilSession.canvas.width*stencilSession.canvas.height,
+      contrast_index:semantics[r.region_id]?.contrast_index??0.5,
+      semantic_type:semantics[r.region_id]?.semantic_type??'NORMAL_UI',
+      criticality:semantics[r.region_id]?.criticality??'MEDIUM'
+    })))
+  };
+  const criticalRegionFailures=visualComparison.regions.filter(r=>r.critical&&(Number(r.perceptual_score)<0.96||Number(r.pixel_difference_percent)>3));
+  const visualThresholdPass=
+    Number(visualComparison.perceptual.score)>=0.96&&
+    Number(visualComparison.pixel_difference.percent)<=3&&
+    criticalRegionFailures.length===0&&
+    softLockFinalization.status==='PASS'&&
+    constraintAnchor.status==='PASS';
+  await writeFile(outDir+'/machine-visual-comparison.json',JSON.stringify({
+    reference_id:referenceRegistration.reference.reference_id,
+    reference_hash:referenceRegistration.reference.hash,
+    comparison:visualComparison,
+    critical_region_failures:criticalRegionFailures.map(r=>r.region_id),
+    soft_lock_evaluation:softLockEvaluation,
+    soft_lock_finalization:softLockFinalization,
+    priority_ranking:priorityRanking,
+    visual_threshold_pass:visualThresholdPass
+  },null,2));
+  await writeFile(outDir+'/stencil-constraint-evidence.json',JSON.stringify({
+    stencil_build_aid:stencilBuildAid,
+    hero_candidate:heroCandidateState,
+    constraint_set:constraintSet,
+    constraint_anchor:constraintAnchor,
+    soft_lock_set:softLockSet,
+    soft_lock_evaluation:softLockEvaluation,
+    soft_lock_finalization:softLockFinalization,
+    priority_ranking:priorityRanking,
+    semantic_implementation:semanticImplementation,
+    visual_comparison:visualComparison,
+    visual_threshold_pass:visualThresholdPass,
+    navigation_diagnostics:{
+      main:geometryBounds(geometry,'primary_navigation'),
+      shell:geometryBounds(geometry,'primary_navigation_shell'),
+      foot:geometryBounds(geometry,'primary_navigation_foot')
+    }
+  },null,2));
+
   if(desktopLayout.scroll_width>1536){
     console.error(JSON.stringify({code:'DESKTOP_HORIZONTAL_OVERFLOW',desktopLayout},null,2));
     throw new Error('desktop horizontal overflow: '+desktopLayout.scroll_width+' > 1536');
@@ -470,7 +559,9 @@ try{
     fixture_truth_class:'VISUAL_FIXTURE',
     reference_screenshot:'EXTERNAL_OPERATOR_SUPPLIED_HASH_LOCKED',
     runtime_screenshot:runtimeScreenshot,
-    diff_image:'PENDING_LOCAL_REFERENCE_COMPARISON',
+    diff_image:outDir+'/diff-desktop.png',
+    visual_comparison:visualComparison,
+    critical_region_failures:criticalRegionFailures.map(r=>r.region_id),
     geometry_snapshot:geometry,
     constraint_anchor:constraintAnchor,
     soft_lock_evaluation:softLockEvaluation,
@@ -495,7 +586,7 @@ try{
     runtime_cost_usd:0,
     changed_files:[],
     functional_result:pageErrors.length===0&&api404.length===0&&runtimeTruthMutationCount===0?'PASS':'FAIL',
-    visual_result:'NOT_EVALUATED',
+    visual_result:visualThresholdPass?'PASS':'FAIL',
     accessibility_result:'NOT_EVALUATED',
     human_result:'NOT_EVALUATED',
     fixture_leak_count:0,
@@ -528,7 +619,10 @@ try{
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
     architecture_drift_count:0,
-    visual_result:'NOT_EVALUATED_PENDING_EXTERNAL_REFERENCE_COMPARE',
+    visual_result:runEvidence.visual_result,
+    perceptual_score:visualComparison.perceptual.score,
+    pixel_difference_percent:visualComparison.pixel_difference.percent,
+    critical_region_failures:criticalRegionFailures.length,
     wave20_locked:true
   },null,2));
 }finally{
