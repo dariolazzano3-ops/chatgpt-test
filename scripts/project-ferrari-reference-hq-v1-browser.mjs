@@ -41,12 +41,14 @@ async function waitForWorker(timeoutMs = 30000) {
 let browserInstance;
 const pageErrors = [];
 const consoleErrors = [];
+const badResponses = [];
 try {
   await waitForWorker();
   browserInstance = await chromium.launch({ headless: true, channel: 'chrome' });
   const page = await browserInstance.newPage({ viewport: { width: 1586, height: 992 } });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('response', (res) => { if (res.status() >= 400) badResponses.push({ status: res.status(), url: res.url() }); });
 
   const response = await page.goto(`${origin}/operator`, { waitUntil: 'domcontentloaded' });
   assert.equal(response?.status(), 200);
@@ -142,6 +144,7 @@ try {
   await page.screenshot({ path: path.join(outDir, 'reference-01-hq-iphone-regression.png'), fullPage: true });
 
   assert.deepEqual(pageErrors, []);
+  assert.deepEqual(badResponses, [], 'browser must not receive HTTP 4xx/5xx responses');
   assert.deepEqual(consoleErrors, []);
 
   console.log(JSON.stringify({
