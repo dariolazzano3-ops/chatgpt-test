@@ -1,0 +1,40 @@
+name: JARVIS Personal AI OS V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-personal-assistant-v1'
+    paths:
+      - 'src/jarvis/**'
+      - 'scripts/jarvis-personal-assistant-v1-smoke.mjs'
+      - 'docs/JARVIS_PERSONAL_ASSISTANT_V1.md'
+      - '.github/workflows/jarvis-personal-assistant-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jarvis-v1-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check JARVIS V1
+        run: |
+          node --check src/jarvis/contracts-v1.js
+          node --check src/jarvis/intent-v1.js
+          node --check src/jarvis/context-v1.js
+          node --check src/jarvis/action-gate-v1.js
+          node --check src/jarvis/memory-v1.js
+          node --check src/jarvis/tools-v1.js
+          node --check src/jarvis/planner-v1.js
+          node --check src/jarvis/result-v1.js
+          node --check src/jarvis/audit-v1.js
+          node --check src/jarvis/service-v1.js
+      - name: JARVIS V1 architecture smoke
+        run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
