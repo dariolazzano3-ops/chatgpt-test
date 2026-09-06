@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "932f52a7948a5c9871e7422595136e4e6f2abdf1",
-  "workflow_run_id": 34063816881,
+  "evidence_head": "5fe29797b190e8d4a3ecd49811f4d9aaac2d643f",
+  "workflow_run_id": 34064353111,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.374587,
-    "pixel_difference_percent": 14.6608,
+    "ssim": 0.37768,
+    "pixel_difference_percent": 14.5772,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.994756,
@@ -43,10 +43,10 @@
     },
     {
       "region_id": "hero",
-      "status": "LOCKED_ACCEPTED_GAIN",
-      "ssim": 0.519889,
+      "status": "ACCEPTED_GAIN",
+      "ssim": 0.532911,
       "baseline_ssim": 0.488467,
-      "pixel_difference_percent": 15.9352,
+      "pixel_difference_percent": 15.0987,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
       "hero_title_raster_ssim": 0.228945,
       "hero_title_raster_baseline_ssim": 0.064909
@@ -116,8 +116,8 @@
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     }
   ],
-  "active_delta_cluster": "REMAINING_TYPOGRAPHY",
-  "next_candidate": "HERO_TITLE_FONT_RESOLUTION_V2",
+  "active_delta_cluster": "REMAINING_ASSETS",
+  "next_candidate": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -128,7 +128,8 @@
     "OPERATOR_AI_DETAIL_GEOMETRY_P1",
     "PORTFOLIO_DETAIL_GEOMETRY_P1",
     "SIDEBAR_BRAND_TYPOGRAPHY_B8",
-    "OPERATOR_AI_HEADER_H4"
+    "OPERATOR_AI_HEADER_H4",
+    "HERO_TYPOGRAPHY_T11_V2"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
