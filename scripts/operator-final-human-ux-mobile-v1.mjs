@@ -190,8 +190,12 @@ try {
   assert.equal(reloadContext.section, 'projects', 'iPhone reload keeps project workspace section');
   assert.equal(reloadContext.scope, scope, 'iPhone reload keeps selected scope');
   assert.equal(reloadContext.detailScope, scope, 'iPhone reload restores cached project detail when read hydration fails');
-  assert.equal(await page.locator('#project-detail').isVisible(), true, 'cached project detail remains visible across transient reload failure');
+  const reloadedPremiumWorkspace = page.locator('.pm-workspace[data-scope="' + scope.replace(/"/g, '\\"') + '"]');
+  const reloadedProjectSurface = await reloadedPremiumWorkspace.count() ? reloadedPremiumWorkspace : page.locator('#project-detail');
+  assert.equal(await reloadedProjectSurface.isVisible(), true, 'cached active project presentation remains visible across transient reload failure');
+  if (await reloadedPremiumWorkspace.count()) assert.equal(await reloadedPremiumWorkspace.getAttribute('data-scope'), scope, 'reloaded premium workspace preserves canonical scope');
   await page.unroute('**/operator/api/**', persistentHandler);
+  await page.evaluate(() => { if (typeof setError === 'function') setError(null); });
 
   let durabilityCalls = 0;
   const durabilityHandler = async (route) => {
