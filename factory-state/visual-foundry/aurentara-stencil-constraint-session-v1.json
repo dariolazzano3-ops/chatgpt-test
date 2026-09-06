@@ -261,7 +261,7 @@
       },
       {
         "region_id": "operator_ai_panel",
-        "baseline_score": 0.425518
+        "baseline_score": 0.427606
       },
       {
         "region_id": "system_status",
@@ -477,6 +477,27 @@
       "accepted_brand_raster_ssim": 0.176208,
       "baseline_sidebar_ssim": 0.508022,
       "accepted_sidebar_ssim": 0.514598
+    },
+    {
+      "candidate_id": "OPERATOR_AI_HEADER_H4",
+      "region_id": "operator_ai_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "candidate_workflow_run": 34063723263,
+      "verification_workflow_run": 34063816881,
+      "verification_head": "932f52a7948a5c9871e7422595136e4e6f2abdf1",
+      "typography": {
+        "scope": "OPERATOR_AI",
+        "title_font_size_px": 14,
+        "title_font_weight": 700,
+        "subtitle_font_size_px": 9.5,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_header_raster_ssim": 0.451475,
+      "accepted_header_raster_ssim": 0.462993,
+      "baseline_panel_ssim": 0.425518,
+      "accepted_panel_ssim": 0.427606
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
