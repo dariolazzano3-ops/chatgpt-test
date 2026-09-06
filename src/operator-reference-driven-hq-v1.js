@@ -259,6 +259,83 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-input{
   height:34px;min-height:34px;margin-top:6px;padding:7px 11px
 }
+/* PORTFOLIO_DETAIL_GEOMETRY_P1 — fixture-only */
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-panel-head{
+  height:54px;min-height:54px;padding:8px 12px;box-sizing:border-box
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-panel-head>div:last-child{
+  display:flex!important;gap:12px!important;align-items:center
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-new-project{
+  width:130px;height:34px;min-height:34px;padding:7px 12px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-head-more{
+  width:34px;height:34px;padding:0;border:1px solid #2b6795;border-radius:6px;background:#071724;color:#d8efff;font-size:13px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-toolbar{
+  height:52px;box-sizing:border-box;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #12344f
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-tabs{
+  display:flex;align-items:center;gap:8px;min-width:0
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-tab{
+  height:34px;min-height:34px;padding:6px 12px;border:1px solid #244c6c;border-radius:6px;background:#081827;color:#aec5d6;font-size:8.5px;white-space:nowrap
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-tab.active{
+  border-color:#208ef1;background:linear-gradient(180deg,#0d66bf,#0a3d78);color:#fff;box-shadow:0 0 12px rgba(30,143,242,.22)
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-tools{
+  display:flex;align-items:center;gap:10px;margin-left:auto
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-search{
+  width:250px;min-width:250px;height:34px;box-sizing:border-box;padding:0 10px;border:1px solid #1d4561;border-radius:6px;background:#071724
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-search input{
+  font-size:8.5px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-filter{
+  width:34px;height:34px;padding:0;border:1px solid #1d4561;border-radius:6px;background:#071724;color:#c7dcec;font-size:12px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table-wrap{
+  height:240px;overflow:hidden
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th{
+  height:29px;box-sizing:border-box;padding:6px 10px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table td{
+  height:52px;box-sizing:border-box;padding:7px 10px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(1){width:21%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(2){width:10%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(3){width:11%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(4){width:10%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(5){width:13%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(6){width:16%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-table th:nth-child(7){width:19%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-project-cell{gap:10px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-project-cell .rf-avatar{
+  width:34px;height:34px;flex:0 0 34px;border-radius:5px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-project-name{font-size:9.5px;line-height:1.15}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-project-scope{margin-top:3px;font-size:7px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-state{
+  min-height:24px;box-sizing:border-box;display:inline-flex;align-items:center;padding:4px 6px;white-space:nowrap
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-table-progress{
+  grid-template-columns:34px 70px;gap:6px;min-width:110px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-next-table{
+  font-size:8px;line-height:1.35
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-portfolio-actions{
+  display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-open-project{
+  width:74px;height:30px;min-height:30px;padding:5px 10px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-row-more{
+  width:28px;height:30px;padding:0;border:1px solid #2b6795;border-radius:6px;background:#071724;color:#d8efff;font-size:10px
+}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid{margin-top:11px;width:calc(100% - 2px);grid-template-columns:704fr 570fr;gap:12px;height:346px}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel{height:346px}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-side-zone{grid-template-columns:270fr 291fr;gap:9px;height:346px}
