@@ -697,7 +697,14 @@
       "accepted_global_ssim": 0.396399,
       "baseline_global_pixel_difference_percent": 14.3778,
       "accepted_global_pixel_difference_percent": 14.2985,
-      "attention_unchanged": true
+      "attention_unchanged": true,
+      "verification_workflow_run": 34068185588,
+      "verification_head": "11a7db2f8a2ac3f2ea928579cd17bfbe067baa8b",
+      "verification_status": "SUCCESS",
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS"
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
