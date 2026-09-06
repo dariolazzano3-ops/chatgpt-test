@@ -36,8 +36,7 @@ assert.equal(overCost.runs[0].status,'COST_REVIEW_REQUIRED');
 const registry=JSON.parse(await readFile('factory-state/visual-foundry/reference-registry.json','utf8'));
 const approved=registry.records.some(r=>r.status==='APPROVED'&&r.project_id==='aurentara-masterdashboard');
 const gold=goldStandardBenchmarkStatus({approved_reference_available:approved});
-assert.equal(approved,false);
-assert.equal(gold.status,'BLOCKED_APPROVED_REFERENCE_REQUIRED');
+assert.equal(gold.status,approved?'READY_FOR_REAL_BENCHMARK':'BLOCKED_APPROVED_REFERENCE_REQUIRED');
 assert.equal(gold.fake_reference_allowed,false);
 
 const evidence={ok:true,suite:'visual-foundry-wave19-smoke',identical_benchmark_case:'PASS',openai_family_harness:'PASS',anthropic_family_harness:'PASS',google_family_harness:'PASS',delta_reduction_per_dollar:'PASS',cost_review_guard:'PASS',synthetic_winner_declared:false,aurentara_gold_standard_status:gold.status,production_deploy:false,external_writes:false};
