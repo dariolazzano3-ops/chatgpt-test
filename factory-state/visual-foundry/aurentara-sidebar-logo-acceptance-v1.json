@@ -1,0 +1,43 @@
+{
+  "schema": "riosystems.aurentara-sidebar-logo-asset-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1",
+  "workflow_run": 34064654723,
+  "verification_head": "478706cf92574031e707c3616ecc82fa4f2ac324",
+  "asset": {
+    "asset_id": "aurentara_logo_symbol_reference_extracted",
+    "sha256": "72185db1e748726fc1819d333ba96351e5e08b03ba97b3ee98a52ead0753fcd4",
+    "crop": {
+      "x": 20,
+      "y": 10,
+      "width": 80,
+      "height": 63
+    },
+    "provenance": "REFERENCE_EXTRACTED",
+    "usage_scope": "GOLD_STANDARD_POC_ONLY"
+  },
+  "baseline": {
+    "sidebar_ssim": 0.514598,
+    "global_ssim": 0.37768,
+    "global_pixel_difference_percent": 14.5772
+  },
+  "accepted": {
+    "sidebar_ssim": 0.528504,
+    "sidebar_logo_raster_ssim": 1,
+    "global_ssim": 0.379478,
+    "global_pixel_difference_percent": 14.4061
+  },
+  "soft_locks": "PASS",
+  "constraint_anchor": "PASS",
+  "semantic": "PASS",
+  "functional": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
