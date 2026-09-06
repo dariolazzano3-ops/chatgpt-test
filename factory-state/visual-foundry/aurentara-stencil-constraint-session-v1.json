@@ -281,7 +281,7 @@
       },
       {
         "region_id": "portfolio",
-        "baseline_score": 0.342334
+        "baseline_score": 0.34939
       }
     ],
     "excluded_active_or_regressed": [],
@@ -670,6 +670,34 @@
       "accepted_global_ssim": 0.391817,
       "baseline_global_pixel_difference_percent": 14.3804,
       "accepted_global_pixel_difference_percent": 14.3778
+    },
+    {
+      "candidate_id": "PROJECT_THUMBNAILS_PORTFOLIO_ONLY_P1",
+      "underlying_asset_candidate": "PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1",
+      "region_id": "portfolio",
+      "scope": "PORTFOLIO",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "candidate_workflow_run": 34068082281,
+      "candidate_head": "02ac4ad27af95e6dc05657a3a87883ac7086cab2",
+      "provenance": "REFERENCE_EXTRACTED",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "portfolio_asset_count": 4,
+      "baseline_portfolio_ssim": 0.342334,
+      "accepted_portfolio_ssim": 0.34939,
+      "baseline_portfolio_pixel_difference_percent": 19.0546,
+      "accepted_portfolio_pixel_difference_percent": 18.5423,
+      "baseline_portfolio_thumbnails_raster_ssim": 0.075059,
+      "accepted_portfolio_thumbnails_raster_ssim": 0.229572,
+      "baseline_portfolio_thumbnails_pixel_difference_percent": 71.5847,
+      "accepted_portfolio_thumbnails_pixel_difference_percent": 51.334,
+      "baseline_global_ssim": 0.391817,
+      "accepted_global_ssim": 0.396399,
+      "baseline_global_pixel_difference_percent": 14.3778,
+      "accepted_global_pixel_difference_percent": 14.2985,
+      "attention_unchanged": true
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
