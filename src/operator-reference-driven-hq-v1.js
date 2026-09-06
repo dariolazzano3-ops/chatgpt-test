@@ -366,6 +366,16 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand span{
   max-width:152px;margin-top:7px;font-size:7.5px;line-height:1.65;letter-spacing:.20em;color:#88a6bd
 }
+/* SIDEBAR_BRAND_TYPOGRAPHY_B8 — accepted measured gain */
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand{
+  height:150px;min-height:150px;max-height:150px
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand strong{
+  font-size:16.5px;letter-spacing:.22em
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand span{
+  max-width:132px;font-size:7.5px
+}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-nav-group-title{
   margin:5px 12px 4px;color:#7897b0;font-size:7.5px;letter-spacing:.25em
 }
