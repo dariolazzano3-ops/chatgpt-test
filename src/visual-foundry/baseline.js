@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { runPinnedRender } from './render-lab.js';
 
 export const VISUAL_ACCEPTANCE_NOT_EVALUATED = 'VISUAL_ACCEPTANCE_NOT_EVALUATED';
 
@@ -17,52 +17,18 @@ function parsePngDimensions(buffer) {
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
-function normalizeViewport(input = {}) {
-  const width = Number(input.width || 1440);
-  const height = Number(input.height || 1100);
-  const deviceScaleFactor = Number(input.device_pixel_ratio || input.deviceScaleFactor || 1);
-  if (!Number.isInteger(width) || width < 320 || width > 4096) throw new Error('VIEWPORT_WIDTH_INVALID');
-  if (!Number.isInteger(height) || height < 320 || height > 4096) throw new Error('VIEWPORT_HEIGHT_INVALID');
-  if (!Number.isFinite(deviceScaleFactor) || deviceScaleFactor < 1 || deviceScaleFactor > 4) throw new Error('DEVICE_PIXEL_RATIO_INVALID');
-  return { width, height, deviceScaleFactor };
-}
-
 export async function captureRuntimeScreenshot(input = {}) {
-  const url = String(input.url || '');
-  if (!/^https?:\/\//i.test(url)) throw new Error('RUNTIME_URL_INVALID');
-
-  const viewport = normalizeViewport(input.viewport);
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const browserVersion = browser.version();
-    const context = await browser.newContext({
-      viewport: { width: viewport.width, height: viewport.height },
-      deviceScaleFactor: viewport.deviceScaleFactor,
-      locale: input.locale || 'en-US',
-      timezoneId: input.timezone || 'UTC',
-      reducedMotion: 'reduce'
-    });
-    const page = await context.newPage();
-    const response = await page.goto(url, { waitUntil: 'networkidle', timeout: Number(input.timeout_ms || 60000) });
-    if (!response || response.status() < 200 || response.status() >= 400) {
-      throw new Error(`RUNTIME_RENDER_HTTP_${response?.status() || 0}`);
-    }
-    await page.addStyleTag({ content: `
-      *, *::before, *::after {
-        animation-delay: 0s !important;
-        animation-duration: 0s !important;
-        transition-delay: 0s !important;
-        transition-duration: 0s !important;
-        caret-color: transparent !important;
-      }
-    ` });
-    await page.evaluate(() => document.fonts?.ready);
-    await page.screenshot({ path: input.output_path, fullPage: input.full_page !== false });
-    await context.close();
-    return { browser: 'chromium', browser_version: browserVersion, viewport };
-  } finally {
-    await browser.close();
-  }
+  return runPinnedRender({
+    url: input.url,
+    output_path: input.output_path,
+    viewport: input.viewport,
+    locale: input.locale,
+    timezone: input.timezone,
+    timeout_ms: input.timeout_ms,
+    full_page: input.full_page,
+    mask_selectors: input.mask_selectors,
+    commit_sha: input.commit_sha
+  });
 }
 
 export async function buildWave0EvidencePack(input = {}) {
