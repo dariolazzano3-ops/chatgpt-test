@@ -1,0 +1,362 @@
+{
+  "schema": "riosystems.aurentara-stencil-constraint-session.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "canvas": {
+    "width": 1536,
+    "height": 1024,
+    "device_pixel_ratio": 1
+  },
+  "stencil": {
+    "source_authority": "OPERATOR_SUPPLIED_APPROVED_REFERENCE_ONLY",
+    "library_path": "library:/Visual Foundry/References/AURENTARA/AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0.jpeg",
+    "source_env": "VISUAL_FOUNDRY_STENCIL_SOURCE",
+    "default_mode": "OVERLAY",
+    "default_opacity": 0.5,
+    "fallback_reference_allowed": false,
+    "production_allowed": false,
+    "public_allowed": false
+  },
+  "constraints": {
+    "elements": [
+      {
+        "id": "sidebar",
+        "role": "SIDEBAR",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 216,
+          "height": 1024
+        },
+        "parent_bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1536,
+          "height": 1024
+        },
+        "tolerance_px": 3
+      },
+      {
+        "id": "primary_navigation",
+        "role": "NAVIGATION",
+        "bounds": {
+          "x": 14,
+          "y": 184,
+          "width": 192,
+          "height": 688
+        },
+        "parent_bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 216,
+          "height": 1024
+        },
+        "tolerance_px": 12
+      },
+      {
+        "id": "toolbar",
+        "role": "FLUID_HEADER",
+        "bounds": {
+          "x": 216,
+          "y": 0,
+          "width": 1320,
+          "height": 58
+        },
+        "parent_bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1536,
+          "height": 1024
+        },
+        "tolerance_px": 3
+      },
+      {
+        "id": "hero",
+        "role": "HERO",
+        "bounds": {
+          "x": 216,
+          "y": 58,
+          "width": 1320,
+          "height": 119
+        },
+        "parent_bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1536,
+          "height": 1024
+        },
+        "tolerance_px": 3
+      },
+      {
+        "id": "kpi_band",
+        "role": "DATA_BAND",
+        "bounds": {
+          "x": 232,
+          "y": 178,
+          "width": 1286,
+          "height": 96
+        },
+        "parent_bounds": {
+          "x": 216,
+          "y": 0,
+          "width": 1320,
+          "height": 1024
+        },
+        "tolerance_px": 5
+      },
+      {
+        "id": "attention_panel",
+        "role": "DATA_CARD",
+        "group_id": "mid_grid",
+        "bounds": {
+          "x": 232,
+          "y": 285,
+          "width": 711,
+          "height": 276
+        },
+        "parent_bounds": {
+          "x": 232,
+          "y": 285,
+          "width": 1286,
+          "height": 276
+        },
+        "tolerance_px": 7
+      },
+      {
+        "id": "operator_ai_panel",
+        "role": "IMPORTANT_TEXT",
+        "group_id": "mid_grid",
+        "bounds": {
+          "x": 955,
+          "y": 285,
+          "width": 563,
+          "height": 276
+        },
+        "parent_bounds": {
+          "x": 232,
+          "y": 285,
+          "width": 1286,
+          "height": 276
+        },
+        "tolerance_px": 7
+      },
+      {
+        "id": "portfolio",
+        "role": "DATA_CARD",
+        "group_id": "ops_grid",
+        "bounds": {
+          "x": 232,
+          "y": 572,
+          "width": 704,
+          "height": 346
+        },
+        "parent_bounds": {
+          "x": 232,
+          "y": 572,
+          "width": 1286,
+          "height": 346
+        },
+        "tolerance_px": 7
+      },
+      {
+        "id": "right_rail",
+        "role": "RIGHT_RAIL_FIXED",
+        "group_id": "ops_grid",
+        "bounds": {
+          "x": 948,
+          "y": 572,
+          "width": 570,
+          "height": 346
+        },
+        "parent_bounds": {
+          "x": 232,
+          "y": 572,
+          "width": 1286,
+          "height": 346
+        },
+        "tolerance_px": 8
+      },
+      {
+        "id": "right_status_stack",
+        "role": "DATA_CARD",
+        "group_id": "right_rail",
+        "bounds": {
+          "x": 948,
+          "y": 572,
+          "width": 270,
+          "height": 346
+        },
+        "parent_bounds": {
+          "x": 948,
+          "y": 572,
+          "width": 570,
+          "height": 346
+        },
+        "tolerance_px": 8
+      },
+      {
+        "id": "activity_panel",
+        "role": "DATA_CARD",
+        "group_id": "right_rail",
+        "bounds": {
+          "x": 1227,
+          "y": 572,
+          "width": 291,
+          "height": 346
+        },
+        "parent_bounds": {
+          "x": 948,
+          "y": 572,
+          "width": 570,
+          "height": 346
+        },
+        "tolerance_px": 8
+      },
+      {
+        "id": "bottom_strip",
+        "role": "FLUID_FILL",
+        "bounds": {
+          "x": 232,
+          "y": 931,
+          "width": 1286,
+          "height": 76
+        },
+        "parent_bounds": {
+          "x": 216,
+          "y": 0,
+          "width": 1320,
+          "height": 1024
+        },
+        "tolerance_px": 6
+      }
+    ]
+  },
+  "soft_locks": {
+    "tolerance_ssim": 0.002,
+    "regions": [
+      {
+        "region_id": "sidebar",
+        "baseline_score": 0.516015
+      },
+      {
+        "region_id": "primary_navigation",
+        "baseline_score": 0.507768
+      },
+      {
+        "region_id": "toolbar",
+        "baseline_score": 0.583181
+      },
+      {
+        "region_id": "kpi_band",
+        "baseline_score": 0.493819
+      },
+      {
+        "region_id": "attention_panel",
+        "baseline_score": 0.453421
+      },
+      {
+        "region_id": "operator_ai_panel",
+        "baseline_score": 0.365715
+      },
+      {
+        "region_id": "system_status",
+        "baseline_score": 0.47984
+      },
+      {
+        "region_id": "cost_panel",
+        "baseline_score": 0.434438
+      },
+      {
+        "region_id": "activity_panel",
+        "baseline_score": 0.561685
+      },
+      {
+        "region_id": "bottom_strip",
+        "baseline_score": 0.444591
+      }
+    ],
+    "excluded_active_or_regressed": [
+      "hero",
+      "portfolio"
+    ],
+    "mode": "WARN_DURING_SEARCH_BLOCK_AT_FINALIZATION"
+  },
+  "priority_contract": {
+    "region_semantics": {
+      "sidebar": {
+        "semantic_type": "NAVIGATION",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.8
+      },
+      "primary_navigation": {
+        "semantic_type": "NAVIGATION",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.85
+      },
+      "toolbar": {
+        "semantic_type": "NORMAL_UI",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.7
+      },
+      "hero": {
+        "semantic_type": "HEADING",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.9
+      },
+      "kpi_band": {
+        "semantic_type": "DATA_CARD",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.75
+      },
+      "attention_panel": {
+        "semantic_type": "STATUS",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.8
+      },
+      "operator_ai_panel": {
+        "semantic_type": "IMPORTANT_TEXT",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.75
+      },
+      "portfolio": {
+        "semantic_type": "DATA_CARD",
+        "criticality": "CRITICAL",
+        "contrast_index": 0.8
+      },
+      "system_status": {
+        "semantic_type": "STATUS",
+        "criticality": "HIGH",
+        "contrast_index": 0.75
+      },
+      "cost_panel": {
+        "semantic_type": "DATA_CARD",
+        "criticality": "HIGH",
+        "contrast_index": 0.7
+      },
+      "activity_panel": {
+        "semantic_type": "NORMAL_UI",
+        "criticality": "HIGH",
+        "contrast_index": 0.7
+      },
+      "bottom_strip": {
+        "semantic_type": "NORMAL_UI",
+        "criticality": "MEDIUM",
+        "contrast_index": 0.65
+      }
+    },
+    "actual_region_metrics_required": true,
+    "proxy_metrics_as_authority_forbidden": true,
+    "ai_weighting_used": false
+  },
+  "semantic_gate": {
+    "allow_stencil": false,
+    "max_structural_absolute_ratio": 0.35,
+    "visual_pass_requires_semantic_pass": true
+  },
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "dns": false,
+  "billing": false
+}
