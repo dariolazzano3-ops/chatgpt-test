@@ -64,26 +64,30 @@ try{
   await page.waitForFunction(()=>document.querySelector('.rf-hq-shell')?.dataset?.hydrated==='true',{timeout:15000});
 
   assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('reference-hq-v1')),true,'Reference 01 dark HQ mode must be active');
-  assert.equal(await page.locator('.rf-hero h1').innerText(),'Masterdashboard');
-  assert.match(await page.locator('.rf-kicker').innerText(),/PREMIUM MASTERDASHBOARD V1/i);
+  assert.equal(await page.locator('.rf-hero h1').innerText(),'RIOSYSTEMS DASHBOARD');
+  assert.match(await page.locator('.rf-kicker').innerText(),/AURENTARA CONTROL CENTER/i);
   assert.equal(await page.locator('.rf-kpi').count(),4,'Reference 01 requires four HQ KPI cards');
-  for(const label of ['Aktive Projekte','Offene Inputs','Ausstehende Freigaben','Preview bereit']){
+  for(const label of ['Aktive Projekte','Offene Eingaben','Ausstehende Freigaben','Bereit für Preview']){
     assert.equal(await page.locator('.rf-kpi-label').filter({hasText:label}).count(),1,'missing KPI '+label);
   }
-  assert.equal(await page.getByRole('heading',{name:'Attention Center',exact:true}).count(),1);
-  assert.equal(await page.getByRole('heading',{name:'Operator AI',exact:true}).count(),1);
-  assert.equal(await page.getByRole('heading',{name:'Projekt Portfolio',exact:true}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'Needs Attention',exact:true}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'Operator KI',exact:true}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'Projektportfolio',exact:true}).count(),1);
   assert.equal(await page.locator('[data-rf-new-project]').count(),1,'Reference portfolio must expose the canonical new-project action');
   assert.equal(await page.locator('#rf-project-search').count(),1,'Reference portfolio must expose project search');
   assert.equal(await page.locator('#rf-project-search').inputValue(),'','Reference project search must start clean instead of exposing an empty-value placeholder as data');
-  assert.equal(await page.locator('.rf-selected-lower').count(),1,'Reference selected project context must use the reference lower information grid');
-  assert.equal(await page.locator('.rf-selected').count(),1,'selected project context must be present');
-  assert.match(await page.locator('.rf-selected').innerText(),/Gelato Donatello/i,'Gelato should be deterministic selected dogfood context');
+  assert.equal(await page.locator('.rf-attention-table').count(),1,'Approved reference requires an attention table');
+  assert.equal(await page.locator('.rf-portfolio-table').count(),1,'Approved reference requires a portfolio table');
+  for(const label of ['Phase','Health','Umgebung','Fortschritt','Nächste Aktion','Aktionen']){
+    assert.equal(await page.locator('.rf-portfolio-table th').filter({hasText:label}).count(),1,'Portfolio table missing '+label);
+  }
+  for(const label of ['System Status','Kosten / Prognose','Letzte Aktivitäten','Nächster Meilenstein','Offene Entscheidungen']){
+    assert.equal(await page.getByText(label,{exact:true}).count()>=1,true,'Approved HQ missing '+label);
+  }
   assert.match(await page.locator('.rf-env').innerText(),/STAGING/i,'HQ must show truthful staging environment');
-  assert.match(await page.locator('.rf-selected').innerText(),/Production locked/i,'safety truth must remain visible');
 
-  for(const label of ['HQ','Portfolio','Project Overview','Sources','Knowledge','Preview','Approvals','Activity','Operator AI','Settings']){
-    assert.equal(await page.locator('.rf-hq-nav-main button').filter({hasText:label}).count(),1,'Reference sidebar missing '+label);
+  for(const label of ['Dashboard','Portfolio','Aufmerksamkeit','Freigaben','Kosten','Projektübersicht','Quellen','Projektwissen','Umsetzung','Vorschau','Prüfungen','Aktivität','Factories','Providers','System Health','Audit Log','Einstellungen','Operator KI']){
+    assert.equal(await page.locator('.rf-hq-nav-main button').filter({hasText:label}).count(),1,'Approved sidebar missing '+label);
   }
 
   const projectsPayload=await (await page.request.get(origin+'/operator/api/projects')).json();
@@ -102,10 +106,10 @@ try{
   assert.equal(await page.locator('#global-operator-ai-panel').isVisible(),true,'Reference Operator AI entry must reuse existing global AI panel');
   await page.locator('#global-operator-ai-close').click();
 
-  const projectTabs=['Übersicht','Quellen','Projektwissen','Umsetzung','Preview','Prüfungen','Aktivität'];
-  for(const label of projectTabs) assert.equal(await page.locator('.rf-selected-tabs button').filter({hasText:label}).count(),1,'selected context missing '+label);
+  assert.equal(await page.locator('.rf-open-project').count()>0,true,'Portfolio must expose a real project open action');
+  assert.equal(await page.locator('[data-rf-ai-prompt]').filter({hasText:'Kosten analysieren'}).count(),1,'Operator KI must expose cost analysis prompt');
 
-  await page.screenshot({path:outDir+'/reference-01-hq-desktop.png',fullPage:true});
+  await page.screenshot({path:outDir+'/aurentara-hq-reference-v1-desktop.png',fullPage:true});
 
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(150);
@@ -115,7 +119,7 @@ try{
     offenders:[...document.querySelectorAll('body *')].map(el=>{const r=el.getBoundingClientRect();return{tag:el.tagName,cls:el.className||'',id:el.id||'',left:r.left,right:r.right,width:r.width,display:getComputedStyle(el).display,position:getComputedStyle(el).position}}).filter(x=>x.display!=='none'&&x.position!=='fixed'&&(x.right>document.documentElement.clientWidth+1||x.left<-1)).sort((a,b)=>b.width-a.width).slice(0,20)
   }));
   console.log('REFERENCE_HQ_MOBILE_LAYOUT '+JSON.stringify(mobileLayout));
-  await page.screenshot({path:outDir+'/reference-01-hq-iphone-regression.png',fullPage:true});
+  await page.screenshot({path:outDir+'/aurentara-hq-reference-v1-iphone.png',fullPage:true});
   assert.equal(mobileLayout.scrollWidth<=mobileLayout.clientWidth,true,'Reference 01 must not break iPhone horizontal layout');
   assert.equal(await page.locator('.rf-hero h1').isVisible(),true,'HQ hero remains visible on iPhone');
 
@@ -123,7 +127,8 @@ try{
   console.log(JSON.stringify({
     ok:true,
     suite:'project-ferrari-reference-hq-v1-browser',
-    reference:'REFERENCE_01_MASTERDASHBOARD_HQ',
+    reference:'AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0',
+    reference_status:'APPROVED_REFERENCE',
     desktop_structure:'PASS',
     operator_ai_reuse:'PASS',
     canonical_project_detail_contract:'PASS',
