@@ -3,6 +3,9 @@ import os from 'node:os';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import pngjs from 'pngjs';
+
+const { PNG } = pngjs;
 
 function normalizeViewport(input={}) {
   const width=Number(input.width||1440);
@@ -97,6 +100,8 @@ export async function runPinnedRender(input={}) {
     await page.screenshot({path:outputPath,fullPage:input.full_page!==false,animations:'disabled'});
     const screenshot=await fs.readFile(outputPath);
     const dimensions=pngDimensions(screenshot);
+    const decoded=PNG.sync.read(screenshot);
+    const screenshotPixelHash=sha256(decoded.data);
 
     await context.close();
     return {
@@ -119,6 +124,7 @@ export async function runPinnedRender(input={}) {
       screenshot_path:outputPath,
       screenshot_dimensions:dimensions,
       screenshot_hash:sha256(screenshot),
+      screenshot_pixel_hash:screenshotPixelHash,
       commit_sha:String(input.commit_sha||process.env.GITHUB_SHA||''),
       render_timestamp:new Date().toISOString(),
       console_errors:consoleErrors.slice(0,20),
