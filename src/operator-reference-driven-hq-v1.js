@@ -22,7 +22,7 @@ body.reference-hq-v1 .side-foot{display:none!important}
 body.reference-hq-v1 .main{max-width:none;margin:0;padding:0 18px 26px;min-width:0;background:radial-gradient(circle at 58% -10%,rgba(52,88,102,.18),transparent 34%),linear-gradient(180deg,#081218,#071116)}
 body.reference-hq-v1 .main>.top{display:none!important}
 body.reference-hq-v1 #error{width:min(100%,1440px);margin:10px auto 0}
-body.reference-hq-v1 #hq{width:min(100%,1440px);margin:0 auto}
+body.reference-hq-v1 #hq{width:min(100%,1440px);margin:0 auto}body.reference-hq-v1 #hq>.design-overview{display:none!important}
 body.reference-hq-v1 .global-operator-ai-trigger{display:none!important}
 .rf-hq-shell{display:grid;gap:12px;min-width:0}
 .rf-toolbar{height:56px;margin:0 -18px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--rf-line);background:rgba(7,16,21,.9);backdrop-filter:blur(16px);position:sticky;top:0;z-index:20}
