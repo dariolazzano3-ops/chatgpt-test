@@ -39,7 +39,7 @@ Implemented:
 
 ## Personal Memory Persistence V1
 
-Repository migration prepared at:
+Migration:
 `supabase/migrations/20260907004000_jarvis_personal_memory_v1.sql`
 
 The persistence domain provides:
@@ -55,17 +55,50 @@ The persistence domain provides:
 - temporal memory fields
 - secret/credential sensitivity states excluded from persistence
 
-A provider-neutral JARVIS Supabase store adapter is implemented at:
-`src/jarvis/memory-store-supabase-v1.js`
+The migration is applied to the private `riosystems-core` Supabase environment for JARVIS staging acceptance. Production deployment remains OFF.
 
-It deliberately uses separate JARVIS environment bindings:
-- `JARVIS_PERSONAL_MEMORY_SUPABASE_URL`
-- `JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY`
-- optional JARVIS schema/table bindings
+Two store paths exist:
+- `memory-store-supabase-v1.js`: server-side service-role adapter for controlled internal use
+- `memory-store-supabase-user-v1.js`: preferred personal runtime adapter using authenticated-user JWT + Supabase RLS
 
-The adapter follows the existing RIOSYSTEMS Supabase store pattern but only addresses the `jarvis_private` data domain. It does not reference HAMYREN tables and does not embed credentials in memory, audit events, code constants, or returned manifests.
+The user-scoped adapter never persists the user access token and requires RLS owner scope.
 
-The migration and store adapter are committed and CI-validated but are not applied/bound to any production database by this phase.
+## JARVIS Runtime V1
+
+Implemented at:
+`src/jarvis/runtime-v1.js`
+
+Runtime flow:
+1. load durable JARVIS personal memory
+2. resolve intent and minimal context
+3. apply policy/action gate
+4. route permitted connector
+5. execute read-only connector
+6. verify result
+7. persist accepted memory updates
+8. append redacted audit event
+
+Current connector execution enabled in Runtime V1:
+- `calendar.read`
+
+Write connectors remain disabled.
+
+## Google Calendar Read V1
+
+Implemented at:
+`src/jarvis/google-calendar-read-v1.js`
+
+Properties:
+- OAuth token injected only by connector host
+- token is never returned or persisted
+- only `calendar.read`
+- no create/update/delete capability
+- maximum 31-day query window
+- maximum 50 events per request
+- minimized event fields
+- no external write effect
+
+A live connected Google Calendar account was verified through the connector host with a bounded read-only query. Repository CI continues to use synthetic fixtures only and never reads personal calendar data.
 
 ## Connector Runtime V1
 
@@ -84,22 +117,35 @@ Implemented as a provider-neutral adapter boundary:
 - synthetic execution acceptance
 - HAMYREN connector registration block
 
-The connector runtime stores no credentials. OAuth tokens, API keys, session cookies, and passwords must remain in provider secret stores or encrypted credential stores and are injected only by the external connector host.
+The connector runtime stores no credentials. OAuth tokens, API keys, session cookies, and passwords remain in provider secret stores or connector hosts.
 
 ## Reuse / no parallel engines
 
-JARVIS does not create a second AI provider registry, mission engine, automation engine, cost engine, or production runtime. Existing RIOSYSTEMS infrastructure remains the reusable execution backbone where a future adapter is appropriate.
+JARVIS does not create a second AI provider registry, mission engine, automation engine, cost engine, or production runtime. Existing RIOSYSTEMS infrastructure remains the reusable execution backbone where appropriate.
 
 The JARVIS action gate is a personal policy adapter, not a second production approval system. The connector runtime is an execution boundary, not a new automation engine.
 
 ## Current binding state
 
-The connector contracts, connector runtime, persistent schema contract, and Supabase store adapter are implemented and synthetic-tested. Real Gmail, Google Calendar, Drive/files, task, reminder, and persistent personal database bindings remain disabled in repository runtime. No live personal connector or database is invoked by CI.
+Implemented and verified:
+- core
+- memory contract
+- durable private schema
+- RLS policies
+- service-role store adapter
+- authenticated-user store adapter
+- connector runtime
+- Google Calendar read-only adapter
+- durable JARVIS runtime path
+- audit persistence contract
+- HAMYREN isolation gates
 
-## Intentionally unbound in V1 core foundation
-
-- live Gmail / Calendar / Drive / task / reminder account bindings
-- live persistent JARVIS database activation
+Still intentionally unbound:
+- Gmail live binding
+- Files/Drive live binding
+- Tasks live binding
+- Reminders live binding
+- Calendar write
 - voice and wake word
 - proactive monitoring
 - device and smart-home execution
@@ -115,6 +161,7 @@ The connector contracts, connector runtime, persistent schema contract, and Supa
 - Billing OFF
 - Paid provider calls OFF
 - External writes OFF in CI
+- Calendar writes OFF
 - Financial actions OFF
 
-Acceptance is synthetic and repository-local. No live personal connector is exercised by the V1 smoke gates.
+GitHub acceptance is synthetic and repository-local. Live staging verification is read-only.

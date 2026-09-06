@@ -10,6 +10,7 @@ on:
       - 'scripts/jarvis-connector-runtime-v1-smoke.mjs'
       - 'scripts/jarvis-personal-memory-persistence-v1-smoke.mjs'
       - 'scripts/jarvis-supabase-memory-store-v1-smoke.mjs'
+      - 'scripts/jarvis-runtime-v1-smoke.mjs'
       - 'supabase/migrations/*jarvis*'
       - 'docs/JARVIS_PERSONAL_ASSISTANT_V1.md'
       - '.github/workflows/jarvis-personal-assistant-v1.yml'
@@ -43,6 +44,9 @@ jobs:
           node --check src/jarvis/connectors-v1.js
           node --check src/jarvis/connector-runtime-v1.js
           node --check src/jarvis/memory-store-supabase-v1.js
+          node --check src/jarvis/memory-store-supabase-user-v1.js
+          node --check src/jarvis/google-calendar-read-v1.js
+          node --check src/jarvis/runtime-v1.js
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
       - name: JARVIS V1 connector runtime smoke
@@ -51,3 +55,5 @@ jobs:
         run: node scripts/jarvis-personal-memory-persistence-v1-smoke.mjs
       - name: JARVIS V1 Supabase memory store smoke
         run: node scripts/jarvis-supabase-memory-store-v1-smoke.mjs
+      - name: JARVIS V1 durable runtime smoke
+        run: node scripts/jarvis-runtime-v1-smoke.mjs
