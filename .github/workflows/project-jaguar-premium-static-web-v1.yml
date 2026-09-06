@@ -1,0 +1,64 @@
+name: PROJECT JAGUAR Premium Static Web V1
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/web-factory/**'
+      - 'scripts/project-jaguar-premium-static-web-v1-smoke.mjs'
+      - 'scripts/web-factory-autonomous-premium-smoke.mjs'
+      - 'scripts/web-factory-operating-system-v2-smoke.mjs'
+      - 'package.json'
+      - '.github/workflows/project-jaguar-premium-static-web-v1.yml'
+      - 'docs/PROJECT-JAGUAR-PREMIUM-STATIC-WEB-V1.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jaguar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install toolchain
+        run: npm install --package-lock=false
+
+      - name: Install browser runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Syntax
+        run: |
+          node --check src/web-factory/premium-static-web-v1.js
+          node --check src/web-factory/routing.js
+          node --check src/web-factory/autonomous-premium.js
+          node --check src/web-factory/operating-system-v2.js
+          node --check scripts/project-jaguar-premium-static-web-v1-smoke.mjs
+
+      - name: Toolchain identity
+        run: |
+          node -e "const p=require('./package.json'); const d=p.devDependencies; for (const x of ['astro','sharp','gsap','playwright','@axe-core/playwright','lighthouse']) { if(!d[x]) process.exit(1); } console.log('PROJECT JAGUAR toolchain pinned');"
+
+      - name: Existing autonomous premium regression
+        run: node scripts/web-factory-autonomous-premium-smoke.mjs
+
+      - name: Existing Web OS V2 regression
+        run: node scripts/web-factory-operating-system-v2-smoke.mjs
+
+      - name: PROJECT JAGUAR end-to-end acceptance
+        run: node scripts/project-jaguar-premium-static-web-v1-smoke.mjs
+
+      - name: Safety seal
+        run: |
+          node -e "const fs=require('fs');const files=['.github/workflows/project-jaguar-premium-static-web-v1.yml','src/web-factory/premium-static-web-v1.js'];const s=files.map(f=>fs.readFileSync(f,'utf8')).join('\n');if(/wrangler\s+deploy|pages\s+deploy|production[_ -]?deploy\s*:\s*true|dns[_ -]?changes?\s*:\s*true|paid[_ -]?activation\s*:\s*true/i.test(s))process.exit(1);console.log('Jaguar safety seal PASS');"
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "DNS changes: false"
+          echo "Paid activation: false"
+          echo "External writes: false"
