@@ -1,0 +1,34 @@
+{
+  "schema": "riosystems.aurentara-sidebar-brand-typography-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "SIDEBAR_BRAND_TYPOGRAPHY_B8",
+  "sweep_workflow_run": 34063160823,
+  "verification_workflow_run": 34063298897,
+  "verification_head": "bb41d0b3a7d3dfc59855741a7c1776822856b62c",
+  "baseline": {
+    "brand_raster_ssim": 0.072873,
+    "sidebar_ssim": 0.508022,
+    "primary_navigation_ssim": 0.499364,
+    "global_ssim": 0.371182,
+    "global_pixel_difference_percent": 14.6836
+  },
+  "accepted": {
+    "brand_raster_ssim": 0.176208,
+    "sidebar_ssim": 0.514598,
+    "primary_navigation_ssim": 0.499364,
+    "global_ssim": 0.373484,
+    "global_pixel_difference_percent": 14.6601
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "semantic": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
