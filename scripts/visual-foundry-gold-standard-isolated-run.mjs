@@ -43,6 +43,10 @@ const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.c
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
 const heroCandidateEnabled=heroCandidateRequested==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT';
+const heroTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE||'').trim();
+const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X||1);
+const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX||NaN);
+const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT||NaN);
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -323,6 +327,41 @@ try{
     heroCandidateState={...candidate,src:undefined,...applied};
   }
 
+  let heroTypographyState={status:'DISABLED',candidate_id:heroTypographyCandidateId||null};
+  if(heroTypographyCandidateId){
+    heroTypographyState=await page.evaluate(({candidate_id,scale_x,letter_spacing_px,weight})=>{
+      const title=document.querySelector('.rf-hero h1');
+      if(!title)throw new Error('HERO_TITLE_ELEMENT_MISSING');
+      const beforeStyle=getComputedStyle(title);
+      const beforeRect=title.getBoundingClientRect();
+      if(Number.isFinite(letter_spacing_px))title.style.letterSpacing=letter_spacing_px+'px';
+      if(Number.isFinite(weight))title.style.fontWeight=String(weight);
+      title.style.transform='scaleX('+scale_x+')';
+      title.style.transformOrigin='left center';
+      title.dataset.vfHeroTypographyCandidate=candidate_id;
+      const afterStyle=getComputedStyle(title);
+      const afterRect=title.getBoundingClientRect();
+      return {
+        status:'APPLIED',
+        candidate_id,
+        substitution_status:'METRICALLY_CALIBRATED_SUBSTITUTION',
+        original_font_identity_claimed:false,
+        requested:{scale_x,letter_spacing_px:Number.isFinite(letter_spacing_px)?letter_spacing_px:null,weight:Number.isFinite(weight)?weight:null},
+        before:{
+          font_family:beforeStyle.fontFamily,font_size:beforeStyle.fontSize,font_weight:beforeStyle.fontWeight,
+          line_height:beforeStyle.lineHeight,letter_spacing:beforeStyle.letterSpacing,
+          rect:{x:beforeRect.x,y:beforeRect.y,width:beforeRect.width,height:beforeRect.height}
+        },
+        after:{
+          font_family:afterStyle.fontFamily,font_size:afterStyle.fontSize,font_weight:afterStyle.fontWeight,
+          line_height:afterStyle.lineHeight,letter_spacing:afterStyle.letterSpacing,
+          transform:afterStyle.transform,
+          rect:{x:afterRect.x,y:afterRect.y,width:afterRect.width,height:afterRect.height}
+        }
+      };
+    },{candidate_id:heroTypographyCandidateId,scale_x:heroTitleScaleX,letter_spacing_px:heroTitleLetterSpacingPx,weight:heroTitleWeight});
+  }
+
   await page.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready});
   await page.waitForTimeout(120);
 
@@ -448,12 +487,19 @@ try{
   await page.screenshot({path:runtimeScreenshot,type:'png',fullPage:false,animations:'disabled'});
   await writeFile(outDir+'/desktop-layout-debug.json',JSON.stringify({desktopLayout,geometry},null,2));
 
-  const comparatorRegions=referenceSpec.regions.map(r=>({
-    region_id:r.region_id,
-    critical:r.critical===true,
-    x:Number(r.bounds.x.value),y:Number(r.bounds.y.value),
-    width:Number(r.bounds.width.value),height:Number(r.bounds.height.value)
-  }));
+  const comparatorRegions=[
+    ...referenceSpec.regions.map(r=>({
+      region_id:r.region_id,
+      critical:r.critical===true,
+      x:Number(r.bounds.x.value),y:Number(r.bounds.y.value),
+      width:Number(r.bounds.width.value),height:Number(r.bounds.height.value)
+    })),
+    {
+      region_id:'hero_title_raster',
+      critical:false,
+      x:240,y:97,width:805,height:34
+    }
+  ];
   const visualComparison=await compareVisualImages({
     reference_path:approvedReferencePngPath,
     actual_path:runtimeScreenshot,
@@ -569,6 +615,7 @@ try{
     priority_ranking:priorityRanking,
     stencil_build_aid:stencilBuildAid,
     hero_candidate:heroCandidateState,
+    hero_typography_candidate:heroTypographyState,
     semantic_implementation:semanticImplementation,
     semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
@@ -615,6 +662,7 @@ try{
     semantic_result:runEvidence.semantic_result,
     stencil_status:runEvidence.stencil_build_aid.status,
     hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
+    hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
