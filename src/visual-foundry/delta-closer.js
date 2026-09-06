@@ -100,6 +100,12 @@ export async function runBoundedVisualDeltaClosure(input={},adapters={}){
   if(!deltas.some(d=>d.blocking===true)) return {schema:'riosystems.visual-delta-closure-result.v1',status:'PASS',iterations:0,max_iterations:maxIterations,deltas,history,human_decision_required:false};
 
   for(let iteration=1;iteration<=maxIterations;iteration++){
+    if(typeof adapters.cost_guard==='function'){
+      const costGuard=await adapters.cost_guard({iteration,deltas:deltas.map(clone)});
+      if(costGuard?.execution_allowed===false||costGuard?.status==='COST_REVIEW_REQUIRED'){
+        return {schema:'riosystems.visual-delta-closure-result.v1',status:'COST_REVIEW_REQUIRED',reason:'VISUAL_COST_GUARD',iterations:iteration-1,max_iterations:maxIterations,deltas,history,human_decision_required:true,cost_guard:clone(costGuard)};
+      }
+    }
     const plan=createVisualRepairPlan(deltas);
     if(plan.status!=='REPAIR_REQUIRED') return {schema:'riosystems.visual-delta-closure-result.v1',status:'PASS',iterations:history.length,max_iterations:maxIterations,deltas,history,human_decision_required:false};
 
