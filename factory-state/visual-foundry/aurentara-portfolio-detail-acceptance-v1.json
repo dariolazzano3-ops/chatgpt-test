@@ -1,0 +1,53 @@
+{
+  "schema": "riosystems.aurentara-portfolio-detail-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "PORTFOLIO_DETAIL_GEOMETRY_P1",
+  "candidate_content_head": "5b7284869d2c0d20c1f4d4182d32fe2a571a22b9",
+  "verification_head": "4b6f9532e72aeb93ac2a8854594e2007b52c3956",
+  "verification_workflow_run": 34062010837,
+  "region": {
+    "id": "portfolio",
+    "baseline": {
+      "ssim": 0.282044,
+      "pixel_difference_percent": 20.4221,
+      "edge_score": 0.124967
+    },
+    "candidate": {
+      "ssim": 0.341706,
+      "pixel_difference_percent": 19.071,
+      "edge_score": 0.196703
+    },
+    "ssim_delta": 0.059662,
+    "pixel_difference_delta_percent": -1.3511,
+    "edge_delta": 0.071736
+  },
+  "global": {
+    "baseline": {
+      "ssim": 0.337713,
+      "pixel_difference_percent": 14.8928
+    },
+    "candidate": {
+      "ssim": 0.371182,
+      "pixel_difference_percent": 14.6836
+    },
+    "ssim_delta": 0.033469,
+    "pixel_difference_delta_percent": -0.2092
+  },
+  "protected_regions_regressed_over_tolerance": 0,
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "overflow_px": 0,
+  "functional": "PASS",
+  "semantic": "PASS",
+  "fixture_leak_count": 0,
+  "runtime_truth_mutation_count": 0,
+  "architecture_drift_count": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
