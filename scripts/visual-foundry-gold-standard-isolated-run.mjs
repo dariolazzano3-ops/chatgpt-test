@@ -50,6 +50,11 @@ const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT||NaN);
 const sidebarNavTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_TYPOGRAPHY_CANDIDATE||'').trim();
 const sidebarNavFontSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_SIZE_PX||NaN);
 const sidebarNavFontWeight=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_WEIGHT||NaN);
+const sidebarBrandTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TYPOGRAPHY_CANDIDATE||'').trim();
+const sidebarBrandTitleSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TITLE_SIZE_PX||NaN);
+const sidebarBrandTitleLetterSpacingEm=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TITLE_LETTER_SPACING_EM||NaN);
+const sidebarBrandTaglineSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_SIZE_PX||NaN);
+const sidebarBrandTaglineWidthPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_WIDTH_PX||NaN);
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -351,6 +356,35 @@ try{
     heroCandidateState={...candidate,src:undefined,...applied};
   }
 
+  let sidebarBrandTypographyState={status:'DISABLED',candidate_id:sidebarBrandTypographyCandidateId||null};
+  if(sidebarBrandTypographyCandidateId){
+    sidebarBrandTypographyState=await page.evaluate(({candidate_id,title_size_px,title_letter_spacing_em,tagline_size_px,tagline_width_px})=>{
+      const strong=document.querySelector('.brand strong');
+      const span=document.querySelector('.brand span');
+      if(!strong||!span)throw new Error('SIDEBAR_BRAND_TEXT_MISSING');
+      const snap=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,letter_spacing:s.letterSpacing,max_width:s.maxWidth,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
+      const before={title:snap(strong),tagline:snap(span)};
+      if(Number.isFinite(title_size_px))strong.style.fontSize=title_size_px+'px';
+      if(Number.isFinite(title_letter_spacing_em))strong.style.letterSpacing=title_letter_spacing_em+'em';
+      if(Number.isFinite(tagline_size_px))span.style.fontSize=tagline_size_px+'px';
+      if(Number.isFinite(tagline_width_px))span.style.maxWidth=tagline_width_px+'px';
+      strong.dataset.vfSidebarBrandTypographyCandidate=candidate_id;
+      span.dataset.vfSidebarBrandTypographyCandidate=candidate_id;
+      return {
+        status:'APPLIED',candidate_id,
+        substitution_status:'METRICALLY_CALIBRATED_SUBSTITUTION',
+        original_font_identity_claimed:false,
+        requested:{
+          title_size_px:Number.isFinite(title_size_px)?title_size_px:null,
+          title_letter_spacing_em:Number.isFinite(title_letter_spacing_em)?title_letter_spacing_em:null,
+          tagline_size_px:Number.isFinite(tagline_size_px)?tagline_size_px:null,
+          tagline_width_px:Number.isFinite(tagline_width_px)?tagline_width_px:null
+        },
+        before,after:{title:snap(strong),tagline:snap(span)}
+      };
+    },{candidate_id:sidebarBrandTypographyCandidateId,title_size_px:sidebarBrandTitleSizePx,title_letter_spacing_em:sidebarBrandTitleLetterSpacingEm,tagline_size_px:sidebarBrandTaglineSizePx,tagline_width_px:sidebarBrandTaglineWidthPx});
+  }
+
   let sidebarNavTypographyState={status:'DISABLED',candidate_id:sidebarNavTypographyCandidateId||null};
   if(sidebarNavTypographyCandidateId){
     sidebarNavTypographyState=await page.evaluate(({candidate_id,font_size_px,font_weight})=>{
@@ -557,6 +591,11 @@ try{
       region_id:'sidebar_nav_text_raster',
       critical:false,
       x:42,y:184,width:154,height:690
+    },
+    {
+      region_id:'sidebar_brand_text_raster',
+      critical:false,
+      x:20,y:68,width:176,height:92
     }
   ];
   const visualComparison=await compareVisualImages({
@@ -677,6 +716,7 @@ try{
     hero_candidate:heroCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
+    sidebar_brand_typography_candidate:sidebarBrandTypographyState,
     semantic_implementation:semanticImplementation,
     semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
@@ -725,6 +765,7 @@ try{
     hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
+    sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
