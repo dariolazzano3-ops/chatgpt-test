@@ -1,0 +1,149 @@
+import { normalizeJarvisMemoryEntryV1 } from './memory-v1.js';
+import { redactJarvisSensitiveDataV1 } from './audit-v1.js';
+
+const clean = (value, max = 12000) => String(value ?? '').trim().slice(0, max);
+const clone = (value) => structuredClone(value ?? null);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function endpoint(baseUrl, fn) {
+  const base = clean(baseUrl, 2000).replace(/\/+$/, '');
+  if (!/^https:\/\//i.test(base)) throw new Error('JARVIS_RPC_SUPABASE_URL_INVALID');
+  if (!/^jarvis_service_[a-z0-9_]+_v1$/.test(fn)) throw new Error('JARVIS_RPC_FUNCTION_INVALID');
+  return base + '/rest/v1/rpc/' + fn;
+}
+
+function headers(serviceRoleKey) {
+  const key = clean(serviceRoleKey, 12000);
+  if (!key) throw new Error('JARVIS_RPC_SERVICE_ROLE_KEY_REQUIRED');
+  return {
+    apikey: key,
+    authorization: 'Bearer ' + key,
+    'content-type': 'application/json',
+    accept: 'application/json'
+  };
+}
+
+async function body(response) {
+  const text = await response.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { throw new Error('JARVIS_RPC_INVALID_RESPONSE'); }
+}
+
+function requireScope(ownerId, ownerRef) {
+  if (!UUID.test(clean(ownerId, 80))) throw new Error('JARVIS_RPC_OWNER_ID_REQUIRED');
+  if (!clean(ownerRef, 320)) throw new Error('JARVIS_RPC_OWNER_REF_REQUIRED');
+}
+
+function normalizeEntry(row, ownerRef) {
+  const normalized = normalizeJarvisMemoryEntryV1({
+    ...row,
+    owner_ref: row?.owner_ref || ownerRef
+  }, { owner_ref: ownerRef, now: row?.updated_at || row?.created_at });
+  if (!normalized.ok) throw new Error(normalized.error);
+  if (normalized.entry.owner_ref !== ownerRef) throw new Error('JARVIS_RPC_OWNER_REF_MISMATCH');
+  return normalized.entry;
+}
+
+export function createSupabaseJarvisRpcMemoryStoreV1({
+  supabase_url,
+  service_role_key,
+  fetch_impl = globalThis.fetch
+} = {}) {
+  const supabaseUrl = clean(supabase_url, 2000).replace(/\/+$/, '');
+  const serviceRoleKey = clean(service_role_key, 12000);
+  if (!supabaseUrl) throw new Error('JARVIS_RPC_SUPABASE_URL_REQUIRED');
+  if (!serviceRoleKey) throw new Error('JARVIS_RPC_SERVICE_ROLE_KEY_REQUIRED');
+  if (typeof fetch_impl !== 'function') throw new Error('JARVIS_RPC_FETCH_REQUIRED');
+
+  async function call(fn, payload) {
+    let response;
+    try {
+      response = await fetch_impl(endpoint(supabaseUrl, fn), {
+        method: 'POST',
+        headers: headers(serviceRoleKey),
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      throw new Error('JARVIS_RPC_UNAVAILABLE:' + clean(error?.message || error, 200));
+    }
+    if (!response.ok) throw new Error('JARVIS_RPC_FAILED:' + fn + ':' + response.status);
+    return body(response);
+  }
+
+  return {
+    kind: 'supabase-jarvis-rpc-memory',
+    durable: true,
+    auth_mode: 'service_role_private_rpc',
+
+    async loadMemory({ owner_id, owner_ref, limit = 200 } = {}) {
+      requireScope(owner_id, owner_ref);
+      const rows = await call('jarvis_service_memory_load_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: clean(owner_ref, 320),
+        p_limit: Math.max(1, Math.min(500, Number(limit) || 200))
+      });
+      if (!Array.isArray(rows)) throw new Error('JARVIS_RPC_MEMORY_LOAD_INVALID');
+      return rows.map((row) => normalizeEntry(row, clean(owner_ref, 320)));
+    },
+
+    async upsertMemory({ owner_id, owner_ref, entry } = {}) {
+      requireScope(owner_id, owner_ref);
+      const ownerRef = clean(owner_ref, 320);
+      if (entry?.owner_ref && clean(entry.owner_ref, 320) !== ownerRef) throw new Error('JARVIS_MEMORY_OWNER_REF_MISMATCH');
+      const normalized = normalizeJarvisMemoryEntryV1({ ...entry, owner_ref: ownerRef }, {
+        owner_ref: ownerRef,
+        now: entry?.updated_at || entry?.created_at
+      });
+      if (!normalized.ok) throw new Error(normalized.error);
+      const row = await call('jarvis_service_memory_upsert_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: ownerRef,
+        p_entry: normalized.entry
+      });
+      return { ok: true, entry: normalizeEntry(row, ownerRef) };
+    },
+
+    async appendAudit({ owner_id, owner_ref, event } = {}) {
+      requireScope(owner_id, owner_ref);
+      const redacted = redactJarvisSensitiveDataV1(event);
+      if (redacted?.isolation?.namespace !== 'jarvis.personal') throw new Error('JARVIS_RPC_AUDIT_NAMESPACE_INVALID');
+      if (redacted?.isolation?.hamyren_memory_access === true || redacted?.isolation?.hamyren_memory_write === true) {
+        throw new Error('JARVIS_RPC_AUDIT_HAMYREN_ISOLATION_INVALID');
+      }
+      const row = await call('jarvis_service_audit_append_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: clean(owner_ref, 320),
+        p_event: redacted
+      });
+      return {
+        ok: true,
+        event_id: clean(row?.event_id, 120) || null,
+        occurred_at: clean(row?.occurred_at, 80) || null,
+        isolation: clone(redacted.isolation)
+      };
+    }
+  };
+}
+
+export function createJarvisRpcMemoryStoreFromEnvV1(env = {}, options = {}) {
+  const mode = clean(env.JARVIS_PERSONAL_MEMORY_STORE || options.mode || '', 80).toLowerCase();
+  if (mode !== 'supabase-rpc') return null;
+  if (!env.JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY) return null;
+  return createSupabaseJarvisRpcMemoryStoreV1({
+    supabase_url: env.JARVIS_PERSONAL_MEMORY_SUPABASE_URL,
+    service_role_key: env.JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY,
+    fetch_impl: options.fetch_impl || globalThis.fetch
+  });
+}
+
+export function jarvisRpcMemoryStoreManifestV1() {
+  return {
+    schema: 'aurentara.jarvis.memory-store.supabase-rpc.v1',
+    private_schema_exposed_to_postgrest: false,
+    public_rpc_functions_service_role_only: true,
+    browser_service_role_exposed: false,
+    hamyren_tables_referenced: false,
+    durable: true,
+    production_deploy: false
+  };
+}

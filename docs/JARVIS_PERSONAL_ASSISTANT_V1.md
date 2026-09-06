@@ -203,3 +203,18 @@ Therefore:
 - Calendar write = OFF
 
 No repository code pretends the ChatGPT connector session is a Worker credential.
+
+
+## Private Supabase RPC Gateway V1
+
+The private schema is intentionally not required to be exposed directly through PostgREST.
+
+The standalone Worker uses service-role-only public RPC functions as a narrow gateway:
+- memory load
+- memory upsert
+- redacted audit append
+- encrypted OAuth connection load/upsert/touch/delete
+
+All RPC execution grants are revoked from `public`, `anon`, and `authenticated` and granted only to `service_role`.
+
+The OAuth table lives in `jarvis_private.oauth_connections_v1` and stores only encrypted refresh-token envelopes. Plain refresh tokens, access tokens, Google client secrets, and OAuth root secrets are not table fields.

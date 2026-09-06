@@ -84,7 +84,7 @@
         "AURENTARA_CUSTOMER_SUPABASE_PROJECT_REF": "pqmbtfzjcdnihovvppjr",
         "AURENTARA_CUSTOMER_SUPABASE_PUBLISHABLE": "sb_publishable_APgisjLicxi_l60r_CFcQQ_-UE-C_sh",
         "AURENTARA_OPERATOR_SUPABASE_PROJECT_REF": "pgzayxpqiakuvibhonwh",
-        "JARVIS_PERSONAL_MEMORY_STORE": "supabase",
+        "JARVIS_PERSONAL_MEMORY_STORE": "supabase-rpc",
         "JARVIS_PERSONAL_MEMORY_SUPABASE_URL": "https://pgzayxpqiakuvibhonwh.supabase.co",
         "JARVIS_PERSONAL_MEMORY_SUPABASE_SCHEMA": "jarvis_private",
         "JARVIS_PERSONAL_MEMORY_SUPABASE_TABLE": "personal_memory_v1",
