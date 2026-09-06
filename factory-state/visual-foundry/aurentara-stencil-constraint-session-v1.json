@@ -237,7 +237,7 @@
     "regions": [
       {
         "region_id": "sidebar",
-        "baseline_score": 0.508022
+        "baseline_score": 0.514598
       },
       {
         "region_id": "primary_navigation",
@@ -455,6 +455,28 @@
       "accepted_ssim": 0.341706,
       "baseline_pixel_difference_percent": 20.4221,
       "accepted_pixel_difference_percent": 19.071
+    },
+    {
+      "candidate_id": "SIDEBAR_BRAND_TYPOGRAPHY_B8",
+      "region_id": "sidebar",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_workflow_run": 34063160823,
+      "verification_workflow_run": 34063298897,
+      "verification_head": "bb41d0b3a7d3dfc59855741a7c1776822856b62c",
+      "typography": {
+        "title_font_size_px": 16.5,
+        "title_letter_spacing_em": 0.22,
+        "tagline_font_size_px": 7.5,
+        "tagline_max_width_px": 132,
+        "brand_fixed_height_px": 150,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_brand_raster_ssim": 0.072873,
+      "accepted_brand_raster_ssim": 0.176208,
+      "baseline_sidebar_ssim": 0.508022,
+      "accepted_sidebar_ssim": 0.514598
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
