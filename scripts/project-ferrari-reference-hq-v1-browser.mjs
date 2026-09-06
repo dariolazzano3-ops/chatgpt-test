@@ -105,9 +105,15 @@ try{
 
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(150);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'Reference 01 must not break iPhone horizontal layout');
-  assert.equal(await page.locator('.rf-hero h1').isVisible(),true,'HQ hero remains visible on iPhone');
+  const mobileLayout=await page.evaluate(()=>({
+    scrollWidth:document.documentElement.scrollWidth,
+    clientWidth:document.documentElement.clientWidth,
+    offenders:[...document.querySelectorAll('body *')].map(el=>{const r=el.getBoundingClientRect();return{tag:el.tagName,cls:el.className||'',id:el.id||'',left:r.left,right:r.right,width:r.width,display:getComputedStyle(el).display,position:getComputedStyle(el).position}}).filter(x=>x.display!=='none'&&x.position!=='fixed'&&(x.right>document.documentElement.clientWidth+1||x.left<-1)).sort((a,b)=>b.width-a.width).slice(0,20)
+  }));
+  console.log('REFERENCE_HQ_MOBILE_LAYOUT '+JSON.stringify(mobileLayout));
   await page.screenshot({path:outDir+'/reference-01-hq-iphone-regression.png',fullPage:true});
+  assert.equal(mobileLayout.scrollWidth<=mobileLayout.clientWidth,true,'Reference 01 must not break iPhone horizontal layout');
+  assert.equal(await page.locator('.rf-hero h1').isVisible(),true,'HQ hero remains visible on iPhone');
 
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({
