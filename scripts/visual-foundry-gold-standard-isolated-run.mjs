@@ -400,7 +400,7 @@ try{
 
       const style=document.createElement('style');
       style.id='vf-sidebar-logo-reference-style';
-      style.textContent='html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand:before{display:none!important}';
+      style.textContent='html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .brand:before{visibility:hidden!important}';
       document.head.appendChild(style);
 
       const img=document.createElement('img');
