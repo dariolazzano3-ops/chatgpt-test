@@ -21,7 +21,6 @@ import { createProductionCustomerAccountPrivacySurface } from "./customer-produc
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
 import { createCloudflareCustomerObservabilityBinding } from "./customer-product/production-live-bindings-v1.js";
 import { handleSyntheticSessionBootstrap } from "./customer-product/synthetic-session-bootstrap-v1.js";
-import { handleJarvisHttpV1 } from "./jarvis/http-v1.js";
 export { AurentaraCustomerRateLimiter } from "./customer-product/customer-rate-limit-do-v1.js";
 
 void operatorHumanUxFinalManifest;
@@ -141,11 +140,6 @@ function recordCustomerEvent(ctx, env, input = {}) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-
-    if (url.pathname === "/jarvis" || url.pathname === "/jarvis/" || url.pathname.startsWith("/jarvis/")) {
-      const jarvisResponse = await handleJarvisHttpV1(request, env, ctx);
-      if (jarvisResponse) return jarvisResponse;
-    }
 
     if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/") || url.pathname.startsWith("/operator/project-preview/")) {
       let runtimeService = null;

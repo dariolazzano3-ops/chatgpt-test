@@ -1,4 +1,6 @@
-export function renderJarvisPrivateChatV1() {
+export function renderJarvisPrivateChatV1(options = {}) {
+  const basePath = options.base_path === '' ? '' : '/jarvis';
+  const apiBase = basePath + '/api';
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -79,7 +81,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
       <div class="row"><span>JARVIS Core</span><span id="core" class="pill">CHECK</span></div>
       <div class="row"><span>Private Session</span><span id="session" class="pill">CHECK</span></div>
       <div class="row"><span>Memory</span><span id="memory" class="pill">CHECK</span></div>
-      <div class="row"><span>Google OAuth</span><span id="oauth" class="pill">CHECK</span></div>\n      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>\n      <a id="connect-google" href="/jarvis/connect/google" style="display:none;margin-top:12px;text-decoration:none;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:#dff4ff;font-size:10px;letter-spacing:.08em;text-align:center">CONNECT GOOGLE CALENDAR</a>
+      <div class="row"><span>Google OAuth</span><span id="oauth" class="pill">CHECK</span></div>\n      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>\n      <a id="connect-google" href="${basePath}/connect/google" style="display:none;margin-top:12px;text-decoration:none;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:#dff4ff;font-size:10px;letter-spacing:.08em;text-align:center">CONNECT GOOGLE CALENDAR</a>
     </section>
     <section class="panel glass"><h3>SAFETY</h3>
       <div class="row"><span>Production</span><strong>OFF</strong></div>
@@ -91,13 +93,13 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
   </aside>
 </div>
 <script>
-const chat=document.getElementById('chat'),form=document.getElementById('composer'),message=document.getElementById('message'),send=document.getElementById('send');
+const chat=document.getElementById('chat'),form=document.getElementById('composer'),message=document.getElementById('message'),send=document.getElementById('send');\nconst API_BASE=${JSON.stringify(apiBase)};
 function bubble(text,type){const el=document.createElement('div');el.className='bubble '+type;el.textContent=String(text||'');chat.appendChild(el);chat.scrollTop=chat.scrollHeight}
 function pill(id,text,ok){const el=document.getElementById(id);el.textContent=text;el.className='pill '+(ok?'ok':'warn')}
 async function getJson(path,init){const r=await fetch(path,init);const body=await r.json().catch(()=>({error:'INVALID_RESPONSE'}));if(!r.ok)throw Object.assign(new Error(body.error||('HTTP '+r.status)),{body,status:r.status});return body}
 async function boot(){
   try{
-    const [s,status]=await Promise.all([getJson('/jarvis/api/session'),getJson('/jarvis/api/status')]);
+    const [s,status]=await Promise.all([getJson(API_BASE+'/session'),getJson(API_BASE+'/status')]);
     document.getElementById('session-label').textContent='Private · '+(s.display_name||'Operator');
     pill('core','ONLINE',true);pill('session','PRIVATE',true);
     pill('memory',status.durable_memory_ready?'DURABLE':'NOT BOUND',status.durable_memory_ready);
@@ -116,7 +118,7 @@ async function ask(text){
   const value=String(text||'').trim();if(!value)return;
   bubble(value,'user');message.value='';send.disabled=true;
   try{
-    const r=await getJson('/jarvis/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:value})});
+    const r=await getJson(API_BASE+'/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:value})});
     bubble(r.answer||'Keine Antwort.','assistant');
   }catch(e){bubble((e.body&&e.body.message)||e.message||'JARVIS Anfrage fehlgeschlagen.','error')}
   finally{send.disabled=false;message.focus()}

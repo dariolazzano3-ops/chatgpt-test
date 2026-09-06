@@ -193,7 +193,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   }
 
   if (url.pathname === '/jarvis' || url.pathname === '/jarvis/') {
-    return html(renderJarvisPrivateChatV1());
+    return html(renderJarvisPrivateChatV1({ base_path: options.ui_base_path === '' ? '' : '/jarvis' }));
   }
 
   if (url.pathname === '/jarvis/api/session' && request.method === 'GET') {

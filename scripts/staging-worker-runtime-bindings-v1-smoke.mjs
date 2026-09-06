@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { deriveStagingOperatorBindings, deriveJarvisAccessBindings, providerDurabilitySources, jarvisMemoryBindingPlan } from './staging-worker-runtime-bindings-v1.mjs';
+import { deriveStagingOperatorBindings, providerDurabilitySources } from './staging-worker-runtime-bindings-v1.mjs';
 
 const app = {
   id: '11111111-2222-3333-4444-555555555555',
@@ -24,20 +24,6 @@ assert.equal(success.operator_email, 'operator@example.invalid');
 assert.equal(success.audience, 'access-audience-test');
 assert.equal(success.production_deploy, false);
 assert.equal(success.variable_cost_eur, 0);
-
-const jarvisApp = {
-  id: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
-  type: 'self_hosted',
-  domain: 'https://riosystems-staging.example.workers.dev/jarvis',
-  aud: 'jarvis-access-audience-test'
-};
-const jarvisAccess = deriveJarvisAccessBindings({
-  applications: [app, customerApp, jarvisApp],
-  policies: [{ decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] }]
-});
-assert.equal(jarvisAccess.ok, true);
-assert.equal(jarvisAccess.audience, 'jarvis-access-audience-test');
-assert.equal(jarvisAccess.operator_email, 'operator@example.invalid');
 
 const customerOnly = deriveStagingOperatorBindings({
   applications: [customerApp],
@@ -83,17 +69,6 @@ const bypass = deriveStagingOperatorBindings({
 assert.equal(bypass.ok, false);
 assert.equal(bypass.error, 'ACCESS_BYPASS_POLICY_REJECTED');
 
-const jarvisBinding = jarvisMemoryBindingPlan({
-  RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY: 'synthetic-service-role-key'
-});
-assert.equal(jarvisBinding.service_role_source_present, true);
-assert.equal(jarvisBinding.target_binding_name, 'JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY');
-assert.equal(jarvisBinding.shared_memory_layer, false);
-assert.equal(jarvisBinding.jarvis_schema, 'jarvis_private');
-assert.equal(jarvisBinding.hamyren_data_flow, false);
-assert.equal(jarvisBinding.sensitive_values_returned, false);
-assert.equal(JSON.stringify(jarvisBinding).includes('synthetic-service-role-key'), false);
-
 const noProviderSources = providerDurabilitySources({});
 assert.equal(noProviderSources.activepieces_api_key_present, false);
 assert.equal(noProviderSources.webflow_site_token_present, false);
@@ -125,8 +100,6 @@ console.log(JSON.stringify({
   operator_access_path_targeted: true,
   customer_access_app_coexists: true,
   durable_provider_secret_sources_supported: true,
-  jarvis_private_memory_binding_planned: true,
-  jarvis_dedicated_access_contract_verified: true,
   missing_provider_sources_fail_visible: true,
   sensitive_values_returned: false,
   production_deploy: false,

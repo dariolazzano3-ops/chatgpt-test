@@ -1,0 +1,108 @@
+name: JARVIS Private Worker Staging
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-personal-assistant-v1'
+    paths:
+      - '.github/jarvis-private-worker-deploy-request.json'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Exact confirmation for private JARVIS workers.dev staging deploy'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.auth.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: auth
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            test "$GITHUB_REF_NAME" = "factory/jarvis-personal-assistant-v1"
+            test "$CONFIRMATION" = "DEPLOY_JARVIS_PRIVATE_STAGING"
+            SOURCE_SHA="$(git rev-parse HEAD)"
+          else
+            REQUEST=".github/jarvis-private-worker-deploy-request.json"
+            test -f "$REQUEST"
+            test "$(git diff --name-only HEAD^ HEAD)" = "$REQUEST"
+            SOURCE_SHA="$(node - "$REQUEST" <<'NODE'
+          const fs = require('node:fs');
+          const request = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const ok =
+            request.schema === 'jarvis-private-worker-deploy-request-v1' &&
+            request.target === 'jarvis-private-staging' &&
+            /^[0-9a-f]{40}$/.test(request.source_sha || '') &&
+            request.confirmation === 'DEPLOY_JARVIS_PRIVATE_STAGING' &&
+            request.production_deploy === false &&
+            request.public_access === false &&
+            request.external_writes === false &&
+            request.data_plane === 'EPHEMERAL_UNTIL_ISOLATED';
+          if (!ok) process.exit(1);
+          process.stdout.write(request.source_sha);
+          NODE
+            )"
+            test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          fi
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+  validate:
+    needs: authorize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node scripts/jarvis-private-worker-v1-smoke.mjs
+      - run: npx wrangler deploy --config wrangler.jarvis-private.jsonc --dry-run
+
+  deploy:
+    needs: [authorize, validate]
+    if: needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: jarvis-private-staging-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Verify private staging safety
+        run: |
+          set -euo pipefail
+          test "$ZERO_COST_CONFIRMED" = "true"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$(node -e "const c=require('./wrangler.jarvis-private.jsonc');process.stdout.write(c.name)")" = "jarvis-private-staging"
+          ! grep -q '"routes"' wrangler.jarvis-private.jsonc
+          grep -q '"JARVIS_PUBLIC_ACCESS": "false"' wrangler.jarvis-private.jsonc
+          grep -q '"JARVIS_PRODUCTION_DEPLOY": "false"' wrangler.jarvis-private.jsonc
+          grep -q '"JARVIS_DATA_PLANE": "EPHEMERAL_UNTIL_ISOLATED"' wrangler.jarvis-private.jsonc
+      - name: Deploy standalone fail-closed JARVIS worker
+        run: |
+          npx wrangler deploy --config wrangler.jarvis-private.jsonc --tag "${{ needs.authorize.outputs.source_sha }}"

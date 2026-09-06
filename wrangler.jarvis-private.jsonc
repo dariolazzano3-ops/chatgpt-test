@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "jarvis-private-staging",
+  "main": "src/jarvis/standalone-worker-v1.js",
+  "compatibility_date": "2026-08-25",
+  "workers_dev": true,
+  "keep_vars": true,
+  "vars": {
+    "JARVIS_ENVIRONMENT": "private-staging",
+    "JARVIS_PRIVATE_SURFACE_MODE": "prepared",
+    "JARVIS_PERSONAL_MEMORY_STORE": "memory",
+    "JARVIS_DATA_PLANE": "EPHEMERAL_UNTIL_ISOLATED",
+    "JARVIS_TIMEZONE": "Europe/Berlin",
+    "JARVIS_PRODUCTION_DEPLOY": "false",
+    "JARVIS_PUBLIC_ACCESS": "false",
+    "JARVIS_EXTERNAL_WRITES": "false",
+    "JARVIS_CALENDAR_WRITE": "false",
+    "JARVIS_FINANCIAL_ACTIONS": "false"
+  },
+  "access": {
+    "dev": {
+      "aud": "jarvis-private-local",
+      "identity": {
+        "email": "jarvis-operator@local.invalid"
+      }
+    }
+  },
+  "observability": {
+    "enabled": false
+  }
+}

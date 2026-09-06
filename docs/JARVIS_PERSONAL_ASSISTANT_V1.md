@@ -244,3 +244,35 @@ Required activation secrets are intentionally absent from source:
 The dedicated Cloudflare Access application for `/jarvis` is also activation-gated. The repository defaults the JARVIS private surface to `prepared`, not public/private-live. Activation must provide a dedicated JARVIS Access audience; the existing `/operator` Access audience is not reused.
 
 This means the OAuth implementation can be fully CI-accepted without pretending that ChatGPT's connected Google account is a credential for the standalone Worker.
+
+
+## Standalone Private Worker Host V1
+
+JARVIS is no longer routed through the AURENTARA / RIOSYSTEMS Worker.
+
+Dedicated runtime:
+- Worker name: `jarvis-private-staging`
+- entrypoint: `src/jarvis/standalone-worker-v1.js`
+- config: `wrangler.jarvis-private.jsonc`
+- first host type: private/fail-closed `workers.dev`
+- root UI: `/`
+- API: `/api/*`
+- Google connect path: `/connect/google`
+- OAuth callback: `/oauth/google/callback`
+
+The AURENTARA Worker entry, AURENTARA Wrangler config, AURENTARA staging deploy workflow, and operator runtime binding script contain no JARVIS runtime/bindings in this branch after the host split.
+
+The standalone Worker deliberately starts with:
+- no custom AURENTARA domain
+- no RIOSYSTEMS environment variables
+- no HAMYREN variables
+- no shared Supabase URL
+- no shared database credential
+- no Google OAuth secret
+- no production capability
+- no public-access mode
+- no external writes
+
+Its initial data plane is `EPHEMERAL_UNTIL_ISOLATED`. The existing JARVIS test schema in `riosystems-core` remains migration evidence only and is not automatically bound to the standalone Worker.
+
+The next isolation milestone is a physically separate JARVIS persistence project. Only after that data plane exists should durable personal memory and Google OAuth be activated on the standalone host.
