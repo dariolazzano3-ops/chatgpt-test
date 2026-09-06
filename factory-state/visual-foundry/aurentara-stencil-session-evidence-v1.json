@@ -1,0 +1,173 @@
+{
+  "schema": "riosystems.aurentara-stencil-session-evidence.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "source_head": "9f37eb31b74419860b58ff02ccf5cb0e3c945886",
+  "workflow_run_id": 34057408456,
+  "runtime_artifact_id": 9996388574,
+  "stencil": {
+    "overlay_library_path": "library:/Visual Foundry/Stencil Sessions/AURENTARA/V1.0/overlay-current.png",
+    "overlay_sha256": "9788a5ad8a244a390a49d963edac5ef59f11fcbfd009ddc9a67ca0fc9d648fc6",
+    "difference_library_path": "library:/Visual Foundry/Stencil Sessions/AURENTARA/V1.0/difference-current.png",
+    "difference_sha256": "9629da4b67ac391893749490996d51ed478ba13dba4c46ea04aaaa833439170c",
+    "build_only": true,
+    "production_allowed": false
+  },
+  "constraint_anchor": {
+    "status": "FAIL",
+    "passing": [
+      "sidebar",
+      "toolbar",
+      "hero",
+      "kpi_band",
+      "attention_panel",
+      "operator_ai_panel",
+      "portfolio",
+      "right_rail",
+      "right_status_stack",
+      "activity_panel",
+      "bottom_strip"
+    ],
+    "failing": [
+      {
+        "region_id": "primary_navigation",
+        "expected": {
+          "x": 14,
+          "y": 184,
+          "width": 192,
+          "height": 688
+        },
+        "actual": {
+          "x": 10,
+          "y": 172,
+          "width": 195,
+          "height": 787.375
+        },
+        "diagnosis": "REAL_INNER_NAV_GEOMETRY_DELTA_NOT_MEASUREMENT_BUG"
+      }
+    ]
+  },
+  "navigation_diagnostics": {
+    "main": {
+      "x": 10,
+      "y": 172,
+      "width": 195,
+      "height": 787.375
+    },
+    "shell": {
+      "x": 10,
+      "y": 172,
+      "width": 195,
+      "height": 838
+    },
+    "foot": {
+      "x": 10,
+      "y": 959.375,
+      "width": 195,
+      "height": 78.469
+    }
+  },
+  "semantic_implementation": {
+    "status": "PASS",
+    "h1_count": 1,
+    "main_landmark_count": 1,
+    "structural_absolute_ratio": 0,
+    "screenshot_hack_count": 0
+  },
+  "priority": {
+    "status": "EVALUATED",
+    "method": "DETERMINISTIC_STENCIL_PRIORITY_V1",
+    "metrics_note": "Build-prioritization metrics from exact approved reference and current runtime screenshot; final acceptance remains authoritative in the Foundry comparator.",
+    "ranking": [
+      {
+        "rank": 1,
+        "region_id": "hero",
+        "priority_score": 3.250195,
+        "ssim": 0.36791129903428704,
+        "pixel_difference_percent": 29.966895849248793
+      },
+      {
+        "rank": 2,
+        "region_id": "operator_ai_panel",
+        "priority_score": 2.638485,
+        "ssim": 0.365715431969718,
+        "pixel_difference_percent": 24.8622802275594
+      },
+      {
+        "rank": 3,
+        "region_id": "sidebar",
+        "priority_score": 2.451753,
+        "ssim": 0.5160154189885723,
+        "pixel_difference_percent": 17.210105613425927
+      },
+      {
+        "rank": 4,
+        "region_id": "primary_navigation",
+        "priority_score": 2.355081,
+        "ssim": 0.50776781830524,
+        "pixel_difference_percent": 18.19812863372093
+      },
+      {
+        "rank": 5,
+        "region_id": "portfolio",
+        "priority_score": 2.260912,
+        "ssim": 0.3757805973926882,
+        "pixel_difference_percent": 26.514877824487655
+      },
+      {
+        "rank": 6,
+        "region_id": "attention_panel",
+        "priority_score": 2.017784,
+        "ssim": 0.4534206050855099,
+        "pixel_difference_percent": 19.07753928942702
+      },
+      {
+        "rank": 7,
+        "region_id": "kpi_band",
+        "priority_score": 1.514548,
+        "ssim": 0.493819260871807,
+        "pixel_difference_percent": 19.940707620528773
+      },
+      {
+        "rank": 8,
+        "region_id": "system_status",
+        "priority_score": 0.976951,
+        "ssim": 0.47983958099448376,
+        "pixel_difference_percent": 18.848212374223934
+      },
+      {
+        "rank": 9,
+        "region_id": "cost_panel",
+        "priority_score": 0.931037,
+        "ssim": 0.4344381286994394,
+        "pixel_difference_percent": 22.743902439024392
+      },
+      {
+        "rank": 10,
+        "region_id": "toolbar",
+        "priority_score": 0.828256,
+        "ssim": 0.5831811589628088,
+        "pixel_difference_percent": 17.29362591431557
+      },
+      {
+        "rank": 11,
+        "region_id": "activity_panel",
+        "priority_score": 0.599453,
+        "ssim": 0.561684832969738,
+        "pixel_difference_percent": 17.177164650497588
+      },
+      {
+        "rank": 12,
+        "region_id": "bottom_strip",
+        "priority_score": 0.500617,
+        "ssim": 0.4445913518114289,
+        "pixel_difference_percent": 24.27866906769256
+      }
+    ],
+    "next_highest_impact_delta": "hero"
+  },
+  "machine_acceptance": "NOT_YET_PASS",
+  "wave20": "LOCKED",
+  "no_fake_success": true
+}
