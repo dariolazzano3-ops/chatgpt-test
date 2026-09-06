@@ -73,6 +73,9 @@ try{
   assert.equal(await page.getByRole('heading',{name:'Attention Center',exact:true}).count(),1);
   assert.equal(await page.getByRole('heading',{name:'Operator AI',exact:true}).count(),1);
   assert.equal(await page.getByRole('heading',{name:'Projekt Portfolio',exact:true}).count(),1);
+  assert.equal(await page.locator('[data-rf-new-project]').count(),1,'Reference portfolio must expose the canonical new-project action');
+  assert.equal(await page.locator('#rf-project-search').count(),1,'Reference portfolio must expose project search');
+  assert.equal(await page.locator('.rf-selected-lower').count(),1,'Reference selected project context must use the reference lower information grid');
   assert.equal(await page.locator('.rf-selected').count(),1,'selected project context must be present');
   assert.match(await page.locator('.rf-selected').innerText(),/Gelato Donatello/i,'Gelato should be deterministic selected dogfood context');
   assert.match(await page.locator('.rf-env').innerText(),/STAGING/i,'HQ must show truthful staging environment');
