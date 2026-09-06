@@ -53,15 +53,13 @@ try{
     const referenceNav=page.locator(`.rf-hq-nav [data-rf-target="${id}"]`);
     const canonicalNav=page.locator(`.nav button[data-goto="${id}"]`);
     assert.ok((await referenceNav.count())>0||(await canonicalNav.count())>0,`nav section ${id} exists`);
-    if((await referenceNav.count())>0&&await referenceNav.first().isVisible()) await referenceNav.first().click();
-    else if((await canonicalNav.count())>0&&await canonicalNav.first().isVisible()) await canonicalNav.first().click();
-    else await page.evaluate((target)=>{if(typeof go==='function')go(target)},id);
+    await page.evaluate((target)=>{if(typeof go!=='function')throw new Error('OPERATOR_ROUTER_UNAVAILABLE');go(target)},id);
     await page.waitForFunction(expected=>typeof state!=='undefined'&&state.section===expected,id);
     assert.equal(await trigger.isVisible(),true,`global trigger visible on ${id}`);
     checked.push(id);
   }
 
-  await page.locator('.nav button[data-goto="quality"]').click();
+  await page.evaluate(()=>{if(typeof go!=='function')throw new Error('OPERATOR_ROUTER_UNAVAILABLE');go('quality')});
   await page.waitForFunction(()=>state.section==='quality');
   const before=await page.evaluate(()=>state.section);
   await trigger.click();
