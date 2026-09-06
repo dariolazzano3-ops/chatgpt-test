@@ -1,0 +1,56 @@
+{
+  "schema": "riosystems.aurentara-reference-extracted-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "canvas": {
+    "width": 1536,
+    "height": 1024,
+    "device_pixel_ratio": 1
+  },
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "rights_inference_allowed": false,
+  "assets": [
+    {
+      "asset_id": "aurentara_brand_mark_reference_extracted",
+      "role": "BRAND_MARK",
+      "fidelity_importance": "CRITICAL",
+      "crop": {
+        "x": 10,
+        "y": 12,
+        "width": 195,
+        "height": 146
+      },
+      "output_dimensions": {
+        "width": 195,
+        "height": 146
+      },
+      "output_sha256": "58541a0c44801117a1c2bdc02ecba5d0366f94ac0a799162dc7c555d84238d8c",
+      "library_path": "library:/Visual Foundry/References/AURENTARA/V1.0 Extracted Assets/aurentara-brand-mark.png"
+    },
+    {
+      "asset_id": "hero_earth_reference_extracted",
+      "role": "HERO_BACKGROUND",
+      "fidelity_importance": "CRITICAL",
+      "crop": {
+        "x": 1120,
+        "y": 58,
+        "width": 240,
+        "height": 119
+      },
+      "output_dimensions": {
+        "width": 240,
+        "height": 119
+      },
+      "output_sha256": "acff694590d1cc2bde0c9c04b14b3d0d2d44924a7da38f6a1c7246f085c57c9e",
+      "library_path": "library:/Visual Foundry/References/AURENTARA/V1.0 Extracted Assets/hero-earth-pure.png",
+      "contains_ui_text": false
+    }
+  ],
+  "silent_generated_replacement": false,
+  "operator_reference_approval_reused_for_visual_poc_only": true,
+  "wave20_locked": true
+}
