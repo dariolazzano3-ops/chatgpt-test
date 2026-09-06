@@ -28,7 +28,9 @@ assert.ok(heroAsset,'HERO_REFERENCE_EXTRACTED_ASSET_REQUIRED');
 const heroTransportB64=(await readFile('factory-state/visual-foundry/assets/hero-earth-pure.png.b64','utf8')).replace(/\s+/g,'');
 const heroTransportBytes=Buffer.from(heroTransportB64,'base64');
 assert.equal(crypto.createHash('sha256').update(heroTransportBytes).digest('hex'),heroAsset.output_sha256,'HERO_REFERENCE_EXTRACTED_HASH_MISMATCH');
-const heroCandidateRequested=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
+const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
+const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
+const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
 const heroCandidateEnabled=heroCandidateRequested==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT';
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
