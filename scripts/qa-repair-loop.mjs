@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { updateFactoryJob, recordFactoryJobEvent, resolveCandidateRevision } from './factory-job-state.mjs';
 import { classifyQaReport, buildRepairCss } from './qa-repair-policy.mjs';
 import { buildEditFeatureRegressionChecks, summarizeProjectFeatureFingerprint } from './edit-feature-fingerprint.mjs';
+import { resolveVisualRepairIterationLimit, visualDeltaClosureHostDescriptor } from '../src/visual-foundry/delta-closer.js';
 
 // Legacy V3 readiness compatibility: horizontal overflow|scroll overflow is enforced by qa-repair-policy.mjs.
 const projectPath = process.argv[2];
@@ -13,6 +14,7 @@ const projectSlug = process.argv[4];
 const jobId = process.argv[5];
 const qaOnly = String(process.argv[6] || 'false') === 'true';
 const maxAttempts = Math.min(3, Math.max(1, Number(process.env.MAX_QA_ATTEMPTS || 3)));
+const maxVisualAttempts = resolveVisualRepairIterationLimit(process.env.MAX_VISUAL_QA_ATTEMPTS || 8);
 const previewProject = process.env.CLOUDFLARE_PAGES_PROJECT;
 
 if (!projectPath?.startsWith('projects/')) throw new Error('PROJECT_PATH_INVALID');
@@ -229,7 +231,8 @@ async function applySafeRepair(repairProfiles) {
 
 await updateFactoryJob(jobId, {
   status: 'IMPLEMENTING', project_slug: projectSlug, revision, branch: sourceBranch,
-  commit_sha: currentSha(), qa_attempt: 0, max_qa_attempts: maxAttempts, fulfillment_status: 'pending',
+  commit_sha: currentSha(), qa_attempt: 0, max_qa_attempts: maxAttempts, max_visual_qa_attempts: maxVisualAttempts,
+  visual_delta_closure: visualDeltaClosureHostDescriptor({ max_iterations: maxVisualAttempts }), fulfillment_status: 'pending',
   __event: { type: 'QA_LOOP_STARTED', stage: 'qa_pipeline', commit_sha: currentSha() }
 });
 
