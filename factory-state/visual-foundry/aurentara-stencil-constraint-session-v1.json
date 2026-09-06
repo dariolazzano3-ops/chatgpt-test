@@ -237,7 +237,7 @@
     "regions": [
       {
         "region_id": "sidebar",
-        "baseline_score": 0.528504
+        "baseline_score": 0.535695
       },
       {
         "region_id": "primary_navigation",
@@ -524,12 +524,13 @@
       "accepted_hero_title_raster_ssim": 0.282893
     },
     {
-      "candidate_id": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1",
+      "candidate_id": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P2",
+      "supersedes": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1",
       "region_id": "sidebar",
       "apply_by_default": true,
       "acceptance_status": "ACCEPTED_GAIN",
-      "workflow_run": 34064654723,
-      "verification_head": "478706cf92574031e707c3616ecc82fa4f2ac324",
+      "workflow_run": 34065110488,
+      "verification_head": "e31ddafde68b075a3340f84e99904b4ac568256f",
       "asset_id": "aurentara_logo_symbol_reference_extracted",
       "source_sha256": "72185db1e748726fc1819d333ba96351e5e08b03ba97b3ee98a52ead0753fcd4",
       "crop": {
@@ -541,8 +542,9 @@
       "provenance": "REFERENCE_EXTRACTED",
       "usage_scope": "GOLD_STANDARD_POC_ONLY",
       "production_use_allowed": false,
-      "baseline_sidebar_ssim": 0.514598,
-      "accepted_sidebar_ssim": 0.528504,
+      "accepted_sidebar_ssim": 0.535695,
+      "accepted_sidebar_pixel_difference_percent": 11.1495,
+      "brand_text_raster_ssim": 0.181286,
       "logo_raster_ssim": 1
     }
   ],
