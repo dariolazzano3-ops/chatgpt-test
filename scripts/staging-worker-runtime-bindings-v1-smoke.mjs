@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { deriveStagingOperatorBindings, providerDurabilitySources, jarvisMemoryBindingPlan } from './staging-worker-runtime-bindings-v1.mjs';
+import { deriveStagingOperatorBindings, deriveJarvisAccessBindings, providerDurabilitySources, jarvisMemoryBindingPlan } from './staging-worker-runtime-bindings-v1.mjs';
 
 const app = {
   id: '11111111-2222-3333-4444-555555555555',
@@ -24,6 +24,20 @@ assert.equal(success.operator_email, 'operator@example.invalid');
 assert.equal(success.audience, 'access-audience-test');
 assert.equal(success.production_deploy, false);
 assert.equal(success.variable_cost_eur, 0);
+
+const jarvisApp = {
+  id: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
+  type: 'self_hosted',
+  domain: 'https://riosystems-staging.example.workers.dev/jarvis',
+  aud: 'jarvis-access-audience-test'
+};
+const jarvisAccess = deriveJarvisAccessBindings({
+  applications: [app, customerApp, jarvisApp],
+  policies: [{ decision: 'allow', include: [{ email: { email: 'operator@example.invalid' } }] }]
+});
+assert.equal(jarvisAccess.ok, true);
+assert.equal(jarvisAccess.audience, 'jarvis-access-audience-test');
+assert.equal(jarvisAccess.operator_email, 'operator@example.invalid');
 
 const customerOnly = deriveStagingOperatorBindings({
   applications: [customerApp],
@@ -112,6 +126,7 @@ console.log(JSON.stringify({
   customer_access_app_coexists: true,
   durable_provider_secret_sources_supported: true,
   jarvis_private_memory_binding_planned: true,
+  jarvis_dedicated_access_contract_verified: true,
   missing_provider_sources_fail_visible: true,
   sensitive_values_returned: false,
   production_deploy: false,

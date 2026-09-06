@@ -218,3 +218,29 @@ The standalone Worker uses service-role-only public RPC functions as a narrow ga
 All RPC execution grants are revoked from `public`, `anon`, and `authenticated` and granted only to `service_role`.
 
 The OAuth table lives in `jarvis_private.oauth_connections_v1` and stores only encrypted refresh-token envelopes. Plain refresh tokens, access tokens, Google client secrets, and OAuth root secrets are not table fields.
+
+
+## Google Calendar OAuth Bridge V1
+
+Implemented:
+- dedicated JARVIS Access contract for `/jarvis`
+- Google OAuth authorization-code flow
+- minimal scope: `calendar.readonly`
+- offline access with explicit consent
+- HMAC-SHA-256 signed state
+- HttpOnly + Secure + SameSite=Lax state cookie
+- AES-256-GCM refresh-token encryption
+- domain-separated cryptographic keys derived from a JARVIS OAuth root secret
+- refresh token stored only as ciphertext + IV in `jarvis_private.oauth_connections_v1`
+- access tokens are ephemeral and never persisted
+- automatic access-token refresh for Calendar Read
+- no Calendar Write scope or capability
+
+Required activation secrets are intentionally absent from source:
+- `JARVIS_GOOGLE_OAUTH_CLIENT_ID`
+- `JARVIS_GOOGLE_OAUTH_CLIENT_SECRET`
+- `JARVIS_OAUTH_ROOT_SECRET`
+
+The dedicated Cloudflare Access application for `/jarvis` is also activation-gated. The repository defaults the JARVIS private surface to `prepared`, not public/private-live. Activation must provide a dedicated JARVIS Access audience; the existing `/operator` Access audience is not reused.
+
+This means the OAuth implementation can be fully CI-accepted without pretending that ChatGPT's connected Google account is a credential for the standalone Worker.

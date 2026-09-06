@@ -4,7 +4,7 @@ const clean = (value, max = 6000) => String(value ?? '').trim().slice(0, max);
 
 const rules = [
   ['REMINDER', 'REMINDER_REQUEST', /\b(remind\w*|erinner\w*)\b/i],
-  ['CALENDAR', 'CALENDAR_REQUEST', /\b(calendar|kalender|termin|appointment|meeting|freie slots?|wann.*zeit)\b/i],
+  ['CALENDAR', 'CALENDAR_REQUEST', /(?:\b(calendar|kalender|termin|appointment|meeting|freie slots?|wann.*zeit)\b|was\s+steht\s+(?:heute|morgen|übermorgen)\s+an|what(?:'s| is)?\s+(?:on|scheduled)\s+(?:today|tomorrow))/i],
   ['EMAIL', 'EMAIL_REQUEST', /\b(email|e-mail|mail|gmail|nachricht)\b/i],
   ['TASKS', 'TASK_REQUEST', /\b(task|tasks|aufgabe|todo|to-do)\b/i],
   ['FILES', 'FILE_REQUEST', /\b(file|files|datei|dokument|document|unterlagen)\b/i],

@@ -13,6 +13,7 @@ on:
       - 'scripts/jarvis-runtime-v1-smoke.mjs'
       - 'scripts/jarvis-private-chat-v1-smoke.mjs'
       - 'scripts/jarvis-supabase-private-rpc-v1-smoke.mjs'
+      - 'scripts/jarvis-google-oauth-v1-smoke.mjs'
       - 'supabase/migrations/*jarvis*'
       - 'docs/JARVIS_PERSONAL_ASSISTANT_V1.md'
       - '.github/workflows/jarvis-personal-assistant-v1.yml'
@@ -57,6 +58,9 @@ jobs:
           node --check src/jarvis/http-v1.js
           node --check src/jarvis/memory-store-supabase-rpc-v1.js
           node --check src/jarvis/oauth-store-supabase-rpc-v1.js
+          node --check src/jarvis/access-v1.js
+          node --check src/jarvis/oauth-crypto-v1.js
+          node --check src/jarvis/google-oauth-v1.js
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
       - name: JARVIS V1 connector runtime smoke
@@ -71,5 +75,7 @@ jobs:
         run: node scripts/jarvis-private-chat-v1-smoke.mjs
       - name: JARVIS V1 private Supabase RPC gateway smoke
         run: node scripts/jarvis-supabase-private-rpc-v1-smoke.mjs
+      - name: JARVIS V1 Google OAuth read-only smoke
+        run: node scripts/jarvis-google-oauth-v1-smoke.mjs
       - name: JARVIS V1 staging binding isolation smoke
         run: node scripts/staging-worker-runtime-bindings-v1-smoke.mjs

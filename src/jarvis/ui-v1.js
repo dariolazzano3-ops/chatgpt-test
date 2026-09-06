@@ -79,7 +79,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
       <div class="row"><span>JARVIS Core</span><span id="core" class="pill">CHECK</span></div>
       <div class="row"><span>Private Session</span><span id="session" class="pill">CHECK</span></div>
       <div class="row"><span>Memory</span><span id="memory" class="pill">CHECK</span></div>
-      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>
+      <div class="row"><span>Google OAuth</span><span id="oauth" class="pill">CHECK</span></div>\n      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>\n      <a id="connect-google" href="/jarvis/connect/google" style="display:none;margin-top:12px;text-decoration:none;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:#dff4ff;font-size:10px;letter-spacing:.08em;text-align:center">CONNECT GOOGLE CALENDAR</a>
     </section>
     <section class="panel glass"><h3>SAFETY</h3>
       <div class="row"><span>Production</span><strong>OFF</strong></div>
@@ -101,8 +101,15 @@ async function boot(){
     document.getElementById('session-label').textContent='Private · '+(s.display_name||'Operator');
     pill('core','ONLINE',true);pill('session','PRIVATE',true);
     pill('memory',status.durable_memory_ready?'DURABLE':'NOT BOUND',status.durable_memory_ready);
+    pill('oauth',status.google_calendar_connected?'CONNECTED':status.google_oauth_configured?'READY':'SETUP',status.google_calendar_connected);
     pill('calendar',status.calendar_read_bound?'READ ONLY':'PENDING',status.calendar_read_bound);
-    if(!status.calendar_read_bound) document.getElementById('live-label').textContent='CORE ONLINE · CALENDAR HOST PENDING';
+    const connect=document.getElementById('connect-google');
+    if(status.google_oauth_configured&&!status.google_calendar_connected)connect.style.display='block';
+    if(!status.calendar_read_bound) document.getElementById('live-label').textContent='CORE ONLINE · CALENDAR PENDING';
+    const q=new URLSearchParams(location.search).get('google');
+    if(q==='connected')bubble('Google Calendar ist jetzt read-only mit JARVIS verbunden.','assistant');
+    if(q==='error')bubble('Google Calendar konnte nicht verbunden werden. Es wurden keine Zugangsdaten angezeigt oder gespeichert.','error');
+    if(q==='cancelled')bubble('Google-Verbindung wurde abgebrochen.','assistant');
   }catch(e){pill('session','BLOCKED',false);bubble('Private Session konnte nicht verifiziert werden.','error')}
 }
 async function ask(text){
