@@ -11,6 +11,7 @@ on:
       - 'package.json'
       - '.github/workflows/project-jaguar-premium-static-web-v1.yml'
       - 'docs/PROJECT-JAGUAR-PREMIUM-STATIC-WEB-V1.md'
+      - 'factory-state/project-jaguar/**'
   push:
     branches: [factory/project-jaguar-v1]
     paths:
@@ -21,6 +22,7 @@ on:
       - 'package.json'
       - '.github/workflows/project-jaguar-premium-static-web-v1.yml'
       - 'docs/PROJECT-JAGUAR-PREMIUM-STATIC-WEB-V1.md'
+      - 'factory-state/project-jaguar/**'
   workflow_dispatch:
 
 permissions:
