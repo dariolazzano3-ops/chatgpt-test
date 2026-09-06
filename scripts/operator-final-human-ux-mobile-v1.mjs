@@ -38,7 +38,10 @@ async function waitReady(page) {
 }
 
 async function openProjectDetail(page) {
-  const projectsNav = page.locator('.nav button[data-goto="projects"]');
+  const referenceNav = page.locator('.rf-hq-nav [data-rf-target="projects"]');
+  const projectsNav = (await referenceNav.count() && await referenceNav.first().isVisible())
+    ? referenceNav
+    : page.locator('.nav button[data-goto="projects"]');
   await projectsNav.first().click();
   await page.waitForFunction(() => document.getElementById('title')?.textContent?.trim() === 'Projekte');
   const opens = page.locator('#projects .project-open');
