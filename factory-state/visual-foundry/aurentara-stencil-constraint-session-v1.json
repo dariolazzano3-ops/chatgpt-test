@@ -253,7 +253,7 @@
       },
       {
         "region_id": "kpi_band",
-        "baseline_score": 0.493198
+        "baseline_score": 0.52698
       },
       {
         "region_id": "attention_panel",
@@ -545,6 +545,29 @@
       "accepted_header_raster_ssim": 0.462993,
       "baseline_panel_ssim": 0.425518,
       "accepted_panel_ssim": 0.427606
+    },
+    {
+      "candidate_id": "KPI_TYPOGRAPHY_K6",
+      "region_id": "kpi_band",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_workflow_run": 34066190448,
+      "verification_workflow_run": 34066296823,
+      "verification_head": "302247e05620c05788f52d92e445f990f3051fa2",
+      "typography": {
+        "label_font_size_px": 12,
+        "value_font_size_px": 28,
+        "value_font_weight": 700,
+        "meta_font_size_px": 10,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_kpi_ssim": 0.493198,
+      "accepted_kpi_ssim": 0.52698,
+      "baseline_kpi_pixel_difference_percent": 12.9074,
+      "accepted_kpi_pixel_difference_percent": 12.7122,
+      "baseline_global_ssim": 0.38226,
+      "accepted_global_ssim": 0.392218
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
