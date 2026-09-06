@@ -1,0 +1,11 @@
+{
+  "schema": "riosystems.project-jaguar.acceptance-request.v1",
+  "project": "PROJECT JAGUAR",
+  "build_profile": "PREMIUM_STATIC_WEB_V1",
+  "base_head": "a1986f8aad1ce8091ae3c2ff453b5fae0971edcc",
+  "production_deploy": false,
+  "public_launch": false,
+  "dns_changes": false,
+  "paid_activation": false,
+  "external_writes": false
+}
