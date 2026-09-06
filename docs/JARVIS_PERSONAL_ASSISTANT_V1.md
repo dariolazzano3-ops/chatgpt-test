@@ -14,6 +14,7 @@ JARVIS:
 - has no automatic HAMYREN connector, memory sync, or data-return path
 - rejects HAMYREN-sourced records from the JARVIS personal memory write path in V1
 - rejects HAMYREN connector registrations in the connector registry
+- has an independent persistence schema: `jarvis_private`
 
 Any future HAMYREN use must be implemented as an explicit connector boundary carrying only the minimum approved request payload. It must never become shared memory.
 
@@ -35,6 +36,26 @@ Implemented:
 - privacy-preserving audit events
 - cost estimate field and high-cost approval signal
 - explicit production, billing, finance, and credential safeguards
+
+## Personal Memory Persistence V1
+
+Repository migration prepared at:
+`supabase/migrations/20260907004000_jarvis_personal_memory_v1.sql`
+
+The persistence domain provides:
+- dedicated `jarvis_private` schema
+- owner-scoped `personal_memory_v1`
+- owner-scoped `audit_events_v1`
+- forced Row Level Security
+- `auth.uid()` owner isolation
+- no anonymous access
+- no foreign keys into HAMYREN
+- fixed `jarvis.personal` namespace
+- HAMYREN source-system rejection
+- temporal memory fields
+- secret/credential sensitivity states excluded from persistence
+
+The migration is committed and CI-validated but is not applied to any production database by this phase.
 
 ## Connector Runtime V1
 
@@ -68,6 +89,7 @@ The connector contracts and runtime are implemented and synthetic-tested. Real G
 ## Intentionally unbound in V1 core foundation
 
 - live Gmail / Calendar / Drive / task / reminder account bindings
+- live persistent JARVIS database deployment
 - voice and wake word
 - proactive monitoring
 - device and smart-home execution

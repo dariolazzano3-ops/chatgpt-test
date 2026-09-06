@@ -8,6 +8,8 @@ on:
       - 'src/jarvis/**'
       - 'scripts/jarvis-personal-assistant-v1-smoke.mjs'
       - 'scripts/jarvis-connector-runtime-v1-smoke.mjs'
+      - 'scripts/jarvis-personal-memory-persistence-v1-smoke.mjs'
+      - 'supabase/migrations/*jarvis*'
       - 'docs/JARVIS_PERSONAL_ASSISTANT_V1.md'
       - '.github/workflows/jarvis-personal-assistant-v1.yml'
   workflow_dispatch:
@@ -43,3 +45,5 @@ jobs:
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
       - name: JARVIS V1 connector runtime smoke
         run: node scripts/jarvis-connector-runtime-v1-smoke.mjs
+      - name: JARVIS V1 personal memory persistence smoke
+        run: node scripts/jarvis-personal-memory-persistence-v1-smoke.mjs
