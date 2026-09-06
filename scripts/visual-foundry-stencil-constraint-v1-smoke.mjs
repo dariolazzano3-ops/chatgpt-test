@@ -17,7 +17,7 @@ const b=id=>Object.fromEntries(Object.entries(regionById.get(id).bounds).map(([k
 const constraintSet=deriveResponsiveConstraintSet({
   canvas:{width:1536,height:1024},
   elements:[
-    {id:'sidebar',role:'SIDEBAR',bounds:b('sidebar')},
+    {id:'sidebar',role:'SIDEBAR',bounds:b('sidebar'),tolerance_px:3},
     {id:'attention_panel',role:'DATA_CARD',group_id:'mid',bounds:b('attention_panel'),parent_bounds:{x:232,y:285,width:1286,height:276}},
     {id:'operator_ai_panel',role:'DATA_CARD',group_id:'mid',bounds:b('operator_ai_panel'),parent_bounds:{x:232,y:285,width:1286,height:276}},
     {id:'portfolio',role:'DATA_CARD',group_id:'ops',bounds:b('portfolio'),parent_bounds:{x:232,y:572,width:1286,height:346}},
@@ -26,6 +26,7 @@ const constraintSet=deriveResponsiveConstraintSet({
 });
 assert.equal(constraintSet.absolute_pixel_layout_as_final_strategy,false);
 assert.equal(constraintSet.elements.find(x=>x.id==='sidebar').strategy,'FIXED_RAIL');
+assert.equal(constraintSet.elements.find(x=>x.id==='sidebar').tolerance_px,3);
 const mid=constraintSet.grid_groups.find(x=>x.group_id==='mid');
 assert.ok(mid);
 assert.ok(Math.abs(mid.columns[0].fraction-(711/(711+563)))<1e-6);
