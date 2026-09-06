@@ -24,7 +24,7 @@ const PATTERNS = {
 
 function normalizeIndustry(value = '') {
   const name = String(value).toLowerCase();
-  if (/restaurant|cafe|food/.test(name)) return 'restaurant';
+  if (/restaurant|cafe|food|gelateria|gelato|eisdiele|ice cream/.test(name)) return 'restaurant';
   if (/bakery|bäckerei|local|service|handwerk|architecture|architect/.test(name)) return 'local services';
   if (/law|legal|anwalt/.test(name)) return 'law firm';
   if (/dental|dentist|zahnarzt/.test(name)) return 'dentist';
@@ -109,7 +109,7 @@ export const PREMIUM_INDUSTRY_QUALITY_PROFILES = Object.freeze({
 
 export function getPremiumIndustryQualityProfile(industry = '') {
   const value=String(industry || '').toLowerCase();
-  if (/restaurant|cafe|café|gastronom|bistro|food/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.GASTRONOMY);
+  if (/restaurant|cafe|café|gastronom|bistro|food|gelateria|gelato|eisdiele|ice cream/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.GASTRONOMY);
   if (/praxis|doctor|arzt|medical|dental|dentist|zahnarzt|therapy|therap/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.PRAXIS);
   if (/handwerk|local service|electric|plumb|cleaning|bakery|bäckerei|craft/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.HANDWERK_LOCAL_SERVICE);
   if (/b2b|consult|agency|agentur|software|saas|business service/.test(value)) return structuredClone(PREMIUM_INDUSTRY_QUALITY_PROFILES.B2B_SERVICE);
