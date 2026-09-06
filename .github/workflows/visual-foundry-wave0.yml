@@ -58,6 +58,8 @@ jobs:
       - run: node scripts/visual-foundry-wave15-smoke.mjs
       - run: node --check src/visual-foundry/golden-regression.js
       - run: node scripts/visual-foundry-wave16-smoke.mjs
+      - run: node --check src/visual-foundry/evidence-pack.js
+      - run: node scripts/visual-foundry-wave17-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -80,4 +82,5 @@ jobs:
             artifacts/visual-foundry/wave14
             artifacts/visual-foundry/wave15
             artifacts/visual-foundry/wave16
+            artifacts/visual-foundry/wave17
           if-no-files-found: error
