@@ -3,8 +3,9 @@ import { PREMIUM_MASTERDASHBOARD_STYLE } from './operator-premium-masterdashboar
 import { PREMIUM_MASTERDASHBOARD_SCRIPT_1 } from './operator-premium-masterdashboard-ui-script-1-v1.js';
 import { PREMIUM_MASTERDASHBOARD_SCRIPT_2 } from './operator-premium-masterdashboard-ui-script-2-v1.js';
 import { PREMIUM_MASTERDASHBOARD_SCRIPT_3 } from './operator-premium-masterdashboard-ui-script-3-v1.js';
+import { REFERENCE_DRIVEN_HQ_STYLE, REFERENCE_DRIVEN_HQ_SCRIPT } from './operator-reference-driven-hq-v1.js';
 
-const ADDON = PREMIUM_MASTERDASHBOARD_STYLE + PREMIUM_MASTERDASHBOARD_SCRIPT_1 + PREMIUM_MASTERDASHBOARD_SCRIPT_2 + PREMIUM_MASTERDASHBOARD_SCRIPT_3;
+const ADDON = PREMIUM_MASTERDASHBOARD_STYLE + PREMIUM_MASTERDASHBOARD_SCRIPT_1 + PREMIUM_MASTERDASHBOARD_SCRIPT_2 + PREMIUM_MASTERDASHBOARD_SCRIPT_3 + REFERENCE_DRIVEN_HQ_STYLE + REFERENCE_DRIVEN_HQ_SCRIPT;
 
 export function injectPremiumMasterdashboard(html=''){if(!html||html.includes('aurentara-premium-masterdashboard-v1-script'))return html;return html.includes('</body>')?html.replace('</body>',ADDON+'</body>'):html+ADDON}
 export async function applyPremiumMasterdashboard(response){if(!(response instanceof Response)||response.status!==200||!(response.headers.get('content-type')||'').includes('text/html'))return response;const html=await response.text(),h=new Headers(response.headers);h.delete('content-length');h.set('x-aurentara-premium-masterdashboard','v1');return new Response(injectPremiumMasterdashboard(html),{status:response.status,statusText:response.statusText,headers:h})}

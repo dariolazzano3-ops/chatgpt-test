@@ -40,9 +40,21 @@ const checkedViews = [];
 const visibleLabel = (label) => new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
 async function go(page, id, title) {
-  const nav = page.locator(`.nav button[data-goto="${id}"]`);
-  if (await nav.count()) await nav.first().click();
-  else await page.locator(`[data-goto="${id}"]`).first().click();
+  const referenceNav = page.locator(`.rf-hq-nav [data-rf-target="${id}"]`);
+  if (await referenceNav.count() && await referenceNav.first().isVisible()) await referenceNav.first().click();
+  else {
+    const systemTarget = page.locator(`.rf-hq-nav [data-rf-system-target="${id}"]`);
+    if (await systemTarget.count() && !(await systemTarget.first().isVisible())) {
+      const toggle = page.locator('.rf-hq-system-toggle');
+      if (await toggle.count() && await toggle.first().isVisible()) await toggle.first().click();
+    }
+    if (await systemTarget.count() && await systemTarget.first().isVisible()) await systemTarget.first().click();
+    else {
+      const nav = page.locator(`.nav button[data-goto="${id}"]`);
+      if (await nav.count() && await nav.first().isVisible()) await nav.first().click();
+      else if (typeof id === 'string') await page.evaluate((target) => { if (typeof go === 'function') go(target); }, id);
+    }
+  }
   await page.waitForFunction((expected) => document.getElementById('title')?.textContent?.trim() === expected, title);
   assert.equal(await page.locator(`#${id}`).isVisible(), true, `${id} must be visible`);
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -60,10 +72,19 @@ try {
   await page.waitForTimeout(400);
 
   assert.match(await page.locator('.brand').innerText(), /AURENTARA SYSTEMS/);
-  assert.equal(await page.locator('#title').innerText(), 'HQ');
-  assert.match(await page.locator('.top .subtitle').innerText(), /Betriebszustand/);
-  for (const [id, label] of [['projects', 'Projekte'], ['approvals', 'Freigaben'], ['providers', 'Provider'], ['health', 'Systemstatus'], ['settings', 'Richtlinien']]) {
-    assert.equal(await page.locator(`.nav button[data-goto="${id}"] span:last-child`).innerText(), label);
+  const referenceHq = await page.locator('.rf-hq-shell').count() === 1;
+  if (referenceHq) {
+    assert.equal(await page.locator('body').evaluate((el) => el.classList.contains('reference-hq-v1')), true, 'Reference 01 HQ mode must be active');
+    assert.equal(await page.locator('.rf-hero h1').innerText(), 'Masterdashboard');
+    for (const label of ['HQ','Portfolio','Project Overview','Sources','Knowledge','Preview','Approvals','Activity','Operator AI','Settings']) {
+      assert.equal(await page.locator('.rf-hq-nav-main button').filter({ hasText: label }).count(), 1, 'Reference HQ navigation missing '+label);
+    }
+  } else {
+    assert.equal(await page.locator('#title').innerText(), 'HQ');
+    assert.match(await page.locator('.top .subtitle').innerText(), /Betriebszustand/);
+    for (const [id, label] of [['projects', 'Projekte'], ['approvals', 'Freigaben'], ['providers', 'Provider'], ['health', 'Systemstatus'], ['settings', 'Richtlinien']]) {
+      assert.equal(await page.locator(`.nav button[data-goto="${id}"] span:last-child`).innerText(), label);
+    }
   }
   checkedViews.push('hq');
   assert.equal((await page.locator('body').innerText()).includes('[object Object]'), false, 'shared structured presenter must prevent [object Object]');

@@ -30,6 +30,8 @@ jobs:
           node --check src/operator-premium-masterdashboard-ui-script-2-v1.js
           node --check src/operator-premium-masterdashboard-ui-script-3-v1.js
           node --check scripts/project-ferrari-ui-consolidation-v1-smoke.mjs
+          node --check src/operator-reference-driven-hq-v1.js
+          node --check scripts/project-ferrari-reference-hq-v1-browser.mjs
 
       - name: UI consolidation acceptance
         run: node scripts/project-ferrari-ui-consolidation-v1-smoke.mjs
@@ -52,6 +54,9 @@ jobs:
       - name: Desktop and iPhone browser acceptance
         run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
 
+      - name: Reference 01 HQ browser acceptance
+        run: node scripts/project-ferrari-reference-hq-v1-browser.mjs
+
       - name: Existing human operator desktop browser regression
         run: node scripts/operator-human-ux-browser-v1.mjs
 
@@ -72,5 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: project-ferrari-ui-consolidation-v1-visual-evidence
-          path: artifacts/project-ferrari-premium-masterdashboard-v1
+          path: |
+            artifacts/project-ferrari-premium-masterdashboard-v1
+            artifacts/project-ferrari-reference-hq-v1
           if-no-files-found: warn
