@@ -3,9 +3,9 @@ import { JARVIS_DOMAINS } from './contracts-v1.js';
 const clean = (value, max = 6000) => String(value ?? '').trim().slice(0, max);
 
 const rules = [
+  ['REMINDER', /\b(remind|reminder|erinner|erinnerung)\b/i],
   ['CALENDAR', /\b(calendar|kalender|termin|appointment|meeting)\b/i],
   ['EMAIL', /\b(email|e-mail|mail|gmail|nachricht)\b/i],
-  ['REMINDER', /\b(remind|reminder|erinner|erinnerung)\b/i],
   ['TASKS', /\b(task|tasks|aufgabe|todo|to-do)\b/i],
   ['FILES', /\b(file|files|datei|dokument|document)\b/i],
   ['PROJECTS', /\b(project|projekt|aurentara|riosystems)\b/i],
