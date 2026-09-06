@@ -1,0 +1,39 @@
+{
+  "schema": "riosystems.aurentara-sidebar-logo-asset-acceptance.v2",
+  "candidate_id": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P2",
+  "supersedes": "SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1",
+  "workflow_run": 34065110488,
+  "verification_head": "e31ddafde68b075a3340f84e99904b4ac568256f",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "p1": {
+    "sidebar_ssim": 0.528504,
+    "sidebar_pixel_difference_percent": 10.895,
+    "brand_text_raster_ssim": 0.320363,
+    "global_ssim": 0.379478,
+    "global_pixel_difference_percent": 14.4061,
+    "issue": "BRAND_LAYOUT_SPACE_REMOVED"
+  },
+  "p2": {
+    "sidebar_ssim": 0.535695,
+    "sidebar_pixel_difference_percent": 11.1495,
+    "brand_text_raster_ssim": 0.181286,
+    "logo_raster_ssim": 1,
+    "global_ssim": 0.38226,
+    "global_pixel_difference_percent": 14.4419
+  },
+  "baseline_before_logo": {
+    "sidebar_ssim": 0.514598,
+    "brand_text_raster_ssim": 0.176208,
+    "global_ssim": 0.37768,
+    "global_pixel_difference_percent": 14.5772
+  },
+  "decision": "P2_ACCEPTED_P1_SUPERSEDED",
+  "soft_locks": "PASS",
+  "constraint_anchor": "PASS",
+  "semantic": "PASS",
+  "functional": "PASS",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
