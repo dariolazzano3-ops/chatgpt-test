@@ -97,3 +97,42 @@ jobs:
             artifacts/visual-foundry/wave19
             artifacts/visual-foundry/core-acceptance
           if-no-files-found: error
+
+
+  gold-standard-registration:
+    needs: wave0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: node scripts/visual-foundry-aurentara-reference-registration-smoke.mjs
+
+  gold-standard-isolated-run:
+    needs: gold-standard-registration
+    strategy:
+      fail-fast: false
+      matrix:
+        run_number: [1, 2, 3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: ${{ matrix.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-gold-standard-run-${{ matrix.run_number }}
+          path: artifacts/visual-foundry/gold-standard/run-${{ matrix.run_number }}
+          if-no-files-found: error
