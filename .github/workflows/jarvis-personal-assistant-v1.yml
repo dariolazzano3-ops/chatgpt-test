@@ -14,7 +14,7 @@ on:
       - 'scripts/jarvis-private-chat-v1-smoke.mjs'
       - 'scripts/jarvis-supabase-private-rpc-v1-smoke.mjs'
       - 'scripts/jarvis-google-oauth-v1-smoke.mjs'
-      - 'scripts/jarvis-private-worker-v1-smoke.mjs'
+      - 'scripts/jarvis-private-worker-v1-smoke.mjs'\n      - 'scripts/jarvis-private-access-bootstrap-v1.mjs'\n      - 'scripts/jarvis-private-access-bootstrap-v1-smoke.mjs'\n      - '.github/workflows/jarvis-private-access-bootstrap.yml'
       - 'wrangler.jarvis-private.jsonc'
       - '.github/workflows/jarvis-private-worker-staging.yml'
       - 'supabase/migrations/*jarvis*'
@@ -64,7 +64,7 @@ jobs:
           node --check src/jarvis/access-v1.js
           node --check src/jarvis/oauth-crypto-v1.js
           node --check src/jarvis/google-oauth-v1.js
-          node --check src/jarvis/standalone-worker-v1.js
+          node --check src/jarvis/standalone-worker-v1.js\n          node --check scripts/jarvis-private-access-bootstrap-v1.mjs
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
       - name: JARVIS V1 connector runtime smoke

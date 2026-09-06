@@ -276,3 +276,18 @@ The standalone Worker deliberately starts with:
 Its initial data plane is `EPHEMERAL_UNTIL_ISOLATED`. The existing JARVIS test schema in `riosystems-core` remains migration evidence only and is not automatically bound to the standalone Worker.
 
 The next isolation milestone is a physically separate JARVIS persistence project. Only after that data plane exists should durable personal memory and Google OAuth be activated on the standalone host.
+
+
+## Dedicated Cloudflare Access V1
+
+The standalone JARVIS workers.dev host receives its own Cloudflare Access application. It does not reuse the AURENTARA /operator application audience.
+
+Bootstrap rules:
+- target only `jarvis-private-staging.gelato-donatello-dario-a5a5376c.workers.dev`
+- derive the single human operator identity from the existing private operator Access policy
+- reject bypass, everyone, login-method, email-domain, multi-email, or otherwise broad rules
+- create exactly one JARVIS allow policy for that single operator identity
+- write only `JARVIS_OPERATOR_EMAIL` and `JARVIS_ACCESS_AUD` to the JARVIS Worker
+- do not modify an AURENTARA route
+- do not bind shared memory or Google credentials during this step
+- verify an unauthenticated request cannot receive the JARVIS Command Center

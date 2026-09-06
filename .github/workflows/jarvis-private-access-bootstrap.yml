@@ -1,0 +1,91 @@
+name: JARVIS Private Access Bootstrap
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-personal-assistant-v1'
+    paths:
+      - '.github/jarvis-private-access-request.json'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.auth.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: auth
+        run: |
+          set -euo pipefail
+          REQUEST=".github/jarvis-private-access-request.json"
+          test -f "$REQUEST"
+          test "$(git diff --name-only HEAD^ HEAD)" = "$REQUEST"
+          SOURCE_SHA="$(node - "$REQUEST" <<'NODE'
+          const fs = require('node:fs');
+          const request = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const ok =
+            request.schema === 'jarvis-private-access-request-v1' &&
+            request.target === 'jarvis-private-staging' &&
+            request.host === 'jarvis-private-staging.gelato-donatello-dario-a5a5376c.workers.dev' &&
+            /^[0-9a-f]{40}$/.test(request.source_sha || '') &&
+            request.confirmation === 'CREATE_JARVIS_PRIVATE_ACCESS' &&
+            request.public_access === false &&
+            request.production_deploy === false &&
+            request.aurentara_route_modified === false;
+          if (!ok) process.exit(1);
+          process.stdout.write(request.source_sha);
+          NODE
+          )"
+          test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+  validate:
+    needs: authorize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node scripts/jarvis-private-access-bootstrap-v1-smoke.mjs
+
+  bootstrap:
+    needs: [authorize, validate]
+    if: needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: jarvis-private-access-bootstrap
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      JARVIS_PRIVATE_ACCESS_APPROVED: 'true'
+      JARVIS_WORKERS_DEV_HOST: 'jarvis-private-staging.gelato-donatello-dario-a5a5376c.workers.dev'
+      RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME: 'riosystems-staging'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Create or verify dedicated JARVIS Access app and bind private identity
+        run: node scripts/jarvis-private-access-bootstrap-v1.mjs
+      - name: Verify unauthenticated JARVIS host is not public
+        run: |
+          set -euo pipefail
+          CODE="$(curl -sS -o /tmp/jarvis-body -D /tmp/jarvis-headers -w '%{http_code}' "https://$JARVIS_WORKERS_DEV_HOST/")"
+          case "$CODE" in
+            301|302|303|307|308|401|403) ;;
+            *) echo "Unexpected unauthenticated status: $CODE"; exit 1 ;;
+          esac
+          ! grep -q 'JARVIS · Private Command Center' /tmp/jarvis-body
