@@ -55,6 +55,7 @@ const sidebarBrandTitleSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TI
 const sidebarBrandTitleLetterSpacingEm=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TITLE_LETTER_SPACING_EM||NaN);
 const sidebarBrandTaglineSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_SIZE_PX||NaN);
 const sidebarBrandTaglineWidthPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_WIDTH_PX||NaN);
+const sidebarBrandFixedHeightPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_FIXED_HEIGHT_PX||NaN);
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -358,16 +359,23 @@ try{
 
   let sidebarBrandTypographyState={status:'DISABLED',candidate_id:sidebarBrandTypographyCandidateId||null};
   if(sidebarBrandTypographyCandidateId){
-    sidebarBrandTypographyState=await page.evaluate(({candidate_id,title_size_px,title_letter_spacing_em,tagline_size_px,tagline_width_px})=>{
+    sidebarBrandTypographyState=await page.evaluate(({candidate_id,title_size_px,title_letter_spacing_em,tagline_size_px,tagline_width_px,fixed_height_px})=>{
+      const brand=document.querySelector('.brand');
       const strong=document.querySelector('.brand strong');
       const span=document.querySelector('.brand span');
-      if(!strong||!span)throw new Error('SIDEBAR_BRAND_TEXT_MISSING');
+      if(!brand||!strong||!span)throw new Error('SIDEBAR_BRAND_TEXT_MISSING');
       const snap=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,letter_spacing:s.letterSpacing,max_width:s.maxWidth,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
-      const before={title:snap(strong),tagline:snap(span)};
+      const brandSnap=()=>{const s=getComputedStyle(brand),r=brand.getBoundingClientRect();return {height:s.height,min_height:s.minHeight,max_height:s.maxHeight,box_sizing:s.boxSizing,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
+      const before={brand:brandSnap(),title:snap(strong),tagline:snap(span)};
       if(Number.isFinite(title_size_px))strong.style.fontSize=title_size_px+'px';
       if(Number.isFinite(title_letter_spacing_em))strong.style.letterSpacing=title_letter_spacing_em+'em';
       if(Number.isFinite(tagline_size_px))span.style.fontSize=tagline_size_px+'px';
       if(Number.isFinite(tagline_width_px))span.style.maxWidth=tagline_width_px+'px';
+      if(Number.isFinite(fixed_height_px)){
+        brand.style.height=fixed_height_px+'px';
+        brand.style.minHeight=fixed_height_px+'px';
+        brand.style.maxHeight=fixed_height_px+'px';
+      }
       strong.dataset.vfSidebarBrandTypographyCandidate=candidate_id;
       span.dataset.vfSidebarBrandTypographyCandidate=candidate_id;
       return {
@@ -378,11 +386,12 @@ try{
           title_size_px:Number.isFinite(title_size_px)?title_size_px:null,
           title_letter_spacing_em:Number.isFinite(title_letter_spacing_em)?title_letter_spacing_em:null,
           tagline_size_px:Number.isFinite(tagline_size_px)?tagline_size_px:null,
-          tagline_width_px:Number.isFinite(tagline_width_px)?tagline_width_px:null
+          tagline_width_px:Number.isFinite(tagline_width_px)?tagline_width_px:null,
+          fixed_height_px:Number.isFinite(fixed_height_px)?fixed_height_px:null
         },
-        before,after:{title:snap(strong),tagline:snap(span)}
+        before,after:{brand:brandSnap(),title:snap(strong),tagline:snap(span)}
       };
-    },{candidate_id:sidebarBrandTypographyCandidateId,title_size_px:sidebarBrandTitleSizePx,title_letter_spacing_em:sidebarBrandTitleLetterSpacingEm,tagline_size_px:sidebarBrandTaglineSizePx,tagline_width_px:sidebarBrandTaglineWidthPx});
+    },{candidate_id:sidebarBrandTypographyCandidateId,title_size_px:sidebarBrandTitleSizePx,title_letter_spacing_em:sidebarBrandTitleLetterSpacingEm,tagline_size_px:sidebarBrandTaglineSizePx,tagline_width_px:sidebarBrandTaglineWidthPx,fixed_height_px:sidebarBrandFixedHeightPx});
   }
 
   let sidebarNavTypographyState={status:'DISABLED',candidate_id:sidebarNavTypographyCandidateId||null};
