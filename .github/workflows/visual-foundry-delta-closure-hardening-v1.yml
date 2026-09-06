@@ -1,0 +1,35 @@
+name: Visual Foundry Delta Closure Hardening V1
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-delta-closure-hardening-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hardening-v1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: node --check src/visual-foundry/reference-asset-extractor.js
+      - run: node --check src/visual-foundry/typography-resolver.js
+      - run: node --check src/visual-foundry/css-optimizer.js
+      - run: node --check src/visual-foundry/region-closure.js
+      - run: node --check scripts/visual-foundry-delta-closure-hardening-v1-smoke.mjs
+      - run: node scripts/visual-foundry-delta-closure-hardening-v1-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-foundry-delta-closure-hardening-v1-evidence
+          path: artifacts/visual-foundry/hardening-v1
+          if-no-files-found: error
