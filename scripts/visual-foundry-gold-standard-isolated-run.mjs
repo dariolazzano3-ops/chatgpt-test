@@ -60,6 +60,7 @@ const panelHeaderTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_PANEL_H
 const panelHeaderTitleSizePx=Number(process.env.VISUAL_FOUNDRY_PANEL_HEADER_TITLE_SIZE_PX||NaN);
 const panelHeaderTitleWeight=Number(process.env.VISUAL_FOUNDRY_PANEL_HEADER_TITLE_WEIGHT||NaN);
 const panelHeaderSubtitleSizePx=Number(process.env.VISUAL_FOUNDRY_PANEL_HEADER_SUBTITLE_SIZE_PX||NaN);
+const panelHeaderScope=String(process.env.VISUAL_FOUNDRY_PANEL_HEADER_SCOPE||'ALL').trim().toUpperCase();
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -363,10 +364,17 @@ try{
 
   let panelHeaderTypographyState={status:'DISABLED',candidate_id:panelHeaderTypographyCandidateId||null};
   if(panelHeaderTypographyCandidateId){
-    panelHeaderTypographyState=await page.evaluate(({candidate_id,title_size_px,title_weight,subtitle_size_px})=>{
-      const titles=[...document.querySelectorAll('.rf-panel-title h2')];
-      const subtitles=[...document.querySelectorAll('.rf-panel-title p')];
-      if(!titles.length)throw new Error('PANEL_HEADER_TITLES_MISSING');
+    panelHeaderTypographyState=await page.evaluate(({candidate_id,title_size_px,title_weight,subtitle_size_px,scope})=>{
+      const scopeSelector={
+        OPERATOR_AI:'.rf-grid-mid > .rf-panel:nth-child(2)',
+        ATTENTION:'.rf-attention-anchor',
+        PORTFOLIO:'.rf-ops-grid > .rf-panel:first-child'
+      }[scope]||null;
+      const root=scopeSelector?document.querySelector(scopeSelector):document;
+      if(!root)throw new Error('PANEL_HEADER_SCOPE_ROOT_MISSING:'+scope);
+      const titles=[...root.querySelectorAll('.rf-panel-title h2')];
+      const subtitles=[...root.querySelectorAll('.rf-panel-title p')];
+      if(!titles.length)throw new Error('PANEL_HEADER_TITLES_MISSING:'+scope);
       const snap=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {text:(el.textContent||'').trim(),font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,letter_spacing:s.letterSpacing,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
       const before={titles:titles.map(snap),subtitles:subtitles.map(snap)};
       for(const el of titles){
@@ -382,6 +390,7 @@ try{
         status:'APPLIED',candidate_id,
         substitution_status:'METRICALLY_CALIBRATED_SUBSTITUTION',
         original_font_identity_claimed:false,
+        scope,
         requested:{
           title_size_px:Number.isFinite(title_size_px)?title_size_px:null,
           title_weight:Number.isFinite(title_weight)?title_weight:null,
@@ -389,7 +398,7 @@ try{
         },
         before,after:{titles:titles.map(snap),subtitles:subtitles.map(snap)}
       };
-    },{candidate_id:panelHeaderTypographyCandidateId,title_size_px:panelHeaderTitleSizePx,title_weight:panelHeaderTitleWeight,subtitle_size_px:panelHeaderSubtitleSizePx});
+    },{candidate_id:panelHeaderTypographyCandidateId,title_size_px:panelHeaderTitleSizePx,title_weight:panelHeaderTitleWeight,subtitle_size_px:panelHeaderSubtitleSizePx,scope:panelHeaderScope});
   }
 
   let sidebarBrandTypographyState={status:'DISABLED',candidate_id:sidebarBrandTypographyCandidateId||null};
