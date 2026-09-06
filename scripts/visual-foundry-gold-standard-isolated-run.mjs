@@ -264,6 +264,9 @@ try{
       ['activity_panel','.rf-activity-card'],['milestone_card','[data-rf-milestone]'],['quote_card','.rf-quote']
     ];
     for(const [id,selector] of ids){const el=q(selector);if(el)el.dataset.visualId=id}
+    const navButtons=qa('.rf-hq-nav-main button');
+    if(navButtons[0])navButtons[0].dataset.visualId='primary_navigation_first_button';
+    if(navButtons.length)navButtons[navButtons.length-1].dataset.visualId='primary_navigation_last_button';
     const decisions=qa('[data-rf-decisions]').find(el=>el.classList.contains('rf-bottom-card'));if(decisions)decisions.dataset.visualId='decisions_card';
   },{...fixture,__run:runNumber});
 
@@ -366,7 +369,7 @@ try{
   await page.waitForTimeout(120);
 
   const componentIds=[
-    'sidebar','primary_navigation','primary_navigation_shell','primary_navigation_foot','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
+    'sidebar','primary_navigation','primary_navigation_first_button','primary_navigation_last_button','primary_navigation_shell','primary_navigation_foot','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
     'attention_panel','operator_ai_panel','portfolio_panel','new_project_cta','system_status_panel','cost_panel',
     'activity_panel','milestone_card','decisions_card','quote_card'
   ];
@@ -376,7 +379,7 @@ try{
 
   const actualConstraintRegions=[
     {id:'sidebar',bounds:geometryBounds(geometry,'sidebar')},
-    {id:'primary_navigation',bounds:geometryBounds(geometry,'primary_navigation')},
+    {id:'primary_navigation',bounds:unionBounds(geometry,['primary_navigation_first_button','primary_navigation_last_button'])},
     {id:'toolbar',bounds:geometryBounds(geometry,'toolbar')},
     {id:'hero',bounds:geometryBounds(geometry,'hero')},
     {id:'kpi_band',bounds:unionBounds(geometry,['kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview'])},
@@ -466,6 +469,7 @@ try{
     semantic_implementation:semanticImplementation,
     navigation_diagnostics:{
       main:geometryBounds(geometry,'primary_navigation'),
+      button_union:unionBounds(geometry,['primary_navigation_first_button','primary_navigation_last_button']),
       shell:geometryBounds(geometry,'primary_navigation_shell'),
       foot:geometryBounds(geometry,'primary_navigation_foot')
     }
@@ -557,6 +561,7 @@ try{
     visual_threshold_pass:visualThresholdPass,
     navigation_diagnostics:{
       main:geometryBounds(geometry,'primary_navigation'),
+      button_union:unionBounds(geometry,['primary_navigation_first_button','primary_navigation_last_button']),
       shell:geometryBounds(geometry,'primary_navigation_shell'),
       foot:geometryBounds(geometry,'primary_navigation_foot')
     }
