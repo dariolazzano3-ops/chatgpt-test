@@ -1,0 +1,27 @@
+{
+  "schema": "riosystems.aurentara-project-thumbnails-candidate.v1",
+  "candidate_id": "PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1",
+  "workflow_run": 34064963484,
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "baseline": {
+    "portfolio_ssim": 0.341706,
+    "attention_ssim": 0.394011,
+    "global_ssim": 0.379478
+  },
+  "candidate": {
+    "portfolio_ssim": 0.348762,
+    "attention_ssim": 0.374424,
+    "global_ssim": 0.373304,
+    "portfolio_pixel_difference_percent": 18.5587,
+    "attention_pixel_difference_percent": 17.8071
+  },
+  "regression": {
+    "region_id": "attention_panel",
+    "ssim_delta": -0.019587,
+    "tolerance": 0.002
+  },
+  "decision": "REJECTED",
+  "reason": "Shared thumbnail candidate improved Portfolio but regressed protected Attention beyond tolerance. Split by region.",
+  "next_candidate": "PROJECT_THUMBNAILS_PORTFOLIO_ONLY_P1",
+  "wave20_locked": true
+}
