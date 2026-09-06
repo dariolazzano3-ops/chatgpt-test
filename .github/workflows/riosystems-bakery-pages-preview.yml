@@ -82,3 +82,107 @@ jobs:
           npx --yes wrangler@4 pages deploy "projects/$RIOSYSTEMS_PAGES_PROJECT_SLUG" \
             --project-name "$CLOUDFLARE_PAGES_PROJECT" \
             --branch riosystems-staging-bakery-muller
+
+
+  gelato-jaguar-private-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.ref == 'factory/project-jaguar-v1-ci' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'dariolazzano3-ops' &&
+      github.event.pull_request.number == 457
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: chatgpt-factory-preview
+      JAGUAR_PAGES_BRANCH: project-jaguar-gelato-v1
+      JAGUAR_PAGES_ROOT_HOST: chatgpt-factory-preview.pages.dev
+      JAGUAR_PAGES_PREVIEW_HOST: project-jaguar-gelato-v1.chatgpt-factory-preview.pages.dev
+      RIOSYSTEMS_PRODUCTION_DEPLOY: 'false'
+      RIOSYSTEMS_PUBLIC_LAUNCH: 'false'
+      RIOSYSTEMS_DNS_CHANGES: 'false'
+      RIOSYSTEMS_BILLING_CHANGES: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install repository dependencies
+        run: npm install --package-lock=false
+
+      - name: Fail closed unless private Access already protects Jaguar Pages host
+        run: |
+          test "$RIOSYSTEMS_PRODUCTION_DEPLOY" = "false"
+          test "$RIOSYSTEMS_PUBLIC_LAUNCH" = "false"
+          test "$RIOSYSTEMS_DNS_CHANGES" = "false"
+          test "$RIOSYSTEMS_BILLING_CHANGES" = "false"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node scripts/project-jaguar-pages-access-readonly-v1.mjs
+
+      - name: Materialize evidence-safe Gelato Jaguar source
+        run: node scripts/materialize-project-jaguar-gelato-preview-v1.mjs
+
+      - name: Build Astro static output
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$GITHUB_WORKSPACE/.jaguar-preview/gelato-source/node_modules"
+          cd "$GITHUB_WORKSPACE/.jaguar-preview/gelato-source"
+          "$GITHUB_WORKSPACE/node_modules/.bin/astro" build
+          test -f dist/index.html
+          test -f dist/menu/index.html
+
+      - name: Deploy private non-production Pages preview
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOY_LOG=/tmp/project-jaguar-gelato-pages-deploy.log
+          npx --yes wrangler@4 pages deploy ".jaguar-preview/gelato-source/dist"             --project-name "$CLOUDFLARE_PAGES_PROJECT"             --branch "$JAGUAR_PAGES_BRANCH" 2>&1 | tee "$DEPLOY_LOG"
+          DEPLOY_URL="$(grep -Eo 'https://[a-zA-Z0-9._-]+\.pages\.dev' "$DEPLOY_LOG" | tail -n 1)"
+          test -n "$DEPLOY_URL"
+          echo "preview_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "PROJECT_JAGUAR_GELATO_PREVIEW_URL=$DEPLOY_URL"
+
+      - name: Verify deployed URL remains Access-protected
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PREVIEW_URL"
+          HEADER_FILE=/tmp/project-jaguar-gelato-preview-headers.txt
+          BODY_FILE=/tmp/project-jaguar-gelato-preview-body.txt
+          HTTP_CODE="$(curl --silent --show-error --output "$BODY_FILE" --dump-header "$HEADER_FILE" --write-out '%{http_code}' --max-time 15 "$PREVIEW_URL")"
+          echo "Unauthenticated preview status: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "FAIL: preview unexpectedly public"
+            exit 8
+          fi
+          case "$HTTP_CODE" in
+            301|302|303|307|308)
+              grep -Eiq 'cloudflareaccess\.com|/cdn-cgi/access/' "$HEADER_FILE" || {
+                echo "FAIL: redirect is not recognizably Cloudflare Access"
+                exit 9
+              }
+              ;;
+            401|403) ;;
+            *)
+              echo "FAIL: unexpected protected-preview response status"
+              exit 10
+              ;;
+          esac
+          echo "PRIVATE_ACCESS_LIVE_CHECK=PASS"
+          echo "Production deploy: false"
+          echo "Public launch: false"
+          echo "DNS changes: false"
+          echo "Billing changes: false"
