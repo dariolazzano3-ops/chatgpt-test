@@ -16,6 +16,7 @@ import { applyProjectIntakeUxV2, handleProjectIntakeUxV2Api } from "./operator-p
 import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v1.js";
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { applyPremiumMasterdashboard } from "./operator-premium-masterdashboard-v1.js";
+import { applyReferenceDrivenHq } from "./operator-reference-hq-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
 import { createProductionCustomerAccountPrivacySurface } from "./customer-product/production-account-privacy-surface-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
@@ -160,7 +161,7 @@ export default {
       if (operatorResponse) {
         const enhancedOperatorResponse = await applyOperatorBranding(await applyProjectIntakeUxV2(await applyProjectKnowledgeReviewUi(await applyProjectSourceHumanAcceptanceUi(operatorResponse))));
         return (url.pathname === "/operator" || url.pathname === "/operator/")
-          ? applyPremiumMasterdashboard(enhancedOperatorResponse)
+          ? applyReferenceDrivenHq(await applyPremiumMasterdashboard(enhancedOperatorResponse))
           : enhancedOperatorResponse;
       }
     }
