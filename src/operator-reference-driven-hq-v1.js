@@ -375,7 +375,7 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     return '<tr class="rf-project-table-row" data-rf-project-row="'+safe(p.scope_key||'')+'"><td><div class="rf-project-cell"><div class="rf-avatar">'+safe(initials(p))+'</div><div><div class="rf-project-name">'+safe(displayName(p))+'</div><div class="rf-project-scope">'+safe(p.scope_key||'')+'</div></div></div></td><td><span class="rf-state phase">'+safe(life.phase)+'</span></td><td><span class="rf-state '+statusClass(life.health)+'">'+safe(life.health)+'</span></td><td><span class="rf-state env">'+safe(life.environment)+'</span></td><td><div class="rf-table-progress"><b>'+pct+' %</b><div class="rf-progress"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></div></div></td><td><span class="rf-next-table">'+safe(action.label)+'</span></td><td><button type="button" class="rf-open-project" data-rf-project-open="'+safe(p.scope_key||'')+'" data-rf-project-tab="'+safe(action.tab||'overview')+'">Öffnen</button></td></tr>';
   }
 
-  function activityMarkup  function activityMarkup(project, detail) {
+  function activityMarkup(project, detail) {
     const local = Array.isArray(detail?.timeline) ? detail.timeline : [];
     const global = Array.isArray(state?.data?.audit?.items) ? state.data.audit.items.filter(x => !project?.scope_key || x.scope_key === project.scope_key).slice(0,4) : [];
     const rows = (local.length ? local.slice(-4).reverse() : global.slice(0,4));
@@ -443,7 +443,7 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     return '<button type="button" class="rf-bottom-card actionable" data-rf-milestone><div class="rf-bottom-icon">⚑</div><div class="rf-bottom-main"><strong>Nächster Meilenstein</strong><span>'+safe(displayName(p))+' · '+safe(action.label)+'</span></div><div class="rf-bottom-progress" aria-label="Fortschritt '+pct+' Prozent"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></div><b style="font-size:9px;color:#dceaf4">'+pct+' %</b></button>';
   }
 
-  function renderAttention  function renderAttention(rows) {
+  function renderAttention(rows) {
     const body=rows.length?rows.map((r,i)=>{
       const priority=r.tone==='blocked'?'Hoch':'Mittel';
       const impact=r.tone==='blocked'?'Umsetzung blockiert':r.tab==='knowledge'?'Qualität / Richtigkeit offen':r.tab==='approvals'?'Entscheidung erforderlich':'Projektfortschritt wartet';
@@ -452,7 +452,7 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     return '<div class="rf-attention-table-wrap"><table class="rf-attention-table"><thead><tr><th>Priorität</th><th>Projekt</th><th>Thema</th><th>Auswirkung</th><th>Fällig</th><th>Aktion</th></tr></thead><tbody>'+body+'</tbody></table></div>';
   }
 
-  function renderReferenceSidebar  function renderReferenceSidebar() {
+  function renderReferenceSidebar() {
     const side = document.querySelector('.side');
     if (!side || side.querySelector('.rf-hq-nav')) return;
     const nav = document.createElement('div');
@@ -504,7 +504,7 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     });
   }
 
-  function openAi  function openAi(prompt = '') {
+  function openAi(prompt = '') {
     if (typeof window.aurentaraOpenGlobalOperatorAiV1 === 'function') window.aurentaraOpenGlobalOperatorAiV1();
     else document.getElementById('global-operator-ai-trigger')?.click();
     if (prompt) setTimeout(() => { const input=document.getElementById('global-operator-ai-input'); if (input) { input.value=prompt; input.dispatchEvent(new Event('input',{bubbles:true})); } }, 0);
@@ -601,7 +601,7 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     if (!state.referenceHqHydrated) void hydrateReferenceHq();
   }
 
-  const priorRenderHq  const priorRenderHq = typeof renderHQ === 'function' ? renderHQ : null;
+  const priorRenderHq = typeof renderHQ === 'function' ? renderHQ : null;
   renderHQ = renderReferenceHq;
   window.renderHQ = renderReferenceHq;
 
