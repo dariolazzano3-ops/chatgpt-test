@@ -237,11 +237,11 @@
     "regions": [
       {
         "region_id": "sidebar",
-        "baseline_score": 0.476646
+        "baseline_score": 0.508022
       },
       {
         "region_id": "primary_navigation",
-        "baseline_score": 0.455143
+        "baseline_score": 0.499364
       },
       {
         "region_id": "toolbar",
@@ -402,6 +402,33 @@
       "verified_head": "9cb0a5f9eb11215d576acc59108d933ff450b352",
       "verified_artifact_id": 9997393809,
       "verified_artifact_digest": "sha256:ab6672a3a6391ac930befd5fcd6d426a164962fa679f65a2208492ae9f0757ec"
+    },
+    {
+      "candidate_id": "PRIMARY_NAVIGATION_CONSTRAINT_P1",
+      "region_id": "primary_navigation",
+      "acceptance_status": "ACCEPTED_GAIN",
+      "accepted_from_workflow_run": 34061302252,
+      "accepted_head": "3f90529ad0b1e50166c14923f4e7802280bb7ef6",
+      "semantic_anchor": "BUTTON_UNION_FIRST_TO_LAST",
+      "target_bounds": {
+        "x": 14,
+        "y": 184,
+        "width": 192,
+        "height": 688
+      },
+      "measured_bounds": {
+        "x": 14,
+        "y": 184.094,
+        "width": 192,
+        "height": 690.281
+      },
+      "diffs": {
+        "x": 0,
+        "y": 0.094,
+        "width": 0,
+        "height": 2.281
+      },
+      "typography_dependency": "HERO_TYPOGRAPHY_T5_LOCKED_UNCHANGED"
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",

@@ -1,0 +1,97 @@
+{
+  "schema": "riosystems.aurentara-primary-navigation-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "semantic_anchor_hardening": {
+    "diagnostic_workflow_run_id": 34061188765,
+    "diagnostic_head": "6f3f9b9389a954d1f78798ed49e04ef781a1ffb2",
+    "previous_container_measurement": {
+      "x": 10,
+      "y": 172,
+      "width": 195,
+      "height": 787.375
+    },
+    "corrected_button_union_measurement": {
+      "x": 10,
+      "y": 198.094,
+      "width": 195,
+      "height": 753.281
+    },
+    "reason": "Reference primary navigation bounds represent the visible first-to-last navigation interaction region, not the outer grid container."
+  },
+  "baseline": {
+    "primary_navigation_ssim": 0.455143,
+    "primary_navigation_pixel_difference_percent": 13.6507,
+    "sidebar_ssim": 0.476646,
+    "global_ssim": 0.287996,
+    "global_pixel_difference_percent": 15.2408
+  },
+  "candidate": {
+    "id": "PRIMARY_NAVIGATION_CONSTRAINT_P1",
+    "workflow_run_id": 34061302252,
+    "head": "3f90529ad0b1e50166c14923f4e7802280bb7ef6",
+    "artifact_id": 9997555980,
+    "artifact_digest": "sha256:28101c60b83cb7303438e8efd9fee1bec65796330848a9a9a2ba63f1eff6871a",
+    "target_bounds": {
+      "x": 14,
+      "y": 184,
+      "width": 192,
+      "height": 688
+    },
+    "measured_bounds": {
+      "x": 14,
+      "y": 184.094,
+      "width": 192,
+      "height": 690.281
+    },
+    "diffs": {
+      "x": 0,
+      "y": 0.094,
+      "width": 0,
+      "height": 2.281
+    },
+    "css_delta": {
+      "main": {
+        "gap_px": 0,
+        "margin_left_px": 4,
+        "margin_top_px": -14,
+        "width_px": 192
+      },
+      "group": {
+        "padding_top_px": 6,
+        "padding_bottom_px": 5
+      },
+      "group_items_gap_px": 0,
+      "footer_margin_top_px": 14
+    },
+    "primary_navigation_ssim": 0.499364,
+    "primary_navigation_pixel_difference_percent": 12.0216,
+    "sidebar_ssim": 0.508022,
+    "sidebar_pixel_difference_percent": 12.2789,
+    "global_ssim": 0.299026,
+    "global_pixel_difference_percent": 15.0911
+  },
+  "acceptance": {
+    "geometry": "PASS",
+    "soft_locks": "PASS",
+    "soft_lock_regressions": 0,
+    "hero_ssim": 0.519889,
+    "hero_title_raster_ssim": 0.228945,
+    "hero_regression": false,
+    "overflow_px": 0,
+    "functional": "PASS",
+    "semantic": "PASS",
+    "fixture_leak_count": 0,
+    "runtime_truth_mutation_count": 0,
+    "architecture_drift_count": 0,
+    "original_font_identity_claimed": false,
+    "status": "ACCEPTED_GAIN"
+  },
+  "next_delta": "OPERATOR_AI_DETAIL_GEOMETRY",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "dns": false,
+  "billing": false
+}

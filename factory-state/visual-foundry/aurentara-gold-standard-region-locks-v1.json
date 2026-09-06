@@ -3,33 +3,35 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "9cb0a5f9eb11215d576acc59108d933ff450b352",
-  "workflow_run_id": 34060776658,
+  "evidence_head": "3f90529ad0b1e50166c14923f4e7802280bb7ef6",
+  "workflow_run_id": 34061302252,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.287996,
-    "pixel_difference_percent": 15.2408,
-    "geometry_status": "PASS_EXCEPT_PRE_EXISTING_PRIMARY_NAVIGATION_CONSTRAINT",
+    "ssim": 0.299026,
+    "pixel_difference_percent": 15.0911,
+    "geometry_status": "PASS",
     "overflow_px": 0,
-    "color_score": 0.994725,
-    "edge_score": 0.178034
+    "color_score": 0.994756,
+    "edge_score": 0.184419
   },
   "regions": [
     {
       "region_id": "sidebar",
-      "status": "LOCKED_GAIN",
-      "ssim": 0.476646,
+      "status": "LOCKED_ACCEPTED_GAIN",
+      "ssim": 0.508022,
       "baseline_ssim": 0.436179,
-      "pixel_difference_percent": 13.3441,
-      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
+      "pixel_difference_percent": 12.2789,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+      "previous_soft_lock_ssim": 0.476646
     },
     {
       "region_id": "primary_navigation",
-      "status": "LOCKED_GAIN",
-      "ssim": 0.455143,
+      "status": "LOCKED_ACCEPTED_GAIN",
+      "ssim": 0.499364,
       "baseline_ssim": 0.450847,
-      "pixel_difference_percent": 13.6507,
-      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
+      "pixel_difference_percent": 12.0216,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+      "previous_soft_lock_ssim": 0.455143
     },
     {
       "region_id": "toolbar",
@@ -114,8 +116,8 @@
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     }
   ],
-  "active_delta_cluster": "PRIMARY_NAVIGATION_CONSTRAINT_CLOSURE",
-  "next_candidate": "PRIMARY_NAVIGATION_GEOMETRY_CLOSURE",
+  "active_delta_cluster": "OPERATOR_AI_DETAIL_GEOMETRY",
+  "next_candidate": "OPERATOR_AI_DETAIL_GEOMETRY_CLOSURE",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -135,5 +137,36 @@
     "hero_pixel_difference_percent": 15.9352,
     "hero_title_raster_ssim": 0.228945,
     "soft_lock_regressions": 0
+  },
+  "primary_navigation_seal": {
+    "candidate_id": "PRIMARY_NAVIGATION_CONSTRAINT_P1",
+    "status": "ACCEPTED_GAIN",
+    "semantic_anchor": "BUTTON_UNION_FIRST_TO_LAST",
+    "verified_workflow_run_id": 34061302252,
+    "verified_head": "3f90529ad0b1e50166c14923f4e7802280bb7ef6",
+    "artifact_id": 9997555980,
+    "artifact_digest": "sha256:28101c60b83cb7303438e8efd9fee1bec65796330848a9a9a2ba63f1eff6871a",
+    "target_bounds": {
+      "x": 14,
+      "y": 184,
+      "width": 192,
+      "height": 688
+    },
+    "measured_bounds": {
+      "x": 14,
+      "y": 184.094,
+      "width": 192,
+      "height": 690.281
+    },
+    "geometry_diffs": {
+      "x": 0,
+      "y": 0.094,
+      "width": 0,
+      "height": 2.281
+    },
+    "primary_navigation_ssim_before": 0.455143,
+    "primary_navigation_ssim_after": 0.499364,
+    "sidebar_ssim_before": 0.476646,
+    "sidebar_ssim_after": 0.508022
   }
 }
