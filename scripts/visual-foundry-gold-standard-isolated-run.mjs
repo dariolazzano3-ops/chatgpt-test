@@ -181,10 +181,14 @@ try{
   assert.equal(desktopLayout.height,1024);
   assert.equal(desktopLayout.dpr,1);
   assert.equal(desktopLayout.fixture_truth_class,'VISUAL_FIXTURE');
-  assert.ok(desktopLayout.scroll_width<=1536,'desktop horizontal overflow');
 
   const runtimeScreenshot=outDir+'/runtime-desktop.jpeg';
   await page.screenshot({path:runtimeScreenshot,type:'jpeg',quality:100,fullPage:false,animations:'disabled'});
+  await writeFile(outDir+'/desktop-layout-debug.json',JSON.stringify({desktopLayout,geometry},null,2));
+  if(desktopLayout.scroll_width>1536){
+    console.error(JSON.stringify({code:'DESKTOP_HORIZONTAL_OVERFLOW',desktopLayout},null,2));
+    throw new Error('desktop horizontal overflow: '+desktopLayout.scroll_width+' > 1536');
+  }
 
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(120);
