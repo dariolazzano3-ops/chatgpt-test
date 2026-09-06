@@ -15,7 +15,7 @@ body.reference-hq-v1 .rf-hq-nav{display:flex;flex-direction:column;min-height:0;
 .rf-hq-nav button.active{background:linear-gradient(90deg,rgba(213,174,84,.20),rgba(213,174,84,.08));color:#fff;border-color:rgba(213,174,84,.18);box-shadow:inset 3px 0 0 var(--rf-gold)}
 .rf-hq-nav-icon{width:20px;height:20px;display:grid;place-items:center;flex:0 0 20px;font-size:14px;color:#9fb0b9}
 .rf-hq-nav button.active .rf-hq-nav-icon{color:var(--rf-gold-2)}
-.rf-hq-nav-foot{margin-top:auto;padding:18px 16px 4px;border-top:1px solid #1a2830;color:#7d8a91}
+.rf-hq-system-toggle{margin-top:8px!important;border-top:1px solid #18262e!important;border-radius:0!important;color:#7f8d94!important;font-size:10.5px!important}.rf-hq-system{display:none;gap:3px;padding:6px 0 8px}.rf-hq-system.open{display:grid}.rf-hq-system button{min-height:34px;padding:7px 12px 7px 43px;font-size:10.5px;color:#839198}.rf-hq-nav-foot{margin-top:auto;padding:18px 16px 4px;border-top:1px solid #1a2830;color:#7d8a91}
 .rf-hq-nav-foot strong{display:block;color:#d8dee1;font-size:10px;letter-spacing:.28em;line-height:1.7;font-weight:600}
 .rf-hq-nav-foot span{display:block;margin-top:12px;font-size:8px;line-height:1.75;letter-spacing:.15em;text-transform:uppercase}
 body.reference-hq-v1 .side-foot{display:none!important}body.reference-hq-v1 .deployment-identity-v1{display:none!important}
@@ -196,9 +196,13 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     const items = [
       ['hq','⌂','HQ','hq'],['projects','▦','Portfolio','projects'],['project-overview','▤','Project Overview','overview'],['sources','▣','Sources','sources'],['knowledge','▥','Knowledge','knowledge'],['preview','▱','Preview','preview'],['approvals','✓','Approvals','approvals'],['activity','⌁','Activity','audit'],['operator-ai','✦','Operator AI','ai'],['settings','⚙','Settings','settings']
     ];
-    nav.innerHTML='<div class="rf-hq-nav-main">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'"'+(id==='projects'?' data-goto="projects"':'')+' class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'</div><div class="rf-hq-nav-foot"><strong>IDEAS<br>INTO IMPACT</strong><span>People<br>Projects<br>Progress<br>A brighter tomorrow</span></div>';
+    const systemItems=[['mission','Mission Studio'],['factories','Factories'],['capabilities','Fähigkeiten'],['providers','Provider'],['costs','Kosten'],['deliveries','Deliveries'],['health','Systemstatus']];nav.innerHTML='<div class="rf-hq-nav-main">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'"'+(id==='projects'?' data-goto="projects"':'')+' class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'<button type="button" class="rf-hq-system-toggle" data-rf-system-toggle><span class="rf-hq-nav-icon">⌄</span><span>Operator Controls</span></button><div class="rf-hq-system">'+systemItems.map(([target,label])=>'<button type="button" data-rf-system-target="'+target+'">'+label+'</button>').join('')+'</div></div><div class="rf-hq-nav-foot"><strong>IDEAS<br>INTO IMPACT</strong><span>People<br>Projects<br>Progress<br>A brighter tomorrow</span></div>';
     side.insertBefore(nav, side.querySelector('.nav'));
     nav.addEventListener('click', async (event) => {
+      const toggle=event.target.closest('[data-rf-system-toggle]');
+      if(toggle){event.stopPropagation();nav.querySelector('.rf-hq-system')?.classList.toggle('open');return}
+      const systemButton=event.target.closest('[data-rf-system-target]');
+      if(systemButton){event.stopPropagation();if(typeof go==='function')go(systemButton.dataset.rfSystemTarget);return}
       const button = event.target.closest('[data-rf-nav]');
       if (!button) return;
       event.stopPropagation();
