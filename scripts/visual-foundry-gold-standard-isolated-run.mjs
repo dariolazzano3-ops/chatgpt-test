@@ -101,6 +101,35 @@ try{
     const env=q('.rf-env'); if(env)env.textContent='PRODUKTIV';
     const region=q('.rf-region'); if(region)region.textContent='EU (Frankfurt)';
 
+    const brand=q('.brand');
+    if(brand){
+      const strong=brand.querySelector('strong'); if(strong)strong.textContent='AURENTARA SYSTEMS';
+      const span=brand.querySelector('span'); if(span)span.textContent='INTELLIGENTE LÖSUNGEN FÜR EINE BESSERE ZUKUNFT';
+    }
+
+    const kpiMeta=['↑ +1 seit letzter Woche','↓ -2 seit letzter Woche','↑ +1 seit letzter Woche','↑ +1 seit letzter Woche'];
+    qa('.rf-kpi-meta').forEach((el,i)=>{if(kpiMeta[i])el.textContent=kpiMeta[i]});
+
+    const heroTitle=q('.rf-hero h1'); if(heroTitle)heroTitle.textContent='RIOSYSTEMS DASHBOARD';
+    const heroSubtitle=q('.rf-hero p'); if(heroSubtitle)heroSubtitle.textContent='Alle Projekte. Alle Prozesse. Alle wichtigen Entscheidungen. An einem Ort.';
+    const heroMotto=q('.rf-hero-motto');
+    if(heroMotto)heroMotto.innerHTML='EIN SYSTEM.<br>ALLE MÖGLICHKEITEN.<br>SKALIERBAR.<br><span style="color:#42bfff">POWERED BY RIOSYSTEMS.</span>';
+
+    const milestone=q('[data-rf-milestone]');
+    if(milestone){
+      const strong=milestone.querySelector('.rf-bottom-main strong'); if(strong)strong.textContent='Nächster Meilenstein';
+      const span=milestone.querySelector('.rf-bottom-main span'); if(span)span.textContent='Gelato Donatello – Finalisierung & Live-Schaltung';
+      const progress=milestone.querySelector('.rf-bottom-progress span'); if(progress)progress.style.width='72%';
+      const number=qa('[data-rf-milestone] *').find(el=>el.childElementCount===0&&/\d+\s*%/.test(el.textContent||'')); if(number)number.textContent='72 %';
+    }
+    const decisionsCard=qa('[data-rf-decisions]').find(el=>el.classList.contains('rf-bottom-card'));
+    if(decisionsCard){
+      const strong=decisionsCard.querySelector('.rf-bottom-main strong'); if(strong)strong.textContent='Offene Entscheidungen';
+      const span=decisionsCard.querySelector('.rf-bottom-main span'); if(span)span.textContent='3 Entscheidungen erforderlich';
+    }
+    const quote=q('.rf-quote');
+    if(quote)quote.innerHTML='„Technologie wird erst dann wertvoll,<br>wenn sie Menschen wirklich weiterbringt.“<b>AURENTARA SYSTEMS</b>';
+
     const attentionBody=q('.rf-attention-table tbody');
     if(attentionBody){
       attentionBody.innerHTML=fixture.display.attention.map((r,i)=>`<tr>
