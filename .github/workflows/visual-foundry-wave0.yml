@@ -35,6 +35,8 @@ jobs:
       - run: node scripts/visual-foundry-wave2-smoke.mjs
       - run: node --check src/visual-foundry/render-lab.js
       - run: node scripts/visual-foundry-wave3-smoke.mjs
+      - run: node --check src/visual-foundry/dom-measurement.js
+      - run: node scripts/visual-foundry-wave4-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -44,4 +46,5 @@ jobs:
             artifacts/visual-foundry/wave1
             artifacts/visual-foundry/wave2
             artifacts/visual-foundry/wave3
+            artifacts/visual-foundry/wave4
           if-no-files-found: error
