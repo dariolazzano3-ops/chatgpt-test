@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - factory/ferrari-ui-consolidation-v1
+      - factory/ferrari-ui-consolidation-postmerge-fix-v1
   pull_request:
     branches: [factory-control]
 
@@ -50,6 +51,11 @@ jobs:
 
       - name: Desktop and iPhone browser acceptance
         run: node scripts/project-ferrari-premium-masterdashboard-v1-browser.mjs
+
+      - name: Existing human operator browser regressions
+        run: |
+          node scripts/operator-human-ux-browser-v1.mjs
+          node scripts/operator-final-human-ux-mobile-v1.mjs
 
       - name: Safety regression
         run: |
