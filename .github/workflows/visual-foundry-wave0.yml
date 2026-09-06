@@ -41,6 +41,8 @@ jobs:
       - run: node scripts/visual-foundry-wave7-smoke.mjs
       - run: node --check src/visual-foundry/fixture-mode.js
       - run: node scripts/visual-foundry-wave8-smoke.mjs
+      - run: node --check src/visual-foundry/runtime-binding.js
+      - run: node scripts/visual-foundry-wave9-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -55,4 +57,5 @@ jobs:
             artifacts/visual-foundry/wave6
             artifacts/visual-foundry/wave7
             artifacts/visual-foundry/wave8
+            artifacts/visual-foundry/wave9
           if-no-files-found: error
