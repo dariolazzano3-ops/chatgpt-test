@@ -1,5 +1,5 @@
 name: Visual Foundry AURENTARA Hero Candidate
-# rerun 2
+# in-ci comparator rerun
 
 on:
   push:
