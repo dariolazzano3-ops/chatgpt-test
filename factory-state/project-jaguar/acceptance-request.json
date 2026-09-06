@@ -7,5 +7,6 @@
   "public_launch": false,
   "dns_changes": false,
   "paid_activation": false,
-  "external_writes": false
+  "external_writes": false,
+  "trigger_revision": 2
 }
