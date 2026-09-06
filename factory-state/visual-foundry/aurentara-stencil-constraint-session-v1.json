@@ -274,10 +274,13 @@
       {
         "region_id": "bottom_strip",
         "baseline_score": 0.444591
+      },
+      {
+        "region_id": "hero",
+        "baseline_score": 0.4909591597272202
       }
     ],
     "excluded_active_or_regressed": [
-      "hero",
       "portfolio"
     ],
     "mode": "WARN_DURING_SEARCH_BLOCK_AT_FINALIZATION"
@@ -358,5 +361,23 @@
   "production_deploy": false,
   "public_deploy": false,
   "dns": false,
-  "billing": false
+  "billing": false,
+  "accepted_candidates": [
+    {
+      "candidate_id": "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT",
+      "region_id": "hero",
+      "apply_by_default": true,
+      "accepted_from_workflow_run": 34058603651,
+      "accepted_head": "5b8eae6e9d5c3f508209c01d12ab1ddc41aa165c",
+      "source_asset_id": "hero_earth_reference_extracted",
+      "source_sha256": "acff694590d1cc2bde0c9c04b14b3d0d2d44924a7da38f6a1c7246f085c57c9e",
+      "placement": {
+        "x": 1120,
+        "y": 58,
+        "width": 240,
+        "height": 119
+      },
+      "usage_scope": "GOLD_STANDARD_POC_ONLY"
+    }
+  ]
 }
