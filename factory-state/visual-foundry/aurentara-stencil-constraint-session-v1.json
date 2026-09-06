@@ -273,7 +273,7 @@
       },
       {
         "region_id": "activity_panel",
-        "baseline_score": 0.496131
+        "baseline_score": 0.517586
       },
       {
         "region_id": "bottom_strip",
@@ -590,6 +590,32 @@
       "accepted_cost_pixel_difference_percent": 18.6721,
       "baseline_global_ssim": 0.392218,
       "accepted_global_ssim": 0.394275
+    },
+    {
+      "candidate_id": "ACTIVITY_TYPOGRAPHY_A1",
+      "region_id": "activity_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_workflow_run": 34067011309,
+      "verification_workflow_run": 34067313469,
+      "verification_head": "33a9095333dea6c369045e8d4b3e5d7aaf432525",
+      "typography": {
+        "primary_font_size_px": 8,
+        "secondary_font_size_px": 7,
+        "secondary_font_weight": 600,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_activity_ssim": 0.496131,
+      "accepted_activity_ssim": 0.517586,
+      "baseline_activity_pixel_difference_percent": 13.8708,
+      "accepted_activity_pixel_difference_percent": 13.5788,
+      "baseline_global_ssim": 0.394275,
+      "accepted_global_ssim": 0.393593,
+      "baseline_global_pixel_difference_percent": 14.4057,
+      "accepted_global_pixel_difference_percent": 14.387,
+      "global_ssim_delta": -0.000682,
+      "global_regression_within_tolerance": true
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
