@@ -68,6 +68,9 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           node scripts/project-jaguar-premium-static-web-v1-smoke.mjs
+      - name: PROJECT JAGUAR Gelato Donatello dogfood
+        run: node scripts/project-jaguar-gelato-donatello-dogfood-v1.mjs
+
       - name: Safety seal
         run: |
           node -e "const fs=require('fs');const y=fs.readFileSync('.github/workflows/aurentara-premium-website-standard-v1.yml','utf8');if(/wrangler\s+deploy|pages\s+deploy|curl\s+.*workers\.dev/i.test(y))process.exit(1);console.log('no deploy command in premium workflow')"
