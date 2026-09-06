@@ -43,6 +43,10 @@ export async function captureRuntimeScreenshot(input = {}) {
       reducedMotion: 'reduce'
     });
     const page = await context.newPage();
+    const response = await page.goto(url, { waitUntil: 'networkidle', timeout: Number(input.timeout_ms || 60000) });
+    if (!response || response.status() < 200 || response.status() >= 400) {
+      throw new Error(`RUNTIME_RENDER_HTTP_${response?.status() || 0}`);
+    }
     await page.addStyleTag({ content: `
       *, *::before, *::after {
         animation-delay: 0s !important;
@@ -52,10 +56,7 @@ export async function captureRuntimeScreenshot(input = {}) {
         caret-color: transparent !important;
       }
     ` });
-    const response = await page.goto(url, { waitUntil: 'networkidle', timeout: Number(input.timeout_ms || 60000) });
-    if (!response || response.status() < 200 || response.status() >= 400) {
-      throw new Error(`RUNTIME_RENDER_HTTP_${response?.status() || 0}`);
-    }
+    await page.evaluate(() => document.fonts?.ready);
     await page.screenshot({ path: input.output_path, fullPage: input.full_page !== false });
     await context.close();
     return { browser: 'chromium', browser_version: browserVersion, viewport };
