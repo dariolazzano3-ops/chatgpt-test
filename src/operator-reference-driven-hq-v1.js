@@ -422,7 +422,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
   color:#d7e9f7;font-size:9px;letter-spacing:.25em
 }
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero h1{
-  margin:5px 0 3px;font-family:Arial,sans-serif;font-size:37px;line-height:1.05;font-weight:600;letter-spacing:5.5px;color:#f0f4fb;transform:scaleX(1.32);transform-origin:left center;
+  margin:5px 0 3px;font-family:Arial,sans-serif;font-size:37px;line-height:1.05;font-weight:400;letter-spacing:6px;color:#f0f4fb;transform:scaleX(1.40);transform-origin:left center;
   text-shadow:0 0 10px rgba(45,147,255,.16)
 }
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero p{
