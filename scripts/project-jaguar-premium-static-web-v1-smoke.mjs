@@ -3,7 +3,7 @@ import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, symlink } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -155,6 +155,7 @@ let chromeProcess;
 try {
   const sourceRoot = path.join(temp, 'source');
   await materializePremiumStaticWebV1SourcePackage(premium.build_profile, sourceRoot);
+  await symlink(path.join(repoRoot, 'node_modules'), path.join(sourceRoot, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 
   const astroBin = path.join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'astro.cmd' : 'astro');
   await stat(astroBin);
