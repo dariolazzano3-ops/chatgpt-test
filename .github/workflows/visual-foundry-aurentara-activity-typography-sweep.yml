@@ -1,0 +1,67 @@
+name: Visual Foundry AURENTARA Activity Typography Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-activity-typography-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activity-typography:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: A1
+            primary_size: 8.0
+            secondary_size: 7.0
+            secondary_weight: 600
+          - id: A2_CONTROL
+            primary_size: 8.5
+            secondary_size: 7.5
+            secondary_weight: 600
+          - id: A3
+            primary_size: 9.0
+            secondary_size: 8.0
+            secondary_weight: 600
+          - id: A4
+            primary_size: 8.0
+            secondary_size: 7.0
+            secondary_weight: 700
+          - id: A5
+            primary_size: 8.5
+            secondary_size: 7.5
+            secondary_weight: 700
+          - id: A6
+            primary_size: 9.0
+            secondary_size: 8.0
+            secondary_weight: 700
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_RIGHT_RAIL_TYPOGRAPHY_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_RIGHT_RAIL_TYPOGRAPHY_SCOPE: ACTIVITY
+      VISUAL_FOUNDRY_RIGHT_RAIL_PRIMARY_SIZE_PX: ${{ matrix.primary_size }}
+      VISUAL_FOUNDRY_RIGHT_RAIL_SECONDARY_SIZE_PX: ${{ matrix.secondary_size }}
+      VISUAL_FOUNDRY_RIGHT_RAIL_SECONDARY_WEIGHT: ${{ matrix.secondary_weight }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-activity-typography-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
