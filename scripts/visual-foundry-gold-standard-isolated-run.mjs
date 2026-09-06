@@ -222,13 +222,13 @@ try{
     }
 
     const ids=[
-      ['sidebar','.side'],['primary_navigation','.rf-hq-nav-main'],['toolbar','.rf-toolbar'],['hero','.rf-hero'],
+      ['sidebar','.side'],['primary_navigation','.rf-hq-nav-main'],['primary_navigation_shell','.rf-hq-nav'],['primary_navigation_foot','.rf-hq-nav-foot'],['toolbar','.rf-toolbar'],['hero','.rf-hero'],
       ['kpi_active_projects','.rf-kpi:nth-of-type(1)'],['kpi_open_inputs','.rf-kpi:nth-of-type(2)'],
       ['kpi_approvals','.rf-kpi:nth-of-type(3)'],['kpi_preview','.rf-kpi:nth-of-type(4)'],
       ['attention_panel','.rf-attention-anchor'],['operator_ai_panel','.rf-grid-mid > .rf-panel:nth-child(2)'],
       ['portfolio_panel','.rf-ops-grid > .rf-panel'],['new_project_cta','[data-rf-new-project]'],
       ['system_status_panel','.rf-side-stack > .rf-panel:nth-child(1)'],['cost_panel','.rf-side-stack > .rf-panel:nth-child(2)'],
-      ['activity_panel','.rf-activity-card'],['milestone_card','[data-rf-milestone]']
+      ['activity_panel','.rf-activity-card'],['milestone_card','[data-rf-milestone]'],['quote_card','.rf-quote']
     ];
     for(const [id,selector] of ids){const el=q(selector);if(el)el.dataset.visualId=id}
     const decisions=qa('[data-rf-decisions]').find(el=>el.classList.contains('rf-bottom-card'));if(decisions)decisions.dataset.visualId='decisions_card';
@@ -238,9 +238,9 @@ try{
   await page.waitForTimeout(120);
 
   const componentIds=[
-    'sidebar','primary_navigation','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
+    'sidebar','primary_navigation','primary_navigation_shell','primary_navigation_foot','toolbar','hero','kpi_active_projects','kpi_open_inputs','kpi_approvals','kpi_preview',
     'attention_panel','operator_ai_panel','portfolio_panel','new_project_cta','system_status_panel','cost_panel',
-    'activity_panel','milestone_card','decisions_card'
+    'activity_panel','milestone_card','decisions_card','quote_card'
   ];
   const geometry=await captureDomMeasurements(page,{component_ids:componentIds});
   const geometryIntegrity=evaluateDomMeasurementIntegrity(geometry);
@@ -258,7 +258,7 @@ try{
     {id:'right_rail',bounds:unionBounds(geometry,['system_status_panel','cost_panel','activity_panel'])},
     {id:'right_status_stack',bounds:unionBounds(geometry,['system_status_panel','cost_panel'])},
     {id:'activity_panel',bounds:geometryBounds(geometry,'activity_panel')},
-    {id:'bottom_strip',bounds:unionBounds(geometry,['milestone_card','decisions_card'])}
+    {id:'bottom_strip',bounds:unionBounds(geometry,['milestone_card','decisions_card','quote_card'])}
   ].filter(x=>x.bounds);
 
   const constraintSet=deriveResponsiveConstraintSet({
@@ -334,7 +334,12 @@ try{
     soft_lock_evaluation:softLockEvaluation,
     soft_lock_finalization:softLockFinalization,
     priority_ranking:priorityRanking,
-    semantic_implementation:semanticImplementation
+    semantic_implementation:semanticImplementation,
+    navigation_diagnostics:{
+      main:geometryBounds(geometry,'primary_navigation'),
+      shell:geometryBounds(geometry,'primary_navigation_shell'),
+      foot:geometryBounds(geometry,'primary_navigation_foot')
+    }
   },null,2));
 
   const desktopLayout=await page.evaluate(()=>({
