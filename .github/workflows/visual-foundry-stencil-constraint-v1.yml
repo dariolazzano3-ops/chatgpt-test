@@ -1,5 +1,5 @@
 name: Visual Foundry Stencil Constraint Closure V1
-# tolerance propagation recheck
+# hero reference asset reconstruction recheck
 
 on:
   push:
@@ -29,7 +29,9 @@ jobs:
       - run: node --check src/visual-foundry/visual-priority.js
       - run: node --check src/visual-foundry/semantic-gate.js
       - run: node --check scripts/visual-foundry-stencil-constraint-v1-smoke.mjs
+      - run: node --check scripts/visual-foundry-hero-asset-reconstruction-smoke.mjs
       - run: node scripts/visual-foundry-delta-closure-hardening-v1-smoke.mjs
+      - run: node scripts/visual-foundry-hero-asset-reconstruction-smoke.mjs
       - run: node scripts/visual-foundry-stencil-constraint-v1-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
