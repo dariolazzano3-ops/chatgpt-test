@@ -1,5 +1,6 @@
 name: Visual Foundry Wave 0
 # render determinism gate: decoded RGBA
+# approved-reference lifecycle recheck
 
 on:
   push:
