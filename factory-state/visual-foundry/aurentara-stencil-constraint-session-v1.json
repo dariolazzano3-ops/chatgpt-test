@@ -237,47 +237,47 @@
     "regions": [
       {
         "region_id": "sidebar",
-        "baseline_score": 0.516015
+        "baseline_score": 0.476646
       },
       {
         "region_id": "primary_navigation",
-        "baseline_score": 0.507768
+        "baseline_score": 0.455143
       },
       {
         "region_id": "toolbar",
-        "baseline_score": 0.583181
-      },
-      {
-        "region_id": "kpi_band",
-        "baseline_score": 0.493819
-      },
-      {
-        "region_id": "attention_panel",
-        "baseline_score": 0.453421
-      },
-      {
-        "region_id": "operator_ai_panel",
-        "baseline_score": 0.365715
-      },
-      {
-        "region_id": "system_status",
-        "baseline_score": 0.47984
-      },
-      {
-        "region_id": "cost_panel",
-        "baseline_score": 0.434438
-      },
-      {
-        "region_id": "activity_panel",
-        "baseline_score": 0.561685
-      },
-      {
-        "region_id": "bottom_strip",
-        "baseline_score": 0.444591
+        "baseline_score": 0.490028
       },
       {
         "region_id": "hero",
-        "baseline_score": 0.4909591597272202
+        "baseline_score": 0.488467
+      },
+      {
+        "region_id": "kpi_band",
+        "baseline_score": 0.493198
+      },
+      {
+        "region_id": "attention_panel",
+        "baseline_score": 0.394011
+      },
+      {
+        "region_id": "operator_ai_panel",
+        "baseline_score": 0.265621
+      },
+      {
+        "region_id": "system_status",
+        "baseline_score": 0.365469
+      },
+      {
+        "region_id": "cost_panel",
+        "baseline_score": 0.300142
+      },
+      {
+        "region_id": "activity_panel",
+        "baseline_score": 0.496131
+      },
+      {
+        "region_id": "bottom_strip",
+        "baseline_score": 0.428485
       }
     ],
     "excluded_active_or_regressed": [
@@ -379,5 +379,7 @@
       },
       "usage_scope": "GOLD_STANDARD_POC_ONLY"
     }
-  ]
+  ],
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json"
 }
