@@ -50,6 +50,8 @@ jobs:
       - run: node --check src/visual-foundry/delta-closer.js
       - run: node --check scripts/qa-repair-loop.mjs
       - run: node scripts/visual-foundry-wave12-smoke.mjs
+      - run: node --check src/visual-foundry/responsive-engine.js
+      - run: node scripts/visual-foundry-wave13-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -68,4 +70,5 @@ jobs:
             artifacts/visual-foundry/wave10
             artifacts/visual-foundry/wave11
             artifacts/visual-foundry/wave12
+            artifacts/visual-foundry/wave13
           if-no-files-found: error
