@@ -24,8 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-package-lock
       - run: npx playwright install --with-deps chromium
       - run: node --check src/visual-foundry/baseline.js
       - run: node --check scripts/visual-foundry-wave0.mjs
