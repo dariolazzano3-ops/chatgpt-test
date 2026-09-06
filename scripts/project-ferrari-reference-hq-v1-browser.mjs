@@ -65,7 +65,7 @@ try{
 
   assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('reference-hq-v1')),true,'Reference 01 dark HQ mode must be active');
   assert.equal(await page.locator('.rf-hero h1').innerText(),'Masterdashboard');
-  assert.match(await page.locator('.rf-kicker').innerText(),/REFERENCE-DRIVEN PREMIUM UI V1/i);
+  assert.match(await page.locator('.rf-kicker').innerText(),/PREMIUM MASTERDASHBOARD V1/i);
   assert.equal(await page.locator('.rf-kpi').count(),4,'Reference 01 requires four HQ KPI cards');
   for(const label of ['Aktive Projekte','Offene Inputs','Ausstehende Freigaben','Preview bereit']){
     assert.equal(await page.locator('.rf-kpi-label').filter({hasText:label}).count(),1,'missing KPI '+label);
@@ -75,6 +75,7 @@ try{
   assert.equal(await page.getByRole('heading',{name:'Projekt Portfolio',exact:true}).count(),1);
   assert.equal(await page.locator('[data-rf-new-project]').count(),1,'Reference portfolio must expose the canonical new-project action');
   assert.equal(await page.locator('#rf-project-search').count(),1,'Reference portfolio must expose project search');
+  assert.equal(await page.locator('#rf-project-search').inputValue(),'','Reference project search must start clean instead of exposing an empty-value placeholder as data');
   assert.equal(await page.locator('.rf-selected-lower').count(),1,'Reference selected project context must use the reference lower information grid');
   assert.equal(await page.locator('.rf-selected').count(),1,'selected project context must be present');
   assert.match(await page.locator('.rf-selected').innerText(),/Gelato Donatello/i,'Gelato should be deterministic selected dogfood context');
