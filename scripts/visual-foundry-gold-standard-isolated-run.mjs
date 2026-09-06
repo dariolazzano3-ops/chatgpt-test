@@ -44,12 +44,20 @@ assert.ok(logoAsset,'AURENTARA_LOGO_REFERENCE_EXTRACTED_ASSET_REQUIRED');
 const logoTransportB64=(await readFile('factory-state/visual-foundry/assets/aurentara-logo-symbol-reference.png.b64','utf8')).replace(/\s+/g,'');
 const logoTransportBytes=Buffer.from(logoTransportB64,'base64');
 assert.equal(crypto.createHash('sha256').update(logoTransportBytes).digest('hex'),logoAsset.output_sha256,'AURENTARA_LOGO_REFERENCE_EXTRACTED_HASH_MISMATCH');
+const projectThumbnailAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/project-thumbnails-reference-extracted.json','utf8'));
+assert.equal(projectThumbnailAssets.reference_hash,referenceRegistration.reference.hash,'PROJECT_THUMBNAILS_REFERENCE_HASH_MISMATCH');
+for(const asset of projectThumbnailAssets.assets||[]){
+  const bytes=Buffer.from(String(asset.b64||''),'base64');
+  assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),asset.output_sha256,'PROJECT_THUMBNAIL_HASH_MISMATCH:'+asset.asset_id);
+}
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
 const heroCandidateEnabled=heroCandidateRequested==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT';
 const sidebarLogoCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_LOGO_CANDIDATE||'').trim();
 const sidebarLogoCandidateEnabled=sidebarLogoCandidateId==='SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1';
+const projectThumbnailsCandidateId=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_CANDIDATE||'').trim();
+const projectThumbnailsCandidateEnabled=projectThumbnailsCandidateId==='PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1';
 const heroTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE||'').trim();
 const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X||1);
 const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX||NaN);
@@ -419,6 +427,82 @@ try{
     sidebarLogoCandidateState={...candidate,src:undefined,...applied};
   }
 
+  let projectThumbnailsCandidateState={status:'DISABLED',candidate_id:projectThumbnailsCandidateId||null};
+  if(projectThumbnailsCandidateEnabled){
+    const assets=Object.fromEntries((projectThumbnailAssets.assets||[]).map(a=>[a.project_key,{
+      asset_id:a.asset_id,
+      sha256:a.output_sha256,
+      crop:a.crop,
+      src:'data:image/png;base64,'+a.b64
+    }]));
+    const applied=await page.evaluate((payload)=>{
+      const resolveKey=text=>{
+        const t=String(text||'').toLowerCase();
+        if(t.includes('gelato'))return 'gelato';
+        if(t.includes('aurentara'))return 'aurentara';
+        if(t.includes('bakery')||t.includes('bäcker'))return 'bakery';
+        if(t.includes('interne tools')||t.includes('operator-suite'))return 'tools';
+        return null;
+      };
+
+      const portfolio=[];
+      for(const row of document.querySelectorAll('.rf-portfolio-table tbody tr')){
+        const name=row.querySelector('.rf-project-name')?.textContent||'';
+        const key=resolveKey(name);
+        const asset=payload.assets[key];
+        const avatar=row.querySelector('.rf-avatar');
+        if(!asset||!avatar)continue;
+        avatar.textContent='';
+        Object.assign(avatar.style,{
+          backgroundImage:'url("'+asset.src+'")',
+          backgroundSize:'cover',
+          backgroundPosition:'center',
+          backgroundRepeat:'no-repeat',
+          color:'transparent',
+          overflow:'hidden'
+        });
+        avatar.dataset.vfReferenceExtractedThumbnail=asset.asset_id;
+        portfolio.push({key,asset_id:asset.asset_id,rect:avatar.getBoundingClientRect().toJSON?.()||null});
+      }
+
+      const attention=[];
+      for(const row of document.querySelectorAll('.rf-attention-table tbody tr')){
+        const cell=row.children[1];
+        if(!cell)continue;
+        const projectName=(cell.textContent||'').trim();
+        const key=resolveKey(projectName);
+        const asset=payload.assets[key];
+        if(!asset)continue;
+        cell.textContent='';
+        const wrap=document.createElement('div');
+        Object.assign(wrap.style,{display:'flex',alignItems:'center',gap:'10px',minWidth:'0'});
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=asset.src;
+        img.dataset.vfReferenceExtractedThumbnail=asset.asset_id;
+        Object.assign(img.style,{width:'34px',height:'34px',flex:'0 0 34px',borderRadius:'4px',objectFit:'cover',display:'block'});
+        const span=document.createElement('span');
+        span.textContent=projectName;
+        span.style.whiteSpace='nowrap';
+        wrap.append(img,span);
+        cell.appendChild(wrap);
+        attention.push({key,asset_id:asset.asset_id});
+      }
+      return {status:'APPLIED',portfolio_count:portfolio.length,attention_count:attention.length};
+    },{assets});
+    projectThumbnailsCandidateState={
+      status:applied.status,
+      candidate_id:'PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1',
+      provenance:'REFERENCE_EXTRACTED',
+      usage_scope:'GOLD_STANDARD_POC_ONLY',
+      production_use_allowed:false,
+      public_distribution_allowed:false,
+      asset_ids:Object.values(assets).map(x=>x.asset_id),
+      ...applied
+    };
+  }
+
   let panelHeaderTypographyState={status:'DISABLED',candidate_id:panelHeaderTypographyCandidateId||null};
   if(panelHeaderTypographyCandidateId){
     panelHeaderTypographyState=await page.evaluate(({candidate_id,title_size_px,title_weight,subtitle_size_px,scope})=>{
@@ -726,6 +810,16 @@ try{
       region_id:'sidebar_logo_raster',
       critical:false,
       x:20,y:10,width:80,height:63
+    },
+    {
+      region_id:'portfolio_thumbnails_raster',
+      critical:false,
+      x:244,y:717,width:34,height:183
+    },
+    {
+      region_id:'attention_thumbnails_raster',
+      critical:false,
+      x:323,y:387,width:34,height:151
     }
   ];
   const visualComparison=await compareVisualImages({
@@ -845,6 +939,7 @@ try{
     stencil_build_aid:stencilBuildAid,
     hero_candidate:heroCandidateState,
     sidebar_logo_candidate:sidebarLogoCandidateState,
+    project_thumbnails_candidate:projectThumbnailsCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -896,6 +991,7 @@ try{
     stencil_status:runEvidence.stencil_build_aid.status,
     hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
     sidebar_logo_candidate:runEvidence.sidebar_logo_candidate?.candidate_id||null,
+    project_thumbnails_candidate:runEvidence.project_thumbnails_candidate?.candidate_id||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
