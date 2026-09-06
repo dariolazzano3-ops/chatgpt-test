@@ -2,7 +2,7 @@ name: PROJECT JAGUAR Premium Static Web V1
 
 on:
   pull_request:
-    branches: [factory-control]
+    branches: [factory-control, factory/project-jaguar-v1]
     paths:
       - 'src/web-factory/**'
       - 'scripts/project-jaguar-premium-static-web-v1-smoke.mjs'
