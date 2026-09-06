@@ -64,6 +64,8 @@ jobs:
       - run: node --check src/visual-foundry/cost-architecture.js
       - run: node --check src/visual-foundry/delta-closer.js
       - run: node scripts/visual-foundry-wave18-smoke.mjs
+      - run: node --check src/visual-foundry/benchmark-harness.js
+      - run: node scripts/visual-foundry-wave19-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -88,4 +90,5 @@ jobs:
             artifacts/visual-foundry/wave16
             artifacts/visual-foundry/wave17
             artifacts/visual-foundry/wave18
+            artifacts/visual-foundry/wave19
           if-no-files-found: error
