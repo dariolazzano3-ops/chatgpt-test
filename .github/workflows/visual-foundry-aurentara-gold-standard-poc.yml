@@ -1,5 +1,5 @@
 name: Visual Foundry AURENTARA Gold Standard PoC
-# stencil-constraint-v1 integration rerun
+# stencil-navigation-diagnostic rerun
 
 on:
   workflow_dispatch:
