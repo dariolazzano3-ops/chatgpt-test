@@ -1,0 +1,75 @@
+name: Visual Foundry AURENTARA Portfolio Header Local
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-portfolio-header-local.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portfolio-header-local:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: P0_CONTROL
+            title_size: 13
+            title_weight: 650
+            subtitle_size: 8.5
+          - id: P1
+            title_size: 12
+            title_weight: 650
+            subtitle_size: 8
+          - id: P2
+            title_size: 12.5
+            title_weight: 650
+            subtitle_size: 8
+          - id: P3
+            title_size: 12.5
+            title_weight: 650
+            subtitle_size: 8.5
+          - id: P4
+            title_size: 13
+            title_weight: 600
+            subtitle_size: 8
+          - id: P5
+            title_size: 12
+            title_weight: 700
+            subtitle_size: 8
+          - id: P6
+            title_size: 13
+            title_weight: 600
+            subtitle_size: 8.5
+          - id: P7
+            title_size: 12.5
+            title_weight: 600
+            subtitle_size: 8
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_PANEL_HEADER_TYPOGRAPHY_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_PANEL_HEADER_SCOPE: PORTFOLIO
+      VISUAL_FOUNDRY_PANEL_HEADER_TITLE_SIZE_PX: ${{ matrix.title_size }}
+      VISUAL_FOUNDRY_PANEL_HEADER_TITLE_WEIGHT: ${{ matrix.title_weight }}
+      VISUAL_FOUNDRY_PANEL_HEADER_SUBTITLE_SIZE_PX: ${{ matrix.subtitle_size }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-portfolio-header-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
