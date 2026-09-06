@@ -55,7 +55,17 @@ The persistence domain provides:
 - temporal memory fields
 - secret/credential sensitivity states excluded from persistence
 
-The migration is committed and CI-validated but is not applied to any production database by this phase.
+A provider-neutral JARVIS Supabase store adapter is implemented at:
+`src/jarvis/memory-store-supabase-v1.js`
+
+It deliberately uses separate JARVIS environment bindings:
+- `JARVIS_PERSONAL_MEMORY_SUPABASE_URL`
+- `JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY`
+- optional JARVIS schema/table bindings
+
+The adapter follows the existing RIOSYSTEMS Supabase store pattern but only addresses the `jarvis_private` data domain. It does not reference HAMYREN tables and does not embed credentials in memory, audit events, code constants, or returned manifests.
+
+The migration and store adapter are committed and CI-validated but are not applied/bound to any production database by this phase.
 
 ## Connector Runtime V1
 
@@ -84,12 +94,12 @@ The JARVIS action gate is a personal policy adapter, not a second production app
 
 ## Current binding state
 
-The connector contracts and runtime are implemented and synthetic-tested. Real Gmail, Google Calendar, Drive/files, task, and reminder accounts remain unbound in repository runtime. No live personal connector is invoked by CI.
+The connector contracts, connector runtime, persistent schema contract, and Supabase store adapter are implemented and synthetic-tested. Real Gmail, Google Calendar, Drive/files, task, reminder, and persistent personal database bindings remain disabled in repository runtime. No live personal connector or database is invoked by CI.
 
 ## Intentionally unbound in V1 core foundation
 
 - live Gmail / Calendar / Drive / task / reminder account bindings
-- live persistent JARVIS database deployment
+- live persistent JARVIS database activation
 - voice and wake word
 - proactive monitoring
 - device and smart-home execution

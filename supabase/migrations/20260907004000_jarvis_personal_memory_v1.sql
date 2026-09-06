@@ -25,6 +25,7 @@ grant execute on function jarvis_private.touch_updated_at() to authenticated, se
 
 create table if not exists jarvis_private.personal_memory_v1 (
   owner_id uuid not null,
+  owner_ref text not null,
   memory_id text not null,
   namespace text not null default 'jarvis.personal',
   category text not null,
@@ -82,8 +83,10 @@ create table if not exists jarvis_private.personal_memory_v1 (
   constraint jarvis_memory_no_hamyren_source_check
     check (
       source_system is null
-      or lower(source_system) <> 'hamyren'
-      and lower(source_system) not like 'hamyren.%'
+      or (
+        lower(source_system) <> 'hamyren'
+        and lower(source_system) not like 'hamyren.%'
+      )
     ),
 
   constraint jarvis_memory_historical_consistency_check
@@ -95,6 +98,9 @@ create table if not exists jarvis_private.personal_memory_v1 (
 
 create index if not exists jarvis_personal_memory_owner_updated_idx
   on jarvis_private.personal_memory_v1(owner_id, updated_at desc);
+
+create index if not exists jarvis_personal_memory_owner_ref_idx
+  on jarvis_private.personal_memory_v1(owner_id, owner_ref);
 
 create index if not exists jarvis_personal_memory_owner_category_idx
   on jarvis_private.personal_memory_v1(owner_id, category, status);
@@ -111,6 +117,7 @@ for each row execute function jarvis_private.touch_updated_at();
 
 create table if not exists jarvis_private.audit_events_v1 (
   owner_id uuid not null,
+  owner_ref text not null,
   event_id uuid primary key default gen_random_uuid(),
   schema_id text not null default 'aurentara.jarvis.audit-event.v1',
   request_id text,
