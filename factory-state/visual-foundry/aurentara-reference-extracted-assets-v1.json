@@ -48,6 +48,28 @@
       "output_sha256": "acff694590d1cc2bde0c9c04b14b3d0d2d44924a7da38f6a1c7246f085c57c9e",
       "library_path": "library:/Visual Foundry/References/AURENTARA/V1.0 Extracted Assets/hero-earth-pure.png",
       "contains_ui_text": false
+    },
+    {
+      "asset_id": "aurentara_logo_symbol_reference_extracted",
+      "role": "BRAND_LOGO_SYMBOL",
+      "fidelity_importance": "CRITICAL",
+      "crop": {
+        "x": 20,
+        "y": 10,
+        "width": 80,
+        "height": 63
+      },
+      "output_dimensions": {
+        "width": 80,
+        "height": 63
+      },
+      "output_sha256": "72185db1e748726fc1819d333ba96351e5e08b03ba97b3ee98a52ead0753fcd4",
+      "provenance": "REFERENCE_EXTRACTED",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "contains_ui_text": false,
+      "transport_path": "factory-state/visual-foundry/assets/aurentara-logo-symbol-reference.png.b64"
     }
   ],
   "silent_generated_replacement": false,
