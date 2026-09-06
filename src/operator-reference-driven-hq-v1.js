@@ -223,7 +223,7 @@ body.reference-hq-v1 .global-operator-ai-trigger{border-color:#2b77aa!important;
 /* AURENTARA_GOLD_STANDARD_FIXTURE_CALIBRATION_V1
    Generated from ReferenceSpec V1.0 macro geometry. Fixture-only; never runtime truth. */
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-shell{gap:0}
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-toolbar{height:58px;margin:-10px -18px 0}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-toolbar{height:58px;margin:-10px -16px 0}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hero{height:119px;min-height:119px;margin:0 -16px;padding-top:20px;padding-bottom:16px;box-sizing:border-box}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpis{margin-top:1px;width:calc(100% - 2px);gap:12px}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi{height:96px;min-height:96px;box-sizing:border-box;padding:14px}
