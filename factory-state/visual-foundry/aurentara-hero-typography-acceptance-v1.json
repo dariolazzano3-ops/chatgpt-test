@@ -62,7 +62,7 @@
       "hero_pixel_difference_percent": 15.9352,
       "hero_title_raster_ssim": 0.228945,
       "soft_lock_regressions": 0,
-      "status": "ACCEPTED_PENDING_REPRODUCTION"
+      "status": "ACCEPTED_GAIN"
     },
     "T6": {
       "scale_x": 1.34,
@@ -91,11 +91,36 @@
   "selected_candidate": "T5",
   "font_status": "METRICALLY_CALIBRATED_SUBSTITUTION",
   "original_font_identity_claimed": false,
-  "verification_status": "PENDING_FRESH_ISOLATED_RUN",
+  "verification_status": "REPRODUCED_ACCEPTED_GAIN",
   "next_delta_after_reproduction": "PRIMARY_NAVIGATION_CONSTRAINT_CLOSURE",
   "wave20_locked": true,
   "production_deploy": false,
   "public_deploy": false,
   "dns": false,
-  "billing": false
+  "billing": false,
+  "reproduction": {
+    "workflow_run_id": 34060776658,
+    "head": "9cb0a5f9eb11215d576acc59108d933ff450b352",
+    "artifact_id": 9997393809,
+    "artifact_digest": "sha256:ab6672a3a6391ac930befd5fcd6d426a164962fa679f65a2208492ae9f0757ec",
+    "global_ssim": 0.287996,
+    "global_pixel_difference_percent": 15.2408,
+    "hero_ssim": 0.519889,
+    "hero_pixel_difference_percent": 15.9352,
+    "hero_title_raster_ssim": 0.228945,
+    "hero_title_raster_pixel_difference_percent": 35.5645,
+    "soft_lock_evaluation": "ACCEPT",
+    "soft_lock_finalization": "PASS",
+    "soft_lock_regressions": 0,
+    "overflow_px": 0,
+    "functional": "PASS",
+    "semantic": "PASS",
+    "fixture_leak_count": 0,
+    "runtime_truth_mutation_count": 0,
+    "architecture_drift_count": 0,
+    "candidate_geometry_regression": false,
+    "pre_existing_geometry_outlier": "primary_navigation"
+  },
+  "seal_status": "ACCEPTED_GAIN",
+  "active_delta_cluster": "PRIMARY_NAVIGATION_CONSTRAINT_CLOSURE"
 }

@@ -383,7 +383,7 @@
       "candidate_id": "HERO_TYPOGRAPHY_T5",
       "region_id": "hero",
       "apply_by_default": true,
-      "acceptance_status": "ACCEPTED_PENDING_REPRODUCTION",
+      "acceptance_status": "ACCEPTED_GAIN",
       "accepted_from_workflow_run": 34059471051,
       "accepted_head": "374ce836e235813a4e3f0378feebdb6a77d9ecd3",
       "typography": {
@@ -397,7 +397,11 @@
         "scale_x": 1.32,
         "hero_title_raster_baseline_ssim": 0.064909,
         "hero_title_raster_candidate_ssim": 0.228945
-      }
+      },
+      "verified_from_workflow_run": 34060776658,
+      "verified_head": "9cb0a5f9eb11215d576acc59108d933ff450b352",
+      "verified_artifact_id": 9997393809,
+      "verified_artifact_digest": "sha256:ab6672a3a6391ac930befd5fcd6d426a164962fa679f65a2208492ae9f0757ec"
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
