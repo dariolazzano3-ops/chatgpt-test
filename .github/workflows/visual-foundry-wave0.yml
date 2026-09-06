@@ -1,0 +1,32 @@
+name: Visual Foundry Wave 0
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - 'src/visual-foundry/**'
+      - 'scripts/visual-foundry-wave0*'
+      - '.github/workflows/visual-foundry-wave0.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wave0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --check src/visual-foundry/baseline.js
+      - run: node --check scripts/visual-foundry-wave0.mjs
+      - run: node scripts/visual-foundry-wave0-smoke.mjs
