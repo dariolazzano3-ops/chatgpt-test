@@ -262,7 +262,10 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-nav-group-title{
   margin:5px 12px 4px;color:#7897b0;font-size:7.5px;letter-spacing:.25em
 }
-html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav-main{gap:1px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav-main{gap:0;margin-left:4px;margin-top:-14px;width:192px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-nav-group{padding:6px 0 5px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-nav-group:first-child{padding-top:0}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-nav-group-items{gap:0}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav button{
   min-height:30px;padding:5px 10px;border-radius:6px;color:#9fb9ce;font-size:10.5px;font-weight:500;gap:9px
 }
@@ -271,7 +274,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 }
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav-icon{font-size:12px;color:#b9d8ef}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav-foot{
-  padding:8px 12px 0;border-top-color:#123957;color:#7291aa
+  margin-top:14px;padding:8px 12px 0;border-top-color:#123957;color:#7291aa
 }
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-hq-nav-foot strong{
   font-size:8px;letter-spacing:.22em;color:#d0e6f5
