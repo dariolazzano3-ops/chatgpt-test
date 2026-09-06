@@ -9,6 +9,10 @@ export function evaluateJarvisActionGateV1(input = {}) {
     return { ok: false, status: 'BLOCKED', error: 'JARVIS_FINANCIAL_ACTIONS_DISABLED_V1', action, policy, execution_authorized: false };
   }
 
+  if (action.risk === 'CRITICAL') {
+    return { ok: false, status: 'BLOCKED', error: 'JARVIS_CRITICAL_ACTION_BLOCKED_V1', action, policy, execution_authorized: false };
+  }
+
   if (action.class === 'READ' || action.class === 'PREPARE') {
     return { ok: true, status: 'ALLOWED', action, policy, execution_authorized: true, approval_required: false };
   }

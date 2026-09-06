@@ -9,9 +9,37 @@ export const JARVIS_AUTONOMY = Object.freeze({
   APPROVAL_GATED_EXTERNAL_ACTION: 5
 });
 
+export const JARVIS_RISK = Object.freeze({
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+});
+
+export const JARVIS_INTENTS = Object.freeze([
+  'INFORMATION_REQUEST',
+  'MEMORY_REQUEST',
+  'STATUS_REQUEST',
+  'SEARCH_REQUEST',
+  'PLANNING_REQUEST',
+  'TASK_REQUEST',
+  'REMINDER_REQUEST',
+  'CALENDAR_REQUEST',
+  'EMAIL_REQUEST',
+  'FILE_REQUEST',
+  'PROJECT_REQUEST',
+  'AUTOMATION_REQUEST',
+  'DEVICE_REQUEST',
+  'EXECUTION_REQUEST',
+  'APPROVAL_REQUEST',
+  'RESEARCH_REQUEST',
+  'DECISION_SUPPORT_REQUEST'
+]);
+
 export const JARVIS_DOMAINS = Object.freeze([
   'GENERAL',
   'PERSONAL_STATUS',
+  'MEMORY',
   'REMINDER',
   'CALENDAR',
   'EMAIL',
@@ -24,18 +52,21 @@ export const JARVIS_DOMAINS = Object.freeze([
 ]);
 
 export const JARVIS_ACTIONS = Object.freeze({
-  READ_PERSONAL_CONTEXT: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false },
-  RESEARCH_WEB: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false },
-  DRAFT_EMAIL: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false },
-  PREPARE_CALENDAR_EVENT: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false },
-  PREPARE_TASK: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false },
-  CREATE_REMINDER: { class: 'PERSONAL_WRITE', risk: 'MEDIUM', approval_required: true, external_write: true },
-  CREATE_CALENDAR_EVENT: { class: 'PERSONAL_WRITE', risk: 'MEDIUM', approval_required: true, external_write: true },
-  CREATE_TASK: { class: 'PERSONAL_WRITE', risk: 'MEDIUM', approval_required: true, external_write: true },
-  SEND_EMAIL: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true },
-  FILE_WRITE: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true },
-  SMART_HOME_ACTION: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true },
-  FINANCIAL_ACTION: { class: 'BLOCKED', risk: 'CRITICAL', approval_required: true, external_write: true }
+  READ_PERSONAL_CONTEXT: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false, capability: 'personal_context.read' },
+  READ_PERSONAL_MEMORY: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false, capability: 'personal_memory.read' },
+  RESEARCH_WEB: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false, capability: 'web.search' },
+  SEARCH_FILES: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false, capability: 'files.read' },
+  READ_CALENDAR: { class: 'READ', risk: 'LOW', approval_required: false, external_write: false, capability: 'calendar.read' },
+  DRAFT_EMAIL: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false, capability: 'email.draft' },
+  PREPARE_CALENDAR_EVENT: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false, capability: 'calendar.prepare' },
+  PREPARE_TASK: { class: 'PREPARE', risk: 'LOW', approval_required: false, external_write: false, capability: 'tasks.prepare' },
+  CREATE_REMINDER: { class: 'PERSONAL_WRITE', risk: 'LOW', approval_required: true, external_write: true, capability: 'reminders.write' },
+  CREATE_CALENDAR_EVENT: { class: 'PERSONAL_WRITE', risk: 'MEDIUM', approval_required: true, external_write: true, capability: 'calendar.write' },
+  CREATE_TASK: { class: 'PERSONAL_WRITE', risk: 'MEDIUM', approval_required: true, external_write: true, capability: 'tasks.write' },
+  SEND_EMAIL: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'email.send' },
+  FILE_WRITE: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'files.write' },
+  SMART_HOME_ACTION: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'devices.write' },
+  FINANCIAL_ACTION: { class: 'BLOCKED', risk: 'CRITICAL', approval_required: true, external_write: true, capability: 'finance.write' }
 });
 
 export function normalizeJarvisPolicy(input = {}) {
@@ -47,10 +78,16 @@ export function normalizeJarvisPolicy(input = {}) {
     allow_personal_writes: input.allow_personal_writes === true,
     allow_external_writes: input.allow_external_writes === true,
     require_explicit_approval_for_writes: input.require_explicit_approval_for_writes !== false,
+    allow_memory_writeback: input.allow_memory_writeback === true,
+    allow_sensitive_memory_writeback: input.allow_sensitive_memory_writeback === true,
+    high_cost_threshold_eur: Number.isFinite(Number(input.high_cost_threshold_eur))
+      ? Math.max(0, Number(input.high_cost_threshold_eur))
+      : 1,
     financial_actions_enabled: false,
     production_actions_enabled: false,
     billing_actions_enabled: false,
-    credential_actions_enabled: false
+    credential_actions_enabled: false,
+    hamyren_connector_enabled: false
   };
 }
 
@@ -58,15 +95,17 @@ export function jarvisContractsManifestV1() {
   return {
     schema: JARVIS_SCHEMA,
     codename: 'JARVIS',
-    product_role: 'private_personal_assistant',
+    product_role: 'private_personal_operating_system',
     memory_namespace: 'jarvis.personal',
     hamyren_memory_access: false,
     hamyren_memory_write: false,
     shared_memory_with_hamyren: false,
     automatic_data_flow_to_hamyren: false,
+    intents: [...JARVIS_INTENTS],
     domains: [...JARVIS_DOMAINS],
     actions: structuredClone(JARVIS_ACTIONS),
     autonomy_levels: { ...JARVIS_AUTONOMY },
+    risk_levels: { ...JARVIS_RISK },
     default_policy: normalizeJarvisPolicy(),
     financial_actions_enabled: false,
     production_actions_enabled: false

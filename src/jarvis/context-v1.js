@@ -35,6 +35,7 @@ export function buildJarvisContextV1(input = {}, options = {}) {
   const goals = ranked(query, arr(input.goals).filter((item) => sensitivityAllowed(item, allowSensitive)), 10);
   const commitments = ranked(query, arr(input.commitments).filter((item) => sensitivityAllowed(item, allowSensitive)), 12);
   const projects = ranked(query, arr(input.projects).filter((item) => sensitivityAllowed(item, allowSensitive)), 12);
+  const memoryItems = ranked(query, arr(input.memory_items).filter((item) => sensitivityAllowed(item, allowSensitive)), 24);
 
   return {
     schema: 'aurentara.jarvis.context.v1',
@@ -49,7 +50,13 @@ export function buildJarvisContextV1(input = {}, options = {}) {
     goals,
     commitments,
     projects,
+    memory_items: memoryItems,
     transient_context: structuredClone(input.transient_context || {}),
+    retrieval: {
+      strategy: 'relevance_minimal',
+      total_items: facts.length + preferences.length + routines.length + goals.length + commitments.length + projects.length + memoryItems.length,
+      sensitive_context_loaded: allowSensitive
+    },
     isolation: {
       hamyren_data_loaded: false,
       hamyren_memory_access: false,
