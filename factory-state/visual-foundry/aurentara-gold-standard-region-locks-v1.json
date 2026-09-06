@@ -3,13 +3,13 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "568ac56cd63a9d58fb53e99cc291596cc406db7a",
-  "workflow_run_id": 34051485825,
+  "evidence_head": "5b8eae6e9d5c3f508209c01d12ab1ddc41aa165c",
+  "workflow_run_id": 34058603651,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.45875444567182133,
-    "pixel_difference_percent": 20.24059295654297,
-    "geometry_status": "PASS",
+    "ssim": 0.47108221816253665,
+    "pixel_difference_percent": 19.42399342854818,
+    "geometry_status": "PASS_EXCEPT_PRIMARY_NAVIGATION_CONSTRAINT",
     "overflow_px": 0
   },
   "regions": [
@@ -33,10 +33,10 @@
     },
     {
       "region_id": "hero",
-      "status": "ACTIVE_CLOSURE",
-      "ssim": 0.367911,
-      "baseline_ssim": 0.347744,
-      "pixel_difference_percent": 29.20104
+      "status": "ACTIVE_CLOSURE_ACCEPTED_GAIN",
+      "ssim": 0.4909591597272202,
+      "baseline_ssim": 0.36791129903428704,
+      "pixel_difference_percent": 21.086707410236823
     },
     {
       "region_id": "kpi_band",
@@ -87,10 +87,13 @@
       "baseline_ssim": 0.445393
     }
   ],
-  "active_delta_cluster": "HERO_ASSET",
-  "next_candidate": "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT",
+  "active_delta_cluster": "HERO_REGION",
+  "next_candidate": "HERO_TYPOGRAPHY_AND_REMAINING_BACKGROUND_LOCAL_CLOSURE",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
-  "public_deploy": false
+  "public_deploy": false,
+  "accepted_candidates": [
+    "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT"
+  ]
 }
