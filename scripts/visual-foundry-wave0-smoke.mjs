@@ -2,13 +2,15 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { captureRuntimeScreenshot, buildWave0EvidencePack, VISUAL_ACCEPTANCE_NOT_EVALUATED } from '../src/visual-foundry/baseline.js';
 
 const tmp = await mkdtemp(path.join(os.tmpdir(), 'visual-foundry-wave0-'));
 const reference = path.join(tmp, 'reference.png');
 const runtime = path.join(tmp, 'runtime.png');
 const changed = path.join(tmp, 'changed.png');
+const artifactDir = path.resolve('artifacts/visual-foundry/wave0-smoke');
+await mkdir(artifactDir, { recursive: true });
 
 let mode = 'reference';
 const server = http.createServer((req, res) => {
@@ -41,6 +43,9 @@ try {
   assert.equal(exact.comparison.status, 'EXACT_BINARY_MATCH');
   assert.equal(exact.visual_acceptance, VISUAL_ACCEPTANCE_NOT_EVALUATED);
   assert.equal(exact.fake_success_prevented, true);
+  await writeFile(path.join(artifactDir, 'exact-evidence-pack.json'), JSON.stringify(exact, null, 2));
+  await copyFile(reference, path.join(artifactDir, 'reference.png'));
+  await copyFile(runtime, path.join(artifactDir, 'runtime-identical.png'));
 
   mode = 'changed';
   await captureRuntimeScreenshot({
@@ -61,6 +66,8 @@ try {
   });
   assert.equal(delta.comparison.status, 'REFERENCE_DIFFERENCE_DETECTED');
   assert.equal(delta.visual_acceptance, VISUAL_ACCEPTANCE_NOT_EVALUATED);
+  await writeFile(path.join(artifactDir, 'difference-evidence-pack.json'), JSON.stringify(delta, null, 2));
+  await copyFile(changed, path.join(artifactDir, 'runtime-changed.png'));
 
   await assert.rejects(
     buildWave0EvidencePack({ reference_path: path.join(tmp, 'missing.png'), runtime_screenshot_path: runtime }),
