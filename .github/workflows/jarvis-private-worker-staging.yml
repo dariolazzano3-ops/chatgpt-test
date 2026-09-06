@@ -98,7 +98,7 @@ jobs:
           test "$ZERO_COST_CONFIRMED" = "true"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test "$(node -e "const c=require('./wrangler.jarvis-private.jsonc');process.stdout.write(c.name)")" = "jarvis-private-staging"
+          test "$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-private.jsonc','utf8'));process.stdout.write(c.name)")" = "jarvis-private-staging"
           ! grep -q '"routes"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_PUBLIC_ACCESS": "false"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_PRODUCTION_DEPLOY": "false"' wrangler.jarvis-private.jsonc
