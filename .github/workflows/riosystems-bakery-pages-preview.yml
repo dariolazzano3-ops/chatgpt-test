@@ -104,6 +104,8 @@ jobs:
       JAGUAR_PAGES_BRANCH: project-jaguar-gelato-v1
       JAGUAR_PAGES_ROOT_HOST: chatgpt-factory-preview.pages.dev
       JAGUAR_PAGES_PREVIEW_HOST: project-jaguar-gelato-v1.chatgpt-factory-preview.pages.dev
+      JAGUAR_EXISTING_DEPLOYMENT_HOST: 90d1917d.chatgpt-factory-preview.pages.dev
+      JAGUAR_REUSE_EXISTING_DEPLOYMENT: 'true'
       RIOSYSTEMS_PRODUCTION_DEPLOY: 'false'
       RIOSYSTEMS_PUBLIC_LAUNCH: 'false'
       RIOSYSTEMS_DNS_CHANGES: 'false'
@@ -133,10 +135,22 @@ jobs:
       - name: Verify private Access before any upload
         run: node scripts/project-jaguar-pages-access-readonly-v1.mjs
 
+      - name: Protect exact current Pages deployment host
+        env:
+          JAGUAR_PAGES_PREVIEW_HOST: ${{ env.JAGUAR_EXISTING_DEPLOYMENT_HOST }}
+        run: node scripts/project-jaguar-provision-private-access-v1.mjs
+
+      - name: Verify exact current Pages deployment host is private
+        env:
+          JAGUAR_PAGES_PREVIEW_HOST: ${{ env.JAGUAR_EXISTING_DEPLOYMENT_HOST }}
+        run: node scripts/project-jaguar-pages-access-readonly-v1.mjs
+
       - name: Materialize evidence-safe Gelato Jaguar source
+        if: env.JAGUAR_REUSE_EXISTING_DEPLOYMENT != 'true'
         run: node scripts/materialize-project-jaguar-gelato-preview-v1.mjs
 
       - name: Build Astro static output
+        if: env.JAGUAR_REUSE_EXISTING_DEPLOYMENT != 'true'
         run: |
           ln -s "$GITHUB_WORKSPACE/node_modules" "$GITHUB_WORKSPACE/.jaguar-preview/gelato-source/node_modules"
           cd "$GITHUB_WORKSPACE/.jaguar-preview/gelato-source"
@@ -145,6 +159,7 @@ jobs:
           test -f dist/menu/index.html
 
       - name: Deploy private non-production Pages preview
+        if: env.JAGUAR_REUSE_EXISTING_DEPLOYMENT != 'true'
         id: deploy
         shell: bash
         run: |
@@ -156,34 +171,34 @@ jobs:
           echo "preview_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
           echo "PROJECT_JAGUAR_GELATO_PREVIEW_URL=$DEPLOY_URL"
 
-      - name: Verify deployed URL remains Access-protected
-        env:
-          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+      - name: Verify alias and exact deployment URL remain Access-protected
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$PREVIEW_URL"
-          HEADER_FILE=/tmp/project-jaguar-gelato-preview-headers.txt
-          BODY_FILE=/tmp/project-jaguar-gelato-preview-body.txt
-          HTTP_CODE="$(curl --silent --show-error --output "$BODY_FILE" --dump-header "$HEADER_FILE" --write-out '%{http_code}' --max-time 15 "$PREVIEW_URL")"
-          echo "Unauthenticated preview status: $HTTP_CODE"
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "FAIL: preview unexpectedly public"
-            exit 8
-          fi
-          case "$HTTP_CODE" in
-            301|302|303|307|308)
-              grep -Eiq 'cloudflareaccess\.com|/cdn-cgi/access/' "$HEADER_FILE" || {
-                echo "FAIL: redirect is not recognizably Cloudflare Access"
-                exit 9
-              }
-              ;;
-            401|403) ;;
-            *)
-              echo "FAIL: unexpected protected-preview response status"
-              exit 10
-              ;;
-          esac
+          for PREVIEW_URL in "https://$JAGUAR_PAGES_PREVIEW_HOST" "https://$JAGUAR_EXISTING_DEPLOYMENT_HOST"; do
+            HEADER_FILE=/tmp/project-jaguar-gelato-preview-headers.txt
+            BODY_FILE=/tmp/project-jaguar-gelato-preview-body.txt
+            HTTP_CODE="$(curl --silent --show-error --output "$BODY_FILE" --dump-header "$HEADER_FILE" --write-out '%{http_code}' --max-time 15 "$PREVIEW_URL")"
+            echo "Unauthenticated preview status for $PREVIEW_URL: $HTTP_CODE"
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "FAIL: preview unexpectedly public"
+              exit 8
+            fi
+            case "$HTTP_CODE" in
+              301|302|303|307|308)
+                grep -Eiq 'cloudflareaccess\.com|/cdn-cgi/access/' "$HEADER_FILE" || {
+                  echo "FAIL: redirect is not recognizably Cloudflare Access"
+                  exit 9
+                }
+                ;;
+              401|403) ;;
+              *)
+                echo "FAIL: unexpected protected-preview response status"
+                exit 10
+                ;;
+            esac
+          done
+          echo "PROJECT_JAGUAR_GELATO_PREVIEW_URL=https://$JAGUAR_PAGES_PREVIEW_HOST"
           echo "PRIVATE_ACCESS_LIVE_CHECK=PASS"
           echo "Production deploy: false"
           echo "Public launch: false"
