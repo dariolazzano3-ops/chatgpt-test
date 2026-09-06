@@ -1,4 +1,5 @@
 name: Visual Foundry AURENTARA System Status Typography Sweep
+# sealed baseline rerun
 
 on:
   push:
