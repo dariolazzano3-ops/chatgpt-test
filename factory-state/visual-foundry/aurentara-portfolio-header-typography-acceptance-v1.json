@@ -1,0 +1,44 @@
+{
+  "schema": "riosystems.aurentara-portfolio-header-typography-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "PORTFOLIO_HEADER_TYPOGRAPHY_P1",
+  "sweep_workflow_run": 34067873643,
+  "verification_workflow_run": 34067963632,
+  "verification_head": "a1561b29dd172580f04fae5707664eb13262687c",
+  "typography": {
+    "title_font_size_px": 12,
+    "title_font_weight": 650,
+    "subtitle_font_size_px": 8
+  },
+  "baseline": {
+    "portfolio_ssim": 0.341706,
+    "portfolio_pixel_difference_percent": 19.071,
+    "portfolio_header_raster_ssim": 0.475868,
+    "portfolio_header_raster_pixel_difference_percent": 16.4589,
+    "global_ssim": 0.391673,
+    "global_pixel_difference_percent": 14.3804
+  },
+  "accepted": {
+    "portfolio_ssim": 0.342334,
+    "portfolio_pixel_difference_percent": 19.0546,
+    "portfolio_header_raster_ssim": 0.480663,
+    "portfolio_header_raster_pixel_difference_percent": 16.3536,
+    "global_ssim": 0.391817,
+    "global_pixel_difference_percent": 14.3778
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
