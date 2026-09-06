@@ -196,11 +196,12 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     const items = [
       ['hq','⌂','HQ','hq'],['projects','▦','Portfolio','projects'],['project-overview','▤','Project Overview','overview'],['sources','▣','Sources','sources'],['knowledge','▥','Knowledge','knowledge'],['preview','▱','Preview','preview'],['approvals','✓','Approvals','approvals'],['activity','⌁','Activity','audit'],['operator-ai','✦','Operator AI','ai'],['settings','⚙','Settings','settings']
     ];
-    nav.innerHTML='<div class="rf-hq-nav-main">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'" class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'</div><div class="rf-hq-nav-foot"><strong>IDEAS<br>INTO IMPACT</strong><span>People<br>Projects<br>Progress<br>A brighter tomorrow</span></div>';
-    side.insertBefore(nav, side.querySelector('.side-foot'));
+    nav.innerHTML='<div class="rf-hq-nav-main">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'"'+(id==='projects'?' data-goto="projects"':'')+' class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'</div><div class="rf-hq-nav-foot"><strong>IDEAS<br>INTO IMPACT</strong><span>People<br>Projects<br>Progress<br>A brighter tomorrow</span></div>';
+    side.insertBefore(nav, side.querySelector('.nav'));
     nav.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-rf-nav]');
       if (!button) return;
+      event.stopPropagation();
       const target = button.dataset.rfTarget;
       if (target === 'ai') return openAi();
       if (['overview','sources','knowledge','preview'].includes(target)) return openSelectedWorkspace(target);
