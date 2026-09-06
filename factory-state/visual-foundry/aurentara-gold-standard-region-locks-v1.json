@@ -3,97 +3,124 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "5b8eae6e9d5c3f508209c01d12ab1ddc41aa165c",
-  "workflow_run_id": 34058603651,
+  "evidence_head": "6461df38083a255e7fd4b2455eb4735a7beeeaf9",
+  "workflow_run_id": 34059244271,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.47108221816253665,
-    "pixel_difference_percent": 19.42399342854818,
+    "ssim": 0.280128,
+    "pixel_difference_percent": 15.2444,
     "geometry_status": "PASS_EXCEPT_PRIMARY_NAVIGATION_CONSTRAINT",
-    "overflow_px": 0
+    "overflow_px": 0,
+    "color_score": 0.992794,
+    "edge_score": 0.174703
   },
   "regions": [
     {
       "region_id": "sidebar",
       "status": "LOCKED_GAIN",
-      "ssim": 0.516015,
-      "baseline_ssim": 0.436179
+      "ssim": 0.476646,
+      "baseline_ssim": 0.436179,
+      "pixel_difference_percent": 13.3441,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "primary_navigation",
       "status": "LOCKED_GAIN",
-      "ssim": 0.507768,
-      "baseline_ssim": 0.450847
+      "ssim": 0.455143,
+      "baseline_ssim": 0.450847,
+      "pixel_difference_percent": 13.6507,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "toolbar",
       "status": "LOCKED_GAIN",
-      "ssim": 0.583181,
-      "baseline_ssim": 0.508412
+      "ssim": 0.490028,
+      "baseline_ssim": 0.508412,
+      "pixel_difference_percent": 11.2604,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "hero",
       "status": "ACTIVE_CLOSURE_ACCEPTED_GAIN",
-      "ssim": 0.4909591597272202,
+      "ssim": 0.488467,
       "baseline_ssim": 0.36791129903428704,
-      "pixel_difference_percent": 21.086707410236823
+      "pixel_difference_percent": 15.9708,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "kpi_band",
       "status": "LOCKED_GAIN",
-      "ssim": 0.493819,
-      "baseline_ssim": 0.475942
+      "ssim": 0.493198,
+      "baseline_ssim": 0.475942,
+      "pixel_difference_percent": 12.9074,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "attention_panel",
       "status": "LOCKED_GAIN",
-      "ssim": 0.453421,
-      "baseline_ssim": 0.427711
+      "ssim": 0.394011,
+      "baseline_ssim": 0.427711,
+      "pixel_difference_percent": 16.151,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "operator_ai_panel",
       "status": "PROTECTED_TOLERANCE",
-      "ssim": 0.365715,
-      "baseline_ssim": 0.366587
+      "ssim": 0.265621,
+      "baseline_ssim": 0.366587,
+      "pixel_difference_percent": 19.5015,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "portfolio",
       "status": "REGRESSION_OPEN",
-      "ssim": 0.375781,
-      "baseline_ssim": 0.378828
+      "ssim": 0.282044,
+      "baseline_ssim": 0.378828,
+      "pixel_difference_percent": 20.4221,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "system_status",
       "status": "PROTECTED_TOLERANCE",
-      "ssim": 0.47984,
-      "baseline_ssim": 0.481013
+      "ssim": 0.365469,
+      "baseline_ssim": 0.481013,
+      "pixel_difference_percent": 16.2214,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "cost_panel",
       "status": "LOCKED_GAIN",
-      "ssim": 0.434438,
-      "baseline_ssim": 0.403536
+      "ssim": 0.300142,
+      "baseline_ssim": 0.403536,
+      "pixel_difference_percent": 19.4151,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "activity_panel",
       "status": "LOCKED_GAIN",
-      "ssim": 0.561685,
-      "baseline_ssim": 0.522568
+      "ssim": 0.496131,
+      "baseline_ssim": 0.522568,
+      "pixel_difference_percent": 13.8708,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     },
     {
       "region_id": "bottom_strip",
       "status": "PROTECTED_TOLERANCE",
-      "ssim": 0.444591,
-      "baseline_ssim": 0.445393
+      "ssim": 0.428485,
+      "baseline_ssim": 0.445393,
+      "pixel_difference_percent": 18.8702,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     }
   ],
-  "active_delta_cluster": "HERO_REGION",
-  "next_candidate": "HERO_TYPOGRAPHY_AND_REMAINING_BACKGROUND_LOCAL_CLOSURE",
+  "active_delta_cluster": "HERO_TYPOGRAPHY",
+  "next_candidate": "HERO_TITLE_TYPOGRAPHY_CALIBRATION",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
   "public_deploy": false,
   "accepted_candidates": [
     "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT"
-  ]
+  ],
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json"
 }
