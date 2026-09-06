@@ -278,11 +278,13 @@
       {
         "region_id": "bottom_strip",
         "baseline_score": 0.428485
+      },
+      {
+        "region_id": "portfolio",
+        "baseline_score": 0.341706
       }
     ],
-    "excluded_active_or_regressed": [
-      "portfolio"
-    ],
+    "excluded_active_or_regressed": [],
     "mode": "WARN_DURING_SEARCH_BLOCK_AT_FINALIZATION"
   },
   "priority_contract": {
@@ -441,6 +443,18 @@
       "accepted_ssim": 0.425518,
       "baseline_pixel_difference_percent": 19.5015,
       "accepted_pixel_difference_percent": 17.5001
+    },
+    {
+      "candidate_id": "PORTFOLIO_DETAIL_GEOMETRY_P1",
+      "region_id": "portfolio",
+      "apply_by_default": true,
+      "candidate_content_head": "5b7284869d2c0d20c1f4d4182d32fe2a571a22b9",
+      "verification_head": "4b6f9532e72aeb93ac2a8854594e2007b52c3956",
+      "verification_workflow_run": 34062010837,
+      "baseline_ssim": 0.282044,
+      "accepted_ssim": 0.341706,
+      "baseline_pixel_difference_percent": 20.4221,
+      "accepted_pixel_difference_percent": 19.071
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
