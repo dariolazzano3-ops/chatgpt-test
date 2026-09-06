@@ -215,7 +215,8 @@ try {
   const durabilityErrorText = await page.locator('#error').innerText();
   assert.match(durabilityErrorText, /OPERATOR_RUNTIME_DURABILITY_NOT_READY/, 'independent source-intake durability failure remains visible and fail-closed');
   assert.equal(await page.evaluate(() => state.selectedScope), scope, 'durability failure does not erase selected scope');
-  assert.equal(await page.locator('#project-detail').isVisible(), true, 'durability failure does not erase the visible project detail');
+  assert.equal(await reloadedProjectSurface.isVisible(), true, 'durability failure does not erase the visible active project presentation');
+  if (await reloadedPremiumWorkspace.count()) assert.equal(await reloadedPremiumWorkspace.getAttribute('data-scope'), scope, 'durability failure preserves premium workspace scope');
   await page.unroute('**/operator/api/project-source-intake*', durabilityHandler);
 
   let writeProbeCalls = 0;
