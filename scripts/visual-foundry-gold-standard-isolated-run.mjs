@@ -47,6 +47,9 @@ const heroTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPH
 const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X||1);
 const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX||NaN);
 const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT||NaN);
+const sidebarNavTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_TYPOGRAPHY_CANDIDATE||'').trim();
+const sidebarNavFontSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_SIZE_PX||NaN);
+const sidebarNavFontWeight=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_WEIGHT||NaN);
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -348,6 +351,35 @@ try{
     heroCandidateState={...candidate,src:undefined,...applied};
   }
 
+  let sidebarNavTypographyState={status:'DISABLED',candidate_id:sidebarNavTypographyCandidateId||null};
+  if(sidebarNavTypographyCandidateId){
+    sidebarNavTypographyState=await page.evaluate(({candidate_id,font_size_px,font_weight})=>{
+      const buttons=[...document.querySelectorAll('.rf-hq-nav-main button')];
+      if(!buttons.length)throw new Error('SIDEBAR_NAV_BUTTONS_MISSING');
+      const before=buttons.map(el=>{
+        const s=getComputedStyle(el),r=el.getBoundingClientRect();
+        return {text:(el.textContent||'').trim(),font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,rect:{x:r.x,y:r.y,width:r.width,height:r.height}};
+      });
+      for(const el of buttons){
+        if(Number.isFinite(font_size_px))el.style.fontSize=font_size_px+'px';
+        if(Number.isFinite(font_weight))el.style.fontWeight=String(font_weight);
+        el.dataset.vfSidebarNavTypographyCandidate=candidate_id;
+      }
+      const after=buttons.map(el=>{
+        const s=getComputedStyle(el),r=el.getBoundingClientRect();
+        return {text:(el.textContent||'').trim(),font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,rect:{x:r.x,y:r.y,width:r.width,height:r.height}};
+      });
+      return {
+        status:'APPLIED',
+        candidate_id,
+        original_font_identity_claimed:false,
+        substitution_status:'METRICALLY_CALIBRATED_SUBSTITUTION',
+        requested:{font_size_px:Number.isFinite(font_size_px)?font_size_px:null,font_weight:Number.isFinite(font_weight)?font_weight:null},
+        before,after
+      };
+    },{candidate_id:sidebarNavTypographyCandidateId,font_size_px:sidebarNavFontSizePx,font_weight:sidebarNavFontWeight});
+  }
+
   let heroTypographyState={status:'DISABLED',candidate_id:heroTypographyCandidateId||null};
   if(heroTypographyCandidateId){
     heroTypographyState=await page.evaluate(({candidate_id,scale_x,letter_spacing_px,weight})=>{
@@ -520,6 +552,11 @@ try{
       region_id:'hero_title_raster',
       critical:false,
       x:240,y:97,width:805,height:34
+    },
+    {
+      region_id:'sidebar_nav_text_raster',
+      critical:false,
+      x:42,y:184,width:154,height:690
     }
   ];
   const visualComparison=await compareVisualImages({
@@ -639,6 +676,7 @@ try{
     stencil_build_aid:stencilBuildAid,
     hero_candidate:heroCandidateState,
     hero_typography_candidate:heroTypographyState,
+    sidebar_nav_typography_candidate:sidebarNavTypographyState,
     semantic_implementation:semanticImplementation,
     semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
@@ -686,6 +724,7 @@ try{
     stencil_status:runEvidence.stencil_build_aid.status,
     hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
+    sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
