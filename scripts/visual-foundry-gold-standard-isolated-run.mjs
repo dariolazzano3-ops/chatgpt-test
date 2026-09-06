@@ -87,6 +87,11 @@ const kpiLabelSizePx=Number(process.env.VISUAL_FOUNDRY_KPI_LABEL_SIZE_PX||NaN);
 const kpiValueSizePx=Number(process.env.VISUAL_FOUNDRY_KPI_VALUE_SIZE_PX||NaN);
 const kpiValueWeight=Number(process.env.VISUAL_FOUNDRY_KPI_VALUE_WEIGHT||NaN);
 const kpiMetaSizePx=Number(process.env.VISUAL_FOUNDRY_KPI_META_SIZE_PX||NaN);
+const rightRailTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_RIGHT_RAIL_TYPOGRAPHY_CANDIDATE||'').trim();
+const rightRailTypographyScope=String(process.env.VISUAL_FOUNDRY_RIGHT_RAIL_TYPOGRAPHY_SCOPE||'SYSTEM_STATUS').trim().toUpperCase();
+const rightRailPrimarySizePx=Number(process.env.VISUAL_FOUNDRY_RIGHT_RAIL_PRIMARY_SIZE_PX||NaN);
+const rightRailSecondarySizePx=Number(process.env.VISUAL_FOUNDRY_RIGHT_RAIL_SECONDARY_SIZE_PX||NaN);
+const rightRailSecondaryWeight=Number(process.env.VISUAL_FOUNDRY_RIGHT_RAIL_SECONDARY_WEIGHT||NaN);
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -515,6 +520,36 @@ try{
       asset_ids:Object.values(assets).map(x=>x.asset_id),
       ...applied
     };
+  }
+
+  let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
+  if(rightRailTypographyCandidateId){
+    rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
+      const config={
+        SYSTEM_STATUS:{primary:'.rf-status-row span',secondary:'.rf-status-row b'},
+        COST:{primary:'.rf-cost-line span',secondary:'.rf-cost-line b'},
+        ACTIVITY:{primary:'.rf-activity-main strong',secondary:'.rf-activity-main span'}
+      }[scope];
+      if(!config)throw new Error('RIGHT_RAIL_TYPOGRAPHY_SCOPE_INVALID:'+scope);
+      const primary=[...document.querySelectorAll(config.primary)];
+      const secondary=[...document.querySelectorAll(config.secondary)];
+      if(!primary.length||!secondary.length)throw new Error('RIGHT_RAIL_TYPOGRAPHY_ELEMENTS_MISSING:'+scope);
+      const snap=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {text:(el.textContent||'').trim(),font_size:s.fontSize,font_weight:s.fontWeight,line_height:s.lineHeight,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
+      const before={primary:primary.map(snap),secondary:secondary.map(snap)};
+      for(const el of primary){if(Number.isFinite(primary_size_px))el.style.fontSize=primary_size_px+'px';el.dataset.vfRightRailTypographyCandidate=candidate_id;}
+      for(const el of secondary){if(Number.isFinite(secondary_size_px))el.style.fontSize=secondary_size_px+'px';if(Number.isFinite(secondary_weight))el.style.fontWeight=String(secondary_weight);el.dataset.vfRightRailTypographyCandidate=candidate_id;}
+      return {
+        status:'APPLIED',candidate_id,scope,
+        substitution_status:'METRICALLY_CALIBRATED_SUBSTITUTION',
+        original_font_identity_claimed:false,
+        requested:{
+          primary_size_px:Number.isFinite(primary_size_px)?primary_size_px:null,
+          secondary_size_px:Number.isFinite(secondary_size_px)?secondary_size_px:null,
+          secondary_weight:Number.isFinite(secondary_weight)?secondary_weight:null
+        },
+        before,after:{primary:primary.map(snap),secondary:secondary.map(snap)}
+      };
+    },{candidate_id:rightRailTypographyCandidateId,scope:rightRailTypographyScope,primary_size_px:rightRailPrimarySizePx,secondary_size_px:rightRailSecondarySizePx,secondary_weight:rightRailSecondaryWeight});
   }
 
   let kpiTypographyState={status:'DISABLED',candidate_id:kpiTypographyCandidateId||null};
@@ -986,6 +1021,7 @@ try{
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
     panel_header_typography_candidate:panelHeaderTypographyState,
     kpi_typography_candidate:kpiTypographyState,
+    right_rail_typography_candidate:rightRailTypographyState,
     semantic_implementation:semanticImplementation,
     semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
@@ -1039,6 +1075,7 @@ try{
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
     panel_header_typography_candidate:runEvidence.panel_header_typography_candidate?.candidate_id||null,
     kpi_typography_candidate:runEvidence.kpi_typography_candidate?.candidate_id||null,
+    right_rail_typography_candidate:runEvidence.right_rail_typography_candidate?.candidate_id||null,
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
