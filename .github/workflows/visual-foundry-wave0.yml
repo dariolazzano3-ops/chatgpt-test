@@ -66,6 +66,10 @@ jobs:
       - run: node scripts/visual-foundry-wave18-smoke.mjs
       - run: node --check src/visual-foundry/benchmark-harness.js
       - run: node scripts/visual-foundry-wave19-smoke.mjs
+      - run: node --check scripts/visual-foundry-core-acceptance.mjs
+      - run: node scripts/qa-repair-policy-smoke.mjs
+      - run: node scripts/factory-observability-smoke.mjs
+      - run: node scripts/visual-foundry-core-acceptance.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -91,4 +95,5 @@ jobs:
             artifacts/visual-foundry/wave17
             artifacts/visual-foundry/wave18
             artifacts/visual-foundry/wave19
+            artifacts/visual-foundry/core-acceptance
           if-no-files-found: error
