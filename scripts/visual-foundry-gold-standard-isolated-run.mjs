@@ -223,14 +223,32 @@ try{
     const portfolioBody=q('.rf-portfolio-table tbody');
     if(portfolioBody){
       const tone=(h)=>/BLOCK/i.test(h)?'blocked':/ATTENTION|ARBEIT/i.test(h)?'attention':'ready';
+      const displayScopes=['gelato-donatello.de','aurentara.com','mueller.de','operator-suite'];
       portfolioBody.innerHTML=fixture.display.projects.map((p,i)=>`<tr class="rf-project-table-row">
-        <td><div class="rf-project-cell"><div class="rf-avatar">${['GD','AW','BM','IT'][i]}</div><div><div class="rf-project-name">${p.name}</div><div class="rf-project-scope">${p.scope_key}</div></div></div></td>
+        <td><div class="rf-project-cell"><div class="rf-avatar">${['GD','AW','BM','IT'][i]}</div><div><div class="rf-project-name">${p.name}</div><div class="rf-project-scope">${displayScopes[i]||p.scope_key}</div></div></div></td>
         <td><span class="rf-state phase">${p.phase}</span></td>
         <td><span class="rf-state ${tone(p.health)}">${p.health}</span></td>
         <td><span class="rf-state env">${p.environment}</span></td>
         <td><div class="rf-table-progress"><b>${p.progress_percent} %</b><div class="rf-progress"><span style="width:${p.progress_percent}%"></span></div></div></td>
         <td><span class="rf-next-table">${p.next_action}</span></td>
-        <td><button type="button" class="rf-open-project">Öffnen</button></td></tr>`).join('');
+        <td><div class="rf-portfolio-actions"><button type="button" class="rf-open-project">Öffnen</button><button type="button" class="rf-row-more" aria-label="Weitere Aktionen">•••</button></div></td></tr>`).join('');
+    }
+
+    const portfolioPanel=q('.rf-ops-grid > .rf-panel:first-child');
+    if(portfolioPanel){
+      const headActions=portfolioPanel.querySelector('.rf-panel-head > div:last-child');
+      if(headActions)headActions.innerHTML='<button class="rf-ai-new rf-new-project" data-rf-new-project>+ Neues Projekt</button><button type="button" class="rf-portfolio-head-more" aria-label="Weitere Portfolio-Aktionen">•••</button>';
+      const toolbar=portfolioPanel.querySelector('.rf-portfolio-toolbar');
+      if(toolbar)toolbar.innerHTML=
+        '<div class="rf-portfolio-tabs">'+
+          '<button type="button" class="rf-portfolio-tab active">Alle (4)</button>'+
+          '<button type="button" class="rf-portfolio-tab">Kundenprojekte (3)</button>'+
+          '<button type="button" class="rf-portfolio-tab">Interne Projekte (1)</button>'+
+        '</div>'+
+        '<div class="rf-portfolio-tools">'+
+          '<label class="rf-portfolio-search"><span>⌕</span><input aria-label="Projekte durchsuchen" placeholder="Projekte durchsuchen ..."></label>'+
+          '<button type="button" class="rf-portfolio-filter" aria-label="Portfolio filtern">⌄</button>'+
+        '</div>';
     }
 
     const status=q('.rf-status-list');
