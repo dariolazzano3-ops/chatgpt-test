@@ -1,0 +1,110 @@
+{
+  "schema": "riosystems.aurentara-gold-standard-machine-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "starting_commit": "924662f0ee155b4a85127d28c265baca8d85f3e2",
+  "result_commit": "924662f0ee155b4a85127d28c265baca8d85f3e2",
+  "browser_version": "140.0.7339.16",
+  "viewport": {
+    "width": 1536,
+    "height": 1024
+  },
+  "dpr": 1,
+  "fixture_version": "1.0",
+  "metrics": {
+    "structural_score": 0.06793701148316125,
+    "geometry_score": 0.36363636363636365,
+    "perceptual_score": 0.38688554297100436,
+    "pixel_difference_percent": 22.246106465657554,
+    "typography_score": 0.4076444444444444,
+    "color_score": 0.9921284379299642
+  },
+  "thresholds": {
+    "structural_min": 1,
+    "geometry_min": 0.97,
+    "perceptual_min": 0.96,
+    "pixel_difference_percent_max": 3,
+    "typography_min": 0.97,
+    "color_min": 0.97,
+    "critical_deltas_max": 0,
+    "blocking_deltas_max": 0
+  },
+  "critical_region_fail_count": 8,
+  "critical_delta_count": 18,
+  "blocking_delta_count": 19,
+  "key_deltas": [
+    {
+      "category": "STRUCTURE",
+      "severity": "CRITICAL",
+      "id": "global-perceptual"
+    },
+    {
+      "category": "STRUCTURE",
+      "severity": "CRITICAL",
+      "id": "global-edge"
+    },
+    {
+      "category": "STRUCTURE",
+      "severity": "HIGH",
+      "id": "global-pixel"
+    },
+    {
+      "category": "GEOMETRY",
+      "severity": "CRITICAL",
+      "id": "macro-geometry"
+    },
+    {
+      "category": "TYPOGRAPHY",
+      "severity": "CRITICAL",
+      "id": "typography-raster-proxy"
+    },
+    {
+      "category": "ASSET",
+      "severity": "CRITICAL",
+      "id": "asset-hero-earth"
+    },
+    {
+      "category": "ASSET",
+      "severity": "CRITICAL",
+      "id": "asset-brand-mark"
+    }
+  ],
+  "closure": {
+    "status": "HUMAN_DECISION_REQUIRED",
+    "iterations_executed": 0,
+    "reason": "FIDELITY_CRITICAL_ASSET_AND_TYPOGRAPHY_INPUT_REQUIRED"
+  },
+  "functional_result": "PASS",
+  "visual_result": "FAIL",
+  "responsive_result": "INFERRED_RESPONSIVE_PASS",
+  "accessibility_result": "NOT_EVALUATED",
+  "human_result": "NOT_EVALUATED",
+  "fixture_leak_count": 0,
+  "runtime_truth_mutation_count": 0,
+  "architecture_drift_count": 0,
+  "provider": null,
+  "model": null,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "ai_cost_usd": 0,
+  "runtime_cost_usd": 0,
+  "machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "run_number": 2,
+  "isolation": {
+    "fresh_checkout": true,
+    "fresh_memory_runtime": true,
+    "repaired_output_reused": false
+  },
+  "duration_seconds": 33.455798,
+  "runtime_screenshot": {
+    "artifact_id": 9993963414,
+    "library_path": "library:/Visual Foundry/Gold Standard/AURENTARA/Run 2/runtime-desktop.jpeg",
+    "sha256": "85c5be9b30be7743a3bb4edc6fd7c6e1e20cedfdaced56c17df1b669412e72a6"
+  },
+  "diff_image": {
+    "library_path": "library:/Visual Foundry/Gold Standard/AURENTARA/Run 2/diff-desktop.png",
+    "sha256": "68e1fdd50f20e22dc8630ba37cc7518b2d7d396d9a4e0cd04aac62f0cfbb7a30"
+  }
+}
