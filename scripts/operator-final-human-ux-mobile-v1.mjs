@@ -105,8 +105,11 @@ try {
 
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'iPhone viewport must not overflow horizontally');
   const scope = await openProjectDetail(page);
-  const detailBefore = await page.locator('#project-detail').innerText();
-  assert.ok(detailBefore.length > 20, 'project detail must contain visible data before failure');
+  const premiumWorkspace = page.locator('.pm-workspace[data-scope="' + scope.replace(/"/g, '\\"') + '"]');
+  const projectSurface = await premiumWorkspace.count() ? premiumWorkspace : page.locator('#project-detail');
+  assert.equal(await projectSurface.isVisible(), true, 'active project presentation must be visible before failure');
+  const detailBefore = await projectSurface.innerText();
+  assert.ok(detailBefore.length > 20, 'active project presentation must contain visible data before failure');
   const initialContext = await page.evaluate(() => ({ section: state.section, scope: state.selectedScope }));
   assert.equal(initialContext.section, 'projects');
   assert.equal(initialContext.scope, scope);
@@ -164,8 +167,12 @@ try {
   const failedContext = await page.evaluate(() => ({ section: state.section, scope: state.selectedScope }));
   assert.equal(failedContext.section, 'projects', 'workspace section survives failed read');
   assert.equal(failedContext.scope, scope, 'selectedScope survives failed read');
-  assert.equal(await page.locator('#project-detail').isVisible(), true, 'project detail remains visible after failed read');
-  assert.match(await page.locator('#project-detail').innerText(), new RegExp(detailBefore.split('\n')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+  assert.equal(await projectSurface.isVisible(), true, 'active project presentation remains visible after failed read');
+  assert.equal(await projectSurface.innerText(), detailBefore, 'visible project presentation remains unchanged after failed read');
+  if (await premiumWorkspace.count()) {
+    assert.equal(await premiumWorkspace.getAttribute('data-scope'), scope, 'premium workspace keeps canonical scope after failed read');
+    assert.equal(await page.locator('#project-detail').count(), 1, 'legacy integration sink remains mounted without becoming the operator surface');
+  }
   const errorText = await page.locator('#error').innerText();
   assert.match(errorText, /Verbindung fehlgeschlagen\. Bitte erneut versuchen\./i, 'transient network failure has its own human error state');
   assert.match(errorText, /Technisches Detail:/i);
