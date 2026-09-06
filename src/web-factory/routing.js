@@ -39,7 +39,8 @@ const ROUTES = {
     design_provider: 'riosystems-native-web-builder',
     build_provider: 'riosystems-native-web-builder',
     hosting_provider: 'cloudflare',
-    stages: ['native_design_system', 'native_build', 'web_qa', 'cloudflare_staging_candidate'],
+    build_profile: 'PREMIUM_STATIC_WEB_V1',
+    stages: ['native_design_system', 'premium_static_web_v1', 'native_build', 'web_qa', 'cloudflare_staging_candidate'],
     metrics: { design_quality: 4, build_speed: 5, hosting_cost: 5, recurring_cost: 5, margin: 5, lock_in: 5, exportability: 5, maintenance: 5 }
   },
   nativePremium: {
@@ -47,7 +48,8 @@ const ROUTES = {
     design_provider: 'riosystems-native-web-builder',
     build_provider: 'riosystems-native-web-builder',
     hosting_provider: 'cloudflare',
-    stages: ['autonomous_design_intelligence', 'provider_neutral_design_spec', 'native_reconstruction', 'visual_fidelity_qa', 'cro_qa', 'cloudflare_staging_candidate'],
+    build_profile: 'PREMIUM_STATIC_WEB_V1',
+    stages: ['autonomous_design_intelligence', 'provider_neutral_design_spec', 'premium_static_web_v1', 'native_reconstruction', 'visual_fidelity_qa', 'cro_qa', 'cloudflare_staging_candidate'],
     metrics: { design_quality: 5, build_speed: 4, hosting_cost: 5, recurring_cost: 5, margin: 5, lock_in: 5, exportability: 5, maintenance: 5 }
   },
   premium: {
@@ -55,7 +57,8 @@ const ROUTES = {
     design_provider: 'framer',
     build_provider: 'riosystems-native-web-builder',
     hosting_provider: 'cloudflare',
-    stages: ['framer_visual_design', 'structured_design_interpretation', 'native_reconstruction', 'visual_fidelity_qa', 'cloudflare_staging_candidate'],
+    build_profile: 'PREMIUM_STATIC_WEB_V1',
+    stages: ['framer_visual_design', 'structured_design_interpretation', 'premium_static_web_v1', 'native_reconstruction', 'visual_fidelity_qa', 'cloudflare_staging_candidate'],
     metrics: { design_quality: 5, build_speed: 4, hosting_cost: 5, recurring_cost: 5, margin: 4, lock_in: 5, exportability: 5, maintenance: 4 }
   },
   cms: {
@@ -97,7 +100,8 @@ export function selectWebBuildRoute(request = {}) {
     automatic_paid_overflow: false,
     variable_cost_ceiling_eur: 0,
     framer_hosting_default: false,
-    prefer_cloudflare_for_native_artifact: true
+    prefer_cloudflare_for_native_artifact: true,
+    default_static_build_profile: route.build_profile || null
   };
 
   return {
