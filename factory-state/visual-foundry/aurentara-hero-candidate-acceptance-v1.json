@@ -1,0 +1,142 @@
+{
+  "schema": "riosystems.aurentara-hero-candidate-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "baseline": {
+    "workflow_run_id": 34057408456,
+    "head": "9f37eb31b74419860b58ff02ccf5cb0e3c945886"
+  },
+  "candidate": {
+    "workflow_run_id": 34058603651,
+    "head": "5b8eae6e9d5c3f508209c01d12ab1ddc41aa165c",
+    "id": "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT"
+  },
+  "asset": {
+    "asset_id": "hero_earth_reference_extracted",
+    "sha256": "acff694590d1cc2bde0c9c04b14b3d0d2d44924a7da38f6a1c7246f085c57c9e",
+    "provenance": "REFERENCE_EXTRACTED",
+    "usage_scope": "GOLD_STANDARD_POC_ONLY",
+    "production_use_allowed": false,
+    "crop": {
+      "x": 1120,
+      "y": 58,
+      "width": 240,
+      "height": 119
+    },
+    "applied_geometry": {
+      "x": 1120,
+      "y": 58,
+      "width": 240,
+      "height": 119
+    }
+  },
+  "global": {
+    "baseline_ssim": 0.45875444567182133,
+    "candidate_ssim": 0.47108221816253665,
+    "ssim_delta": 0.01232777249071532,
+    "baseline_pixel_difference_percent": 20.24059295654297,
+    "candidate_pixel_difference_percent": 19.42399342854818,
+    "pixel_difference_delta_percent": -0.8165995279947892
+  },
+  "hero": {
+    "baseline_ssim": 0.36791129903428704,
+    "candidate_ssim": 0.4909591597272202,
+    "ssim_delta": 0.12304786069293316,
+    "baseline_pixel_difference_percent": 29.201044053985232,
+    "candidate_pixel_difference_percent": 21.086707410236823,
+    "pixel_difference_delta_percent": -8.114336643748409,
+    "baseline_color_score": 0.9836203022895749,
+    "candidate_color_score": 0.9951171285729659,
+    "baseline_edge_score": 0.21609850939727804,
+    "candidate_edge_score": 0.4007339639220551
+  },
+  "region_regression_check": {
+    "tolerance_ssim": 0.002,
+    "status": "PASS",
+    "regressions_over_tolerance": 0,
+    "regions": [
+      {
+        "region_id": "sidebar",
+        "baseline_ssim": 0.5160154189885723,
+        "candidate_ssim": 0.5160154189885723,
+        "delta": 0
+      },
+      {
+        "region_id": "primary_navigation",
+        "baseline_ssim": 0.50776781830524,
+        "candidate_ssim": 0.50776781830524,
+        "delta": 0
+      },
+      {
+        "region_id": "toolbar",
+        "baseline_ssim": 0.5831811589628088,
+        "candidate_ssim": 0.583214,
+        "delta": 0.00003284103719125575
+      },
+      {
+        "region_id": "kpi_band",
+        "baseline_ssim": 0.493819260871807,
+        "candidate_ssim": 0.493806,
+        "delta": -0.000013260871806974883
+      },
+      {
+        "region_id": "attention_panel",
+        "baseline_ssim": 0.4534206050855099,
+        "candidate_ssim": 0.4534206050855099,
+        "delta": 0
+      },
+      {
+        "region_id": "operator_ai_panel",
+        "baseline_ssim": 0.365715431969718,
+        "candidate_ssim": 0.365715431969718,
+        "delta": 0
+      },
+      {
+        "region_id": "portfolio",
+        "baseline_ssim": 0.3757805973926882,
+        "candidate_ssim": 0.3757805973926882,
+        "delta": 0
+      },
+      {
+        "region_id": "system_status",
+        "baseline_ssim": 0.47983958099448376,
+        "candidate_ssim": 0.47983958099448376,
+        "delta": 0
+      },
+      {
+        "region_id": "cost_panel",
+        "baseline_ssim": 0.4344381286994394,
+        "candidate_ssim": 0.4344381286994394,
+        "delta": 0
+      },
+      {
+        "region_id": "activity_panel",
+        "baseline_ssim": 0.561684832969738,
+        "candidate_ssim": 0.561684832969738,
+        "delta": 0
+      },
+      {
+        "region_id": "bottom_strip",
+        "baseline_ssim": 0.4445913518114289,
+        "candidate_ssim": 0.4445913518114289,
+        "delta": 0
+      }
+    ]
+  },
+  "functional_result": "PASS",
+  "semantic_result": "PASS",
+  "responsive_result": "INFERRED_RESPONSIVE_PASS",
+  "desktop_overflow_px": 0,
+  "fixture_leak_count": 0,
+  "runtime_truth_mutation_count": 0,
+  "architecture_drift_count": 0,
+  "constraint_anchor": "FAIL_PRIMARY_NAVIGATION_ONLY",
+  "decision": "ACCEPT_AS_NEW_CLOSURE_BASELINE",
+  "visual_machine_acceptance": "FAIL",
+  "reason_visual_not_final": "HERO_AND_OTHER_CRITICAL_REGIONS_REMAIN_BELOW_FINAL_THRESHOLDS",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
