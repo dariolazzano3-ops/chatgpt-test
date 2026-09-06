@@ -120,7 +120,7 @@ jobs:
       - name: Install repository dependencies
         run: npm install --package-lock=false
 
-      - name: Fail closed unless private Access already protects Jaguar Pages host
+      - name: Provision private Access for Jaguar preview host
         run: |
           test "$RIOSYSTEMS_PRODUCTION_DEPLOY" = "false"
           test "$RIOSYSTEMS_PUBLIC_LAUNCH" = "false"
@@ -128,7 +128,10 @@ jobs:
           test "$RIOSYSTEMS_BILLING_CHANGES" = "false"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          node scripts/project-jaguar-pages-access-readonly-v1.mjs
+          node scripts/project-jaguar-provision-private-access-v1.mjs
+
+      - name: Verify private Access before any upload
+        run: node scripts/project-jaguar-pages-access-readonly-v1.mjs
 
       - name: Materialize evidence-safe Gelato Jaguar source
         run: node scripts/materialize-project-jaguar-gelato-preview-v1.mjs
