@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/jarvis/**'
       - 'scripts/jarvis-personal-assistant-v1-smoke.mjs'
+      - 'scripts/jarvis-connector-runtime-v1-smoke.mjs'
       - 'docs/JARVIS_PERSONAL_ASSISTANT_V1.md'
       - '.github/workflows/jarvis-personal-assistant-v1.yml'
   workflow_dispatch:
@@ -36,5 +37,9 @@ jobs:
           node --check src/jarvis/result-v1.js
           node --check src/jarvis/audit-v1.js
           node --check src/jarvis/service-v1.js
+          node --check src/jarvis/connectors-v1.js
+          node --check src/jarvis/connector-runtime-v1.js
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
+      - name: JARVIS V1 connector runtime smoke
+        run: node scripts/jarvis-connector-runtime-v1-smoke.mjs

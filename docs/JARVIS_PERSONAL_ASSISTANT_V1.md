@@ -1,6 +1,6 @@
 # JARVIS Personal AI Operating System V1
 
-JARVIS is the private personal intelligence, memory, planning, tool-routing, and action-control layer for the operator.
+JARVIS is the private personal intelligence, memory, planning, tool-routing, connector-routing, and action-control layer for the operator.
 
 ## Hard isolation rule
 
@@ -13,6 +13,7 @@ JARVIS:
 - does not share personal facts, goals, decisions, routines, preferences, files, calendar data, email data, or device context with HAMYREN
 - has no automatic HAMYREN connector, memory sync, or data-return path
 - rejects HAMYREN-sourced records from the JARVIS personal memory write path in V1
+- rejects HAMYREN connector registrations in the connector registry
 
 Any future HAMYREN use must be implemented as an explicit connector boundary carrying only the minimum approved request payload. It must never become shared memory.
 
@@ -35,15 +36,38 @@ Implemented:
 - cost estimate field and high-cost approval signal
 - explicit production, billing, finance, and credential safeguards
 
+## Connector Runtime V1
+
+Implemented as a provider-neutral adapter boundary:
+- Calendar connector contract
+- Email connector contract
+- Files connector contract
+- Tasks connector contract
+- Reminders connector contract
+- authenticated/available state separation
+- capability routing
+- required-permission enforcement
+- secret-bearing payload rejection
+- write authorization enforcement
+- high-cost approval hook
+- synthetic execution acceptance
+- HAMYREN connector registration block
+
+The connector runtime stores no credentials. OAuth tokens, API keys, session cookies, and passwords must remain in provider secret stores or encrypted credential stores and are injected only by the external connector host.
+
 ## Reuse / no parallel engines
 
-JARVIS does not create a second AI provider registry, mission engine, automation engine, or production runtime. Existing RIOSYSTEMS infrastructure remains the reusable execution backbone where a future adapter is appropriate.
+JARVIS does not create a second AI provider registry, mission engine, automation engine, cost engine, or production runtime. Existing RIOSYSTEMS infrastructure remains the reusable execution backbone where a future adapter is appropriate.
 
-The JARVIS action gate is a personal policy adapter, not a second production approval system. External connector execution remains unbound in this V1 foundation.
+The JARVIS action gate is a personal policy adapter, not a second production approval system. The connector runtime is an execution boundary, not a new automation engine.
+
+## Current binding state
+
+The connector contracts and runtime are implemented and synthetic-tested. Real Gmail, Google Calendar, Drive/files, task, and reminder accounts remain unbound in repository runtime. No live personal connector is invoked by CI.
 
 ## Intentionally unbound in V1 core foundation
 
-- live Gmail / Calendar / Drive / task connectors
+- live Gmail / Calendar / Drive / task / reminder account bindings
 - voice and wake word
 - proactive monitoring
 - device and smart-home execution
@@ -58,7 +82,7 @@ The JARVIS action gate is a personal policy adapter, not a second production app
 - Public OFF
 - Billing OFF
 - Paid provider calls OFF
-- External writes OFF
+- External writes OFF in CI
 - Financial actions OFF
 
-Acceptance is synthetic and local to the repository. No live personal connector is exercised by the V1 smoke gate.
+Acceptance is synthetic and repository-local. No live personal connector is exercised by the V1 smoke gates.
