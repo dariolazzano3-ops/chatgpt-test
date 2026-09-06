@@ -1,4 +1,5 @@
 name: Visual Foundry Wave 0
+# render determinism gate: decoded RGBA
 
 on:
   push:
