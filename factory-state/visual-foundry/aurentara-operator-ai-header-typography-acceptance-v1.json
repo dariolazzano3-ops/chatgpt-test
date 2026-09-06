@@ -1,0 +1,32 @@
+{
+  "schema": "riosystems.aurentara-operator-ai-header-typography-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "OPERATOR_AI_HEADER_H4",
+  "candidate_workflow_run": 34063723263,
+  "verification_workflow_run": 34063816881,
+  "verification_head": "932f52a7948a5c9871e7422595136e4e6f2abdf1",
+  "baseline": {
+    "header_raster_ssim": 0.451475,
+    "panel_ssim": 0.425518,
+    "global_ssim": 0.373484
+  },
+  "accepted": {
+    "header_raster_ssim": 0.462993,
+    "panel_ssim": 0.427606,
+    "global_ssim": 0.374587,
+    "pixel_difference_percent": 14.6608
+  },
+  "soft_locks": "PASS",
+  "constraint_anchor": "PASS",
+  "semantic": "PASS",
+  "functional": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
