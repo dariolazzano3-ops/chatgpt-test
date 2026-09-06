@@ -261,7 +261,7 @@
       },
       {
         "region_id": "operator_ai_panel",
-        "baseline_score": 0.265621
+        "baseline_score": 0.425518
       },
       {
         "region_id": "system_status",
@@ -429,6 +429,18 @@
         "height": 2.281
       },
       "typography_dependency": "HERO_TYPOGRAPHY_T5_LOCKED_UNCHANGED"
+    },
+    {
+      "candidate_id": "OPERATOR_AI_DETAIL_GEOMETRY_P1",
+      "region_id": "operator_ai_panel",
+      "apply_by_default": true,
+      "candidate_content_head": "c5b1bacb582d933023cfd4d1a834cb82287bbb67",
+      "verification_head": "c107de0967834c9b57857ccc635f3d962588a789",
+      "verification_workflow_run": 34061765717,
+      "baseline_ssim": 0.265621,
+      "accepted_ssim": 0.425518,
+      "baseline_pixel_difference_percent": 19.5015,
+      "accepted_pixel_difference_percent": 17.5001
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
