@@ -16,7 +16,7 @@
     "framer-api": "0.1.30"
   },
   "devDependencies": {
-    "playwright": "^1.55.0",
+    "playwright": "1.55.0",
     "wrangler": "^4.0.0"
   }
 }
