@@ -1,0 +1,168 @@
+{
+  "schema": "aurentara.project-jaguar.gelato-donatello-dogfood.v1",
+  "project_ref": {
+    "customer_id": "gelato-donatello",
+    "project_id": "gelato-donatello-website-v1",
+    "scope_key": "gelato-donatello:gelato-donatello-website-v1"
+  },
+  "source_contract": {
+    "authoritative_confirmed_input": "projects/gelato-donatello-website-v1/confirmed-project-inputs-v1.json",
+    "supporting_evidence": "projects/gelato-donatello-website-v1/source-evidence.json",
+    "live_site_is_automatic_design_reference": false,
+    "live_site_is_automatic_content_truth": false,
+    "fabricated_claims_allowed": false
+  },
+  "mission": {
+    "business_name": "Gelato Donatello",
+    "project_slug": "gelato-donatello-jaguar-v1",
+    "project_scope_key": "gelato-donatello:gelato-donatello-website-v1",
+    "industry": "gelateria restaurant",
+    "country": "Germany",
+    "language": "de",
+    "target_audience": "Interessierte Kundinnen und Kunden von Gelato Donatello; eine engere Zielkundengruppe ist noch nicht bestätigt.",
+    "primary_goal": "Sortiment und bestätigte Preise verständlich präsentieren; externe Kontakt- oder Bestellwege erst nach Customer Confirmation aktivieren.",
+    "conversion_goal": "Sortiment ansehen",
+    "services": [
+      "Eis und Eisbecher",
+      "Spaghetti-Eis",
+      "Shakes",
+      "Joghurt",
+      "Kinderangebote",
+      "Eistorten",
+      "Eisbomben",
+      "Eisvitrinen-Vermietung"
+    ],
+    "brand_positioning": "Hochwertige, klare Präsentation des bestätigten Gelato-Angebots ohne unbestätigte Claims.",
+    "tone": "hochwertig, freundlich, klar und appetitlich",
+    "quality_level": "PREMIUM",
+    "required_pages": ["home", "menu", "about", "contact", "faq"],
+    "seo_location": "Germany",
+    "existing_content": {
+      "headline": "Gelato Donatello",
+      "subheadline": "40 bestätigte Sorten, Eis-Spezialitäten, Eistorten und Eisvitrinen-Vermietung. Preise werden nur dort gezeigt, wo sie operator-bestätigt vorliegen.",
+      "body": "Diese private Jaguar-Fassung verwendet ausschließlich bestätigte Projektinformationen. Unbestätigte Kontakt-, Öffnungs-, Rechts- und Historienangaben bleiben gesperrt.",
+      "benefits": [
+        "40 operator-bestätigte Sorten",
+        "Kugel Eis: 1,60 €",
+        "Eistorten in 18, 20, 24 und 26 cm",
+        "Eisvitrine mit 5 Litern Eis und 4 Sorten"
+      ],
+      "services": [
+        {
+          "title": "Eis & Eisbecher",
+          "body": "Kugel Eis 1,60 €. Sahne 1,20 €. Soße 1,00 €. Cremes und Liköre 1,50 €."
+        },
+        {
+          "title": "Spaghetti-Eis & Shakes",
+          "body": "Operator-bestätigte Produktgruppen. Einzelpreise werden erst ergänzt, wenn sie als bestätigte Projektdaten vorliegen."
+        },
+        {
+          "title": "Joghurt & Kinderangebote",
+          "body": "Operator-bestätigte Produktgruppen. Keine erfundenen Varianten oder Preise."
+        },
+        {
+          "title": "Eistorten & Eisbomben",
+          "body": "Eistorten: 18 cm 65 €, 20 cm 75 €, 24 cm 95 €, 26 cm 109 €. Eisbombe: 10 € Aufschlag."
+        },
+        {
+          "title": "Premiumsorten",
+          "body": "Bestätigter Premiumsorten-Aufschlag: 5 €."
+        },
+        {
+          "title": "Eisvitrinen-Vermietung",
+          "body": "250 € Miete plus 100 € Kaution. Enthalten sind 5 Liter Eis, 4 Sorten und Zubehör."
+        }
+      ],
+      "stats": [
+        {"value": "40", "label": "bestätigte Sorten"},
+        {"value": "1,60 €", "label": "Kugel Eis"},
+        {"value": "5 L", "label": "Eis bei Vitrinen-Miete"},
+        {"value": "4", "label": "Sorten bei Vitrinen-Miete"}
+      ],
+      "faq": [
+        {
+          "question": "Wie viele Sorten sind bestätigt?",
+          "answer": "Der aktuelle operator-bestätigte Projektstand enthält 40 Sorten."
+        },
+        {
+          "question": "Was kostet eine Kugel Eis?",
+          "answer": "Der bestätigte Preis beträgt 1,60 € pro Kugel."
+        },
+        {
+          "question": "Was kosten die Eistorten?",
+          "answer": "18 cm 65 €, 20 cm 75 €, 24 cm 95 € und 26 cm 109 €. Für eine Eisbombe gilt ein bestätigter Aufschlag von 10 €."
+        },
+        {
+          "question": "Was kostet die Eisvitrine?",
+          "answer": "Die bestätigte Miete beträgt 250 € plus 100 € Kaution. Enthalten sind 5 Liter Eis, 4 Sorten und Zubehör."
+        },
+        {
+          "question": "Wie kann ich aktuell Kontakt aufnehmen?",
+          "answer": "Ein externer Kontaktweg wird in dieser privaten Jaguar-Fassung erst aktiviert, wenn die aktuellen Kontaktdaten und der gewünschte Primary Conversion Channel bestätigt sind."
+        }
+      ],
+      "cta": {
+        "label": "Sortiment ansehen",
+        "href": "/menu/"
+      }
+    },
+    "operator_design_intent": {
+      "direction": "premium gelateria, warm, minimal, product-first, generous typography, no fake photography",
+      "avoid": ["generic agency look", "invented Italian heritage claims", "fake reviews", "unverified location claims"]
+    },
+    "motion_intent": [
+      {
+        "type": "hover",
+        "purpose": "Interaction feedback on cards and primary actions",
+        "trigger": "pointer_hover",
+        "duration": 160,
+        "intensity": "low"
+      }
+    ],
+    "localization": {
+      "primary_language": "de",
+      "languages": ["de"],
+      "currency": "EUR"
+    },
+    "integration_requirements": {},
+    "provider_preferences": {},
+    "special_requirements": [
+      "No external contact action until confirmed",
+      "No public deploy",
+      "No copied live-site assets without approved rights",
+      "No unverified opening hours, address, legal entity or history claims"
+    ],
+    "synthetic_test_data_only": false
+  },
+  "confirmed_facts": {
+    "flavor_count": 40,
+    "mocca_included": true,
+    "scoop_eur": 1.6,
+    "cream_eur": 1.2,
+    "sauce_eur": 1.0,
+    "creams_liqueurs_eur": 1.5,
+    "cake_prices_eur": {"18_cm": 65, "20_cm": 75, "24_cm": 95, "26_cm": 109},
+    "eisbombe_surcharge_eur": 10,
+    "premium_flavor_surcharge_eur": 5,
+    "display_rental": {"rent_eur": 250, "deposit_eur": 100, "ice_liters": 5, "flavors": 4, "accessories_included": true}
+  },
+  "forbidden_unverified_render_values": [
+    "Hauptstraße 4",
+    "66346 Köllerbach",
+    "06806 9394980",
+    "+49 176 200 150 65",
+    "Täglich von 12.00 bis 22.00",
+    "1965",
+    "zweiter Generation",
+    "über 45",
+    "Gelato Donatello UG"
+  ],
+  "safety": {
+    "production_deploy": false,
+    "public_launch": false,
+    "dns_changes": false,
+    "billing": false,
+    "paid_provider_calls": 0,
+    "external_writes": false
+  }
+}
