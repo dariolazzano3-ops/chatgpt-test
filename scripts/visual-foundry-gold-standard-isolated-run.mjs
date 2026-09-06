@@ -22,6 +22,14 @@ const fixture=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-
 const referenceSpec=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-spec-v1.json','utf8'));
 const referenceRegistration=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-hq-control-center-reference-v1-0.json','utf8'));
 const stencilSession=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-stencil-constraint-session-v1.json','utf8'));
+const referenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/aurentara-reference-extracted-assets-v1.json','utf8'));
+const heroAsset=referenceAssets.assets.find(x=>x.asset_id==='hero_earth_reference_extracted');
+assert.ok(heroAsset,'HERO_REFERENCE_EXTRACTED_ASSET_REQUIRED');
+const heroTransportB64=(await readFile('factory-state/visual-foundry/assets/hero-earth-pure.png.b64','utf8')).replace(/\s+/g,'');
+const heroTransportBytes=Buffer.from(heroTransportB64,'base64');
+assert.equal(sha256(heroTransportBytes),heroAsset.output_sha256,'HERO_REFERENCE_EXTRACTED_HASH_MISMATCH');
+const heroCandidateRequested=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
+const heroCandidateEnabled=heroCandidateRequested==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT';
 
 assert.equal(fixture.truth_class,'VISUAL_FIXTURE');
 assert.equal(fixture.runtime_truth_write_allowed,false);
@@ -234,6 +242,66 @@ try{
     const decisions=qa('[data-rf-decisions]').find(el=>el.classList.contains('rf-bottom-card'));if(decisions)decisions.dataset.visualId='decisions_card';
   },{...fixture,__run:runNumber});
 
+  let heroCandidateState={status:'DISABLED',candidate:heroCandidateRequested||null};
+  if(heroCandidateEnabled){
+    const heroRegion=referenceSpec.regions.find(r=>r.region_id==='hero');
+    assert.ok(heroRegion,'HERO_REFERENCE_REGION_REQUIRED');
+    const heroCanvasX=Number(heroRegion.bounds.x.value);
+    const heroCanvasY=Number(heroRegion.bounds.y.value);
+    const relativeLeft=Number(heroAsset.crop.x)-heroCanvasX;
+    const relativeTop=Number(heroAsset.crop.y)-heroCanvasY;
+    const candidate={
+      candidate:'REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT',
+      source_asset_id:heroAsset.asset_id,
+      source_sha256:heroAsset.output_sha256,
+      provenance:'REFERENCE_EXTRACTED',
+      usage_scope:referenceAssets.usage_scope,
+      production_use_allowed:false,
+      public_distribution_allowed:false,
+      canvas_crop:heroAsset.crop,
+      hero_relative:{left:relativeLeft,top:relativeTop,width:Number(heroAsset.crop.width),height:Number(heroAsset.crop.height)},
+      src:'data:image/png;base64,'+heroTransportB64
+    };
+    const applied=await page.evaluate((candidate)=>{
+      const hero=document.querySelector('.rf-hero');
+      if(!hero)throw new Error('HERO_RUNTIME_ELEMENT_MISSING');
+      hero.querySelector('[data-vf-hero-reference-extracted]')?.remove();
+      const before=hero.getBoundingClientRect();
+      const img=document.createElement('img');
+      img.dataset.vfHeroReferenceExtracted='true';
+      img.alt='';
+      img.setAttribute('aria-hidden','true');
+      img.src=candidate.src;
+      Object.assign(img.style,{
+        position:'absolute',
+        left:candidate.hero_relative.left+'px',
+        top:candidate.hero_relative.top+'px',
+        width:candidate.hero_relative.width+'px',
+        height:candidate.hero_relative.height+'px',
+        objectFit:'fill',
+        maxWidth:'none',
+        zIndex:'1',
+        pointerEvents:'none',
+        userSelect:'none'
+      });
+      if(getComputedStyle(hero).position==='static')hero.style.position='relative';
+      hero.prepend(img);
+      for(const child of [...hero.children]){
+        if(child===img)continue;
+        if(getComputedStyle(child).position==='static')child.style.position='relative';
+        child.style.zIndex='2';
+      }
+      const after=hero.getBoundingClientRect();
+      return {
+        status:'APPLIED',
+        hero_geometry_before:{x:before.x,y:before.y,width:before.width,height:before.height},
+        hero_geometry_after:{x:after.x,y:after.y,width:after.width,height:after.height},
+        image_geometry:{x:img.getBoundingClientRect().x,y:img.getBoundingClientRect().y,width:img.getBoundingClientRect().width,height:img.getBoundingClientRect().height}
+      };
+    },candidate);
+    heroCandidateState={...candidate,src:undefined,...applied};
+  }
+
   await page.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready});
   await page.waitForTimeout(120);
 
@@ -407,6 +475,7 @@ try{
     soft_lock_finalization:softLockFinalization,
     priority_ranking:priorityRanking,
     stencil_build_aid:stencilBuildAid,
+    hero_candidate:heroCandidateState,
     semantic_implementation:semanticImplementation,
     semantic_result:semanticImplementation.status,
     desktop_layout:desktopLayout,
@@ -452,6 +521,7 @@ try{
     constraint_anchor:runEvidence.constraint_anchor.status,
     semantic_result:runEvidence.semantic_result,
     stencil_status:runEvidence.stencil_build_aid.status,
+    hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
     responsive_result:runEvidence.responsive.status,
     runtime_truth_mutation_count:0,
     fixture_leak_count:0,
