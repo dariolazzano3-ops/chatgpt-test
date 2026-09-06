@@ -1,0 +1,11 @@
+{
+  "schema": "jarvis-private-worker-deploy-request-v1",
+  "target": "jarvis-private-staging",
+  "source_sha": "c088c3a46ed290f8511437f56d5bdac717d7966f",
+  "confirmation": "DEPLOY_JARVIS_PRIVATE_STAGING",
+  "production_deploy": false,
+  "public_access": false,
+  "external_writes": false,
+  "data_plane": "EPHEMERAL_UNTIL_ISOLATED",
+  "purpose": "create separate fail-closed JARVIS workers.dev staging host"
+}
