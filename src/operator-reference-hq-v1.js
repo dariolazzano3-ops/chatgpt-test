@@ -1,4 +1,4 @@
-const STYLE = String.raw\`<style id="aurentara-ferrari-reference-hq-v1-style">
+const STYLE = String.raw`<style id="aurentara-ferrari-reference-hq-v1-style">
 :root{
   --rf-bg:#061016;--rf-bg2:#09151c;--rf-surface:#0b1a22;--rf-surface2:#0d2029;
   --rf-line:#1b3440;--rf-line2:#284652;--rf-text:#f2f6f7;--rf-muted:#8fa2aa;
@@ -66,9 +66,9 @@ body.rf-hq-active .rf-utility-bar{display:flex}
 body .card,body .metric{border-color:#203b46} body .badge{border-color:#2c4650}
 @media(max-width:1180px){body .app{grid-template-columns:196px 1fr}.rf-bottom{grid-template-columns:1fr}.rf-middle{grid-template-columns:1fr}.rf-kpis{grid-template-columns:1fr 1fr}.rf-nav-spacer{height:220px}}
 @media(max-width:760px){body .app{display:block}.rf-utility-bar{margin:0 -14px}.rf-utils .rf-chip,.rf-operator{display:none}.rf-search{flex:1}.rf-hero{margin:0}.rf-hero h1{font-size:28px}.rf-motto{display:none}.rf-kpis{grid-template-columns:1fr 1fr}.rf-middle,.rf-bottom{grid-template-columns:1fr}.rf-selected-grid{grid-template-columns:1fr}.rf-mini-grid{grid-template-columns:1fr}.rf-portfolio-tools{grid-template-columns:1fr}.rf-project-row{grid-template-columns:44px minmax(0,1fr) 17px}.rf-project-chips{grid-column:2/-1;justify-content:flex-start}.side .rf-nav-spacer{height:20px}.side .rf-legacy-nav{display:flex}.side .nav{height:auto}.rf-nav-projects span:last-child:after,.rf-nav-approvals span:last-child:after,.rf-nav-settings span:last-child:after{font-size:11px}}
-</style>\`;
+</style>`;
 
-const SCRIPT = String.raw\`<script id="aurentara-ferrari-reference-hq-v1-script">
+const SCRIPT = String.raw`<script id="aurentara-ferrari-reference-hq-v1-script">
 (function(){
   if(window.__aurentaraFerrariReferenceHqV1)return;
   window.__aurentaraFerrariReferenceHqV1=true;
@@ -258,7 +258,7 @@ const SCRIPT = String.raw\`<script id="aurentara-ferrari-reference-hq-v1-script"
   setTimeout(renderReferenceHq,250);
   setTimeout(renderReferenceHq,900);
 })();
-</script>\`;
+</script>`;
 
 const ADDON=STYLE+SCRIPT;
 
