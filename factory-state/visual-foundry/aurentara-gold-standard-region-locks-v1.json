@@ -1,0 +1,96 @@
+{
+  "schema": "riosystems.aurentara-gold-standard-region-locks.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "evidence_head": "568ac56cd63a9d58fb53e99cc291596cc406db7a",
+  "workflow_run_id": 34051485825,
+  "regression_tolerance_ssim": 0.002,
+  "global": {
+    "ssim": 0.45875444567182133,
+    "pixel_difference_percent": 20.24059295654297,
+    "geometry_status": "PASS",
+    "overflow_px": 0
+  },
+  "regions": [
+    {
+      "region_id": "sidebar",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.516015,
+      "baseline_ssim": 0.436179
+    },
+    {
+      "region_id": "primary_navigation",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.507768,
+      "baseline_ssim": 0.450847
+    },
+    {
+      "region_id": "toolbar",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.583181,
+      "baseline_ssim": 0.508412
+    },
+    {
+      "region_id": "hero",
+      "status": "ACTIVE_CLOSURE",
+      "ssim": 0.367911,
+      "baseline_ssim": 0.347744,
+      "pixel_difference_percent": 29.20104
+    },
+    {
+      "region_id": "kpi_band",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.493819,
+      "baseline_ssim": 0.475942
+    },
+    {
+      "region_id": "attention_panel",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.453421,
+      "baseline_ssim": 0.427711
+    },
+    {
+      "region_id": "operator_ai_panel",
+      "status": "PROTECTED_TOLERANCE",
+      "ssim": 0.365715,
+      "baseline_ssim": 0.366587
+    },
+    {
+      "region_id": "portfolio",
+      "status": "REGRESSION_OPEN",
+      "ssim": 0.375781,
+      "baseline_ssim": 0.378828
+    },
+    {
+      "region_id": "system_status",
+      "status": "PROTECTED_TOLERANCE",
+      "ssim": 0.47984,
+      "baseline_ssim": 0.481013
+    },
+    {
+      "region_id": "cost_panel",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.434438,
+      "baseline_ssim": 0.403536
+    },
+    {
+      "region_id": "activity_panel",
+      "status": "LOCKED_GAIN",
+      "ssim": 0.561685,
+      "baseline_ssim": 0.522568
+    },
+    {
+      "region_id": "bottom_strip",
+      "status": "PROTECTED_TOLERANCE",
+      "ssim": 0.444591,
+      "baseline_ssim": 0.445393
+    }
+  ],
+  "active_delta_cluster": "HERO_ASSET",
+  "next_candidate": "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT",
+  "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false
+}
