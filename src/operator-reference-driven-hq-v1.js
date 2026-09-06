@@ -273,6 +273,13 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-panel-title p{
   font-size:10px
 }
+/* PORTFOLIO_HEADER_TYPOGRAPHY_P1 — accepted local measured gain */
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-panel-title h2{
+  font-size:12px;font-weight:650
+}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-panel-title p{
+  font-size:8px
+}
 /* PORTFOLIO_DETAIL_GEOMETRY_P1 — fixture-only */
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-panel-head{
   height:54px;min-height:54px;padding:8px 12px;box-sizing:border-box
