@@ -54,6 +54,207 @@ body.reference-hq-v1 .global-operator-ai-trigger{display:inline-flex;position:fi
 body.reference-hq-v1 .error{background:#251416;border-color:#5f2b2f;color:#ffd7d4}
 @media(max-width:1180px){body.reference-hq-v1 .app{grid-template-columns:190px minmax(0,1fr)}.rf-kpis{grid-template-columns:repeat(2,1fr)}.rf-grid-bottom{grid-template-columns:1fr}.rf-selected-body{grid-template-columns:1fr}.rf-selected-lower{grid-template-columns:1fr 1fr 1.2fr}}
 @media(max-width:760px){body.reference-hq-v1 .global-operator-ai-trigger{right:12px!important;bottom:12px!important;max-width:150px!important}body.reference-hq-v1 .app{display:block}body.reference-hq-v1 .rf-hq-nav{display:block!important;min-width:0;overflow:hidden}.rf-hq-nav-main{display:flex;gap:5px;overflow-x:auto;padding:2px 0 5px;scrollbar-width:none}.rf-hq-nav-main::-webkit-scrollbar{display:none}.rf-hq-nav-main button{width:auto;min-width:max-content;flex:0 0 auto;padding:8px 10px;min-height:36px}.rf-hq-system-toggle,.rf-hq-system,.rf-hq-nav-foot{display:none!important}body.reference-hq-v1 .side{position:static;height:auto;min-height:64px;padding:14px}.rf-toolbar{position:static;height:auto;min-height:54px;margin:0 -18px;padding:9px 12px;align-items:stretch}.rf-search{width:100%;max-width:none}.rf-toolbar-right{display:none}.rf-hero{padding:18px 2px 14px}.rf-hero h1{font-size:30px}.rf-hero-motto{display:none}.rf-kpis,.rf-grid-mid,.rf-grid-bottom{grid-template-columns:1fr}.rf-kpi{min-height:82px}.rf-attention-row{grid-template-columns:8px 92px minmax(0,1fr)}.rf-attention-time{display:none}.rf-project-row{grid-template-columns:34px minmax(0,1fr)}.rf-project-state{grid-column:2;justify-content:flex-start}.rf-selected-body{grid-template-columns:1fr}.rf-selected-lower{grid-template-columns:1fr}.rf-mini-grid{grid-template-columns:1fr}.rf-panel-head{align-items:flex-start}.rf-ai-actions{display:grid;grid-template-columns:1fr}.rf-ai-action{width:100%}}
+
+/* AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0 · approved reference alignment */
+body.reference-hq-v1{
+  --rf-accent:#168cff;
+  --rf-accent-2:#52b8ff;
+  --rf-accent-soft:rgba(22,140,255,.13);
+  --rf-bg:#06101b;
+  --rf-bg-2:#081523;
+  --rf-panel:#0a1826;
+  --rf-panel-2:#0d1d2d;
+  --rf-line:#173650;
+  --rf-line-soft:#112a3f;
+  --rf-text:#f4f8fc;
+  --rf-muted:#8299ad;
+  --rf-green:#18dda2;
+  --rf-yellow:#f4c83d;
+  --rf-red:#ff5c6c;
+  --rf-blue:#45aaff;
+  --rf-gold:var(--rf-accent);
+  --rf-gold-2:var(--rf-accent-2);
+  --rf-shadow:0 20px 55px rgba(0,0,0,.26);
+  background:var(--rf-bg);
+}
+body.reference-hq-v1 .app{grid-template-columns:216px minmax(0,1fr);background:linear-gradient(145deg,#06101b,#071321 48%,#06101b)}
+body.reference-hq-v1 .side{
+  padding:18px 14px 16px;
+  background:linear-gradient(180deg,#06111d 0%,#071522 72%,#06101a 100%);
+  border-right:1px solid #17344c;
+  box-shadow:12px 0 38px rgba(0,0,0,.16);
+}
+body.reference-hq-v1 .side:after{
+  opacity:.22;
+  background:radial-gradient(circle at 35% 80%,rgba(20,125,226,.28),transparent 31%),linear-gradient(180deg,transparent,#06101a);
+  clip-path:none;
+}
+body.reference-hq-v1 .brand{margin:0 2px 16px;padding:2px 8px 16px;text-align:left;border-bottom:1px solid #17344c}
+body.reference-hq-v1 .brand strong{font-size:17px;letter-spacing:.25em;font-weight:650;line-height:1.12}
+body.reference-hq-v1 .brand span{font-size:8px;letter-spacing:.25em;color:#718ba2}
+body.reference-hq-v1 .rf-hq-nav{gap:0}
+.rf-hq-nav-main{display:grid!important;gap:0!important;overflow:visible!important}
+.rf-nav-group{padding:10px 0 8px;border-top:1px solid rgba(23,52,76,.72)}
+.rf-nav-group:first-child{border-top:0;padding-top:0}
+.rf-nav-group-title{padding:0 10px 6px;color:#6f91ad;font-size:8px;font-weight:750;letter-spacing:.24em;text-transform:uppercase}
+.rf-nav-group-items{display:grid;gap:3px}
+.rf-hq-nav button{min-height:36px;padding:8px 10px;border-radius:7px;color:#b7c8d6;font-size:10.5px;font-weight:560}
+.rf-hq-nav button:hover,.rf-hq-nav button:focus-visible{background:#0b2032;color:#fff;border-color:#1c4f75;outline:2px solid rgba(82,184,255,.28);outline-offset:1px}
+.rf-hq-nav button.active{background:linear-gradient(90deg,rgba(18,125,244,.36),rgba(13,73,138,.16));border-color:#1768ba;box-shadow:inset 3px 0 0 #3eb2ff,0 0 22px rgba(19,125,244,.10)}
+.rf-hq-nav button.active .rf-hq-nav-icon{color:#7bcaff}
+.rf-hq-nav-icon{color:#80a8c8}
+.rf-hq-system-toggle,.rf-hq-system{display:none!important}
+.rf-hq-nav-foot{margin-top:auto;padding:16px 10px 2px;border-top:1px solid #17344c}
+.rf-hq-nav-foot strong{color:#eaf5ff;font-size:9px;letter-spacing:.28em}
+.rf-hq-nav-foot span{margin-top:10px;color:#66849d;font-size:7.5px}
+body.reference-hq-v1 .main{padding:0 16px 22px;background:radial-gradient(circle at 68% 0%,rgba(18,110,190,.12),transparent 30%),linear-gradient(180deg,#07131f,#06101b)}
+body.reference-hq-v1 #hq{width:min(100%,1540px)}
+.rf-hq-shell{gap:10px}
+.rf-toolbar{height:56px;margin:0 -16px;padding:0 16px;border-color:#17344c;background:rgba(5,15,25,.93)}
+.rf-search{width:min(365px,45vw);border-color:#214863;background:#071624;border-radius:8px}
+.rf-search:focus-within{border-color:#248ee5;box-shadow:0 0 0 3px rgba(36,142,229,.10)}
+.rf-env,.rf-region,.rf-operator,.rf-notify{min-height:32px;border-color:#1a405e;background:#071523;color:#b8cbd9}
+.rf-env{color:#33e7ad}
+.rf-env:before{background:#22e0a8;box-shadow:0 0 0 3px rgba(34,224,168,.10)}
+.rf-notify{position:relative;border-radius:8px;cursor:pointer}
+.rf-notify b{display:inline-grid;place-items:center;min-width:16px;height:16px;border-radius:999px;background:#ff5163;color:#fff;font-size:8px}
+.rf-hero{min-height:116px;padding:16px 10px 14px;border-color:rgba(23,52,76,.75)}
+.rf-hero:before{
+  left:42%;right:-2%;top:0;bottom:0;inset:auto -2% 0 42%;
+  background:
+    radial-gradient(ellipse at 70% 115%,rgba(61,172,255,.75) 0 1%,rgba(13,83,153,.65) 14%,rgba(5,28,51,.88) 31%,transparent 32%),
+    repeating-radial-gradient(ellipse at 70% 115%,rgba(83,174,240,.13) 0 1px,transparent 2px 19px),
+    radial-gradient(ellipse at 62% 92%,rgba(30,129,222,.18),transparent 48%);
+  opacity:.82;
+}
+.rf-hero:after{
+  left:49%;right:0;top:0;bottom:0;height:auto;opacity:.28;clip-path:none;
+  background:linear-gradient(12deg,transparent 0 46%,rgba(67,151,224,.34) 47% 48%,transparent 49%),
+             linear-gradient(168deg,transparent 0 54%,rgba(67,151,224,.18) 55% 56%,transparent 57%);
+}
+.rf-kicker{color:#b9d6ec;font-size:9px;letter-spacing:.30em}
+.rf-hero h1{margin:6px 0 4px;font-size:37px;font-weight:760;letter-spacing:.02em;text-transform:uppercase}
+.rf-hero p{font-size:12px;color:#bac9d5}
+.rf-hero-motto{right:18px;top:24px;color:#a8bfd1;font-size:8px;letter-spacing:.27em}
+.rf-hero-motto:after{background:#1592ff}
+.rf-kpis{gap:10px}
+.rf-kpi{appearance:none;width:100%;min-height:92px;padding:14px;border-color:#1d4f75;border-radius:8px;background:linear-gradient(145deg,#0a1a2a,#0a1724);box-shadow:inset 0 0 0 1px rgba(35,134,215,.04),0 14px 38px rgba(0,0,0,.18);text-align:left;color:inherit}
+.rf-kpi:hover,.rf-kpi:focus-visible{border-color:#298fdf;box-shadow:0 0 0 2px rgba(35,143,226,.10),0 14px 38px rgba(0,0,0,.22);outline:none}
+.rf-kpi-icon{width:42px;height:42px;flex-basis:42px;border-radius:12px;background:rgba(31,136,236,.14)!important;color:#6bc3ff!important;box-shadow:inset 0 0 0 1px rgba(75,171,246,.18)}
+.rf-kpi:nth-child(2) .rf-kpi-icon{color:#31e0b1!important;background:rgba(24,221,162,.12)!important}
+.rf-kpi:nth-child(3) .rf-kpi-icon{color:#ff6b79!important;background:rgba(255,92,108,.12)!important}
+.rf-kpi-label{color:#d8e5ee}
+.rf-kpi-value{font-size:26px}
+.rf-kpi-meta{color:#6d8aa0}
+.rf-grid-mid{grid-template-columns:1.02fr .98fr;gap:10px}
+.rf-panel{border-color:#1a4566;border-radius:8px;background:linear-gradient(145deg,rgba(9,25,39,.99),rgba(6,19,31,.99));box-shadow:0 14px 40px rgba(0,0,0,.20)}
+.rf-panel-head{min-height:50px;padding:11px 13px;border-color:#12344f}
+.rf-panel-title .ico{color:#5db8ff}
+.rf-panel-title h2{font-size:13px}
+.rf-panel-title p{font-size:9px}
+.rf-link{color:#66bfff}
+.rf-link:hover{color:#b7e2ff}
+.rf-attention-table-wrap,.rf-portfolio-table-wrap{overflow:auto;scrollbar-width:thin}
+.rf-attention-table,.rf-portfolio-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.rf-attention-table th,.rf-portfolio-table th{padding:8px 9px;color:#7595ad;font-size:8px;font-weight:650;text-transform:none;text-align:left;border-bottom:1px solid #17344c}
+.rf-attention-table td,.rf-portfolio-table td{padding:9px;border-bottom:1px solid #112d45;color:#c9d8e3;font-size:9px;vertical-align:middle;overflow-wrap:anywhere}
+.rf-attention-table tr:last-child td,.rf-portfolio-table tr:last-child td{border-bottom:0}
+.rf-attention-priority{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.rf-attention-priority .rf-dot{width:7px;height:7px}
+.rf-attention-action,.rf-open-project{min-height:28px;padding:5px 10px;border:1px solid #2b6795;border-radius:6px;background:#0b2133;color:#d8efff;font-size:8.5px;white-space:nowrap}
+.rf-attention-action:hover,.rf-open-project:hover{border-color:#3aa8ff;background:#0e2b43}
+.rf-ai-message{border-color:#1a4566;background:#071724}
+.rf-ai-action{border-color:#215271;background:#0b1d2d;color:#c4d8e5}
+.rf-ai-action:hover{border-color:#278ddd;color:#fff}
+.rf-ai-new{border-color:#287ec0;background:rgba(22,140,255,.13);color:#8fd0ff}
+.rf-new-project{border-color:#168cff;background:linear-gradient(180deg,#208ff8,#086ccf);color:#fff;box-shadow:0 7px 22px rgba(13,121,229,.24)}
+.rf-ai-input{border-color:#1c4b6c;background:#071724}
+.rf-ops-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(420px,.95fr);gap:10px}
+.rf-side-zone{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:10px;min-width:0}
+.rf-side-stack{display:grid;grid-template-rows:auto auto;gap:10px;align-content:start;min-width:0}
+.rf-portfolio-toolbar{padding:8px 12px;border-color:#12344f}
+.rf-portfolio-search{min-width:210px;border-color:#1d4561;background:#071724}
+.rf-portfolio-summary{display:inline-flex;align-items:center;gap:6px;color:#87a2b6;font-size:8.5px}
+.rf-portfolio-summary b{color:#ddebF5}
+.rf-portfolio-table th:nth-child(1){width:25%}.rf-portfolio-table th:nth-child(2){width:9%}.rf-portfolio-table th:nth-child(3){width:12%}.rf-portfolio-table th:nth-child(4){width:11%}.rf-portfolio-table th:nth-child(5){width:15%}.rf-portfolio-table th:nth-child(6){width:18%}.rf-portfolio-table th:nth-child(7){width:10%}
+.rf-project-table-row{cursor:default}
+.rf-project-table-row:hover{background:rgba(18,107,181,.06)}
+.rf-project-cell{display:flex;align-items:center;gap:9px;min-width:0}
+.rf-project-cell .rf-avatar{width:34px;height:34px;flex:0 0 34px;border-radius:7px;background:linear-gradient(145deg,#14314a,#1a496d);font-size:8px}
+.rf-project-name{font-size:9.5px}
+.rf-project-scope{font-size:7.5px;color:#67849a}
+.rf-state{padding:4px 6px;border-color:#264b64;color:#9db4c4;font-size:7.5px}
+.rf-state.ready{border-color:rgba(24,221,162,.42);color:#31e0ae;background:rgba(24,221,162,.08)}
+.rf-state.attention{border-color:rgba(244,200,61,.45);color:#f3ca42;background:rgba(244,200,61,.08)}
+.rf-state.blocked{border-color:rgba(255,92,108,.46);color:#ff7080;background:rgba(255,92,108,.08)}
+.rf-state.phase{border-color:#2575aa;color:#76c2f7;background:rgba(37,117,170,.10)}
+.rf-state.env{border-color:#42627a;color:#bdd0dd;background:rgba(107,139,164,.07)}
+.rf-table-progress{display:grid;grid-template-columns:35px 1fr;gap:7px;align-items:center;min-width:84px}
+.rf-table-progress b{font-size:8px;color:#d4e3ed}
+.rf-progress{height:6px;margin:0;background:#143047}
+.rf-progress span{background:linear-gradient(90deg,#18dda2,#2ae5b0)}
+.rf-next-table{font-size:8px;color:#a9bfce}
+.rf-status-list{padding:4px 12px 10px}
+.rf-status-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:31px;border-top:1px solid #112d45;font-size:8.5px}
+.rf-status-row:first-child{border-top:0}
+.rf-status-row i{width:7px;height:7px;border-radius:50%;background:#6f8799}
+.rf-status-row i.ready{background:#18dda2}.rf-status-row i.attention{background:#f4c83d}.rf-status-row i.blocked{background:#ff5c6c}.rf-status-row i.neutral{background:#6f8799}
+.rf-status-row span{color:#b7cbd9}.rf-status-row b{color:#8fd0ff;font-weight:600;text-align:right}
+.rf-cost-body{padding:10px 12px}
+.rf-cost-line{display:flex;justify-content:space-between;gap:10px;padding:5px 0;color:#8ba3b5;font-size:8.5px}
+.rf-cost-line b{color:#e4eef5;font-weight:650}
+.rf-cost-state{margin-top:8px;padding-top:8px;border-top:1px solid #112d45;color:#7292a9;font-size:7.5px;line-height:1.45}
+.rf-activity-card{min-height:100%}
+.rf-activity-list{padding:4px 12px 8px}
+.rf-activity-row{display:grid;grid-template-columns:10px minmax(0,1fr);gap:8px;padding:8px 0;border-top:1px solid #112d45}
+.rf-activity-row:first-child{border-top:0}
+.rf-activity-icon{color:#53baff;font-size:9px}
+.rf-activity-main strong{display:block;color:#d8e5ee;font-size:8.5px;font-weight:600}
+.rf-activity-main span{display:block;margin-top:2px;color:#69879d;font-size:7.5px}
+.rf-bottom-strip{display:grid;grid-template-columns:1.05fr .8fr .6fr;gap:10px}
+.rf-bottom-card{min-height:64px;padding:10px 12px;border:1px solid #173f5e;border-radius:8px;background:#081827;display:flex;align-items:center;gap:10px}
+.rf-bottom-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border:1px solid #1d5f8e;border-radius:8px;background:rgba(22,140,255,.10);color:#72c6ff;font-size:16px}
+.rf-bottom-main{min-width:0;flex:1}.rf-bottom-main strong{display:block;color:#e8f2f8;font-size:9px}.rf-bottom-main span{display:block;margin-top:2px;color:#7895aa;font-size:7.5px}
+.rf-bottom-progress{width:120px;max-width:30%;height:6px;border-radius:99px;background:#153149;overflow:hidden}.rf-bottom-progress span{display:block;height:100%;background:#18dda2}
+.rf-bottom-card.actionable{cursor:pointer}.rf-bottom-card.actionable:hover{border-color:#278ddd}
+.rf-quote{justify-content:center;text-align:center;color:#8da5b7;font-size:8px;line-height:1.5}
+.rf-quote b{display:block;margin-top:4px;color:#6fbef7;font-size:7px;letter-spacing:.12em}
+body.reference-hq-v1 .global-operator-ai-trigger{border-color:#2b77aa!important;background:rgba(6,22,35,.95)!important;color:#9ad6ff!important}
+@media(max-width:1260px){
+  .rf-ops-grid{grid-template-columns:1fr}
+  .rf-side-zone{grid-template-columns:1fr 1fr}
+  .rf-side-stack{grid-template-rows:none}
+  .rf-bottom-strip{grid-template-columns:1fr 1fr}.rf-quote{grid-column:1/-1}
+}
+@media(max-width:900px){
+  body.reference-hq-v1 .app{grid-template-columns:188px minmax(0,1fr)}
+  .rf-side-zone{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  body.reference-hq-v1 .side{padding:12px 10px}
+  body.reference-hq-v1 .brand{margin:0;padding:0 4px 10px}
+  body.reference-hq-v1 .brand strong{font-size:14px}
+  body.reference-hq-v1 .rf-hq-nav{display:block!important}
+  .rf-hq-nav-main{display:flex!important;gap:5px!important;overflow-x:auto!important;padding:5px 0!important}
+  .rf-nav-group{display:contents}
+  .rf-nav-group-title{display:none}
+  .rf-nav-group-items{display:flex;gap:5px}
+  .rf-hq-nav-main button{width:auto;min-width:max-content;min-height:36px;padding:8px 10px}
+  .rf-toolbar{padding:8px 10px}
+  .rf-hero{min-height:104px;padding:14px 0}
+  .rf-hero:before{left:40%;opacity:.45}
+  .rf-hero h1{font-size:27px;line-height:1.04}
+  .rf-hero p{max-width:78%;font-size:10px}
+  .rf-kpis,.rf-grid-mid,.rf-ops-grid,.rf-side-zone,.rf-bottom-strip{grid-template-columns:1fr}
+  .rf-kpi{min-height:80px}
+  .rf-attention-table,.rf-portfolio-table{min-width:760px}
+  .rf-attention-table-wrap,.rf-portfolio-table-wrap{margin:0}
+  .rf-portfolio-toolbar{align-items:stretch;flex-direction:column}
+  .rf-portfolio-search{width:100%}
+  .rf-bottom-card{min-height:58px}
+  .rf-bottom-progress{max-width:34%}
+  .rf-quote{grid-column:auto}
+}
 </style>`;
 
 export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-reference-driven-hq-v1-script">
@@ -167,8 +368,11 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
   }
 
   function projectRow(p, selected) {
-    const c = projectContext(p), life = lifecycle(p,c), preview = p.project_preview_access || {}, stateLabel = life.phase === 'BUILD' ? 'In Umsetzung' : life.phase === 'KNOWLEDGE' ? 'Projektwissen' : life.phase === 'APPROVAL' ? 'Freigabe' : life.phase;
-    return '<div class="rf-project-row '+(selected?'selected':'')+'" data-rf-project="'+safe(p.scope_key||'')+'"><div class="rf-avatar">'+safe(initials(p))+'</div><div><div class="rf-project-name">'+safe(displayName(p))+'</div><div class="rf-project-scope">'+safe(p.scope_key||'')+'</div></div><div class="rf-project-state"><span class="rf-state '+statusClass(life.health)+'">'+safe(stateLabel)+'</span>'+(preview.available?'<span class="rf-state ready">Preview verfügbar</span>':'')+(life.health==='NEEDS_ATTENTION'?'<span class="rf-state attention">Attention</span>':'')+'</div><span class="rf-project-arrow">›</span></div>';
+    const c = projectContext(p);
+    const life = lifecycle(p,c);
+    const pct = progress(p,life);
+    const action = nextAction(p,c);
+    return '<tr class="rf-project-table-row" data-rf-project-row="'+safe(p.scope_key||'')+'"><td><div class="rf-project-cell"><div class="rf-avatar">'+safe(initials(p))+'</div><div><div class="rf-project-name">'+safe(displayName(p))+'</div><div class="rf-project-scope">'+safe(p.scope_key||'')+'</div></div></div></td><td><span class="rf-state phase">'+safe(life.phase)+'</span></td><td><span class="rf-state '+statusClass(life.health)+'">'+safe(life.health)+'</span></td><td><span class="rf-state env">'+safe(life.environment)+'</span></td><td><div class="rf-table-progress"><b>'+pct+' %</b><div class="rf-progress"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></div></div></td><td><span class="rf-next-table">'+safe(action.label)+'</span></td><td><button type="button" class="rf-open-project" data-rf-project-open="'+safe(p.scope_key||'')+'" data-rf-project-tab="'+safe(action.tab||'overview')+'">Öffnen</button></td></tr>';
   }
 
   function activityMarkup(project, detail) {
@@ -179,15 +383,73 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     return '<div class="rf-activity">'+rows.map(x => '<div><i></i><span>'+safe((typeof humanEvent==='function'?humanEvent(x.event||x.type||'Activity').label:(x.event||x.type||'Aktivität')))+'</span><span>'+safe(time(x.at))+'</span></div>').join('')+'</div>';
   }
 
-  function renderSelected(project) {
-    if (!project) return '<div class="rf-panel"><div class="rf-empty">Kein Projekt ausgewählt.</div></div>';
-    const c = projectContext(project), life = lifecycle(project,c), pct = progress(project,life), action = nextAction(project,c), detail = details()[project.scope_key] || null, preview = project.project_preview_access || detail?.project_preview_access || {}, currentCost = detail?.project?.current_cost_eur ?? project.current_cost_eur ?? project.budget_cost_units ?? 0;
-    const healthLabel=life.health==='NEEDS_ATTENTION'?'Benötigt Aufmerksamkeit':life.health;
-    return '<div class="rf-panel rf-selected"><div class="rf-selected-head"><div class="rf-selected-id"><div class="rf-avatar">'+safe(initials(project))+'</div><div><h3>'+safe(displayName(project))+'</h3><div class="rf-project-scope">'+safe(project.scope_key||'')+'</div></div></div><div class="rf-selected-actions"><span class="rf-selected-badge">Ausgewähltes Projekt</span><button class="rf-selected-more" type="button" aria-label="Projektoptionen">•••</button></div></div><div class="rf-selected-tabs">'+[['overview','Übersicht'],['sources','Quellen'],['knowledge','Projektwissen'],['implementation','Umsetzung'],['preview','Preview'],['approvals','Prüfungen'],['activity','Aktivität']].map(([id,label],i)=>'<button class="'+(i===0?'active':'')+'" data-rf-tab="'+id+'">'+label+'</button>').join('')+'</div><div class="rf-selected-body"><div class="rf-subpanel"><h4>Projektstatus</h4><div class="rf-status-line"><span class="rf-state '+statusClass(life.health)+'">'+safe(life.phase==='BUILD'?'In Umsetzung':life.phase)+'</span><strong>'+pct+' %</strong></div><div class="rf-progress"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></div><div class="rf-project-scope">'+safe(life.environment)+' · '+safe(healthLabel)+'</div></div><div class="rf-subpanel rf-next-action"><h4>Nächste Aktion</h4><strong>'+safe(action.label)+'</strong><p>Deterministisch aus bestehender Ferrari Project Truth.</p><button class="rf-link" data-rf-tab="'+safe(action.tab)+'">Jetzt öffnen →</button></div><div class="rf-selected-lower"><div class="rf-subpanel"><h4>Cost & Safety</h4><div class="rf-mini-label">Aktuelle Kosten</div><div class="rf-mini-value">'+safe(money(currentCost))+'</div><div class="rf-project-scope">Production locked · External Writes locked</div></div><div class="rf-subpanel"><h4>Preview Access</h4><div class="rf-mini-value">'+safe(preview.available?'Preview verfügbar':'Noch keine Preview')+'</div>'+(preview.available?'<button class="rf-preview-button" data-rf-tab="preview">Preview öffnen ↗</button>':'<div class="rf-project-scope" style="margin-top:8px">Wird nach erfolgreichem Build verfügbar.</div>')+'</div><div class="rf-subpanel rf-activity-panel"><div class="rf-status-line" style="margin-bottom:8px"><h4 style="margin:0">Letzte Aktivitäten</h4><button class="rf-link" data-rf-tab="activity">Alle anzeigen →</button></div>'+activityMarkup(project,detail)+'</div></div></div></div>';
+  function rawTone(raw='') {
+    const value=U(raw);
+    if (value.includes('BLOCK') || value.includes('FAIL') || value.includes('ERROR')) return 'blocked';
+    if (value.includes('DEGRADED') || value.includes('STALE') || value.includes('ATTENTION') || value.includes('PENDING') || value.includes('NOT_VERIFIED')) return 'attention';
+    if (value.includes('HEALTHY') || value.includes('VERIFIED') || value.includes('READY') || value.includes('ONLINE') || value.includes('CONNECTED') || value.includes('AVAILABLE')) return 'ready';
+    return 'neutral';
   }
+
+  function systemStatusMarkup() {
+    const h=state?.data?.health||{};
+    const factories=Array.isArray(state?.data?.factories?.items)?state.data.factories.items:[];
+    const providers=Array.isArray(state?.data?.providers?.active_runtime_providers)?state.data.providers.active_runtime_providers:[];
+    const healthyFactories=factories.filter(x=>rawTone(x.status)==='ready').length;
+    const rows=[
+      ['Factories',factories.length?healthyFactories+'/'+factories.length+' verifiziert':'Keine Runtime-Daten',factories.length&&healthyFactories===factories.length?'ready':factories.length?'attention':'neutral'],
+      ['Providers',providers.length?providers.length+' Runtime-Routen':'Keine Runtime-Route',providers.length?'ready':'neutral'],
+      ['Control Plane',h.control_plane?.label||h.control_plane?.raw||'Nicht verifiziert',rawTone(h.control_plane?.raw)],
+      ['CI',h.ci?.label||h.ci?.raw||'Nicht verifiziert',rawTone(h.ci?.raw)],
+      ['Production',h.production?.label||h.production?.raw||'Gesperrt',rawTone(h.production?.raw)]
+    ];
+    return '<div class="rf-status-list">'+rows.map(([label,value,tone])=>'<div class="rf-status-row"><i class="'+tone+'"></i><span>'+safe(label)+'</span><b>'+safe(value)+'</b></div>').join('')+'</div>';
+  }
+
+  function hasRealNumber(value) {
+    return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+  }
+
+  function moneyOrUnavailable(value) {
+    return hasRealNumber(value) ? money(Number(value)) : 'Nicht verfügbar';
+  }
+
+  function costMarkup() {
+    const c=state?.data?.costs||{};
+    const rows=[
+      ['Ausgegeben',moneyOrUnavailable(c.spent_eur)],
+      ['Prognose',moneyOrUnavailable(c.estimated_eur)],
+      ['Reserviert',moneyOrUnavailable(c.reserved_eur)],
+      ['Verbleibendes Budget',moneyOrUnavailable(c.remaining_development_budget_eur)]
+    ];
+    return '<div class="rf-cost-body">'+rows.map(([label,value])=>'<div class="rf-cost-line"><span>'+safe(label)+'</span><b>'+safe(value)+'</b></div>').join('')+'<div class="rf-cost-state">'+safe(c.variable_cost_state||'Kostenstatus nicht verifiziert')+' · Keine Budgetwerte werden aus der Referenz übernommen.</div></div>';
+  }
+
+  function recentActivityMarkup() {
+    const items=Array.isArray(state?.data?.audit?.items)?state.data.audit.items.slice(0,5):[];
+    if(!items.length) return '<div class="rf-empty">Noch keine autoritative Aktivität.</div>';
+    return '<div class="rf-activity-list">'+items.map(x=>{const evt=(typeof humanEvent==='function'?humanEvent(x.event||x.type||'Activity').label:(x.event||x.type||'Aktivität'));const scope=x.scope_key||x.mission_id||x.actor||x.source||'System';return '<div class="rf-activity-row"><span class="rf-activity-icon">◈</span><div class="rf-activity-main"><strong>'+safe(evt)+'</strong><span>'+safe(scope)+' · '+safe(time(x.at))+'</span></div></div>'}).join('')+'</div>';
+  }
+
+  function decisionCount() {
+    const openInputs=projects().reduce((sum,p)=>sum+N(projectContext(p).open_input_count),0);
+    return openInputs+approvalCount();
+  }
+
+  function milestoneMarkup() {
+    const p=selectedProject();
+    if(!p) return '<div class="rf-bottom-card"><div class="rf-bottom-icon">⚑</div><div class="rf-bottom-main"><strong>Nächster Meilenstein</strong><span>Kein Projekt ausgewählt.</span></div></div>';
+    const c=projectContext(p),life=lifecycle(p,c),pct=progress(p,life),action=nextAction(p,c);
+    return '<button type="button" class="rf-bottom-card actionable" data-rf-milestone><div class="rf-bottom-icon">⚑</div><div class="rf-bottom-main"><strong>Nächster Meilenstein</strong><span>'+safe(displayName(p))+' · '+safe(action.label)+'</span></div><div class="rf-bottom-progress" aria-label="Fortschritt '+pct+' Prozent"><span style="width:'+Math.max(0,Math.min(100,pct))+'%"></span></div><b style="font-size:9px;color:#dceaf4">'+pct+' %</b></button>';
+  }
+
   function renderAttention(rows) {
-    if (!rows.length) return '<div class="rf-empty">Aktuell keine offenen projektbezogenen Attention-Punkte.</div>';
-    return '<div class="rf-attention-list">'+rows.map((r,i)=>'<button class="rf-attention-row" data-rf-attention="'+i+'" style="width:100%;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;text-align:left"><span class="rf-dot '+(r.tone==='blocked'?'blocked':'')+'"></span><span class="rf-chip '+(r.tone==='blocked'?'blocked':'')+'">'+safe(r.chip)+'</span><span>'+safe((r.project.name||r.project.project_id)+' · '+r.text)+'</span><span class="rf-attention-time">Jetzt prüfen</span></button>').join('')+'</div>';
+    const body=rows.length?rows.map((r,i)=>{
+      const priority=r.tone==='blocked'?'Hoch':'Mittel';
+      const impact=r.tone==='blocked'?'Umsetzung blockiert':r.tab==='knowledge'?'Qualität / Richtigkeit offen':r.tab==='approvals'?'Entscheidung erforderlich':'Projektfortschritt wartet';
+      return '<tr><td><span class="rf-attention-priority"><span class="rf-dot '+(r.tone==='blocked'?'blocked':'')+'"></span>'+safe(priority)+'</span></td><td>'+safe(displayName(r.project))+'</td><td>'+safe(r.text)+'</td><td>'+safe(impact)+'</td><td>—</td><td><button type="button" class="rf-attention-action" data-rf-attention="'+i+'">Prüfen</button></td></tr>';
+    }).join(''):'<tr><td colspan="6" class="rf-empty">Aktuell keine offenen projektbezogenen Attention-Punkte.</td></tr>';
+    return '<div class="rf-attention-table-wrap"><table class="rf-attention-table"><thead><tr><th>Priorität</th><th>Projekt</th><th>Thema</th><th>Auswirkung</th><th>Fällig</th><th>Aktion</th></tr></thead><tbody>'+body+'</tbody></table></div>';
   }
 
   function renderReferenceSidebar() {
@@ -195,23 +457,49 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     if (!side || side.querySelector('.rf-hq-nav')) return;
     const nav = document.createElement('div');
     nav.className = 'rf-hq-nav';
-    const items = [
-      ['hq','⌂','HQ','hq'],['projects','▦','Portfolio','projects'],['project-overview','▤','Project Overview','overview'],['sources','▣','Sources','sources'],['knowledge','▥','Knowledge','knowledge'],['preview','▱','Preview','preview'],['approvals','✓','Approvals','approvals'],['activity','⌁','Activity','audit'],['operator-ai','✦','Operator AI','ai'],['settings','⚙','Settings','settings']
+    const groups=[
+      ['CONTROL CENTER',[
+        ['hq','⌂','Dashboard','hq'],
+        ['projects','▦','Portfolio','projects'],
+        ['attention','⚠','Aufmerksamkeit','attention'],
+        ['approvals','✓','Freigaben','approvals'],
+        ['costs','◉','Kosten','costs']
+      ]],
+      ['PROJEKTE',[
+        ['project-overview','▤','Projektübersicht','overview'],
+        ['sources','◎','Quellen','sources'],
+        ['knowledge','▥','Projektwissen','knowledge'],
+        ['implementation','◇','Umsetzung','implementation'],
+        ['preview','▱','Vorschau','preview'],
+        ['project-approvals','◉','Prüfungen','approvals-workspace'],
+        ['project-activity','⌁','Aktivität','activity']
+      ]],
+      ['SYSTEM',[
+        ['factories','⌘','Factories','factories'],
+        ['providers','◌','Providers','providers'],
+        ['health','♡','System Health','health'],
+        ['audit','▧','Audit Log','audit'],
+        ['settings','⚙','Einstellungen','settings']
+      ]],
+      ['KI',[
+        ['operator-ai','✦','Operator KI','ai']
+      ]]
     ];
-    const systemItems=[['mission','Mission Studio'],['factories','Factories'],['capabilities','Fähigkeiten'],['providers','Provider'],['costs','Kosten'],['deliveries','Deliveries'],['health','Systemstatus']];nav.innerHTML='<div class="rf-hq-nav-main">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'"'+(id==='projects'?' data-goto="projects"':'')+' class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'<button type="button" class="rf-hq-system-toggle" data-rf-system-toggle><span class="rf-hq-nav-icon">⌄</span><span>Operator Controls</span></button><div class="rf-hq-system">'+systemItems.map(([target,label])=>'<button type="button" data-rf-system-target="'+target+'">'+label+'</button>').join('')+'</div></div><div class="rf-hq-nav-foot"><strong>IDEAS<br>INTO IMPACT</strong><span>People<br>Projects<br>Progress<br>A brighter tomorrow</span></div>';
+    nav.innerHTML='<div class="rf-hq-nav-main">'+groups.map(([title,items])=>'<div class="rf-nav-group"><div class="rf-nav-group-title">'+title+'</div><div class="rf-nav-group-items">'+items.map(([id,ico,label,target])=>'<button type="button" data-rf-nav="'+id+'" data-rf-target="'+target+'"'+(id==='projects'?' data-goto="projects"':'')+' class="'+(id==='hq'?'active':'')+'"><span class="rf-hq-nav-icon">'+ico+'</span><span>'+label+'</span></button>').join('')+'</div></div>').join('')+'</div><div class="rf-hq-nav-foot"><strong>IDEEN<br>IN WIRKUNG<br>BRINGEN</strong><span>AURENTARA SYSTEMS<br>powered by RIOSYSTEMS</span></div>';
     side.insertBefore(nav, side.querySelector('.nav'));
     nav.addEventListener('click', async (event) => {
-      const toggle=event.target.closest('[data-rf-system-toggle]');
-      if(toggle){event.stopPropagation();nav.querySelector('.rf-hq-system')?.classList.toggle('open');return}
-      const systemButton=event.target.closest('[data-rf-system-target]');
-      if(systemButton){event.stopPropagation();if(typeof go==='function')go(systemButton.dataset.rfSystemTarget);return}
       const button = event.target.closest('[data-rf-nav]');
       if (!button) return;
       event.stopPropagation();
       const target = button.dataset.rfTarget;
       if (target === 'ai') return openAi();
-      if (['overview','sources','knowledge','preview'].includes(target)) return openSelectedWorkspace(target);
-      if (target === 'approvals' && selectedProject()?.project_detail_openable === true) return openSelectedWorkspace('approvals');
+      if (target === 'attention') {
+        if(typeof go==='function') go('hq');
+        setTimeout(()=>document.querySelector('.rf-attention-anchor')?.scrollIntoView({behavior:'smooth',block:'start'}),0);
+        return;
+      }
+      if (['overview','sources','knowledge','implementation','preview','activity'].includes(target)) return openSelectedWorkspace(target);
+      if (target === 'approvals-workspace') return openSelectedWorkspace('approvals');
       if (typeof go === 'function') go(target);
     });
   }
@@ -267,24 +555,49 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
     const root = document.getElementById('hq');
     if (!root) return;
     const list = projects();
-    const selected = selectedProject();
-    const projectNeedle=String(state.referenceHqProjectQuery||state.referenceHqQuery||'').toLowerCase();const filtered = list.filter(p => !projectNeedle || [p.name,p.project_id,p.customer_id,p.scope_key].some(v => String(v||'').toLowerCase().includes(projectNeedle))).slice(0,5);
+    const projectNeedle=String(state.referenceHqProjectQuery||state.referenceHqQuery||'').toLowerCase();
+    const filtered = list.filter(p => !projectNeedle || [p.name,p.project_id,p.customer_id,p.scope_key].some(v => String(v||'').toLowerCase().includes(projectNeedle))).slice(0,8);
     const openInputs = list.reduce((sum,p)=>sum+N(projectContext(p).open_input_count),0);
     const previews = list.filter(p => p.project_preview_access?.available === true).length;
     const attention = attentionRows(list);
-    root.innerHTML='<div class="rf-hq-shell" data-hydrated="'+(state.referenceHqHydrated?'true':'false')+'"><div class="rf-toolbar"><label class="rf-search"><span>⌕</span><input id="rf-universal-search" placeholder="Universelle Suche ..." value="'+(state.referenceHqQuery?safe(state.referenceHqQuery):'')+'"></label><div class="rf-toolbar-right"><span class="rf-env">STAGING</span><span class="rf-region">Private Operator</span><span class="rf-operator"><b>OP</b> AURENTARA</span></div></div><div class="rf-hero"><div><div class="rf-kicker">PROJECT FERRARI · PREMIUM MASTERDASHBOARD V1</div><h1>Masterdashboard</h1><p>Steuern Sie alle Kunden- und internen Projekte. Transparent. Effizient. Erfolgsorientiert.</p></div><div class="rf-hero-motto">EXCELLENCE<br>BUILDS<br>TOMORROW</div></div><div class="rf-kpis">'+[
-      ['▢','Aktive Projekte',list.length,'Reale Portfolio-Truth'],['▤','Offene Inputs',openInputs,'Kundenangaben und Wissensprüfung'],['◷','Ausstehende Freigaben',approvalCount(),'Bestehender Approval Contract'],['▣','Preview bereit',previews,'Project Preview Access']
-    ].map(x=>'<div class="rf-kpi"><div class="rf-kpi-icon">'+x[0]+'</div><div><div class="rf-kpi-label">'+x[1]+'</div><div class="rf-kpi-value">'+safe(x[2])+'</div><div class="rf-kpi-meta">'+x[3]+'</div></div></div>').join('')+'</div><div class="rf-grid-mid"><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">⚠</span><div><h2>Attention Center</h2><p>Diese Elemente benötigen Ihre Aufmerksamkeit.</p></div></div><button class="rf-link" data-rf-all-attention>Alle anzeigen →</button></div>'+renderAttention(attention)+'</div><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico" style="color:var(--rf-blue)">✦</span><div><h2>Operator AI</h2><p>Ihr intelligenter Projektassistent, immer verfügbar.</p></div></div><button class="rf-ai-new" data-rf-ai-open>Neuer Chat →</button></div><div class="rf-ai-body"><div class="rf-ai-message"><strong>Hallo! Ich bin Ihr Operator AI.</strong>Ich unterstütze Sie bei der Analyse, Planung und Umsetzung Ihrer Projekte. Der bestehende Operator-AI-Backbone bleibt autoritativ.</div><div class="rf-ai-actions"><button class="rf-ai-action" data-rf-ai-prompt="Fasse den aktuellen Projektstatus zusammen.">Projektstatus zusammenfassen</button><button class="rf-ai-action" data-rf-ai-prompt="Analysiere die aktuell wichtigsten Risiken und Blocker.">Risiken analysieren</button><button class="rf-ai-action" data-rf-ai-prompt="Empfiehl die nächsten sinnvollen Schritte.">Nächste Schritte empfehlen</button></div><button class="rf-ai-input" data-rf-ai-open><span>Fragen Sie mich etwas ...</span><span>▷</span></button></div></div></div><div class="rf-grid-bottom"><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">▢</span><div><h2>Projekt Portfolio</h2><p>Alle Kunden- und internen Projekte auf einen Blick.</p></div></div><div style="display:flex;gap:7px"><button class="rf-ai-new rf-new-project" data-rf-new-project>Neues Projekt</button><button class="rf-link" data-rf-portfolio-open>Alle öffnen →</button></div></div><div class="rf-portfolio-toolbar"><div class="rf-tabs"><button class="rf-filter active">Alle ('+list.length+')</button><button class="rf-filter">Kundenprojekte</button><button class="rf-filter">Interne Projekte</button></div><label class="rf-portfolio-search"><span>⌕</span><input id="rf-project-search" placeholder="Projekte suchen ..." value="'+safe(state.referenceHqProjectQuery||'')+'"></label></div><div class="rf-project-list">'+(filtered.length?filtered.map(p=>projectRow(p,p.scope_key===selected?.scope_key)).join(''):'<div class="rf-empty">Keine Projekte passen zur Suche.</div>')+'</div></div>'+renderSelected(selected)+'</div></div>';
+    const decisions=decisionCount();
+    root.innerHTML='<div class="rf-hq-shell" data-hydrated="'+(state.referenceHqHydrated?'true':'false')+'">'+
+      '<div class="rf-toolbar"><label class="rf-search"><span>⌕</span><input id="rf-universal-search" aria-label="Universelle Suche" placeholder="Universelle Suche ..." value="'+(state.referenceHqQuery?safe(state.referenceHqQuery):'')+'"></label><div class="rf-toolbar-right"><span class="rf-env">STAGING</span><span class="rf-region">Private Operator</span>'+(decisions?'<button type="button" class="rf-notify" data-rf-decisions aria-label="'+decisions+' offene Entscheidungen">♢ <b>'+decisions+'</b></button>':'')+'<span class="rf-operator"><b>OP</b> AURENTARA</span></div></div>'+
+      '<div class="rf-hero"><div><div class="rf-kicker">AURENTARA CONTROL CENTER</div><h1>RIOSYSTEMS DASHBOARD</h1><p>Alle Projekte. Alle Prozesse. Alle wichtigen Entscheidungen. An einem Ort.</p></div><div class="rf-hero-motto">EIN SYSTEM.<br>ALLE MÖGLICHKEITEN.<br>SKALIERBAR.<br>POWERED BY RIOSYSTEMS.</div></div>'+
+      '<div class="rf-kpis">'+[
+        ['▢','Aktive Projekte',list.length,'Reale Portfolio-Truth','projects'],
+        ['▤','Offene Eingaben',openInputs,'Kundenangaben und Wissensprüfung','inputs'],
+        ['◷','Ausstehende Freigaben',approvalCount(),'Bestehender Approval Contract','approvals'],
+        ['▣','Bereit für Preview',previews,'Project Preview Access','previews']
+      ].map(x=>'<button type="button" class="rf-kpi" data-rf-kpi="'+x[4]+'"><div class="rf-kpi-icon">'+x[0]+'</div><div><div class="rf-kpi-label">'+x[1]+'</div><div class="rf-kpi-value">'+safe(x[2])+'</div><div class="rf-kpi-meta">'+x[3]+'</div></div></button>').join('')+'</div>'+
+      '<div class="rf-grid-mid"><div class="rf-panel rf-attention-anchor"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico" style="color:var(--rf-red)">⚠</span><div><h2>Needs Attention</h2><p>Projekte und Aufgaben, die Ihre Aufmerksamkeit benötigen.</p></div></div><button class="rf-link" data-rf-all-attention>Alle anzeigen →</button></div>'+renderAttention(attention)+'</div>'+
+      '<div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">✦</span><div><h2>Operator KI</h2><p>Ihr intelligenter Projektassistent, powered by RIOSYSTEMS.</p></div></div><button class="rf-ai-new" data-rf-ai-open>Neuer Chat +</button></div><div class="rf-ai-body"><div class="rf-ai-message"><strong>Hallo! Ich bin Ihr AURENTARA Operator.</strong>Ich unterstütze Sie bei Analyse, Planung und Umsetzung. Die bestehende Operator AI bleibt der einzige autoritative AI-Backbone.</div><div class="rf-ai-actions"><button class="rf-ai-action" data-rf-ai-prompt="Fasse den aktuellen Projektstatus zusammen.">Projektstatus zusammenfassen</button><button class="rf-ai-action" data-rf-ai-prompt="Analysiere die aktuell wichtigsten Risiken und Blocker.">Risiken analysieren</button><button class="rf-ai-action" data-rf-ai-prompt="Empfiehl die nächsten sinnvollen Schritte.">Nächste Schritte empfehlen</button><button class="rf-ai-action" data-rf-ai-prompt="Analysiere die aktuellen Kosten und Kostenschätzungen.">Kosten analysieren</button></div><button class="rf-ai-input" data-rf-ai-open><span>Stellen Sie mir eine Frage ...</span><span>▷</span></button></div></div></div>'+
+      '<div class="rf-ops-grid"><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">▢</span><div><h2>Projektportfolio</h2><p>Alle Kunden- und internen Projekte auf einen Blick.</p></div></div><div style="display:flex;gap:7px"><button class="rf-ai-new rf-new-project" data-rf-new-project>+ Neues Projekt</button><button class="rf-link" data-rf-portfolio-open>Alle öffnen →</button></div></div><div class="rf-portfolio-toolbar"><span class="rf-portfolio-summary">Alle <b>'+list.length+'</b></span><label class="rf-portfolio-search"><span>⌕</span><input id="rf-project-search" aria-label="Projekte durchsuchen" placeholder="Projekte durchsuchen ..." value="'+(state.referenceHqProjectQuery?safe(state.referenceHqProjectQuery):'')+'"></label></div><div class="rf-portfolio-table-wrap"><table class="rf-portfolio-table"><thead><tr><th>Projekt</th><th>Phase</th><th>Health</th><th>Umgebung</th><th>Fortschritt</th><th>Nächste Aktion</th><th>Aktionen</th></tr></thead><tbody>'+(filtered.length?filtered.map(p=>projectRow(p,false)).join(''):'<tr><td colspan="7" class="rf-empty">Keine Projekte passen zur Suche.</td></tr>')+'</tbody></table></div></div>'+
+      '<div class="rf-side-zone"><div class="rf-side-stack"><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">⌁</span><div><h2>System Status</h2></div></div><button class="rf-link" data-rf-section="health">Alle Systeme →</button></div>'+systemStatusMarkup()+'</div><div class="rf-panel"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">◉</span><div><h2>Kosten / Prognose</h2></div></div><button class="rf-link" data-rf-section="costs">Details →</button></div>'+costMarkup()+'</div></div>'+
+      '<div class="rf-panel rf-activity-card"><div class="rf-panel-head"><div class="rf-panel-title"><span class="ico">▧</span><div><h2>Letzte Aktivitäten</h2></div></div><button class="rf-link" data-rf-section="audit">Alle anzeigen →</button></div>'+recentActivityMarkup()+'</div></div></div>'+
+      '<div class="rf-bottom-strip">'+milestoneMarkup()+'<button type="button" class="rf-bottom-card actionable" data-rf-decisions><div class="rf-bottom-icon">✓</div><div class="rf-bottom-main"><strong>Offene Entscheidungen</strong><span>'+decisions+' offene Eingaben / Freigaben</span></div><span style="color:#69c3ff">→</span></button><div class="rf-bottom-card rf-quote">Technologie wird dann wertvoll, wenn sie Menschen wirklich weiterbringt.<b>AURENTARA SYSTEMS</b></div></div>'+
+      '</div>';
 
-    root.querySelector('#rf-universal-search')?.addEventListener('input', e => { state.referenceHqQuery = e.target.value; renderReferenceHq(); e.target.focus(); });
-    root.querySelectorAll('[data-rf-project]').forEach(row => row.addEventListener('click', async () => { state.selectedScope=row.dataset.rfProject; await ensureDetail(selectedProject()); renderReferenceHq(); }));
-    root.querySelectorAll('[data-rf-tab]').forEach(button => button.addEventListener('click', () => openSelectedWorkspace(button.dataset.rfTab)));
-    root.querySelector('[data-rf-open-project]')?.addEventListener('click', () => openSelectedWorkspace('overview'));
-    root.querySelector('[data-rf-portfolio-open]')?.addEventListener('click', () => { if (typeof go==='function') go('projects'); });root.querySelector('[data-rf-new-project]')?.addEventListener('click', () => { if(typeof go==='function')go('projects');setTimeout(()=>document.getElementById('pm-new-project')?.click(),0); });const projectSearch=root.querySelector('#rf-project-search');if(projectSearch){projectSearch.value=String(state.referenceHqProjectQuery||'');projectSearch.addEventListener('input',e=>{state.referenceHqProjectQuery=e.target.value;renderReferenceHq();document.getElementById('rf-project-search')?.focus()});setTimeout(()=>{const live=document.getElementById('rf-project-search');if(live&&!state.referenceHqProjectQuery)live.value=''},0)};
-    root.querySelector('[data-rf-all-attention]')?.addEventListener('click', () => { if (typeof go==='function') go('approvals'); });
+    root.querySelector('#rf-universal-search')?.addEventListener('input', e => { state.referenceHqQuery = e.target.value; state.referenceHqProjectQuery=e.target.value; renderReferenceHq(); document.getElementById('rf-universal-search')?.focus(); });
+    root.querySelectorAll('[data-rf-project-open]').forEach(button=>button.addEventListener('click',async e=>{e.stopPropagation();state.selectedScope=button.dataset.rfProjectOpen;await ensureDetail(selectedProject());openSelectedWorkspace(button.dataset.rfProjectTab||'overview')}));
+    root.querySelector('[data-rf-portfolio-open]')?.addEventListener('click', () => { if (typeof go==='function') go('projects'); });
+    root.querySelector('[data-rf-new-project]')?.addEventListener('click', () => { if(typeof go==='function')go('projects');setTimeout(()=>document.getElementById('pm-new-project')?.click(),0); });
+    const projectSearch=root.querySelector('#rf-project-search');
+    if(projectSearch){projectSearch.addEventListener('input',e=>{state.referenceHqProjectQuery=e.target.value;renderReferenceHq();document.getElementById('rf-project-search')?.focus()})}
+    root.querySelector('[data-rf-all-attention]')?.addEventListener('click', () => { if(attention.length){state.selectedScope=attention[0].project.scope_key;openSelectedWorkspace(attention[0].tab)}else if(typeof go==='function')go('approvals') });
     root.querySelectorAll('[data-rf-attention]').forEach((button,i) => button.addEventListener('click', () => { const row=attention[i]; if (!row) return; state.selectedScope=row.project.scope_key; openSelectedWorkspace(row.tab); }));
     root.querySelectorAll('[data-rf-ai-open]').forEach(button => button.addEventListener('click', () => openAi()));
     root.querySelectorAll('[data-rf-ai-prompt]').forEach(button => button.addEventListener('click', () => openAi(button.dataset.rfAiPrompt)));
+    root.querySelectorAll('[data-rf-section]').forEach(button=>button.addEventListener('click',()=>{if(typeof go==='function')go(button.dataset.rfSection)}));
+    root.querySelectorAll('[data-rf-decisions]').forEach(button=>button.addEventListener('click',()=>{if(typeof go==='function')go('approvals')}));
+    root.querySelector('[data-rf-milestone]')?.addEventListener('click',()=>openSelectedWorkspace(nextAction(selectedProject()||{},projectContext(selectedProject()||{})).tab||'overview'));
+    root.querySelectorAll('[data-rf-kpi]').forEach(button=>button.addEventListener('click',()=>{
+      const target=button.dataset.rfKpi;
+      if(target==='projects'&&typeof go==='function')return go('projects');
+      if(target==='approvals'&&typeof go==='function')return go('approvals');
+      if(target==='inputs'){const row=attention.find(x=>x.tab==='approvals'||x.tab==='knowledge');if(row){state.selectedScope=row.project.scope_key;return openSelectedWorkspace(row.tab)}if(typeof go==='function')return go('projects')}
+      if(target==='previews'){const p=list.find(x=>x.project_preview_access?.available===true);if(p){state.selectedScope=p.scope_key;return openSelectedWorkspace('preview')}if(typeof go==='function')return go('projects')}
+    }));
     if (!state.referenceHqHydrated) void hydrateReferenceHq();
   }
 
@@ -305,4 +618,4 @@ export const REFERENCE_DRIVEN_HQ_SCRIPT = String.raw`<script id="aurentara-refer
 })();
 </script>`;
 
-export function referenceDrivenHqManifest(){return{schema:'aurentara.project-ferrari.reference-driven-hq.v1',reference:'REFERENCE_01_MASTERDASHBOARD_HQ',presentation_only:true,existing_project_runtime_reused:true,existing_project_source_intake_reused:true,existing_approvals_reused:true,existing_preview_access_reused:true,existing_operator_ai_backbone_reused:true,canonical_scope_keys_preserved:true,production_deploy:false,external_writes:false,fake_business_truth:false}}
+export function referenceDrivenHqManifest(){return{schema:'aurentara.project-ferrari.reference-driven-hq.v1',reference:'AURENTARA-HQ-CONTROL-CENTER-REFERENCE-V1.0',reference_status:'APPROVED_REFERENCE',presentation_only:true,existing_project_runtime_reused:true,existing_project_source_intake_reused:true,existing_approvals_reused:true,existing_preview_access_reused:true,existing_operator_ai_backbone_reused:true,canonical_scope_keys_preserved:true,production_deploy:false,external_writes:false,fake_business_truth:false}}
