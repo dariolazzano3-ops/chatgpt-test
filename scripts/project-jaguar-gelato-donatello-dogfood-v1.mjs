@@ -115,7 +115,8 @@ assert.equal(build.provider_route.selected.route_id, 'native-premium-cloudflare'
 assert.equal(build.provider_route.selected.build_profile, PREMIUM_STATIC_WEB_V1_ID);
 assert.equal(build.production_deploy, false);
 assert.equal(build.integrations.external_side_effects, false);
-assert.equal(build.deployment.contract.production_deploy, false);
+assert.equal(build.deployment.contract.production, false);
+assert.equal(build.deployment.contract.direct_deploy_executed, false);
 assert.equal(build.premium_standard.launch_readiness.public_launch_ready, false);
 assert.equal(build.premium_standard.delivery_readiness.premium_delivery_ready, false);
 
