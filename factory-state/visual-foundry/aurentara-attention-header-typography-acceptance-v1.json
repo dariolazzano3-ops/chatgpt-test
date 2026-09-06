@@ -1,0 +1,45 @@
+{
+  "schema": "riosystems.aurentara-attention-header-typography-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "ATTENTION_HEADER_TYPOGRAPHY_R3",
+  "refinement_workflow_run": 34067618765,
+  "verification_workflow_run": 34067726325,
+  "verification_head": "10c442333338d318497345a65886b42401a7f4c3",
+  "typography": {
+    "title_font_size_px": 14.5,
+    "title_font_weight": 700,
+    "subtitle_font_size_px": 10
+  },
+  "baseline": {
+    "attention_ssim": 0.394011,
+    "attention_pixel_difference_percent": 16.151,
+    "attention_header_raster_ssim": 0.565137,
+    "global_ssim": 0.393593,
+    "global_pixel_difference_percent": 14.387
+  },
+  "accepted": {
+    "attention_ssim": 0.410471,
+    "attention_pixel_difference_percent": 16.098,
+    "attention_header_raster_ssim": 0.543141,
+    "global_ssim": 0.391673,
+    "global_pixel_difference_percent": 14.3804
+  },
+  "global_ssim_delta": -0.00192,
+  "global_regression_within_tolerance": true,
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_PANEL_GAIN_WITHIN_GLOBAL_TOLERANCE",
+  "note": "Region-level Attention panel gain is authoritative; header-raster proxy did not improve and is not used as acceptance authority.",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
