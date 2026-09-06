@@ -42,13 +42,15 @@ let browserInstance;
 const pageErrors = [];
 const consoleErrors = [];
 const badResponses = [];
+const failedRequests = [];
 try {
   await waitForWorker();
   browserInstance = await chromium.launch({ headless: true, channel: 'chrome' });
   const page = await browserInstance.newPage({ viewport: { width: 1586, height: 992 } });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push({ text: message.text(), location: message.location() }); });
   page.on('response', (res) => { if (res.status() >= 400) badResponses.push({ status: res.status(), url: res.url() }); });
+  page.on('requestfailed', (req) => failedRequests.push({ url: req.url(), failure: req.failure() }));
 
   const response = await page.goto(`${origin}/operator`, { waitUntil: 'domcontentloaded' });
   assert.equal(response?.status(), 200);
@@ -145,6 +147,7 @@ try {
 
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(badResponses, [], 'browser must not receive HTTP 4xx/5xx responses');
+  assert.deepEqual(failedRequests, [], 'browser requests must not fail');
   assert.deepEqual(consoleErrors, []);
 
   console.log(JSON.stringify({
