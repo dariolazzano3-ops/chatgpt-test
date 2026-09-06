@@ -1,5 +1,5 @@
 name: Visual Foundry AURENTARA Hero Candidate
-# Operator AI header H4 isolated verification
+# hero typography T11 V2 isolated verification
 
 on:
   push:
@@ -19,10 +19,10 @@ jobs:
     env:
       GOLD_STANDARD_RUN: 1
       VISUAL_FOUNDRY_HERO_CANDIDATE: REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT
-      VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE: T5
-      VISUAL_FOUNDRY_HERO_TITLE_SCALE_X: 1.32
-      VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX: 5.5
-      VISUAL_FOUNDRY_HERO_TITLE_WEIGHT: 600
+      VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE: T11
+      VISUAL_FOUNDRY_HERO_TITLE_SCALE_X: 1.40
+      VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX: 6.0
+      VISUAL_FOUNDRY_HERO_TITLE_WEIGHT: 400
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
