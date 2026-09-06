@@ -41,6 +41,7 @@ export function createContentContract(mission, blueprint) {
     const headlineByPage = {
       home: existing.headline || (en ? `${mission.business_name}: ${mission.primary_goal}` : `${mission.business_name}: ${mission.primary_goal}`),
       services: en ? `Services built around a clear outcome.` : `Leistungen mit einem klaren Ergebnis.`,
+      menu: en ? `Menu and verified prices.` : `Sortiment und bestätigte Preise.`,
       about: en ? `Built around ${mission.brand_positioning}.` : `Ausgerichtet auf ${mission.brand_positioning}.`,
       contact: en ? `Make the next step simple.` : `Der nächste Schritt soll einfach sein.`,
       faq: en ? `Questions before the next step.` : `Fragen vor dem nächsten Schritt.`,
@@ -49,6 +50,7 @@ export function createContentContract(mission, blueprint) {
     const introByPage = {
       home: existing.subheadline || (en ? `For ${mission.target_audience}. Clear positioning, focused information and one primary conversion path.` : `Für ${mission.target_audience}. Klare Positionierung, fokussierte Informationen und ein eindeutiger Conversion-Pfad.`),
       services: en ? `Explore the core offer and how it supports ${mission.primary_goal}.` : `Das Kernangebot und wie es ${mission.primary_goal} unterstützt.`,
+      menu: en ? `Only supplied products and prices are shown.` : `Gezeigt werden ausschließlich bereitgestellte Produkte und Preise.`,
       about: en ? `A focused digital expression of ${mission.brand_positioning}.` : `Eine fokussierte digitale Übersetzung von ${mission.brand_positioning}.`,
       contact: en ? mission.conversion_goal : mission.conversion_goal,
       faq: en ? `The most important information in one place.` : `Die wichtigsten Informationen an einem Ort.`,
@@ -68,7 +70,7 @@ export function createContentContract(mission, blueprint) {
       faq: existing.faq || faqItems(mission),
       cta: {
         label: existing.cta?.label || (en ? 'Start a conversation' : 'Kontakt aufnehmen'),
-        href: '/contact/',
+        href: /^\/[a-z0-9/-]*$/i.test(String(existing.cta?.href || '')) ? String(existing.cta.href) : '/contact/',
         goal: mission.conversion_goal
       },
       legal_placeholder: ['legal-notice', 'privacy'].includes(page.id)
