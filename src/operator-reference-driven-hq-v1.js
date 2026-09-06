@@ -209,8 +209,8 @@ body.reference-hq-v1 #hq{width:min(100%,1540px)}
 .rf-activity-row{display:grid;grid-template-columns:10px minmax(0,1fr);gap:8px;padding:8px 0;border-top:1px solid #112d45}
 .rf-activity-row:first-child{border-top:0}
 .rf-activity-icon{color:#53baff;font-size:9px}
-.rf-activity-main strong{display:block;color:#d8e5ee;font-size:8.5px;font-weight:600}
-.rf-activity-main span{display:block;margin-top:2px;color:#69879d;font-size:7.5px}
+.rf-activity-main strong{display:block;color:#d8e5ee;font-size:8px;font-weight:600}
+.rf-activity-main span{display:block;margin-top:2px;color:#69879d;font-size:7px}
 .rf-bottom-strip{display:grid;grid-template-columns:1.05fr .8fr .6fr;gap:10px}
 .rf-bottom-card{min-height:64px;padding:10px 12px;border:1px solid #173f5e;border-radius:8px;background:#081827;display:flex;align-items:center;gap:10px}
 .rf-bottom-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border:1px solid #1d5f8e;border-radius:8px;background:rgba(22,140,255,.10);color:#72c6ff;font-size:16px}
