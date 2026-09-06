@@ -20,7 +20,7 @@ export function createSeoArchitecture(pageIntents = [], mission = {}, architectu
 
 function structuredDataTypesFor(pageType, mission={}) {
   const types=['Organization'];
-  const local=/local|bakery|bäckerei|restaurant|dentist|real estate|hospitality/i.test(String(mission.industry||''));
+  const local=/local|bakery|bäckerei|restaurant|gelateria|gelato|eisdiele|ice cream|dentist|real estate|hospitality/i.test(String(mission.industry||''));
   if (local) types.push('LocalBusiness');
   if (pageType==='services') types.push('Service');
   if (pageType==='product') types.push('Product');
