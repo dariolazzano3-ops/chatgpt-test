@@ -1,0 +1,9 @@
+{
+  "schema": "jarvis-disable-workersdev-request-v1",
+  "worker": "jarvis-private-staging",
+  "confirmation": "DISABLE_JARVIS_LEGACY_WORKERS_DEV",
+  "reason": "remove inherited legacy Gelato account subdomain from JARVIS exposure",
+  "production_deploy": false,
+  "account_subdomain_rename": false,
+  "aurentara_routes_modified": false
+}
