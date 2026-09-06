@@ -199,7 +199,8 @@ const SCRIPT = String.raw`<script id="aurentara-operator-final-localization-v1-s
         const failed=state.data===before.data&&Boolean(document.getElementById('error')?.textContent?.trim());
         if(failed&&before.detail){
           state.detail=before.detail;
-          if(typeof renderProjectDetail==='function')renderProjectDetail(before.detail);
+          const existingDetail=document.getElementById('project-detail');
+          if((!existingDetail||!existingDetail.textContent?.trim())&&typeof renderProjectDetail==='function')renderProjectDetail(before.detail);
         }
         saveContext();
         return result;
