@@ -2,7 +2,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import pixelmatch from 'pixelmatch';
 import pngjs from 'pngjs';
-import ssim from 'ssim.js';
+import ssimPackage from 'ssim.js';
+
+const ssim = typeof ssimPackage === 'function'
+  ? ssimPackage
+  : typeof ssimPackage?.ssim === 'function'
+    ? ssimPackage.ssim
+    : typeof ssimPackage?.default === 'function'
+      ? ssimPackage.default
+      : null;
 
 const { PNG } = pngjs;
 
@@ -90,6 +98,7 @@ function compareDecoded(reference,actual,options={}){
   });
   const total=reference.width*reference.height;
   const pixelRatio=total?diffPixels/total:0;
+  if(typeof ssim!=='function') throw new Error('SSIM_ADAPTER_UNAVAILABLE');
   const perceptual=ssim(
     {data:reference.data,width:reference.width,height:reference.height},
     {data:actual.data,width:actual.width,height:actual.height}
