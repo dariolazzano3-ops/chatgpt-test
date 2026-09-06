@@ -76,7 +76,7 @@ try {
   if (referenceHq) {
     assert.equal(await page.locator('body').evaluate((el) => el.classList.contains('reference-hq-v1')), true, 'Reference 01 HQ mode must be active');
     assert.equal(await page.locator('.rf-hero h1').innerText(), 'RIOSYSTEMS DASHBOARD');
-    for (const label of ['HQ','Portfolio','Project Overview','Sources','Knowledge','Preview','Approvals','Activity','Operator AI','Settings']) {
+    for (const label of ['Dashboard','Portfolio','Aufmerksamkeit','Freigaben','Kosten','Projektübersicht','Quellen','Projektwissen','Umsetzung','Vorschau','Prüfungen','Aktivität','Factories','Providers','System Health','Audit Log','Einstellungen','Operator KI']) {
       assert.equal(await page.locator('.rf-hq-nav-main button').filter({ hasText: label }).count(), 1, 'Reference HQ navigation missing '+label);
     }
   } else {
