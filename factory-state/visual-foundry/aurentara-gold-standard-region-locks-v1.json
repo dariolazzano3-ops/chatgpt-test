@@ -3,16 +3,16 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "6461df38083a255e7fd4b2455eb4735a7beeeaf9",
-  "workflow_run_id": 34059244271,
+  "evidence_head": "374ce836e235813a4e3f0378feebdb6a77d9ecd3",
+  "workflow_run_id": 34059471051,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.280128,
-    "pixel_difference_percent": 15.2444,
-    "geometry_status": "PASS_EXCEPT_PRIMARY_NAVIGATION_CONSTRAINT",
+    "ssim": 0.287996,
+    "pixel_difference_percent": 15.2408,
+    "geometry_status": "PASS_EXCEPT_PRE_EXISTING_PRIMARY_NAVIGATION_CONSTRAINT",
     "overflow_px": 0,
-    "color_score": 0.992794,
-    "edge_score": 0.174703
+    "color_score": 0.994725,
+    "edge_score": 0.178034
   },
   "regions": [
     {
@@ -41,11 +41,13 @@
     },
     {
       "region_id": "hero",
-      "status": "ACTIVE_CLOSURE_ACCEPTED_GAIN",
-      "ssim": 0.488467,
-      "baseline_ssim": 0.36791129903428704,
-      "pixel_difference_percent": 15.9708,
-      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
+      "status": "TYPOGRAPHY_ACCEPTED_PENDING_REPRODUCTION",
+      "ssim": 0.519889,
+      "baseline_ssim": 0.488467,
+      "pixel_difference_percent": 15.9352,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+      "hero_title_raster_ssim": 0.228945,
+      "hero_title_raster_baseline_ssim": 0.064909
     },
     {
       "region_id": "kpi_band",
@@ -112,14 +114,15 @@
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     }
   ],
-  "active_delta_cluster": "HERO_TYPOGRAPHY",
-  "next_candidate": "HERO_TITLE_TYPOGRAPHY_CALIBRATION",
+  "active_delta_cluster": "HERO_TYPOGRAPHY_REPRODUCTION",
+  "next_candidate": "HERO_TYPOGRAPHY_T5_ISOLATED_REPRODUCTION",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
   "public_deploy": false,
   "accepted_candidates": [
-    "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT"
+    "REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT",
+    "HERO_TYPOGRAPHY_T5"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json"

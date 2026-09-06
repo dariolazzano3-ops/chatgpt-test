@@ -249,7 +249,7 @@
       },
       {
         "region_id": "hero",
-        "baseline_score": 0.488467
+        "baseline_score": 0.519889
       },
       {
         "region_id": "kpi_band",
@@ -378,6 +378,26 @@
         "height": 119
       },
       "usage_scope": "GOLD_STANDARD_POC_ONLY"
+    },
+    {
+      "candidate_id": "HERO_TYPOGRAPHY_T5",
+      "region_id": "hero",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_PENDING_REPRODUCTION",
+      "accepted_from_workflow_run": 34059471051,
+      "accepted_head": "374ce836e235813a4e3f0378feebdb6a77d9ecd3",
+      "typography": {
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION",
+        "original_font_identity_claimed": false,
+        "font_family": "Arial, sans-serif",
+        "font_size_px": 37,
+        "font_weight": 600,
+        "line_height_px": 38.85,
+        "letter_spacing_px": 5.5,
+        "scale_x": 1.32,
+        "hero_title_raster_baseline_ssim": 0.064909,
+        "hero_title_raster_candidate_ssim": 0.228945
+      }
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",

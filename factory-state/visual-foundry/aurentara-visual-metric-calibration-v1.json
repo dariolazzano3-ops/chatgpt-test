@@ -3,8 +3,8 @@
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "baseline_workflow_run_id": 34059244271,
-  "baseline_head": "6461df38083a255e7fd4b2455eb4735a7beeeaf9",
+  "baseline_workflow_run_id": 34059471051,
+  "baseline_head": "374ce836e235813a4e3f0378feebdb6a77d9ecd3",
   "reference_transport": "EXACT_APPROVED_JPEG_HASH_LOCKED_DECODED_TO_PNG",
   "runtime_capture": "PLAYWRIGHT_PNG",
   "comparator": {
@@ -19,10 +19,10 @@
     "reason": "Previous closure evidence used JPEG runtime capture and a different SSIM calculation path. Scores are retained historically but cannot be used as soft-lock baselines against PNG_SSIMJS_PIXELMATCH_V1."
   },
   "global": {
-    "ssim": 0.280128,
-    "pixel_difference_percent": 15.2444,
-    "color_score": 0.992794,
-    "edge_score": 0.174703
+    "ssim": 0.287996,
+    "pixel_difference_percent": 15.2408,
+    "color_score": 0.994725,
+    "edge_score": 0.178034
   },
   "regions": [
     {
@@ -42,8 +42,8 @@
     },
     {
       "region_id": "hero",
-      "ssim": 0.488467,
-      "pixel_difference_percent": 15.9708
+      "ssim": 0.519889,
+      "pixel_difference_percent": 15.9352
     },
     {
       "region_id": "kpi_band",
@@ -84,11 +84,18 @@
       "region_id": "bottom_strip",
       "ssim": 0.428485,
       "pixel_difference_percent": 18.8702
+    },
+    {
+      "region_id": "hero_title_raster",
+      "ssim": 0.228945,
+      "pixel_difference_percent": 35.5645,
+      "baseline_before_typography_ssim": 0.064909
     }
   ],
   "soft_lock_tolerance_ssim": 0.002,
   "acceptance_thresholds_unchanged": true,
   "wave20_locked": true,
   "production_deploy": false,
-  "public_deploy": false
+  "public_deploy": false,
+  "acceptance_status": "TYPOGRAPHY_T5_ACCEPTED_PENDING_REPRODUCTION"
 }
