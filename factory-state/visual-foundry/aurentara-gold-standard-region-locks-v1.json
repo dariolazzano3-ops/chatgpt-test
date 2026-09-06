@@ -117,7 +117,7 @@
     }
   ],
   "active_delta_cluster": "REMAINING_TYPOGRAPHY",
-  "next_candidate": "RIGHT_RAIL_TYPOGRAPHY_P1",
+  "next_candidate": "COST_TYPOGRAPHY_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -175,5 +175,8 @@
     "primary_navigation_ssim_after": 0.499364,
     "sidebar_ssim_before": 0.476646,
     "sidebar_ssim_after": 0.508022
-  }
+  },
+  "rejected_or_no_change": [
+    "SYSTEM_STATUS_TYPOGRAPHY_R1_R6_NO_CHANGE"
+  ]
 }
