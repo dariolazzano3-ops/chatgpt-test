@@ -17,14 +17,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - id: A0_CONTROL
+          - id: R0_CONTROL
             title_size: 13
             title_weight: 650
             subtitle_size: 8.5
-          - id: H5_LOCAL
+          - id: R1
+            title_size: 15
+            title_weight: 650
+            subtitle_size: 10
+          - id: R2
+            title_size: 15
+            title_weight: 700
+            subtitle_size: 9.5
+          - id: R3
+            title_size: 14.5
+            title_weight: 700
+            subtitle_size: 10
+          - id: R4
+            title_size: 14.5
+            title_weight: 700
+            subtitle_size: 9.5
+          - id: R5_H5
             title_size: 15
             title_weight: 700
             subtitle_size: 10
+          - id: R6
+            title_size: 14.75
+            title_weight: 700
+            subtitle_size: 10
+          - id: R7
+            title_size: 15
+            title_weight: 700
+            subtitle_size: 9.75
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
