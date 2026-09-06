@@ -9,7 +9,9 @@
     "sidebar_ssim": 0.508022,
     "primary_navigation_ssim": 0.499364,
     "global_ssim": 0.371182,
-    "global_pixel_difference_percent": 14.6836
+    "global_pixel_difference_percent": 14.6836,
+    "sidebar_nav_text_raster_ssim": 0.518898,
+    "sidebar_nav_text_raster_pixel_difference_percent": 11.2469
   },
   "candidates": [
     {
@@ -81,9 +83,12 @@
   ],
   "decision": "REJECT_ALL",
   "reason": "No candidate satisfies soft-lock tolerance. Best candidate S1 regresses primary_navigation by 0.003052 > 0.002.",
-  "next_step": "Measure exact current baseline with sidebar_nav_text_raster, then run a narrower font-size sweep around the current 10.5px / 500 baseline.",
+  "next_step": "Keep navigation typography unchanged. Open sidebar brand typography only.",
   "wave20_locked": true,
   "production_deploy": false,
   "public_deploy": false,
-  "merge": false
+  "merge": false,
+  "exact_baseline_workflow_run": 34062787330,
+  "exact_baseline_head": "588d0d25f1a74dfc57b69e223df13536f51cfb94",
+  "confirmation": "ALL_SIX_CANDIDATES_WORSE_THAN_EXACT_BASELINE_FOR_SIDEBAR_NAV_TEXT_RASTER"
 }
