@@ -444,6 +444,10 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-label{font-size:10px;color:#d3dfeb}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-value{font-size:25px;color:#fff}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-meta{margin-top:6px;font-size:8.5px;color:#19dea5}
+/* KPI_TYPOGRAPHY_K6 — accepted measured gain */
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-label{font-size:12px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-value{font-size:28px;font-weight:700}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-kpi-meta{font-size:10px}
 html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-panel{
   border-color:#15577f;border-radius:8px;background:linear-gradient(145deg,rgba(4,20,37,.99),rgba(3,15,29,.99));box-shadow:0 10px 28px rgba(0,25,55,.24)
 }
