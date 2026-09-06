@@ -89,6 +89,20 @@ export function deriveStagingOperatorBindings({ applications = [], policies = []
   };
 }
 
+export function jarvisMemoryBindingPlan(env = process.env) {
+  const serviceRolePresent = Boolean(clean(env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY, 2000));
+  return Object.freeze({
+    source_secret_name: 'RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY',
+    target_binding_name: 'JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY',
+    service_role_source_present: serviceRolePresent,
+    same_supabase_provider_allowed: true,
+    shared_memory_layer: false,
+    jarvis_schema: 'jarvis_private',
+    hamyren_data_flow: false,
+    sensitive_values_returned: false
+  });
+}
+
 export function providerDurabilitySources(env = process.env) {
   const activepiecesPresent = Boolean(clean(env.ACTIVEPIECES_API_KEY, 2000));
   const webflowPresent = Boolean(clean(env.WEBFLOW_SITE_TOKEN, 2000));
@@ -136,6 +150,7 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   const webflowToken = clean(process.env.WEBFLOW_SITE_TOKEN, 2000);
   const expectedWorkerName = clean(process.env.RIOSYSTEMS_ACCESS_EXPECTED_WORKER_NAME || 'riosystems-staging', 120);
   const durabilitySources = providerDurabilitySources(process.env);
+  const jarvisMemoryBinding = jarvisMemoryBindingPlan(process.env);
 
   if (process.env.RIOSYSTEMS_STAGING_BINDINGS_APPROVED !== 'true') throw new Error('STAGING_BINDINGS_APPROVAL_REQUIRED');
   if (process.env.RIOSYSTEMS_ZERO_COST_CONFIRMED !== 'true') throw new Error('ZERO_COST_CONFIRMATION_REQUIRED');
@@ -163,12 +178,14 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
   const workerSecretNamesWritten = [
     'RIOSYSTEMS_OPERATOR_EMAIL',
     'RIOSYSTEMS_ACCESS_AUD',
-    'RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY'
+    'RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY',
+    'JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY'
   ];
 
   putSecret('RIOSYSTEMS_OPERATOR_EMAIL', derived.operator_email, runtime);
   putSecret('RIOSYSTEMS_ACCESS_AUD', derived.audience, runtime);
   putSecret('RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey, runtime);
+  putSecret('JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey, runtime);
 
   if (activepiecesKey) {
     putSecret('ACTIVEPIECES_API_KEY', activepiecesKey, runtime);
@@ -186,6 +203,7 @@ export async function bootstrapStagingWorkerBindings(runtime = {}) {
     access_path: OPERATOR_ACCESS_PATH,
     single_operator_identity_derived: true,
     durable_provider_secret_sources: durabilitySources,
+    jarvis_memory_binding: jarvisMemoryBinding,
     worker_secret_names_written: workerSecretNamesWritten,
     sensitive_values_returned: false,
     production_deploy: false,

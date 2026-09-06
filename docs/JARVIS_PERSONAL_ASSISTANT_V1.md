@@ -165,3 +165,41 @@ Still intentionally unbound:
 - Financial actions OFF
 
 GitHub acceptance is synthetic and repository-local. Live staging verification is read-only.
+
+
+## Private Chat & Session V1
+
+Implemented on the isolated route:
+`/jarvis`
+
+The route is separate from the AURENTARA operator dashboard and HAMYREN customer surface.
+
+Security and session model:
+- Cloudflare Access identity is required before any JARVIS UI or API response
+- the verified operator email is deterministically mapped to a stable JARVIS owner UUID
+- no JARVIS bearer token is issued to browser JavaScript
+- no database service-role credential is exposed to the browser
+- no OAuth credential is persisted in chat, memory, audit, HTML, or browser storage
+- the browser transcript is ephemeral in V1
+- durable memory remains in `jarvis_private`
+- staging fails closed when the durable memory store is not configured
+
+UI/API:
+- `GET /jarvis` private premium command-center shell
+- `GET /jarvis/api/session` safe session projection
+- `GET /jarvis/api/status` capability and safety projection
+- `POST /jarvis/api/chat` JARVIS runtime request
+
+The visual language follows the operator-approved reference direction: dark architectural command center, restrained blue light, central intelligence core, left navigation, status rail, and conversational command surface. It does not copy literal scene assets.
+
+## Standalone Calendar Binding Truth
+
+The repository contains a read-only Google Calendar adapter and the private chat can consume a host-injected calendar connector. The ChatGPT-connected Google Calendar account proved the read contract externally, but that OAuth session is not automatically available to the standalone Cloudflare Worker.
+
+Therefore:
+- Calendar read contract = IMPLEMENTED
+- Calendar read synthetic end-to-end chat = PASS
+- standalone Worker Google OAuth binding = NOT YET ACTIVATED
+- Calendar write = OFF
+
+No repository code pretends the ChatGPT connector session is a Worker credential.
