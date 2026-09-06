@@ -62,7 +62,9 @@ const projectThumbnailsCandidateId=String(process.env.VISUAL_FOUNDRY_PROJECT_THU
 const projectThumbnailsCandidateEnabled=projectThumbnailsCandidateId==='PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1';
 const projectThumbnailsScope=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_SCOPE||'BOTH').trim().toUpperCase();
 
-const acceptedHeroTypography=(stencilSession.accepted_candidates||[]).find(x=>['HERO_TYPOGRAPHY_T11_V2','HERO_TYPOGRAPHY_T5'].includes(x.candidate_id)&&x.apply_by_default===true);
+const acceptedHeroTypography=
+  (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
+  ||(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T5'&&x.apply_by_default===true);
 const explicitHeroTypography=String(process.env.VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE||'').trim();
 const heroTypographyCandidateId=explicitHeroTypography||(acceptedHeroTypography?.candidate_id||'');
 const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X??acceptedHeroTypography?.typography?.scale_x??1);
