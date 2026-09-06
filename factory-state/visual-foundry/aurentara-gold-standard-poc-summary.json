@@ -1,0 +1,67 @@
+{
+  "schema": "riosystems.aurentara-gold-standard-poc-summary.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_version": "1.0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "three_isolated_runs_completed": true,
+  "workflow_run_id": 34048965898,
+  "isolated_starting_commit": "924662f0ee155b4a85127d28c265baca8d85f3e2",
+  "reproducibility": {
+    "status": "PASS",
+    "identical_desktop_outputs": true,
+    "runtime_sha256": "85c5be9b30be7743a3bb4edc6fd7c6e1e20cedfdaced56c17df1b669412e72a6",
+    "identical_diff_outputs": true,
+    "diff_sha256": "68e1fdd50f20e22dc8630ba37cc7518b2d7d396d9a4e0cd04aac62f0cfbb7a30"
+  },
+  "common_metrics": {
+    "structural_score": 0.06793701148316125,
+    "geometry_score": 0.36363636363636365,
+    "perceptual_score": 0.38688554297100436,
+    "pixel_difference_percent": 22.246106465657554,
+    "typography_score": 0.4076444444444444,
+    "color_score": 0.9921284379299642
+  },
+  "run_results": [
+    {
+      "run": 1,
+      "functional": "PASS",
+      "visual": "FAIL",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "fixture_leak_count": 0,
+      "runtime_truth_mutation_count": 0,
+      "architecture_drift_count": 0,
+      "cost_usd": 0,
+      "human": "NOT_EVALUATED"
+    },
+    {
+      "run": 2,
+      "functional": "PASS",
+      "visual": "FAIL",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "fixture_leak_count": 0,
+      "runtime_truth_mutation_count": 0,
+      "architecture_drift_count": 0,
+      "cost_usd": 0,
+      "human": "NOT_EVALUATED"
+    },
+    {
+      "run": 3,
+      "functional": "PASS",
+      "visual": "FAIL",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "fixture_leak_count": 0,
+      "runtime_truth_mutation_count": 0,
+      "architecture_drift_count": 0,
+      "cost_usd": 0,
+      "human": "NOT_EVALUATED"
+    }
+  ],
+  "critical_region_fail_count": 8,
+  "machine_acceptance": "FAIL",
+  "closure_status": "HUMAN_DECISION_REQUIRED",
+  "closure_reason": "FIDELITY_CRITICAL_ASSET_AND_TYPOGRAPHY_INPUT_REQUIRED",
+  "real_visual_foundry_poc_acceptance": "FAIL",
+  "human_visual_approval": "NOT_REQUESTED_MACHINE_FAIL",
+  "wave20": "LOCKED",
+  "no_fake_success": true
+}
