@@ -7,6 +7,7 @@ import { directVisualQuality, reviewCro, applyCroMissionRepairs } from './qualit
 import { createMotionDesignContract, createLocalizationArchitecture } from './motion-localization.js';
 import { createMigrationPlan, createBusinessIntegrationPlan, createExperimentContract } from './migration-integration.js';
 import { reconstructPremiumWebsite } from './native-reconstruction.js';
+import { applyPremiumStaticWebV1Profile } from './premium-static-web-v1.js';
 
 export const AUTONOMOUS_QUALITY_LEVELS = Object.freeze({
   STANDARD:{ fidelity_target:85, max_visual_repair_attempts:2, design_depth:'standard', motion_depth:'low', default_visual_specialist:false },
@@ -136,6 +137,15 @@ export function buildAutonomousPremiumWebsite(input = {}, options = {}) {
     screenshot_report:input.screenshot_report || options.screenshot_report
   });
   if (!build.artifact) return { ...build, website_strategy:strategy, design_intent:intent, originality_status:originality, variable_cost_eur:0, production_deploy:false };
+  const buildProfile = applyPremiumStaticWebV1Profile({
+    mission,
+    artifact:build.artifact,
+    provider_route:build.route,
+    approved_reference_id:input.approved_reference_id,
+    approved_reference_hash:input.approved_reference_hash,
+    reference_registry_entry:input.reference_registry_entry
+  });
+  observer.emit('build_profile',{ profile_id:buildProfile.profile_id, status:buildProfile.status, source_files:buildProfile.source_package?.manifest?.file_count || 0 });
   observer.emit('pages_generated',{ count:build.artifact.pages?.length || 0 });
   observer.emit('QA_runs',{ website:build.website_qa?.status, visual_fidelity:build.visual_fidelity?.status });
   observer.emit('repair_attempts',{ technical:build.base_build?.repair_history?.length || 0, visual:build.visual_repair_history?.length || 0, cro:croPreparation.repair_history.length });
@@ -146,10 +156,11 @@ export function buildAutonomousPremiumWebsite(input = {}, options = {}) {
   observer.emit('CRO_changes',{ repairs:croPreparation.repair_history.length, status:cro.status });
 
   const blockingRights = build.asset_rights?.status === 'BLOCKED';
-  const ok = build.ok && visualQuality.status !== 'BLOCK' && cro.status === 'PASS' && !blockingRights;
+  const ok = build.ok && buildProfile.status !== 'BLOCK' && visualQuality.status !== 'BLOCK' && cro.status === 'PASS' && !blockingRights;
   observer.emit('final_status',{ status:ok ? 'VERIFIED_AUTONOMOUS_PREMIUM_WEB_DELIVERABLE' : 'BLOCKED_AUTONOMOUS_PREMIUM_QA' });
 
   const delivery = enrichedManifest({ build, strategy, intent, fusion, competitor, industry, motion, localization, visualQuality, cro, integration, migration, experiment, originality, observer, quality });
+  delivery.build_profile = build.artifact.build_profile;
   const root = build.artifact.project_root;
   const files = build.artifact.files;
   files[`${root}/website-strategy.json`] = JSON.stringify(strategy,null,2);
@@ -195,6 +206,7 @@ export function buildAutonomousPremiumWebsite(input = {}, options = {}) {
     technical_QA:build.website_qa,
     repair_history:delivery.repair_history,
     provider_route:build.route,
+    build_profile:buildProfile,
     cost_metadata:delivery.cost_metadata,
     delivery_manifest:delivery,
     observability:observer.events,
