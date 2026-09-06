@@ -281,7 +281,7 @@
       },
       {
         "region_id": "portfolio",
-        "baseline_score": 0.341706
+        "baseline_score": 0.342334
       }
     ],
     "excluded_active_or_regressed": [],
@@ -644,6 +644,32 @@
       "global_regression_within_tolerance": true,
       "baseline_attention_header_raster_ssim": 0.565137,
       "accepted_attention_header_raster_ssim": 0.543141
+    },
+    {
+      "candidate_id": "PORTFOLIO_HEADER_TYPOGRAPHY_P1",
+      "region_id": "portfolio",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_workflow_run": 34067873643,
+      "verification_workflow_run": 34067963632,
+      "verification_head": "a1561b29dd172580f04fae5707664eb13262687c",
+      "typography": {
+        "title_font_size_px": 12,
+        "title_font_weight": 650,
+        "subtitle_font_size_px": 8,
+        "original_font_identity_claimed": false,
+        "substitution_status": "METRICALLY_CALIBRATED_SUBSTITUTION"
+      },
+      "baseline_portfolio_ssim": 0.341706,
+      "accepted_portfolio_ssim": 0.342334,
+      "baseline_portfolio_pixel_difference_percent": 19.071,
+      "accepted_portfolio_pixel_difference_percent": 19.0546,
+      "baseline_portfolio_header_raster_ssim": 0.475868,
+      "accepted_portfolio_header_raster_ssim": 0.480663,
+      "baseline_global_ssim": 0.391673,
+      "accepted_global_ssim": 0.391817,
+      "baseline_global_pixel_difference_percent": 14.3804,
+      "accepted_global_pixel_difference_percent": 14.3778
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
