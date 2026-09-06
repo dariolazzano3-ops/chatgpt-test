@@ -78,9 +78,8 @@ try{
   assert.match(await page.locator('.rf-env').innerText(),/STAGING/i,'HQ must show truthful staging environment');
   assert.match(await page.locator('.rf-selected').innerText(),/Production locked/i,'safety truth must remain visible');
 
-  const navLabels=await page.locator('.rf-hq-nav-main button').allInnerTexts();
   for(const label of ['HQ','Portfolio','Project Overview','Sources','Knowledge','Preview','Approvals','Activity','Operator AI','Settings']){
-    assert.equal(navLabels.includes(label),true,'Reference sidebar missing '+label);
+    assert.equal(await page.locator('.rf-hq-nav-main button').filter({hasText:label}).count(),1,'Reference sidebar missing '+label);
   }
 
   const projectsPayload=await (await page.request.get(origin+'/operator/api/projects')).json();
