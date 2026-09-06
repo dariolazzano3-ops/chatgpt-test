@@ -58,9 +58,12 @@ const acceptedSidebarLogo=(stencilSession.accepted_candidates||[]).find(x=>['SID
 const explicitSidebarLogo=String(process.env.VISUAL_FOUNDRY_SIDEBAR_LOGO_CANDIDATE||'').trim();
 const sidebarLogoCandidateId=explicitSidebarLogo||(acceptedSidebarLogo?'SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1':'');
 const sidebarLogoCandidateEnabled=sidebarLogoCandidateId==='SIDEBAR_LOGO_REFERENCE_EXTRACTED_P1';
-const projectThumbnailsCandidateId=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_CANDIDATE||'').trim();
+const acceptedProjectThumbnails=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='PROJECT_THUMBNAILS_PORTFOLIO_ONLY_P1'&&x.apply_by_default===true);
+const explicitProjectThumbnails=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_CANDIDATE||'').trim();
+const projectThumbnailsCandidateId=explicitProjectThumbnails||(acceptedProjectThumbnails?'PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1':'');
 const projectThumbnailsCandidateEnabled=projectThumbnailsCandidateId==='PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1';
-const projectThumbnailsScope=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_SCOPE||'BOTH').trim().toUpperCase();
+const projectThumbnailsScope=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_SCOPE||acceptedProjectThumbnails?.scope||'BOTH').trim().toUpperCase();
+const projectThumbnailsEvidenceCandidateId=acceptedProjectThumbnails?.candidate_id||projectThumbnailsCandidateId;
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -513,7 +516,8 @@ try{
     },{assets,scope:projectThumbnailsScope});
     projectThumbnailsCandidateState={
       status:applied.status,
-      candidate_id:'PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1',
+      candidate_id:projectThumbnailsEvidenceCandidateId,
+      underlying_asset_candidate:'PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1',
       scope:projectThumbnailsScope,
       provenance:'REFERENCE_EXTRACTED',
       usage_scope:'GOLD_STANDARD_POC_ONLY',
