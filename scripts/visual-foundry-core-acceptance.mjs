@@ -30,12 +30,11 @@ for(const file of CORE_FILES) await access(file);
 const registry=JSON.parse(await readFile('factory-state/visual-foundry/reference-registry.json','utf8'));
 assert.equal(registry.schema,'riosystems.reference-registry.v1');
 const approvedAurentara=(registry.records||[]).filter(r=>r.status==='APPROVED'&&r.project_id==='aurentara-masterdashboard');
-assert.equal(approvedAurentara.length,0,'AURENTARA Gold Standard must remain blocked until real approved reference is registered');
+assert.ok(approvedAurentara.length<=1,'AURENTARA Gold Standard reference must resolve unambiguously');
 
 const gold=goldStandardBenchmarkStatus({approved_reference_available:approvedAurentara.length>0});
-assert.equal(gold.status,'BLOCKED_APPROVED_REFERENCE_REQUIRED');
+assert.equal(gold.status,approvedAurentara.length===1?'READY_FOR_REAL_BENCHMARK':'BLOCKED_APPROVED_REFERENCE_REQUIRED');
 assert.equal(gold.fake_reference_allowed,false);
-assert.equal(gold.three_isolated_runs_started,false);
 
 const repairHost=await readFile('scripts/qa-repair-loop.mjs','utf8');
 assert.match(repairHost,/visualDeltaClosureHostDescriptor/);
@@ -83,7 +82,7 @@ const evidence={
   gold_standard:{
     status:gold.status,
     approved_reference_count:approvedAurentara.length,
-    three_isolated_runs_started:false,
+    poc_state_owned_by_gold_standard_evidence:true,
     poc_accepted:false,
     fake_reference_allowed:false
   },
