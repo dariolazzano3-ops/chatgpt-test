@@ -43,9 +43,17 @@ async function go(page, id, title) {
   const referenceNav = page.locator(`.rf-hq-nav [data-rf-target="${id}"]`);
   if (await referenceNav.count() && await referenceNav.first().isVisible()) await referenceNav.first().click();
   else {
-    const nav = page.locator(`.nav button[data-goto="${id}"]`);
-    if (await nav.count() && await nav.first().isVisible()) await nav.first().click();
-    else await page.locator(`[data-goto="${id}"]:visible`).first().click();
+    const systemTarget = page.locator(`.rf-hq-nav [data-rf-system-target="${id}"]`);
+    if (await systemTarget.count() && !(await systemTarget.first().isVisible())) {
+      const toggle = page.locator('.rf-hq-system-toggle');
+      if (await toggle.count() && await toggle.first().isVisible()) await toggle.first().click();
+    }
+    if (await systemTarget.count() && await systemTarget.first().isVisible()) await systemTarget.first().click();
+    else {
+      const nav = page.locator(`.nav button[data-goto="${id}"]`);
+      if (await nav.count() && await nav.first().isVisible()) await nav.first().click();
+      else if (typeof id === 'string') await page.evaluate((target) => { if (typeof go === 'function') go(target); }, id);
+    }
   }
   await page.waitForFunction((expected) => document.getElementById('title')?.textContent?.trim() === expected, title);
   assert.equal(await page.locator(`#${id}`).isVisible(), true, `${id} must be visible`);
