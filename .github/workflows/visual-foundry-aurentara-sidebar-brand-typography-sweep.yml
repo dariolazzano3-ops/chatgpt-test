@@ -1,0 +1,78 @@
+name: Visual Foundry AURENTARA Sidebar Brand Typography Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-sidebar-brand-typography-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sidebar-brand-typography:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: B1
+            title_size: 17.0
+            title_spacing: 0.24
+            tagline_size: 7.5
+            tagline_width: 134
+          - id: B2
+            title_size: 17.0
+            title_spacing: 0.22
+            tagline_size: 7.5
+            tagline_width: 134
+          - id: B3
+            title_size: 17.0
+            title_spacing: 0.20
+            tagline_size: 8.0
+            tagline_width: 134
+          - id: B4
+            title_size: 16.5
+            title_spacing: 0.24
+            tagline_size: 8.0
+            tagline_width: 132
+          - id: B5
+            title_size: 17.5
+            title_spacing: 0.22
+            tagline_size: 8.0
+            tagline_width: 136
+          - id: B6
+            title_size: 16.5
+            title_spacing: 0.22
+            tagline_size: 7.5
+            tagline_width: 132
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_HERO_CANDIDATE: REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT
+      VISUAL_FOUNDRY_HERO_TYPOGRAPHY_CANDIDATE: T5
+      VISUAL_FOUNDRY_HERO_TITLE_SCALE_X: 1.32
+      VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX: 5.5
+      VISUAL_FOUNDRY_HERO_TITLE_WEIGHT: 600
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_TYPOGRAPHY_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_TITLE_SIZE_PX: ${{ matrix.title_size }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_TITLE_LETTER_SPACING_EM: ${{ matrix.title_spacing }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_SIZE_PX: ${{ matrix.tagline_size }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_WIDTH_PX: ${{ matrix.tagline_width }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-sidebar-brand-typography-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
