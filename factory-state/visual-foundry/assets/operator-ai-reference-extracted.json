@@ -69,8 +69,7 @@
         },
         "contamination_zero": {
           "source_canvas_y_gte": 429,
-          "source_canvas_x_lt": 1497,
-          "source_canvas_x_gte": 1904
+          "source_canvas_x_lt": 1497
         },
         "border_zero": {
           "source_canvas_x_gte": 1499,
