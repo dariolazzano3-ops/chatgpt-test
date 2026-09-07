@@ -250,6 +250,34 @@ function extractMaskedOperatorGlobe(asset){
   return {...base,mask_algorithm:m.algorithm,src:'data:image/png;base64,'+bytes.toString('base64')};
 }
 
+function extractLumaAlphaUiAsset(asset,{scrubBadge=false}={}){
+  const base=extractApprovedReferenceAsset(asset);
+  const decoded=PNG.sync.read(Buffer.from(base.src.split(',')[1],'base64'));
+  const out=new PNG({width:decoded.width,height:decoded.height});
+  for(let y=0;y<decoded.height;y++){
+    for(let x=0;x<decoded.width;x++){
+      const i=(y*decoded.width+x)*4;
+      const r=decoded.data[i],g=decoded.data[i+1],b=decoded.data[i+2];
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      let a=Math.max(0,Math.min(255,(lum-16)*11));
+      const coolBoost=Math.max(0,b-r)*2.2+Math.max(0,g-r)*0.9;
+      a=Math.max(a,Math.max(0,Math.min(210,coolBoost*5)));
+      if(a<12)a=0;
+      if(scrubBadge){
+        const red=(r>=120&&r>g*1.35&&r>b*1.25);
+        const badgeRect=(x>=24&&y<=20);
+        if(red||badgeRect)a=0;
+      }
+      out.data[i]=r;
+      out.data[i+1]=g;
+      out.data[i+2]=b;
+      out.data[i+3]=Math.round(a);
+    }
+  }
+  const bytes=PNG.sync.write(out);
+  return {...base,mask_algorithm:scrubBadge?'LUMA_ALPHA_WITH_RED_BADGE_SCRUB_V1':'LUMA_ALPHA_UI_V1',src:'data:image/png;base64,'+bytes.toString('base64')};
+}
+
 const child=spawn(process.execPath,[
   'node_modules/wrangler/bin/wrangler.js','dev','--env','staging','--port',String(port),
   '--var','RIOSYSTEMS_ENVIRONMENT:local',
@@ -1194,13 +1222,19 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 
   let toolbarDetailCandidateState={status:'DISABLED',candidate_id:toolbarDetailCandidateId||null,variant:toolbarDetailVariant};
   if(toolbarDetailCandidateId){
-    const toolbarAssets=(toolbarReferenceAssets.assets||[]).map(extractApprovedReferenceAsset);
-    const searchAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_SEARCH_ICON');
-    const globeAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_REGION_ICON');
-    const sunAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_THEME_ICON');
-    const avatarAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_OPERATOR_AVATAR');
-    assert.ok(searchAsset&&globeAsset&&sunAsset&&avatarAsset,'TOOLBAR_REFERENCE_ASSETS_INCOMPLETE');
-    toolbarDetailCandidateState=await page.evaluate(({candidate_id,variant,searchAsset,globeAsset,sunAsset,avatarAsset})=>{
+    const toolbarSources=toolbarReferenceAssets.assets||[];
+    const searchSource=toolbarSources.find(x=>x.role==='TOOLBAR_SEARCH_ICON');
+    const globeSource=toolbarSources.find(x=>x.role==='TOOLBAR_REGION_ICON');
+    const sunSource=toolbarSources.find(x=>x.role==='TOOLBAR_THEME_ICON');
+    const avatarSource=toolbarSources.find(x=>x.role==='TOOLBAR_OPERATOR_AVATAR');
+    const bellSource=toolbarSources.find(x=>x.role==='TOOLBAR_NOTIFICATION_ICON');
+    assert.ok(searchSource&&globeSource&&sunSource&&avatarSource&&bellSource,'TOOLBAR_REFERENCE_ASSETS_INCOMPLETE');
+    const searchAsset=extractLumaAlphaUiAsset(searchSource);
+    const globeAsset=extractLumaAlphaUiAsset(globeSource);
+    const sunAsset=extractLumaAlphaUiAsset(sunSource);
+    const avatarAsset=extractApprovedReferenceAsset(avatarSource);
+    const bellAsset=extractLumaAlphaUiAsset(bellSource,{scrubBadge:true});
+    toolbarDetailCandidateState=await page.evaluate(({candidate_id,variant,searchAsset,globeAsset,sunAsset,avatarAsset,bellAsset})=>{
       if(candidate_id==='TB0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
       const toolbar=document.querySelector('.rf-toolbar');
       const search=toolbar?.querySelector('.rf-search');
@@ -1216,13 +1250,13 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
       const useBell=variant==='FULL';
       if(!useOperator)throw new Error('TOOLBAR_DETAIL_VARIANT_INVALID:'+variant);
 
-      const makeImg=(asset,size,blend=true)=>{
+      const makeImg=(asset,size)=>{
         const img=document.createElement('img');
         img.alt='';
         img.setAttribute('aria-hidden','true');
         img.src=asset.src;
         img.dataset.vfToolbarReferenceAsset=asset.asset_id;
-        Object.assign(img.style,{display:'block',width:size+'px',height:size+'px',maxWidth:'none',objectFit:'fill',mixBlendMode:blend?'screen':'normal'});
+        Object.assign(img.style,{display:'block',width:size+'px',height:size+'px',maxWidth:'none',objectFit:'fill',mixBlendMode:'normal'});
         return img;
       };
 
@@ -1233,7 +1267,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
         searchLead.style.placeItems='center';
         searchLead.style.width='22px';
         searchLead.style.height='22px';
-        searchLead.appendChild(makeImg(searchAsset,22,true));
+        searchLead.appendChild(makeImg(searchAsset,22));
       }
 
       if(useRegion){
@@ -1241,7 +1275,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
         region.style.boxSizing='border-box';
         region.style.justifyContent='flex-start';
         if(!region.querySelector('[data-vf-toolbar-region-icon]')){
-          const globe=makeImg(globeAsset,22,true);
+          const globe=makeImg(globeAsset,22);
           globe.dataset.vfToolbarRegionIcon='true';
           region.prepend(globe);
         }
@@ -1261,13 +1295,15 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
           theme.setAttribute('aria-disabled','true');
           theme.tabIndex=-1;
           theme.style.pointerEvents='none';
-          theme.appendChild(makeImg(sunAsset,28,true));
+          theme.appendChild(makeImg(sunAsset,28));
           right.insertBefore(theme,operator);
         }
         Object.assign(theme.style,{width:'34px',height:'34px',padding:'0',border:'0',background:'transparent',display:'grid',placeItems:'center',flex:'0 0 34px'});
 
         let notify=right.querySelector('.rf-notify');
         if(useBell){
+          const existingCount=Number(notify?.querySelector('b')?.textContent||0);
+          const actualCount=Number.isFinite(existingCount)?existingCount:0;
           if(!notify){
             notify=document.createElement('button');
             notify.type='button';
@@ -1276,15 +1312,21 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
             notify.setAttribute('aria-disabled','true');
             notify.tabIndex=-1;
             notify.style.pointerEvents='none';
-            notify.textContent='♧';
             right.insertBefore(notify,operator);
           }
-          const actualCount=Number(notify.querySelector('b')?.textContent||0);
-          notify.dataset.vfRuntimeDecisionCount=String(Number.isFinite(actualCount)?actualCount:0);
+          notify.textContent='';
+          notify.appendChild(makeImg(bellAsset,32));
+          notify.dataset.vfRuntimeDecisionCount=String(actualCount);
           Object.assign(notify.style,{position:'relative',width:'34px',height:'34px',minHeight:'34px',padding:'0',border:'0',background:'transparent',fontSize:'22px',color:'#dbeeff',display:'grid',placeItems:'center'});
           if(actualCount>0){
-            const b=notify.querySelector('b');
-            if(b)Object.assign(b.style,{position:'absolute',right:'-2px',top:'-3px',minWidth:'16px',height:'16px',borderRadius:'999px',background:'#ff5361',color:'#fff',fontSize:'9px',lineHeight:'16px',textAlign:'center'});
+            const b=document.createElement('b');
+            b.textContent=String(actualCount);
+            Object.assign(b.style,{position:'absolute',right:'-2px',top:'-3px',minWidth:'16px',height:'16px',borderRadius:'999px',background:'#ff5361',color:'#fff',fontSize:'9px',lineHeight:'16px',textAlign:'center',fontWeight:'700'});
+            notify.appendChild(b);
+            notify.removeAttribute('aria-disabled');
+            notify.removeAttribute('tabindex');
+            notify.style.pointerEvents='';
+            notify.setAttribute('aria-label',actualCount+' offene Entscheidungen');
           }
         }
       }
@@ -1304,7 +1346,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
         operator.style.gap='9px';
         operator.style.alignItems='center';
 
-        const avatar=makeImg(avatarAsset,40,false);
+        const avatar=makeImg(avatarAsset,40);
         avatar.style.borderRadius='50%';
         avatar.style.gridColumn='1';
         const copy=document.createElement('span');
@@ -1349,7 +1391,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
         provenance:'REFERENCE_EXTRACTED_PLUS_TRUTH_PRESERVING_LAYOUT',
         usage_scope:'GOLD_STANDARD_POC_ONLY'
       };
-    },{candidate_id:toolbarDetailCandidateId,variant:toolbarDetailVariant,searchAsset,globeAsset,sunAsset,avatarAsset});
+    },{candidate_id:toolbarDetailCandidateId,variant:toolbarDetailVariant,searchAsset,globeAsset,sunAsset,avatarAsset,bellAsset});
   }
 
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
