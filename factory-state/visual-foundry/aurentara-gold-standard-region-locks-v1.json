@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "948199cf171f38f2b717eef1af0b7b917b37aa37",
-  "workflow_run_id": 34110922725,
+  "evidence_head": "b22306f4ab22a3f6e564ccd9cb7f10515a05d0df",
+  "workflow_run_id": 34112182240,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.49518,
-    "pixel_difference_percent": 13.4666,
+    "ssim": 0.497118,
+    "pixel_difference_percent": 13.4588,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.997663,
@@ -18,11 +18,12 @@
     {
       "region_id": "sidebar",
       "status": "ACCEPTED_GAIN",
-      "ssim": 0.535886,
+      "ssim": 0.542851,
       "baseline_ssim": 0.508022,
-      "pixel_difference_percent": 11.0058,
+      "pixel_difference_percent": 10.9506,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
-      "previous_soft_lock_ssim": 0.476646
+      "previous_soft_lock_ssim": 0.535886,
+      "sidebar_brand_alignment_candidate": "SIDEBAR_BRAND_ALIGNMENT_B9"
     },
     {
       "region_id": "primary_navigation",
@@ -159,7 +160,8 @@
     "PORTFOLIO_UI_DETAIL_P2",
     "PORTFOLIO_ROW_STYLE_P3",
     "PRIMARY_NAVIGATION_LAYOUT_P3",
-    "HERO_TITLE_REFERENCE_ASSET_P2"
+    "HERO_TITLE_REFERENCE_ASSET_P2",
+    "SIDEBAR_BRAND_ALIGNMENT_B9"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
