@@ -1,0 +1,115 @@
+name: AURENTARA HQ Private Interactive Preview
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/aurentara-hq-private-interactive-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-hq-private-interactive-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-private-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: riosystems-staging
+    env:
+      GOLD_STANDARD_RUN: 1
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+
+      - name: Validate private preview implementation
+        run: |
+          node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+          node --check scripts/aurentara-hq-private-preview-access.mjs
+          node --check src/aurentara-hq-private-preview-worker.js
+
+      - name: Render exact accepted HQ state and export interactive snapshot
+        run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+
+      - name: Prepare no-write interactive asset
+        run: |
+          set -euo pipefail
+          test -s artifacts/visual-foundry/gold-standard/run-1/interactive-preview.html
+          mkdir -p artifacts/visual-foundry/private-preview
+          cp artifacts/visual-foundry/gold-standard/run-1/interactive-preview.html artifacts/visual-foundry/private-preview/index.html
+          test -s artifacts/visual-foundry/private-preview/index.html
+          grep -q 'PRIVATE INTERACTIVE PREVIEW' artifacts/visual-foundry/private-preview/index.html
+
+      - name: Bind exact feature head in action workspace
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path='wrangler.hq-preview.jsonc';
+          let content=fs.readFileSync(path,'utf8');
+          content=content.replace('RUNTIME_SET_BY_ACTION',process.env.GITHUB_SHA);
+          fs.writeFileSync(path,content);
+          NODE
+
+      - name: Deploy isolated fail-closed preview worker
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "factory/visual-foundry-v1"
+          npx wrangler deploy --config wrangler.hq-preview.jsonc
+
+      - name: Create or verify owner-only Cloudflare Access
+        id: access
+        run: node scripts/aurentara-hq-private-preview-access.mjs
+
+      - name: Verify unauthenticated request is intercepted by Cloudflare Access
+        env:
+          PREVIEW_URL: ${{ steps.access.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIEW_URL"
+          curl -sS -D /tmp/hq-preview-headers -o /dev/null "$PREVIEW_URL" || true
+          STATUS=$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/hq-preview-headers)
+          LOCATION=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/hq-preview-headers)
+          test "$STATUS" = "302"
+          printf '%s' "$LOCATION" | grep -qi 'cloudflareaccess.com'
+
+      - name: Publish private preview link
+        env:
+          PREVIEW_URL: ${{ steps.access.outputs.preview_url }}
+        run: |
+          {
+            echo "### AURENTARA HQ Private Interactive Preview"
+            echo ""
+            echo "$PREVIEW_URL"
+            echo ""
+            echo "- Exact feature head: `$GITHUB_SHA`"
+            echo "- Cloudflare Access: owner-only"
+            echo "- Production deploy: false"
+            echo "- Public launch: false"
+            echo "- DNS change: false"
+            echo "- External writes: false"
+            echo "- Operator AI paid inference: false"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-hq-private-interactive-preview-evidence
+          path: |
+            artifacts/visual-foundry/gold-standard/run-1/runtime-desktop.png
+            artifacts/visual-foundry/gold-standard/run-1/interactive-preview.html
+            artifacts/visual-foundry/gold-standard/run-1/visual-comparison.json
+          if-no-files-found: error
