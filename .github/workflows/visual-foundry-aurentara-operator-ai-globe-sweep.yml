@@ -1,0 +1,80 @@
+name: Visual Foundry AURENTARA Operator AI Globe Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-operator-ai-globe-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  operator-ai-globe:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: G0_CONTROL
+            left: 392
+            top: -5
+            width: 145
+            height: 140
+            opacity: 1
+          - id: G1_EXACT
+            left: 392
+            top: -5
+            width: 145
+            height: 140
+            opacity: 1
+          - id: G2_LEFT
+            left: 388
+            top: -5
+            width: 145
+            height: 140
+            opacity: 1
+          - id: G3_RIGHT
+            left: 396
+            top: -5
+            width: 145
+            height: 140
+            opacity: 1
+          - id: G4_SMALL
+            left: 396
+            top: -1
+            width: 138
+            height: 133
+            opacity: 1
+          - id: G5_LARGE
+            left: 388
+            top: -8
+            width: 153
+            height: 148
+            opacity: 0.96
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_LEFT_PX: ${{ matrix.left }}
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_TOP_PX: ${{ matrix.top }}
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_WIDTH_PX: ${{ matrix.width }}
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_HEIGHT_PX: ${{ matrix.height }}
+      VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_OPACITY: ${{ matrix.opacity }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-operator-ai-globe-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
