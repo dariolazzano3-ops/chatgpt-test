@@ -80,11 +80,20 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$PREVIEW_URL"
-          curl -sS -D /tmp/hq-preview-headers -o /dev/null "$PREVIEW_URL" || true
-          STATUS=$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/hq-preview-headers)
-          LOCATION=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/hq-preview-headers)
-          test "$STATUS" = "302"
-          printf '%s' "$LOCATION" | grep -qi 'cloudflareaccess.com'
+          ACCESS_OK=false
+          for ATTEMPT in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            : > /tmp/hq-preview-headers
+            curl -sS -D /tmp/hq-preview-headers -o /dev/null "$PREVIEW_URL" || true
+            STATUS=$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/hq-preview-headers)
+            LOCATION=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/,""); gsub(/\r/,""); print; exit}' /tmp/hq-preview-headers)
+            echo "Access propagation probe attempt=$ATTEMPT status=${STATUS:-none}"
+            if [ "$STATUS" = "302" ] && { printf '%s' "$LOCATION" | grep -Eqi 'cloudflareaccess\.com|/cdn-cgi/access/'; }; then
+              ACCESS_OK=true
+              break
+            fi
+            sleep 5
+          done
+          test "$ACCESS_OK" = "true"
 
       - name: Publish private preview link
         env:
