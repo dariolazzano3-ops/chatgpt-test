@@ -55,7 +55,7 @@ export function runTechnicalSeoQa(seo = {}, architecture = {}, options = {}) {
 }
 
 export function createLocalSeoContract(mission = {}, supplied = {}) {
-  const local=/local|bakery|bäckerei|restaurant|dentist|real estate|hospitality/i.test(String(mission.industry||''));
+  const local=/local|bakery|bäckerei|restaurant|gelateria|gelato|eisdiele|ice cream|dentist|real estate|hospitality/i.test(String(mission.industry||''));
   const fields={ name:supplied.name||mission.business_name||null, address:supplied.address||null, service_area:supplied.service_area||mission.seo_location||null, opening_hours:supplied.opening_hours||null, contact:supplied.contact||null };
   const missing=Object.entries(fields).filter(([,v])=>!v).map(([k])=>k);
   return { schema:'riosystems.local-seo-contract.v2', status:local ? (missing.length?'PARTIAL_DATA':'READY') : 'NOT_APPLICABLE', local_business:local, fields, local_pages:arr(supplied.local_pages), location_intent:local ? mission.seo_location||mission.country||null : null, missing_fields:missing, fabricated_local_data_allowed:false };
