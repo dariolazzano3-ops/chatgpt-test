@@ -14,6 +14,7 @@ import {
   runJ10Rollback,
   j10VersioningDiffRollbackManifest
 } from '../src/web-factory/versioning-diff-rollback-v1.js';
+import { executeWebFactoryTask, webFactoryProviderManifest } from '../src/web-factory/index.js';
 
 function stable(v) {
   if (Array.isArray(v)) return v.map(stable);
@@ -339,6 +340,27 @@ assert.equal(noKnownGood.status, 'J10_PREVIOUS_ACCEPTED_ARTIFACT_REQUIRED');
 const unsupportedDomainRollback = createJ10RollbackPlan(ledger, { current_revision_id: 'knowledge-2' });
 assert.equal(unsupportedDomainRollback.ok, false);
 assert.equal(unsupportedDomainRollback.status, 'J10_ROLLBACK_DOMAIN_UNSUPPORTED');
+
+const adapterManifest = executeWebFactoryTask({
+  capability: 'web.versioning.rollback.v1',
+  operation: 'manifest'
+});
+assert.equal(adapterManifest.ok, true);
+assert.equal(adapterManifest.status, 'J10_VERSIONING_MANIFEST_READY');
+assert.equal(adapterManifest.manifest.schema, 'riosystems.j10-versioning-diff-rollback-manifest.v1');
+
+const adapterImpact = executeWebFactoryTask({
+  capability: 'web.versioning.rollback.v1',
+  operation: 'impact',
+  change: { domain: 'BUILD', type: 'content', target: 'home' },
+  model
+});
+assert.equal(adapterImpact.ok, true);
+assert.equal(adapterImpact.impact.action, 'PARTIAL_REBUILD');
+
+const providerManifest = webFactoryProviderManifest();
+assert.ok(providerManifest.capabilities.includes('web.versioning.rollback.v1'));
+assert.equal(providerManifest.production_deploy, false);
 
 console.log(JSON.stringify({
   ok: true,
