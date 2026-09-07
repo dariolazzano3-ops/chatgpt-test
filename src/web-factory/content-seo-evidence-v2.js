@@ -54,6 +54,33 @@ export function normalizeContentFact(raw={},index=0){
   };
 }
 
+export function deriveLocalBusinessContentFacts(data={},projectScope=null){
+  const facts=[];
+  const fields=[
+    ['business.local_name',data.name,'BRAND_VOICE'],
+    ['business.address',data.address,'MICROCOPY'],
+    ['business.service_area',data.service_area,'PAGE_INTENT'],
+    ['business.opening_hours',data.opening_hours,'MICROCOPY'],
+    ['business.contact',data.contact,'CTA'],
+    ['business.phone',data.phone,'CTA'],
+    ['business.email',data.email,'CTA']
+  ];
+  for(const [field,value,surface] of fields){
+    if(value===null||value===undefined||value==='')continue;
+    facts.push(normalizeContentFact({
+      fact_id:'local-'+field.replace(/[^a-z0-9]+/gi,'-').toLowerCase(),
+      field_path:field,
+      surface,
+      value,
+      fact_state:'CONFIRMED',
+      source_refs:['local_business_data'],
+      confidence:1,
+      project_scope:projectScope
+    },facts.length));
+  }
+  return facts;
+}
+
 export function deriveMissionContentFacts(mission={}){
   const facts=[];
   const push=(field,value,surface='PAGE_INTENT')=>{
@@ -106,8 +133,9 @@ function valueCovered(value,facts){
 
 export function createEvidenceSafeContentContract(input={}){
   const missionFacts=deriveMissionContentFacts(input.mission||{});
+  const localFacts=deriveLocalBusinessContentFacts(input.local_business_data||{},input.project_scope||input.mission?.project_scope_key||input.mission?.project_slug||null);
   const explicit=arr(input.claims||input.content_claims).map((raw,index)=>normalizeContentFact(raw,index+missionFacts.length));
-  const facts=[...missionFacts,...explicit];
+  const facts=[...missionFacts,...localFacts,...explicit];
   const issues=facts.flatMap(f=>f.issues.map(issue=>({...issue,fact_id:f.fact_id})));
   const attempted=new Set(arr(input.attempted_render_claim_ids).map(v=>text(v,180)));
   for(const fact of facts){
@@ -232,7 +260,7 @@ export function createSeoEvidenceBundle(input={}){
     openingHours,
     url
   }):{schema:'riosystems.structured-data-contract.v2',status:'NOT_APPLICABLE',type:'LocalBusiness',fields:{},fabricated_values_allowed:false};
-  const localSeo=createLocalSeoContract(mission,{name,address,opening_hours:openingHours,contact:phone||email,service_area:confirmedField([/seo_location/i])||null});
+  const localSeo=createLocalSeoContract(mission,{name,address,opening_hours:openingHours,contact:phone||email||confirmedField([/business\.contact|contact$/i])||null,service_area:confirmedField([/service_area|seo_location/i])||null});
 
   const napIssues=[];
   for(const occurrence of arr(input.nap_occurrences)){
