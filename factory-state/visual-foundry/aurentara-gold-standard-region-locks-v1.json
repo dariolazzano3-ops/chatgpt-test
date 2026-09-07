@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "ee77b05bcada264b9cbdd667a3afa9e45d0f1fe9",
-  "workflow_run_id": 34069068177,
+  "evidence_head": "852154a7d9d0a4f537deacf0972b170ac599a4a5",
+  "workflow_run_id": 34069502468,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.451428,
-    "pixel_difference_percent": 14.112,
+    "ssim": 0.459329,
+    "pixel_difference_percent": 14.0771,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.997329,
@@ -74,10 +74,12 @@
     {
       "region_id": "operator_ai_panel",
       "status": "ACCEPTED_GAIN",
-      "ssim": 0.427606,
+      "ssim": 0.443389,
       "baseline_ssim": 0.427606,
-      "pixel_difference_percent": 17.5071,
-      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
+      "pixel_difference_percent": 17.1538,
+      "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+      "previous_soft_lock_ssim": 0.427606,
+      "operator_ai_header_raster_ssim": 0.479808
     },
     {
       "region_id": "portfolio",
@@ -125,7 +127,7 @@
     }
   ],
   "active_delta_cluster": "ASSETS_ICONS",
-  "next_candidate": "OPERATOR_AI_REFERENCE_ASSET_P1",
+  "next_candidate": "OPERATOR_AI_GLOBE_ASSET_P2",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -145,7 +147,8 @@
     "ATTENTION_HEADER_TYPOGRAPHY_R3",
     "PORTFOLIO_HEADER_TYPOGRAPHY_P1",
     "PROJECT_THUMBNAILS_PORTFOLIO_ONLY_P1",
-    "ATTENTION_REFERENCE_ASSET_LAYOUT_P1"
+    "ATTENTION_REFERENCE_ASSET_LAYOUT_P1",
+    "OPERATOR_AI_REFERENCE_ASSET_UI_P1"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
