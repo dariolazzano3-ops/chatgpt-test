@@ -131,7 +131,7 @@
     }
   ],
   "active_delta_cluster": "CRITICAL_REGION_CLOSURE",
-  "next_candidate": "TOOLBAR_DETAIL_P1",
+  "next_candidate": "KPI_DETAIL_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -203,5 +203,12 @@
   },
   "rejected_or_no_change": [
     "SYSTEM_STATUS_TYPOGRAPHY_R1_R6_NO_CHANGE"
-  ]
+  ],
+  "toolbar_detail_latest_decision": {
+    "status": "REJECTED_LOCAL_REGRESSION",
+    "initial_sweep_workflow_run": 34072806070,
+    "masked_refinement_workflow_run": 34073045529,
+    "retained_toolbar_ssim": 0.490028,
+    "retained_toolbar_pixel_difference_percent": 11.2604
+  }
 }
