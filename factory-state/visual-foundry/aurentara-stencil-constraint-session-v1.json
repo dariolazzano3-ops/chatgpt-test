@@ -281,7 +281,7 @@
       },
       {
         "region_id": "portfolio",
-        "baseline_score": 0.34939
+        "baseline_score": 0.357796
       }
     ],
     "excluded_active_or_regressed": [],
@@ -847,6 +847,39 @@
       "verified_soft_locks": "PASS",
       "verified_geometry": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "PORTFOLIO_UI_DETAIL_P2",
+      "region_id": "portfolio",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "PR6_ICON_NAME500_SCOPE",
+      "variant": "ICON_NAME500_SCOPE",
+      "sweep_workflow_run": 34070517430,
+      "sweep_head": "64b7f620fa0c9003e5d3ee9903f65678243ea7a4",
+      "source_asset_id": "portfolio_header_folder_icon_reference_extracted",
+      "provenance": "REFERENCE_EXTRACTED_PLUS_METRIC_TYPOGRAPHY",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "header_gap_px": 18,
+      "name_weight": 500,
+      "name_size_px": 9.25,
+      "scope_size_px": 7.5,
+      "baseline_portfolio_ssim": 0.34939,
+      "accepted_portfolio_ssim": 0.357796,
+      "baseline_portfolio_pixel_difference_percent": 18.5423,
+      "accepted_portfolio_pixel_difference_percent": 18.2561,
+      "baseline_global_ssim": 0.464875,
+      "accepted_global_ssim": 0.468737,
+      "baseline_global_pixel_difference_percent": 13.9691,
+      "accepted_global_pixel_difference_percent": 13.9248,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
