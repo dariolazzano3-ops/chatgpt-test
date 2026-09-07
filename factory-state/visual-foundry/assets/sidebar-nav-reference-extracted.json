@@ -1,0 +1,235 @@
+{
+  "schema": "riosystems.reference-extracted-sidebar-nav-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "sidebar_nav_dashboard_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "hq",
+      "crop": {
+        "x": 27,
+        "y": 191,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "c9b89e78031d936391aff4f106d1433d00dbef8ed251bb7f45dca3fe5bb996c7"
+    },
+    {
+      "asset_id": "sidebar_nav_portfolio_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "projects",
+      "crop": {
+        "x": 27,
+        "y": 224,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "ab1bbce7536039c2d6d7d34ea4aa123b1e2c0ab5d9320b9565a8f58e38d95567"
+    },
+    {
+      "asset_id": "sidebar_nav_attention_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "attention",
+      "crop": {
+        "x": 27,
+        "y": 256,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "d974ec6448402db8dc9d6511e0c986473c92aa7ca97ac1ae204b9c39e0a98106"
+    },
+    {
+      "asset_id": "sidebar_nav_approvals_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "approvals",
+      "crop": {
+        "x": 27,
+        "y": 287,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "2c89b6e6dce52d11ad5382b0c2dcd0752faabf1ff66365efd0fbbf0b986c6ef1"
+    },
+    {
+      "asset_id": "sidebar_nav_costs_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "costs",
+      "crop": {
+        "x": 27,
+        "y": 319,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "8286e5ab5488cc504576f3ec01291073da8c0915f11a45880d8cef7f08cb48f8"
+    },
+    {
+      "asset_id": "sidebar_nav_project_overview_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "project-overview",
+      "crop": {
+        "x": 27,
+        "y": 415,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "ef58f6d31694253a603fd3122052b72f4e4dc328d086e9aacf48030be128119f"
+    },
+    {
+      "asset_id": "sidebar_nav_sources_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "sources",
+      "crop": {
+        "x": 27,
+        "y": 447,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "7531de2cb4e1ba6fabe78e9a1c842d447bd4ba9758421867b9230eb50a1fd0f6"
+    },
+    {
+      "asset_id": "sidebar_nav_knowledge_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "knowledge",
+      "crop": {
+        "x": 27,
+        "y": 479,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "9797a0f56abcb8968a065b27fc1926f946e1857702f8d710ed79ac4fceaa0e3f"
+    },
+    {
+      "asset_id": "sidebar_nav_implementation_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "implementation",
+      "crop": {
+        "x": 27,
+        "y": 511,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "eaadd788fc887960da1fc26f1d16c16493416f5618d24b85d53de1fd5d56921d"
+    },
+    {
+      "asset_id": "sidebar_nav_preview_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "preview",
+      "crop": {
+        "x": 27,
+        "y": 543,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "671a0142f452829944a822587404ac63fdf9eeeed27bebeabaaaf649666110f0"
+    },
+    {
+      "asset_id": "sidebar_nav_project_approvals_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "project-approvals",
+      "crop": {
+        "x": 27,
+        "y": 575,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "0fc7624936513a01e39ee32cab922993e0546e09af9e69f42508d9421f99319d"
+    },
+    {
+      "asset_id": "sidebar_nav_project_activity_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "project-activity",
+      "crop": {
+        "x": 27,
+        "y": 607,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "2fea5a0201658bfbc47b84e800b720ba618570d3f9a5612d0ee9af3b8027405b"
+    },
+    {
+      "asset_id": "sidebar_nav_factories_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "factories",
+      "crop": {
+        "x": 27,
+        "y": 667,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "d5f9aced269a549a61031b0ea85dd917aca66c455648f5e775a15b1fd954f615"
+    },
+    {
+      "asset_id": "sidebar_nav_providers_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "providers",
+      "crop": {
+        "x": 27,
+        "y": 699,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "99982faf58800bb5d6e5da43326f5e80333e2f39ac5fec3a67e84893b55272fd"
+    },
+    {
+      "asset_id": "sidebar_nav_health_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "health",
+      "crop": {
+        "x": 27,
+        "y": 731,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "82eb90f6421b560b5a89de79ccf072df4d64279aff7359235880cf20a222ea73"
+    },
+    {
+      "asset_id": "sidebar_nav_audit_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "audit",
+      "crop": {
+        "x": 27,
+        "y": 763,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "aceeeb9476779dc93ec2de03ac91315994b0902c3cb90a4917b15696eb0b689f"
+    },
+    {
+      "asset_id": "sidebar_nav_settings_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "settings",
+      "crop": {
+        "x": 27,
+        "y": 795,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "1b50667ea4d875e9df79c2c76c39cd63885d7c0724c750b106d899f15fe6ee0b"
+    },
+    {
+      "asset_id": "sidebar_nav_operator_ai_icon_reference_extracted",
+      "role": "SIDEBAR_NAV_ICON",
+      "nav_id": "operator-ai",
+      "crop": {
+        "x": 27,
+        "y": 859,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "8808517fcc279f9960b956198210f73a9dea2a87d0575dfa31dbd4f0f2278b5a"
+    }
+  ],
+  "missing_reference_only_item": {
+    "label": "Berichte",
+    "status": "NOT_IMPLEMENTED_AS_NAV_ACTION",
+    "reason": "Reference contains an additional reports row without a verified runtime capability; no synthetic action is introduced."
+  },
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
