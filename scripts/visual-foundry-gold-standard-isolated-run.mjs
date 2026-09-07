@@ -59,6 +59,9 @@ assert.equal(operatorAiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const portfolioUiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/portfolio-ui-reference-extracted.json','utf8'));
 assert.equal(portfolioUiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'PORTFOLIO_UI_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(portfolioUiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const sidebarNavReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/sidebar-nav-reference-extracted.json','utf8'));
+assert.equal(sidebarNavReferenceAssets.reference_hash,referenceRegistration.reference.hash,'SIDEBAR_NAV_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(sidebarNavReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -104,6 +107,11 @@ const portfolioRowWidths=String(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_WIDTHS|
 const portfolioRowActionInsetPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_ACTION_INSET_PX??acceptedPortfolioRowStyle?.action_inset_px??0);
 const portfolioRowStateFontSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_FONT_SIZE_PX??acceptedPortfolioRowStyle?.state_font_size_px??7.5);
 const portfolioRowStatePadXPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_PAD_X_PX??acceptedPortfolioRowStyle?.state_pad_x_px??6);
+const acceptedPrimaryNavDetail=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='PRIMARY_NAVIGATION_DETAIL_P2'&&x.apply_by_default===true);
+const explicitPrimaryNavDetail=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_DETAIL_CANDIDATE||'').trim();
+const primaryNavDetailCandidateId=explicitPrimaryNavDetail||(acceptedPrimaryNavDetail?.candidate_id||'');
+const primaryNavIconSizePx=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_ICON_SIZE_PX??acceptedPrimaryNavDetail?.icon_size_px??20);
+const primaryNavIconOffsetYPx=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_ICON_OFFSET_Y_PX??acceptedPrimaryNavDetail?.icon_offset_y_px??0);
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -1032,6 +1040,55 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     });
   }
 
+  let primaryNavDetailCandidateState={status:'DISABLED',candidate_id:primaryNavDetailCandidateId||null};
+  if(primaryNavDetailCandidateId){
+    const assets=(sidebarNavReferenceAssets.assets||[]).map(extractApprovedReferenceAsset);
+    assert.equal(assets.length,18,'PRIMARY_NAV_REFERENCE_ICON_COUNT');
+    primaryNavDetailCandidateState=await page.evaluate(({candidate_id,assets,icon_size_px,icon_offset_y_px})=>{
+      if(candidate_id==='PN0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id};
+      const applied=[];
+      for(const asset of assets){
+        const icon=document.querySelector(`[data-rf-nav="${asset.nav_id}"] .rf-hq-nav-icon`);
+        if(!icon)throw new Error('PRIMARY_NAV_ICON_TARGET_MISSING:'+asset.nav_id);
+        icon.textContent='';
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=asset.src;
+        img.dataset.vfReferenceExtractedNavIcon=asset.asset_id;
+        Object.assign(img.style,{
+          display:'block',
+          width:icon_size_px+'px',
+          height:icon_size_px+'px',
+          maxWidth:'none',
+          objectFit:'fill',
+          transform:'translateY('+icon_offset_y_px+'px)'
+        });
+        Object.assign(icon.style,{
+          width:'20px',
+          height:'20px',
+          flex:'0 0 20px',
+          display:'grid',
+          placeItems:'center'
+        });
+        icon.appendChild(img);
+        applied.push({nav_id:asset.nav_id,asset_id:asset.asset_id});
+      }
+      return {
+        status:'APPLIED',
+        candidate_id,
+        icon_size_px,
+        icon_offset_y_px,
+        icon_count:applied.length,
+        applied,
+        provenance:'REFERENCE_EXTRACTED',
+        usage_scope:'GOLD_STANDARD_POC_ONLY',
+        missing_reference_only_item:'Berichte',
+        synthetic_nav_action_added:false
+      };
+    },{candidate_id:primaryNavDetailCandidateId,assets,icon_size_px:primaryNavIconSizePx,icon_offset_y_px:primaryNavIconOffsetYPx});
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1531,6 +1588,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     operator_ai_globe_candidate:operatorAiGlobeCandidateState,
     portfolio_ui_candidate:portfolioUiCandidateState,
     portfolio_row_style_candidate:portfolioRowStyleCandidateState,
+    primary_navigation_detail_candidate:primaryNavDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1595,6 +1653,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     portfolio_ui_variant:runEvidence.portfolio_ui_candidate?.variant||null,
     portfolio_row_style_candidate:runEvidence.portfolio_row_style_candidate?.candidate_id||null,
     portfolio_row_widths:runEvidence.portfolio_row_style_candidate?.column_widths_percent||null,
+    primary_navigation_detail_candidate:runEvidence.primary_navigation_detail_candidate?.candidate_id||null,
+    primary_navigation_icon_count:runEvidence.primary_navigation_detail_candidate?.icon_count||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
