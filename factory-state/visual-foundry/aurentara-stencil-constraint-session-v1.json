@@ -832,7 +832,21 @@
       "semantic": "PASS",
       "constraint_anchor": "PASS",
       "responsive": "INFERRED_RESPONSIVE_PASS",
-      "critical_region_failures": 8
+      "critical_region_failures": 8,
+      "verification_workflow_run": 34070268417,
+      "verification_head": "46afc976003a94f69dca2f1f7893524f75557008",
+      "verification_artifact_id": 10000225724,
+      "verification_artifact_digest": "sha256:c5aa5f03ef28e36e3b649aa044a8f40b0f761458fcc1a46e2830c762eaff2f88",
+      "verification_status": "SUCCESS",
+      "verified_operator_ai_ssim": 0.456686,
+      "verified_operator_ai_pixel_difference_percent": 16.0604,
+      "verified_global_ssim": 0.464875,
+      "verified_global_pixel_difference_percent": 13.9691,
+      "verified_color_score": 0.997663,
+      "verified_edge_score": 0.27906,
+      "verified_soft_locks": "PASS",
+      "verified_geometry": "PASS",
+      "verified_overflow_px": 0
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
