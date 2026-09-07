@@ -1,0 +1,64 @@
+{
+  "schema": "riosystems.reference-extracted-toolbar-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "toolbar_search_icon_reference_extracted",
+      "role": "TOOLBAR_SEARCH_ICON",
+      "crop": {
+        "x": 240,
+        "y": 18,
+        "width": 24,
+        "height": 24
+      },
+      "rgba_sha256": "0b10f2a5b463146de407fa01bf6c1e537c63f2097dae7741bb01873ae282267a"
+    },
+    {
+      "asset_id": "toolbar_globe_icon_reference_extracted",
+      "role": "TOOLBAR_REGION_ICON",
+      "crop": {
+        "x": 1098,
+        "y": 18,
+        "width": 24,
+        "height": 24
+      },
+      "rgba_sha256": "8068bec7604de5d2f907bdaccb3878a10891fc85f0644acc73c6c5fab503d6b5"
+    },
+    {
+      "asset_id": "toolbar_theme_sun_reference_extracted",
+      "role": "TOOLBAR_THEME_ICON",
+      "crop": {
+        "x": 1266,
+        "y": 18,
+        "width": 24,
+        "height": 24
+      },
+      "rgba_sha256": "f19ae2b80d3cdae8cc44a7e1e881358e732ea3ef1b65974097c35e3e549a435e"
+    },
+    {
+      "asset_id": "toolbar_operator_avatar_reference_extracted",
+      "role": "TOOLBAR_OPERATOR_AVATAR",
+      "crop": {
+        "x": 1360,
+        "y": 10,
+        "width": 40,
+        "height": 40
+      },
+      "rgba_sha256": "c2dfb574e6d7c46e9e6753524224fd084bbefef7a9865a90b4650d5e6b0dc4dd"
+    }
+  ],
+  "truth_contract": {
+    "theme_control": "VISUAL_PLACEHOLDER_ONLY_UNLESS_RUNTIME_HANDLER_EXISTS",
+    "notification_badge": "MUST_USE_RUNTIME_DECISION_COUNT_ONLY",
+    "environment_label": "MUST_PRESERVE_RUNTIME_OR_FIXTURE_TRUTH",
+    "region_label": "MUST_PRESERVE_RUNTIME_OR_FIXTURE_TRUTH"
+  },
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
