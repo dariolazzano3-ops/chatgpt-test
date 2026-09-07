@@ -131,7 +131,7 @@
     }
   ],
   "active_delta_cluster": "CRITICAL_REGION_CLOSURE",
-  "next_candidate": "KPI_DETAIL_P1",
+  "next_candidate": "HERO_TITLE_FINISH_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -210,5 +210,15 @@
     "masked_refinement_workflow_run": 34073045529,
     "retained_toolbar_ssim": 0.490028,
     "retained_toolbar_pixel_difference_percent": 11.2604
+  },
+  "kpi_detail_latest_decision": {
+    "status": "REJECTED_LOCAL_REGRESSION",
+    "sweep_workflow_run": 34073439520,
+    "retained_kpi_ssim": 0.52698,
+    "retained_kpi_pixel_difference_percent": 12.7122,
+    "best_tested_local_candidate": "KD2_SPARKS",
+    "best_tested_kpi_ssim": 0.512,
+    "best_tested_kpi_pixel_difference_percent": 13.2881,
+    "soft_lock_preserved": true
   }
 }
