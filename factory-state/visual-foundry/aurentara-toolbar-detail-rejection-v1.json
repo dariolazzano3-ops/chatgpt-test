@@ -1,0 +1,38 @@
+{
+  "schema": "riosystems.aurentara-toolbar-detail-rejection.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "initial_sweep_workflow_run": 34072806070,
+  "masked_refinement_workflow_run": 34073045529,
+  "baseline": {
+    "toolbar_ssim": 0.490028,
+    "toolbar_pixel_difference_percent": 11.2604,
+    "global_ssim": 0.480651,
+    "global_pixel_difference_percent": 13.8577
+  },
+  "best_global_candidate": {
+    "candidate_id": "TB4_FULL",
+    "global_ssim": 0.484174,
+    "global_pixel_difference_percent": 13.9057,
+    "toolbar_ssim": 0.480657,
+    "toolbar_pixel_difference_percent": 12.2453
+  },
+  "best_local_candidate_from_tested_set": {
+    "candidate_id": "TB1_OPERATOR",
+    "toolbar_ssim": 0.473809,
+    "toolbar_pixel_difference_percent": 11.796,
+    "global_ssim": 0.482736,
+    "global_pixel_difference_percent": 13.8838
+  },
+  "decision": "REJECT_ALL_TESTED_TOOLBAR_DETAIL_CANDIDATES",
+  "reason": "Every tested toolbar candidate regressed the authoritative toolbar region against the existing soft-locked baseline, even when global SSIM rose. Local region truth therefore wins and the toolbar baseline remains unchanged.",
+  "next_strategy": "Return later with surgical component-level toolbar calibration or masked static-shell extraction. Do not promote bundled approximations.",
+  "soft_lock_preserved": true,
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
