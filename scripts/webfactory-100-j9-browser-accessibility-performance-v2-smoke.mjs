@@ -100,15 +100,13 @@ async function browserChecks(page, baseUrl, device) {
   const after = await page.locator('#carousel').getAttribute('data-index');
   pass.carousel = before !== after;
   pass.video = await page.locator('#demo-video').evaluate((el) => el.controls === true);
-  await page.locator('body').press('Tab');
-  pass.keyboard_navigation = await page.evaluate(() => {
-    const el = document.activeElement;
-    return Boolean(el && ['A','BUTTON','INPUT','SUMMARY'].includes(el.tagName));
-  });
+  await page.locator('#nav-home').focus();
+  await page.keyboard.press('Tab');
+  pass.keyboard_navigation = await page.evaluate(() => document.activeElement?.id === 'nav-features');
   pass.focus_states = await page.evaluate(() => {
     const el = document.activeElement;
     const style = getComputedStyle(el);
-    return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
+    return el?.id === 'nav-features' && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
   });
   const missing = await page.goto(baseUrl + '/missing-j9-route', { waitUntil: 'domcontentloaded' });
   pass['404'] = missing?.status() === 404;
@@ -165,11 +163,12 @@ try {
 
     if (deviceName === 'DESKTOP') {
       desktopAxe = { critical: critical.length, serious: serious.length };
+      await page.locator('#nav-home').focus();
       await page.keyboard.press('Tab');
-      const keyboard = await page.evaluate(() => ['A','BUTTON','INPUT','SUMMARY'].includes(document.activeElement?.tagName));
+      const keyboard = await page.evaluate(() => document.activeElement?.id === 'nav-features');
       const visibleFocus = await page.evaluate(() => {
         const style = getComputedStyle(document.activeElement);
-        return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
+        return document.activeElement?.id === 'nav-features' && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
       });
       const headingHierarchy = await page.evaluate(() => {
         const levels = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map((el) => Number(el.tagName.slice(1)));
