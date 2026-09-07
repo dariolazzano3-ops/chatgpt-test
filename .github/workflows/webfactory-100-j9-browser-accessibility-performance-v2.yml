@@ -28,6 +28,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install Chromium for real browser acceptance
         run: npx playwright install --with-deps chromium
+      - name: Ensure FFmpeg for J4 regression
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y ffmpeg)
       - name: Syntax
         run: |
           node --check src/web-factory/browser-accessibility-performance-v2.js
