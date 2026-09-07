@@ -154,6 +154,26 @@ The J10 smoke proves:
 16. no-known-good rollback fails closed
 17. Knowledge rollback through the artifact path is rejected
 
+## Gelato Donatello dogfood
+
+J10 also runs read-only dogfood against the existing Gelato Donatello repository artifacts.
+
+The dogfood:
+
+- reads the current project configuration, technical reassessment and static build files
+- records Knowledge, Reference, Build, Preview and Delivery revisions without changing those files
+- treats the evidence-backed technical preview artifact as a known-good technical build only, not as premium delivery approval
+- creates an in-memory failed candidate
+- diffs the candidate
+- proves Knowledge change -> Reference Review
+- proves bounded content change -> Partial Rebuild
+- restores the exact known-good repository artifact
+- verifies the restored SHA-256
+- proves rebuild invocation count remains zero
+- performs no external write and no production/public action
+
+The existing Gelato premium-delivery and public-launch false states remain false and are not upgraded by J10.
+
 ## Integration
 
 WebFactory capability:
