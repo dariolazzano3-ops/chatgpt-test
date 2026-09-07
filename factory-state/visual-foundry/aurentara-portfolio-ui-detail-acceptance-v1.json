@@ -1,0 +1,51 @@
+{
+  "schema": "riosystems.aurentara-portfolio-ui-detail-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "PORTFOLIO_UI_DETAIL_P2",
+  "sweep_candidate_id": "PR6_ICON_NAME500_SCOPE",
+  "variant": "ICON_NAME500_SCOPE",
+  "sweep_workflow_run": 34070517430,
+  "verification_workflow_run": 34070676999,
+  "verification_head": "a095eb1aef7d08b7928631db555029e0b13bdbdd",
+  "verification_artifact_id": 10000353699,
+  "verification_artifact_digest": "sha256:0162452919d875d56a909548c721542bb6e68e72454145f5a8b96c6ef0b5f55b",
+  "source_asset_id": "portfolio_header_folder_icon_reference_extracted",
+  "provenance": "REFERENCE_EXTRACTED_PLUS_METRIC_TYPOGRAPHY",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "typography": {
+    "project_name_weight": 500,
+    "project_name_size_px": 9.25,
+    "project_scope_size_px": 7.5,
+    "header_gap_px": 18
+  },
+  "baseline": {
+    "portfolio_ssim": 0.34939,
+    "portfolio_pixel_difference_percent": 18.5423,
+    "global_ssim": 0.464875,
+    "global_pixel_difference_percent": 13.9691
+  },
+  "accepted": {
+    "portfolio_ssim": 0.357796,
+    "portfolio_pixel_difference_percent": 18.2561,
+    "global_ssim": 0.468737,
+    "global_pixel_difference_percent": 13.9248
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
