@@ -3,7 +3,7 @@
   "project": "jarvis-private-core",
   "host": "jarvis-private-core.pages.dev",
   "branch": "private-staging",
-  "source_sha": "6173fe96b1e164a4b807d41b68c920aadff6aa80",
+  "source_sha": "2c5c80217c379d82f5ab157aabe3254dd2e96646",
   "confirmation": "DEPLOY_JARVIS_PRIVATE_PAGES_PREVIEW",
   "cloudflare_access_active": true,
   "access_audience_dedicated": true,
