@@ -1036,7 +1036,21 @@
       "semantic": "PASS",
       "constraint_anchor": "PASS",
       "responsive": "INFERRED_RESPONSIVE_PASS",
-      "critical_region_failures": 8
+      "critical_region_failures": 8,
+      "verification_workflow_run": 34110922725,
+      "verification_head": "948199cf171f38f2b717eef1af0b7b917b37aa37",
+      "verification_artifact_id": 10014332631,
+      "verification_artifact_digest": "sha256:b3661935f01dc30c4aa73a91dad6f47d5e1103a58a3ec5eff261b66d5cc7958c",
+      "verification_status": "SUCCESS",
+      "verified_hero_ssim": 0.63977,
+      "verified_hero_pixel_difference_percent": 10.9919,
+      "verified_hero_title_raster_ssim": 0.862136,
+      "verified_hero_title_raster_pixel_difference_percent": 7.9101,
+      "verified_global_ssim": 0.49518,
+      "verified_global_pixel_difference_percent": 13.4666,
+      "verified_soft_locks": "PASS",
+      "verified_geometry": "PASS",
+      "verified_overflow_px": 0
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
