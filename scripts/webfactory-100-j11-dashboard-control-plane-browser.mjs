@@ -116,6 +116,10 @@ try{
   };
   page.on('request',onRequest);
 
+  const j12Secondary=panel.locator('.j12-secondary-details');
+  if(await j12Secondary.count() && !(await j12Secondary.evaluate(el=>el.open))){
+    await j12Secondary.locator('summary').click();
+  }
   const sketch=panel.locator('[data-j11-action="SKETCH"]');
   assert.equal(await sketch.isEnabled(),true,'Sketch must be available when project scope exists');
   await sketch.click();
