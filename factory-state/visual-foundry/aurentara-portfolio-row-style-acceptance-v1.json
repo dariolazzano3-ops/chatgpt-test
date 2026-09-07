@@ -1,0 +1,53 @@
+{
+  "schema": "riosystems.aurentara-portfolio-row-style-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "PORTFOLIO_ROW_STYLE_P3",
+  "sweep_candidate_id": "RS4_MEASURED",
+  "sweep_workflow_run": 34070871742,
+  "verification_workflow_run": 34071024647,
+  "verification_head": "ade7a16ebb6f8e035c6a18f4be208b1789b37171",
+  "verification_artifact_id": 10000458128,
+  "verification_artifact_digest": "sha256:dd722a1944863b8062b0a49ef2bb8418691e08facc514d6d92a3454c2d86e731",
+  "layout": {
+    "column_widths_percent": [
+      21.2,
+      9.8,
+      10.2,
+      9.7,
+      12.4,
+      15.3,
+      21.4
+    ],
+    "action_inset_px": 8,
+    "state_font_size_px": 7.5,
+    "state_pad_x_px": 6
+  },
+  "baseline": {
+    "portfolio_ssim": 0.357796,
+    "portfolio_pixel_difference_percent": 18.2561,
+    "global_ssim": 0.468737,
+    "global_pixel_difference_percent": 13.9248
+  },
+  "accepted": {
+    "portfolio_ssim": 0.372471,
+    "portfolio_pixel_difference_percent": 18.0763,
+    "global_ssim": 0.473373,
+    "global_pixel_difference_percent": 13.897
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
