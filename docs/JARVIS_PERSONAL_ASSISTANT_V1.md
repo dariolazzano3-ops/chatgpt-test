@@ -57,14 +57,20 @@ The persistence domain provides:
 
 The original migration was exercised in a shared technical staging environment only as acceptance evidence. That environment is not an allowed persistent data plane for the standalone JARVIS architecture.
 
-Target state:
-- physically separate JARVIS Supabase project
-- separate database credentials
-- separate OAuth vault
-- no AURENTARA/RIOSYSTEMS application binding into JARVIS persistence
-- no automatic reverse connector
+Physical isolation state:
+- dedicated JARVIS Supabase account = ACTIVE
+- dedicated JARVIS organization = ACTIVE
+- dedicated JARVIS project = ACTIVE_HEALTHY
+- personal memory migration = APPLIED
+- private RPC + encrypted OAuth vault migration = APPLIED
+- Row Level Security = ENABLED + FORCED on all JARVIS private tables
+- anon RPC execution = DENIED
+- authenticated RPC execution = DENIED
+- service-role RPC execution = ALLOWED
+- HAMYREN objects in the JARVIS private schema = 0
+- initial personal memory / audit / OAuth rows = 0
 
-The current standalone Worker remains unbound to any shared Supabase project until the isolated JARVIS project exists.
+The standalone Worker is intentionally still UNBOUND. No JARVIS database credential is stored in source, and no shared Supabase project is used as fallback.
 
 ## JARVIS Runtime V1
 
@@ -276,9 +282,15 @@ The standalone Worker deliberately starts with:
 - no public-access mode
 - no external writes
 
-Its initial data plane is `EPHEMERAL_UNTIL_ISOLATED`. The existing JARVIS test schema in `riosystems-core` remains migration evidence only and is not automatically bound to the standalone Worker.
+Its current data-plane state is `ISOLATED_SUPABASE_READY_UNBOUND`. A physically separate JARVIS Supabase project now exists and contains the accepted private memory, audit, RPC, and OAuth-vault schema.
 
-The next isolation milestone is a physically separate JARVIS persistence project. Only after that data plane exists should durable personal memory and Google OAuth be activated on the standalone host.
+The historical JARVIS test schema in the shared technical environment remains acceptance evidence only and is not an allowed runtime fallback.
+
+Next activation milestone:
+- bind only the dedicated JARVIS Supabase project to the standalone Worker through secrets
+- keep credentials out of source and memory
+- activate durable memory only after the neutral private JARVIS host exists
+- keep Google OAuth and external writes separately approval-gated
 
 
 ## Neutral Host Isolation V1
@@ -296,15 +308,19 @@ Current policy:
 
 The next host activation must use a neutral JARVIS-specific hostname and a dedicated Access application. The prior inherited workers.dev endpoint is historical evidence only and is not part of the current architecture.
 
-## Physical Isolation Next Gate
+## Physical Isolation Acceptance V1
 
-A standalone persistent JARVIS data plane requires a new Supabase project. Project creation is intentionally approval-gated because Supabase requires an explicit organization choice and cost confirmation.
+The dedicated JARVIS Supabase data plane is now evidence-backed and accepted as an isolated persistence target.
 
-The standalone JARVIS source package is ready for that project:
-- personal memory migration
-- private RPC gateway
-- encrypted OAuth vault
-- owner isolation
-- audit persistence
-- no HAMYREN data flow
-- no AURENTARA reverse access
+Acceptance checks:
+- dedicated account / organization / project boundary
+- private `jarvis_private` schema
+- `personal_memory_v1`, `audit_events_v1`, `oauth_connections_v1`
+- forced RLS on all three tables
+- service-role-only private RPC gateway
+- OAuth refresh tokens represented only as encrypted envelopes
+- no initial personal records copied from RIOSYSTEMS, AURENTARA, or HAMYREN
+- no HAMYREN object exists in the JARVIS private schema
+- worker binding remains fail-closed until dedicated secrets and neutral host are present
+
+This is physical storage isolation, not yet full runtime activation.

@@ -60,7 +60,7 @@ assert.equal('routes' in config, false);
 assert.equal(config.vars.JARVIS_HOST_MODE, 'NEUTRAL_CUSTOM_HOST_REQUIRED');
 assert.equal(config.vars.JARVIS_PUBLIC_ACCESS, 'false');
 assert.equal(config.vars.JARVIS_PRODUCTION_DEPLOY, 'false');
-assert.equal(config.vars.JARVIS_DATA_PLANE, 'EPHEMERAL_UNTIL_ISOLATED');
+assert.equal(config.vars.JARVIS_DATA_PLANE, 'ISOLATED_SUPABASE_READY_UNBOUND');
 assert.equal(JSON.stringify(config).includes('aurentarasystems.com'), false);
 assert.equal(JSON.stringify(config).includes('HAMYREN'), false);
 assert.equal(JSON.stringify(config).includes('RIOSYSTEMS_'), false);
