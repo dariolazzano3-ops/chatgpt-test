@@ -21,7 +21,7 @@ const projectPath='projects/j7-visual-fixture';
 
 function html(stage='exact'){
   let variation='';
-  if(stage==='bad')variation='h1{font-size:23px!important;letter-spacing:.08em!important}.right{position:relative;left:18px;transform:scale(.76);transform-origin:top left;background:#e15a44!important;border-radius:26px!important}';
+  if(stage==='bad')variation='.right{position:relative;left:18px;transform:scale(.76);transform-origin:top left;background:#e15a44!important;border-radius:26px!important}';
   if(stage==='regress')variation='.left{position:relative;left:10px;transform:scale(.84);transform-origin:top left;background:#68717a!important;border-radius:2px!important}';
   const heading=stage==='semantic_bad'
     ? '<h2 data-visual-id="title">J7 Visual Closure</h2>'
