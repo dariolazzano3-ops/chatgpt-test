@@ -41,3 +41,5 @@ export { WEB_OS_V2_QUALITY_LEVELS, runWebOperatingSystemV2 } from './operating-s
 export { PREMIUM_COMPONENT_IDS, premiumComponentRegistry, getPremiumComponentContract, validatePremiumComponentPayload, selectPremiumComponent, premiumComponentRegistryManifest } from './premium-component-registry-v1.js';
 
 export { createImageMediaContract, createVideoMediaContract, createAssetMediaPipeline, validateAssetMediaPipeline, assetMediaPipelineManifest } from './asset-media-pipeline-v1.js';
+
+export { CONTENT_FACT_STATES, CONTENT_SURFACES, normalizeContentFact, deriveMissionContentFacts, createEvidenceSafeContentContract, runContentRenderGuard, createSeoEvidenceBundle, applySeoStaticArtifacts, contentSeoEvidenceManifest } from './content-seo-evidence-v2.js';
