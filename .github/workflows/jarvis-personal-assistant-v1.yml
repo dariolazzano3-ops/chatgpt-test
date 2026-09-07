@@ -45,6 +45,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install JARVIS build dependencies
+        run: npm install
+
       - name: Syntax check JARVIS V1
         run: |
           node --check src/jarvis/contracts-v1.js
