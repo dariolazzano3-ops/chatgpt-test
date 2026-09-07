@@ -16,8 +16,9 @@ import { runApprovedReferenceVisualClosure, visualClosureLoopManifest, verifyApp
 import { evaluateJ9BrowserMatrix, evaluateJ9Accessibility, evaluateJ9Performance, compileJ9Acceptance, j9BrowserAccessibilityPerformanceManifest } from './browser-accessibility-performance-v2.js';
 import { createJ10RevisionLedger, verifyJ10RevisionLedger, createJ10Revision, diffJ10Revisions, analyzeJ10ChangeImpact, createJ10RegressionPlan, createJ10RollbackPlan, runJ10Rollback, j10VersioningDiffRollbackManifest } from './versioning-diff-rollback-v1.js';
 import { createJ11WebFactoryControlPlane, deriveJ11ActionMatrix, j11WebFactoryControlPlaneManifest } from './dashboard-control-plane-v1.js';
+import { deriveJ12NextBestAction, j12NextBestActionManifest } from './next-best-action-v1.js';
 
-const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1', 'web.dashboard.control-plane.v1', 'web_generate', 'web_rebuild', 'web_evolve']);
+const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1', 'web.dashboard.control-plane.v1', 'web.next-best-action.v1', 'web_generate', 'web_rebuild', 'web_evolve']);
 
 function resolveMission(task = {}) {
   const raw = task.website_mission || task.input || task.mission || {};
@@ -30,6 +31,15 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   const capability = String(task.capability || 'web.build');
   if (!CAPABILITIES.has(capability)) return { ok: false, status: 'UNSUPPORTED_WEB_CAPABILITY', capability, production_deploy: false, variable_cost_eur: 0 };
   if (capability === 'web.reference.studio.v1') return executeReferenceStudioTask(task, options);
+  if (capability === 'web.next-best-action.v1') {
+    const operation=String(task.operation || 'derive').toLowerCase();
+    if (operation === 'manifest') return { ok:true, status:'J12_NEXT_BEST_ACTION_MANIFEST_READY', manifest:j12NextBestActionManifest(), production_deploy:false, variable_cost_eur:0 };
+    if (operation === 'derive') {
+      const next_best_action=deriveJ12NextBestAction(task.input || task);
+      return { ok:next_best_action.status==='READY', status:next_best_action.status==='READY'?'J12_NEXT_BEST_ACTION_READY':'J12_NEXT_BEST_ACTION_BLOCKED', next_best_action, production_deploy:false, variable_cost_eur:0 };
+    }
+    return { ok:false, status:'J12_NEXT_BEST_ACTION_OPERATION_UNSUPPORTED', production_deploy:false, variable_cost_eur:0 };
+  }
   if (capability === 'web.dashboard.control-plane.v1') {
     const operation=String(task.operation || 'project').toLowerCase();
     if (operation === 'manifest') return { ok:true, status:'J11_CONTROL_PLANE_MANIFEST_READY', manifest:j11WebFactoryControlPlaneManifest(), production_deploy:false, variable_cost_eur:0 };
@@ -186,7 +196,7 @@ export function executeCanonicalNativeWebTask(task = {}, options = {}) {
 
 export function webFactoryProviderManifest() {
   return {
-    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1', 'web.dashboard.control-plane.v1'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
+    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1', 'web.dashboard.control-plane.v1', 'web.next-best-action.v1'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
     roles: { 'riosystems-native-web-builder': 'native_builder', framer: 'visual_specialist', webflow: 'cms_specialist', lovable: 'rapid_prototyper', cloudflare: 'hosting_provider' }, role_specializations: { framer: 'premium_visual_specialist' }, role_model: webProviderRoleModel(),
     strategy: { operating_system: 'riosystems-web-operating-system-v2', primary: ['riosystems-native-web-builder', 'github', 'cloudflare-pages-preview'], visual_specialist: ['framer'], cms_specialist: ['webflow'], rapid_prototyper: ['lovable'], hosting_provider: ['cloudflare'], optional_accelerators: ['lovable'], specialists: ['framer', 'webflow'] },
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'], autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'], web_os_v2_path: ['business-intent', 'strategy', 'architecture', 'design-intent', 'native-build', 'multi-domain-QA', 'self-healing', 'integration-contracts', 'delivery'],
