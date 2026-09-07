@@ -45,6 +45,9 @@ for(const app of apps){
     http_only_cookie_attribute:app.http_only_cookie_attribute??null,
     options_preflight_bypass:app.options_preflight_bypass??null,
     same_site_cookie_attribute:app.same_site_cookie_attribute??null,
+    eager_redirect_cookie_setting:app.eager_redirect_cookie_setting??null,
+    enable_binding_cookie:app.enable_binding_cookie??null,
+    path_cookie_attribute:app.path_cookie_attribute??null,
     skip_interstitial:app.skip_interstitial??null,
     policies:policies.map(p=>({
       id:p.id||null,
