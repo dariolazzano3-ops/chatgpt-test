@@ -1,0 +1,80 @@
+name: Visual Foundry AURENTARA KPI Detail Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-kpi-detail-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kpi-detail:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: KD0_CONTROL
+            variant: CONTROL
+            padding: 14
+            gap: 13
+            spark_right: 12
+            spark_top: 19
+          - id: KD1_ICONS
+            variant: ICONS
+            padding: 12
+            gap: 20
+            spark_right: 12
+            spark_top: 19
+          - id: KD2_SPARKS
+            variant: SPARKS
+            padding: 14
+            gap: 13
+            spark_right: 12
+            spark_top: 19
+          - id: KD3_ICONS_SPARKS
+            variant: ICONS_SPARKS
+            padding: 12
+            gap: 20
+            spark_right: 12
+            spark_top: 19
+          - id: KD4_GAP22
+            variant: ICONS_SPARKS
+            padding: 12
+            gap: 22
+            spark_right: 12
+            spark_top: 19
+          - id: KD5_BALANCED
+            variant: ICONS_SPARKS
+            padding: 13
+            gap: 18
+            spark_right: 11
+            spark_top: 18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_KPI_DETAIL_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_KPI_DETAIL_VARIANT: ${{ matrix.variant }}
+      VISUAL_FOUNDRY_KPI_DETAIL_PADDING_PX: ${{ matrix.padding }}
+      VISUAL_FOUNDRY_KPI_DETAIL_GAP_PX: ${{ matrix.gap }}
+      VISUAL_FOUNDRY_KPI_DETAIL_SPARK_RIGHT_PX: ${{ matrix.spark_right }}
+      VISUAL_FOUNDRY_KPI_DETAIL_SPARK_TOP_PX: ${{ matrix.spark_top }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-kpi-detail-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
