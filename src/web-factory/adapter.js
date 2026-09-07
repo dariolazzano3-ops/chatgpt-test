@@ -14,8 +14,9 @@ import { createMotionQualityGate } from './lifecycle-governance-v2.js';
 import { createEvidenceSafeContentContract, runContentRenderGuard, createSeoEvidenceBundle, applySeoStaticArtifacts, contentSeoEvidenceManifest } from './content-seo-evidence-v2.js';
 import { runApprovedReferenceVisualClosure, visualClosureLoopManifest, verifyApprovedReferenceVisualAsset } from './visual-closure-loop-v1.js';
 import { evaluateJ9BrowserMatrix, evaluateJ9Accessibility, evaluateJ9Performance, compileJ9Acceptance, j9BrowserAccessibilityPerformanceManifest } from './browser-accessibility-performance-v2.js';
+import { createJ10RevisionLedger, verifyJ10RevisionLedger, createJ10Revision, diffJ10Revisions, analyzeJ10ChangeImpact, createJ10RegressionPlan, createJ10RollbackPlan, runJ10Rollback, j10VersioningDiffRollbackManifest } from './versioning-diff-rollback-v1.js';
 
-const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web_generate', 'web_rebuild', 'web_evolve']);
+const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1', 'web_generate', 'web_rebuild', 'web_evolve']);
 
 function resolveMission(task = {}) {
   const raw = task.website_mission || task.input || task.mission || {};
@@ -28,6 +29,22 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   const capability = String(task.capability || 'web.build');
   if (!CAPABILITIES.has(capability)) return { ok: false, status: 'UNSUPPORTED_WEB_CAPABILITY', capability, production_deploy: false, variable_cost_eur: 0 };
   if (capability === 'web.reference.studio.v1') return executeReferenceStudioTask(task, options);
+  if (capability === 'web.versioning.rollback.v1') {
+    const operation=String(task.operation || 'manifest').toLowerCase();
+    if (operation === 'manifest') return { ok:true, status:'J10_VERSIONING_MANIFEST_READY', manifest:j10VersioningDiffRollbackManifest(), production_deploy:false, variable_cost_eur:0 };
+    if (operation === 'ledger') return createJ10RevisionLedger(task.input || task);
+    if (operation === 'verify') {
+      const report=verifyJ10RevisionLedger(task.ledger || task.input || task);
+      return { ok:report.status==='PASS', status:report.status==='PASS'?'J10_LEDGER_PASS':'J10_LEDGER_FAIL', report, production_deploy:false, variable_cost_eur:0 };
+    }
+    if (operation === 'append') return createJ10Revision(task.ledger || {}, task.revision || task.input || task);
+    if (operation === 'diff') return diffJ10Revisions(task.before || {}, task.after || {});
+    if (operation === 'impact') return analyzeJ10ChangeImpact(task.change || task.input || task, task.model || {});
+    if (operation === 'regression') return createJ10RegressionPlan(task.previous || {}, task.current || {}, task.change || {}, task.model || {});
+    if (operation === 'rollback_plan') return createJ10RollbackPlan(task.ledger || {}, task.input || task);
+    if (operation === 'rollback') return runJ10Rollback(task.ledger || {}, task.input || task, task.adapters || options.adapters || {});
+    return { ok:false, status:'J10_VERSIONING_OPERATION_UNSUPPORTED', production_deploy:false, variable_cost_eur:0 };
+  }
   if (capability === 'web.acceptance.j9.v2') {
     const operation=String(task.operation || 'compile').toLowerCase();
     if (operation === 'manifest') return { ok:true, status:'J9_ACCEPTANCE_MANIFEST_READY', manifest:j9BrowserAccessibilityPerformanceManifest(), production_deploy:false, variable_cost_eur:0 };
@@ -155,7 +172,7 @@ export function executeCanonicalNativeWebTask(task = {}, options = {}) {
 
 export function webFactoryProviderManifest() {
   return {
-    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
+    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web.content-seo.v2', 'web.visual.closure.v1', 'web.acceptance.j9.v2', 'web.versioning.rollback.v1'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
     roles: { 'riosystems-native-web-builder': 'native_builder', framer: 'visual_specialist', webflow: 'cms_specialist', lovable: 'rapid_prototyper', cloudflare: 'hosting_provider' }, role_specializations: { framer: 'premium_visual_specialist' }, role_model: webProviderRoleModel(),
     strategy: { operating_system: 'riosystems-web-operating-system-v2', primary: ['riosystems-native-web-builder', 'github', 'cloudflare-pages-preview'], visual_specialist: ['framer'], cms_specialist: ['webflow'], rapid_prototyper: ['lovable'], hosting_provider: ['cloudflare'], optional_accelerators: ['lovable'], specialists: ['framer', 'webflow'] },
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'], autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'], web_os_v2_path: ['business-intent', 'strategy', 'architecture', 'design-intent', 'native-build', 'multi-domain-QA', 'self-healing', 'integration-contracts', 'delivery'],
