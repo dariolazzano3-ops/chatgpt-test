@@ -50,6 +50,9 @@ for(const asset of projectThumbnailAssets.assets||[]){
   const bytes=Buffer.from(String(asset.b64||''),'base64');
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),asset.output_sha256,'PROJECT_THUMBNAIL_HASH_MISMATCH:'+asset.asset_id);
 }
+const attentionReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/attention-reference-extracted.json','utf8'));
+assert.equal(attentionReferenceAssets.reference_hash,referenceRegistration.reference.hash,'ATTENTION_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(attentionReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -64,6 +67,10 @@ const projectThumbnailsCandidateId=explicitProjectThumbnails||(acceptedProjectTh
 const projectThumbnailsCandidateEnabled=projectThumbnailsCandidateId==='PROJECT_THUMBNAILS_REFERENCE_EXTRACTED_P1';
 const projectThumbnailsScope=String(process.env.VISUAL_FOUNDRY_PROJECT_THUMBNAILS_SCOPE||acceptedProjectThumbnails?.scope||'BOTH').trim().toUpperCase();
 const projectThumbnailsEvidenceCandidateId=acceptedProjectThumbnails?.candidate_id||projectThumbnailsCandidateId;
+const acceptedAttentionAssetCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='ATTENTION_REFERENCE_ASSET_LAYOUT_P1'&&x.apply_by_default===true);
+const explicitAttentionAssetCandidate=String(process.env.VISUAL_FOUNDRY_ATTENTION_ASSET_CANDIDATE||'').trim();
+const attentionAssetCandidateId=explicitAttentionAssetCandidate||(acceptedAttentionAssetCandidate?.candidate_id||'');
+const attentionAssetVariant=String(process.env.VISUAL_FOUNDRY_ATTENTION_ASSET_VARIANT||acceptedAttentionAssetCandidate?.variant||'FULL').trim().toUpperCase();
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -114,6 +121,30 @@ const approvedReferencePng=new PNG({width:approvedDecoded.width,height:approvedD
 approvedReferencePng.data.set(approvedDecoded.data);
 const approvedReferencePngPath=outDir+'/reference-approved.png';
 await writeFile(approvedReferencePngPath,PNG.sync.write(approvedReferencePng));
+
+function extractApprovedReferenceAsset(asset){
+  const {x,y,width,height}=asset.crop||{};
+  assert.ok(Number.isInteger(x)&&Number.isInteger(y)&&Number.isInteger(width)&&Number.isInteger(height),'ATTENTION_REFERENCE_CROP_INVALID:'+asset.asset_id);
+  assert.ok(x>=0&&y>=0&&x+width<=approvedReferencePng.width&&y+height<=approvedReferencePng.height,'ATTENTION_REFERENCE_CROP_OUT_OF_BOUNDS:'+asset.asset_id);
+  const crop=new PNG({width,height});
+  for(let row=0;row<height;row++){
+    const srcStart=((y+row)*approvedReferencePng.width+x)*4;
+    const srcEnd=srcStart+width*4;
+    const dstStart=row*width*4;
+    crop.data.set(approvedReferencePng.data.subarray(srcStart,srcEnd),dstStart);
+  }
+  const rgbaSha256=crypto.createHash('sha256').update(crop.data).digest('hex');
+  assert.equal(rgbaSha256,asset.rgba_sha256,'ATTENTION_REFERENCE_RGBA_HASH_MISMATCH:'+asset.asset_id);
+  const pngBytes=PNG.sync.write(crop);
+  return {
+    asset_id:asset.asset_id,
+    project_key:asset.project_key||null,
+    role:asset.role,
+    crop:asset.crop,
+    rgba_sha256:rgbaSha256,
+    src:'data:image/png;base64,'+pngBytes.toString('base64')
+  };
+}
 
 const child=spawn(process.execPath,[
   'node_modules/wrangler/bin/wrangler.js','dev','--env','staging','--port',String(port),
@@ -526,6 +557,136 @@ try{
       asset_ids:Object.values(assets).map(x=>x.asset_id),
       ...applied
     };
+  }
+
+  let attentionAssetCandidateState={status:'DISABLED',candidate_id:attentionAssetCandidateId||null,variant:attentionAssetVariant};
+  if(attentionAssetCandidateId){
+    const extracted=(attentionReferenceAssets.assets||[]).map(extractApprovedReferenceAsset);
+    const warning=extracted.find(x=>x.role==='ATTENTION_WARNING_ICON');
+    const thumbnails=Object.fromEntries(extracted.filter(x=>x.role==='ATTENTION_PROJECT_THUMBNAIL').map(x=>[x.project_key,x]));
+    assert.ok(warning,'ATTENTION_WARNING_ICON_REQUIRED');
+    assert.equal(Object.keys(thumbnails).length,4,'ATTENTION_REFERENCE_THUMBNAILS_REQUIRED');
+    attentionAssetCandidateState=await page.evaluate(({candidate_id,variant,warning,thumbnails})=>{
+      const root=document.querySelector('.rf-attention-anchor');
+      if(!root)throw new Error('ATTENTION_ASSET_ROOT_MISSING');
+      const table=root.querySelector('.rf-attention-table');
+      if(!table)throw new Error('ATTENTION_ASSET_TABLE_MISSING');
+      const rows=[...table.querySelectorAll('tbody tr')];
+      if(rows.length!==4)throw new Error('ATTENTION_ASSET_ROW_COUNT:'+rows.length);
+      const resolveKey=text=>{
+        const t=String(text||'').toLowerCase();
+        if(t.includes('gelato'))return 'gelato';
+        if(t.includes('bakery')||t.includes('bäcker'))return 'bakery';
+        if(t.includes('aurentara'))return 'aurentara';
+        if(t.includes('interne tools')||t.includes('operator'))return 'tools';
+        return null;
+      };
+      const full=variant==='FULL';
+      const addMore=['THUMBS_MORE','THUMBS_MORE_ICON','FULL'].includes(variant);
+      const addIcon=['THUMBS_MORE_ICON','FULL'].includes(variant);
+      const thumbs=['THUMBS','THUMBS_MORE','THUMBS_MORE_ICON','FULL'].includes(variant);
+      if(variant==='CONTROL'){
+        return {status:'CONTROL_NO_CHANGE',candidate_id,variant,thumbnail_count:0,more_button_count:0,warning_icon:false};
+      }
+      if(!thumbs)throw new Error('ATTENTION_ASSET_VARIANT_INVALID:'+variant);
+
+      const style=document.createElement('style');
+      style.id='vf-attention-reference-assets-style';
+      style.textContent=`
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table-wrap{overflow:hidden}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table{table-layout:fixed}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th{height:31px;box-sizing:border-box;padding:5px 9px;white-space:nowrap}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table td{height:40px;box-sizing:border-box;padding:2px 9px;white-space:nowrap;overflow:hidden;overflow-wrap:normal}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(1){width:11%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(2){width:22%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(3){width:15%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(4){width:21%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(5){width:12%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-attention-table th:nth-child(6){width:19%}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-attention-project{display:flex;align-items:center;gap:10px;min-width:0}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-attention-project img{display:block;width:34px;height:34px;flex:0 0 34px;border-radius:4px;object-fit:fill}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-attention-project span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-attention-actions{display:flex;align-items:center;justify-content:flex-start;gap:8px;white-space:nowrap}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-action{width:74px;height:30px;min-height:30px;padding:5px 8px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-attention-more{width:28px;height:30px;padding:0;border:1px solid #2b6795;border-radius:6px;background:#071724;color:#d8efff;font-size:10px}
+`+(full?`
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-panel-head{height:65px;min-height:65px;box-sizing:border-box;padding:9px 13px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-attention-anchor .rf-panel-title{gap:11px}
+`:'');
+      document.head.appendChild(style);
+
+      let thumbnailCount=0;
+      for(const row of rows){
+        const cell=row.children[1];
+        if(!cell)throw new Error('ATTENTION_PROJECT_CELL_MISSING');
+        const projectName=(cell.textContent||'').trim();
+        const key=resolveKey(projectName);
+        const asset=thumbnails[key];
+        if(!asset)throw new Error('ATTENTION_PROJECT_ASSET_MISSING:'+projectName);
+        cell.textContent='';
+        const wrap=document.createElement('div');
+        wrap.className='vf-attention-project';
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=asset.src;
+        img.dataset.vfReferenceExtractedAttentionThumbnail=asset.asset_id;
+        const span=document.createElement('span');
+        span.textContent=projectName;
+        wrap.append(img,span);
+        cell.appendChild(wrap);
+        thumbnailCount++;
+
+        if(addMore){
+          const actionCell=row.children[5];
+          if(!actionCell)throw new Error('ATTENTION_ACTION_CELL_MISSING');
+          const action=actionCell.querySelector('.rf-attention-action');
+          if(!action)throw new Error('ATTENTION_ACTION_BUTTON_MISSING');
+          const actions=document.createElement('div');
+          actions.className='vf-attention-actions';
+          actionCell.textContent='';
+          actions.appendChild(action);
+          const more=document.createElement('button');
+          more.type='button';
+          more.className='vf-attention-more';
+          more.setAttribute('aria-label','Weitere Aktionen');
+          more.textContent='•••';
+          actions.appendChild(more);
+          actionCell.appendChild(actions);
+        }
+      }
+
+      let warningApplied=false;
+      if(addIcon){
+        const icon=root.querySelector('.rf-panel-title .ico');
+        if(!icon)throw new Error('ATTENTION_WARNING_ICON_TARGET_MISSING');
+        icon.textContent='';
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=warning.src;
+        img.dataset.vfReferenceExtractedAttentionWarning=warning.asset_id;
+        Object.assign(img.style,{display:'block',width:'42px',height:'42px',maxWidth:'none'});
+        Object.assign(icon.style,{display:'grid',placeItems:'center',width:'42px',height:'42px',flex:'0 0 42px'});
+        icon.appendChild(img);
+        warningApplied=true;
+      }
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        thumbnail_count:thumbnailCount,
+        more_button_count:addMore?rows.length:0,
+        warning_icon:warningApplied,
+        provenance:'REFERENCE_EXTRACTED',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{
+      candidate_id:attentionAssetCandidateId,
+      variant:attentionAssetVariant,
+      warning,
+      thumbnails
+    });
   }
 
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
@@ -1022,6 +1183,7 @@ try{
     hero_candidate:heroCandidateState,
     sidebar_logo_candidate:sidebarLogoCandidateState,
     project_thumbnails_candidate:projectThumbnailsCandidateState,
+    attention_asset_candidate:attentionAssetCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1076,6 +1238,8 @@ try{
     hero_candidate:runEvidence.hero_candidate?.status||'DISABLED',
     sidebar_logo_candidate:runEvidence.sidebar_logo_candidate?.candidate_id||null,
     project_thumbnails_candidate:runEvidence.project_thumbnails_candidate?.candidate_id||null,
+    attention_asset_candidate:runEvidence.attention_asset_candidate?.candidate_id||null,
+    attention_asset_variant:runEvidence.attention_asset_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
