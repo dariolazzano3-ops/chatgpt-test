@@ -78,6 +78,14 @@ const acceptedOperatorAiAssetCandidate=(stencilSession.accepted_candidates||[]).
 const explicitOperatorAiAssetCandidate=String(process.env.VISUAL_FOUNDRY_OPERATOR_AI_ASSET_CANDIDATE||'').trim();
 const operatorAiAssetCandidateId=explicitOperatorAiAssetCandidate||(acceptedOperatorAiAssetCandidate?.candidate_id||'');
 const operatorAiAssetVariant=String(process.env.VISUAL_FOUNDRY_OPERATOR_AI_ASSET_VARIANT||acceptedOperatorAiAssetCandidate?.variant||'ICONS_BUTTONS').trim().toUpperCase();
+const acceptedOperatorAiGlobeCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='OPERATOR_AI_GLOBE_ASSET_P2'&&x.apply_by_default===true);
+const explicitOperatorAiGlobeCandidate=String(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_CANDIDATE||'').trim();
+const operatorAiGlobeCandidateId=explicitOperatorAiGlobeCandidate||(acceptedOperatorAiGlobeCandidate?.candidate_id||'');
+const operatorAiGlobeLeftPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_LEFT_PX??acceptedOperatorAiGlobeCandidate?.placement?.left_px??392);
+const operatorAiGlobeTopPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_TOP_PX??acceptedOperatorAiGlobeCandidate?.placement?.top_px??-5);
+const operatorAiGlobeWidthPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_WIDTH_PX??acceptedOperatorAiGlobeCandidate?.placement?.width_px??145);
+const operatorAiGlobeHeightPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_HEIGHT_PX??acceptedOperatorAiGlobeCandidate?.placement?.height_px??140);
+const operatorAiGlobeOpacity=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_OPACITY??acceptedOperatorAiGlobeCandidate?.placement?.opacity??1);
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -151,6 +159,56 @@ function extractApprovedReferenceAsset(asset){
     rgba_sha256:rgbaSha256,
     src:'data:image/png;base64,'+pngBytes.toString('base64')
   };
+}
+
+function extractMaskedOperatorGlobe(asset){
+  const base=extractApprovedReferenceAsset(asset);
+  const decoded=PNG.sync.read(Buffer.from(base.src.split(',')[1],'base64'));
+  const out=new PNG({width:decoded.width,height:decoded.height});
+  const alpha=new Uint8Array(decoded.width*decoded.height);
+  const m=asset.mask_contract;
+  for(let y=0;y<decoded.height;y++){
+    for(let x=0;x<decoded.width;x++){
+      const i=(y*decoded.width+x)*4;
+      const r=decoded.data[i],g=decoded.data[i+1],b=decoded.data[i+2];
+      const blue=Math.max(0,(b-r)*m.blue_score.b_minus_r_weight+(g-r)*m.blue_score.g_minus_r_weight);
+      let a=Math.max(0,Math.min(255,(blue-m.blue_score.threshold)*m.blue_score.alpha_gain));
+      const lum=(r+g+b)/3;
+      if(b>r+m.luminance_support.b_minus_r_min&&g>r+m.luminance_support.g_minus_r_min){
+        a=Math.max(a,Math.max(0,Math.min(m.luminance_support.max_alpha,(lum-m.luminance_support.threshold)*m.luminance_support.alpha_gain)));
+      }
+      const dx=(x-m.source_local_center.x)/m.ellipse_radius.x;
+      const dy=(y-m.source_local_center.y)/m.ellipse_radius.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      const spatial=Math.max(0,Math.min(1,(m.spatial.outer_radius-dist)*m.spatial.gain));
+      alpha[y*decoded.width+x]=Math.round(a*spatial);
+      out.data[i]=r;out.data[i+1]=g;out.data[i+2]=b;out.data[i+3]=255;
+    }
+  }
+  const blurred=new Uint8Array(alpha.length);
+  for(let y=0;y<decoded.height;y++){
+    for(let x=0;x<decoded.width;x++){
+      let sum=0,count=0;
+      for(let yy=Math.max(0,y-1);yy<=Math.min(decoded.height-1,y+1);yy++){
+        for(let xx=Math.max(0,x-1);xx<=Math.min(decoded.width-1,x+1);xx++){
+          sum+=alpha[yy*decoded.width+xx];count++;
+        }
+      }
+      blurred[y*decoded.width+x]=Math.round(sum/count);
+    }
+  }
+  for(let y=0;y<decoded.height;y++){
+    for(let x=0;x<decoded.width;x++){
+      const i=(y*decoded.width+x)*4;
+      const canvasX=asset.crop.x+x,canvasY=asset.crop.y+y;
+      let a=blurred[y*decoded.width+x];
+      if(canvasY>=m.contamination_zero.source_canvas_y_gte&&canvasX<m.contamination_zero.source_canvas_x_lt)a=0;
+      if(canvasX>=m.border_zero.source_canvas_x_gte||canvasY<=m.border_zero.source_canvas_y_lte)a=0;
+      out.data[i+3]=a;
+    }
+  }
+  const bytes=PNG.sync.write(out);
+  return {...base,mask_algorithm:m.algorithm,src:'data:image/png;base64,'+bytes.toString('base64')};
 }
 
 const child=spawn(process.execPath,[
