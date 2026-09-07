@@ -741,7 +741,18 @@
       "soft_locks": "PASS",
       "functional": "PASS",
       "semantic": "PASS",
-      "constraint_anchor": "PASS"
+      "constraint_anchor": "PASS",
+      "verification_workflow_run": 34069068177,
+      "verification_head": "ee77b05bcada264b9cbdd667a3afa9e45d0f1fe9",
+      "verification_artifact_id": 9999869796,
+      "verification_artifact_digest": "sha256:66d776d48a68e3355001291bbcd5b021f067b9b724f90237998e16a27754878b",
+      "verification_status": "SUCCESS",
+      "verified_attention_ssim": 0.475309,
+      "verified_attention_pixel_difference_percent": 14.6038,
+      "verified_global_ssim": 0.451428,
+      "verified_global_pixel_difference_percent": 14.112,
+      "verified_soft_locks": "PASS",
+      "verified_overflow_px": 0
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
