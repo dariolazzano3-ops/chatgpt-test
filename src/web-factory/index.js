@@ -43,3 +43,5 @@ export { PREMIUM_COMPONENT_IDS, premiumComponentRegistry, getPremiumComponentCon
 export { createImageMediaContract, createVideoMediaContract, createAssetMediaPipeline, validateAssetMediaPipeline, assetMediaPipelineManifest } from './asset-media-pipeline-v1.js';
 
 export { CONTENT_FACT_STATES, CONTENT_SURFACES, normalizeContentFact, deriveMissionContentFacts, deriveMissionExistingContentFacts, deriveLocalBusinessContentFacts, createEvidenceSafeContentContract, runContentRenderGuard, createSeoEvidenceBundle, applySeoStaticArtifacts, contentSeoEvidenceManifest } from './content-seo-evidence-v2.js';
+
+export { VISUAL_DELTA_TYPES, segmentVisualDeltas, createVisualRootCauseReport, createBoundedVisualRepairPlan, createVisualClosureContract, runFullVisualClosureLoop, visualClosureLoopManifest } from './visual-closure-loop-v1.js';
