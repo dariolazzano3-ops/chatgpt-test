@@ -53,6 +53,9 @@ for(const asset of projectThumbnailAssets.assets||[]){
 const attentionReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/attention-reference-extracted.json','utf8'));
 assert.equal(attentionReferenceAssets.reference_hash,referenceRegistration.reference.hash,'ATTENTION_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(attentionReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const operatorAiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/operator-ai-reference-extracted.json','utf8'));
+assert.equal(operatorAiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'OPERATOR_AI_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(operatorAiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -71,6 +74,10 @@ const acceptedAttentionAssetCandidate=(stencilSession.accepted_candidates||[]).f
 const explicitAttentionAssetCandidate=String(process.env.VISUAL_FOUNDRY_ATTENTION_ASSET_CANDIDATE||'').trim();
 const attentionAssetCandidateId=explicitAttentionAssetCandidate||(acceptedAttentionAssetCandidate?.candidate_id||'');
 const attentionAssetVariant=String(process.env.VISUAL_FOUNDRY_ATTENTION_ASSET_VARIANT||acceptedAttentionAssetCandidate?.variant||'FULL').trim().toUpperCase();
+const acceptedOperatorAiAssetCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='OPERATOR_AI_REFERENCE_ASSET_UI_P1'&&x.apply_by_default===true);
+const explicitOperatorAiAssetCandidate=String(process.env.VISUAL_FOUNDRY_OPERATOR_AI_ASSET_CANDIDATE||'').trim();
+const operatorAiAssetCandidateId=explicitOperatorAiAssetCandidate||(acceptedOperatorAiAssetCandidate?.candidate_id||'');
+const operatorAiAssetVariant=String(process.env.VISUAL_FOUNDRY_OPERATOR_AI_ASSET_VARIANT||acceptedOperatorAiAssetCandidate?.variant||'ICONS_BUTTONS').trim().toUpperCase();
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -689,6 +696,95 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     });
   }
 
+  let operatorAiAssetCandidateState={status:'DISABLED',candidate_id:operatorAiAssetCandidateId||null,variant:operatorAiAssetVariant};
+  if(operatorAiAssetCandidateId){
+    const extracted=(operatorAiReferenceAssets.assets||[]).map(extractApprovedReferenceAsset);
+    const sparkle=extracted.find(x=>x.role==='OPERATOR_AI_HEADER_ICON');
+    const send=extracted.find(x=>x.role==='OPERATOR_AI_SEND_ICON');
+    assert.ok(sparkle,'OPERATOR_AI_SPARKLE_ASSET_REQUIRED');
+    assert.ok(send,'OPERATOR_AI_SEND_ASSET_REQUIRED');
+    operatorAiAssetCandidateState=await page.evaluate(({candidate_id,variant,sparkle,send})=>{
+      const root=document.querySelector('.rf-grid-mid > .rf-panel:nth-child(2)');
+      if(!root)throw new Error('OPERATOR_AI_ASSET_ROOT_MISSING');
+      if(variant==='CONTROL') return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
+      const icons=['ICONS','ICONS_BUTTONS','ICONS_BUTTONS_GLYPHS'].includes(variant);
+      const buttons=['ICONS_BUTTONS','ICONS_BUTTONS_GLYPHS'].includes(variant);
+      const glyphs=variant==='ICONS_BUTTONS_GLYPHS';
+      if(!icons)throw new Error('OPERATOR_AI_ASSET_VARIANT_INVALID:'+variant);
+
+      const headerIcon=root.querySelector('.rf-panel-title .ico');
+      if(!headerIcon)throw new Error('OPERATOR_AI_HEADER_ICON_TARGET_MISSING');
+      headerIcon.textContent='';
+      const sparkImg=document.createElement('img');
+      sparkImg.alt='';
+      sparkImg.setAttribute('aria-hidden','true');
+      sparkImg.src=sparkle.src;
+      sparkImg.dataset.vfReferenceExtractedOperatorAiHeader=sparkle.asset_id;
+      Object.assign(sparkImg.style,{display:'block',width:'42px',height:'42px',maxWidth:'none'});
+      Object.assign(headerIcon.style,{display:'grid',placeItems:'center',width:'46px',height:'46px',flex:'0 0 46px'});
+      headerIcon.appendChild(sparkImg);
+
+      const sendTarget=root.querySelector('.rf-ai-input > span:last-child');
+      if(!sendTarget)throw new Error('OPERATOR_AI_SEND_TARGET_MISSING');
+      sendTarget.textContent='';
+      const sendImg=document.createElement('img');
+      sendImg.alt='';
+      sendImg.setAttribute('aria-hidden','true');
+      sendImg.src=send.src;
+      sendImg.dataset.vfReferenceExtractedOperatorAiSend=send.asset_id;
+      Object.assign(sendImg.style,{display:'block',width:'24px',height:'24px',maxWidth:'none'});
+      sendTarget.appendChild(sendImg);
+
+      const newChat=root.querySelector('.rf-ai-new');
+      if(newChat){
+        newChat.innerHTML='<span aria-hidden="true" style="font-size:11px">◎</span><span>Neuer Chat</span><b aria-hidden="true" style="font-size:12px">+</b>';
+        Object.assign(newChat.style,{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:'7px'});
+      }
+
+      if(buttons){
+        const style=document.createElement('style');
+        style.id='vf-operator-ai-reference-assets-style';
+        style.textContent=`
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-actions{display:flex;flex-wrap:wrap;gap:7px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action{height:32px;min-height:32px;box-sizing:border-box;padding:6px 9px;display:inline-flex;align-items:center;justify-content:flex-start;gap:7px;white-space:nowrap}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(1){width:174px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(2){width:132px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(3){width:170px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(4){width:132px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(5){width:130px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-grid-mid>.rf-panel:nth-child(2) .rf-ai-action:nth-child(6){width:191px}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .vf-ai-action-glyph{width:12px;flex:0 0 12px;text-align:center;color:#d9ebf8;font-size:10px}
+`;
+        document.head.appendChild(style);
+      }
+      if(glyphs){
+        const glyphSet=['⌘','⌁','△','◷','⌘','▣'];
+        [...root.querySelectorAll('.rf-ai-action')].forEach((button,i)=>{
+          const text=(button.textContent||'').trim();
+          button.textContent='';
+          const g=document.createElement('span');
+          g.className='vf-ai-action-glyph';
+          g.setAttribute('aria-hidden','true');
+          g.textContent=glyphSet[i]||'•';
+          const label=document.createElement('span');
+          label.textContent=text;
+          button.append(g,label);
+        });
+      }
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        header_icon:true,
+        send_icon:true,
+        button_geometry:buttons,
+        action_glyphs:glyphs,
+        provenance:'REFERENCE_EXTRACTED',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{candidate_id:operatorAiAssetCandidateId,variant:operatorAiAssetVariant,sparkle,send});
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1184,6 +1280,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     sidebar_logo_candidate:sidebarLogoCandidateState,
     project_thumbnails_candidate:projectThumbnailsCandidateState,
     attention_asset_candidate:attentionAssetCandidateState,
+    operator_ai_asset_candidate:operatorAiAssetCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1240,6 +1337,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     project_thumbnails_candidate:runEvidence.project_thumbnails_candidate?.candidate_id||null,
     attention_asset_candidate:runEvidence.attention_asset_candidate?.candidate_id||null,
     attention_asset_variant:runEvidence.attention_asset_candidate?.variant||null,
+    operator_ai_asset_candidate:runEvidence.operator_ai_asset_candidate?.candidate_id||null,
+    operator_ai_asset_variant:runEvidence.operator_ai_asset_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
