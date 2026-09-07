@@ -26,7 +26,7 @@ export { PREMIUM_WEBSITE_STANDARD_SCHEMA, PREMIUM_QUALITY_DIMENSIONS, PREMIUM_HA
 export { analyzeCompetitorReferences } from './competitor-intelligence.js';
 export { createDesignIntent, designIntentToVisualContract } from './design-intent-engine.js';
 export { directVisualQuality, reviewCro, applyCroMissionRepairs } from './quality-cro.js';
-export { createMotionDesignContract, createLocalizationArchitecture } from './motion-localization.js';
+export { createMotionDesignContract, createMotionRuntimePlan, createLocalizationArchitecture } from './motion-localization.js';
 export { STANDARD_WEBSITE_EVENTS, createMigrationPlan, createBusinessIntegrationPlan, createExperimentContract } from './migration-integration.js';
 export { AUTONOMOUS_QUALITY_LEVELS, buildAutonomousPremiumWebsite } from './autonomous-premium.js';
 export { PREMIUM_STATIC_WEB_V1_ID, PREMIUM_STATIC_WEB_V1_TOOLCHAIN, premiumStaticWebV1Manifest, createPremiumStaticWebV1AcceptanceContract, applyPremiumStaticWebV1Profile, materializePremiumStaticWebV1SourcePackage } from './premium-static-web-v1.js';

@@ -9,8 +9,10 @@ import { executeReferenceStudioTask } from './reference-studio-v1.js';
 import { createReferenceDesignContract, verifyReferenceDesignContract, diffReferenceDesignContracts } from './reference-design-contract-v1.js';
 import { premiumComponentRegistry, getPremiumComponentContract, validatePremiumComponentPayload, selectPremiumComponent } from './premium-component-registry-v1.js';
 import { createAssetMediaPipeline, createImageMediaContract, createVideoMediaContract, validateAssetMediaPipeline } from './asset-media-pipeline-v1.js';
+import { createMotionDesignContract, createMotionRuntimePlan } from './motion-localization.js';
+import { createMotionQualityGate } from './lifecycle-governance-v2.js';
 
-const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web_generate', 'web_rebuild', 'web_evolve']);
+const CAPABILITIES = new Set(['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1', 'web_generate', 'web_rebuild', 'web_evolve']);
 
 function resolveMission(task = {}) {
   const raw = task.website_mission || task.input || task.mission || {};
@@ -23,6 +25,12 @@ export function executeWebFactoryTask(task = {}, options = {}) {
   const capability = String(task.capability || 'web.build');
   if (!CAPABILITIES.has(capability)) return { ok: false, status: 'UNSUPPORTED_WEB_CAPABILITY', capability, production_deploy: false, variable_cost_eur: 0 };
   if (capability === 'web.reference.studio.v1') return executeReferenceStudioTask(task, options);
+  if (capability === 'web.motion.contract.v1') {
+    const contract=createMotionDesignContract(task.motion_intent || task.items || [], { quality_level:task.quality_level || 'PREMIUM' });
+    const runtime=createMotionRuntimePlan(contract);
+    const quality=createMotionQualityGate(contract);
+    return { ok:quality.status!=='BLOCK', status:quality.status==='BLOCK'?'MOTION_CONTRACT_BLOCKED':'MOTION_CONTRACT_READY', contract, runtime, quality, production_deploy:false, variable_cost_eur:0 };
+  }
   if (capability === 'web.assets.media.v1') {
     const operation=String(task.operation || 'pipeline').toLowerCase();
     if (operation === 'image') return createImageMediaContract(task.asset || task);
@@ -107,7 +115,7 @@ export function executeCanonicalNativeWebTask(task = {}, options = {}) {
 
 export function webFactoryProviderManifest() {
   return {
-    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
+    schema: 'riosystems.web-factory-provider.v2', provider_id: 'riosystems-native-web-builder', capabilities: ['web.build', 'web.premium.build', 'web.autonomous.premium.build', 'web.os.v2.build', 'web.os.v2.proposal', 'web.reference.studio.v1', 'web.reference.design-contract.v1', 'web.components.registry.v1', 'web.assets.media.v1', 'web.motion.contract.v1'], aliases: ['web_generate', 'web_rebuild', 'web_evolve'],
     roles: { 'riosystems-native-web-builder': 'native_builder', framer: 'visual_specialist', webflow: 'cms_specialist', lovable: 'rapid_prototyper', cloudflare: 'hosting_provider' }, role_specializations: { framer: 'premium_visual_specialist' }, role_model: webProviderRoleModel(),
     strategy: { operating_system: 'riosystems-web-operating-system-v2', primary: ['riosystems-native-web-builder', 'github', 'cloudflare-pages-preview'], visual_specialist: ['framer'], cms_specialist: ['webflow'], rapid_prototyper: ['lovable'], hosting_provider: ['cloudflare'], optional_accelerators: ['lovable'], specialists: ['framer', 'webflow'] },
     premium_visual_path: ['framer', 'riosystems-native-web-builder', 'cloudflare'], autonomous_premium_path: ['riosystems-autonomous-design-intelligence', 'riosystems-native-web-builder', 'cloudflare'], web_os_v2_path: ['business-intent', 'strategy', 'architecture', 'design-intent', 'native-build', 'multi-domain-QA', 'self-healing', 'integration-contracts', 'delivery'],
