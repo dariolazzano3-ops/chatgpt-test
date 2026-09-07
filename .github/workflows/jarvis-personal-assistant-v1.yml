@@ -16,6 +16,7 @@ on:
       - 'scripts/jarvis-google-oauth-v1-smoke.mjs'
       - 'scripts/jarvis-private-worker-v1-smoke.mjs'
       - 'scripts/jarvis-neutral-host-v1-smoke.mjs'
+      - 'scripts/jarvis-cloudflare-account-isolation-v1-smoke.mjs'
       - 'wrangler.jarvis-private.jsonc'
       - '.github/workflows/jarvis-private-worker-staging.yml'
       - '.github/workflows/jarvis-private-access-bootstrap.yml'
@@ -70,6 +71,7 @@ jobs:
           node --check src/jarvis/http-v1.js
           node --check src/jarvis/standalone-worker-v1.js
           node --check src/jarvis/host-policy-v1.js
+          node --check src/jarvis/cloudflare-account-isolation-v1.js
 
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
@@ -100,3 +102,6 @@ jobs:
 
       - name: JARVIS V1 neutral host policy smoke
         run: node scripts/jarvis-neutral-host-v1-smoke.mjs
+
+      - name: JARVIS V1 Cloudflare account isolation smoke
+        run: node scripts/jarvis-cloudflare-account-isolation-v1-smoke.mjs

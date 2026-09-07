@@ -324,3 +324,27 @@ Acceptance checks:
 - worker binding remains fail-closed until dedicated secrets and neutral host are present
 
 This is physical storage isolation, not yet full runtime activation.
+
+
+## Dedicated Cloudflare Account Isolation V1
+
+JARVIS runtime deployment is now guarded against reuse of the business Cloudflare account.
+
+Required deployment credentials:
+- `JARVIS_CLOUDFLARE_ACCOUNT_ID`
+- `JARVIS_CLOUDFLARE_API_TOKEN`
+
+The JARVIS deployment workflow no longer consumes the shared generic Cloudflare secret names and does not consume the RIOSYSTEMS zero-cost variable.
+
+Current activation state:
+- dedicated Cloudflare account = HUMAN SETUP REQUIRED
+- JARVIS Worker package = READY
+- workers.dev = OFF
+- custom routes = NONE
+- account_id hardcoded in source = NO
+- Production = OFF
+- Public = OFF
+- DNS changes = NONE
+- external writes = OFF
+
+Before runtime activation, the dedicated JARVIS Cloudflare account must be created and its dedicated credentials must be bound through secret storage. The account must not equal the business Cloudflare account.

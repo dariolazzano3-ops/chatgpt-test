@@ -80,9 +80,8 @@ jobs:
       group: jarvis-private-staging-deploy
       cancel-in-progress: false
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      ZERO_COST_CONFIRMED: ${{ vars.RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.JARVIS_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.JARVIS_CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -95,7 +94,6 @@ jobs:
       - name: Verify private staging safety
         run: |
           set -euo pipefail
-          test "$ZERO_COST_CONFIRMED" = "true"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test "$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-private.jsonc','utf8'));process.stdout.write(c.name)")" = "jarvis-private-staging"
