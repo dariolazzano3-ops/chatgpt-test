@@ -154,6 +154,7 @@ export async function compareVisualImages(input={}){
     }
   }
   if(base.diff_png&&input.diff_path){
+    const {PNG}=await comparatorDeps();
     await fs.mkdir(path.dirname(path.resolve(input.diff_path)),{recursive:true});
     await fs.writeFile(path.resolve(input.diff_path),PNG.sync.write(base.diff_png));
   }
