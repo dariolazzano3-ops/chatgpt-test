@@ -1,0 +1,36 @@
+{
+  "schema": "riosystems.reference-extracted-operator-ai-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "operator_ai_sparkle_icon_reference_extracted",
+      "role": "OPERATOR_AI_HEADER_ICON",
+      "crop": {
+        "x": 970,
+        "y": 302,
+        "width": 42,
+        "height": 42
+      },
+      "rgba_sha256": "99560215d3e0c8d74e2c32a48a79b67ec4d044d49e5aaaa20f096b76e6bb6965"
+    },
+    {
+      "asset_id": "operator_ai_send_icon_reference_extracted",
+      "role": "OPERATOR_AI_SEND_ICON",
+      "crop": {
+        "x": 1482,
+        "y": 520,
+        "width": 24,
+        "height": 24
+      },
+      "rgba_sha256": "b8901b6bf12673f67ea538fbfcf5ce7d39a7cac5ca09928f4e5e41398d12c66d"
+    }
+  ],
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
