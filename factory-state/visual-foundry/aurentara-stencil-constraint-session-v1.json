@@ -241,7 +241,7 @@
       },
       {
         "region_id": "primary_navigation",
-        "baseline_score": 0.499364
+        "baseline_score": 0.501954
       },
       {
         "region_id": "toolbar",
@@ -939,6 +939,47 @@
       "verified_soft_locks": "PASS",
       "verified_geometry": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "PRIMARY_NAVIGATION_LAYOUT_P3",
+      "region_id": "primary_navigation",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "PL4_REPORTS_SCREEN20",
+      "variant": "REPORTS_SCREEN",
+      "icon_size_px": 20,
+      "sweep_workflow_run": 34072388592,
+      "sweep_head": "9b9553accd218d5b059b8f2192e8c127db67c62f",
+      "provenance": "REFERENCE_EXTRACTED_WITH_SCREEN_BLEND",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "reports_placeholder": {
+        "label": "Berichte",
+        "visual_alignment_only": true,
+        "aria_disabled": true,
+        "functional_action": false,
+        "synthetic_action_added": false
+      },
+      "baseline_primary_navigation_ssim": 0.499364,
+      "accepted_primary_navigation_ssim": 0.501954,
+      "baseline_primary_navigation_pixel_difference_percent": 12.0216,
+      "accepted_primary_navigation_pixel_difference_percent": 11.8421,
+      "baseline_sidebar_ssim": 0.535695,
+      "accepted_sidebar_ssim": 0.535886,
+      "baseline_sidebar_pixel_difference_percent": 11.1495,
+      "accepted_sidebar_pixel_difference_percent": 11.0058,
+      "baseline_global_ssim": 0.473373,
+      "accepted_global_ssim": 0.480651,
+      "baseline_global_pixel_difference_percent": 13.897,
+      "accepted_global_pixel_difference_percent": 13.8577,
+      "edge_score_primary_navigation": 0.199082,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
