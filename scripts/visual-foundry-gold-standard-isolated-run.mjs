@@ -144,6 +144,11 @@ const heroTypographyCandidateId=explicitHeroTypography||(acceptedHeroTypography?
 const heroTitleScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_SCALE_X??acceptedHeroTypography?.typography?.scale_x??1);
 const heroTitleLetterSpacingPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_LETTER_SPACING_PX??acceptedHeroTypography?.typography?.letter_spacing_px??NaN);
 const heroTitleWeight=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_WEIGHT??acceptedHeroTypography?.typography?.font_weight??NaN);
+const acceptedHeroTitleFinish=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TITLE_FINISH_P1'&&x.apply_by_default===true);
+const explicitHeroTitleFinish=String(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINISH_CANDIDATE||'').trim();
+const heroTitleFinishCandidateId=explicitHeroTitleFinish||(acceptedHeroTitleFinish?.candidate_id||'');
+const heroTitleFinishVariant=String(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINISH_VARIANT||acceptedHeroTitleFinish?.variant||'METAL_A').trim().toUpperCase();
+const heroTitleFinishScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINISH_SCALE_X??acceptedHeroTitleFinish?.scale_x??heroTitleScaleX);
 const sidebarNavTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_TYPOGRAPHY_CANDIDATE||'').trim();
 const sidebarNavFontSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_SIZE_PX||NaN);
 const sidebarNavFontWeight=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_WEIGHT||NaN);
@@ -1721,6 +1726,76 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     },{candidate_id:heroTypographyCandidateId,scale_x:heroTitleScaleX,letter_spacing_px:heroTitleLetterSpacingPx,weight:heroTitleWeight});
   }
 
+  let heroTitleFinishCandidateState={status:'DISABLED',candidate_id:heroTitleFinishCandidateId||null,variant:heroTitleFinishVariant};
+  if(heroTitleFinishCandidateId){
+    heroTitleFinishCandidateState=await page.evaluate(({candidate_id,variant,scale_x})=>{
+      if(candidate_id==='HF0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
+      const title=document.querySelector('.rf-hero h1');
+      if(!title)throw new Error('HERO_TITLE_FINISH_ELEMENT_MISSING');
+      const presets={
+        METAL_A:{
+          background:'linear-gradient(180deg,#ffffff 0%,#edf2f9 34%,#c8d3e1 62%,#8fa2ba 100%)',
+          shadow:'0 0 1px rgba(116,187,255,.24), 0 1px 0 rgba(18,42,68,.55)',
+          stroke:'0px transparent'
+        },
+        METAL_B:{
+          background:'linear-gradient(180deg,#ffffff 0%,#e7edf6 30%,#b8c7da 58%,#7c92ae 100%)',
+          shadow:'0 0 2px rgba(92,170,255,.30), 0 1px 1px rgba(10,30,55,.72)',
+          stroke:'0px transparent'
+        },
+        METAL_C:{
+          background:'linear-gradient(180deg,#f8fbff 0%,#dce5f0 42%,#a5b6ca 72%,#758ca9 100%)',
+          shadow:'none',
+          stroke:'0.35px rgba(189,213,236,.44)'
+        },
+        METAL_D:{
+          background:'linear-gradient(180deg,#ffffff 0%,#d7e1ee 48%,#91a6c0 100%)',
+          shadow:'0 0 1px rgba(96,176,255,.34)',
+          stroke:'0.45px rgba(126,166,203,.55)'
+        }
+      };
+      const p=presets[variant];
+      if(!p)throw new Error('HERO_TITLE_FINISH_VARIANT_INVALID:'+variant);
+      const beforeStyle=getComputedStyle(title);
+      const beforeRect=title.getBoundingClientRect();
+      title.style.transform='scaleX('+scale_x+')';
+      title.style.transformOrigin='left center';
+      title.style.backgroundImage=p.background;
+      title.style.backgroundClip='text';
+      title.style.webkitBackgroundClip='text';
+      title.style.color='transparent';
+      title.style.webkitTextFillColor='transparent';
+      title.style.textShadow=p.shadow;
+      title.style.webkitTextStroke=p.stroke;
+      title.style.textRendering='geometricPrecision';
+      title.dataset.vfHeroTitleFinishCandidate=candidate_id;
+      const afterStyle=getComputedStyle(title);
+      const afterRect=title.getBoundingClientRect();
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        scale_x,
+        semantic_text_preserved:true,
+        raster_replacement:false,
+        substitution_status:'CSS_FINISH_ON_SEMANTIC_TEXT',
+        before:{
+          color:beforeStyle.color,
+          text_shadow:beforeStyle.textShadow,
+          rect:{x:beforeRect.x,y:beforeRect.y,width:beforeRect.width,height:beforeRect.height}
+        },
+        after:{
+          color:afterStyle.color,
+          text_shadow:afterStyle.textShadow,
+          background_image:afterStyle.backgroundImage,
+          webkit_text_stroke:afterStyle.webkitTextStroke,
+          transform:afterStyle.transform,
+          rect:{x:afterRect.x,y:afterRect.y,width:afterRect.width,height:afterRect.height}
+        }
+      };
+    },{candidate_id:heroTitleFinishCandidateId,variant:heroTitleFinishVariant,scale_x:heroTitleFinishScaleX});
+  }
+
   await page.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready});
   await page.waitForTimeout(120);
 
@@ -2028,6 +2103,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     toolbar_detail_candidate:toolbarDetailCandidateState,
     kpi_detail_candidate:kpiDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
+    hero_title_finish_candidate:heroTitleFinishCandidateState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
     panel_header_typography_candidate:panelHeaderTypographyState,
@@ -2101,6 +2177,9 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     kpi_detail_candidate:runEvidence.kpi_detail_candidate?.candidate_id||null,
     kpi_detail_variant:runEvidence.kpi_detail_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
+    hero_title_finish_candidate:runEvidence.hero_title_finish_candidate?.candidate_id||null,
+    hero_title_finish_variant:runEvidence.hero_title_finish_candidate?.variant||null,
+    hero_title_finish_scale_x:runEvidence.hero_title_finish_candidate?.scale_x||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
     panel_header_typography_candidate:runEvidence.panel_header_typography_candidate?.candidate_id||null,
