@@ -1,0 +1,86 @@
+{
+  "schema": "riosystems.aurentara-kpi-detail-rejection.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "sweep_workflow_run": 34073439520,
+  "sweep_head": "692177b86c877ba098cc02ad8eecc72dde1d5f20",
+  "baseline": {
+    "candidate_id": "KD0_CONTROL",
+    "kpi_ssim": 0.52698,
+    "kpi_pixel_difference_percent": 12.7122,
+    "global_ssim": 0.480651,
+    "global_pixel_difference_percent": 13.8577,
+    "kpi_color_score": 0.987159,
+    "kpi_edge_score": 0.264958
+  },
+  "tested": [
+    {
+      "candidate_id": "KD1_ICONS",
+      "variant": "ICONS",
+      "kpi_ssim": 0.484062,
+      "kpi_pixel_difference_percent": 13.5392,
+      "global_ssim": 0.479349,
+      "global_pixel_difference_percent": 13.9231,
+      "kpi_color_score": 0.983406,
+      "kpi_edge_score": 0.238404
+    },
+    {
+      "candidate_id": "KD2_SPARKS",
+      "variant": "SPARKS",
+      "kpi_ssim": 0.512,
+      "kpi_pixel_difference_percent": 13.2881,
+      "global_ssim": 0.480681,
+      "global_pixel_difference_percent": 13.9035,
+      "kpi_color_score": 0.984533,
+      "kpi_edge_score": 0.275254
+    },
+    {
+      "candidate_id": "KD3_ICONS_SPARKS",
+      "variant": "ICONS_SPARKS",
+      "kpi_ssim": 0.469947,
+      "kpi_pixel_difference_percent": 14.1224,
+      "global_ssim": 0.479714,
+      "global_pixel_difference_percent": 13.969,
+      "kpi_color_score": 0.98116,
+      "kpi_edge_score": 0.249444
+    },
+    {
+      "candidate_id": "KD4_GAP22",
+      "variant": "ICONS_SPARKS",
+      "kpi_ssim": 0.469182,
+      "kpi_pixel_difference_percent": 14.0722,
+      "global_ssim": 0.479783,
+      "global_pixel_difference_percent": 13.965,
+      "kpi_color_score": 0.981157,
+      "kpi_edge_score": 0.24844
+    },
+    {
+      "candidate_id": "KD5_BALANCED",
+      "variant": "ICONS_SPARKS",
+      "kpi_ssim": 0.476109,
+      "kpi_pixel_difference_percent": 13.8997,
+      "global_ssim": 0.482202,
+      "global_pixel_difference_percent": 13.9514,
+      "kpi_color_score": 0.98117,
+      "kpi_edge_score": 0.277834
+    }
+  ],
+  "decision": "REJECT_ALL_TESTED_KPI_DETAIL_CANDIDATES",
+  "reason": "Every decorative KPI replacement regressed the already soft-locked KPI region. Global SSIM gains are not sufficient to override a local region regression.",
+  "retained_candidate": "KPI_TYPOGRAPHY_K6",
+  "retained_kpi_ssim": 0.52698,
+  "retained_kpi_pixel_difference_percent": 12.7122,
+  "next_strategy": "Preserve KPI soft lock and move to higher-priority unresolved hero title raster styling.",
+  "soft_lock_preserved": true,
+  "functional": "PASS",
+  "semantic": "PASS",
+  "constraint_anchor": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
