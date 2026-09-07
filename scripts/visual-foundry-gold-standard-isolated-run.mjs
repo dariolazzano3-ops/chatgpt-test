@@ -169,6 +169,11 @@ const sidebarBrandTitleLetterSpacingEm=Number(process.env.VISUAL_FOUNDRY_SIDEBAR
 const sidebarBrandTaglineSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_SIZE_PX||NaN);
 const sidebarBrandTaglineWidthPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_TAGLINE_WIDTH_PX||NaN);
 const sidebarBrandFixedHeightPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_FIXED_HEIGHT_PX||NaN);
+const acceptedSidebarBrandAlignment=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='SIDEBAR_BRAND_ALIGNMENT_B9'&&x.apply_by_default===true);
+const explicitSidebarBrandAlignment=String(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_CANDIDATE||'').trim();
+const sidebarBrandAlignmentCandidateId=explicitSidebarBrandAlignment||(acceptedSidebarBrandAlignment?.candidate_id||'');
+const sidebarBrandAlignmentLeftPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_LEFT_PX??acceptedSidebarBrandAlignment?.left_px??5);
+const sidebarBrandAlignmentTaglineWidthPx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_TAGLINE_WIDTH_PX??acceptedSidebarBrandAlignment?.tagline_width_px??148);
 const panelHeaderTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_PANEL_HEADER_TYPOGRAPHY_CANDIDATE||'').trim();
 const panelHeaderTitleSizePx=Number(process.env.VISUAL_FOUNDRY_PANEL_HEADER_TITLE_SIZE_PX||NaN);
 const panelHeaderTitleWeight=Number(process.env.VISUAL_FOUNDRY_PANEL_HEADER_TITLE_WEIGHT||NaN);
@@ -1700,6 +1705,39 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     },{candidate_id:sidebarBrandTypographyCandidateId,title_size_px:sidebarBrandTitleSizePx,title_letter_spacing_em:sidebarBrandTitleLetterSpacingEm,tagline_size_px:sidebarBrandTaglineSizePx,tagline_width_px:sidebarBrandTaglineWidthPx,fixed_height_px:sidebarBrandFixedHeightPx});
   }
 
+  let sidebarBrandAlignmentState={status:'DISABLED',candidate_id:sidebarBrandAlignmentCandidateId||null};
+  if(sidebarBrandAlignmentCandidateId){
+    sidebarBrandAlignmentState=await page.evaluate(({candidate_id,left_px,tagline_width_px})=>{
+      if(candidate_id==='BA0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id};
+      const brand=document.querySelector('.brand');
+      const title=brand?.querySelector('strong');
+      const tagline=brand?.querySelector('span');
+      if(!brand||!title||!tagline)throw new Error('SIDEBAR_BRAND_ALIGNMENT_TARGET_MISSING');
+      const snap=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {text:(el.textContent||'').trim(),text_align:s.textAlign,max_width:s.maxWidth,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}};
+      const before={title:snap(title),tagline:snap(tagline)};
+      for(const el of [title,tagline]){
+        el.style.alignSelf='flex-start';
+        el.style.marginLeft=left_px+'px';
+        el.style.textAlign='left';
+      }
+      tagline.style.width=tagline_width_px+'px';
+      tagline.style.maxWidth=tagline_width_px+'px';
+      title.dataset.vfSidebarBrandAlignmentCandidate=candidate_id;
+      tagline.dataset.vfSidebarBrandAlignmentCandidate=candidate_id;
+      const after={title:snap(title),tagline:snap(tagline)};
+      return {
+        status:'APPLIED',
+        candidate_id,
+        left_px,
+        tagline_width_px,
+        logo_untouched:true,
+        semantic_text_preserved:true,
+        before,
+        after
+      };
+    },{candidate_id:sidebarBrandAlignmentCandidateId,left_px:sidebarBrandAlignmentLeftPx,tagline_width_px:sidebarBrandAlignmentTaglineWidthPx});
+  }
+
   let sidebarNavTypographyState={status:'DISABLED',candidate_id:sidebarNavTypographyCandidateId||null};
   if(sidebarNavTypographyCandidateId){
     sidebarNavTypographyState=await page.evaluate(({candidate_id,font_size_px,font_weight})=>{
@@ -2216,6 +2254,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     hero_title_reference_candidate:heroTitleReferenceCandidateState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
+    sidebar_brand_alignment_candidate:sidebarBrandAlignmentState,
     panel_header_typography_candidate:panelHeaderTypographyState,
     kpi_typography_candidate:kpiTypographyState,
     right_rail_typography_candidate:rightRailTypographyState,
@@ -2294,6 +2333,9 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     hero_title_reference_placement:runEvidence.hero_title_reference_candidate?.placement||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
+    sidebar_brand_alignment_candidate:runEvidence.sidebar_brand_alignment_candidate?.candidate_id||null,
+    sidebar_brand_alignment_left_px:runEvidence.sidebar_brand_alignment_candidate?.left_px||null,
+    sidebar_brand_alignment_tagline_width_px:runEvidence.sidebar_brand_alignment_candidate?.tagline_width_px||null,
     panel_header_typography_candidate:runEvidence.panel_header_typography_candidate?.candidate_id||null,
     kpi_typography_candidate:runEvidence.kpi_typography_candidate?.candidate_id||null,
     right_rail_typography_candidate:runEvidence.right_rail_typography_candidate?.candidate_id||null,
