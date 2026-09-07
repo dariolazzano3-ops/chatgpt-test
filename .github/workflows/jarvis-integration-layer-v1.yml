@@ -1,0 +1,33 @@
+name: JARVIS Integration Layer V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-integration-layer-v1'
+    paths:
+      - 'src/jarvis/integration-layer-v1.js'
+      - 'scripts/jarvis-integration-layer-v1-smoke.mjs'
+      - 'docs/JARVIS_INTEGRATION_LAYER_V1.md'
+      - '.github/workflows/jarvis-integration-layer-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-layer-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Syntax
+        run: node --check src/jarvis/integration-layer-v1.js
+
+      - name: Acceptance
+        run: node scripts/jarvis-integration-layer-v1-smoke.mjs
