@@ -126,6 +126,15 @@ const explicitPrimaryNavLayout=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAY
 const primaryNavLayoutCandidateId=explicitPrimaryNavLayout||(acceptedPrimaryNavLayout?.candidate_id||'');
 const primaryNavLayoutVariant=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_VARIANT||acceptedPrimaryNavLayout?.variant||'REPORTS_ONLY').trim().toUpperCase();
 const primaryNavLayoutIconSizePx=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_ICON_SIZE_PX??acceptedPrimaryNavLayout?.icon_size_px??20);
+const acceptedPrimaryNavFineAlignment=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='PRIMARY_NAVIGATION_FINE_ALIGNMENT_P4'&&x.apply_by_default===true);
+const explicitPrimaryNavFineAlignment=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_CANDIDATE||'').trim();
+const primaryNavFineCandidateId=explicitPrimaryNavFineAlignment||(acceptedPrimaryNavFineAlignment?.candidate_id||'');
+const primaryNavFineGroup2Top=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G2_TOP??acceptedPrimaryNavFineAlignment?.group_padding?.g2_top??6);
+const primaryNavFineGroup2Bottom=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G2_BOTTOM??acceptedPrimaryNavFineAlignment?.group_padding?.g2_bottom??5);
+const primaryNavFineGroup3Top=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G3_TOP??acceptedPrimaryNavFineAlignment?.group_padding?.g3_top??6);
+const primaryNavFineGroup3Bottom=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G3_BOTTOM??acceptedPrimaryNavFineAlignment?.group_padding?.g3_bottom??5);
+const primaryNavFineGroup4Top=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G4_TOP??acceptedPrimaryNavFineAlignment?.group_padding?.g4_top??6);
+const primaryNavFineGroup4Bottom=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G4_BOTTOM??acceptedPrimaryNavFineAlignment?.group_padding?.g4_bottom??5);
 const acceptedToolbarDetail=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='TOOLBAR_DETAIL_P1'&&x.apply_by_default===true);
 const explicitToolbarDetail=String(process.env.VISUAL_FOUNDRY_TOOLBAR_DETAIL_CANDIDATE||'').trim();
 const toolbarDetailCandidateId=explicitToolbarDetail||(acceptedToolbarDetail?.candidate_id||'');
@@ -1279,6 +1288,61 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     });
   }
 
+  let primaryNavFineAlignmentState={status:'DISABLED',candidate_id:primaryNavFineCandidateId||null};
+  if(primaryNavFineCandidateId){
+    primaryNavFineAlignmentState=await page.evaluate(({candidate_id,g2_top,g2_bottom,g3_top,g3_bottom,g4_top,g4_bottom})=>{
+      if(candidate_id==='NF0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id};
+      const main=document.querySelector('.rf-hq-nav-main');
+      const groups=[...main?.querySelectorAll('.rf-nav-group')||[]];
+      if(!main||groups.length!==4)throw new Error('PRIMARY_NAV_FINE_GROUP_COUNT:'+groups.length);
+      const vals=[
+        null,
+        {top:g2_top,bottom:g2_bottom},
+        {top:g3_top,bottom:g3_bottom},
+        {top:g4_top,bottom:g4_bottom}
+      ];
+      groups.forEach((group,i)=>{
+        if(i===0)return;
+        group.style.paddingTop=vals[i].top+'px';
+        group.style.paddingBottom=vals[i].bottom+'px';
+      });
+      const snap=()=>{
+        const mainRect=main.getBoundingClientRect();
+        const data=groups.map((group,i)=>{
+          const r=group.getBoundingClientRect();
+          const title=group.querySelector('.rf-nav-group-title')?.getBoundingClientRect()||null;
+          const buttons=[...group.querySelectorAll('button')];
+          const first=buttons[0]?.getBoundingClientRect()||null;
+          const last=buttons.at(-1)?.getBoundingClientRect()||null;
+          return {
+            index:i,
+            group:{x:r.x,y:r.y,width:r.width,height:r.height},
+            title:title?{x:title.x,y:title.y,width:title.width,height:title.height}:null,
+            first:first?{x:first.x,y:first.y,width:first.width,height:first.height}:null,
+            last:last?{x:last.x,y:last.y,width:last.width,height:last.height}:null
+          };
+        });
+        return {main:{x:mainRect.x,y:mainRect.y,width:mainRect.width,height:mainRect.height},groups:data};
+      };
+      return {
+        status:'APPLIED',
+        candidate_id,
+        group_padding:{g2_top,g2_bottom,g3_top,g3_bottom,g4_top,g4_bottom},
+        geometry:snap(),
+        semantic_navigation_preserved:true,
+        reports_placeholder_preserved:!!main.querySelector('[data-rf-nav="reports-placeholder"][aria-disabled="true"]')
+      };
+    },{
+      candidate_id:primaryNavFineCandidateId,
+      g2_top:primaryNavFineGroup2Top,
+      g2_bottom:primaryNavFineGroup2Bottom,
+      g3_top:primaryNavFineGroup3Top,
+      g3_bottom:primaryNavFineGroup3Bottom,
+      g4_top:primaryNavFineGroup4Top,
+      g4_bottom:primaryNavFineGroup4Bottom
+    });
+  }
+
   let toolbarDetailCandidateState={status:'DISABLED',candidate_id:toolbarDetailCandidateId||null,variant:toolbarDetailVariant};
   if(toolbarDetailCandidateId){
     const toolbarSources=toolbarReferenceAssets.assets||[];
@@ -2247,6 +2311,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     portfolio_row_style_candidate:portfolioRowStyleCandidateState,
     primary_navigation_detail_candidate:primaryNavDetailCandidateState,
     primary_navigation_layout_candidate:primaryNavLayoutCandidateState,
+    primary_navigation_fine_alignment_candidate:primaryNavFineAlignmentState,
     toolbar_detail_candidate:toolbarDetailCandidateState,
     kpi_detail_candidate:kpiDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
@@ -2321,6 +2386,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     primary_navigation_layout_candidate:runEvidence.primary_navigation_layout_candidate?.candidate_id||null,
     primary_navigation_layout_variant:runEvidence.primary_navigation_layout_candidate?.variant||null,
     primary_navigation_reports_placeholder:runEvidence.primary_navigation_layout_candidate?.reports_placeholder||false,
+    primary_navigation_fine_alignment_candidate:runEvidence.primary_navigation_fine_alignment_candidate?.candidate_id||null,
+    primary_navigation_fine_alignment_geometry:runEvidence.primary_navigation_fine_alignment_candidate?.geometry||null,
     toolbar_detail_candidate:runEvidence.toolbar_detail_candidate?.candidate_id||null,
     toolbar_detail_variant:runEvidence.toolbar_detail_candidate?.variant||null,
     kpi_detail_candidate:runEvidence.kpi_detail_candidate?.candidate_id||null,
