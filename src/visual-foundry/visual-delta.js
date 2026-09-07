@@ -1,10 +1,22 @@
-import crypto from 'node:crypto';
-
 export const VISUAL_DELTA_CATEGORIES=Object.freeze(['STRUCTURE','GEOMETRY','TYPOGRAPHY','COLOR','EFFECT','ASSET','CONTENT','RESPONSIVE']);
 export const VISUAL_DELTA_SEVERITIES=Object.freeze(['INFO','LOW','MEDIUM','HIGH','CRITICAL']);
 
 const clean=(v,max=1000)=>String(v??'').trim().slice(0,max);
 const clone=v=>structuredClone(v);
+
+function stableIdentityHex(value){
+  const input=String(value);
+  let a=0x811c9dc5,b=0x9e3779b9,c=0x85ebca6b,d=0xc2b2ae35,e=0x27d4eb2f;
+  for(let i=0;i<input.length;i++){
+    const x=input.charCodeAt(i);
+    a=Math.imul(a^x,0x01000193)>>>0;
+    b=Math.imul(b^(x+i),0x85ebca6b)>>>0;
+    c=Math.imul(c^(x+(i<<1)),0xc2b2ae35)>>>0;
+    d=Math.imul(d^(x+(i<<2)),0x27d4eb2f)>>>0;
+    e=Math.imul(e^(x+(i<<3)),0x165667b1)>>>0;
+  }
+  return[a,b,c,d,e].map(v=>v.toString(16).padStart(8,'0')).join('');
+}
 
 function deterministicDeltaId(input={},cat='STRUCTURE'){
   const evidence=input.evidence&&typeof input.evidence==='object'?input.evidence:{};
@@ -18,7 +30,7 @@ function deterministicDeltaId(input={},cat='STRUCTURE'){
     metric:clean(evidence.metric,120)||null,
     visual_type:clean(evidence.visual_type,80)||null
   };
-  const digest=crypto.createHash('sha256').update(JSON.stringify(identity)).digest('hex').slice(0,20);
+  const digest=stableIdentityHex(JSON.stringify(identity)).slice(0,20);
   return 'vd-'+digest;
 }
 
