@@ -39,3 +39,5 @@ export { REPAIR_PRIORITY, createRepairPriorityPlan, runGeneralSelfHealingWebsite
 export { WEB_OS_V2_QUALITY_LEVELS, runWebOperatingSystemV2 } from './operating-system-v2.js';
 
 export { PREMIUM_COMPONENT_IDS, premiumComponentRegistry, getPremiumComponentContract, validatePremiumComponentPayload, selectPremiumComponent, premiumComponentRegistryManifest } from './premium-component-registry-v1.js';
+
+export { createImageMediaContract, createVideoMediaContract, createAssetMediaPipeline, validateAssetMediaPipeline, assetMediaPipelineManifest } from './asset-media-pipeline-v1.js';
