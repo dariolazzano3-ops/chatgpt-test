@@ -1,0 +1,79 @@
+name: Visual Foundry AURENTARA Hero Title Reference Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-hero-title-reference-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hero-title-reference:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: HTR0_CONTROL
+            left: 24
+            top: 39
+            width: 840
+            height: 34
+          - id: HTR1_EXACT
+            left: 24
+            top: 39
+            width: 840
+            height: 34
+          - id: HTR2_UP1
+            left: 24
+            top: 38
+            width: 840
+            height: 34
+          - id: HTR3_DOWN1
+            left: 24
+            top: 40
+            width: 840
+            height: 34
+          - id: HTR4_LEFT1
+            left: 23
+            top: 39
+            width: 840
+            height: 34
+          - id: HTR5_RIGHT1
+            left: 25
+            top: 39
+            width: 840
+            height: 34
+          - id: HTR6_WIDE
+            left: 24
+            top: 39
+            width: 844
+            height: 34
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_LEFT_PX: ${{ matrix.left }}
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_TOP_PX: ${{ matrix.top }}
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_WIDTH_PX: ${{ matrix.width }}
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_HEIGHT_PX: ${{ matrix.height }}
+      VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_OPACITY: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-hero-title-reference-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
