@@ -1,0 +1,73 @@
+name: Visual Foundry AURENTARA Portfolio Row Style Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-portfolio-row-style-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portfolio-row-style:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: RS0_CONTROL
+            widths: '21,10,11,10,13,16,19'
+            inset: 0
+            state_size: 7.5
+            state_pad: 6
+          - id: RS1_BALANCED
+            widths: '21,10,10,10,12,15,22'
+            inset: 8
+            state_size: 7.5
+            state_pad: 6
+          - id: RS2_COMPACT
+            widths: '21,10,10,10,12,15,22'
+            inset: 10
+            state_size: 7
+            state_pad: 5
+          - id: RS3_MID
+            widths: '21,10,10,9.5,12.5,15,22'
+            inset: 8
+            state_size: 7.25
+            state_pad: 5.5
+          - id: RS4_MEASURED
+            widths: '21.2,9.8,10.2,9.7,12.4,15.3,21.4'
+            inset: 8
+            state_size: 7.5
+            state_pad: 6
+          - id: RS5_ACTION_WIDE
+            widths: '21,10,10,10,12.5,15,21.5'
+            inset: 6
+            state_size: 7.5
+            state_pad: 6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_PORTFOLIO_ROW_STYLE_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_PORTFOLIO_ROW_WIDTHS: ${{ matrix.widths }}
+      VISUAL_FOUNDRY_PORTFOLIO_ROW_ACTION_INSET_PX: ${{ matrix.inset }}
+      VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_FONT_SIZE_PX: ${{ matrix.state_size }}
+      VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_PAD_X_PX: ${{ matrix.state_pad }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-portfolio-row-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
