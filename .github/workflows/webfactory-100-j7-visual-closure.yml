@@ -1,0 +1,65 @@
+name: PROJECT JAGUAR WebFactory 100 J7 Visual Closure Loop
+
+on:
+  pull_request:
+    branches: [factory-control]
+    paths:
+      - 'src/visual-foundry/**'
+      - 'src/web-factory/visual-closure-loop-v1.js'
+      - 'src/web-factory/index.js'
+      - 'src/web-factory/adapter.js'
+      - 'scripts/webfactory-100-j7-visual-closure-smoke.mjs'
+      - 'package.json'
+      - '.github/workflows/webfactory-100-j7-visual-closure.yml'
+      - 'docs/PROJECT-JAGUAR-WEBFACTORY-100-J7-VISUAL-CLOSURE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium for real screenshot evidence
+        run: npx playwright install --with-deps chromium
+      - name: Ensure FFmpeg for J4 regression
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y ffmpeg)
+      - name: Syntax
+        run: |
+          node --check src/visual-foundry/visual-comparator.js
+          node --check src/visual-foundry/visual-delta.js
+          node --check src/visual-foundry/visual-priority.js
+          node --check src/visual-foundry/visual-acceptance.js
+          node --check src/visual-foundry/delta-closer.js
+          node --check src/visual-foundry/soft-region-locks.js
+          node --check src/visual-foundry/region-closure.js
+          node --check src/visual-foundry/semantic-gate.js
+          node --check src/web-factory/visual-closure-loop-v1.js
+          node --check src/web-factory/index.js
+          node --check src/web-factory/adapter.js
+          node --check scripts/webfactory-100-j7-visual-closure-smoke.mjs
+      - name: J7 real browser Visual Foundry closure acceptance
+        run: node scripts/webfactory-100-j7-visual-closure-smoke.mjs
+      - name: J6 Content SEO regression
+        run: node scripts/webfactory-100-j6-content-seo-v2-smoke.mjs
+      - name: J5 Motion Contract regression
+        run: node scripts/webfactory-100-j5-motion-contract-smoke.mjs
+      - name: J4 Asset Media regression
+        run: node scripts/webfactory-100-j4-asset-media-smoke.mjs
+      - name: J3 Premium Component regression
+        run: node scripts/webfactory-100-j3-premium-component-registry-smoke.mjs
+      - name: J2 Design Contract regression
+        run: node scripts/webfactory-100-j2-reference-design-contract-smoke.mjs
+      - name: J1 Reference Studio regression
+        run: node scripts/webfactory-100-j1-reference-foundation-smoke.mjs
+      - name: WebFactory V1 regression
+        run: node scripts/web-factory-v1-smoke.mjs
+      - name: Web OS V2 regression
+        run: node scripts/web-factory-operating-system-v2-smoke.mjs
