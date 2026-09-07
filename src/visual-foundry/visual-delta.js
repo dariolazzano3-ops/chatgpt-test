@@ -6,6 +6,22 @@ export const VISUAL_DELTA_SEVERITIES=Object.freeze(['INFO','LOW','MEDIUM','HIGH'
 const clean=(v,max=1000)=>String(v??'').trim().slice(0,max);
 const clone=v=>structuredClone(v);
 
+function deterministicDeltaId(input={},cat='STRUCTURE'){
+  const evidence=input.evidence&&typeof input.evidence==='object'?input.evidence:{};
+  const identity={
+    reference_id:clean(input.reference_id,180),
+    viewport:input.viewport||null,
+    region:input.region?clean(input.region,180):null,
+    component_id:input.component_id?clean(input.component_id,180):null,
+    category:cat,
+    measurement:clean(evidence.measurement,120)||null,
+    metric:clean(evidence.metric,120)||null,
+    visual_type:clean(evidence.visual_type,80)||null
+  };
+  const digest=crypto.createHash('sha256').update(JSON.stringify(identity)).digest('hex').slice(0,20);
+  return 'vd-'+digest;
+}
+
 function severityRank(value){return VISUAL_DELTA_SEVERITIES.indexOf(String(value));}
 function category(value){
   const v=clean(value,40).toUpperCase();
@@ -35,7 +51,7 @@ export function createVisualDelta(input={}){
   const blocking=input.blocking===true||sev==='CRITICAL';
   return {
     schema:'riosystems.visual-delta.v1',
-    delta_id:clean(input.delta_id||'vd-'+crypto.randomUUID(),180),
+    delta_id:clean(input.delta_id||deterministicDeltaId(input,cat),180),
     reference_id:referenceId,
     implementation_commit:commit,
     viewport:viewport(input.viewport),
@@ -50,7 +66,8 @@ export function createVisualDelta(input={}){
     score:Number.isFinite(Number(input.score))?Number(input.score):null,
     blocking,
     evidence:clone(input.evidence??{}),
-    repair_hint:input.repair_hint?clean(input.repair_hint,1200):null
+    repair_hint:input.repair_hint?clean(input.repair_hint,1200):null,
+    deterministic_id:true
   };
 }
 
