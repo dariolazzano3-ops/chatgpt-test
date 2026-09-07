@@ -261,7 +261,7 @@
       },
       {
         "region_id": "operator_ai_panel",
-        "baseline_score": 0.443389
+        "baseline_score": 0.456686
       },
       {
         "region_id": "system_status",
@@ -796,6 +796,43 @@
       "verified_global_pixel_difference_percent": 14.0771,
       "verified_soft_locks": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "OPERATOR_AI_GLOBE_ASSET_P2",
+      "region_id": "operator_ai_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "G5_LARGE",
+      "sweep_workflow_run": 34069831548,
+      "sweep_head": "0f5460f3f2cbd511a3152edc64ac2fb42bca4466",
+      "source_asset_id": "operator_ai_globe_reference_extracted_mask_source",
+      "provenance": "REFERENCE_EXTRACTED_MASKED",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "placement": {
+        "left_px": 388,
+        "top_px": -8,
+        "width_px": 153,
+        "height_px": 148,
+        "opacity": 0.96
+      },
+      "baseline_operator_ai_ssim": 0.443389,
+      "accepted_operator_ai_ssim": 0.456686,
+      "baseline_operator_ai_pixel_difference_percent": 17.1538,
+      "accepted_operator_ai_pixel_difference_percent": 16.0604,
+      "baseline_global_ssim": 0.459329,
+      "accepted_global_ssim": 0.464875,
+      "baseline_global_pixel_difference_percent": 14.0771,
+      "accepted_global_pixel_difference_percent": 13.9691,
+      "color_score": 0.997663,
+      "edge_score": 0.27906,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
