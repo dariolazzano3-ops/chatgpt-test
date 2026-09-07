@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
       - name: Syntax
         run: |
           node --check src/web-factory/reference-studio-v1.js
