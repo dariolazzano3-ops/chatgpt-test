@@ -71,9 +71,9 @@ jobs:
         run: |
           set -euo pipefail
           test -f .jarvis-pages-dist/_worker.js
-          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.name)")" = "jarvis-private-core"
-          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.vars.JARVIS_PUBLIC_ACCESS)")" = "false"
-          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.vars.JARVIS_PRODUCTION_DEPLOY)")" = "false"
+          test "$(node -e "const fs=require('node:fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-pages.jsonc','utf8'));process.stdout.write(c.name)")" = "jarvis-private-core"
+          test "$(node -e "const fs=require('node:fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-pages.jsonc','utf8'));process.stdout.write(c.vars.JARVIS_PUBLIC_ACCESS)")" = "false"
+          test "$(node -e "const fs=require('node:fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-pages.jsonc','utf8'));process.stdout.write(c.vars.JARVIS_PRODUCTION_DEPLOY)")" = "false"
 
   cloudflare-private-preflight:
     needs: [authorize-exact-head, validate-exact-source]
@@ -124,11 +124,19 @@ jobs:
       - name: Deploy exact-head to protected preview only
         run: |
           set -euo pipefail
-          npx wrangler pages deploy .jarvis-pages-dist             --project-name jarvis-private-core             --branch private-staging             --commit-hash "$SOURCE_SHA"             --commit-message "JARVIS private preview exact-head $SOURCE_SHA"             --commit-dirty=false
+          npx wrangler pages deploy .jarvis-pages-dist \
+            --project-name jarvis-private-core \
+            --branch private-staging \
+            --commit-hash "$SOURCE_SHA" \
+            --commit-message "JARVIS private preview exact-head $SOURCE_SHA" \
+            --commit-dirty=false
       - name: Verify exact deployed preview evidence
         run: |
           set -euo pipefail
-          npx wrangler pages deployment list             --project-name jarvis-private-core             --environment preview             --json > /tmp/jarvis-pages-deployments.json
+          npx wrangler pages deployment list \
+            --project-name jarvis-private-core \
+            --environment preview \
+            --json > /tmp/jarvis-pages-deployments.json
           node - "$SOURCE_SHA" < /tmp/jarvis-pages-deployments.json <<'NODE'
           let raw = '';
           process.stdin.setEncoding('utf8');
