@@ -1,0 +1,59 @@
+name: Visual Foundry AURENTARA Hero Title Finish Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-hero-title-finish-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hero-title-finish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: HF0_CONTROL
+            variant: METAL_A
+            scale_x: 1.40
+          - id: HF1_METAL_A_140
+            variant: METAL_A
+            scale_x: 1.40
+          - id: HF2_METAL_A_142
+            variant: METAL_A
+            scale_x: 1.42
+          - id: HF3_METAL_B_142
+            variant: METAL_B
+            scale_x: 1.42
+          - id: HF4_METAL_C_142
+            variant: METAL_C
+            scale_x: 1.42
+          - id: HF5_METAL_D_144
+            variant: METAL_D
+            scale_x: 1.44
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_HERO_TITLE_FINISH_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_HERO_TITLE_FINISH_VARIANT: ${{ matrix.variant }}
+      VISUAL_FOUNDRY_HERO_TITLE_FINISH_SCALE_X: ${{ matrix.scale_x }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-hero-title-finish-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
