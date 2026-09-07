@@ -1,0 +1,73 @@
+{
+  "schema": "riosystems.reference-extracted-attention-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "attention_warning_icon_reference_extracted",
+      "role": "ATTENTION_WARNING_ICON",
+      "crop": {
+        "x": 250,
+        "y": 302,
+        "width": 42,
+        "height": 42
+      },
+      "rgba_sha256": "0c609ff80941722c4b7d576b243a1478af06855abbcd5eeab8c3d5b2e6caa493"
+    },
+    {
+      "asset_id": "attention_thumb_gelato_reference_extracted",
+      "role": "ATTENTION_PROJECT_THUMBNAIL",
+      "project_key": "gelato",
+      "crop": {
+        "x": 323,
+        "y": 387,
+        "width": 34,
+        "height": 34
+      },
+      "rgba_sha256": "ea0f7b12e40999800d1efd509b4a13b524d87f854043b19b567a90660a622a6b"
+    },
+    {
+      "asset_id": "attention_thumb_bakery_reference_extracted",
+      "role": "ATTENTION_PROJECT_THUMBNAIL",
+      "project_key": "bakery",
+      "crop": {
+        "x": 323,
+        "y": 426,
+        "width": 34,
+        "height": 34
+      },
+      "rgba_sha256": "d6f75d707f52c0d3f44bc442640e6962ff23c82cddaddc3cf099939ad2dfe8b5"
+    },
+    {
+      "asset_id": "attention_thumb_aurentara_reference_extracted",
+      "role": "ATTENTION_PROJECT_THUMBNAIL",
+      "project_key": "aurentara",
+      "crop": {
+        "x": 323,
+        "y": 465,
+        "width": 34,
+        "height": 34
+      },
+      "rgba_sha256": "9f93513626c3e46fd40eb6d7f990fc32ea4160896dd94f7749d6876e16bb27b4"
+    },
+    {
+      "asset_id": "attention_thumb_tools_reference_extracted",
+      "role": "ATTENTION_PROJECT_THUMBNAIL",
+      "project_key": "tools",
+      "crop": {
+        "x": 323,
+        "y": 504,
+        "width": 34,
+        "height": 34
+      },
+      "rgba_sha256": "c6302d8047e9ae35b7d59b369f9b4bb0313f7a3d2869132781aef6477f9e8cd6"
+    }
+  ],
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
