@@ -254,6 +254,7 @@ assert.equal(provider.production_deploy,false);
 
 const ui=j12OperatorNextBestActionManifest();
 assert.equal(ui.exactly_one_primary_action,true);
+assert.equal(ui.primary_surface,'PROJECT_WORKSPACE_HEADER');
 assert.equal(ui.secondary_webfactory_actions_collapsed_by_default,true);
 assert.equal(ui.network_writes_on_primary_action,0);
 assert.equal(ui.automatic_execution,false);
@@ -263,7 +264,7 @@ const injected=injectJ12OperatorNextBestAction(baseHtml);
 for(const marker of [
   'aurentara-j12-next-best-action-script',
   'NEXT BEST ACTION · J12',
-  'data-j12-primary',
+  'Die einzige Primäraktion bleibt oben im Project Workspace.',
   'Weitere WebFactory Aktionen',
   'automatic_execution:false'
 ]) assert.ok(injected.includes(marker),marker);
