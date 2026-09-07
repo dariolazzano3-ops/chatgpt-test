@@ -261,7 +261,7 @@
       },
       {
         "region_id": "operator_ai_panel",
-        "baseline_score": 0.427606
+        "baseline_score": 0.443389
       },
       {
         "region_id": "system_status",
@@ -753,6 +753,38 @@
       "verified_global_pixel_difference_percent": 14.112,
       "verified_soft_locks": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "OPERATOR_AI_REFERENCE_ASSET_UI_P1",
+      "region_id": "operator_ai_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "OA3_ICONS_BUTTONS_GLYPHS",
+      "variant": "ICONS_BUTTONS_GLYPHS",
+      "sweep_workflow_run": 34069359807,
+      "sweep_head": "7dbb45278c6069a6d32bab9a6f461743f9e9e2a0",
+      "provenance": "REFERENCE_EXTRACTED_PLUS_SEMANTIC_GLYPH_LAYOUT",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "assets": [
+        "operator_ai_sparkle_icon_reference_extracted",
+        "operator_ai_send_icon_reference_extracted"
+      ],
+      "baseline_operator_ai_ssim": 0.427606,
+      "accepted_operator_ai_ssim": 0.443389,
+      "baseline_operator_ai_pixel_difference_percent": 17.5071,
+      "accepted_operator_ai_pixel_difference_percent": 17.1538,
+      "baseline_operator_ai_header_raster_ssim": 0.462993,
+      "accepted_operator_ai_header_raster_ssim": 0.479808,
+      "baseline_global_ssim": 0.451428,
+      "accepted_global_ssim": 0.459329,
+      "baseline_global_pixel_difference_percent": 14.112,
+      "accepted_global_pixel_difference_percent": 14.0771,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS"
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
