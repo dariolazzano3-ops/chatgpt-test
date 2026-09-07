@@ -237,7 +237,7 @@
     "regions": [
       {
         "region_id": "sidebar",
-        "baseline_score": 0.535695
+        "baseline_score": 0.542851
       },
       {
         "region_id": "primary_navigation",
@@ -1051,6 +1051,37 @@
       "verified_soft_locks": "PASS",
       "verified_geometry": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "SIDEBAR_BRAND_ALIGNMENT_B9",
+      "region_id": "sidebar",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "BA1_L5_W132",
+      "sweep_workflow_run": 34111484150,
+      "sweep_head": "f4b8977357ada240aec498e79a62434c91e4e080",
+      "left_px": 5,
+      "tagline_width_px": 132,
+      "semantic_text_preserved": true,
+      "logo_untouched": true,
+      "baseline_sidebar_ssim": 0.535886,
+      "accepted_sidebar_ssim": 0.542851,
+      "baseline_sidebar_pixel_difference_percent": 11.0058,
+      "accepted_sidebar_pixel_difference_percent": 10.9506,
+      "baseline_sidebar_brand_text_raster_ssim": 0.181286,
+      "accepted_sidebar_brand_text_raster_ssim": 0.284253,
+      "baseline_sidebar_brand_text_raster_pixel_difference_percent": 22.1776,
+      "accepted_sidebar_brand_text_raster_pixel_difference_percent": 21.4242,
+      "baseline_global_ssim": 0.49518,
+      "accepted_global_ssim": 0.497118,
+      "baseline_global_pixel_difference_percent": 13.4666,
+      "accepted_global_pixel_difference_percent": 13.4588,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
