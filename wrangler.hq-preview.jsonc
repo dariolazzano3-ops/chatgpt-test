@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aurentara-hq-private-preview",
+  "main": "src/aurentara-hq-private-preview-worker.js",
+  "compatibility_date": "2026-08-25",
+  "workers_dev": true,
+  "observability": {
+    "enabled": false
+  },
+  "vars": {
+    "HQ_PREVIEW_FEATURE_HEAD": "RUNTIME_SET_BY_ACTION",
+    "RIOSYSTEMS_PRODUCTION_DEPLOY": "false",
+    "RIOSYSTEMS_EXTERNAL_WRITES": "false",
+    "AURENTARA_OPERATOR_AI_REAL_INFERENCE_ENABLED": "false"
+  },
+  "assets": {
+    "directory": "./artifacts/visual-foundry/private-preview",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
+}
