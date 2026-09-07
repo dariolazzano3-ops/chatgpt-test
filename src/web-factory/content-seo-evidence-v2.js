@@ -123,6 +123,30 @@ function flattenStrings(value,prefix='',out=[]){
   if(typeof value==='string'&&text(value,4000))out.push({path:prefix,value:text(value,4000)});
   return out;
 }
+function surfaceForContentPath(path=''){
+  if(/faq/i.test(path))return 'FAQ';
+  if(/cta/i.test(path))return 'CTA';
+  if(/menu|price|pricing/i.test(path))return 'MENU_COPY';
+  if(/service|product|benefit|stats?/i.test(path))return 'PRODUCT_COPY';
+  if(/alt/i.test(path))return 'ALT_TEXT';
+  if(/headline|subheadline|body/i.test(path))return 'SECTION_COPY';
+  return 'MICROCOPY';
+}
+
+export function deriveMissionExistingContentFacts(mission={}){
+  const leaves=flattenStrings(mission.existing_content||{});
+  return leaves.map((leaf,index)=>normalizeContentFact({
+    fact_id:'mission-content-'+String(index+1),
+    field_path:'existing_content.'+leaf.path,
+    surface:surfaceForContentPath(leaf.path),
+    value:leaf.value,
+    fact_state:'CONFIRMED',
+    source_refs:['website_mission.existing_content'],
+    confidence:1,
+    project_scope:mission.project_scope_key||mission.project_slug||null
+  },index));
+}
+
 function factualPath(path=''){
   return /(price|pricing|phone|email|address|opening|hours|rating|review|testimonial|award|certif|founded|year|stat|product|menu|service|offer|location|contact)/i.test(path);
 }
@@ -133,9 +157,10 @@ function valueCovered(value,facts){
 
 export function createEvidenceSafeContentContract(input={}){
   const missionFacts=deriveMissionContentFacts(input.mission||{});
+  const missionContentFacts=deriveMissionExistingContentFacts(input.mission||{});
   const localFacts=deriveLocalBusinessContentFacts(input.local_business_data||{},input.project_scope||input.mission?.project_scope_key||input.mission?.project_slug||null);
   const explicit=arr(input.claims||input.content_claims).map((raw,index)=>normalizeContentFact(raw,index+missionFacts.length));
-  const facts=[...missionFacts,...localFacts,...explicit];
+  const facts=[...missionFacts,...missionContentFacts,...localFacts,...explicit];
   const issues=facts.flatMap(f=>f.issues.map(issue=>({...issue,fact_id:f.fact_id})));
   const attempted=new Set(arr(input.attempted_render_claim_ids).map(v=>text(v,180)));
   for(const fact of facts){
