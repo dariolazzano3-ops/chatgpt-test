@@ -97,6 +97,13 @@ const portfolioUiHeaderGapPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_HEAD
 const portfolioUiNameWeight=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_NAME_WEIGHT??acceptedPortfolioUiCandidate?.name_weight??500);
 const portfolioUiNameSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_NAME_SIZE_PX??acceptedPortfolioUiCandidate?.name_size_px??9.5);
 const portfolioUiScopeSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_SCOPE_SIZE_PX??acceptedPortfolioUiCandidate?.scope_size_px??7);
+const acceptedPortfolioRowStyle=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='PORTFOLIO_ROW_STYLE_P3'&&x.apply_by_default===true);
+const explicitPortfolioRowStyle=String(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_STYLE_CANDIDATE||'').trim();
+const portfolioRowStyleCandidateId=explicitPortfolioRowStyle||(acceptedPortfolioRowStyle?.candidate_id||'');
+const portfolioRowWidths=String(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_WIDTHS||acceptedPortfolioRowStyle?.column_widths_percent?.join(',')||'21,10,11,10,13,16,19').split(',').map(Number);
+const portfolioRowActionInsetPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_ACTION_INSET_PX??acceptedPortfolioRowStyle?.action_inset_px??0);
+const portfolioRowStateFontSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_FONT_SIZE_PX??acceptedPortfolioRowStyle?.state_font_size_px??7.5);
+const portfolioRowStatePadXPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_ROW_STATE_PAD_X_PX??acceptedPortfolioRowStyle?.state_pad_x_px??6);
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -984,6 +991,47 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     });
   }
 
+  let portfolioRowStyleCandidateState={status:'DISABLED',candidate_id:portfolioRowStyleCandidateId||null};
+  if(portfolioRowStyleCandidateId){
+    assert.equal(portfolioRowWidths.length,7,'PORTFOLIO_ROW_WIDTHS_COUNT');
+    assert.ok(portfolioRowWidths.every(Number.isFinite),'PORTFOLIO_ROW_WIDTHS_INVALID');
+    const total=portfolioRowWidths.reduce((a,b)=>a+b,0);
+    assert.ok(Math.abs(total-100)<0.001,'PORTFOLIO_ROW_WIDTHS_MUST_SUM_100');
+    portfolioRowStyleCandidateState=await page.evaluate(({candidate_id,widths,action_inset_px,state_font_size_px,state_pad_x_px})=>{
+      const root=document.querySelector('.rf-ops-grid > .rf-panel:first-child');
+      if(!root)throw new Error('PORTFOLIO_ROW_STYLE_ROOT_MISSING');
+      if(candidate_id==='RS0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id};
+      const table=root.querySelector('.rf-portfolio-table');
+      if(!table)throw new Error('PORTFOLIO_ROW_STYLE_TABLE_MISSING');
+      const style=document.createElement('style');
+      style.id='vf-portfolio-row-style';
+      style.textContent=widths.map((w,i)=>`
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-portfolio-table th:nth-child(${i+1}){width:${w}%}`).join('')+`
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-portfolio-actions{transform:translateX(-${action_inset_px}px)}
+html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.reference-hq-v1 .rf-ops-grid>.rf-panel:first-child .rf-state{font-size:${state_font_size_px}px;padding-left:${state_pad_x_px}px;padding-right:${state_pad_x_px}px}
+`;
+      document.head.appendChild(style);
+      const headers=[...table.querySelectorAll('thead th')].map(el=>{const r=el.getBoundingClientRect();return {text:(el.textContent||'').trim(),x:r.x,width:r.width}});
+      const actions=[...table.querySelectorAll('.rf-portfolio-actions')].map(el=>{const r=el.getBoundingClientRect();return {x:r.x,width:r.width,right:r.right}});
+      return {
+        status:'APPLIED',
+        candidate_id,
+        column_widths_percent:widths,
+        action_inset_px,
+        state_font_size_px,
+        state_pad_x_px,
+        headers,
+        actions
+      };
+    },{
+      candidate_id:portfolioRowStyleCandidateId,
+      widths:portfolioRowWidths,
+      action_inset_px:portfolioRowActionInsetPx,
+      state_font_size_px:portfolioRowStateFontSizePx,
+      state_pad_x_px:portfolioRowStatePadXPx
+    });
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1482,6 +1530,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     operator_ai_asset_candidate:operatorAiAssetCandidateState,
     operator_ai_globe_candidate:operatorAiGlobeCandidateState,
     portfolio_ui_candidate:portfolioUiCandidateState,
+    portfolio_row_style_candidate:portfolioRowStyleCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1544,6 +1593,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     operator_ai_globe_placement:runEvidence.operator_ai_globe_candidate?.placement||null,
     portfolio_ui_candidate:runEvidence.portfolio_ui_candidate?.candidate_id||null,
     portfolio_ui_variant:runEvidence.portfolio_ui_candidate?.variant||null,
+    portfolio_row_style_candidate:runEvidence.portfolio_row_style_candidate?.candidate_id||null,
+    portfolio_row_widths:runEvidence.portfolio_row_style_candidate?.column_widths_percent||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
