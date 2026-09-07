@@ -63,11 +63,15 @@ function staging(env = {}) {
 function memoryStore(env = {}, options = {}) {
   if (options.memory_store) return options.memory_store;
 
+  const mode = clean(env.JARVIS_PERSONAL_MEMORY_STORE || options.mode || '', 80).toLowerCase();
+
   const rpc = createJarvisRpcMemoryStoreFromEnvV1(env, options);
   if (rpc) return rpc;
 
-  const legacy = createJarvisMemoryStoreFromEnvV1(env, options);
-  if (legacy) return legacy;
+  if (mode === 'supabase') {
+    const legacy = createJarvisMemoryStoreFromEnvV1(env, options);
+    if (legacy) return legacy;
+  }
 
   if (staging(env)) return null;
   if (!localMemoryStore) localMemoryStore = createMemoryJarvisStoreV1();
