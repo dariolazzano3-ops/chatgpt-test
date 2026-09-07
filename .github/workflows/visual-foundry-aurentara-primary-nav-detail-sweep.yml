@@ -1,0 +1,59 @@
+name: Visual Foundry AURENTARA Primary Navigation Detail Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-primary-nav-detail-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  primary-nav-detail:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: PN0_CONTROL
+            size: 20
+            offset_y: 0
+          - id: PN1_EXACT20
+            size: 20
+            offset_y: 0
+          - id: PN2_19
+            size: 19
+            offset_y: 0
+          - id: PN3_18
+            size: 18
+            offset_y: 0
+          - id: PN4_UP1
+            size: 20
+            offset_y: -1
+          - id: PN5_DOWN1
+            size: 20
+            offset_y: 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_PRIMARY_NAV_DETAIL_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_ICON_SIZE_PX: ${{ matrix.size }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_ICON_OFFSET_Y_PX: ${{ matrix.offset_y }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-primary-nav-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
