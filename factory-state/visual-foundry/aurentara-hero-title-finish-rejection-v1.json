@@ -1,0 +1,89 @@
+{
+  "schema": "riosystems.aurentara-hero-title-finish-rejection.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "sweep_workflow_run": 34110074743,
+  "sweep_head": "83e19db51cca9ba5f53dc9a99189b6e9496c58f2",
+  "baseline": {
+    "candidate_id": "HF0_CONTROL",
+    "hero_ssim": 0.532829,
+    "hero_pixel_difference_percent": 14.9083,
+    "hero_title_raster_ssim": 0.282677,
+    "hero_title_raster_pixel_difference_percent": 29.4958,
+    "global_ssim": 0.480651,
+    "global_pixel_difference_percent": 13.8577
+  },
+  "tested": [
+    {
+      "candidate_id": "HF1_METAL_A_140",
+      "variant": "METAL_A",
+      "scale_x": 1.4,
+      "hero_ssim": 0.528577,
+      "hero_pixel_difference_percent": 15.9263,
+      "hero_title_raster_ssim": 0.264892,
+      "hero_title_raster_pixel_difference_percent": 35.1845,
+      "global_ssim": 0.479143,
+      "global_pixel_difference_percent": 13.9594
+    },
+    {
+      "candidate_id": "HF2_METAL_A_142",
+      "variant": "METAL_A",
+      "scale_x": 1.42,
+      "hero_ssim": 0.488132,
+      "hero_pixel_difference_percent": 16.927,
+      "hero_title_raster_ssim": 0.060315,
+      "hero_title_raster_pixel_difference_percent": 40.9901,
+      "global_ssim": 0.471148,
+      "global_pixel_difference_percent": 14.0593
+    },
+    {
+      "candidate_id": "HF3_METAL_B_142",
+      "variant": "METAL_B",
+      "scale_x": 1.42,
+      "hero_ssim": 0.487682,
+      "hero_pixel_difference_percent": 17.0493,
+      "hero_title_raster_ssim": 0.059926,
+      "hero_title_raster_pixel_difference_percent": 41.7391,
+      "global_ssim": 0.470584,
+      "global_pixel_difference_percent": 14.0715
+    },
+    {
+      "candidate_id": "HF4_METAL_C_142",
+      "variant": "METAL_C",
+      "scale_x": 1.42,
+      "hero_ssim": 0.486934,
+      "hero_pixel_difference_percent": 16.6654,
+      "hero_title_raster_ssim": 0.056329,
+      "hero_title_raster_pixel_difference_percent": 39.5652,
+      "global_ssim": 0.47164,
+      "global_pixel_difference_percent": 14.0332
+    },
+    {
+      "candidate_id": "HF5_METAL_D_144",
+      "variant": "METAL_D",
+      "scale_x": 1.44,
+      "hero_ssim": 0.478388,
+      "hero_pixel_difference_percent": 17.4561,
+      "hero_title_raster_ssim": 0.023271,
+      "hero_title_raster_pixel_difference_percent": 43.9021,
+      "global_ssim": 0.469106,
+      "global_pixel_difference_percent": 14.1122
+    }
+  ],
+  "decision": "REJECT_ALL_CSS_METALLIC_TITLE_FINISH_CANDIDATES",
+  "reason": "The plain semantic title baseline is closer to the approved reference than every tested CSS metallic approximation. Local hero and title-raster metrics both regress.",
+  "retained_candidate": "HERO_TYPOGRAPHY_T11_V2",
+  "next_strategy": "Use a reference-extracted title-glyph asset for the Gold Standard POC while retaining semantic H1 text in the DOM. No production/public use is implied.",
+  "soft_lock_preserved": true,
+  "functional": "PASS",
+  "semantic": "PASS",
+  "constraint_anchor": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
