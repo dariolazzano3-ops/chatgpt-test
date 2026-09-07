@@ -1,0 +1,62 @@
+name: Visual Foundry AURENTARA Sidebar Brand Alignment Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-sidebar-brand-alignment-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sidebar-brand-alignment:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: BA0_CONTROL
+            left: 5
+            width: 132
+          - id: BA1_L5_W132
+            left: 5
+            width: 132
+          - id: BA2_L5_W140
+            left: 5
+            width: 140
+          - id: BA3_L5_W148
+            left: 5
+            width: 148
+          - id: BA4_L5_W152
+            left: 5
+            width: 152
+          - id: BA5_L4_W148
+            left: 4
+            width: 148
+          - id: BA6_L6_W148
+            left: 6
+            width: 148
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_LEFT_PX: ${{ matrix.left }}
+      VISUAL_FOUNDRY_SIDEBAR_BRAND_ALIGNMENT_TAGLINE_WIDTH_PX: ${{ matrix.width }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-sidebar-brand-alignment-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
