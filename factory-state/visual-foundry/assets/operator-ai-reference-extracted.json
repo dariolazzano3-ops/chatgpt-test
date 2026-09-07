@@ -29,6 +29,55 @@
         "height": 24
       },
       "rgba_sha256": "b8901b6bf12673f67ea538fbfcf5ce7d39a7cac5ca09928f4e5e41398d12c66d"
+    },
+    {
+      "asset_id": "operator_ai_globe_reference_extracted_mask_source",
+      "role": "OPERATOR_AI_GLOBE_SOURCE",
+      "crop": {
+        "x": 1360,
+        "y": 345,
+        "width": 145,
+        "height": 140
+      },
+      "rgba_sha256": "6a864132f2dc53e0e3684bd1212ca227e5d89a1350cb38319d4f8733bca0a279",
+      "mask_contract": {
+        "algorithm": "BLUE_CYAN_ELLIPSE_BUTTON_OCCLUSION_V1",
+        "source_local_center": {
+          "x": 76,
+          "y": 73
+        },
+        "ellipse_radius": {
+          "x": 73,
+          "y": 72
+        },
+        "blue_score": {
+          "b_minus_r_weight": 1.6,
+          "g_minus_r_weight": 0.55,
+          "threshold": 12,
+          "alpha_gain": 7.5
+        },
+        "luminance_support": {
+          "threshold": 35,
+          "alpha_gain": 4,
+          "max_alpha": 130,
+          "b_minus_r_min": 12,
+          "g_minus_r_min": 5
+        },
+        "spatial": {
+          "outer_radius": 1.15,
+          "gain": 5
+        },
+        "contamination_zero": {
+          "source_canvas_y_gte": 429,
+          "source_canvas_x_lt": 1497,
+          "source_canvas_x_gte": 1904
+        },
+        "border_zero": {
+          "source_canvas_x_gte": 1499,
+          "source_canvas_y_lte": 351
+        },
+        "note": "Button-overlap pixels are explicitly alpha-zeroed so UI text is never baked into the globe asset."
+      }
     }
   ],
   "silent_generated_replacement": false,
