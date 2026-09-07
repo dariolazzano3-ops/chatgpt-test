@@ -1,0 +1,158 @@
+name: JARVIS Private Pages Deploy V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-personal-assistant-v1'
+    paths:
+      - '.github/jarvis-pages-private-deploy-request.json'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize-exact-head:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.auth.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: auth
+        run: |
+          set -euo pipefail
+          REQUEST=".github/jarvis-pages-private-deploy-request.json"
+          test -f "$REQUEST"
+          test "$(git diff --name-only HEAD^ HEAD)" = "$REQUEST"
+
+          SOURCE_SHA="$(node - "$REQUEST" <<'NODE'
+          const fs = require('node:fs');
+          const request = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const ok =
+            request.schema === 'jarvis-pages-private-deploy-request-v1' &&
+            request.project === 'jarvis-private-core' &&
+            request.host === 'jarvis-private-core.pages.dev' &&
+            request.branch === 'private-staging' &&
+            /^[0-9a-f]{40}$/.test(request.source_sha || '') &&
+            request.confirmation === 'DEPLOY_JARVIS_PRIVATE_PAGES_PREVIEW' &&
+            request.cloudflare_access_active === true &&
+            request.access_audience_dedicated === true &&
+            request.production_deploy === false &&
+            request.public_access === false &&
+            request.external_writes === false &&
+            request.dns_changed === false &&
+            request.ysrio_used === false &&
+            request.workers_dev_used === false;
+          if (!ok) process.exit(1);
+          process.stdout.write(request.source_sha);
+          NODE
+          )"
+
+          test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+  validate-exact-source:
+    needs: authorize-exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize-exact-head.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs
+      - run: node scripts/jarvis-pages-private-v1-smoke.mjs
+      - run: node scripts/jarvis-pages-build-v1.mjs
+      - run: node scripts/jarvis-pages-private-deploy-v1-smoke.mjs
+      - name: Assert exact private package
+        run: |
+          set -euo pipefail
+          test -f .jarvis-pages-dist/_worker.js
+          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.name)")" = "jarvis-private-core"
+          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.vars.JARVIS_PUBLIC_ACCESS)")" = "false"
+          test "$(node -e "const c=require('./wrangler.jarvis-pages.jsonc');process.stdout.write(c.vars.JARVIS_PRODUCTION_DEPLOY)")" = "false"
+
+  cloudflare-private-preflight:
+    needs: [authorize-exact-head, validate-exact-source]
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.JARVIS_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.JARVIS_CLOUDFLARE_ACCOUNT_ID }}
+      JARVIS_PAGES_PROJECT: jarvis-private-core
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize-exact-head.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require dedicated JARVIS deploy credentials
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Verify Pages project and encrypted preview bindings
+        id: cfpreflight
+        run: |
+          set -euo pipefail
+          node scripts/jarvis-pages-cloudflare-preflight-v1.mjs
+          echo "JARVIS_PAGES_CLOUDFLARE_PREFLIGHT_OK=true" >> "$GITHUB_ENV"
+
+  deploy-private-preview:
+    needs: [authorize-exact-head, validate-exact-source, cloudflare-private-preflight]
+    if: needs.cloudflare-private-preflight.result == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: jarvis-private-pages-preview
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.JARVIS_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.JARVIS_CLOUDFLARE_ACCOUNT_ID }}
+      SOURCE_SHA: ${{ needs.authorize-exact-head.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize-exact-head.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: node scripts/jarvis-pages-build-v1.mjs
+      - name: Deploy exact-head to protected preview only
+        run: |
+          set -euo pipefail
+          npx wrangler pages deploy .jarvis-pages-dist             --project-name jarvis-private-core             --branch private-staging             --commit-hash "$SOURCE_SHA"             --commit-message "JARVIS private preview exact-head $SOURCE_SHA"             --commit-dirty=false
+      - name: Verify exact deployed preview evidence
+        run: |
+          set -euo pipefail
+          npx wrangler pages deployment list             --project-name jarvis-private-core             --environment preview             --json > /tmp/jarvis-pages-deployments.json
+          node - "$SOURCE_SHA" < /tmp/jarvis-pages-deployments.json <<'NODE'
+          let raw = '';
+          process.stdin.setEncoding('utf8');
+          process.stdin.on('data', (chunk) => raw += chunk);
+          process.stdin.on('end', () => {
+            const expected = process.argv[2];
+            const list = JSON.parse(raw);
+            const match = list.find((d) =>
+              d?.project_name === 'jarvis-private-core' &&
+              d?.environment === 'preview' &&
+              d?.deployment_trigger?.metadata?.branch === 'private-staging' &&
+              d?.deployment_trigger?.metadata?.commit_hash === expected &&
+              d?.latest_stage?.status === 'success'
+            );
+            if (!match) process.exit(1);
+            console.log(JSON.stringify({
+              exact_head: true,
+              project: match.project_name,
+              environment: match.environment,
+              branch: match.deployment_trigger.metadata.branch,
+              commit_hash: match.deployment_trigger.metadata.commit_hash,
+              status: match.latest_stage.status,
+              public_access: false,
+              production_deploy: false
+            }));
+          });
+          NODE

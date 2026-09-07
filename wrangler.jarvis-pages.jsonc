@@ -6,7 +6,7 @@
   "send_metrics": false,
   "vars": {
     "JARVIS_ENVIRONMENT": "private-staging",
-    "JARVIS_PRIVATE_SURFACE_MODE": "prepared",
+    "JARVIS_PRIVATE_SURFACE_MODE": "access-protected-ready",
     "JARVIS_PERSONAL_MEMORY_STORE": "supabase-rpc",
     "JARVIS_PERSONAL_MEMORY_SUPABASE_URL": "https://eyevsebesosbanpcmukv.supabase.co",
     "JARVIS_DATA_PLANE": "ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED",
@@ -16,7 +16,46 @@
     "JARVIS_EXTERNAL_WRITES": "false",
     "JARVIS_CALENDAR_WRITE": "false",
     "JARVIS_FINANCIAL_ACTIONS": "false",
-    "JARVIS_HOST_MODE": "PAGES_DEV_ACCESS_REQUIRED",
-    "JARVIS_PAGES_PROJECT": "jarvis-private-core"
+    "JARVIS_HOST_MODE": "PAGES_DEV_ACCESS_ACTIVE",
+    "JARVIS_PAGES_PROJECT": "jarvis-private-core",
+    "JARVIS_PAGES_HOST": "jarvis-private-core.pages.dev"
+  },
+  "env": {
+    "preview": {
+      "vars": {
+        "JARVIS_ENVIRONMENT": "private-staging",
+        "JARVIS_PRIVATE_SURFACE_MODE": "access-protected-ready",
+        "JARVIS_PERSONAL_MEMORY_STORE": "supabase-rpc",
+        "JARVIS_PERSONAL_MEMORY_SUPABASE_URL": "https://eyevsebesosbanpcmukv.supabase.co",
+        "JARVIS_DATA_PLANE": "ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED",
+        "JARVIS_TIMEZONE": "Europe/Berlin",
+        "JARVIS_PRODUCTION_DEPLOY": "false",
+        "JARVIS_PUBLIC_ACCESS": "false",
+        "JARVIS_EXTERNAL_WRITES": "false",
+        "JARVIS_CALENDAR_WRITE": "false",
+        "JARVIS_FINANCIAL_ACTIONS": "false",
+        "JARVIS_HOST_MODE": "PAGES_DEV_ACCESS_ACTIVE",
+        "JARVIS_PAGES_PROJECT": "jarvis-private-core",
+        "JARVIS_PAGES_HOST": "jarvis-private-core.pages.dev"
+      }
+    },
+    "production": {
+      "vars": {
+        "JARVIS_ENVIRONMENT": "private-staging",
+        "JARVIS_PRIVATE_SURFACE_MODE": "production-disabled",
+        "JARVIS_PERSONAL_MEMORY_STORE": "supabase-rpc",
+        "JARVIS_PERSONAL_MEMORY_SUPABASE_URL": "https://eyevsebesosbanpcmukv.supabase.co",
+        "JARVIS_DATA_PLANE": "ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED",
+        "JARVIS_TIMEZONE": "Europe/Berlin",
+        "JARVIS_PRODUCTION_DEPLOY": "false",
+        "JARVIS_PUBLIC_ACCESS": "false",
+        "JARVIS_EXTERNAL_WRITES": "false",
+        "JARVIS_CALENDAR_WRITE": "false",
+        "JARVIS_FINANCIAL_ACTIONS": "false",
+        "JARVIS_HOST_MODE": "PAGES_DEV_ACCESS_ACTIVE",
+        "JARVIS_PAGES_PROJECT": "jarvis-private-core",
+        "JARVIS_PAGES_HOST": "jarvis-private-core.pages.dev"
+      }
+    }
   }
 }

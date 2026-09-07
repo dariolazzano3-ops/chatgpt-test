@@ -20,6 +20,9 @@ on:
       - 'scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs'
       - 'scripts/jarvis-pages-private-v1-smoke.mjs'
       - 'scripts/jarvis-pages-build-v1.mjs'
+      - 'scripts/jarvis-pages-cloudflare-preflight-v1.mjs'
+      - 'scripts/jarvis-pages-private-deploy-v1-smoke.mjs'
+      - '.github/workflows/jarvis-pages-private-deploy-v1.yml'
       - 'wrangler.jarvis-pages.jsonc'
       - '.github/workflows/jarvis-pages-private-staging.yml'
       - 'wrangler.jarvis-private.jsonc'
@@ -82,6 +85,7 @@ jobs:
           node --check src/jarvis/cloudflare-account-isolation-v1.js
           node --check src/jarvis/access-jwt-v1.js
           node --check src/jarvis/pages-worker-v1.js
+          node --check scripts/jarvis-pages-cloudflare-preflight-v1.mjs
 
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
@@ -124,3 +128,6 @@ jobs:
 
       - name: JARVIS V1 Pages advanced-mode bundle
         run: node scripts/jarvis-pages-build-v1.mjs
+
+      - name: JARVIS V1 Pages exact-head deploy gate smoke
+        run: node scripts/jarvis-pages-private-deploy-v1-smoke.mjs

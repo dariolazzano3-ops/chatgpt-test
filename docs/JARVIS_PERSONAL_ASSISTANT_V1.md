@@ -347,8 +347,8 @@ Current activation state:
 - shared Cloudflare account = APPROVED
 - dedicated JARVIS Worker package = READY
 - dedicated secret names = ENFORCED
-- dedicated Access application = NOT YET ACTIVATED
-- neutral host = NOT YET ACTIVATED
+- dedicated Access application = ACTIVE
+- neutral host = ACTIVE / RESERVED
 - workers.dev = OFF
 - custom routes = NONE
 - JARVIS Supabase = ISOLATED / TARGET CONFIGURED / SECRET REQUIRED
@@ -392,4 +392,17 @@ Security:
 - Public OFF
 - External writes OFF
 
-Deployment is intentionally not performed by the validation workflow. First create the Pages project with no sensitive content and enable Access for the `*.pages.dev` project hostname and preview deployments. Only then may a private deployment request be introduced.
+The Pages project and dedicated Access foundation are now active. Deployment remains request-gated and exact-head pinned. The first private preview may occur only after the required encrypted Pages preview bindings and dedicated JARVIS deploy credentials are present.
+
+
+## Pages activation gate V1
+
+Cloudflare Pages foundation is active:
+- `jarvis-private-core`
+- `jarvis-private-core.pages.dev`
+- dedicated JARVIS Access application and audience
+- owner-only policy
+- preview and production fail closed
+- no custom domain, no `ysrio.com`, no workers.dev
+
+The repository now contains a separate exact-head deployment workflow. It deploys only to the Pages preview branch `private-staging` and verifies the Cloudflare project plus encrypted preview secret-name presence before any upload.

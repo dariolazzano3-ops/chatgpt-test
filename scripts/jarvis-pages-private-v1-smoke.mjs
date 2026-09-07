@@ -14,7 +14,12 @@ assert.equal(config.vars.JARVIS_PRODUCTION_DEPLOY, 'false');
 assert.equal(config.vars.JARVIS_PERSONAL_MEMORY_STORE, 'supabase-rpc');
 assert.match(config.vars.JARVIS_PERSONAL_MEMORY_SUPABASE_URL, /^https:\/\/[a-z0-9]+\.supabase\.co$/);
 assert.equal('JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY' in config.vars, false);
-assert.equal(config.vars.JARVIS_HOST_MODE, 'PAGES_DEV_ACCESS_REQUIRED');
+assert.equal(config.vars.JARVIS_HOST_MODE, 'PAGES_DEV_ACCESS_ACTIVE');
+assert.equal(config.vars.JARVIS_PRIVATE_SURFACE_MODE, 'access-protected-ready');
+assert.equal(config.vars.JARVIS_PAGES_HOST, 'jarvis-private-core.pages.dev');
+assert.equal(config.env.preview.vars.JARVIS_PUBLIC_ACCESS, 'false');
+assert.equal(config.env.preview.vars.JARVIS_PRODUCTION_DEPLOY, 'false');
+assert.equal(config.env.production.vars.JARVIS_PRIVATE_SURFACE_MODE, 'production-disabled');
 
 const neutral = validateJarvisNeutralHostV1(config.name + '.pages.dev');
 assert.equal(neutral.ok, true);
