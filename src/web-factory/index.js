@@ -42,4 +42,4 @@ export { PREMIUM_COMPONENT_IDS, premiumComponentRegistry, getPremiumComponentCon
 
 export { createImageMediaContract, createVideoMediaContract, createAssetMediaPipeline, validateAssetMediaPipeline, assetMediaPipelineManifest } from './asset-media-pipeline-v1.js';
 
-export { CONTENT_FACT_STATES, CONTENT_SURFACES, normalizeContentFact, deriveMissionContentFacts, createEvidenceSafeContentContract, runContentRenderGuard, createSeoEvidenceBundle, applySeoStaticArtifacts, contentSeoEvidenceManifest } from './content-seo-evidence-v2.js';
+export { CONTENT_FACT_STATES, CONTENT_SURFACES, normalizeContentFact, deriveMissionContentFacts, deriveLocalBusinessContentFacts, createEvidenceSafeContentContract, runContentRenderGuard, createSeoEvidenceBundle, applySeoStaticArtifacts, contentSeoEvidenceManifest } from './content-seo-evidence-v2.js';
