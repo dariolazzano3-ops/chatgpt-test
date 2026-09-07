@@ -56,6 +56,9 @@ assert.equal(attentionReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const operatorAiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/operator-ai-reference-extracted.json','utf8'));
 assert.equal(operatorAiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'OPERATOR_AI_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(operatorAiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const portfolioUiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/portfolio-ui-reference-extracted.json','utf8'));
+assert.equal(portfolioUiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'PORTFOLIO_UI_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(portfolioUiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -86,6 +89,14 @@ const operatorAiGlobeTopPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_T
 const operatorAiGlobeWidthPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_WIDTH_PX??acceptedOperatorAiGlobeCandidate?.placement?.width_px??145);
 const operatorAiGlobeHeightPx=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_HEIGHT_PX??acceptedOperatorAiGlobeCandidate?.placement?.height_px??140);
 const operatorAiGlobeOpacity=Number(process.env.VISUAL_FOUNDRY_OPERATOR_AI_GLOBE_OPACITY??acceptedOperatorAiGlobeCandidate?.placement?.opacity??1);
+const acceptedPortfolioUiCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='PORTFOLIO_UI_DETAIL_P2'&&x.apply_by_default===true);
+const explicitPortfolioUiCandidate=String(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_CANDIDATE||'').trim();
+const portfolioUiCandidateId=explicitPortfolioUiCandidate||(acceptedPortfolioUiCandidate?.candidate_id||'');
+const portfolioUiVariant=String(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_VARIANT||acceptedPortfolioUiCandidate?.variant||'ICON_NAME500').trim().toUpperCase();
+const portfolioUiHeaderGapPx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_HEADER_GAP_PX??acceptedPortfolioUiCandidate?.header_gap_px??16);
+const portfolioUiNameWeight=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_NAME_WEIGHT??acceptedPortfolioUiCandidate?.name_weight??500);
+const portfolioUiNameSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_NAME_SIZE_PX??acceptedPortfolioUiCandidate?.name_size_px??9.5);
+const portfolioUiScopeSizePx=Number(process.env.VISUAL_FOUNDRY_PORTFOLIO_UI_SCOPE_SIZE_PX??acceptedPortfolioUiCandidate?.scope_size_px??7);
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -902,6 +913,77 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     }
   }
 
+  let portfolioUiCandidateState={status:'DISABLED',candidate_id:portfolioUiCandidateId||null,variant:portfolioUiVariant};
+  if(portfolioUiCandidateId){
+    const folderSource=(portfolioUiReferenceAssets.assets||[]).find(x=>x.role==='PORTFOLIO_HEADER_ICON');
+    assert.ok(folderSource,'PORTFOLIO_HEADER_ICON_SOURCE_REQUIRED');
+    const folder=extractApprovedReferenceAsset(folderSource);
+    portfolioUiCandidateState=await page.evaluate(({candidate_id,variant,folder,header_gap_px,name_weight,name_size_px,scope_size_px})=>{
+      const root=document.querySelector('.rf-ops-grid > .rf-panel:first-child');
+      if(!root)throw new Error('PORTFOLIO_UI_ROOT_MISSING');
+      if(variant==='CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
+
+      const useIcon=['ICON','ICON_NAME500','ICON_NAME500_SMALL','ICON_NAME550','ICON_NAME500_SCOPE'].includes(variant);
+      const useName=['NAME500','ICON_NAME500','ICON_NAME500_SMALL','ICON_NAME550','ICON_NAME500_SCOPE'].includes(variant);
+      if(!useIcon&&!useName)throw new Error('PORTFOLIO_UI_VARIANT_INVALID:'+variant);
+
+      if(useIcon){
+        const title=root.querySelector('.rf-panel-title');
+        const icon=title?.querySelector('.ico');
+        if(!title||!icon)throw new Error('PORTFOLIO_HEADER_ICON_TARGET_MISSING');
+        icon.textContent='';
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=folder.src;
+        img.dataset.vfReferenceExtractedPortfolioHeader=folder.asset_id;
+        Object.assign(img.style,{display:'block',width:'42px',height:'42px',maxWidth:'none'});
+        Object.assign(icon.style,{display:'grid',placeItems:'center',width:'42px',height:'42px',flex:'0 0 42px'});
+        title.style.gap=header_gap_px+'px';
+        icon.appendChild(img);
+      }
+
+      const names=[...root.querySelectorAll('.rf-project-name')];
+      const scopes=[...root.querySelectorAll('.rf-project-scope')];
+      if(names.length!==4||scopes.length!==4)throw new Error('PORTFOLIO_UI_PROJECT_TEXT_INCOMPLETE');
+      if(useName){
+        for(const el of names){
+          el.style.fontWeight=String(name_weight);
+          el.style.fontSize=name_size_px+'px';
+          el.style.lineHeight='1.15';
+          el.style.whiteSpace='nowrap';
+          el.style.overflow='hidden';
+          el.style.textOverflow='ellipsis';
+        }
+        for(const el of scopes){
+          el.style.fontSize=scope_size_px+'px';
+          el.style.fontWeight='400';
+        }
+      }
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        header_icon:useIcon,
+        header_gap_px:useIcon?header_gap_px:null,
+        project_name_tuned:useName,
+        name_weight:useName?name_weight:null,
+        name_size_px:useName?name_size_px:null,
+        scope_size_px:useName?scope_size_px:null,
+        provenance:useIcon?'REFERENCE_EXTRACTED_PLUS_METRIC_TYPOGRAPHY':'METRIC_TYPOGRAPHY',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{
+      candidate_id:portfolioUiCandidateId,
+      variant:portfolioUiVariant,
+      folder,
+      header_gap_px:portfolioUiHeaderGapPx,
+      name_weight:portfolioUiNameWeight,
+      name_size_px:portfolioUiNameSizePx,
+      scope_size_px:portfolioUiScopeSizePx
+    });
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1399,6 +1481,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     attention_asset_candidate:attentionAssetCandidateState,
     operator_ai_asset_candidate:operatorAiAssetCandidateState,
     operator_ai_globe_candidate:operatorAiGlobeCandidateState,
+    portfolio_ui_candidate:portfolioUiCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1459,6 +1542,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     operator_ai_asset_variant:runEvidence.operator_ai_asset_candidate?.variant||null,
     operator_ai_globe_candidate:runEvidence.operator_ai_globe_candidate?.candidate_id||null,
     operator_ai_globe_placement:runEvidence.operator_ai_globe_candidate?.placement||null,
+    portfolio_ui_candidate:runEvidence.portfolio_ui_candidate?.candidate_id||null,
+    portfolio_ui_variant:runEvidence.portfolio_ui_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
