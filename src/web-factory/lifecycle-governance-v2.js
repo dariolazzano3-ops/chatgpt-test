@@ -52,8 +52,28 @@ export function createAdvancedInteractionContract(items = []) {
 export function createMotionQualityGate(motion = {}) {
   const issues=[]; const items=arr(motion.items);
   if(items.length>12) issues.push({severity:'WARN',code:'EXCESSIVE_ANIMATION_COUNT'});
-  for(const item of items){ if(!item.purpose) issues.push({severity:'BLOCK',code:'MOTION_PURPOSE_MISSING',item:item.motion_id||item.type}); if(!item.accessibility_fallback&&!item.reduced_motion_required) issues.push({severity:'BLOCK',code:'MOTION_FALLBACK_MISSING',item:item.motion_id||item.type}); if(String(item.intensity).toLowerCase()==='high'&&String(item.type).toLowerCase()==='parallax') issues.push({severity:'WARN',code:'PARALLAX_INTENSITY_HIGH'}); }
-  return { schema:'riosystems.motion-quality-gate.v2', status:issues.some((i)=>i.severity==='BLOCK')?'BLOCK':issues.length?'WARN':'PASS', issues, checks:['excessive_animation','accessibility','performance','interaction_conflict','mobile_behavior'] };
+  for(const item of items){
+    const id=item.motion_id||item.type;
+    if(!item.purpose) issues.push({severity:'BLOCK',code:'MOTION_PURPOSE_MISSING',item:id});
+    if(!item.accessibility_fallback||item.reduced_motion_required!==true||item.reduced_motion?.required!==true) issues.push({severity:'BLOCK',code:'MOTION_FALLBACK_MISSING',item:id});
+    if(!item.easing) issues.push({severity:'BLOCK',code:'MOTION_EASING_MISSING',item:id});
+    if(!item.breakpoints||!item.breakpoints.mobile||!item.breakpoints.tablet||!item.breakpoints.desktop) issues.push({severity:'BLOCK',code:'MOTION_BREAKPOINTS_MISSING',item:id});
+    if(Number(item.duration)>1200) issues.push({severity:'BLOCK',code:'MOTION_DURATION_BUDGET_EXCEEDED',item:id,duration:item.duration});
+    if(item.performance_budget?.layout_affecting===true) issues.push({severity:'BLOCK',code:'LAYOUT_AFFECTING_MOTION_FORBIDDEN',item:id});
+    if(Number(item.performance_budget?.max_concurrent||1)>6) issues.push({severity:'BLOCK',code:'MOTION_CONCURRENCY_BUDGET_EXCEEDED',item:id});
+    if(String(item.intensity).toLowerCase()==='high'&&String(item.type).toLowerCase()==='parallax') issues.push({severity:'WARN',code:'PARALLAX_INTENSITY_HIGH'});
+  }
+  const declaredGsap=items.some((item)=>item.engine==='gsap');
+  if(declaredGsap!==Boolean(motion.gsap_required)) issues.push({severity:'BLOCK',code:'GSAP_REQUIREMENT_INCONSISTENT'});
+  if(motion.global_gsap_load_allowed===true) issues.push({severity:'BLOCK',code:'GLOBAL_GSAP_LOAD_FORBIDDEN'});
+  if(!declaredGsap&&motion.gsap_load_policy!=='do-not-load') issues.push({severity:'BLOCK',code:'UNUSED_GSAP_MUST_NOT_LOAD'});
+  if(declaredGsap&&motion.gsap_load_policy!=='load-on-demand-for-declared-motion-only') issues.push({severity:'BLOCK',code:'GSAP_LOAD_POLICY_INVALID'});
+  return {
+    schema:'riosystems.motion-quality-gate.v2',
+    status:issues.some((i)=>i.severity==='BLOCK')?'BLOCK':issues.length?'WARN':'PASS',
+    issues,
+    checks:['purpose','easing','breakpoints','reduced_motion','performance','interaction_conflict','mobile_behavior','gsap_load_policy']
+  };
 }
 
 export function createMigrationIntelligence(input = {}) {
