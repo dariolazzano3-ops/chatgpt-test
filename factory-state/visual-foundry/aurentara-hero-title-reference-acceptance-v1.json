@@ -1,0 +1,70 @@
+{
+  "schema": "riosystems.aurentara-hero-title-reference-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "HERO_TITLE_REFERENCE_ASSET_P2",
+  "sweep_candidate_id": "HTR1_EXACT",
+  "sweep_workflow_run": 34110646412,
+  "verification_workflow_run": 34110922725,
+  "verification_head": "948199cf171f38f2b717eef1af0b7b917b37aa37",
+  "verification_artifact_id": 10014332631,
+  "verification_artifact_digest": "sha256:b3661935f01dc30c4aa73a91dad6f47d5e1103a58a3ec5eff261b66d5cc7958c",
+  "source_asset_id": "hero_title_reference_extracted_masked",
+  "provenance": "REFERENCE_EXTRACTED_MASKED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "semantic_contract": {
+    "original_h1_text_preserved": true,
+    "raster_asset_aria_hidden": true,
+    "visual_replacement_only": true
+  },
+  "placement": {
+    "left_px": 24,
+    "top_px": 39,
+    "width_px": 840,
+    "height_px": 34,
+    "opacity": 1
+  },
+  "baseline": {
+    "hero_ssim": 0.532829,
+    "hero_pixel_difference_percent": 14.9083,
+    "hero_title_raster_ssim": 0.282677,
+    "hero_title_raster_pixel_difference_percent": 29.4958,
+    "global_ssim": 0.480651,
+    "global_pixel_difference_percent": 13.8577
+  },
+  "accepted": {
+    "hero_ssim": 0.63977,
+    "hero_pixel_difference_percent": 10.9919,
+    "hero_title_raster_ssim": 0.862136,
+    "hero_title_raster_pixel_difference_percent": 7.9101,
+    "hero_title_color_score": 0.992546,
+    "hero_title_edge_score": 0.881804,
+    "global_ssim": 0.49518,
+    "global_pixel_difference_percent": 13.4666
+  },
+  "deltas": {
+    "hero_ssim": 0.106941,
+    "hero_pixel_difference_percent": -3.9164,
+    "hero_title_raster_ssim": 0.579459,
+    "hero_title_raster_pixel_difference_percent": -21.5857,
+    "global_ssim": 0.014529,
+    "global_pixel_difference_percent": -0.3911
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
