@@ -249,7 +249,7 @@
       },
       {
         "region_id": "hero",
-        "baseline_score": 0.532911
+        "baseline_score": 0.63977
       },
       {
         "region_id": "kpi_band",
@@ -994,6 +994,49 @@
       "verified_soft_locks": "PASS",
       "verified_geometry": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "HERO_TITLE_REFERENCE_ASSET_P2",
+      "region_id": "hero",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "HTR1_EXACT",
+      "sweep_workflow_run": 34110646412,
+      "sweep_head": "eb5e5f07a0ad7efa2f13954f417d33da863f8fb8",
+      "source_asset_id": "hero_title_reference_extracted_masked",
+      "provenance": "REFERENCE_EXTRACTED_MASKED",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "semantic_h1_preserved": true,
+      "raster_asset_aria_hidden": true,
+      "placement": {
+        "left_px": 24,
+        "top_px": 39,
+        "width_px": 840,
+        "height_px": 34,
+        "opacity": 1
+      },
+      "baseline_hero_ssim": 0.532829,
+      "accepted_hero_ssim": 0.63977,
+      "baseline_hero_pixel_difference_percent": 14.9083,
+      "accepted_hero_pixel_difference_percent": 10.9919,
+      "baseline_hero_title_raster_ssim": 0.282677,
+      "accepted_hero_title_raster_ssim": 0.862136,
+      "baseline_hero_title_raster_pixel_difference_percent": 29.4958,
+      "accepted_hero_title_raster_pixel_difference_percent": 7.9101,
+      "baseline_global_ssim": 0.480651,
+      "accepted_global_ssim": 0.49518,
+      "baseline_global_pixel_difference_percent": 13.8577,
+      "accepted_global_pixel_difference_percent": 13.4666,
+      "hero_title_color_score": 0.992546,
+      "hero_title_edge_score": 0.881804,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
