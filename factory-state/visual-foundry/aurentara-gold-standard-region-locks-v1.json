@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "46afc976003a94f69dca2f1f7893524f75557008",
-  "workflow_run_id": 34070268417,
+  "evidence_head": "a095eb1aef7d08b7928631db555029e0b13bdbdd",
+  "workflow_run_id": 34070676999,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.464875,
-    "pixel_difference_percent": 13.9691,
+    "ssim": 0.468737,
+    "pixel_difference_percent": 13.9248,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.997663,
@@ -85,13 +85,14 @@
     {
       "region_id": "portfolio",
       "status": "ACCEPTED_GAIN",
-      "ssim": 0.34939,
+      "ssim": 0.357796,
       "baseline_ssim": 0.282044,
-      "pixel_difference_percent": 18.5423,
+      "pixel_difference_percent": 18.2561,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
-      "previous_soft_lock_ssim": 0.342334,
+      "previous_soft_lock_ssim": 0.34939,
       "portfolio_thumbnails_raster_ssim": 0.229572,
-      "portfolio_thumbnails_raster_pixel_difference_percent": 51.334
+      "portfolio_thumbnails_raster_pixel_difference_percent": 51.334,
+      "portfolio_ui_candidate": "PORTFOLIO_UI_DETAIL_P2"
     },
     {
       "region_id": "system_status",
@@ -127,8 +128,8 @@
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1"
     }
   ],
-  "active_delta_cluster": "ASSETS_ICONS",
-  "next_candidate": "PORTFOLIO_ASSET_DETAIL_P2",
+  "active_delta_cluster": "PORTFOLIO_DETAIL",
+  "next_candidate": "PORTFOLIO_ROW_STYLE_P3",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -150,7 +151,8 @@
     "PROJECT_THUMBNAILS_PORTFOLIO_ONLY_P1",
     "ATTENTION_REFERENCE_ASSET_LAYOUT_P1",
     "OPERATOR_AI_REFERENCE_ASSET_UI_P1",
-    "OPERATOR_AI_GLOBE_ASSET_P2"
+    "OPERATOR_AI_GLOBE_ASSET_P2",
+    "PORTFOLIO_UI_DETAIL_P2"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
