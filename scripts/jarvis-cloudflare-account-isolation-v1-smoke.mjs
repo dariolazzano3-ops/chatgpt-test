@@ -36,7 +36,7 @@ assert.match(workflow, /secrets\.JARVIS_CLOUDFLARE_ACCOUNT_ID/);
 assert.doesNotMatch(workflow, /secrets\.CLOUDFLARE_API_TOKEN/);
 assert.doesNotMatch(workflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
 assert.doesNotMatch(workflow, /RIOSYSTEMS_CLOUDFLARE_ZERO_COST_CONFIRMED/);
-assert.match(workflow, /ISOLATED_SUPABASE_READY_UNBOUND/);
+assert.match(workflow, /ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED/);
 
 const wrangler = JSON.parse(fs.readFileSync('wrangler.jarvis-private.jsonc', 'utf8'));
 assert.equal(wrangler.name, 'jarvis-private-staging');
