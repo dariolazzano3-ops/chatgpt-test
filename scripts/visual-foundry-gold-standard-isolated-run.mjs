@@ -2131,6 +2131,72 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
 
   const runtimeScreenshot=outDir+'/runtime-desktop.png';
   await page.screenshot({path:runtimeScreenshot,type:'png',fullPage:false,animations:'disabled'});
+
+  const interactivePreviewHtml=await page.evaluate(()=>{
+    const clone=document.documentElement.cloneNode(true);
+    clone.querySelectorAll('script').forEach(node=>node.remove());
+    clone.querySelectorAll('[contenteditable]').forEach(node=>node.removeAttribute('contenteditable'));
+    const badge=document.createElement('div');
+    badge.id='vf-private-preview-badge';
+    badge.textContent='PRIVATE INTERACTIVE PREVIEW · NO WRITES';
+    badge.setAttribute('aria-label','Private interactive preview, no writes');
+    Object.assign(badge.style,{
+      position:'fixed',right:'14px',top:'70px',zIndex:'9999',
+      padding:'7px 10px',border:'1px solid rgba(103,189,255,.35)',
+      borderRadius:'999px',background:'rgba(5,18,27,.88)',color:'#9fd8ff',
+      font:'600 9px/1.2 system-ui,sans-serif',letterSpacing:'.08em',
+      backdropFilter:'blur(12px)',pointerEvents:'none'
+    });
+    clone.querySelector('body')?.appendChild(badge);
+    return '<!doctype html>'+clone.outerHTML;
+  });
+
+  const previewInteractions=String.raw`<script id="vf-private-preview-interactions">
+  (()=> {
+    const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>[...r.querySelectorAll(s)];
+    const toast=(message)=>{
+      let el=qs('#vf-preview-toast');
+      if(!el){
+        el=document.createElement('div');el.id='vf-preview-toast';
+        Object.assign(el.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',zIndex:'10000',padding:'10px 14px',border:'1px solid #2a4658',borderRadius:'10px',background:'rgba(5,18,27,.96)',color:'#dcecf7',font:'500 11px/1.35 system-ui,sans-serif',boxShadow:'0 16px 50px rgba(0,0,0,.35)',opacity:'0',transition:'opacity .16s'});
+        document.body.appendChild(el);
+      }
+      el.textContent=message;el.style.opacity='1';clearTimeout(window.__vfToast);window.__vfToast=setTimeout(()=>el.style.opacity='0',1800);
+    };
+    qsa('.rf-hq-nav button').forEach(btn=>btn.addEventListener('click',e=>{
+      if(btn.getAttribute('aria-disabled')==='true'){e.preventDefault();return toast('Nur visuelle Referenz, keine Runtime-Aktion.');}
+      qsa('.rf-hq-nav button.active').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+      toast((btn.textContent||'Navigation').trim()+' · Preview-Modus');
+    }));
+    const filter=()=>{
+      const term=(qs('#rf-project-search')?.value||'').trim().toLowerCase();
+      qsa('.rf-portfolio-table tbody tr').forEach(row=>{row.style.display=!term||(row.textContent||'').toLowerCase().includes(term)?'':'none';});
+    };
+    qs('#rf-project-search')?.addEventListener('input',filter);
+    qs('#rf-universal-search')?.addEventListener('input',e=>{
+      const p=qs('#rf-project-search');if(p){p.value=e.target.value;filter();}
+    });
+    qsa('.rf-portfolio-tab').forEach((tab,i)=>tab.addEventListener('click',()=>{
+      qsa('.rf-portfolio-tab').forEach(x=>x.classList.remove('active'));tab.classList.add('active');
+      qsa('.rf-portfolio-table tbody tr').forEach((row,index)=>{
+        if(i===0)row.style.display='';
+        else if(i===1)row.style.display=index<3?'':'none';
+        else row.style.display=index===3?'':'none';
+      });
+    }));
+    const passiveSelector='button:not(.rf-hq-nav button):not(.rf-portfolio-tab)';
+    qsa(passiveSelector).forEach(btn=>btn.addEventListener('click',e=>{
+      e.preventDefault();e.stopPropagation();
+      const label=(btn.textContent||btn.getAttribute('aria-label')||'Aktion').replace(/\s+/g,' ').trim();
+      toast(label+' · in dieser Preview ohne Writes');
+    }));
+    qsa('input').forEach(input=>{if(input.type!=='search'&&input.id!=='rf-project-search'&&input.id!=='rf-universal-search')input.setAttribute('readonly','readonly');});
+  })();
+  </script>`;
+  const previewDocument=interactivePreviewHtml.includes('</body>')
+    ? interactivePreviewHtml.replace('</body>',previewInteractions+'</body>')
+    : interactivePreviewHtml+previewInteractions;
+  await writeFile(outDir+'/interactive-preview.html',previewDocument);
   await writeFile(outDir+'/desktop-layout-debug.json',JSON.stringify({desktopLayout,geometry},null,2));
 
   const comparatorRegions=[
