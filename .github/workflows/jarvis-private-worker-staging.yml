@@ -101,8 +101,8 @@ jobs:
           grep -q '"JARVIS_PUBLIC_ACCESS": "false"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_PRODUCTION_DEPLOY": "false"' wrangler.jarvis-private.jsonc
           grep -q '"JARVIS_DATA_PLANE": "EPHEMERAL_UNTIL_ISOLATED"' wrangler.jarvis-private.jsonc
-      - name: Block deploy until neutral host is explicitly activated
+      - name: Block deploy until dedicated Access app and neutral host are explicitly activated
         run: |
           set -euo pipefail
-          echo "JARVIS worker package validated. workers.dev is disabled and no neutral custom host is activated."
+          echo "JARVIS worker package validated. Shared Cloudflare account is allowed, but JARVIS still requires dedicated secrets, Access app, and neutral host."
           test "$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('wrangler.jarvis-private.jsonc','utf8'));process.stdout.write(String(c.workers_dev))")" = "false"

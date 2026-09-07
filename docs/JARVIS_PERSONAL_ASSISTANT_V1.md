@@ -325,26 +325,32 @@ Acceptance checks:
 
 This is physical storage isolation, not yet full runtime activation.
 
+## Cloudflare Resource Isolation V1
 
-## Dedicated Cloudflare Account Isolation V1
+The operator approved the pragmatic deployment model: JARVIS may run inside the existing Cloudflare account, but its runtime resources remain strictly separated from business workloads.
 
-JARVIS runtime deployment is now guarded against reuse of the business Cloudflare account.
+Required boundaries:
+- dedicated Worker: `jarvis-private-staging`
+- dedicated GitHub secret names: `JARVIS_CLOUDFLARE_ACCOUNT_ID` and `JARVIS_CLOUDFLARE_API_TOKEN`
+- dedicated JARVIS-scoped Cloudflare API token
+- dedicated Cloudflare Access application and audience
+- neutral JARVIS-only hostname
+- no reuse of the AURENTARA operator Access audience
+- no shared Worker routes
+- no shared runtime variables
+- no shared Supabase data plane
 
-Required deployment credentials:
-- `JARVIS_CLOUDFLARE_ACCOUNT_ID`
-- `JARVIS_CLOUDFLARE_API_TOKEN`
-
-The JARVIS deployment workflow no longer consumes the shared generic Cloudflare secret names and does not consume the RIOSYSTEMS zero-cost variable.
+The Cloudflare account itself may be shared. The account ID can therefore point to the existing Cloudflare account, but the JARVIS deployment workflow never consumes the generic business secret names.
 
 Current activation state:
-- dedicated Cloudflare account = HUMAN SETUP REQUIRED
-- JARVIS Worker package = READY
+- shared Cloudflare account = APPROVED
+- dedicated JARVIS Worker package = READY
+- dedicated secret names = ENFORCED
+- dedicated Access application = NOT YET ACTIVATED
+- neutral host = NOT YET ACTIVATED
 - workers.dev = OFF
 - custom routes = NONE
-- account_id hardcoded in source = NO
+- JARVIS Supabase = ISOLATED / READY_UNBOUND
 - Production = OFF
 - Public = OFF
-- DNS changes = NONE
 - external writes = OFF
-
-Before runtime activation, the dedicated JARVIS Cloudflare account must be created and its dedicated credentials must be bound through secret storage. The account must not equal the business Cloudflare account.

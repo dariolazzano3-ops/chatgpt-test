@@ -1,28 +1,27 @@
-# JARVIS Cloudflare Account Isolation V1
+# JARVIS Cloudflare Resource Isolation V1
 
-Status: PREPARED / HUMAN ACCOUNT SETUP REQUIRED
+Status: PREPARED / ACCOUNT SHARING APPROVED
 
-Goal:
-Run the JARVIS Worker in a Cloudflare account that is administratively and technically separate from AURENTARA / RIOSYSTEMS.
+Decision:
+JARVIS remains in the existing Cloudflare account, while Worker, secrets, Access, host, runtime bindings, and persistence remain independently isolated.
 
-Repository guarantees:
-- deployment uses only `JARVIS_CLOUDFLARE_ACCOUNT_ID`
-- deployment uses only `JARVIS_CLOUDFLARE_API_TOKEN`
-- shared generic Cloudflare GitHub secrets are not consumed by the JARVIS deploy workflow
-- the RIOSYSTEMS Cloudflare zero-cost variable is not consumed
-- no Cloudflare account ID is hardcoded in source
-- `workers_dev = false`
-- no custom route exists
-- neutral JARVIS host is still required
-- Production OFF
-- Public OFF
-- DNS unchanged
+Accepted boundary:
+- same Cloudflare account: ALLOWED
+- same Worker: FORBIDDEN
+- generic shared deploy secrets: FORBIDDEN
+- same Access application/audience as business operator surface: FORBIDDEN
+- same Supabase project: FORBIDDEN
+- business-named or inherited workers.dev endpoint: FORBIDDEN
 
-Activation gate:
-1. create dedicated personal Cloudflare account
-2. create a JARVIS-scoped API token in that account
-3. bind account ID and token through secret storage, never source or chat
-4. verify account differs from the business Cloudflare account
-5. establish a neutral JARVIS-only host
-6. create dedicated Access protection for that host
-7. only then bind the isolated JARVIS Supabase data plane
+JARVIS resources:
+- Worker: `jarvis-private-staging`
+- account secret: `JARVIS_CLOUDFLARE_ACCOUNT_ID`
+- API token secret: `JARVIS_CLOUDFLARE_API_TOKEN`
+- Access app: dedicated JARVIS app required
+- host: neutral JARVIS-only host required
+- workers.dev: OFF
+- Public: OFF
+- Production: OFF
+- DNS: unchanged until a neutral host is explicitly selected
+
+Runtime activation remains fail-closed until the dedicated Access audience and neutral host are present.
