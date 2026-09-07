@@ -1,0 +1,47 @@
+{
+  "schema": "riosystems.aurentara-sidebar-brand-alignment-acceptance.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
+  "candidate_id": "SIDEBAR_BRAND_ALIGNMENT_B9",
+  "sweep_candidate_id": "BA1_L5_W132",
+  "sweep_workflow_run": 34111484150,
+  "verification_workflow_run": 34112182240,
+  "verification_head": "b22306f4ab22a3f6e564ccd9cb7f10515a05d0df",
+  "verification_artifact_id": 10014802111,
+  "verification_artifact_digest": "sha256:1e517e3d8e38539f128c0cc0262d3d5f3e8463c340cf180b4e4c0f7694ac76be",
+  "alignment": {
+    "left_px": 5,
+    "tagline_width_px": 132
+  },
+  "baseline": {
+    "sidebar_ssim": 0.535886,
+    "sidebar_pixel_difference_percent": 11.0058,
+    "sidebar_brand_text_raster_ssim": 0.181286,
+    "sidebar_brand_text_raster_pixel_difference_percent": 22.1776,
+    "global_ssim": 0.49518,
+    "global_pixel_difference_percent": 13.4666
+  },
+  "accepted": {
+    "sidebar_ssim": 0.542851,
+    "sidebar_pixel_difference_percent": 10.9506,
+    "sidebar_brand_text_raster_ssim": 0.284253,
+    "sidebar_brand_text_raster_pixel_difference_percent": 21.4242,
+    "global_ssim": 0.497118,
+    "global_pixel_difference_percent": 13.4588
+  },
+  "soft_locks": "PASS",
+  "geometry": "PASS",
+  "constraint_anchor": "PASS",
+  "functional": "PASS",
+  "semantic": "PASS",
+  "responsive": "INFERRED_RESPONSIVE_PASS",
+  "overflow_px": 0,
+  "decision": "ACCEPTED_GAIN",
+  "visual_machine_acceptance": "FAIL",
+  "critical_region_failures": 8,
+  "wave20_locked": true,
+  "production_deploy": false,
+  "public_deploy": false,
+  "merge": false
+}
