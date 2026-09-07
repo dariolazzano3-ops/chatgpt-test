@@ -180,6 +180,7 @@ function extractApprovedReferenceAsset(asset){
   return {
     asset_id:asset.asset_id,
     project_key:asset.project_key||null,
+    nav_id:asset.nav_id||null,
     role:asset.role,
     crop:asset.crop,
     rgba_sha256:rgbaSha256,
