@@ -1,0 +1,87 @@
+name: Visual Foundry AURENTARA Primary Navigation Fine Alignment Refine
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-primary-nav-fine-alignment-refine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  primary-nav-fine-refine:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: NFR0_NF1
+            g2_top: 3
+            g2_bottom: 2
+            g3_top: 1
+            g3_bottom: 0
+            g4_top: 3
+            g4_bottom: 2
+          - id: NFR1_G2B1
+            g2_top: 3
+            g2_bottom: 1
+            g3_top: 1
+            g3_bottom: 0
+            g4_top: 3
+            g4_bottom: 2
+          - id: NFR2_G4B1
+            g2_top: 3
+            g2_bottom: 2
+            g3_top: 1
+            g3_bottom: 0
+            g4_top: 3
+            g4_bottom: 1
+          - id: NFR3_G4T2
+            g2_top: 3
+            g2_bottom: 2
+            g3_top: 1
+            g3_bottom: 0
+            g4_top: 2
+            g4_bottom: 2
+          - id: NFR4_G3T0
+            g2_top: 3
+            g2_bottom: 2
+            g3_top: 0
+            g3_bottom: 0
+            g4_top: 3
+            g4_bottom: 2
+          - id: NFR5_G2T2
+            g2_top: 2
+            g2_bottom: 2
+            g3_top: 1
+            g3_bottom: 0
+            g4_top: 3
+            g4_bottom: 2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G2_TOP: ${{ matrix.g2_top }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G2_BOTTOM: ${{ matrix.g2_bottom }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G3_TOP: ${{ matrix.g3_top }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G3_BOTTOM: ${{ matrix.g3_bottom }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G4_TOP: ${{ matrix.g4_top }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_FINE_G4_BOTTOM: ${{ matrix.g4_bottom }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-primary-nav-fine-refine-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
