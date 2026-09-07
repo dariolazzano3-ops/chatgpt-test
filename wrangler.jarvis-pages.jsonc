@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "jarvis-private-core",
+  "pages_build_output_dir": "./.jarvis-pages-dist",
+  "compatibility_date": "2026-09-07",
+  "send_metrics": false,
+  "vars": {
+    "JARVIS_ENVIRONMENT": "private-staging",
+    "JARVIS_PRIVATE_SURFACE_MODE": "prepared",
+    "JARVIS_PERSONAL_MEMORY_STORE": "supabase-rpc",
+    "JARVIS_PERSONAL_MEMORY_SUPABASE_URL": "https://eyevsebesosbanpcmukv.supabase.co",
+    "JARVIS_DATA_PLANE": "ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED",
+    "JARVIS_TIMEZONE": "Europe/Berlin",
+    "JARVIS_PRODUCTION_DEPLOY": "false",
+    "JARVIS_PUBLIC_ACCESS": "false",
+    "JARVIS_EXTERNAL_WRITES": "false",
+    "JARVIS_CALENDAR_WRITE": "false",
+    "JARVIS_FINANCIAL_ACTIONS": "false",
+    "JARVIS_HOST_MODE": "PAGES_DEV_ACCESS_REQUIRED",
+    "JARVIS_PAGES_PROJECT": "jarvis-private-core"
+  }
+}

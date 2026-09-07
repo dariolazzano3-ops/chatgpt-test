@@ -367,3 +367,29 @@ Additional runtime hardening for the approved shared Cloudflare account:
 - the Supabase service-role credential is not stored in source
 - missing durable-memory secret causes the private chat path to fail closed
 - standalone manifest requires a neutral custom host and keeps workers.dev disabled
+
+
+## Cloudflare Pages Private Runtime V1
+
+The neutral-host strategy now uses Cloudflare Pages instead of the inherited Workers account subdomain.
+
+Target:
+- Pages project: `jarvis-private-core`
+- neutral host: `jarvis-private-core.pages.dev` if Cloudflare accepts the project name
+- runtime: Pages Functions Advanced Mode using a bundled `_worker.js`
+- custom purchased domain: NOT REQUIRED
+- `ysrio.com`: NOT USED
+- workers.dev: NOT USED
+
+Security:
+- Cloudflare Access remains mandatory before any real JARVIS deployment
+- Pages Access JWT is cryptographically validated with RS256 against the Cloudflare Access JWKS endpoint
+- issuer, audience, expiry, signature, and operator email are validated
+- no identity is trusted from an unsigned header alone
+- dedicated JARVIS Supabase remains the only persistence target
+- service-role key remains secret-only
+- Production OFF
+- Public OFF
+- External writes OFF
+
+Deployment is intentionally not performed by the validation workflow. First create the Pages project with no sensitive content and enable Access for the `*.pages.dev` project hostname and preview deployments. Only then may a private deployment request be introduced.

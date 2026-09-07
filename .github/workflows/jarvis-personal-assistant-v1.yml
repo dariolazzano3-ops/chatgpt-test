@@ -17,6 +17,11 @@ on:
       - 'scripts/jarvis-private-worker-v1-smoke.mjs'
       - 'scripts/jarvis-neutral-host-v1-smoke.mjs'
       - 'scripts/jarvis-cloudflare-account-isolation-v1-smoke.mjs'
+      - 'scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs'
+      - 'scripts/jarvis-pages-private-v1-smoke.mjs'
+      - 'scripts/jarvis-pages-build-v1.mjs'
+      - 'wrangler.jarvis-pages.jsonc'
+      - '.github/workflows/jarvis-pages-private-staging.yml'
       - 'wrangler.jarvis-private.jsonc'
       - '.github/workflows/jarvis-private-worker-staging.yml'
       - '.github/workflows/jarvis-private-access-bootstrap.yml'
@@ -72,6 +77,8 @@ jobs:
           node --check src/jarvis/standalone-worker-v1.js
           node --check src/jarvis/host-policy-v1.js
           node --check src/jarvis/cloudflare-account-isolation-v1.js
+          node --check src/jarvis/access-jwt-v1.js
+          node --check src/jarvis/pages-worker-v1.js
 
       - name: JARVIS V1 architecture smoke
         run: node scripts/jarvis-personal-assistant-v1-smoke.mjs
@@ -105,3 +112,12 @@ jobs:
 
       - name: JARVIS V1 Cloudflare account isolation smoke
         run: node scripts/jarvis-cloudflare-account-isolation-v1-smoke.mjs
+
+      - name: JARVIS V1 Cloudflare Access JWT smoke
+        run: node scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs
+
+      - name: JARVIS V1 private Pages runtime smoke
+        run: node scripts/jarvis-pages-private-v1-smoke.mjs
+
+      - name: JARVIS V1 Pages advanced-mode bundle
+        run: node scripts/jarvis-pages-build-v1.mjs

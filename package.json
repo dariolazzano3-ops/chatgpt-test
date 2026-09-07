@@ -10,13 +10,15 @@
     "deploy:staging": "node scripts/generate-project-preview-index-v1.mjs && node scripts/staging-deploy-guard.mjs --deploy && wrangler deploy --env staging",
     "dev": "wrangler dev",
     "check:operator-ai": "node scripts/project-repair-wave7-operator-ai-canonical-execution-smoke.mjs && node scripts/human-outcome-acceptance-v1-smoke.mjs && node scripts/operator-ai-v1-smoke.mjs && node scripts/operator-ai-inference-v1-smoke.mjs && node scripts/operator-ai-dashboard-v1-smoke.mjs && node scripts/operator-ai-global-access-v1-smoke.mjs && node scripts/operator-ai-real-inference-live-acceptance-smoke.mjs",
-    "generate:project-previews": "node scripts/generate-project-preview-index-v1.mjs"
+    "generate:project-previews": "node scripts/generate-project-preview-index-v1.mjs",
+    "jarvis:pages:build": "node scripts/jarvis-pages-build-v1.mjs"
   },
   "dependencies": {
     "framer-api": "0.1.30"
   },
   "devDependencies": {
     "playwright": "^1.55.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "esbuild": "^0.25.0"
   }
 }

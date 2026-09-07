@@ -1,0 +1,44 @@
+name: JARVIS Private Pages V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-personal-assistant-v1'
+    paths:
+      - 'src/jarvis/**'
+      - 'scripts/jarvis-pages-**'
+      - 'scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs'
+      - 'wrangler.jarvis-pages.jsonc'
+      - '.github/workflows/jarvis-pages-private-staging.yml'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Exact confirmation for Pages package validation only'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pages-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            test "${{ inputs.confirmation }}" = "VALIDATE_JARVIS_PRIVATE_PAGES"
+          fi
+      - run: node scripts/jarvis-cloudflare-access-jwt-v1-smoke.mjs
+      - run: node scripts/jarvis-pages-private-v1-smoke.mjs
+      - run: node scripts/jarvis-pages-build-v1.mjs
+      - name: Verify no deploy occurs before Access activation
+        run: |
+          set -euo pipefail
+          test -f .jarvis-pages-dist/_worker.js
+          test ! -f .github/jarvis-pages-deploy-request.json
+          echo "Pages package ready. Deployment remains blocked until Access is activated."
