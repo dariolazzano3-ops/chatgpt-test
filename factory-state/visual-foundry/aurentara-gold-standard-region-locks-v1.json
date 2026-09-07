@@ -3,12 +3,12 @@
   "reference_id": "aurentara-hq-control-center-reference-v1-0",
   "reference_version": "1.0",
   "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
-  "evidence_head": "ade7a16ebb6f8e035c6a18f4be208b1789b37171",
-  "workflow_run_id": 34071024647,
+  "evidence_head": "104b2804aafa7e7463185bb75ac6ab7e4d22ffb5",
+  "workflow_run_id": 34072558100,
   "regression_tolerance_ssim": 0.002,
   "global": {
-    "ssim": 0.473373,
-    "pixel_difference_percent": 13.897,
+    "ssim": 0.480651,
+    "pixel_difference_percent": 13.8577,
     "geometry_status": "PASS",
     "overflow_px": 0,
     "color_score": 0.997663,
@@ -18,20 +18,21 @@
     {
       "region_id": "sidebar",
       "status": "ACCEPTED_GAIN",
-      "ssim": 0.535695,
+      "ssim": 0.535886,
       "baseline_ssim": 0.508022,
-      "pixel_difference_percent": 11.1495,
+      "pixel_difference_percent": 11.0058,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
       "previous_soft_lock_ssim": 0.476646
     },
     {
       "region_id": "primary_navigation",
-      "status": "LOCKED_ACCEPTED_GAIN",
-      "ssim": 0.499364,
+      "status": "ACCEPTED_GAIN",
+      "ssim": 0.501954,
       "baseline_ssim": 0.450847,
-      "pixel_difference_percent": 12.0216,
+      "pixel_difference_percent": 11.8421,
       "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
-      "previous_soft_lock_ssim": 0.455143
+      "previous_soft_lock_ssim": 0.499364,
+      "primary_navigation_layout_candidate": "PRIMARY_NAVIGATION_LAYOUT_P3"
     },
     {
       "region_id": "toolbar",
@@ -130,7 +131,7 @@
     }
   ],
   "active_delta_cluster": "CRITICAL_REGION_CLOSURE",
-  "next_candidate": "PRIMARY_NAVIGATION_DETAIL_P2",
+  "next_candidate": "TOOLBAR_DETAIL_P1",
   "locked_region_change_policy": "ONLY_IF_BLOCKER_REQUIRES_AND_NEW_SCORE_NOT_WORSE",
   "wave20_locked": true,
   "production_deploy": false,
@@ -154,7 +155,8 @@
     "OPERATOR_AI_REFERENCE_ASSET_UI_P1",
     "OPERATOR_AI_GLOBE_ASSET_P2",
     "PORTFOLIO_UI_DETAIL_P2",
-    "PORTFOLIO_ROW_STYLE_P3"
+    "PORTFOLIO_ROW_STYLE_P3",
+    "PRIMARY_NAVIGATION_LAYOUT_P3"
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
   "metric_calibration_file": "factory-state/visual-foundry/aurentara-visual-metric-calibration-v1.json",
