@@ -1,7 +1,4 @@
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { verifyApprovedReferenceLock } from './reference-studio-v1.js';
-import { compareVisualImages, compareGeometrySnapshots } from '../visual-foundry/visual-comparator.js';
 import {
   createVisualDelta,
   deltasFromVisualMeasurement,
@@ -46,12 +43,19 @@ function resolveRounds(value){
   return Math.max(1,Math.min(J7_HARD_MAX_REPAIR_ROUNDS,n));
 }
 
-async function sha256File(path){
-  const data=await readFile(path);
-  return createHash('sha256').update(data).digest('hex');
+async function resolveMaterializedHash(input={},adapters={}){
+  const supplied=clean(input.materialized_hash,128).toLowerCase();
+  if(supplied)return supplied;
+  if(typeof adapters.hash_reference_asset!=='function')return null;
+  const result=await adapters.hash_reference_asset({
+    reference_path:clean(input.reference_path,1000),
+    reference:clone(input.reference||{}),
+    expected_sha256:clean(input.reference?.artifact?.render_asset_hash,128).toLowerCase()
+  });
+  return clean(typeof result==='string'?result:result?.sha256,128).toLowerCase()||null;
 }
 
-export async function verifyApprovedReferenceVisualAsset(input={}){
+export async function verifyApprovedReferenceVisualAsset(input={},adapters={}){
   const reference=clone(input.reference||{});
   const lock=verifyApprovedReferenceLock(reference);
   const issues=[];
@@ -66,10 +70,12 @@ export async function verifyApprovedReferenceVisualAsset(input={}){
   if(input.viewport_id&&clean(input.viewport_id,80)!==clean(reference.viewport,80))issues.push({code:'REFERENCE_VIEWPORT_ID_MISMATCH',severity:'BLOCK',expected:reference.viewport,actual:input.viewport_id});
   let actualHash=null;
   if(referencePath){
-    try{actualHash=await sha256File(referencePath);}
-    catch{issues.push({code:'REFERENCE_PNG_UNREADABLE',severity:'BLOCK',reference_path:referencePath});}
+    try{actualHash=await resolveMaterializedHash(input,adapters);}
+    catch{issues.push({code:'REFERENCE_PNG_HASH_FAILED',severity:'BLOCK',reference_path:referencePath});}
   }
-  if(actualHash&&expectedHash&&actualHash!==expectedHash)issues.push({code:'REFERENCE_RENDER_SHA256_MISMATCH',severity:'BLOCK',expected:expectedHash,actual:actualHash});
+  if(!actualHash)issues.push({code:'REFERENCE_MATERIALIZED_SHA256_REQUIRED',severity:'BLOCK'});
+  else if(!/^[a-f0-9]{64}$/i.test(actualHash))issues.push({code:'REFERENCE_MATERIALIZED_SHA256_INVALID',severity:'BLOCK',actual:actualHash});
+  else if(expectedHash&&actualHash!==expectedHash)issues.push({code:'REFERENCE_RENDER_SHA256_MISMATCH',severity:'BLOCK',expected:expectedHash,actual:actualHash});
   return{
     schema:'riosystems.approved-reference-visual-asset-verification.v1',
     status:issues.length?'BLOCK':'PASS',
@@ -308,7 +314,7 @@ async function evaluateCandidate(input,adapters,context={}){
   const actualPath=clean(capture?.actual_path,1000);
   if(!actualPath)throw new Error('J7_CAPTURE_ACTUAL_PNG_REQUIRED');
 
-  const measurement=await compareVisualImages({
+  const measurement=await adapters.visual_foundry_compare({
     reference_path:input.reference_path,
     actual_path:actualPath,
     regions:input.regions||[],
@@ -316,6 +322,7 @@ async function evaluateCandidate(input,adapters,context={}){
     pixel_threshold:input.pixel_threshold??0.1,
     include_antialiasing:input.include_antialiasing===true
   });
+  if(measurement?.schema!=='riosystems.visual-measurement-report.v1')throw new Error('J7_VISUAL_FOUNDRY_MEASUREMENT_REQUIRED');
   const referenceDimensions=measurement.geometry?.reference||{};
   const metaWidth=finite(input.reference?.artifact?.width,null);
   const metaHeight=finite(input.reference?.artifact?.height,null);
@@ -323,7 +330,8 @@ async function evaluateCandidate(input,adapters,context={}){
   if(referenceDimensions.width!==Number(input.viewport?.width)||referenceDimensions.height!==Number(input.viewport?.height))throw new Error('J7_REFERENCE_VIEWPORT_DIMENSION_MISMATCH');
 
   const actualGeometry=await adapters.geometry_snapshot({...context,capture,measurement});
-  const geometry=compareGeometrySnapshots(input.reference_geometry||{},actualGeometry||{},input.geometry_options||{});
+  const geometry=await adapters.visual_foundry_compare_geometry(input.reference_geometry||{},actualGeometry||{},input.geometry_options||{});
+  if(geometry?.schema!=='riosystems.geometry-comparison.v1')throw new Error('J7_VISUAL_FOUNDRY_GEOMETRY_REPORT_REQUIRED');
   const typographyRaw=await adapters.typography_score({...context,capture,measurement,geometry});
   const typographyScore=finite(typeof typographyRaw==='object'?typographyRaw.score:typographyRaw,null);
   if(typographyScore===null||typographyScore<0||typographyScore>1)throw new Error('J7_TYPOGRAPHY_SCORE_REQUIRED');
@@ -370,10 +378,10 @@ async function evaluateCandidate(input,adapters,context={}){
 }
 
 export async function runApprovedReferenceVisualClosure(input={},adapters={}){
-  const required=['capture','geometry_snapshot','typography_score','functional_regression','root_cause','repair','commit','revert'];
+  const required=['hash_reference_asset','visual_foundry_compare','visual_foundry_compare_geometry','capture','geometry_snapshot','typography_score','functional_regression','root_cause','repair','commit','revert'];
   for(const name of required)if(typeof adapters[name]!=='function')throw new Error('J7_VISUAL_CLOSURE_ADAPTER_REQUIRED:'+name);
 
-  const referenceVerification=await verifyApprovedReferenceVisualAsset(input);
+  const referenceVerification=await verifyApprovedReferenceVisualAsset(input,adapters);
   if(referenceVerification.status!=='PASS'){
     return{
       schema:'riosystems.j7-visual-closure-result.v1',
@@ -544,6 +552,8 @@ export function visualClosureLoopManifest(){
     schema:'riosystems.j7-visual-closure-loop-manifest.v1',
     pipeline:['APPROVED_REFERENCE','BUILD','SCREENSHOT','VISUAL_FOUNDRY_COMPARE','DELTA_SEGMENT','ROOT_CAUSE','REPAIR_PLAN','BOUNDED_REPAIR','REBUILD','RESCREENSHOT','RECOMPARE'],
     comparator:'VISUAL_FOUNDRY_ONLY',
+    comparator_execution_host:'BUILD_QA_HOST',
+    worker_runtime_comparator_bundle:false,
     delta_types:[...J7_VISUAL_DELTA_TYPES],
     default_max_repair_rounds:J7_DEFAULT_MAX_REPAIR_ROUNDS,
     hard_max_repair_rounds:J7_HARD_MAX_REPAIR_ROUNDS,
