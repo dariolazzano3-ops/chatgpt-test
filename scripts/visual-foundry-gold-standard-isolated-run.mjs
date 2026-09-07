@@ -68,6 +68,9 @@ assert.equal(toolbarReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const kpiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/kpi-reference-extracted.json','utf8'));
 assert.equal(kpiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'KPI_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(kpiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const heroTitleReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/hero-title-reference-extracted.json','utf8'));
+assert.equal(heroTitleReferenceAssets.reference_hash,referenceRegistration.reference.hash,'HERO_TITLE_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(heroTitleReferenceAssets.provenance,'REFERENCE_EXTRACTED_MASKED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -149,6 +152,14 @@ const explicitHeroTitleFinish=String(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINIS
 const heroTitleFinishCandidateId=explicitHeroTitleFinish||(acceptedHeroTitleFinish?.candidate_id||'');
 const heroTitleFinishVariant=String(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINISH_VARIANT||acceptedHeroTitleFinish?.variant||'METAL_A').trim().toUpperCase();
 const heroTitleFinishScaleX=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_FINISH_SCALE_X??acceptedHeroTitleFinish?.scale_x??heroTitleScaleX);
+const acceptedHeroTitleReference=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TITLE_REFERENCE_ASSET_P2'&&x.apply_by_default===true);
+const explicitHeroTitleReference=String(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_CANDIDATE||'').trim();
+const heroTitleReferenceCandidateId=explicitHeroTitleReference||(acceptedHeroTitleReference?.candidate_id||'');
+const heroTitleReferenceLeftPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_LEFT_PX??acceptedHeroTitleReference?.placement?.left_px??24);
+const heroTitleReferenceTopPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_TOP_PX??acceptedHeroTitleReference?.placement?.top_px??39);
+const heroTitleReferenceWidthPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_WIDTH_PX??acceptedHeroTitleReference?.placement?.width_px??840);
+const heroTitleReferenceHeightPx=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_HEIGHT_PX??acceptedHeroTitleReference?.placement?.height_px??34);
+const heroTitleReferenceOpacity=Number(process.env.VISUAL_FOUNDRY_HERO_TITLE_REFERENCE_OPACITY??acceptedHeroTitleReference?.placement?.opacity??1);
 const sidebarNavTypographyCandidateId=String(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_TYPOGRAPHY_CANDIDATE||'').trim();
 const sidebarNavFontSizePx=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_SIZE_PX||NaN);
 const sidebarNavFontWeight=Number(process.env.VISUAL_FOUNDRY_SIDEBAR_NAV_FONT_WEIGHT||NaN);
@@ -292,6 +303,33 @@ function extractLumaAlphaUiAsset(asset,{scrubBadge=false}={}){
   }
   const bytes=PNG.sync.write(out);
   return {...base,mask_algorithm:scrubBadge?'LUMA_ALPHA_WITH_RED_BADGE_SCRUB_V1':'LUMA_ALPHA_UI_V1',src:'data:image/png;base64,'+bytes.toString('base64')};
+}
+
+function extractNeutralTextMaskAsset(asset){
+  const base=extractApprovedReferenceAsset(asset);
+  const decoded=PNG.sync.read(Buffer.from(base.src.split(',')[1],'base64'));
+  const out=new PNG({width:decoded.width,height:decoded.height});
+  const m=asset.mask_contract;
+  for(let y=0;y<decoded.height;y++){
+    for(let x=0;x<decoded.width;x++){
+      const i=(y*decoded.width+x)*4;
+      const r=decoded.data[i],g=decoded.data[i+1],b=decoded.data[i+2];
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      const maxc=Math.max(r,g,b),minc=Math.min(r,g,b),chroma=maxc-minc;
+      const neutral=Math.max(0,Math.min(1,(m.chroma_max-chroma)/m.chroma_fade));
+      let a=Math.max(0,Math.min(255,(lum-m.luma_min)*m.luma_gain))*neutral;
+      const coolGap=Math.min(g,b)-r-m.cool_support.min_gap;
+      const cool=Math.max(0,Math.min(m.cool_support.max_alpha,coolGap*m.cool_support.gain));
+      a=Math.max(a,cool);
+      if(lum<m.hard_luma_floor)a=0;
+      out.data[i]=r;
+      out.data[i+1]=g;
+      out.data[i+2]=b;
+      out.data[i+3]=Math.round(a);
+    }
+  }
+  const bytes=PNG.sync.write(out);
+  return {...base,mask_algorithm:m.algorithm,src:'data:image/png;base64,'+bytes.toString('base64')};
 }
 
 const child=spawn(process.execPath,[
@@ -1796,6 +1834,77 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     },{candidate_id:heroTitleFinishCandidateId,variant:heroTitleFinishVariant,scale_x:heroTitleFinishScaleX});
   }
 
+  let heroTitleReferenceCandidateState={status:'DISABLED',candidate_id:heroTitleReferenceCandidateId||null};
+  if(heroTitleReferenceCandidateId){
+    const source=(heroTitleReferenceAssets.assets||[]).find(x=>x.role==='HERO_TITLE_GLYPH_ASSET');
+    assert.ok(source,'HERO_TITLE_REFERENCE_SOURCE_REQUIRED');
+    const titleAsset=extractNeutralTextMaskAsset(source);
+    heroTitleReferenceCandidateState=await page.evaluate(({candidate_id,titleAsset,left_px,top_px,width_px,height_px,opacity})=>{
+      if(candidate_id==='HTR0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id};
+      const hero=document.querySelector('.rf-hero');
+      const title=hero?.querySelector('h1');
+      if(!hero||!title)throw new Error('HERO_TITLE_REFERENCE_TARGET_MISSING');
+
+      title.dataset.vfSemanticHeroTitlePreserved='true';
+      title.style.color='transparent';
+      title.style.webkitTextFillColor='transparent';
+      title.style.background='none';
+      title.style.textShadow='none';
+      title.style.webkitTextStroke='0 transparent';
+
+      let img=hero.querySelector('[data-vf-reference-hero-title]');
+      if(!img){
+        img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.dataset.vfReferenceHeroTitle=titleAsset.asset_id;
+        hero.appendChild(img);
+      }
+      img.src=titleAsset.src;
+      Object.assign(img.style,{
+        position:'absolute',
+        left:left_px+'px',
+        top:top_px+'px',
+        width:width_px+'px',
+        height:height_px+'px',
+        maxWidth:'none',
+        objectFit:'fill',
+        opacity:String(opacity),
+        pointerEvents:'none',
+        userSelect:'none',
+        zIndex:'2'
+      });
+
+      const heroRect=hero.getBoundingClientRect();
+      const imageRect=img.getBoundingClientRect();
+      const titleRect=title.getBoundingClientRect();
+      return {
+        status:'APPLIED',
+        candidate_id,
+        source_asset_id:titleAsset.asset_id,
+        mask_algorithm:titleAsset.mask_algorithm,
+        semantic_h1_preserved:true,
+        raster_asset_aria_hidden:true,
+        production_use_allowed:false,
+        public_distribution_allowed:false,
+        placement:{left_px,top_px,width_px,height_px,opacity},
+        hero_rect:{x:heroRect.x,y:heroRect.y,width:heroRect.width,height:heroRect.height},
+        image_rect:{x:imageRect.x,y:imageRect.y,width:imageRect.width,height:imageRect.height},
+        semantic_title_rect:{x:titleRect.x,y:titleRect.y,width:titleRect.width,height:titleRect.height},
+        provenance:'REFERENCE_EXTRACTED_MASKED',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{
+      candidate_id:heroTitleReferenceCandidateId,
+      titleAsset,
+      left_px:heroTitleReferenceLeftPx,
+      top_px:heroTitleReferenceTopPx,
+      width_px:heroTitleReferenceWidthPx,
+      height_px:heroTitleReferenceHeightPx,
+      opacity:heroTitleReferenceOpacity
+    });
+  }
+
   await page.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready});
   await page.waitForTimeout(120);
 
@@ -2104,6 +2213,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     kpi_detail_candidate:kpiDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
     hero_title_finish_candidate:heroTitleFinishCandidateState,
+    hero_title_reference_candidate:heroTitleReferenceCandidateState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
     panel_header_typography_candidate:panelHeaderTypographyState,
@@ -2180,6 +2290,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     hero_title_finish_candidate:runEvidence.hero_title_finish_candidate?.candidate_id||null,
     hero_title_finish_variant:runEvidence.hero_title_finish_candidate?.variant||null,
     hero_title_finish_scale_x:runEvidence.hero_title_finish_candidate?.scale_x||null,
+    hero_title_reference_candidate:runEvidence.hero_title_reference_candidate?.candidate_id||null,
+    hero_title_reference_placement:runEvidence.hero_title_reference_candidate?.placement||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
     panel_header_typography_candidate:runEvidence.panel_header_typography_candidate?.candidate_id||null,
