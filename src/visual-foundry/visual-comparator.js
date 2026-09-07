@@ -1,23 +1,39 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import pixelmatch from 'pixelmatch';
-import pngjs from 'pngjs';
-import ssimPackage from 'ssim.js';
 
-const ssim = typeof ssimPackage === 'function'
-  ? ssimPackage
-  : typeof ssimPackage?.ssim === 'function'
-    ? ssimPackage.ssim
-    : typeof ssimPackage?.default === 'function'
-      ? ssimPackage.default
-      : null;
+let comparatorDepsPromise=null;
 
-const { PNG } = pngjs;
+async function comparatorDeps(){
+  if(!comparatorDepsPromise){
+    comparatorDepsPromise=Promise.all([
+      import('pixelmatch'),
+      import('pngjs'),
+      import('ssim.js')
+    ]).then(([pixelmatchModule,pngModule,ssimModule])=>{
+      const pixelmatch=pixelmatchModule.default||pixelmatchModule;
+      const PNG=pngModule.PNG||pngModule.default?.PNG;
+      const ssimPackage=ssimModule.default||ssimModule;
+      const ssim=typeof ssimPackage==='function'
+        ? ssimPackage
+        : typeof ssimPackage?.ssim==='function'
+          ? ssimPackage.ssim
+          : typeof ssimModule?.ssim==='function'
+            ? ssimModule.ssim
+            : null;
+      if(typeof pixelmatch!=='function')throw new Error('PIXELMATCH_ADAPTER_UNAVAILABLE');
+      if(!PNG?.sync?.read||!PNG?.sync?.write||typeof PNG.bitblt!=='function')throw new Error('PNGJS_ADAPTER_UNAVAILABLE');
+      if(typeof ssim!=='function')throw new Error('SSIM_ADAPTER_UNAVAILABLE');
+      return{pixelmatch,PNG,ssim};
+    });
+  }
+  return comparatorDepsPromise;
+}
 
 const round=(v,d=6)=>{const f=10**d;return Math.round(Number(v||0)*f)/f;};
 const clamp=v=>Math.max(0,Math.min(1,v));
 
 async function readPng(filePath){
+  const {PNG}=await comparatorDeps();
   const buffer=await fs.readFile(filePath).catch(()=>null);
   if(!buffer) throw new Error('COMPARATOR_IMAGE_MISSING:'+filePath);
   try{return PNG.sync.read(buffer);}catch{throw new Error('COMPARATOR_PNG_INVALID:'+filePath);}
@@ -68,7 +84,7 @@ function edgeScore(a,b){
   return round(union?intersection/union:1);
 }
 
-function crop(image,region){
+function crop(image,region,PNG){
   const x=Math.max(0,Math.floor(region.x)),y=Math.max(0,Math.floor(region.y));
   const width=Math.max(1,Math.min(image.width-x,Math.floor(region.width)));
   const height=Math.max(1,Math.min(image.height-y,Math.floor(region.height)));
@@ -77,7 +93,8 @@ function crop(image,region){
   return out;
 }
 
-function compareDecoded(reference,actual,options={}){
+async function compareDecoded(reference,actual,options={}){
+  const {pixelmatch,PNG,ssim}=await comparatorDeps();
   if(reference.width!==actual.width||reference.height!==actual.height){
     return {
       status:'DIMENSION_MISMATCH',
@@ -98,7 +115,6 @@ function compareDecoded(reference,actual,options={}){
   });
   const total=reference.width*reference.height;
   const pixelRatio=total?diffPixels/total:0;
-  if(typeof ssim!=='function') throw new Error('SSIM_ADAPTER_UNAVAILABLE');
   const perceptual=ssim(
     {data:reference.data,width:reference.width,height:reference.height},
     {data:actual.data,width:actual.width,height:actual.height}
@@ -124,14 +140,15 @@ function compareDecoded(reference,actual,options={}){
 export async function compareVisualImages(input={}){
   const reference=await readPng(path.resolve(String(input.reference_path||'')));
   const actual=await readPng(path.resolve(String(input.actual_path||'')));
-  const base=compareDecoded(reference,actual,input);
+  const base=await compareDecoded(reference,actual,input);
   const regions=[];
   if(base.dimensions_equal){
     for(const region of Array.isArray(input.regions)?input.regions:[]){
       const id=String(region.region_id||region.id||'').trim();
       if(!id) throw new Error('COMPARATOR_REGION_ID_REQUIRED');
-      const refCrop=crop(reference,region),actualCrop=crop(actual,region);
-      const result=compareDecoded(refCrop,actualCrop,input);
+      const {PNG}=await comparatorDeps();
+      const refCrop=crop(reference,region,PNG),actualCrop=crop(actual,region,PNG);
+      const result=await compareDecoded(refCrop,actualCrop,input);
       delete result.diff_png;
       regions.push({region_id:id,critical:region.critical===true,bounds:{x:region.x,y:region.y,width:region.width,height:region.height},...result});
     }
