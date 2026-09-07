@@ -843,6 +843,65 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     },{candidate_id:operatorAiAssetCandidateId,variant:operatorAiAssetVariant,sparkle,send});
   }
 
+  let operatorAiGlobeCandidateState={status:'DISABLED',candidate_id:operatorAiGlobeCandidateId||null};
+  if(operatorAiGlobeCandidateId){
+    const globeSource=(operatorAiReferenceAssets.assets||[]).find(x=>x.role==='OPERATOR_AI_GLOBE_SOURCE');
+    assert.ok(globeSource,'OPERATOR_AI_GLOBE_SOURCE_REQUIRED');
+    if(operatorAiGlobeCandidateId==='G0_CONTROL'){
+      operatorAiGlobeCandidateState={status:'CONTROL_NO_CHANGE',candidate_id:operatorAiGlobeCandidateId};
+    }else{
+      const globe=extractMaskedOperatorGlobe(globeSource);
+      operatorAiGlobeCandidateState=await page.evaluate(({candidate_id,globe,left_px,top_px,width_px,height_px,opacity})=>{
+        const root=document.querySelector('.rf-grid-mid > .rf-panel:nth-child(2)');
+        const stage=root?.querySelector('.rf-ai-stage');
+        if(!root||!stage)throw new Error('OPERATOR_AI_GLOBE_STAGE_MISSING');
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=globe.src;
+        img.dataset.vfReferenceExtractedOperatorAiGlobe=globe.asset_id;
+        Object.assign(stage.style,{position:'relative',overflow:'hidden'});
+        Object.assign(img.style,{
+          position:'absolute',
+          left:left_px+'px',
+          top:top_px+'px',
+          width:width_px+'px',
+          height:height_px+'px',
+          maxWidth:'none',
+          objectFit:'fill',
+          opacity:String(opacity),
+          zIndex:'0',
+          pointerEvents:'none',
+          userSelect:'none'
+        });
+        stage.prepend(img);
+        const message=stage.querySelector('.rf-ai-message');
+        const actions=stage.querySelector('.rf-ai-actions');
+        if(message)Object.assign(message.style,{position:'relative',zIndex:'2'});
+        if(actions)Object.assign(actions.style,{zIndex:'2'});
+        const rect=img.getBoundingClientRect();
+        return {
+          status:'APPLIED',
+          candidate_id,
+          asset_id:globe.asset_id,
+          mask_algorithm:globe.mask_algorithm,
+          placement:{left_px,top_px,width_px,height_px,opacity},
+          image_geometry:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
+          provenance:'REFERENCE_EXTRACTED_MASKED',
+          usage_scope:'GOLD_STANDARD_POC_ONLY'
+        };
+      },{
+        candidate_id:operatorAiGlobeCandidateId,
+        globe,
+        left_px:operatorAiGlobeLeftPx,
+        top_px:operatorAiGlobeTopPx,
+        width_px:operatorAiGlobeWidthPx,
+        height_px:operatorAiGlobeHeightPx,
+        opacity:operatorAiGlobeOpacity
+      });
+    }
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1339,6 +1398,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     project_thumbnails_candidate:projectThumbnailsCandidateState,
     attention_asset_candidate:attentionAssetCandidateState,
     operator_ai_asset_candidate:operatorAiAssetCandidateState,
+    operator_ai_globe_candidate:operatorAiGlobeCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1397,6 +1457,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     attention_asset_variant:runEvidence.attention_asset_candidate?.variant||null,
     operator_ai_asset_candidate:runEvidence.operator_ai_asset_candidate?.candidate_id||null,
     operator_ai_asset_variant:runEvidence.operator_ai_asset_candidate?.variant||null,
+    operator_ai_globe_candidate:runEvidence.operator_ai_globe_candidate?.candidate_id||null,
+    operator_ai_globe_placement:runEvidence.operator_ai_globe_candidate?.placement||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
