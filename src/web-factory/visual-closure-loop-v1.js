@@ -63,6 +63,7 @@ export async function verifyApprovedReferenceVisualAsset(input={}){
   if(!/^[a-f0-9]{64}$/i.test(expectedHash))issues.push({code:'REFERENCE_RENDER_SHA256_REQUIRED',severity:'BLOCK',actual:expectedHash||null});
   if(reference?.artifact?.mime_type&&reference.artifact.mime_type!=='image/png')issues.push({code:'REFERENCE_PNG_REQUIRED',severity:'BLOCK',mime_type:reference.artifact.mime_type});
   if(input.reference_asset_ref&&expectedRef&&clean(input.reference_asset_ref,1000)!==expectedRef)issues.push({code:'REFERENCE_ASSET_REF_MISMATCH',severity:'BLOCK'});
+  if(input.viewport_id&&clean(input.viewport_id,80)!==clean(reference.viewport,80))issues.push({code:'REFERENCE_VIEWPORT_ID_MISMATCH',severity:'BLOCK',expected:reference.viewport,actual:input.viewport_id});
   let actualHash=null;
   if(referencePath){
     try{actualHash=await sha256File(referencePath);}
@@ -315,6 +316,11 @@ async function evaluateCandidate(input,adapters,context={}){
     pixel_threshold:input.pixel_threshold??0.1,
     include_antialiasing:input.include_antialiasing===true
   });
+  const referenceDimensions=measurement.geometry?.reference||{};
+  const metaWidth=finite(input.reference?.artifact?.width,null);
+  const metaHeight=finite(input.reference?.artifact?.height,null);
+  if(metaWidth!==null&&metaHeight!==null&&(referenceDimensions.width!==metaWidth||referenceDimensions.height!==metaHeight))throw new Error('J7_REFERENCE_PNG_METADATA_DIMENSION_MISMATCH');
+  if(referenceDimensions.width!==Number(input.viewport?.width)||referenceDimensions.height!==Number(input.viewport?.height))throw new Error('J7_REFERENCE_VIEWPORT_DIMENSION_MISMATCH');
 
   const actualGeometry=await adapters.geometry_snapshot({...context,capture,measurement});
   const geometry=compareGeometrySnapshots(input.reference_geometry||{},actualGeometry||{},input.geometry_options||{});
@@ -384,6 +390,8 @@ export async function runApprovedReferenceVisualClosure(input={},adapters={}){
   if(!initialCommit)throw new Error('J7_INITIAL_COMMIT_REQUIRED');
   if(!projectPath.startsWith('projects/'))throw new Error('J7_PROJECT_PATH_REQUIRED');
   if(!input.viewport?.width||!input.viewport?.height)throw new Error('J7_VIEWPORT_REQUIRED');
+  if(!clean(input.viewport_id,80))throw new Error('J7_VIEWPORT_ID_REQUIRED');
+  if(clean(input.viewport_id,80)!==clean(input.reference?.viewport,80))throw new Error('J7_REFERENCE_VIEWPORT_ID_MISMATCH');
   if(!input.reference_geometry?.components)throw new Error('J7_REFERENCE_GEOMETRY_REQUIRED');
 
   const maxRounds=resolveRounds(input.max_repair_rounds);
