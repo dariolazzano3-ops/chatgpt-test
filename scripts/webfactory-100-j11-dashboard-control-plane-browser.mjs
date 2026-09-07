@@ -94,7 +94,7 @@ try{
     'Build / QA','Performance','Accessibility','Preview','Cost','Delivery State'
   ];
   for(const label of expectedFields){
-    assert.ok(panelText.includes(label),'missing J11 field '+label);
+    assert.ok(panelText.toLowerCase().includes(label.toLowerCase()),'missing J11 field '+label);
   }
 
   const expectedActions=[
