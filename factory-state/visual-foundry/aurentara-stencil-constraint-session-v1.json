@@ -281,7 +281,7 @@
       },
       {
         "region_id": "portfolio",
-        "baseline_score": 0.357796
+        "baseline_score": 0.372471
       }
     ],
     "excluded_active_or_regressed": [],
@@ -892,6 +892,41 @@
       "verified_soft_locks": "PASS",
       "verified_geometry": "PASS",
       "verified_overflow_px": 0
+    },
+    {
+      "candidate_id": "PORTFOLIO_ROW_STYLE_P3",
+      "region_id": "portfolio",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "RS4_MEASURED",
+      "sweep_workflow_run": 34070871742,
+      "sweep_head": "b4127ef772f3afc161858a24dcbed1857b09d959",
+      "column_widths_percent": [
+        21.2,
+        9.8,
+        10.2,
+        9.7,
+        12.4,
+        15.3,
+        21.4
+      ],
+      "action_inset_px": 8,
+      "state_font_size_px": 7.5,
+      "state_pad_x_px": 6,
+      "baseline_portfolio_ssim": 0.357796,
+      "accepted_portfolio_ssim": 0.372471,
+      "baseline_portfolio_pixel_difference_percent": 18.2561,
+      "accepted_portfolio_pixel_difference_percent": 18.0763,
+      "baseline_global_ssim": 0.468737,
+      "accepted_global_ssim": 0.473373,
+      "baseline_global_pixel_difference_percent": 13.9248,
+      "accepted_global_pixel_difference_percent": 13.897,
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS",
+      "responsive": "INFERRED_RESPONSIVE_PASS",
+      "critical_region_failures": 8
     }
   ],
   "metric_profile": "PNG_SSIMJS_PIXELMATCH_V1",
