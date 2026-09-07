@@ -51,6 +51,26 @@
         "height": 40
       },
       "rgba_sha256": "c2dfb574e6d7c46e9e6753524224fd084bbefef7a9865a90b4650d5e6b0dc4dd"
+    },
+    {
+      "asset_id": "toolbar_notification_bell_reference_extracted",
+      "role": "TOOLBAR_NOTIFICATION_ICON",
+      "crop": {
+        "x": 1305,
+        "y": 8,
+        "width": 40,
+        "height": 40
+      },
+      "rgba_sha256": "0d0f81e85eaf3b0a1b9b803dbb55e8a9c92bb196662610384db682e85c01fce7",
+      "transform_contract": {
+        "algorithm": "LUMA_ALPHA_WITH_RED_BADGE_SCRUB_V1",
+        "red_scrub": {
+          "r_min": 120,
+          "r_over_g": 1.35,
+          "r_over_b": 1.25
+        },
+        "note": "Reference badge pixels are removed. Any runtime badge must be drawn from the verified runtime decision count."
+      }
     }
   ],
   "truth_contract": {
