@@ -62,6 +62,9 @@ assert.equal(portfolioUiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const sidebarNavReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/sidebar-nav-reference-extracted.json','utf8'));
 assert.equal(sidebarNavReferenceAssets.reference_hash,referenceRegistration.reference.hash,'SIDEBAR_NAV_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(sidebarNavReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const toolbarReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/toolbar-reference-extracted.json','utf8'));
+assert.equal(toolbarReferenceAssets.reference_hash,referenceRegistration.reference.hash,'TOOLBAR_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(toolbarReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -117,6 +120,10 @@ const explicitPrimaryNavLayout=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAY
 const primaryNavLayoutCandidateId=explicitPrimaryNavLayout||(acceptedPrimaryNavLayout?.candidate_id||'');
 const primaryNavLayoutVariant=String(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_VARIANT||acceptedPrimaryNavLayout?.variant||'REPORTS_ONLY').trim().toUpperCase();
 const primaryNavLayoutIconSizePx=Number(process.env.VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_ICON_SIZE_PX??acceptedPrimaryNavLayout?.icon_size_px??20);
+const acceptedToolbarDetail=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='TOOLBAR_DETAIL_P1'&&x.apply_by_default===true);
+const explicitToolbarDetail=String(process.env.VISUAL_FOUNDRY_TOOLBAR_DETAIL_CANDIDATE||'').trim();
+const toolbarDetailCandidateId=explicitToolbarDetail||(acceptedToolbarDetail?.candidate_id||'');
+const toolbarDetailVariant=String(process.env.VISUAL_FOUNDRY_TOOLBAR_DETAIL_VARIANT||acceptedToolbarDetail?.variant||'FULL').trim().toUpperCase();
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -1185,6 +1192,166 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     });
   }
 
+  let toolbarDetailCandidateState={status:'DISABLED',candidate_id:toolbarDetailCandidateId||null,variant:toolbarDetailVariant};
+  if(toolbarDetailCandidateId){
+    const toolbarAssets=(toolbarReferenceAssets.assets||[]).map(extractApprovedReferenceAsset);
+    const searchAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_SEARCH_ICON');
+    const globeAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_REGION_ICON');
+    const sunAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_THEME_ICON');
+    const avatarAsset=toolbarAssets.find(x=>x.role==='TOOLBAR_OPERATOR_AVATAR');
+    assert.ok(searchAsset&&globeAsset&&sunAsset&&avatarAsset,'TOOLBAR_REFERENCE_ASSETS_INCOMPLETE');
+    toolbarDetailCandidateState=await page.evaluate(({candidate_id,variant,searchAsset,globeAsset,sunAsset,avatarAsset})=>{
+      if(candidate_id==='TB0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
+      const toolbar=document.querySelector('.rf-toolbar');
+      const search=toolbar?.querySelector('.rf-search');
+      const right=toolbar?.querySelector('.rf-toolbar-right');
+      const env=right?.querySelector('.rf-env');
+      const region=right?.querySelector('.rf-region');
+      const operator=right?.querySelector('.rf-operator');
+      if(!toolbar||!search||!right||!env||!region||!operator)throw new Error('TOOLBAR_DETAIL_ROOT_MISSING');
+
+      const useOperator=['OPERATOR','OPERATOR_REGION','FULL_NO_BELL','FULL'].includes(variant);
+      const useRegion=['OPERATOR_REGION','FULL_NO_BELL','FULL'].includes(variant);
+      const useFull=['FULL_NO_BELL','FULL'].includes(variant);
+      const useBell=variant==='FULL';
+      if(!useOperator)throw new Error('TOOLBAR_DETAIL_VARIANT_INVALID:'+variant);
+
+      const makeImg=(asset,size,blend=true)=>{
+        const img=document.createElement('img');
+        img.alt='';
+        img.setAttribute('aria-hidden','true');
+        img.src=asset.src;
+        img.dataset.vfToolbarReferenceAsset=asset.asset_id;
+        Object.assign(img.style,{display:'block',width:size+'px',height:size+'px',maxWidth:'none',objectFit:'fill',mixBlendMode:blend?'screen':'normal'});
+        return img;
+      };
+
+      const searchLead=search.querySelector('span:first-child');
+      if(searchLead){
+        searchLead.textContent='';
+        searchLead.style.display='grid';
+        searchLead.style.placeItems='center';
+        searchLead.style.width='22px';
+        searchLead.style.height='22px';
+        searchLead.appendChild(makeImg(searchAsset,22,true));
+      }
+
+      if(useRegion){
+        region.style.width='150px';
+        region.style.boxSizing='border-box';
+        region.style.justifyContent='flex-start';
+        if(!region.querySelector('[data-vf-toolbar-region-icon]')){
+          const globe=makeImg(globeAsset,22,true);
+          globe.dataset.vfToolbarRegionIcon='true';
+          region.prepend(globe);
+        }
+      }
+
+      env.style.width='108px';
+      env.style.boxSizing='border-box';
+      env.style.justifyContent='center';
+
+      if(useFull){
+        let theme=right.querySelector('.vf-toolbar-theme');
+        if(!theme){
+          theme=document.createElement('button');
+          theme.type='button';
+          theme.className='vf-toolbar-theme';
+          theme.setAttribute('aria-label','Darstellungssteuerung in dieser Referenzansicht nicht aktiv');
+          theme.setAttribute('aria-disabled','true');
+          theme.tabIndex=-1;
+          theme.style.pointerEvents='none';
+          theme.appendChild(makeImg(sunAsset,28,true));
+          right.insertBefore(theme,operator);
+        }
+        Object.assign(theme.style,{width:'34px',height:'34px',padding:'0',border:'0',background:'transparent',display:'grid',placeItems:'center',flex:'0 0 34px'});
+
+        let notify=right.querySelector('.rf-notify');
+        if(useBell){
+          if(!notify){
+            notify=document.createElement('button');
+            notify.type='button';
+            notify.className='rf-notify vf-toolbar-notify-placeholder';
+            notify.setAttribute('aria-label','Keine verifizierten offenen Entscheidungen');
+            notify.setAttribute('aria-disabled','true');
+            notify.tabIndex=-1;
+            notify.style.pointerEvents='none';
+            notify.textContent='♧';
+            right.insertBefore(notify,operator);
+          }
+          const actualCount=Number(notify.querySelector('b')?.textContent||0);
+          notify.dataset.vfRuntimeDecisionCount=String(Number.isFinite(actualCount)?actualCount:0);
+          Object.assign(notify.style,{position:'relative',width:'34px',height:'34px',minHeight:'34px',padding:'0',border:'0',background:'transparent',fontSize:'22px',color:'#dbeeff',display:'grid',placeItems:'center'});
+          if(actualCount>0){
+            const b=notify.querySelector('b');
+            if(b)Object.assign(b.style,{position:'absolute',right:'-2px',top:'-3px',minWidth:'16px',height:'16px',borderRadius:'999px',background:'#ff5361',color:'#fff',fontSize:'9px',lineHeight:'16px',textAlign:'center'});
+          }
+        }
+      }
+
+      if(useOperator){
+        const currentText=(operator.textContent||'').replace(/\s+/g,' ').trim();
+        operator.textContent='';
+        operator.style.width='166px';
+        operator.style.height='44px';
+        operator.style.minHeight='44px';
+        operator.style.padding='2px 0';
+        operator.style.border='0';
+        operator.style.background='transparent';
+        operator.style.borderRadius='0';
+        operator.style.display='grid';
+        operator.style.gridTemplateColumns='40px 1fr 14px';
+        operator.style.gap='9px';
+        operator.style.alignItems='center';
+
+        const avatar=makeImg(avatarAsset,40,false);
+        avatar.style.borderRadius='50%';
+        avatar.style.gridColumn='1';
+        const copy=document.createElement('span');
+        copy.style.display='grid';
+        copy.style.gap='1px';
+        copy.style.lineHeight='1.08';
+        const top=document.createElement('strong');
+        top.textContent='Operator';
+        top.style.fontSize='10px';
+        top.style.fontWeight='600';
+        top.style.color='#eef5fb';
+        const bottom=document.createElement('small');
+        bottom.textContent=currentText.includes('AURENTARA')?'AURENTARA':currentText||'AURENTARA';
+        bottom.style.fontSize='9px';
+        bottom.style.color='#7fa0ba';
+        copy.append(top,bottom);
+        const chevron=document.createElement('span');
+        chevron.textContent='⌄';
+        chevron.setAttribute('aria-hidden','true');
+        chevron.style.fontSize='16px';
+        chevron.style.color='#dcebf6';
+        operator.append(avatar,copy,chevron);
+      }
+
+      right.style.gap='10px';
+      const rect=toolbar.getBoundingClientRect();
+      const searchRect=search.getBoundingClientRect();
+      const rightRect=right.getBoundingClientRect();
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        search_reference_icon:true,
+        region_reference_icon:useRegion,
+        theme_visual_placeholder:useFull,
+        notification_visual:useBell,
+        operator_reference_avatar:useOperator,
+        truth_preserved:true,
+        toolbar_rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
+        search_rect:{x:searchRect.x,y:searchRect.y,width:searchRect.width,height:searchRect.height},
+        right_rect:{x:rightRect.x,y:rightRect.y,width:rightRect.width,height:rightRect.height},
+        provenance:'REFERENCE_EXTRACTED_PLUS_TRUTH_PRESERVING_LAYOUT',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{candidate_id:toolbarDetailCandidateId,variant:toolbarDetailVariant,searchAsset,globeAsset,sunAsset,avatarAsset});
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1686,6 +1853,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     portfolio_row_style_candidate:portfolioRowStyleCandidateState,
     primary_navigation_detail_candidate:primaryNavDetailCandidateState,
     primary_navigation_layout_candidate:primaryNavLayoutCandidateState,
+    toolbar_detail_candidate:toolbarDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1755,6 +1923,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     primary_navigation_layout_candidate:runEvidence.primary_navigation_layout_candidate?.candidate_id||null,
     primary_navigation_layout_variant:runEvidence.primary_navigation_layout_candidate?.variant||null,
     primary_navigation_reports_placeholder:runEvidence.primary_navigation_layout_candidate?.reports_placeholder||false,
+    toolbar_detail_candidate:runEvidence.toolbar_detail_candidate?.candidate_id||null,
+    toolbar_detail_variant:runEvidence.toolbar_detail_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
