@@ -1,0 +1,59 @@
+name: Visual Foundry AURENTARA Primary Navigation Layout Sweep
+
+on:
+  push:
+    branches:
+      - factory/visual-foundry-v1
+    paths:
+      - '.github/workflows/visual-foundry-aurentara-primary-nav-layout-sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  primary-nav-layout:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: PL0_CONTROL
+            variant: CONTROL
+            size: 20
+          - id: PL1_REPORTS_ONLY
+            variant: REPORTS_ONLY
+            size: 20
+          - id: PL2_REPORTS_RAW20
+            variant: REPORTS_RAW
+            size: 20
+          - id: PL3_REPORTS_RAW18
+            variant: REPORTS_RAW
+            size: 18
+          - id: PL4_REPORTS_SCREEN20
+            variant: REPORTS_SCREEN
+            size: 20
+          - id: PL5_REPORTS_SCREEN18
+            variant: REPORTS_SCREEN
+            size: 18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOLD_STANDARD_RUN: 1
+      VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_CANDIDATE: ${{ matrix.id }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_VARIANT: ${{ matrix.variant }}
+      VISUAL_FOUNDRY_PRIMARY_NAV_LAYOUT_ICON_SIZE_PX: ${{ matrix.size }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: node --check scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - run: node scripts/visual-foundry-gold-standard-isolated-run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aurentara-primary-nav-layout-${{ matrix.id }}
+          path: artifacts/visual-foundry/gold-standard/run-1
+          if-no-files-found: error
