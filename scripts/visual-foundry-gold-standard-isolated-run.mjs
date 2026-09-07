@@ -65,6 +65,9 @@ assert.equal(sidebarNavReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const toolbarReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/toolbar-reference-extracted.json','utf8'));
 assert.equal(toolbarReferenceAssets.reference_hash,referenceRegistration.reference.hash,'TOOLBAR_REFERENCE_ASSET_HASH_MISMATCH');
 assert.equal(toolbarReferenceAssets.provenance,'REFERENCE_EXTRACTED');
+const kpiReferenceAssets=JSON.parse(await readFile('factory-state/visual-foundry/assets/kpi-reference-extracted.json','utf8'));
+assert.equal(kpiReferenceAssets.reference_hash,referenceRegistration.reference.hash,'KPI_REFERENCE_ASSET_HASH_MISMATCH');
+assert.equal(kpiReferenceAssets.provenance,'REFERENCE_EXTRACTED');
 const acceptedHeroCandidate=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='REFERENCE_EXTRACTED_EARTH_EXACT_PLACEMENT'&&x.apply_by_default===true);
 const explicitHeroCandidate=String(process.env.VISUAL_FOUNDRY_HERO_CANDIDATE||'').trim();
 const heroCandidateRequested=explicitHeroCandidate||(acceptedHeroCandidate?.candidate_id||'');
@@ -124,6 +127,14 @@ const acceptedToolbarDetail=(stencilSession.accepted_candidates||[]).find(x=>x.c
 const explicitToolbarDetail=String(process.env.VISUAL_FOUNDRY_TOOLBAR_DETAIL_CANDIDATE||'').trim();
 const toolbarDetailCandidateId=explicitToolbarDetail||(acceptedToolbarDetail?.candidate_id||'');
 const toolbarDetailVariant=String(process.env.VISUAL_FOUNDRY_TOOLBAR_DETAIL_VARIANT||acceptedToolbarDetail?.variant||'FULL').trim().toUpperCase();
+const acceptedKpiDetail=(stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='KPI_DETAIL_P1'&&x.apply_by_default===true);
+const explicitKpiDetail=String(process.env.VISUAL_FOUNDRY_KPI_DETAIL_CANDIDATE||'').trim();
+const kpiDetailCandidateId=explicitKpiDetail||(acceptedKpiDetail?.candidate_id||'');
+const kpiDetailVariant=String(process.env.VISUAL_FOUNDRY_KPI_DETAIL_VARIANT||acceptedKpiDetail?.variant||'ICONS_SPARKS').trim().toUpperCase();
+const kpiDetailPaddingPx=Number(process.env.VISUAL_FOUNDRY_KPI_DETAIL_PADDING_PX??acceptedKpiDetail?.padding_px??14);
+const kpiDetailGapPx=Number(process.env.VISUAL_FOUNDRY_KPI_DETAIL_GAP_PX??acceptedKpiDetail?.gap_px??13);
+const kpiDetailSparkRightPx=Number(process.env.VISUAL_FOUNDRY_KPI_DETAIL_SPARK_RIGHT_PX??acceptedKpiDetail?.spark_right_px??12);
+const kpiDetailSparkTopPx=Number(process.env.VISUAL_FOUNDRY_KPI_DETAIL_SPARK_TOP_PX??acceptedKpiDetail?.spark_top_px??19);
 
 const acceptedHeroTypography=
   (stencilSession.accepted_candidates||[]).find(x=>x.candidate_id==='HERO_TYPOGRAPHY_T11_V2'&&x.apply_by_default===true)
@@ -1394,6 +1405,125 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     },{candidate_id:toolbarDetailCandidateId,variant:toolbarDetailVariant,searchAsset,globeAsset,sunAsset,avatarAsset,bellAsset});
   }
 
+  let kpiDetailCandidateState={status:'DISABLED',candidate_id:kpiDetailCandidateId||null,variant:kpiDetailVariant};
+  if(kpiDetailCandidateId){
+    const iconSources=(kpiReferenceAssets.assets||[]).filter(x=>x.role==='KPI_ICON').sort((a,b)=>a.index-b.index);
+    const sparkSources=(kpiReferenceAssets.assets||[]).filter(x=>x.role==='KPI_SPARK').sort((a,b)=>a.index-b.index);
+    assert.equal(iconSources.length,4,'KPI_REFERENCE_ICON_COUNT');
+    assert.equal(sparkSources.length,4,'KPI_REFERENCE_SPARK_COUNT');
+    const icons=iconSources.map(extractApprovedReferenceAsset);
+    const sparks=sparkSources.map(x=>extractLumaAlphaUiAsset(x));
+    kpiDetailCandidateState=await page.evaluate(({candidate_id,variant,icons,sparks,padding_px,gap_px,spark_right_px,spark_top_px})=>{
+      if(candidate_id==='KD0_CONTROL')return {status:'CONTROL_NO_CHANGE',candidate_id,variant};
+      const cards=[...document.querySelectorAll('.rf-kpi')];
+      if(cards.length!==4)throw new Error('KPI_CARD_COUNT:'+cards.length);
+      const useIcons=['ICONS','ICONS_SPARKS'].includes(variant);
+      const useSparks=['SPARKS','ICONS_SPARKS'].includes(variant);
+      if(!useIcons&&!useSparks)throw new Error('KPI_DETAIL_VARIANT_INVALID:'+variant);
+
+      const before=cards.map(card=>{
+        const r=card.getBoundingClientRect();
+        const icon=card.querySelector('.rf-kpi-icon')?.getBoundingClientRect();
+        const label=card.querySelector('.rf-kpi-label')?.getBoundingClientRect();
+        return {card:{x:r.x,y:r.y,width:r.width,height:r.height},icon:icon?{x:icon.x,y:icon.y,width:icon.width,height:icon.height}:null,label:label?{x:label.x,y:label.y,width:label.width,height:label.height}:null};
+      });
+
+      cards.forEach((card,i)=>{
+        card.style.position='relative';
+        card.style.overflow='hidden';
+        card.style.padding=padding_px+'px';
+        card.style.gap=gap_px+'px';
+
+        if(useIcons){
+          const holder=card.querySelector('.rf-kpi-icon');
+          if(!holder)throw new Error('KPI_ICON_TARGET_MISSING:'+i);
+          holder.textContent='';
+          holder.style.width='68px';
+          holder.style.height='68px';
+          holder.style.flex='0 0 68px';
+          holder.style.borderRadius='50%';
+          holder.style.background='transparent';
+          holder.style.boxShadow='none';
+          holder.style.overflow='hidden';
+          const img=document.createElement('img');
+          img.alt='';
+          img.setAttribute('aria-hidden','true');
+          img.src=icons[i].src;
+          img.dataset.vfReferenceExtractedKpiIcon=icons[i].asset_id;
+          Object.assign(img.style,{display:'block',width:'68px',height:'68px',maxWidth:'none',objectFit:'fill'});
+          holder.appendChild(img);
+        }
+
+        if(useSparks){
+          const img=document.createElement('img');
+          img.alt='';
+          img.setAttribute('aria-hidden','true');
+          img.src=sparks[i].src;
+          img.dataset.vfReferenceExtractedKpiSpark=sparks[i].asset_id;
+          Object.assign(img.style,{
+            position:'absolute',
+            right:spark_right_px+'px',
+            top:spark_top_px+'px',
+            width:'68px',
+            height:'74px',
+            maxWidth:'none',
+            objectFit:'fill',
+            pointerEvents:'none',
+            userSelect:'none',
+            zIndex:'0'
+          });
+          card.appendChild(img);
+        }
+
+        const copy=card.querySelector('.rf-kpi-label')?.parentElement;
+        if(copy){
+          copy.style.position='relative';
+          copy.style.zIndex='1';
+          copy.style.minWidth='0';
+        }
+      });
+
+      const after=cards.map(card=>{
+        const r=card.getBoundingClientRect();
+        const icon=card.querySelector('.rf-kpi-icon')?.getBoundingClientRect();
+        const label=card.querySelector('.rf-kpi-label')?.getBoundingClientRect();
+        const spark=card.querySelector('[data-vf-reference-extracted-kpi-spark]')?.getBoundingClientRect();
+        return {
+          card:{x:r.x,y:r.y,width:r.width,height:r.height},
+          icon:icon?{x:icon.x,y:icon.y,width:icon.width,height:icon.height}:null,
+          label:label?{x:label.x,y:label.y,width:label.width,height:label.height}:null,
+          spark:spark?{x:spark.x,y:spark.y,width:spark.width,height:spark.height}:null
+        };
+      });
+      return {
+        status:'APPLIED',
+        candidate_id,
+        variant,
+        icon_count:useIcons?4:0,
+        spark_count:useSparks?4:0,
+        padding_px,
+        gap_px,
+        spark_right_px,
+        spark_top_px,
+        runtime_text_preserved:true,
+        functional_buttons_preserved:true,
+        before,
+        after,
+        provenance:'REFERENCE_EXTRACTED_DECORATIVE_ONLY',
+        usage_scope:'GOLD_STANDARD_POC_ONLY'
+      };
+    },{
+      candidate_id:kpiDetailCandidateId,
+      variant:kpiDetailVariant,
+      icons,
+      sparks,
+      padding_px:kpiDetailPaddingPx,
+      gap_px:kpiDetailGapPx,
+      spark_right_px:kpiDetailSparkRightPx,
+      spark_top_px:kpiDetailSparkTopPx
+    });
+  }
+
   let rightRailTypographyState={status:'DISABLED',candidate_id:rightRailTypographyCandidateId||null};
   if(rightRailTypographyCandidateId){
     rightRailTypographyState=await page.evaluate(({candidate_id,scope,primary_size_px,secondary_size_px,secondary_weight})=>{
@@ -1896,6 +2026,7 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     primary_navigation_detail_candidate:primaryNavDetailCandidateState,
     primary_navigation_layout_candidate:primaryNavLayoutCandidateState,
     toolbar_detail_candidate:toolbarDetailCandidateState,
+    kpi_detail_candidate:kpiDetailCandidateState,
     hero_typography_candidate:heroTypographyState,
     sidebar_nav_typography_candidate:sidebarNavTypographyState,
     sidebar_brand_typography_candidate:sidebarBrandTypographyState,
@@ -1967,6 +2098,8 @@ html[data-visual-foundry-fixture="aurentara-hq-gold-standard-fixture-v1"] body.r
     primary_navigation_reports_placeholder:runEvidence.primary_navigation_layout_candidate?.reports_placeholder||false,
     toolbar_detail_candidate:runEvidence.toolbar_detail_candidate?.candidate_id||null,
     toolbar_detail_variant:runEvidence.toolbar_detail_candidate?.variant||null,
+    kpi_detail_candidate:runEvidence.kpi_detail_candidate?.candidate_id||null,
+    kpi_detail_variant:runEvidence.kpi_detail_candidate?.variant||null,
     hero_typography_candidate:runEvidence.hero_typography_candidate?.candidate_id||null,
     sidebar_nav_typography_candidate:runEvidence.sidebar_nav_typography_candidate?.candidate_id||null,
     sidebar_brand_typography_candidate:runEvidence.sidebar_brand_typography_candidate?.candidate_id||null,
