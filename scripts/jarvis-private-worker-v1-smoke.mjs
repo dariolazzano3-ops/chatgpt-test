@@ -60,11 +60,13 @@ assert.equal('routes' in config, false);
 assert.equal(config.vars.JARVIS_HOST_MODE, 'NEUTRAL_CUSTOM_HOST_REQUIRED');
 assert.equal(config.vars.JARVIS_PUBLIC_ACCESS, 'false');
 assert.equal(config.vars.JARVIS_PRODUCTION_DEPLOY, 'false');
-assert.equal(config.vars.JARVIS_DATA_PLANE, 'ISOLATED_SUPABASE_READY_UNBOUND');
+assert.equal(config.vars.JARVIS_DATA_PLANE, 'ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED');
 assert.equal(JSON.stringify(config).includes('aurentarasystems.com'), false);
 assert.equal(JSON.stringify(config).includes('HAMYREN'), false);
 assert.equal(JSON.stringify(config).includes('RIOSYSTEMS_'), false);
-assert.equal(JSON.stringify(config).includes('SUPABASE_URL'), false);
+assert.equal(config.vars.JARVIS_PERSONAL_MEMORY_STORE, 'supabase-rpc');
+assert.match(config.vars.JARVIS_PERSONAL_MEMORY_SUPABASE_URL, /^https:\/\/[a-z0-9]+\.supabase\.co$/);
+assert.equal('JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY' in config.vars, false);
 
 const aurentaraEntry = fs.readFileSync('src/entry.js', 'utf8');
 const aurentaraWrangler = fs.readFileSync('wrangler.jsonc', 'utf8');
@@ -80,3 +82,29 @@ assert.equal(manifest.public_access, false);
 assert.equal(manifest.production_deploy, false);
 
 console.log('JARVIS Standalone Private Worker V1 smoke: PASS');
+
+
+const accessSource = fs.readFileSync('src/jarvis/access-v1.js', 'utf8');
+const httpSource = fs.readFileSync('src/jarvis/http-v1.js', 'utf8');
+assert.equal(accessSource.includes('RIOSYSTEMS_OPERATOR_EMAIL'), false);
+assert.equal(httpSource.includes('RIOSYSTEMS_ENVIRONMENT'), false);
+
+const unboundChat = await handleJarvisStandaloneWorkerV1(
+  new Request('https://jarvis-private.example.invalid/api/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message: 'Was ist heute geplant?' })
+  }),
+  {
+    JARVIS_ENVIRONMENT: 'private-staging',
+    JARVIS_PERSONAL_MEMORY_STORE: 'supabase-rpc',
+    JARVIS_PERSONAL_MEMORY_SUPABASE_URL: 'https://example.supabase.co'
+  },
+  {},
+  { authorize }
+);
+assert.equal(unboundChat.status, 503);
+const unboundBody = await unboundChat.json();
+assert.equal(unboundBody.error, 'JARVIS_DURABLE_MEMORY_NOT_READY');
+
+console.log('JARVIS shared-runtime fallback guard: PASS');

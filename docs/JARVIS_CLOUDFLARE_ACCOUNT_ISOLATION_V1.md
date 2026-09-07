@@ -24,4 +24,11 @@ JARVIS resources:
 - Production: OFF
 - DNS: unchanged until a neutral host is explicitly selected
 
-Runtime activation remains fail-closed until the dedicated Access audience and neutral host are present.
+Runtime activation remains fail-closed until the dedicated Access audience, neutral host, and dedicated Supabase service-role secret are present.
+
+Persistence binding state:
+- dedicated JARVIS Supabase URL: CONFIGURED
+- durable store mode: `supabase-rpc`
+- service-role secret: REQUIRED / NOT IN SOURCE
+- ephemeral-memory fallback in private staging: DISABLED
+- RIOSYSTEMS environment and operator-email fallback: REMOVED

@@ -56,7 +56,8 @@ async function bodyJson(request) {
 }
 
 function staging(env = {}) {
-  return clean(env.RIOSYSTEMS_ENVIRONMENT, 80).toLowerCase() === 'staging';
+  const mode = clean(env.JARVIS_ENVIRONMENT, 80).toLowerCase();
+  return mode === 'staging' || mode === 'private-staging';
 }
 
 function memoryStore(env = {}, options = {}) {

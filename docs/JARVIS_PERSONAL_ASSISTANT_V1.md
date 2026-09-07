@@ -70,7 +70,7 @@ Physical isolation state:
 - HAMYREN objects in the JARVIS private schema = 0
 - initial personal memory / audit / OAuth rows = 0
 
-The standalone Worker is intentionally still UNBOUND. No JARVIS database credential is stored in source, and no shared Supabase project is used as fallback.
+The standalone Worker now has only the dedicated JARVIS Supabase API URL configured as a non-secret target. The service-role credential remains absent, so durable memory is fail-closed until the dedicated secret is installed. No shared Supabase project is used as fallback.
 
 ## JARVIS Runtime V1
 
@@ -275,14 +275,15 @@ The standalone Worker deliberately starts with:
 - no custom AURENTARA domain
 - no RIOSYSTEMS environment variables
 - no HAMYREN variables
-- no shared Supabase URL
+- only the dedicated JARVIS Supabase URL
+- no database credential in source
 - no shared database credential
 - no Google OAuth secret
 - no production capability
 - no public-access mode
 - no external writes
 
-Its current data-plane state is `ISOLATED_SUPABASE_READY_UNBOUND`. A physically separate JARVIS Supabase project now exists and contains the accepted private memory, audit, RPC, and OAuth-vault schema.
+Its current data-plane state is `ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED`. A physically separate JARVIS Supabase project now exists and contains the accepted private memory, audit, RPC, and OAuth-vault schema.
 
 The historical JARVIS test schema in the shared technical environment remains acceptance evidence only and is not an allowed runtime fallback.
 
@@ -350,7 +351,19 @@ Current activation state:
 - neutral host = NOT YET ACTIVATED
 - workers.dev = OFF
 - custom routes = NONE
-- JARVIS Supabase = ISOLATED / READY_UNBOUND
+- JARVIS Supabase = ISOLATED / TARGET CONFIGURED / SECRET REQUIRED
 - Production = OFF
 - Public = OFF
 - external writes = OFF
+
+
+## Shared-account fail-closed hardening
+
+Additional runtime hardening for the approved shared Cloudflare account:
+- JARVIS authentication reads only `JARVIS_OPERATOR_EMAIL`; there is no RIOSYSTEMS operator-email fallback
+- environment detection reads only `JARVIS_ENVIRONMENT`
+- `private-staging` is treated as staging and therefore cannot fall back to ephemeral memory
+- the dedicated JARVIS Supabase URL is configured as the only persistence target
+- the Supabase service-role credential is not stored in source
+- missing durable-memory secret causes the private chat path to fail closed
+- standalone manifest requires a neutral custom host and keeps workers.dev disabled

@@ -49,7 +49,7 @@ jobs:
             request.production_deploy === false &&
             request.public_access === false &&
             request.external_writes === false &&
-            request.data_plane === 'ISOLATED_SUPABASE_READY_UNBOUND';
+            request.data_plane === 'ISOLATED_SUPABASE_TARGET_CONFIGURED_SECRET_REQUIRED';
           if (!ok) process.exit(1);
           process.stdout.write(request.source_sha);
           NODE

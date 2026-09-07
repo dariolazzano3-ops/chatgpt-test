@@ -3,7 +3,7 @@ const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
 export async function authorizeJarvisV1(request, env = {}, ctx = {}, options = {}) {
   if (typeof options.authorize === 'function') return options.authorize(request, env, ctx);
 
-  const expectedEmail = clean(env.JARVIS_OPERATOR_EMAIL || env.RIOSYSTEMS_OPERATOR_EMAIL, 320).toLowerCase();
+  const expectedEmail = clean(env.JARVIS_OPERATOR_EMAIL, 320).toLowerCase();
   const expectedAud = clean(env.JARVIS_ACCESS_AUD, 500);
 
   if (!expectedEmail || !expectedAud) {
@@ -37,9 +37,11 @@ export async function authorizeJarvisV1(request, env = {}, ctx = {}, options = {
 export function jarvisAccessManifestV1() {
   return {
     schema: 'aurentara.jarvis.access.v1',
-    protected_path: '/jarvis',
+    protected_path: '/',
+    internal_adapter_path: '/jarvis',
     dedicated_access_audience_required: true,
     operator_dashboard_audience_reused: false,
+    riosystems_identity_fallback: false,
     single_operator: true,
     public_access: false,
     hamyren_access_shared: false,
