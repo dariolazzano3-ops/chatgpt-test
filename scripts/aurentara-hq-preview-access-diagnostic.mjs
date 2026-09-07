@@ -26,8 +26,9 @@ for(const app of apps){
   const t=target(app);
   const destinations=Array.isArray(app.destinations)?app.destinations:[];
   const domainMatch=t?.hostname===previewHost;
-  const workerScoped=destinations.some(d=>['worker','preview_worker','all_workers','all_preview_workers','public'].includes(clean(d?.type,80)));
-  if(!domainMatch&&!workerScoped)continue;
+  const workersDevDomain=Boolean(t?.hostname&&t.hostname.endsWith('.workers.dev'));
+  const workerScoped=destinations.some(d=>['worker','preview_worker','all_workers','all_preview_workers'].includes(clean(d?.type,80)));
+  if(!domainMatch&&!workersDevDomain&&!workerScoped)continue;
   let policies=[];
   if(app.id){
     const p=await cf('/accounts/'+accountId+'/access/apps/'+app.id+'/policies?per_page=100').catch(()=>[]);
@@ -41,6 +42,10 @@ for(const app of apps){
     destinations:destinations.map(d=>({type:d?.type||null,worker_id:d?.worker_id||null})),
     session_duration:app.session_duration||null,
     auto_redirect_to_identity:app.auto_redirect_to_identity??null,
+    http_only_cookie_attribute:app.http_only_cookie_attribute??null,
+    options_preflight_bypass:app.options_preflight_bypass??null,
+    same_site_cookie_attribute:app.same_site_cookie_attribute??null,
+    skip_interstitial:app.skip_interstitial??null,
     policies:policies.map(p=>({
       id:p.id||null,
       name:p.name||null,
