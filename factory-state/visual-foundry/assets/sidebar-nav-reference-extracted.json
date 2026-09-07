@@ -69,6 +69,18 @@
       "rgba_sha256": "8286e5ab5488cc504576f3ec01291073da8c0915f11a45880d8cef7f08cb48f8"
     },
     {
+      "asset_id": "sidebar_nav_reports_reference_extracted",
+      "role": "SIDEBAR_NAV_REFERENCE_ONLY_ICON",
+      "nav_id": "reports-placeholder",
+      "crop": {
+        "x": 27,
+        "y": 351,
+        "width": 20,
+        "height": 20
+      },
+      "rgba_sha256": "5e679ecf9b9f83805cef9d15ed042ae5cd7c2299c87e76bc6fa95aca16a23989"
+    },
+    {
       "asset_id": "sidebar_nav_project_overview_icon_reference_extracted",
       "role": "SIDEBAR_NAV_ICON",
       "nav_id": "project-overview",
@@ -227,8 +239,10 @@
   ],
   "missing_reference_only_item": {
     "label": "Berichte",
-    "status": "NOT_IMPLEMENTED_AS_NAV_ACTION",
-    "reason": "Reference contains an additional reports row without a verified runtime capability; no synthetic action is introduced."
+    "nav_id": "reports-placeholder",
+    "status": "VISUAL_PLACEHOLDER_ONLY_ALLOWED",
+    "functional_action": false,
+    "reason": "Reference contains an additional reports row without a verified runtime capability. It may be rendered only as aria-disabled visual alignment evidence, never as a clickable synthetic action."
   },
   "silent_generated_replacement": false,
   "wave20_locked": true
