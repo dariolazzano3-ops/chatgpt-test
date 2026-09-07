@@ -257,7 +257,7 @@
       },
       {
         "region_id": "attention_panel",
-        "baseline_score": 0.410471
+        "baseline_score": 0.475309
       },
       {
         "region_id": "operator_ai_panel",
@@ -701,6 +701,43 @@
       "verification_workflow_run": 34068185588,
       "verification_head": "11a7db2f8a2ac3f2ea928579cd17bfbe067baa8b",
       "verification_status": "SUCCESS",
+      "soft_locks": "PASS",
+      "functional": "PASS",
+      "semantic": "PASS",
+      "constraint_anchor": "PASS"
+    },
+    {
+      "candidate_id": "ATTENTION_REFERENCE_ASSET_LAYOUT_P1",
+      "region_id": "attention_panel",
+      "apply_by_default": true,
+      "acceptance_status": "ACCEPTED_GAIN",
+      "sweep_candidate_id": "AT3_THUMBS_MORE_ICON",
+      "variant": "THUMBS_MORE_ICON",
+      "sweep_workflow_run": 34068869494,
+      "sweep_head": "cdb01e4afdcb8c5940af3341c07259975ae1c263",
+      "provenance": "REFERENCE_EXTRACTED",
+      "usage_scope": "GOLD_STANDARD_POC_ONLY",
+      "production_use_allowed": false,
+      "public_distribution_allowed": false,
+      "assets": [
+        "attention_warning_icon_reference_extracted",
+        "attention_thumb_gelato_reference_extracted",
+        "attention_thumb_bakery_reference_extracted",
+        "attention_thumb_aurentara_reference_extracted",
+        "attention_thumb_tools_reference_extracted"
+      ],
+      "baseline_attention_ssim": 0.410471,
+      "accepted_attention_ssim": 0.475309,
+      "baseline_attention_pixel_difference_percent": 16.098,
+      "accepted_attention_pixel_difference_percent": 14.6038,
+      "baseline_attention_header_raster_ssim": 0.543141,
+      "accepted_attention_header_raster_ssim": 0.59024,
+      "baseline_attention_thumbnails_raster_ssim": 0.01178,
+      "accepted_attention_thumbnails_raster_ssim": 0.169364,
+      "baseline_global_ssim": 0.396399,
+      "accepted_global_ssim": 0.451428,
+      "baseline_global_pixel_difference_percent": 14.2985,
+      "accepted_global_pixel_difference_percent": 14.112,
       "soft_locks": "PASS",
       "functional": "PASS",
       "semantic": "PASS",
