@@ -1,0 +1,25 @@
+{
+  "schema": "riosystems.reference-extracted-portfolio-ui-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "portfolio_header_folder_icon_reference_extracted",
+      "role": "PORTFOLIO_HEADER_ICON",
+      "crop": {
+        "x": 244,
+        "y": 589,
+        "width": 42,
+        "height": 42
+      },
+      "rgba_sha256": "8af93ed428c63797ab607e3047b1b5283d99851032d045c8556930575b507721"
+    }
+  ],
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
