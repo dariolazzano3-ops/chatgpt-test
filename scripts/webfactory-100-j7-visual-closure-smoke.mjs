@@ -12,7 +12,7 @@ import {
   runApprovedReferenceVisualClosure, visualClosureLoopManifest
 } from '../src/web-factory/index.js';
 import { createVisualDelta } from '../src/visual-foundry/visual-delta.js';
-import { compareVisualImages } from '../src/visual-foundry/visual-comparator.js';
+import { compareVisualImages, compareGeometrySnapshots } from '../src/visual-foundry/visual-comparator.js';
 import { evaluateSemanticImplementation } from '../src/visual-foundry/semantic-gate.js';
 
 const viewport={width:390,height:844,device_pixel_ratio:1};
@@ -66,6 +66,10 @@ function bounds(snapshot,id){
   assert.ok(item,'missing geometry '+id);
   return item.geometry;
 }
+async function hashReferenceAsset({reference_path}){
+  return{sha256:createHash('sha256').update(await readFile(reference_path)).digest('hex')};
+}
+
 function classificationFor(delta){
   const metric=String(delta?.evidence?.metric||'').toLowerCase();
   let visual_type='background';
@@ -135,14 +139,14 @@ try{
   assert.equal(approved.ok,true);
   assert.equal(verifyApprovedReferenceLock(approved.reference).ok,true);
 
-  const verified=await verifyApprovedReferenceVisualAsset({reference:approved.reference,reference_path:referencePath,reference_asset_ref:'reference://j7/mobile/reference-v1.png',viewport_id:viewportId});
+  const verified=await verifyApprovedReferenceVisualAsset({reference:approved.reference,reference_path:referencePath,reference_asset_ref:'reference://j7/mobile/reference-v1.png',viewport_id:viewportId},{hash_reference_asset:hashReferenceAsset});
   assert.equal(verified.status,'PASS');
   assert.equal(verified.materialized_hash,referenceHash);
 
   await page.setContent(html('bad'),{waitUntil:'load'});
   const tamperedPath=path.join(temp,'tampered.png');
   await page.screenshot({path:tamperedPath,fullPage:false,animations:'disabled'});
-  const wrongAsset=await verifyApprovedReferenceVisualAsset({reference:approved.reference,reference_path:tamperedPath,reference_asset_ref:'reference://j7/mobile/reference-v1.png',viewport_id:viewportId});
+  const wrongAsset=await verifyApprovedReferenceVisualAsset({reference:approved.reference,reference_path:tamperedPath,reference_asset_ref:'reference://j7/mobile/reference-v1.png',viewport_id:viewportId},{hash_reference_asset:hashReferenceAsset});
   assert.equal(wrongAsset.status,'BLOCK');
   assert.ok(wrongAsset.blocking_issues.some(i=>i.code==='REFERENCE_RENDER_SHA256_MISMATCH'));
 
@@ -164,6 +168,9 @@ try{
   const reverted=[];
   const captures=[];
   const mainAdapters={
+    hash_reference_asset:hashReferenceAsset,
+    visual_foundry_compare:compareVisualImages,
+    visual_foundry_compare_geometry:compareGeometrySnapshots,
     async capture({iteration,commit_sha}){
       let stage='bad';
       if(commit_sha==='j7-commit-1')stage='regress';
@@ -233,6 +240,8 @@ try{
 
   const manifest=visualClosureLoopManifest();
   assert.equal(manifest.comparator,'VISUAL_FOUNDRY_ONLY');
+  assert.equal(manifest.comparator_execution_host,'BUILD_QA_HOST');
+  assert.equal(manifest.worker_runtime_comparator_bundle,false);
   assert.deepEqual(manifest.delta_types,expectedTypes);
   assert.equal(manifest.approved_reference_required,true);
   assert.equal(manifest.reference_asset_sha256_required,true);
