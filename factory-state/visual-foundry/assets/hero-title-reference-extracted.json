@@ -1,0 +1,49 @@
+{
+  "schema": "riosystems.reference-extracted-hero-title-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED_MASKED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "hero_title_reference_extracted_masked",
+      "role": "HERO_TITLE_GLYPH_ASSET",
+      "crop": {
+        "x": 240,
+        "y": 97,
+        "width": 840,
+        "height": 34
+      },
+      "rgba_sha256": "e06bb6f0be7ee919fa3728701208fa1d13d55578fa101904db27a8ba65a5a163",
+      "mask_contract": {
+        "algorithm": "NEUTRAL_LUMA_TEXT_ALPHA_V1",
+        "luma_min": 35,
+        "luma_gain": 5.5,
+        "chroma_max": 90,
+        "chroma_fade": 70,
+        "cool_support": {
+          "min_gap": 5,
+          "gain": 3,
+          "max_alpha": 80
+        },
+        "hard_luma_floor": 45
+      },
+      "placement_basis": {
+        "hero_left_px": 24,
+        "hero_top_px": 39,
+        "width_px": 840,
+        "height_px": 34
+      }
+    }
+  ],
+  "semantic_contract": {
+    "original_h1_text_must_remain_in_dom": true,
+    "raster_asset_aria_hidden": true,
+    "raster_asset_presentation_only": true
+  },
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
