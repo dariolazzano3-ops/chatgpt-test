@@ -128,6 +128,8 @@ function buildTruth(input = {}) {
   const buildId = clean(build.build_id || build.id || d.results?.delivery?.build_id || input.build_id, 240) || null;
   const profile = clean(
     input.build_profile
+      || input.project?.build_profile
+      || input.project?.quality_level
       || build.profile
       || build.build_profile
       || d.project?.build_profile
