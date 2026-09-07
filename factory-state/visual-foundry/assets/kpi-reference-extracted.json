@@ -1,0 +1,114 @@
+{
+  "schema": "riosystems.reference-extracted-kpi-assets.v1",
+  "reference_id": "aurentara-hq-control-center-reference-v1-0",
+  "reference_hash": "6352c9e756d13e41382817bc9da265013c5721ac674b820f9962b113fe3a0d8b",
+  "provenance": "REFERENCE_EXTRACTED",
+  "usage_scope": "GOLD_STANDARD_POC_ONLY",
+  "production_use_allowed": false,
+  "public_distribution_allowed": false,
+  "extraction_basis": "HASH_LOCKED_APPROVED_REFERENCE_DECODED_RASTER",
+  "assets": [
+    {
+      "asset_id": "kpi_icon_active_projects_reference_extracted",
+      "role": "KPI_ICON",
+      "index": 0,
+      "crop": {
+        "x": 244,
+        "y": 190,
+        "width": 68,
+        "height": 68
+      },
+      "rgba_sha256": "60b527a932f95c6f1b16afe0d17ae9138528257bb47cdeeead7000b8aeb2ec6d"
+    },
+    {
+      "asset_id": "kpi_icon_open_inputs_reference_extracted",
+      "role": "KPI_ICON",
+      "index": 1,
+      "crop": {
+        "x": 563,
+        "y": 190,
+        "width": 68,
+        "height": 68
+      },
+      "rgba_sha256": "ffff74939eeb715f2604cfe0fe9e976294f881cf3745b3ffeb639f31a2a81497"
+    },
+    {
+      "asset_id": "kpi_icon_pending_approvals_reference_extracted",
+      "role": "KPI_ICON",
+      "index": 2,
+      "crop": {
+        "x": 881,
+        "y": 190,
+        "width": 68,
+        "height": 68
+      },
+      "rgba_sha256": "e939e126f1dd870b4f0fdeb87b420ff561b2e86475c17d20c8d7bd44403a3609"
+    },
+    {
+      "asset_id": "kpi_icon_preview_ready_reference_extracted",
+      "role": "KPI_ICON",
+      "index": 3,
+      "crop": {
+        "x": 1201,
+        "y": 190,
+        "width": 68,
+        "height": 68
+      },
+      "rgba_sha256": "1cff4bcf0f01e321e33e75b0c7a68fe735428edd5ea72e7733219b0ded7a8497"
+    },
+    {
+      "asset_id": "kpi_spark_active_projects_reference_extracted",
+      "role": "KPI_SPARK",
+      "index": 0,
+      "crop": {
+        "x": 465,
+        "y": 196,
+        "width": 68,
+        "height": 74
+      },
+      "rgba_sha256": "5dc6f62a7ad02c1d45d44cd45644873112ab907edb4efbdad5778f16bca4edc6"
+    },
+    {
+      "asset_id": "kpi_spark_open_inputs_reference_extracted",
+      "role": "KPI_SPARK",
+      "index": 1,
+      "crop": {
+        "x": 784,
+        "y": 196,
+        "width": 68,
+        "height": 74
+      },
+      "rgba_sha256": "98cba876694039fc777071e239a4447984521d1748ff01c82f7ae7bb508e90f5"
+    },
+    {
+      "asset_id": "kpi_spark_pending_approvals_reference_extracted",
+      "role": "KPI_SPARK",
+      "index": 2,
+      "crop": {
+        "x": 1102,
+        "y": 196,
+        "width": 68,
+        "height": 74
+      },
+      "rgba_sha256": "14c2eabca0ef2b9faa5fda0f3e990d336fef4c4348f659d3daac64575fd0ce67"
+    },
+    {
+      "asset_id": "kpi_spark_preview_ready_reference_extracted",
+      "role": "KPI_SPARK",
+      "index": 3,
+      "crop": {
+        "x": 1443,
+        "y": 196,
+        "width": 68,
+        "height": 74
+      },
+      "rgba_sha256": "97ce50310761cb2862c0204a4813ddbe93e2bb3818d98c341de2be40d5f58940"
+    }
+  ],
+  "truth_contract": {
+    "icon_and_spark_assets": "DECORATIVE_ONLY",
+    "labels_values_and_trends": "MUST_REMAIN_RUNTIME_DERIVED"
+  },
+  "silent_generated_replacement": false,
+  "wave20_locked": true
+}
