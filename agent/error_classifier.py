@@ -137,6 +137,14 @@ _USAGE_LIMIT_TRANSIENT_SIGNALS = (
     "wait", "requests remaining", "periodic", "window", "per minute", "per second",
 )
 
+# The *explicit* plan usage-limit wall: the structured ``usage_limit_reached`` code/type
+# (Anthropic and compatible gateways), or the established free-text phrasing. Unlike the
+# ambiguous ``_USAGE_LIMIT_PATTERNS`` above, this is a hard provider-side quota gate — it
+# stays ``billing`` regardless of any reset/retry hint or rate-limit wording, and the turn
+# loop ends the attempt on it instead of retrying / rotating / falling back.
+_EXPLICIT_USAGE_LIMIT_CODE = "usage_limit_reached"
+_EXPLICIT_USAGE_LIMIT_TEXT = ("usage limit reached", "usage limit has been reached")
+
 # 413 detected from message text (proxies embed the status or re-wrap
 # Anthropic's "request_too_large" type without one).
 _PAYLOAD_TOO_LARGE_PATTERNS = (
@@ -336,6 +344,12 @@ _ABORT_FALLBACK = {"retryable": False, "should_fallback": True}
 _R = FailoverReason
 
 _V_BILLING = _v(_R.billing, retryable=False, **_ROTATE_FALLBACK)
+# Explicit ``usage_limit_reached`` wall. Same ``billing`` reason/vocabulary and hints as
+# ``_V_BILLING`` (no expanded permissions), plus an ``error_context`` marker the turn loop
+# keys off to terminate the attempt BEFORE any credential recovery / rotation / fallback.
+_V_USAGE_LIMIT_REACHED = _v(
+    _R.billing, retryable=False, error_context={"usage_limit_reached": True}, **_ROTATE_FALLBACK
+)
 _V_RATE_LIMIT = _v(_R.rate_limit, **_ROTATE_FALLBACK)
 _V_AUTH_ROTATE = _v(_R.auth, retryable=False, **_ROTATE_FALLBACK)
 _V_AUTH_FALLBACK = _v(_R.auth, **_ABORT_FALLBACK)
@@ -420,6 +434,7 @@ _ERROR_CODE_VERDICTS: Dict[str, Verdict] = {
     **dict.fromkeys(("model_not_found", "model_not_available", "invalid_model"), _V_MODEL_NOT_FOUND),
     **dict.fromkeys(("context_length_exceeded", "max_tokens_exceeded"), _V_CONTEXT_OVERFLOW),
     "invalid_encrypted_content": _V_INVALID_ENCRYPTED,
+    _EXPLICIT_USAGE_LIMIT_CODE: _V_USAGE_LIMIT_REACHED,
 }
 
 # Generic ``invalid_request_error`` is deliberately NOT a 400 validation
@@ -545,6 +560,11 @@ def _by_message(c: _Ctx) -> Optional[Verdict]:
     head = _first_match(c.msg, _MESSAGE_HEAD_RULES)
     if head is not None:
         return head
+    # Explicit ``usage_limit_reached`` (code/type or established text) is a hard quota
+    # wall regardless of status — do not let the 402-style transient disambiguation
+    # demote a status-less one to a retryable rate_limit.
+    if _is_explicit_usage_limit_reached(c):
+        return _V_USAGE_LIMIT_REACHED
     usage_limit = any(p in c.msg for p in _USAGE_LIMIT_PATTERNS)
     return _classify_402(c.msg, dict) if usage_limit else _first_match(c.msg, _MESSAGE_TAIL_RULES)
 
@@ -644,6 +664,11 @@ def _status_429(c: _Ctx) -> Verdict:
     # key instead of burning the pool (#14038).
     if any(p in c.msg for p in _OVERLOADED_PATTERNS):
         return _V_OVERLOADED
+    # An explicit ``usage_limit_reached`` wall wins over the reset-signal disambiguation
+    # below: it stays ``billing`` even when the same body ships a reset window or
+    # rate-limit wording (was demoted to a retryable rate_limit — #93419 regression).
+    if _is_explicit_usage_limit_reached(c):
+        return _V_USAGE_LIMIT_REACHED
     # OpenRouter-wrapped upstream 429: the key is healthy — fall back, don't bench.
     if _is_openrouter_upstream_error(c.body, c.provider_slug):
         upstream = _extract_upstream_provider_name(c.body)
@@ -677,6 +702,15 @@ def _classify_402(error_msg: str, result_fn: Callable[..., Any]) -> Any:
         p in error_msg for p in _USAGE_LIMIT_TRANSIENT_SIGNALS
     )
     return result_fn(**(_V_RATE_LIMIT if transient else _V_BILLING))
+
+
+def _status_402(c: _Ctx) -> Verdict:
+    """402 Payment Required. An explicit ``usage_limit_reached`` wall wins over the
+    transient-signal disambiguation (code/type explicit limit is terminal regardless
+    of status); everything else keeps the existing billing/rate_limit split."""
+    if _is_explicit_usage_limit_reached(c):
+        return _V_USAGE_LIMIT_REACHED
+    return _classify_402(c.msg, dict)
 
 
 def _classify_400(c: _Ctx) -> Verdict:
@@ -730,7 +764,7 @@ def _classify_400(c: _Ctx) -> Verdict:
 # retry-safe (RFC 9110 §15.5.9; proxies emit it when generation outruns the
 # read window). Unlisted 4xx → format_error, 5xx → server_error.
 _STATUS_HANDLERS: Dict[int, Callable[[_Ctx], Verdict]] = {
-    400: _classify_400, 401: lambda c: _V_AUTH_ROTATE, 402: lambda c: _classify_402(c.msg, dict),
+    400: _classify_400, 401: lambda c: _V_AUTH_ROTATE, 402: _status_402,
     403: _status_403, 404: _status_404, 408: lambda c: _V_TIMEOUT, 413: lambda c: _V_PAYLOAD_TOO_LARGE,
     429: _status_429, 500: _status_5xx, 502: _status_5xx,
     503: lambda c: _first_match(c.msg, _OVERFLOW_AS_5XX_RULES) or _V_OVERLOADED,
@@ -754,6 +788,28 @@ def _has_usage_limit_transient_signal(error_msg: str, body: dict, response_heade
     if response_headers and hasattr(response_headers, "get"):
         return any(response_headers.get(h) not in (None, "") for h in _RESET_HEADERS)
     return False
+
+
+def _is_explicit_usage_limit_reached(c: "_Ctx") -> bool:
+    """True for an *explicit* provider plan usage-limit wall: the structured
+    ``usage_limit_reached`` code OR type — evaluated independently so a body where
+    ``code`` and ``type`` disagree still counts, and including a body pulled only from
+    ``response.json()`` — or the established ``"usage limit (has been) reached"`` free
+    text. Deliberately narrower than ``_USAGE_LIMIT_PATTERNS``: a bare "quota" / "limit
+    exceeded" is left on its existing disambiguation path."""
+    if c.code == _EXPLICIT_USAGE_LIMIT_CODE:
+        return True
+    body = c.body if isinstance(c.body, dict) else {}
+    err = body.get("error")
+    type_candidates = [body.get("type"), body.get("code")]
+    if isinstance(err, dict):
+        type_candidates += [err.get("type"), err.get("code")]
+    if any(
+        isinstance(v, str) and v.strip().lower() == _EXPLICIT_USAGE_LIMIT_CODE
+        for v in type_candidates
+    ):
+        return True
+    return any(token in c.msg for token in _EXPLICIT_USAGE_LIMIT_TEXT)
 
 
 def _model_id_missing_known_prefix(model: str, provider: str) -> bool:

@@ -12,7 +12,7 @@ import logging
 import re
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from hermes_cli.timeouts import get_provider_request_timeout
@@ -3088,17 +3088,184 @@ def _reset_delay_from_message(message: str) -> Optional[float]:
     return float(m.group(1)) if m else None
 
 
-def _set_reset_from_retry_after(context: Dict[str, Any], retry_after: Any) -> None:
-    if retry_after in {None, ""} or "reset_at" in context:
+def _set_reset_from_retry_after(context: Dict[str, Any], retry_after: Any, *, now: float) -> None:
+    if retry_after in (None, "") or "reset_at" in context:  # tuple, not set: retry_after may be unhashable
         return
     with contextlib.suppress(TypeError, ValueError):
-        context["reset_at"] = time.time() + float(retry_after)
+        context["reset_at"] = now + float(retry_after)
+
+
+# ── Reset-window normalization (pure; shared by the gateway + terminal turn path) ──
+
+_MAX_REASONABLE_RESET_SECONDS = 7 * 24 * 3600  # a week — reject "resets in 3 years"
+_EPOCH_ABSOLUTE_FLOOR = 10_000_000  # ~1970-04-26; a bare number this large is an epoch, not a delay
+_EXPLICIT_USAGE_LIMIT_CODE = "usage_limit_reached"
+_EXPLICIT_USAGE_LIMIT_TEXT = ("usage limit reached", "usage limit has been reached")
+
+
+def _coerce_finite_number(value: Any) -> Optional[float]:
+    """``value`` as a finite float, else None. Rejects bool, None, NaN, ±inf, containers,
+    blank / non-numeric strings; accepts int / float / numeric (incl. epoch-like) strings."""
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        number = float(value)
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            number = float(text)
+        except ValueError:
+            return None
+    else:
+        return None
+    if number != number or number in (float("inf"), float("-inf")):
+        return None
+    return number
+
+
+def _parse_iso8601_epoch(text: Any) -> Optional[float]:
+    """Epoch seconds for an ISO-8601 timestamp (``Z`` or offset; naive ⇒ UTC), or None."""
+    if not isinstance(text, str):
+        return None
+    candidate = text.strip()
+    if not candidate:
+        return None
+    if candidate[-1] in ("Z", "z"):
+        candidate = candidate[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    try:
+        return parsed.timestamp()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _parse_absolute_reset(value: Any, *, now: float) -> Optional[float]:
+    """Epoch seconds for an absolute reset given as an ISO-8601 string or an epoch
+    number / numeric string. A small bare number is treated as a relative delay
+    (``now + value``). None for bool / NaN / inf / container / malformed input."""
+    iso = _parse_iso8601_epoch(value)
+    if iso is not None:
+        return iso
+    number = _coerce_finite_number(value)
+    if number is None or number <= 0:
+        return None
+    return number if number >= _EPOCH_ABSOLUTE_FLOOR else now + number
+
+
+def _resolve_reset_window(
+    payload: Any, prior_reset_at: Any, *, now: float
+) -> Tuple[Optional[float], Optional[float]]:
+    """``(reset_at_epoch, resets_in_seconds)`` as finite non-negative floats, or
+    ``(None, None)``. A valid absolute reset (ISO / epoch) wins over a relative one for
+    the canonical epoch; a directly-supplied ``resets_in_seconds`` is preserved (clamped
+    to >= 0); an already-elapsed absolute window clamps its remaining seconds to 0.
+    Invalid values fall through to the next candidate."""
+    absolute: Optional[float] = None
+    if isinstance(payload, dict):
+        for key in ("resets_at", "reset_at"):
+            absolute = _parse_absolute_reset(payload.get(key), now=now)
+            if absolute is not None:
+                break
+    if absolute is None:
+        absolute = _parse_absolute_reset(prior_reset_at, now=now)
+    relative = _coerce_finite_number(payload.get("resets_in_seconds")) if isinstance(payload, dict) else None
+    if relative is not None and relative < 0:
+        relative = 0.0
+    if absolute is not None:
+        epoch = absolute
+        remaining = relative if relative is not None else max(absolute - now, 0.0)
+    elif relative is not None:
+        epoch = now + relative
+        remaining = relative
+    else:
+        return None, None
+    return epoch, remaining
+
+
+def format_reset_wait_phrase(seconds: Any) -> Optional[str]:
+    """Short human phrase for a non-negative reset delay (``~2 minutes``, ``~1 hour 5 min``),
+    or None when the delay is unknown / invalid. 120 seconds ⇒ ``~2 minutes`` (never an hour)."""
+    number = _coerce_finite_number(seconds)
+    if number is None or number < 0:
+        return None
+    total = int(number)
+    if total < 60:
+        return "momentarily" if total == 0 else f"~{total} second{'' if total == 1 else 's'}"
+    if total < 3600:
+        minutes = int(round(total / 60))
+        return f"~{minutes} minute{'' if minutes == 1 else 's'}"
+    hours = total // 3600
+    minutes = (total % 3600) // 60
+    if minutes:
+        return f"~{hours} hour{'' if hours == 1 else 's'} {minutes} min"
+    return f"~{hours} hour{'' if hours == 1 else 's'}"
+
+
+def _looks_like_explicit_usage_limit(payload: Any, body: Any, message: str) -> bool:
+    codes: List[Any] = []
+    for src in (payload, body):
+        if isinstance(src, dict):
+            codes += [src.get("code"), src.get("type")]
+    if any(isinstance(v, str) and v.strip().lower() == _EXPLICIT_USAGE_LIMIT_CODE for v in codes):
+        return True
+    lowered = (message or "").strip().lower()
+    return any(token in lowered for token in _EXPLICIT_USAGE_LIMIT_TEXT)
+
+
+def format_usage_limit_terminal_response(
+    error_context: Optional[Dict[str, Any]], *, provider: Optional[str] = None,
+    model: Optional[str] = None,
+) -> str:
+    """User-facing terminal message for an explicit provider plan usage-limit wall.
+    Names provider/model and the reset window when known; never echoes the raw provider
+    message or key material, and never suggests a fresh session (the quota is
+    account-scoped — a reset would hit the same wall)."""
+    ctx = error_context if isinstance(error_context, dict) else {}
+    where = ", ".join(
+        part for part in (
+            f"provider: {provider}" if provider else "",
+            f"model: {model}" if model else "",
+        ) if part
+    )
+    head = "The model provider's plan usage limit has been reached"
+    head += f" ({where})." if where else "."
+    wait = format_reset_wait_phrase(ctx.get("resets_in_seconds"))
+    if wait == "momentarily":
+        when = "The limit window has just elapsed — wait a moment, then try again."
+    elif wait:
+        when = f"It resets in {wait}. Wait for it to reset, then try again."
+    else:
+        when = "The provider did not report a reset time. Wait for the limit to reset, then try again."
+    return (
+        f"{head}\n{when}\n"
+        "This is a provider-side quota limit, not a Hermes error — retrying now hits the same wall."
+    )
 
 
 def extract_api_error_context(error: Exception) -> Dict[str, Any]:
-    """Extract structured rate-limit details from provider errors."""
+    """Extract structured rate-limit details from provider errors.
+
+    A single ``now`` is used for every relative→absolute conversion. ``reset_at`` keeps
+    the raw provider value; ``reset_at_epoch`` / ``resets_in_seconds`` are the normalized
+    (finite epoch / non-negative delay) forms, and ``usage_limit_reached`` flags an
+    explicit plan-quota wall (structured code/type or the established phrasing)."""
+    now = time.time()
     context: Dict[str, Any] = {}
     body = getattr(error, "body", None)
+    if not isinstance(body, dict):
+        # ``response.json()``-only errors (no ``.body`` attribute populated by the SDK).
+        response = getattr(error, "response", None)
+        try:
+            body = response.json() if response is not None else None
+        except Exception:
+            body = None
     payload = (body.get("error") if isinstance(body.get("error"), dict) else body) if isinstance(body, dict) else None
     if isinstance(payload, dict):
         reason = payload.get("code") or payload.get("type") or payload.get("error")
@@ -3110,13 +3277,15 @@ def extract_api_error_context(error: Exception) -> Dict[str, Any]:
             message = payload.get("error")
         if isinstance(message, str) and message.strip():
             context["message"] = message.strip()
-        reset = next((payload.get(k) for k in ("resets_at", "reset_at") if payload.get(k) not in {None, ""}), None)
+        reset = next(
+            (payload.get(k) for k in ("resets_at", "reset_at") if payload.get(k) not in (None, "")), None
+        )
         if reset is not None:
             context["reset_at"] = reset
-        _set_reset_from_retry_after(context, payload.get("retry_after"))
+        _set_reset_from_retry_after(context, payload.get("retry_after"), now=now)
     headers = getattr(getattr(error, "response", None), "headers", None)
     if headers:
-        _set_reset_from_retry_after(context, headers.get("retry-after") or headers.get("Retry-After") or None)
+        _set_reset_from_retry_after(context, headers.get("retry-after") or headers.get("Retry-After") or None, now=now)
         ratelimit_reset = headers.get("x-ratelimit-reset")
         if ratelimit_reset and "reset_at" not in context:
             context["reset_at"] = ratelimit_reset
@@ -3125,7 +3294,16 @@ def extract_api_error_context(error: Exception) -> Dict[str, Any]:
     if "reset_at" not in context and isinstance(context.get("message") or "", str):
         delay = _reset_delay_from_message(context.get("message") or "")
         if delay is not None:
-            context["reset_at"] = time.time() + delay
+            context["reset_at"] = now + delay
+    if _looks_like_explicit_usage_limit(payload, body, context.get("message") or ""):
+        context["usage_limit_reached"] = True
+    reset_at_epoch, resets_in_seconds = _resolve_reset_window(payload, context.get("reset_at"), now=now)
+    if (
+        reset_at_epoch is not None and resets_in_seconds is not None
+        and 0 <= resets_in_seconds <= _MAX_REASONABLE_RESET_SECONDS
+    ):
+        context["reset_at_epoch"] = float(reset_at_epoch)
+        context["resets_in_seconds"] = float(resets_in_seconds)
     return context
 
 
@@ -3212,7 +3390,7 @@ __all__ = [
     "switch_model", "invoke_tool", "repair_tool_call", "sanitize_api_messages",
     "looks_like_codex_intermediate_ack", "copy_reasoning_content_for_api", "cleanup_dead_connections",
     "extract_api_error_context", "apply_pending_steer_to_tool_results", "_iter_pool_sockets",
-    "force_close_tcp_sockets",
+    "force_close_tcp_sockets", "format_reset_wait_phrase", "format_usage_limit_terminal_response",
 ]
 
 

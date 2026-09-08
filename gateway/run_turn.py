@@ -1776,21 +1776,42 @@ class GatewayTurnMixin:
         # Never expose raw exception types/messages to end users (info-leakage risk).
         status_code = getattr(e, "status_code", None)
         status_hint = self._STATUS_HINTS.get(status_code, "")
-        if status_code == 429:
-            # Plan usage limit (resets on a schedule) vs a transient rate limit
-            _err_json = {}
-            with suppress(Exception):
-                _err_json = e.response.json().get("error", {})
-            if not isinstance(_err_json, dict):
-                _err_json = {}
-            _resets_in = _err_json.get("resets_in_seconds")
-            if _err_json.get("type") != "usage_limit_reached":
-                status_hint = " You are being rate-limited. Please wait a moment and try again."
-            elif _resets_in and _resets_in > 0:
-                import math
-                status_hint = f" Your plan's usage limit has been reached. It resets in ~{math.ceil(_resets_in / 3600)}h."
+
+        # Normalized rate-limit context (body / nested / response.json-only / headers / text),
+        # shared with the terminal turn path so the wording stays consistent.
+        _err_ctx: dict = {}
+        with suppress(Exception):
+            from agent.agent_runtime_helpers import extract_api_error_context
+            _err_ctx = extract_api_error_context(e) or {}
+
+        # An explicit plan usage-limit wall (structured ``usage_limit_reached`` code/type, or
+        # the established phrasing) — regardless of HTTP status. This is an account-scoped
+        # quota gate, so a fresh session hits the same wall: no /reset suggestion.
+        if _err_ctx.get("usage_limit_reached"):
+            from agent.agent_runtime_helpers import format_reset_wait_phrase
+            _ul_provider, _ul_model = self._hmwa_error_reply_route(source, session_key)
+            _where = ", ".join(
+                _part for _part in (
+                    f"provider: {_ul_provider}" if _ul_provider else "",
+                    f"model: {_ul_model}" if _ul_model else "",
+                ) if _part
+            )
+            _ul_wait = format_reset_wait_phrase(_err_ctx.get("resets_in_seconds"))
+            if _ul_wait == "momentarily":
+                _ul_when = "The limit window has just elapsed — wait a moment, then try again."
+            elif _ul_wait:
+                _ul_when = f"It resets in {_ul_wait}. Wait for it to reset, then try again."
             else:
-                status_hint = " Your plan's usage limit has been reached. Please wait until it resets."
+                _ul_when = "The reset time was not reported. Wait for the limit to reset, then try again."
+            return (
+                "⚠️ The model provider's plan usage limit has been reached"
+                + (f" ({_where})." if _where else ".")
+                + f"\n{_ul_when}\n"
+                "This is a provider-side quota limit, not a Hermes error — retrying now hits the same wall."
+            )
+
+        if status_code == 429:
+            status_hint = " You are being rate-limited. Please wait a moment and try again."
         elif status_code in {400, 500}:
             # 400/500 on a large session: context overflow / payload too large.
             if len(prepared.history) > 50:
@@ -1804,6 +1825,22 @@ class GatewayTurnMixin:
             f"Sorry, I encountered an unexpected error.{status_hint}\n"
             "Try again or use /reset to start a fresh session."
         )
+
+    def _hmwa_error_reply_route(self, source, session_key) -> Tuple[Optional[str], Optional[str]]:
+        """Best-effort ``(provider, model)`` for an error reply, from the already-resolved
+        session runtime. Never raises — an unresolvable route just yields ``(None, None)`` so
+        the caller omits the detail rather than guessing."""
+        provider = model = None
+        with suppress(Exception):
+            _resolve = getattr(self, "_resolve_session_agent_runtime", None)
+            if callable(_resolve):
+                model, _runtime = _resolve(source=source, session_key=session_key)
+                provider = (_runtime or {}).get("provider")
+        if not model:
+            with suppress(Exception):
+                _state = self._peek_session_state(session_key) if session_key else None
+                model = (_state.conversation.last_resolved_model if _state else None) or None
+        return (provider or None), (model or None)
 
     def _hmwa_discard_stale_result(self, source, _quick_key, run_generation):
         """A newer run generation superseded this turn: drop its deferred post-delivery callback."""

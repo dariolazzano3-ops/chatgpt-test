@@ -125,6 +125,37 @@ def handle_api_error(
         reason=classified.reason.value,
     )
 
+    # Explicit provider plan usage-limit wall (structured ``usage_limit_reached`` code/type,
+    # or the established "usage limit (has been) reached" phrasing — classifier marks it in
+    # ``error_context``). This is a hard account-scoped quota gate, not a churnable throttle:
+    # end the attempt HERE, before credential recovery, rotation, fallback or any backoff
+    # sleep. Retrying re-hits the same wall; rotating / falling back spends other credentials
+    # on a provider-side limit. Surface provider/model + the reset window instead, preserving
+    # the failure-result contract (persist, failure_reason/failure_retryable). (rate-limit
+    # resilience v1)
+    if classified.error_context.get("usage_limit_reached"):
+        from agent.agent_runtime_helpers import format_usage_limit_terminal_response
+
+        agent._flush_status_buffer()
+        _usage_summary = agent._summarize_api_error(api_error)
+        agent._emit_status(f"❌ Plan usage limit reached — {_usage_summary}")
+        logger.warning(
+            "%sExplicit provider usage-limit wall on API call #%d (provider=%s model=%s) — "
+            "ending the turn without retry, backoff, credential rotation or fallback",
+            agent.log_prefix, api_call_count, getattr(agent, "provider", "") or "?",
+            getattr(agent, "model", "") or "?",
+        )
+        agent._persist_session(messages, conversation_history)
+        return _verdict("return", {
+            "final_response": format_usage_limit_terminal_response(
+                error_context, provider=getattr(agent, "provider", "") or None,
+                model=getattr(agent, "model", "") or None,
+            ),
+            "messages": messages, "api_calls": api_call_count, "completed": False, "failed": True,
+            "error": _usage_summary, "failure_reason": classified.reason.value,
+            "failure_retryable": False,
+        })
+
     _recovered, recovered_with_pool = recover_after_classification(
         agent, api_error, classified, _retry, status_code=status_code, error_context=error_context,
         messages=messages, api_messages=api_messages,

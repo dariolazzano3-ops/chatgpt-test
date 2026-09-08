@@ -266,8 +266,11 @@ class TestClassifyApiError:
 
         result = classify_api_error(outer)
 
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        # rate-limit resilience v1: the established "usage limit reached" phrasing is an
+        # explicit account-scoped quota wall — it wins over the "try again in 5 minutes"
+        # transient wording that previously demoted it to a retryable rate_limit.
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
         assert result.message == "Usage limit reached, try again in 5 minutes"
 
     # ── Rate limit ──
@@ -313,7 +316,9 @@ class TestClassifyApiError:
         assert result.retryable is False
         assert result.should_fallback is True
 
-    def test_anthropic_429_usage_limit_with_reset_stays_rate_limit(self):
+    def test_anthropic_429_usage_limit_with_reset_is_billing(self):
+        # rate-limit resilience v1: an explicit "usage limit reached" wall is billing even
+        # when the same body ships a reset timestamp (previously demoted to rate_limit).
         e = MockAPIError(
             "usage limit reached; resets at 2026-08-24T10:00:00Z",
             status_code=429,
@@ -321,8 +326,9 @@ class TestClassifyApiError:
 
         result = classify_api_error(e, provider="anthropic", model="claude-opus-5")
 
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
+        assert result.error_context.get("usage_limit_reached") is True
 
     @pytest.mark.parametrize(
         ("reset_field", "reset_value"),
@@ -333,11 +339,13 @@ class TestClassifyApiError:
             ("retry_after", 3600),
         ],
     )
-    def test_anthropic_429_usage_limit_with_structured_reset_stays_rate_limit(
+    def test_anthropic_429_usage_limit_with_structured_reset_is_billing(
         self,
         reset_field,
         reset_value,
     ):
+        # rate-limit resilience v1: the structured ``type: usage_limit_reached`` is an
+        # explicit quota wall regardless of any structured reset field.
         e = MockAPIError(
             "usage limit reached",
             status_code=429,
@@ -352,11 +360,14 @@ class TestClassifyApiError:
 
         result = classify_api_error(e, provider="anthropic", model="claude-opus-5")
 
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
+        assert result.error_context.get("usage_limit_reached") is True
 
     @pytest.mark.parametrize("header", ["Retry-After", "x-ratelimit-reset"])
-    def test_anthropic_429_usage_limit_with_reset_header_stays_rate_limit(self, header):
+    def test_anthropic_429_usage_limit_with_reset_header_is_billing(self, header):
+        # rate-limit resilience v1: a reset header does not soften an explicit
+        # ``usage_limit_reached`` wall.
         e = MockAPIError(
             "usage limit reached",
             status_code=429,
@@ -371,8 +382,8 @@ class TestClassifyApiError:
 
         result = classify_api_error(e, provider="anthropic", model="claude-opus-5")
 
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
 
     def test_429_generic_quota_wall_is_billing(self):
         # Broadened from the narrow "usage limit" core to the full
@@ -403,17 +414,18 @@ class TestClassifyApiError:
             assert result.reason == FailoverReason.rate_limit, msg
             assert result.retryable is True, msg
 
-    def test_codex_weekly_usage_limit_resets_in_stays_rate_limit(self):
-        # Codex surfaces "Weekly usage limit reached. Resets in 6hr 29min."
-        # "resets in" was NOT a transient signal before, so this wrongly read
-        # as terminal billing. (transient-signal credit #63021)
+    def test_codex_weekly_usage_limit_reached_is_billing(self):
+        # Codex surfaces "Weekly usage limit reached. Resets in 6hr 29min." — rate-limit
+        # resilience v1 treats the explicit "usage limit reached" phrasing as a hard quota
+        # wall (the reset window is surfaced to the user, not used to keep retrying).
         e = MockAPIError(
             "Weekly usage limit reached. Resets in 6hr 29min.",
             status_code=429,
         )
         result = classify_api_error(e, provider="openai-codex", model="gpt-5-codex")
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
+        assert result.error_context.get("usage_limit_reached") is True
 
     @pytest.mark.parametrize(
         "phrase",
@@ -423,12 +435,13 @@ class TestClassifyApiError:
             "usage limit reached; 20 requests per minute",
         ],
     )
-    def test_429_usage_limit_with_extra_transient_phrases_stays_rate_limit(self, phrase):
-        # Additional transient signals. (credit #74785)
+    def test_429_explicit_usage_limit_reached_phrases_are_billing(self, phrase):
+        # rate-limit resilience v1: the explicit "usage limit reached" phrasing is a quota
+        # wall even alongside reset/throughput wording that previously demoted it.
         e = MockAPIError(phrase, status_code=429)
         result = classify_api_error(e, provider="anthropic", model="claude-opus-5")
-        assert result.reason == FailoverReason.rate_limit
-        assert result.retryable is True
+        assert result.reason == FailoverReason.billing
+        assert result.retryable is False
 
     def test_alibaba_rate_increased_too_quickly(self):
         """Alibaba/DashScope returns a unique throttling message.
