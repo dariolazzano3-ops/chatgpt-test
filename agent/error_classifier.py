@@ -929,16 +929,53 @@ def _status_of(exc: Any) -> Optional[int]:
     return code if isinstance(code, int) and 100 <= code < 600 else None
 
 
+def _body_needs_backfill(body: Any) -> bool:
+    """True when ``body`` is absent, empty, or missing a usable field (message or a
+    code/type) that a ``response.json()`` copy might still carry."""
+    if not isinstance(body, dict) or not body:
+        return True
+    view = body.get("error") if isinstance(body.get("error"), dict) else body
+    if not isinstance(view, dict):
+        return True
+    has_message = any(
+        isinstance(view.get(k), str) and view.get(k).strip()
+        for k in ("message", "error_description")
+    )
+    has_code = any(
+        isinstance(view.get(k), str) and view.get(k).strip() for k in ("code", "type")
+    )
+    return not (has_message and has_code)
+
+
+def _merge_error_bodies(primary: dict, secondary: dict) -> dict:
+    """Fill blank/absent keys of ``primary`` from ``secondary`` (recursing one level into
+    nested dicts such as ``error``). ``primary`` wins wherever it holds a non-empty value,
+    so an explicit ``usage_limit_reached`` code/type on the SDK body is never overwritten
+    by the ``response.json()`` copy."""
+    merged: Dict[str, Any] = dict(secondary)
+    for key, value in primary.items():
+        if isinstance(value, dict) and isinstance(secondary.get(key), dict):
+            merged[key] = _merge_error_bodies(value, secondary[key])
+        elif value not in (None, "") or key not in merged:
+            merged[key] = value
+    return merged
+
+
 def _body_of(exc: Any) -> Optional[dict]:
     body = getattr(exc, "body", None)
-    if isinstance(body, dict):
+    if isinstance(body, dict) and not _body_needs_backfill(body):
         return body
+    # ``body`` is missing or incomplete: pull ``response.json()`` and merge in the fields
+    # it still carries, without dropping an explicit ``usage_limit_reached`` code/type
+    # already on ``body``.
     response = getattr(exc, "response", None)
     try:
         json_body = response.json() if response is not None else None
     except Exception:
-        return None
-    return json_body if isinstance(json_body, dict) else None
+        json_body = None
+    if isinstance(json_body, dict):
+        return _merge_error_bodies(body, json_body) if isinstance(body, dict) else json_body
+    return body if isinstance(body, dict) else None
 
 
 def _headers_of(exc: Any) -> Any:

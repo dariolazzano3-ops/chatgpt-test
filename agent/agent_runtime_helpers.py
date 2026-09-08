@@ -3097,10 +3097,60 @@ def _set_reset_from_retry_after(context: Dict[str, Any], retry_after: Any, *, no
 
 # ── Reset-window normalization (pure; shared by the gateway + terminal turn path) ──
 
-_MAX_REASONABLE_RESET_SECONDS = 7 * 24 * 3600  # a week — reject "resets in 3 years"
 _EPOCH_ABSOLUTE_FLOOR = 10_000_000  # ~1970-04-26; a bare number this large is an epoch, not a delay
 _EXPLICIT_USAGE_LIMIT_CODE = "usage_limit_reached"
 _EXPLICIT_USAGE_LIMIT_TEXT = ("usage limit reached", "usage limit has been reached")
+
+# Body fields that identify a reset window / usable error detail; when the SDK-populated
+# ``error.body`` is missing one of these, a ``response.json()`` copy is consulted to
+# backfill it (without ever overwriting an explicit ``usage_limit_reached`` code/type).
+_RESET_SIGNAL_KEYS = ("resets_at", "reset_at", "resets_in_seconds", "retry_after")
+
+
+def _reset_payload_view(body: Any) -> Optional[dict]:
+    """The dict carrying the error fields: ``body["error"]`` when that is a dict, else
+    ``body`` itself; ``None`` when ``body`` is not a dict."""
+    if not isinstance(body, dict):
+        return None
+    err = body.get("error")
+    return err if isinstance(err, dict) else body
+
+
+def _body_needs_reset_backfill(body: Any) -> bool:
+    """True when ``body`` is absent, empty, or missing a usable field (message, a reset
+    signal, or a code/type) that a ``response.json()`` copy might still carry."""
+    if not isinstance(body, dict) or not body:
+        return True
+    view = _reset_payload_view(body)
+    if view is None:
+        return True
+    has_message = any(
+        isinstance(view.get(k), str) and view.get(k).strip()
+        for k in ("message", "error_description", "error")
+    )
+    has_reset = any(view.get(k) not in (None, "") for k in _RESET_SIGNAL_KEYS)
+    has_code = any(
+        isinstance(view.get(k), str) and view.get(k).strip() for k in ("code", "type")
+    )
+    return not (has_message and has_reset and has_code)
+
+
+def _merge_missing_fields(primary: Any, secondary: Any) -> Any:
+    """``primary`` with blank/absent keys filled from ``secondary`` (recursing one level
+    into nested dicts such as ``error``). ``primary`` wins wherever it holds a non-empty
+    value, so an explicit ``usage_limit_reached`` code/type already on the SDK body is
+    never overwritten by the ``response.json()`` copy."""
+    if not isinstance(secondary, dict):
+        return primary
+    if not isinstance(primary, dict):
+        return dict(secondary)
+    merged: Dict[str, Any] = dict(secondary)
+    for key, value in primary.items():
+        if isinstance(value, dict) and isinstance(secondary.get(key), dict):
+            merged[key] = _merge_missing_fields(value, secondary[key])
+        elif value not in (None, "") or key not in merged:
+            merged[key] = value
+    return merged
 
 
 def _coerce_finite_number(value: Any) -> Optional[float]:
@@ -3162,31 +3212,40 @@ def _parse_absolute_reset(value: Any, *, now: float) -> Optional[float]:
 def _resolve_reset_window(
     payload: Any, prior_reset_at: Any, *, now: float
 ) -> Tuple[Optional[float], Optional[float]]:
-    """``(reset_at_epoch, resets_in_seconds)`` as finite non-negative floats, or
-    ``(None, None)``. A valid absolute reset (ISO / epoch) wins over a relative one for
-    the canonical epoch; a directly-supplied ``resets_in_seconds`` is preserved (clamped
-    to >= 0); an already-elapsed absolute window clamps its remaining seconds to 0.
-    Invalid values fall through to the next candidate."""
+    """``(reset_at_epoch, resets_in_seconds)`` as finite non-negative floats, or ``(None, None)``.
+
+    Deterministic priority (the caller supplies a single ``now`` reference so every
+    relative<->absolute conversion here agrees):
+
+    1. A *valid* absolute reset — ``payload["resets_at"]``, then its ``payload["reset_at"]``
+       alias, then ``prior_reset_at`` (header/message derived) — parsed as an ISO-8601
+       timestamp or an epoch number / numeric string. The first alias that parses wins; a
+       malformed alias falls through to the next candidate.
+    2. Otherwise a relative ``payload["resets_in_seconds"]`` (int, float or numeric string).
+
+    When an absolute reset is chosen it is authoritative: the canonical remaining delay is
+    ``max(epoch - now, 0.0)``, so it can never contradict the epoch — a stale or mismatched
+    ``resets_in_seconds`` shipped in the same body is ignored rather than surfaced as a
+    conflicting operator wait (no "resets in ~1 hour" next to a two-minute ``resets_at``).
+    Only when no absolute reset is available is a supplied ``resets_in_seconds`` used
+    directly (negatives clamped to 0). There is no artificial upper bound: a legitimately
+    long (multi-week) plan reset is reported as-is. Malformed values (non-finite,
+    non-numeric, invalid timestamps) yield ``None`` and fall through."""
     absolute: Optional[float] = None
-    if isinstance(payload, dict):
-        for key in ("resets_at", "reset_at"):
-            absolute = _parse_absolute_reset(payload.get(key), now=now)
-            if absolute is not None:
-                break
-    if absolute is None:
-        absolute = _parse_absolute_reset(prior_reset_at, now=now)
-    relative = _coerce_finite_number(payload.get("resets_in_seconds")) if isinstance(payload, dict) else None
-    if relative is not None and relative < 0:
-        relative = 0.0
+    candidates = (
+        (payload.get("resets_at"), payload.get("reset_at")) if isinstance(payload, dict) else ()
+    ) + (prior_reset_at,)
+    for candidate in candidates:
+        absolute = _parse_absolute_reset(candidate, now=now)
+        if absolute is not None:
+            break
     if absolute is not None:
-        epoch = absolute
-        remaining = relative if relative is not None else max(absolute - now, 0.0)
-    elif relative is not None:
-        epoch = now + relative
-        remaining = relative
-    else:
+        return absolute, max(absolute - now, 0.0)
+    relative = _coerce_finite_number(payload.get("resets_in_seconds")) if isinstance(payload, dict) else None
+    if relative is None:
         return None, None
-    return epoch, remaining
+    remaining = max(relative, 0.0)
+    return now + remaining, remaining
 
 
 def format_reset_wait_phrase(seconds: Any) -> Optional[str]:
@@ -3259,12 +3318,21 @@ def extract_api_error_context(error: Exception) -> Dict[str, Any]:
     now = time.time()
     context: Dict[str, Any] = {}
     body = getattr(error, "body", None)
-    if not isinstance(body, dict):
-        # ``response.json()``-only errors (no ``.body`` attribute populated by the SDK).
+    if _body_needs_reset_backfill(body):
+        # The SDK-populated ``error.body`` is absent, empty, or incomplete: consult
+        # ``response.json()`` and merge in any usable fields it still carries. The merge
+        # keeps the SDK body's own values wherever it has them, so an explicit
+        # ``usage_limit_reached`` code/type is never lost to the JSON copy.
         response = getattr(error, "response", None)
-        try:
-            body = response.json() if response is not None else None
-        except Exception:
+        json_body = None
+        if response is not None:
+            try:
+                json_body = response.json()
+            except Exception:
+                json_body = None
+        if isinstance(json_body, dict):
+            body = _merge_missing_fields(body, json_body) if isinstance(body, dict) else json_body
+        elif not isinstance(body, dict):
             body = None
     payload = (body.get("error") if isinstance(body.get("error"), dict) else body) if isinstance(body, dict) else None
     if isinstance(payload, dict):
@@ -3298,10 +3366,10 @@ def extract_api_error_context(error: Exception) -> Dict[str, Any]:
     if _looks_like_explicit_usage_limit(payload, body, context.get("message") or ""):
         context["usage_limit_reached"] = True
     reset_at_epoch, resets_in_seconds = _resolve_reset_window(payload, context.get("reset_at"), now=now)
-    if (
-        reset_at_epoch is not None and resets_in_seconds is not None
-        and 0 <= resets_in_seconds <= _MAX_REASONABLE_RESET_SECONDS
-    ):
+    # No artificial upper bound (previously a seven-day cap): a legitimately long plan
+    # reset is surfaced as-is. Malformed values were already rejected upstream
+    # (non-finite / non-numeric / invalid timestamp -> ``None``).
+    if reset_at_epoch is not None and resets_in_seconds is not None and resets_in_seconds >= 0:
         context["reset_at_epoch"] = float(reset_at_epoch)
         context["resets_in_seconds"] = float(resets_in_seconds)
     return context
