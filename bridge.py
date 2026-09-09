@@ -59,6 +59,7 @@ MAX_ACTIVE_JOBS = 32
 
 MAX_BODY_BYTES = 50000
 MAX_PROMPT_CHARS = 20000
+FALLBACK_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 # ---------------------------------------------------------------------------
 # V5.2 per-job workspace isolation
@@ -1167,7 +1168,7 @@ def _force_reap_direct(proc):
     return out or "", err or ""
 
 
-def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS):
+def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS, env=None):
     """Run ``cmd`` (a Claude CLI invocation) bounded by ``timeout`` seconds with
     an explicit POSIX process-group lifecycle. See the section comment above for
     the full contract. Returns a ``ClaudeRun``; raises ``ClaudeLifecycleError``
@@ -1180,6 +1181,7 @@ def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS):
         stderr=subprocess.PIPE,
         text=True,
         start_new_session=True,
+        env=env,
     )
 
     timed_out = False
@@ -1257,9 +1259,146 @@ def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS):
         raise
 
 
+def fallback_reason(stdout, stderr, workspace, allowed_tools):
+    """Only explicit provider errors, never text embedded in coding output."""
+    messages = []
+    try:
+        events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+        audit = parse_claude_stream(stdout, workspace, allowed_tools)
+        if events:
+            if not audit['complete'] or not audit['compliant'] or audit['tool_use_count']:
+                return None
+            for e in events:
+                if e.get('type') == 'result' and e.get('is_error') is True:
+                    messages.append(e.get('result', ''))
+        else:
+            messages.append(stderr.strip())
+    except Exception:
+        return None
+    patterns = {
+        'CLAUDE_SESSION_LIMIT': r"(?:you've hit your session limit|session limit reached)(?:[.!]| \u00b7|$)",
+        'CLAUDE_USAGE_LIMIT': r"(?:usage limit reached|quota exhausted)(?:[.!]|$)",
+        'CLAUDE_PROVIDER_UNAVAILABLE': r"(?:provider|service) (?:is )?unavailable(?:[.!]|$)",
+        'CLAUDE_RATE_LIMIT': r"rate limit reached[,:; ]+cannot continue(?:[.!]|$)",
+    }
+    for message in messages:
+        if not isinstance(message, str):
+            continue
+        for reason, pattern in patterns.items():
+            if re.match(pattern, message.strip(), re.I):
+                return reason
+    return None
+
+
+def fallback_exchange_snapshot(root, job_id):
+    """Validate the exchange contract independently of the worker service."""
+    if not valid_job_id(job_id):
+        raise ValueError('invalid job id')
+    root = Path(root)
+    if not root.is_dir() or any(p.is_symlink() for p in [root, *root.parents]):
+        raise ValueError('unsafe exchange root')
+    if {p.name for p in root.iterdir()} != {job_id}:
+        raise ValueError('foreign exchange entries')
+    job = root / job_id
+    if job.is_symlink() or not job.is_dir() or {p.name for p in job.iterdir()} != {WORKSPACE_DIRNAME}:
+        raise ValueError('unsafe job directory')
+    workspace = job / WORKSPACE_DIRNAME
+    if workspace.is_symlink() or not workspace.is_dir():
+        raise ValueError('unsafe workspace')
+
+    def walk_error(error):
+        raise error
+
+    count = size = 0
+    for directory, dirs, files in os.walk(workspace, followlinks=False, onerror=walk_error):
+        for name in dirs + files:
+            st = (Path(directory) / name).lstat()
+            regular = stat.S_ISREG(st.st_mode)
+            if (name == '.git' or not (regular or stat.S_ISDIR(st.st_mode))
+                    or (regular and st.st_nlink != 1)):
+                raise ValueError('unsafe exchange tree')
+            count += 1
+            size += st.st_size if regular else 0
+            if count > WORKSPACE_MAX_ENTRIES or size > WORKSPACE_MAX_BYTES:
+                raise ValueError('exchange workspace too large')
+    summary = workspace_snapshot(workspace)['summary']
+    if summary.get('complete') is not True:
+        raise ValueError('incomplete workspace snapshot')
+    return summary
+
+
+def run_codex_fallback(job_id, spec, workspace):
+    import urllib.request
+    workspace = Path(workspace)
+    if workspace != job_paths(job_id)['workspace'] or any(p.is_symlink() for p in [workspace, *workspace.parents]):
+        raise ValueError('unsafe authoritative workspace')
+    root = Path(os.environ['JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT'])
+    if not root.is_dir() or any(p.is_symlink() for p in [root, *root.parents]) or list(root.iterdir()):
+        raise ValueError('unsafe or stale exchange')
+    if inside_root(root, workspace) or inside_root(workspace, root) or inside_root(root, spec['cwd']):
+        raise ValueError('exchange overlaps project')
+    job = root / job_id
+    job.mkdir()
+    try:
+        shutil.copytree(workspace, job / 'workspace', symlinks=True,
+                        ignore=shutil.ignore_patterns('.git'))
+        ws = job / WORKSPACE_DIRNAME
+        pre = fallback_exchange_snapshot(root, job_id)
+        request = urllib.request.Request(
+            os.environ['JARVIS_BRIDGE_FALLBACK_URL'].rstrip('/') + '/v1/run',
+            data=json.dumps({'job_id': job_id, 'mode': spec['mode'], 'prompt': spec['prompt']}).encode(),
+            headers={'Authorization': 'Bearer ' + os.environ['JARVIS_BRIDGE_FALLBACK_TOKEN'],
+                     'Content-Type': 'application/json'})
+        # Never forward bearer authentication through redirects.
+        class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *args, **kwargs):
+                return None
+        with urllib.request.build_opener(NoRedirect).open(request, timeout=940) as response_obj:
+            raw = response_obj.read(FALLBACK_MAX_RESPONSE_BYTES + 1)
+        if len(raw) > FALLBACK_MAX_RESPONSE_BYTES:
+            raise ValueError('oversized response')
+        result = json.loads(raw)
+        post = fallback_exchange_snapshot(root, job_id)
+        if not isinstance(result, dict):
+            raise ValueError('invalid worker response')
+        reported_audit = result.get('audit')
+        if not isinstance(reported_audit, dict):
+            raise ValueError('invalid worker audit')
+        evidence = {'job_id': job_id, 'ok': result.get('ok') is True,
+            'exit_code': result.get('exit_code') if type(result.get('exit_code')) is int else None,
+            'timed_out': result.get('timed_out') is True,
+            'fs_pre': pre, 'fs_post': post,
+            'audit': {'schema': 'codex-json-v1-strict',
+                      'complete': reported_audit.get('complete') is True,
+                      'compliant': reported_audit.get('compliant') is True}}
+        atomic_write_json(job_paths(job_id)['dir'] / 'codex_result.json', evidence)
+        if (result.get('job_id') != job_id or result.get('ok') is not True
+                or type(result.get('exit_code')) is not int or result['exit_code'] != 0
+                or result.get('timed_out') is not False
+                or result.get('audit', {}).get('schema') != 'codex-json-v1-strict'
+                or result['audit'].get('complete') is not True
+                or result['audit'].get('compliant') is not True
+                or result.get('fs_pre') != pre or result.get('fs_post') != post
+                or (spec['mode'] == 'review' and pre != post)):
+            raise ValueError('invalid worker outcome')
+        # Persist only bounded structured evidence; never remote prose/streams.
+        if any(p.is_symlink() for p in [workspace, *workspace.parents]) or _symlink_escapes(workspace):
+            raise ValueError('unsafe destination')
+        for child in Path(workspace).iterdir():
+            if child.name != '.git':
+                if child.is_dir() and not child.is_symlink():
+                    shutil.rmtree(child)
+                else:
+                    child.unlink()
+        shutil.copytree(ws, workspace, dirs_exist_ok=True)
+        return evidence['audit']
+    finally:
+        shutil.rmtree(job)
+
+
 def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
               failure, stdout, stderr, ran_claude, workspace=None,
-              source_git=None, source_snapshot=None):
+              source_git=None, source_snapshot=None, runtime=None, fallback_audit=None):
     """Collect POST evidence, compute the bridge verdict, persist result +
     final state atomically, then bound-cleanup the isolated workspace. Always
     runs, whatever happened to Claude.
@@ -1275,6 +1414,27 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
     isolated = workspace is not None
     eval_cwd = Path(workspace) if isolated else source_path
 
+    audit = fallback_audit
+    if audit is None:
+        audit, audit_error = _safe(parse_claude_stream, stdout or "", eval_cwd, allowed_tools)
+        if audit is None:
+            audit = {'complete': False, 'compliant': False, 'error': 'MALFORMED_AUDIT'}
+
+    # Redact known sensitive values from retained primary streams.
+    for secret in [spec.get('prompt'), current_token(), os.environ.get('JARVIS_BRIDGE_FALLBACK_TOKEN')]:
+        if secret:
+            for representation in (secret, json.dumps(secret)[1:-1]):
+                stdout = (stdout or '').replace(representation, '[REDACTED]')
+                stderr = (stderr or '').replace(representation, '[REDACTED]')
+            def redact(value):
+                if isinstance(value, str):
+                    return value.replace(secret, '[REDACTED]')
+                if isinstance(value, list):
+                    return [redact(v) for v in value]
+                if isinstance(value, dict):
+                    return {k: redact(v) for k, v in value.items()}
+                return value
+            audit = redact(audit)
     _atomic_write(paths["stdout"], (stdout or "").encode())
     _atomic_write(paths["stderr"], (stderr or "").encode())
 
@@ -1289,8 +1449,6 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
     else:
         fs_delta = {"complete": False, "error": "snapshot unavailable"}
 
-    audit = parse_claude_stream(stdout or "", eval_cwd, allowed_tools)
-
     changes_error = changes_exc or (changes or {}).get("error")
 
     bridge_ok = (
@@ -1300,6 +1458,7 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
         and rc == 0
         and audit["complete"]
         and audit["compliant"]
+        and (fallback_audit is not None or audit.get("is_error") is False)
         and fs_delta.get("complete") is True
         and changes_error is None
     )
@@ -1347,6 +1506,19 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
         source_head_unchanged and source_fs_delta.get("unchanged") is True
     )
 
+    source_unchanged = source_unchanged and source_fs_delta.get('complete') is True and source_git == source_git_post
+    if not source_unchanged or (spec['mode'] == 'review' and fs_delta.get('unchanged') is not True):
+        bridge_ok, final_status = False, FAILED
+        failure = failure or {'reason': 'SOURCE_OR_REVIEW_MUTATION', 'phase': 'post_verify'}
+    runtime = dict(runtime or {'primary_worker': 'claude', 'fallback_attempted': False,
+        'fallback_attempt_count': 0, 'fallback_worker': None, 'fallback_reason': None, 'final_worker': 'claude'})
+    runtime.update(source_head_pre=(source_git or {}).get('head'),
+        source_head_post=(source_git_post or {}).get('head'), source_unchanged=source_unchanged,
+        workspace_head_pre=(pre_git or {}).get('head') if isolated else None,
+        workspace_head_post=(post_git or {}).get('head') if isolated else None,
+        workspace_fs_pre_sha256=(pre_snapshot or {}).get('summary', {}).get('sha256') if isolated else None,
+        workspace_fs_post_sha256=(post_snapshot or {}).get('summary', {}).get('sha256') if isolated else None)
+
     workspace_evidence = {
         "isolated": isolated,
         "source_project_path": str(source_path),
@@ -1381,6 +1553,7 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
         },
         "filesystem_evidence": fs_delta,
         "workspace_evidence": workspace_evidence,
+        "runtime_truth": runtime,
         "tool_audit": audit,
         "stderr": (stderr or "")[-20000:],
     }
@@ -1398,6 +1571,7 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
     update_state(job_id, {
         "status": final_status,
         "finished_at": time.time(),
+        "runtime_truth": runtime,
         "claude_exit_code": rc,
         "timed_out": timed_out,
         "failure": failure,
@@ -1434,6 +1608,9 @@ def execute_job(job_id, spec):
     mode = spec["mode"]
 
     with LOCK:
+        existing = read_json(job_paths(job_id)['state'])
+        if existing.get('status') != QUEUED:
+            return existing.get('status')
         update_state(job_id, {"status": RUNNING, "started_at": time.time()})
 
         # Requirement 5: capture the ORIGINAL project's exact starting Git truth
@@ -1568,8 +1745,36 @@ def execute_job(job_id, spec):
         else:
             failure = None
 
+        runtime = None
+        fallback_audit = None
+        configured = all(os.environ.get(k) for k in (
+            'JARVIS_BRIDGE_FALLBACK_URL', 'JARVIS_BRIDGE_FALLBACK_TOKEN',
+            'JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT'))
+        reason = None
+        if configured and not timed_out and not lifecycle_error and not exc:
+            reason = fallback_reason(stdout, stderr, workspace, spec['allowed_tools'])
+        if reason and (workspace_snapshot(workspace) != pre_snapshot or _symlink_escapes(workspace)):
+            reason = None
+        if reason:
+            runtime = {'primary_worker': 'claude', 'fallback_attempted': True,
+                'fallback_attempt_count': 1, 'fallback_worker': 'codex',
+                'fallback_reason': reason, 'final_worker': 'codex'}
+            update_state(job_id, {'runtime_truth': runtime})
+            try:
+                fallback_audit = run_codex_fallback(job_id, spec, workspace)
+                rc, failure = 0, None
+            except Exception:
+                rc = None
+                evidence_path = job_paths(job_id)['dir'] / 'codex_result.json'
+                if not evidence_path.exists():
+                    atomic_write_json(evidence_path, {'job_id': job_id, 'ok': False,
+                        'error': 'CODEX_FALLBACK_FAILED', 'exit_code': None, 'timed_out': False})
+                timed_out = read_json(evidence_path).get('timed_out') is True
+                failure = {'reason': 'CODEX_FALLBACK_FAILED', 'phase': 'fallback'}
+            stdout, stderr = '', ''
+
         return _finalize(
-            job_id, spec,
+            job_id, spec, runtime=runtime, fallback_audit=fallback_audit,
             pre_git=pre_git, pre_snapshot=pre_snapshot,
             rc=rc, timed_out=timed_out, failure=failure,
             stdout=stdout, stderr=stderr, ran_claude=True,
@@ -1681,6 +1886,18 @@ def recover_orphaned_jobs():
                 "trusted; the job is failed closed."
             ),
             "unverified_prior_result": prior_result,
+            "runtime_truth": {
+                **{'primary_worker': 'claude', 'fallback_attempted': False,
+                   'fallback_attempt_count': 0, 'fallback_worker': None,
+                   'fallback_reason': None, 'final_worker': 'claude'},
+                **st.get('runtime_truth', {}),
+                'source_head_pre': (st.get('evidence', {}).get('source_git') or {}).get('head'),
+                'source_head_post': None, 'source_unchanged': False,
+                'workspace_head_pre': (st.get('evidence', {}).get('pre_git') or {}).get('head'),
+                'workspace_head_post': None,
+                'workspace_fs_pre_sha256': (st.get('evidence', {}).get('pre_fs_summary') or {}).get('sha256'),
+                'workspace_fs_post_sha256': None,
+            },
         })
         # Requirement 8/13: an orphaned job's isolated workspace is abandoned
         # in-progress state. Bound-cleanup the tree (durable evidence files are

@@ -1590,3 +1590,153 @@ class PerJobWorkspaceIsolation(Base):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class FallbackSprint(Base):
+    def test_classifier(self):
+        for message, expected in [("You've hit your session limit", True), ('Provider unavailable', True), ('usage limit reached', True), ('test failure', False), ('timeout', False)]:
+            self.assertEqual(bool(bridge.fallback_reason('', message, self.tmp, [])), expected)
+        self.assertIsNone(bridge.fallback_reason('malformed', "You've hit your session limit", self.tmp, []))
+
+    def test_worker_chain(self):
+        name = self.make_project()
+        init_git_repo(os.path.join(self.projects, name))
+        spec = self.spec(project=name)
+        env = {k: 'configured' for k in ('JARVIS_BRIDGE_FALLBACK_URL', 'JARVIS_BRIDGE_FALLBACK_TOKEN', 'JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT')}
+        for message, timeout, expected in [("You've hit your session limit", False, 1), ('service unavailable', False, 1), ('ordinary failure', False, 0), ("You've hit your session limit", True, 0)]:
+            job = bridge.create_job(spec)
+            with mock.patch.dict(os.environ, env), mock.patch.object(bridge, 'run_claude_bounded', return_value=FakeClaudeRun(stderr=message, returncode=1, timed_out=timeout)), mock.patch.object(bridge, 'run_codex_fallback', side_effect=ValueError('failed')) as runner:
+                bridge.execute_job(job, spec)
+            result = self.read_result(job)
+            self.assertEqual(runner.call_count, expected)
+            self.assertEqual(result['runtime_truth']['fallback_attempt_count'], expected)
+            with mock.patch.object(bridge, 'run_codex_fallback') as retry:
+                bridge.execute_job(job, spec)
+                retry.assert_not_called()
+            self.assertFalse(result['ok'])
+            self.assertTrue(result['runtime_truth']['source_unchanged'])
+
+    def test_success_without_fallback(self):
+        name = self.make_project()
+        init_git_repo(os.path.join(self.projects, name))
+        spec = self.spec(project=name)
+        job = bridge.create_job(spec)
+        with mock.patch.object(bridge, 'run_claude_bounded', return_value=FakeClaudeRun(stdout=fake_stream(spec['allowed_tools']))), mock.patch.object(bridge, 'run_codex_fallback') as runner:
+            bridge.execute_job(job, spec)
+        self.assertTrue(self.read_result(job)['ok'])
+        runner.assert_not_called()
+
+    def test_fallback_exchange_bounds_and_structure(self):
+        root = pathlib.Path(self.tmp) / 'validation-exchange'
+        job = bridge.create_job(self.spec(project=self.make_project()))
+        with self.assertRaises(ValueError):
+            bridge.fallback_exchange_snapshot(root, job)
+        ws = root / job / bridge.WORKSPACE_DIRNAME
+        ws.mkdir(parents=True)
+        (ws / 'data').write_text('payload')
+        self.assertTrue(bridge.fallback_exchange_snapshot(root, job)['complete'])
+        for invalid in ('../escape', '', None):
+            with self.assertRaises(ValueError):
+                bridge.fallback_exchange_snapshot(root, invalid)
+        for constant in ('WORKSPACE_MAX_ENTRIES', 'WORKSPACE_MAX_BYTES'):
+            with mock.patch.object(bridge, constant, 0), self.assertRaises(ValueError):
+                bridge.fallback_exchange_snapshot(root, job)
+        with mock.patch.object(bridge, 'workspace_snapshot', return_value={'summary': {'complete': False}}), self.assertRaises(ValueError):
+            bridge.fallback_exchange_snapshot(root, job)
+        with mock.patch.object(bridge.os, 'walk', side_effect=lambda *args, **kwargs: kwargs['onerror'](PermissionError('denied'))), self.assertRaises(PermissionError):
+            bridge.fallback_exchange_snapshot(root, job)
+        shutil.rmtree(ws)
+        with self.assertRaises(ValueError):
+            bridge.fallback_exchange_snapshot(root, job)
+        ws.symlink_to(self.projects, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            bridge.fallback_exchange_snapshot(root, job)
+
+    def test_exchange_roundtrip_and_failures(self):
+        name = self.make_project()
+        source = pathlib.Path(self.projects) / name
+        init_git_repo(source)
+        exchange = pathlib.Path(self.tmp) / 'exchange'
+        exchange.mkdir()
+        env = {'JARVIS_BRIDGE_FALLBACK_URL': 'http://worker', 'JARVIS_BRIDGE_FALLBACK_TOKEN': 'secret', 'JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT': str(exchange)}
+        for case in ('success', 'implement_success', 'malformed', 'timeout', 'failure', 'review_mutation', 'stale', 'symlink', 'git', 'fifo', 'hardlink', 'foreign_job', 'extra_job_entry',
+                     'oversized', 'wrong_job', 'bad_exit', 'bad_timeout', 'bad_schema',
+                     'incomplete', 'noncompliant', 'bad_pre', 'bad_post', 'unknown'):
+            spec = self.spec(project=name, mode='implement' if case == 'implement_success' else 'review')
+            job = bridge.create_job(spec)
+            calls = []
+            def remote(request, timeout):
+                calls.append(request)
+                ws = exchange / job / 'workspace'
+                self.assertFalse((ws / '.git').exists())
+                pre = bridge.workspace_snapshot(ws)['summary']
+                if case == 'timeout':
+                    raise TimeoutError()
+                if case in ('review_mutation', 'implement_success'):
+                    (ws / 'readme.txt').write_text('mutated')
+                if case == 'symlink':
+                    (ws / 'escape').symlink_to('/tmp')
+                if case == 'git':
+                    (ws / '.git').mkdir()
+                if case == 'fifo':
+                    os.mkfifo(ws / 'fifo')
+                if case == 'hardlink':
+                    os.link(ws / 'readme.txt', ws / 'linked')
+                if case == 'foreign_job':
+                    (exchange / 'foreign').mkdir()
+                if case == 'extra_job_entry':
+                    (ws.parent / 'extra').mkdir()
+                result = {'job_id': job, 'ok': case != 'failure', 'exit_code': 0, 'timed_out': False,
+                          'fs_pre': pre, 'fs_post': bridge.workspace_snapshot(ws)['summary'] if case in ('review_mutation', 'implement_success') else pre, 'audit': {'complete': True, 'compliant': True, 'schema': 'codex-json-v1-strict'}}
+                overrides = {'wrong_job': {'job_id': 'wrong'}, 'bad_exit': {'exit_code': False},
+                             'bad_timeout': {'timed_out': None}, 'bad_pre': {'fs_pre': {}},
+                             'bad_post': {'fs_post': {}}, 'unknown': {'ok': None}}
+                result.update(overrides.get(case, {}))
+                for outcome, key, value in (('bad_schema', 'schema', 'unknown'),
+                                            ('incomplete', 'complete', False),
+                                            ('noncompliant', 'compliant', False)):
+                    if case == outcome:
+                        result['audit'][key] = value
+                self.assertEqual(request.get_header('Authorization'), 'Bearer secret')
+                response = mock.MagicMock()
+                response.__enter__.return_value.read.return_value = b'x' * (bridge.FALLBACK_MAX_RESPONSE_BYTES + 1) if case == 'oversized' else b'bad' if case == 'malformed' else json.dumps(result).encode()
+                return response
+            if case == 'stale':
+                (exchange / 'foreign').mkdir()
+            opener = mock.Mock()
+            opener.open.side_effect = remote
+            with mock.patch.dict('sys.modules', {'codex_worker': None}), mock.patch.dict(os.environ, env), mock.patch('urllib.request.build_opener', return_value=opener), mock.patch.object(bridge, 'run_claude_bounded', return_value=FakeClaudeRun(stderr="You've hit your session limit", returncode=1)):
+                bridge.execute_job(job, spec)
+            result = self.read_result(job)
+            self.assertEqual(result['ok'], case in ('success', 'implement_success'), case)
+            if result['ok']:
+                import verifier
+                verifier.verify(bridge.job_paths(job)['dir'], source)
+            self.assertEqual(len(calls), 0 if case == 'stale' else 1)
+            self.assertEqual(result['runtime_truth']['fallback_attempt_count'], 1)
+            self.assertTrue(result['runtime_truth']['source_unchanged'])
+            self.assertFalse((exchange / job).exists())
+            if case in ('stale', 'foreign_job'):
+                (exchange / 'foreign').rmdir()
+
+    def test_lifecycle_and_audit_never_fallback(self):
+        name = self.make_project()
+        init_git_repo(os.path.join(self.projects, name))
+        spec = self.spec(project=name)
+        for failure in (bridge.ClaudeLifecycleError('failed'), RuntimeError('failed'), None):
+            job = bridge.create_job(spec)
+            with mock.patch.dict(os.environ, {k: 'x' for k in ('JARVIS_BRIDGE_FALLBACK_URL', 'JARVIS_BRIDGE_FALLBACK_TOKEN', 'JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT')}), mock.patch.object(bridge, 'run_claude_bounded', side_effect=failure, return_value=FakeClaudeRun(stdout='malformed audit', stderr="You've hit your session limit", returncode=1)), mock.patch.object(bridge, 'run_codex_fallback') as runner:
+                bridge.execute_job(job, spec)
+            runner.assert_not_called()
+            self.assertFalse(self.read_result(job)['ok'])
+
+
+    def test_structured_provider_error(self):
+        tools = ['Read', 'Glob', 'Grep']
+        events = fake_stream(tools, is_error=True).splitlines()
+        result = json.loads(events[-1])
+        result['result'] = "You've hit your session limit · resets tomorrow"
+        events[-1] = json.dumps(result)
+        self.assertEqual(bridge.fallback_reason('\n'.join(events), '', self.tmp, tools), 'CLAUDE_SESSION_LIMIT')
+        result['result'] = "You've hit your session limit. Resets tomorrow"
+        events[-1] = json.dumps(result)
+        self.assertEqual(bridge.fallback_reason('\n'.join(events), '', self.tmp, tools), 'CLAUDE_SESSION_LIMIT')
