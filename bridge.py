@@ -5,6 +5,7 @@ import os
 import queue
 import re
 import secrets
+import signal
 import stat
 import subprocess
 import tempfile
@@ -42,6 +43,14 @@ BRIDGE_VERSION = 5
 DEFAULT_JOBS_DIR = "/opt/jarvis-bridge/jobs"
 
 DEFAULT_CLAUDE_TIMEOUT = 900
+
+# Process-group lifecycle bounds for a timed-out / aborted Claude execution.
+# After the wall-clock timeout we SIGTERM the entire Claude process group, wait
+# CLAUDE_TERM_GRACE_SECONDS for it to unwind, then SIGKILL the whole group. Any
+# post-SIGKILL wait for output pipes / direct-child reaping is itself bounded by
+# CLAUDE_REAP_GRACE_SECONDS so cleanup can never hang the worker.
+CLAUDE_TERM_GRACE_SECONDS = 10
+CLAUDE_REAP_GRACE_SECONDS = 10
 
 # Upper bound on the number of jobs that may be QUEUED or RUNNING at once.
 # Bounds resource use and keeps the async model understandable.
@@ -924,12 +933,174 @@ def _safe(fn, *args):
         return None, f"{type(e).__name__}: {e}"[:300]
 
 
-def _as_text(value):
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", "replace")
-    return str(value)
+# ---------------------------------------------------------------------------
+# Bounded Claude process-execution primitive
+# ---------------------------------------------------------------------------
+#
+# Every place Bridge V5 runs Claude goes through run_claude_bounded(). It is the
+# single implementation of the process lifecycle contract:
+#
+#   * Claude is started as the leader of a brand-new session / process group
+#     (start_new_session=True) so that Claude AND every descendant it spawns can
+#     be signalled as one unit.
+#   * stdout / stderr are captured in full and are always returned, whether the
+#     run completed, exited non-zero, or timed out.
+#   * On timeout: SIGTERM is delivered to the ENTIRE process group; after a
+#     bounded grace period any survivor is SIGKILLed (again, the whole group).
+#   * The direct child is ALWAYS reaped before this function returns.
+#   * No helper thread or process outlives the call.
+#   * If the group cannot be signalled / torn down, or the direct child cannot
+#     be reaped, ClaudeLifecycleError is raised instead of returning a value
+#     that a caller could mistake for a clean result. Callers fail closed.
+
+
+class ClaudeLifecycleError(RuntimeError):
+    """Raised when establishing or tearing down the Claude process group itself
+    fails. The V5 execution path treats this as a hard FAILED outcome and must
+    never convert it into a COMPLETE / success result."""
+
+
+class ClaudeRun:
+    """Outcome of one bounded Claude execution. Shaped so the existing evidence
+    code can treat it like the old ``subprocess.run`` return value
+    (``stdout`` / ``stderr`` / ``returncode``)."""
+
+    __slots__ = ("stdout", "stderr", "returncode", "timed_out",
+                 "term_signalled", "killed", "pid")
+
+    def __init__(self, *, stdout, stderr, returncode, timed_out,
+                 term_signalled, killed, pid):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+        self.timed_out = timed_out
+        self.term_signalled = term_signalled
+        self.killed = killed
+        self.pid = pid
+
+
+def _signal_claude_group(pid, sig):
+    """Deliver ``sig`` to the whole process group led by ``pid``.
+
+    Returns True if the signal was delivered or the group is already gone;
+    False on an unexpected error (e.g. EPERM), which the caller escalates to a
+    fail-closed ClaudeLifecycleError."""
+    try:
+        os.killpg(pid, sig)
+        return True
+    except ProcessLookupError:
+        return True
+    except OSError:
+        return False
+
+
+def _force_reap_direct(proc):
+    """Last resort: make sure the DIRECT child is dead and reaped even when
+    group-level teardown failed, so we never leak a zombie or block the worker.
+    Returns whatever output could still be drained."""
+    try:
+        proc.kill()
+    except OSError:
+        pass
+    try:
+        out, err = proc.communicate(timeout=CLAUDE_REAP_GRACE_SECONDS)
+    except (subprocess.TimeoutExpired, ValueError):
+        try:
+            proc.wait(timeout=CLAUDE_REAP_GRACE_SECONDS)
+        except subprocess.TimeoutExpired:
+            pass
+        out, err = "", ""
+    return out or "", err or ""
+
+
+def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS):
+    """Run ``cmd`` (a Claude CLI invocation) bounded by ``timeout`` seconds with
+    an explicit POSIX process-group lifecycle. See the section comment above for
+    the full contract. Returns a ``ClaudeRun``; raises ``ClaudeLifecycleError``
+    only if lifecycle cleanup itself fails."""
+    proc = subprocess.Popen(
+        list(cmd),
+        cwd=str(cwd),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+
+    timed_out = False
+    term_signalled = False
+    killed = False
+
+    try:
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+
+            # 1. Graceful: SIGTERM the ENTIRE Claude process group.
+            if not _signal_claude_group(proc.pid, signal.SIGTERM):
+                _force_reap_direct(proc)
+                raise ClaudeLifecycleError(
+                    f"could not SIGTERM Claude process group {proc.pid}"
+                )
+            term_signalled = True
+
+            try:
+                stdout, stderr = proc.communicate(timeout=grace)
+            except subprocess.TimeoutExpired:
+                # 2. Force: SIGKILL the ENTIRE Claude process group.
+                killed = True
+                if not _signal_claude_group(proc.pid, signal.SIGKILL):
+                    _force_reap_direct(proc)
+                    raise ClaudeLifecycleError(
+                        f"could not SIGKILL Claude process group {proc.pid}"
+                    )
+                try:
+                    stdout, stderr = proc.communicate(
+                        timeout=CLAUDE_REAP_GRACE_SECONDS
+                    )
+                except subprocess.TimeoutExpired:
+                    # The group was SIGKILLed but output pipes are still open:
+                    # a descendant escaped the group (called setsid() itself)
+                    # or is wedged in uninterruptible I/O. Reap the direct
+                    # child, which SIGKILL has definitely killed, and fail
+                    # closed.
+                    _force_reap_direct(proc)
+                    raise ClaudeLifecycleError(
+                        "Claude process group survived SIGKILL / left output "
+                        "pipes open"
+                    )
+
+        # communicate() returning means the direct child was already waited
+        # on; assert that explicitly so a reap failure can never masquerade as
+        # success.
+        if proc.returncode is None:
+            try:
+                proc.wait(timeout=CLAUDE_REAP_GRACE_SECONDS)
+            except subprocess.TimeoutExpired:
+                raise ClaudeLifecycleError(
+                    f"Claude direct child {proc.pid} could not be reaped"
+                )
+
+        return ClaudeRun(
+            stdout=stdout or "",
+            stderr=stderr or "",
+            returncode=proc.returncode,
+            timed_out=timed_out,
+            term_signalled=term_signalled,
+            killed=killed,
+            pid=proc.pid,
+        )
+    except ClaudeLifecycleError:
+        raise
+    except BaseException:
+        # Any unexpected failure while supervising the process must still not
+        # leak Claude or its descendants. Best-effort kill the whole group,
+        # reap the direct child, then re-raise for the caller to fail closed.
+        _signal_claude_group(proc.pid, signal.SIGKILL)
+        _force_reap_direct(proc)
+        raise
 
 
 def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
@@ -1072,27 +1243,32 @@ def execute_job(job_id, spec):
         rc = None
         timed_out = False
         exc = None
+        lifecycle_error = None
         stdout = ""
         stderr = ""
         try:
-            proc = subprocess.run(
-                spec["cmd"],
-                cwd=str(cwd),
-                capture_output=True,
-                text=True,
-                timeout=claude_timeout(),
-            )
-            rc = proc.returncode
-            stdout = proc.stdout or ""
-            stderr = proc.stderr or ""
-        except subprocess.TimeoutExpired as te:
+            run = run_claude_bounded(spec["cmd"], cwd, claude_timeout())
+            rc = run.returncode
+            stdout = run.stdout or ""
+            stderr = run.stderr or ""
+            timed_out = run.timed_out
+        except ClaudeLifecycleError as le:
+            # Cleanup of the Claude process group itself failed. This only ever
+            # arises from the timeout teardown path; fail closed and never let
+            # it become a success.
             timed_out = True
-            stdout = _as_text(te.stdout)
-            stderr = _as_text(te.stderr)
+            lifecycle_error = f"{type(le).__name__}: {le}"[:500]
         except Exception as ex:  # noqa: BLE001
             exc = f"{type(ex).__name__}: {ex}"[:500]
 
-        if timed_out:
+        if lifecycle_error is not None:
+            failure = {
+                "reason": "CLAUDE_LIFECYCLE_ERROR",
+                "phase": "claude_exec",
+                "timeout_seconds": claude_timeout(),
+                "detail": lifecycle_error,
+            }
+        elif timed_out:
             failure = {
                 "reason": "CLAUDE_TIMEOUT",
                 "phase": "claude_exec",
@@ -1401,13 +1577,16 @@ class Handler(BaseHTTPRequestHandler):
                             },
                         })
 
-                proc = subprocess.run(
-                    spec["cmd"],
-                    cwd=str(cwd),
-                    capture_output=True,
-                    text=True,
-                    timeout=DEFAULT_CLAUDE_TIMEOUT,
+                proc = run_claude_bounded(
+                    spec["cmd"], cwd, DEFAULT_CLAUDE_TIMEOUT
                 )
+                if proc.timed_out:
+                    # Preserve the exact V4 /v1/run timeout contract (504 /
+                    # CLAUDE_TIMEOUT) while going through the hardened
+                    # process-group primitive.
+                    raise subprocess.TimeoutExpired(
+                        cmd=spec["cmd"], timeout=DEFAULT_CLAUDE_TIMEOUT
+                    )
 
                 post_git = git_state(cwd)
                 post_snapshot = workspace_snapshot(cwd)
@@ -1441,7 +1620,9 @@ class Handler(BaseHTTPRequestHandler):
                 "stderr": proc.stderr[-20000:],
             })
 
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, ClaudeLifecycleError):
+            # A lifecycle-cleanup failure only ever arises from timeout
+            # teardown; map it to the same fail-closed 504 as a plain timeout.
             return response(self, 504, {
                 "ok": False,
                 "error": "CLAUDE_TIMEOUT",

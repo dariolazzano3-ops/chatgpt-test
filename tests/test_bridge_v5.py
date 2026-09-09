@@ -1,9 +1,12 @@
 """Automated tests for the JARVIS Claude Bridge V5 async job system.
 
 These tests never invoke the real Claude CLI, network, Docker, GitHub or any
-external provider. ``subprocess.run`` is substituted everywhere Claude would be
-executed. Read-only Git inspection of *this* repository is used only to prove
-the preserved V4 evidence helpers still work.
+external provider. ``bridge.run_claude_bounded`` (the single bounded
+process-execution primitive) is substituted everywhere Claude would be executed,
+except in the ``ProcessLifecyclePrimitive`` tests which exercise the real
+primitive against short-lived local ``python3`` child processes to prove the
+process-group timeout / kill / reap contract. Read-only Git inspection of *this*
+repository is used only to prove the preserved V4 evidence helpers still work.
 
 Run:
     python3 -m unittest discover -s tests -v
@@ -16,7 +19,8 @@ import json
 import os
 import pathlib
 import shutil
-import subprocess
+import signal
+import sys
 import tempfile
 import threading
 import time
@@ -64,16 +68,24 @@ def fake_stream(tools, extra_events=None, result_subtype="success",
     return "\n".join(lines) + "\n"
 
 
-class FakeProc:
-    def __init__(self, stdout="", stderr="", returncode=0):
+class FakeClaudeRun:
+    """Stand-in for ``bridge.ClaudeRun`` (also duck-types the old
+    ``subprocess.run`` result: ``stdout`` / ``stderr`` / ``returncode``)."""
+
+    def __init__(self, stdout="", stderr="", returncode=0, timed_out=False,
+                 term_signalled=False, killed=False, pid=4321):
         self.stdout = stdout
         self.stderr = stderr
         self.returncode = returncode
+        self.timed_out = timed_out
+        self.term_signalled = term_signalled
+        self.killed = killed
+        self.pid = pid
 
 
 def fake_run_factory(stdout="", stderr="", returncode=0, raises=None,
-                     before=None, calls=None):
-    """Return a substitute for ``subprocess.run``."""
+                     before=None, calls=None, timed_out=False):
+    """Return a substitute for ``bridge.run_claude_bounded``."""
     def _run(cmd, *args, **kwargs):
         if calls is not None:
             calls.append(cmd)
@@ -81,8 +93,21 @@ def fake_run_factory(stdout="", stderr="", returncode=0, raises=None,
             before()
         if raises is not None:
             raise raises
-        return FakeProc(stdout, stderr, returncode)
+        return FakeClaudeRun(stdout=stdout, stderr=stderr,
+                             returncode=returncode, timed_out=timed_out)
     return _run
+
+
+def _pid_alive(pid):
+    """True only if ``pid`` is a live (non-zombie) process. Used by the
+    process-group lifecycle tests to tell 'still running' from 'dead but not
+    yet reaped by its reparented owner'."""
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            after_comm = f.read().rsplit(")", 1)[1].split()
+        return after_comm[0] != "Z"
+    except (FileNotFoundError, ProcessLookupError, IndexError):
+        return False
 
 
 CLEAN_CHANGES = {
@@ -302,7 +327,7 @@ class SubmitReturnsFast(Base):
 
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]),
                                 before=slow)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             t0 = time.monotonic()
             status, payload = http_call(port, "POST", "/v1/jobs",
@@ -329,7 +354,7 @@ class StatusPolling(Base):
         gate = threading.Event()
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]),
                                 before=lambda: gate.wait(timeout=10))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_change_evidence",
                                   return_value=dict(CLEAN_CHANGES)), \
                 running_server() as port:
@@ -371,7 +396,7 @@ class ResultGating(Base):
         gate = threading.Event()
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]),
                                 before=lambda: gate.wait(timeout=10))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_change_evidence",
                                   return_value=dict(CLEAN_CHANGES)), \
                 running_server() as port:
@@ -401,7 +426,7 @@ class CompletedResultPersisted(Base):
     def test_complete_job_result_on_disk_and_via_http(self):
         tools = ["Read", "Glob", "Grep"]
         fake = fake_run_factory(stdout=fake_stream(tools), returncode=0)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_change_evidence",
                                   return_value=dict(CLEAN_CHANGES)), \
                 running_server() as port:
@@ -496,7 +521,7 @@ class RequestValidation(Base):
     def test_valid_project_accepted(self):
         proj = self.make_project("good")
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             st, p = http_call(port, "POST", "/v1/jobs",
                               body={"prompt": "x", "mode": "review",
@@ -516,7 +541,7 @@ class ImplementGating(Base):
         calls = []
         fake = fake_run_factory(stdout=fake_stream(
             ["Read", "Glob", "Grep", "Edit", "Write"]), calls=calls)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_state",
                                   return_value=git_state_value), \
                 running_server() as port:
@@ -552,7 +577,7 @@ class ImplementGating(Base):
         dirty = {"is_repo": True, "branch": "main", "head": "abc123",
                  "clean": False, "status": ["?? x"], "error": None}
         fake = fake_run_factory(stdout="should not be used")
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_state", return_value=dirty), \
                 running_server() as port:
             st, p = http_call(port, "POST", "/v1/run",
@@ -570,7 +595,7 @@ class FailedSubprocess(Base):
     def test_nonzero_exit_is_durable_failed(self):
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]),
                                 stderr="boom", returncode=1)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             _, sub = http_call(port, "POST", "/v1/jobs",
                                body={"prompt": "hi", "mode": "review"})
@@ -599,11 +624,12 @@ class FailedSubprocess(Base):
 
 class TimeoutHandling(Base):
     def test_timeout_is_durable_failed_with_evidence(self):
-        te = subprocess.TimeoutExpired(
-            cmd=["claude"], timeout=1,
-            output="partial-stdout-line\n", stderr="partial-stderr")
-        fake = fake_run_factory(raises=te)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        # The primitive absorbs the wall-clock timeout, tears the process group
+        # down, and returns a ClaudeRun(timed_out=True) carrying whatever
+        # stdout/stderr it managed to drain from the killed group.
+        fake = fake_run_factory(stdout="partial-stdout-line\n",
+                                stderr="partial-stderr", timed_out=True)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             _, sub = http_call(port, "POST", "/v1/jobs",
                                body={"prompt": "hi", "mode": "review"})
@@ -630,7 +656,7 @@ class TimeoutHandling(Base):
 
     def test_internal_exception_is_durable_failed(self):
         fake = fake_run_factory(raises=OSError("no such binary"))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             _, sub = http_call(port, "POST", "/v1/jobs",
                                body={"prompt": "hi", "mode": "review"})
@@ -768,7 +794,7 @@ class OrphanRecovery(Base):
 class NoCredentialLeak(Base):
     def test_token_never_appears_in_job_store(self):
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             _, sub = http_call(port, "POST", "/v1/jobs",
                                body={"prompt": "hi", "mode": "review"})
@@ -794,7 +820,7 @@ class NoCredentialLeak(Base):
         # job metadata; only a length and a digest are kept.
         sentinel = "SUPER-SECRET-PROMPT-BODY-9f3a2b7c-do-not-store"
         fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]))
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             _, sub = http_call(port, "POST", "/v1/jobs",
                                body={"prompt": sentinel, "mode": "review"})
@@ -920,7 +946,7 @@ class RunEndpointBackCompat(Base):
     def test_run_still_executes_synchronously_and_creates_no_job(self):
         tools = ["Read", "Glob", "Grep"]
         fake = fake_run_factory(stdout=fake_stream(tools), returncode=0)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 mock.patch.object(bridge, "git_change_evidence",
                                   return_value=dict(CLEAN_CHANGES)), \
                 running_server() as port:
@@ -936,14 +962,235 @@ class RunEndpointBackCompat(Base):
         self.assertEqual(job_dirs, [])
 
     def test_run_timeout_returns_504(self):
-        te = subprocess.TimeoutExpired(cmd=["claude"], timeout=1)
-        fake = fake_run_factory(raises=te)
-        with mock.patch.object(bridge.subprocess, "run", fake), \
+        fake = fake_run_factory(timed_out=True)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
                 running_server() as port:
             st, p = http_call(port, "POST", "/v1/run",
                               body={"prompt": "hi", "mode": "review"})
         self.assertEqual(st, 504)
         self.assertEqual(p["error"], "CLAUDE_TIMEOUT")
+
+    def test_run_lifecycle_error_returns_504_not_success(self):
+        def boom(*a, **k):
+            raise bridge.ClaudeLifecycleError("group teardown failed")
+        with mock.patch.object(bridge, "run_claude_bounded", boom), \
+                running_server() as port:
+            st, p = http_call(port, "POST", "/v1/run",
+                              body={"prompt": "hi", "mode": "review"})
+        self.assertEqual(st, 504)
+        self.assertFalse(p["ok"])
+        self.assertEqual(p["error"], "CLAUDE_TIMEOUT")
+
+
+# ---------------------------------------------------------------------------
+# 17. bounded Claude process-execution primitive: process-group lifecycle
+# ---------------------------------------------------------------------------
+
+class ProcessLifecyclePrimitive(Base):
+    """Exercises the real ``bridge.run_claude_bounded`` against short-lived
+    local ``python3`` child processes (never the real Claude CLI). Proves the
+    timeout -> graceful SIGTERM -> bounded grace -> SIGKILL -> reap contract and
+    that it applies to the WHOLE process group, not just the direct child."""
+
+    def _py(self, code, **kw):
+        return bridge.run_claude_bounded(
+            [sys.executable, "-c", code], self.tmp, **kw)
+
+    def test_normal_success_preserves_stdout_stderr_returncode(self):
+        code = ("import sys;"
+                "sys.stdout.write('OUT-DATA');"
+                "sys.stderr.write('ERR-DATA');"
+                "sys.exit(0)")
+        run = self._py(code, timeout=10)
+        self.assertEqual(run.stdout, "OUT-DATA")
+        self.assertEqual(run.stderr, "ERR-DATA")
+        self.assertEqual(run.returncode, 0)
+        self.assertFalse(run.timed_out)
+        self.assertFalse(run.term_signalled)
+        self.assertFalse(run.killed)
+
+    def test_nonzero_exit_is_preserved(self):
+        run = self._py("import sys; sys.exit(7)", timeout=10)
+        self.assertEqual(run.returncode, 7)
+        self.assertFalse(run.timed_out)
+        self.assertFalse(run.killed)
+
+    def test_graceful_process_group_termination_is_attempted(self):
+        # Parent spawns a grandchild in the same group. The grandchild traps
+        # SIGTERM, writes a sentinel and exits cleanly -> proves the graceful
+        # signal reached the whole group, and that SIGKILL was NOT needed.
+        sentinel = os.path.join(self.tmp, "graceful.sentinel")
+        grandchild = (
+            "import signal, sys, time\n"
+            "def h(*a):\n"
+            f"    open({sentinel!r}, 'w').close()\n"
+            "    sys.exit(0)\n"
+            "signal.signal(signal.SIGTERM, h)\n"
+            "print('gc-up', flush=True)\n"
+            "time.sleep(60)\n"
+        )
+        parent = (
+            "import subprocess, sys, time\n"
+            f"subprocess.Popen([sys.executable, '-c', {grandchild!r}])\n"
+            "time.sleep(60)\n"
+        )
+        t0 = time.monotonic()
+        run = self._py(parent, timeout=1, grace=8)
+        elapsed = time.monotonic() - t0
+
+        self.assertTrue(run.timed_out)
+        self.assertTrue(run.term_signalled, "SIGTERM was not attempted")
+        self.assertFalse(run.killed, "graceful SIGTERM should have sufficed")
+        self.assertTrue(
+            os.path.exists(sentinel),
+            "grandchild in the process group did not receive the graceful "
+            "SIGTERM",
+        )
+        self.assertLess(elapsed, 10)
+
+    def test_force_kill_used_when_graceful_shutdown_does_not_complete(self):
+        # Parent and grandchild both ignore SIGTERM entirely -> the primitive
+        # must escalate to a whole-group SIGKILL after the grace period.
+        grandchild = (
+            "import signal, time\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "while True: time.sleep(1)\n"
+        )
+        parent = (
+            "import subprocess, sys, signal, time\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            f"p = subprocess.Popen([sys.executable, '-c', {grandchild!r}])\n"
+            "sys.stdout.write('GCPID %d\\n' % p.pid)\n"
+            "sys.stdout.flush()\n"
+            "while True: time.sleep(1)\n"
+        )
+        t0 = time.monotonic()
+        run = self._py(parent, timeout=1, grace=1)
+        elapsed = time.monotonic() - t0
+
+        self.assertTrue(run.timed_out)
+        self.assertTrue(run.term_signalled)
+        self.assertTrue(run.killed, "SIGKILL escalation was not used")
+        # direct child was reaped: return code reflects death by SIGKILL
+        self.assertEqual(run.returncode, -signal.SIGKILL)
+        # grace was actually observed before escalation
+        self.assertGreaterEqual(elapsed, 1.8)
+        self.assertLess(elapsed, 15)
+
+        # the grandchild (reported by the parent as "GCPID <pid>") must also be
+        # dead - it was reparented away from us, so tolerate a transient zombie
+        # state while its new parent reaps it.
+        gc_pid = int(run.stdout.split()[1])
+        deadline = time.time() + 10
+        while time.time() < deadline and _pid_alive(gc_pid):
+            time.sleep(0.05)
+        self.assertFalse(_pid_alive(gc_pid),
+                         "grandchild survived the whole-group SIGKILL")
+
+    def test_direct_process_is_reaped(self):
+        run = self._py("pass", timeout=10)
+        # returncode is only knowable once the child has been waited on
+        self.assertIsNotNone(run.returncode)
+        with self.assertRaises(ChildProcessError):
+            os.waitpid(run.pid, os.WNOHANG)
+
+    def test_timed_out_child_is_also_reaped(self):
+        run = self._py("import time; time.sleep(30)", timeout=1, grace=2)
+        self.assertTrue(run.timed_out)
+        self.assertIsNotNone(run.returncode)
+        with self.assertRaises(ChildProcessError):
+            os.waitpid(run.pid, os.WNOHANG)
+
+    def test_no_background_thread_or_process_left_behind(self):
+        before_threads = threading.active_count()
+        for _ in range(3):
+            self._py("import time; time.sleep(20)", timeout=1, grace=1)
+        self.assertEqual(threading.active_count(), before_threads,
+                         "primitive left a helper thread running")
+
+    def test_cleanup_failure_raises_lifecycle_error_and_still_reaps(self):
+        # If the OS refuses to signal the process group, the primitive must
+        # fail closed with ClaudeLifecycleError rather than return a value that
+        # could be read as success - and must still reap the direct child.
+        def refuse(pgid, sig):
+            raise PermissionError("EPERM")
+
+        with mock.patch.object(bridge.os, "killpg", refuse):
+            with self.assertRaises(bridge.ClaudeLifecycleError):
+                self._py("import time; time.sleep(30)", timeout=1, grace=1)
+        # _force_reap_direct uses os.kill on the direct child (not killpg), so
+        # the child is still gone; no assertion on pid reuse, just that we did
+        # not hang and did raise.
+
+
+# ---------------------------------------------------------------------------
+# 18. job-level fail-closed behaviour for lifecycle problems
+# ---------------------------------------------------------------------------
+
+class JobLevelLifecycle(Base):
+    def test_timeout_marks_job_failed_with_evidence(self):
+        fake = fake_run_factory(stdout="partial\n", stderr="partial-err",
+                                timed_out=True)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            _, sub = http_call(port, "POST", "/v1/jobs",
+                               body={"prompt": "hi", "mode": "review"})
+            jid = sub["job_id"]
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertTrue(st["timed_out"])
+        self.assertEqual(st["failure"]["reason"], "CLAUDE_TIMEOUT")
+        res = self.read_result(jid)
+        self.assertFalse(res["ok"])
+        self.assertNotEqual(res["status"], "COMPLETE")
+        self.assertIn("post", res["git_evidence"])
+        self.assertEqual(bridge.job_paths(jid)["stdout"].read_text(),
+                         "partial\n")
+
+    def test_lifecycle_cleanup_failure_cannot_produce_success(self):
+        def boom(*a, **k):
+            raise bridge.ClaudeLifecycleError("group teardown exploded")
+        with mock.patch.object(bridge, "run_claude_bounded", boom), \
+                running_server() as port:
+            _, sub = http_call(port, "POST", "/v1/jobs",
+                               body={"prompt": "hi", "mode": "review"})
+            jid = sub["job_id"]
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertNotEqual(st["status"], "COMPLETE")
+        self.assertTrue(st["timed_out"])
+        self.assertEqual(st["failure"]["reason"], "CLAUDE_LIFECYCLE_ERROR")
+        self.assertIn("detail", st["failure"])
+        self.assertTrue(st["result_available"])
+
+        res = self.read_result(jid)
+        self.assertIs(res["ok"], False)
+        self.assertEqual(res["status"], "FAILED")
+        self.assertEqual(res["failure"]["reason"], "CLAUDE_LIFECYCLE_ERROR")
+
+    def test_normal_job_still_completes_with_full_evidence(self):
+        # existing V5 job / evidence semantics remain intact through the new
+        # execution primitive.
+        tools = ["Read", "Glob", "Grep"]
+        fake = fake_run_factory(stdout=fake_stream(tools), returncode=0)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                mock.patch.object(bridge, "git_change_evidence",
+                                  return_value=dict(CLEAN_CHANGES)), \
+                running_server() as port:
+            _, sub = http_call(port, "POST", "/v1/jobs",
+                               body={"prompt": "hi", "mode": "review"})
+            jid = sub["job_id"]
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "COMPLETE")
+        res = self.read_result(jid)
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["exit_code"], 0)
+        self.assertFalse(res["timed_out"])
+        for key in ("git_evidence", "filesystem_evidence", "tool_audit"):
+            self.assertIn(key, res)
 
 
 if __name__ == "__main__":
