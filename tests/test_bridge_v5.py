@@ -20,6 +20,7 @@ import os
 import pathlib
 import shutil
 import signal
+import subprocess
 import sys
 import tempfile
 import threading
@@ -96,6 +97,39 @@ def fake_run_factory(stdout="", stderr="", returncode=0, raises=None,
         return FakeClaudeRun(stdout=stdout, stderr=stderr,
                              returncode=returncode, timed_out=timed_out)
     return _run
+
+
+def recording_fake(stdout="", stderr="", returncode=0, timed_out=False,
+                   raises=None, cwds=None, writes=None):
+    """Substitute for ``bridge.run_claude_bounded`` that records the cwd it is
+    handed (proving it is the isolated workspace, never the source project) and
+    optionally writes files into that cwd to simulate Claude's edits."""
+    def _run(cmd, cwd, *args, **kwargs):
+        if cwds is not None:
+            cwds.append(str(cwd))
+        for rel, content in (writes or {}).items():
+            p = pathlib.Path(cwd) / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content)
+        if raises is not None:
+            raise raises
+        return FakeClaudeRun(stdout=stdout, stderr=stderr,
+                             returncode=returncode, timed_out=timed_out)
+    return _run
+
+
+def init_git_repo(path):
+    """Initialise a real one-commit Git repo at ``path`` (no network, no
+    ambient user config)."""
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
+        "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+    }
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+        subprocess.run(["git", "-C", str(path), *args], check=True, env=env,
+                       capture_output=True)
 
 
 def _pid_alive(pid):
@@ -1191,6 +1225,367 @@ class JobLevelLifecycle(Base):
         self.assertFalse(res["timed_out"])
         for key in ("git_evidence", "filesystem_evidence", "tool_audit"):
             self.assertIn(key, res)
+
+
+# ---------------------------------------------------------------------------
+# 19. V5.2 per-job workspace isolation
+# ---------------------------------------------------------------------------
+
+class PerJobWorkspaceIsolation(Base):
+    """Every async V5 job runs Claude inside jobs_dir()/<job_id>/workspace - a
+    private, confined copy of the source project. Concurrent / failed /
+    timed-out / abandoned jobs cannot observe or corrupt each other or the
+    original project, and isolated changes are never promoted back."""
+
+    def _git_project(self, name="wsproj"):
+        d = os.path.join(self.projects, name)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "readme.txt"), "w") as f:
+            f.write("hello\n")
+        init_git_repo(d)
+        return name, d
+
+    def _fresh_job(self):
+        return bridge.create_job(self.spec())
+
+    def _submit(self, port, body):
+        st, p = http_call(port, "POST", "/v1/jobs", body=body)
+        self.assertEqual(st, 202, p)
+        return p["job_id"]
+
+    # -- two jobs get different workspace paths ---------------------------
+
+    def test_two_jobs_get_distinct_workspace_paths_under_job_root(self):
+        proj, _ = self._git_project()
+        cwds = []
+        fake = recording_fake(stdout=fake_stream(["Read", "Glob", "Grep"]),
+                              cwds=cwds)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            a = self._submit(port, {"prompt": "x", "mode": "review",
+                                    "project": proj})
+            self.wait_terminal(a)
+            b = self._submit(port, {"prompt": "y", "mode": "review",
+                                    "project": proj})
+            self.wait_terminal(b)
+
+        self.assertNotEqual(a, b)
+        self.assertEqual(len(cwds), 2)
+        self.assertNotEqual(os.path.realpath(cwds[0]),
+                            os.path.realpath(cwds[1]))
+        jobs_root = os.path.realpath(self.jobs)
+        for jid, cwd in zip([a, b], cwds):
+            self.assertEqual(
+                os.path.realpath(cwd),
+                os.path.realpath(str(bridge.job_paths(jid)["workspace"])),
+            )
+            self.assertEqual(os.path.dirname(os.path.dirname(
+                os.path.realpath(cwd))), jobs_root)
+            self.assertEqual(
+                os.path.basename(os.path.dirname(os.path.realpath(cwd))), jid)
+
+    # -- Claude cwd is never the source project ------------------------
+
+    def test_claude_cwd_is_never_the_source_project(self):
+        proj, src_dir = self._git_project()
+        for mode in ("review", "implement"):
+            cwds = []
+            tools = (["Read", "Glob", "Grep", "Edit", "Write"]
+                     if mode == "implement" else ["Read", "Glob", "Grep"])
+            fake = recording_fake(stdout=fake_stream(tools), cwds=cwds)
+            with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                    running_server() as port:
+                jid = self._submit(port, {"prompt": "x", "mode": mode,
+                                          "project": proj})
+                self.wait_terminal(jid)
+            self.assertEqual(len(cwds), 1, mode)
+            self.assertNotEqual(os.path.realpath(cwds[0]),
+                                os.path.realpath(src_dir), mode)
+            self.assertTrue(bridge.inside_root(cwds[0], self.jobs), mode)
+
+    def test_review_jobs_also_use_isolated_workspace(self):
+        proj, src_dir = self._git_project()
+        cwds = []
+        fake = recording_fake(stdout=fake_stream(["Read", "Glob", "Grep"]),
+                              cwds=cwds, writes={"scratch.txt": "review\n"})
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "look", "mode": "review",
+                                      "project": proj})
+            self.wait_terminal(jid)
+        self.assertEqual(len(cwds), 1)
+        self.assertEqual(
+            os.path.realpath(cwds[0]),
+            os.path.realpath(str(bridge.job_paths(jid)["workspace"])))
+        self.assertNotEqual(os.path.realpath(cwds[0]),
+                            os.path.realpath(src_dir))
+        self.assertFalse(os.path.exists(os.path.join(src_dir, "scratch.txt")))
+
+    # -- source project stays unchanged --------------------------------
+
+    def test_source_unchanged_on_successful_isolated_execution(self):
+        proj, src_dir = self._git_project()
+        pre_listing = sorted(os.listdir(src_dir))
+        fake = recording_fake(
+            stdout=fake_stream(["Read", "Glob", "Grep", "Edit", "Write"]),
+            writes={"created_by_claude.txt": "isolated change\n"})
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "do it", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "COMPLETE", st.get("failure"))
+        self.assertEqual(sorted(os.listdir(src_dir)), pre_listing)
+        self.assertFalse(os.path.exists(
+            os.path.join(src_dir, "created_by_claude.txt")))
+        self.assertTrue(bridge.git_state(src_dir)["clean"])
+
+        res = self.read_result(jid)
+        we = res["workspace_evidence"]
+        self.assertTrue(we["source_unchanged"])
+        self.assertIs(we["changes_promoted_to_source"], False)
+        self.assertNotEqual(we["execution_workspace_path"],
+                            we["source_project_path"])
+        # isolated changes ARE visible in the post evidence
+        self.assertIn("created_by_claude.txt",
+                      res["filesystem_evidence"]["added"])
+        self.assertFalse(res["filesystem_evidence"]["unchanged"])
+
+    def test_source_unchanged_on_claude_failure(self):
+        proj, src_dir = self._git_project()
+        pre_listing = sorted(os.listdir(src_dir))
+        fake = recording_fake(
+            stdout=fake_stream(["Read", "Glob", "Grep", "Edit", "Write"]),
+            writes={"partial.txt": "half done\n"},
+            returncode=1, stderr="claude blew up")
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "do it", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertEqual(st["failure"]["reason"], "CLAUDE_NONZERO_EXIT")
+        self.assertEqual(sorted(os.listdir(src_dir)), pre_listing)
+        self.assertTrue(bridge.git_state(src_dir)["clean"])
+        res = self.read_result(jid)
+        self.assertTrue(res["workspace_evidence"]["source_unchanged"])
+        # failed isolated changes preserved as evidence, NOT promoted to source
+        self.assertIn("partial.txt", res["filesystem_evidence"]["added"])
+
+    def test_source_unchanged_on_timeout(self):
+        proj, src_dir = self._git_project()
+        pre_listing = sorted(os.listdir(src_dir))
+        fake = recording_fake(
+            stdout="partial stream\n", stderr="killed",
+            writes={"timeout_partial.txt": "x\n"}, timed_out=True)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "do it", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertTrue(st["timed_out"])
+        self.assertEqual(st["failure"]["reason"], "CLAUDE_TIMEOUT")
+        self.assertEqual(sorted(os.listdir(src_dir)), pre_listing)
+        self.assertTrue(bridge.git_state(src_dir)["clean"])
+        self.assertTrue(
+            self.read_result(jid)["workspace_evidence"]["source_unchanged"])
+
+    def test_source_unchanged_on_lifecycle_failure(self):
+        proj, src_dir = self._git_project()
+        pre_listing = sorted(os.listdir(src_dir))
+
+        def boom(*a, **k):
+            raise bridge.ClaudeLifecycleError("group teardown exploded")
+
+        with mock.patch.object(bridge, "run_claude_bounded", boom), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "do it", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertTrue(st["timed_out"])
+        self.assertEqual(st["failure"]["reason"], "CLAUDE_LIFECYCLE_ERROR")
+        self.assertEqual(sorted(os.listdir(src_dir)), pre_listing)
+        self.assertTrue(bridge.git_state(src_dir)["clean"])
+
+    # -- traversal / symlink escape / collision rejected fail-closed ----
+
+    def test_source_outside_root_is_rejected_fail_closed(self):
+        jid = self._fresh_job()
+        for bad in ("/etc",
+                    os.path.join(self.projects, "..", "..", "etc"),
+                    self.tmp):
+            with self.assertRaises(bridge.WorkspaceSetupError):
+                bridge.prepare_job_workspace(jid, bad)
+        self.assertFalse(bridge.job_paths(jid)["workspace"].exists())
+
+    def test_invalid_job_id_rejected_before_fs_use(self):
+        _, src_dir = self._git_project()
+        for bad in ("..", "../../etc", "not-a-job-id", "0" * 31):
+            with self.assertRaises((ValueError, bridge.WorkspaceSetupError)):
+                bridge.prepare_job_workspace(bad, src_dir)
+
+    def test_symlink_escape_is_rejected_fail_closed(self):
+        proj = os.path.join(self.projects, "symproj")
+        os.makedirs(proj)
+        with open(os.path.join(proj, "ok.txt"), "w") as f:
+            f.write("fine\n")
+        # symlink whose target resolves outside ROOT
+        os.symlink(self.tmp, os.path.join(proj, "escape"))
+        jid = self._fresh_job()
+        with self.assertRaises(bridge.WorkspaceSetupError) as ctx:
+            bridge.prepare_job_workspace(jid, proj)
+        self.assertIn("SYMLINK_ESCAPE", str(ctx.exception))
+        self.assertFalse(bridge.job_paths(jid)["workspace"].exists(),
+                         "partial workspace left behind after symlink escape")
+
+    def test_workspace_collision_is_rejected_fail_closed(self):
+        _, src_dir = self._git_project()
+        jid = self._fresh_job()
+        bridge.job_paths(jid)["workspace"].mkdir()
+        with self.assertRaises(bridge.WorkspaceSetupError) as ctx:
+            bridge.prepare_job_workspace(jid, src_dir)
+        self.assertIn("WORKSPACE_COLLISION", str(ctx.exception))
+
+    def test_workspace_confined_under_job_dir(self):
+        jid = self._fresh_job()
+        _, src_dir = self._git_project()
+        meta = bridge.prepare_job_workspace(jid, src_dir)
+        ws = pathlib.Path(meta["workspace_path"])
+        self.assertEqual(ws.parent.resolve(),
+                         bridge.job_paths(jid)["dir"].resolve())
+        self.assertTrue(bridge.inside_root(ws, self.jobs))
+
+    # -- workspace-setup failure = durable FAILED, fail closed ---------
+
+    def test_workspace_setup_failure_is_durable_failed_and_claude_not_run(self):
+        proj, _ = self._git_project()
+        calls = []
+        fake = fake_run_factory(stdout=fake_stream(["Read", "Glob", "Grep"]),
+                                calls=calls)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                mock.patch.object(
+                    bridge, "prepare_job_workspace",
+                    side_effect=bridge.WorkspaceSetupError("boom")), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "x", "mode": "review",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertEqual(st["failure"]["reason"], "WORKSPACE_SETUP_FAILED")
+        self.assertIn("boom", st["failure"]["detail"])
+        self.assertTrue(st["result_available"])
+        self.assertEqual([c for c in calls if c and c[0] == "claude"], [])
+        res = self.read_result(jid)
+        self.assertFalse(res["ok"])
+        self.assertIs(res["ran_claude"], False)
+        self.assertIs(res["workspace_evidence"]["isolated"], False)
+
+    # -- bounded, safe cleanup that preserves evidence ---------------
+
+    def test_workspace_cleaned_after_job_but_evidence_preserved(self):
+        proj, _ = self._git_project()
+        fake = recording_fake(
+            stdout=fake_stream(["Read", "Glob", "Grep", "Edit", "Write"]),
+            writes={"x.txt": "y\n"})
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "x", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        p = bridge.job_paths(jid)
+        self.assertFalse(p["workspace"].exists(), "workspace tree not cleaned")
+        self.assertIs(st["workspace_cleaned"], True)
+        for key in ("state", "result", "stdout", "stderr"):
+            self.assertTrue(p[key].exists(), f"{key} evidence missing")
+        res = self.read_result(jid)
+        for key in ("git_evidence", "filesystem_evidence", "tool_audit",
+                    "workspace_evidence"):
+            self.assertIn(key, res)
+        self.assertIn("x.txt", res["filesystem_evidence"]["added"])
+
+    def test_keep_workspace_env_retains_tree(self):
+        proj, _ = self._git_project()
+        fake = recording_fake(stdout=fake_stream(["Read", "Glob", "Grep"]))
+        with mock.patch.dict(os.environ,
+                             {"JARVIS_BRIDGE_KEEP_WORKSPACE": "1"}), \
+                mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "x", "mode": "review",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+        self.assertTrue(bridge.job_paths(jid)["workspace"].exists())
+        self.assertIs(st["workspace_cleaned"], False)
+
+    def test_orphan_recovery_bounds_workspace_but_keeps_evidence(self):
+        jid = bridge.create_job_id()
+        d = pathlib.Path(self.jobs) / jid
+        (d / bridge.WORKSPACE_DIRNAME / "sub").mkdir(parents=True)
+        (d / bridge.WORKSPACE_DIRNAME / "leftover.txt").write_text("wip\n")
+        bridge.atomic_write_json(d / "state.json", {
+            "job_id": jid, "status": "RUNNING", "mode": "implement",
+            "failure": None, "recovery": None, "result_available": False,
+        })
+
+        recovered = bridge.recover_orphaned_jobs()
+        self.assertEqual(recovered, [jid])
+        self.assertFalse((d / bridge.WORKSPACE_DIRNAME).exists())
+        self.assertTrue((d / "state.json").exists())
+        self.assertTrue((d / "result.json").exists())
+        st = self.read_state(jid)
+        self.assertEqual(st["status"], "FAILED")
+        self.assertEqual(st["failure"]["reason"], "ORPHANED_BRIDGE_RESTART")
+
+    # -- original project's starting Git truth captured -------------
+
+    def test_source_git_starting_truth_is_captured(self):
+        proj, src_dir = self._git_project()
+        expected = bridge.git_state(src_dir)
+        fake = recording_fake(stdout=fake_stream(["Read", "Glob", "Grep"]))
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "x", "mode": "review",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        we = self.read_result(jid)["workspace_evidence"]
+        self.assertEqual(we["source_project_path"], os.path.realpath(src_dir))
+        sg = we["source_git_pre"]
+        self.assertTrue(sg["is_repo"])
+        self.assertEqual(sg["head"], expected["head"])
+        self.assertEqual(sg["branch"], expected["branch"])
+        self.assertTrue(sg["clean"])
+        self.assertRegex(sg["head"], r"\A[0-9a-f]{40}\Z")
+        self.assertEqual(st["evidence"]["source_git"]["head"],
+                         expected["head"])
+        self.assertEqual(we["source_head_unchanged"], True)
+
+    def test_dirty_source_repo_still_blocks_implement_before_isolation(self):
+        proj, src_dir = self._git_project()
+        with open(os.path.join(src_dir, "dirty.txt"), "w") as f:
+            f.write("uncommitted\n")
+        calls = []
+        fake = fake_run_factory(stdout=fake_stream(
+            ["Read", "Glob", "Grep", "Edit", "Write"]), calls=calls)
+        with mock.patch.object(bridge, "run_claude_bounded", fake), \
+                running_server() as port:
+            jid = self._submit(port, {"prompt": "x", "mode": "implement",
+                                      "project": proj})
+            st = self.wait_terminal(jid)
+
+        self.assertEqual(st["status"], "FAILED")
+        self.assertEqual(st["failure"]["reason"],
+                         "IMPLEMENT_REQUIRES_CLEAN_WORKSPACE")
+        self.assertEqual([c for c in calls if c and c[0] == "claude"], [])
+        # no workspace created for a job that never cleared the gate
+        self.assertFalse(bridge.job_paths(jid)["workspace"].exists())
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import os
 import queue
 import re
 import secrets
+import shutil
 import signal
 import stat
 import subprocess
@@ -58,6 +59,29 @@ MAX_ACTIVE_JOBS = 32
 
 MAX_BODY_BYTES = 50000
 MAX_PROMPT_CHARS = 20000
+
+# ---------------------------------------------------------------------------
+# V5.2 per-job workspace isolation
+# ---------------------------------------------------------------------------
+#
+# Every async V5 job runs Claude inside jobs_dir()/<job_id>/workspace, a private
+# copy of the source project tree. The original project is never used as
+# Claude's execution cwd, so a concurrent / failed / timed-out / abandoned job
+# can neither observe nor corrupt another job's in-progress changes, and a
+# lifecycle failure or bridge restart can never leave the original project
+# half-modified. Isolated changes are never promoted back into the source.
+WORKSPACE_DIRNAME = "workspace"
+WORKSPACE_MAX_ENTRIES = SNAPSHOT_MAX_ENTRIES
+WORKSPACE_MAX_BYTES = SNAPSHOT_MAX_BYTES
+
+
+def keep_job_workspace():
+    """When set truthy via JARVIS_BRIDGE_KEEP_WORKSPACE, a finished job's
+    isolated workspace tree is retained for debugging. Durable evidence
+    (state.json / result.json / raw Claude streams) is always retained."""
+    return os.environ.get(
+        "JARVIS_BRIDGE_KEEP_WORKSPACE", ""
+    ).strip().lower() in {"1", "true", "yes", "on"}
 
 # Job status vocabulary with explicit semantics.
 QUEUED = "QUEUED"       # persisted, PRE evidence not yet taken, not started
@@ -830,6 +854,7 @@ def job_paths(job_id):
         "result": d / "result.json",
         "stdout": d / "claude_stdout.jsonl",
         "stderr": d / "claude_stderr.txt",
+        "workspace": d / WORKSPACE_DIRNAME,
     }
 
 
@@ -839,6 +864,132 @@ def ensure_jobs_dir():
     except OSError:
         # Surfaced later on first write; do not crash the server here.
         pass
+
+
+# ---------------------------------------------------------------------------
+# Per-job isolated execution workspace
+# ---------------------------------------------------------------------------
+
+class WorkspaceSetupError(RuntimeError):
+    """Raised when a job's isolated execution workspace cannot be created
+    safely (invalid job id, source outside ROOT, destination collision,
+    oversized source, copy failure, or a symlink that escapes the workspace).
+    The V5 execution path treats this as a durable, fail-closed FAILED outcome
+    and never runs Claude."""
+
+
+def _safe_rmtree(path):
+    """Bounded, never-raising directory removal."""
+    try:
+        shutil.rmtree(path, ignore_errors=True)
+    except Exception:  # noqa: BLE001 - cleanup must not raise
+        pass
+
+
+def _symlink_escapes(root):
+    """Workspace-relative paths of any symlink under ``root`` whose target
+    resolves outside ``root`` - a symlink-escape vector."""
+    root = Path(root).resolve()
+    escapes = []
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        for name in list(dirnames) + list(filenames):
+            p = Path(dirpath) / name
+            try:
+                if not p.is_symlink():
+                    continue
+            except OSError:
+                continue
+            target = os.readlink(p)
+            resolved = (
+                Path(target).resolve()
+                if os.path.isabs(target)
+                else (p.parent / target).resolve()
+            )
+            if not inside_root(resolved, root):
+                escapes.append(p.relative_to(root).as_posix())
+    return escapes
+
+
+def _source_tree_within_limits(src, max_entries, max_bytes):
+    """Bounded pre-flight check so an unexpectedly huge source tree fails the
+    job closed instead of copying unboundedly."""
+    entries = 0
+    total = 0
+    for dirpath, dirnames, filenames in os.walk(src, followlinks=False):
+        entries += len(dirnames) + len(filenames)
+        if entries > max_entries:
+            return False
+        for name in filenames:
+            try:
+                stt = (Path(dirpath) / name).lstat()
+            except OSError:
+                continue
+            if stat.S_ISREG(stt.st_mode):
+                total += stt.st_size
+                if total > max_bytes:
+                    return False
+    return True
+
+
+def prepare_job_workspace(job_id, source):
+    """Create jobs_dir()/<job_id>/workspace as a private, confined copy of the
+    ``source`` project tree and return metadata about it. Fail-closed with
+    WorkspaceSetupError on any unsafe condition; on failure no partial
+    workspace is left behind."""
+    paths = job_paths(job_id)  # validates job_id and confinement under root
+    job_dir = paths["dir"].resolve()
+    ws = paths["workspace"]
+
+    src = Path(source).resolve()
+    if not src.is_dir():
+        raise WorkspaceSetupError("SOURCE_NOT_A_DIRECTORY")
+    if src != ROOT.resolve() and not inside_root(src, ROOT):
+        raise WorkspaceSetupError("SOURCE_OUTSIDE_ROOT")
+
+    # Destination must sit directly beneath this job's own directory and must
+    # not already exist (collision / stale tree -> fail closed).
+    if ws.parent.resolve() != job_dir:
+        raise WorkspaceSetupError("WORKSPACE_OUTSIDE_JOB_DIR")
+    if ws.exists() or ws.is_symlink():
+        raise WorkspaceSetupError("WORKSPACE_COLLISION")
+
+    if not _source_tree_within_limits(
+        src, WORKSPACE_MAX_ENTRIES, WORKSPACE_MAX_BYTES
+    ):
+        raise WorkspaceSetupError("SOURCE_TREE_TOO_LARGE")
+
+    try:
+        shutil.copytree(src, ws, symlinks=True, ignore_dangling_symlinks=True)
+    except (OSError, shutil.Error) as e:
+        _safe_rmtree(ws)
+        raise WorkspaceSetupError(
+            f"COPY_FAILED: {type(e).__name__}: {e}"[:300]
+        )
+
+    escapes = _symlink_escapes(ws)
+    if escapes:
+        _safe_rmtree(ws)
+        raise WorkspaceSetupError(
+            "SYMLINK_ESCAPE: " + ",".join(sorted(escapes)[:10])
+        )
+
+    return {
+        "workspace_path": str(ws.resolve()),
+        "source_path": str(src),
+        "created_at": time.time(),
+    }
+
+
+def cleanup_job_workspace(job_id):
+    """Bounded, best-effort removal of a finished job's isolated workspace
+    tree. Never touches durable evidence (state.json / result.json / raw Claude
+    streams). Returns True if the tree is gone afterwards."""
+    try:
+        ws = job_paths(job_id)["workspace"]
+    except ValueError:
+        return False
+    _safe_rmtree(ws)
+    return not Path(ws).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -868,6 +1019,9 @@ def _new_state(job_id, spec):
         "recovery": None,
         "evidence": {},
         "result_available": False,
+        "source_project_path": None,
+        "execution_workspace_path": None,
+        "workspace_cleaned": None,
     }
 
 
@@ -1104,19 +1258,29 @@ def run_claude_bounded(cmd, cwd, timeout, grace=CLAUDE_TERM_GRACE_SECONDS):
 
 
 def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
-              failure, stdout, stderr, ran_claude):
-    """Collect POST evidence, compute the bridge verdict, and persist the
-    result + final state atomically. Always runs, whatever happened to Claude."""
+              failure, stdout, stderr, ran_claude, workspace=None,
+              source_git=None, source_snapshot=None):
+    """Collect POST evidence, compute the bridge verdict, persist result +
+    final state atomically, then bound-cleanup the isolated workspace. Always
+    runs, whatever happened to Claude.
+
+    ``pre_git`` / ``pre_snapshot`` and all POST evidence describe the ISOLATED
+    execution workspace (``workspace``) when the job actually ran. Evidence
+    proving the ORIGINAL project was untouched is derived from ``source_git`` /
+    ``source_snapshot`` plus a fresh re-read of the source here."""
     paths = job_paths(job_id)
-    cwd = spec["cwd"]
+    source_path = Path(spec["cwd"]).resolve()
     allowed_tools = spec["allowed_tools"]
+
+    isolated = workspace is not None
+    eval_cwd = Path(workspace) if isolated else source_path
 
     _atomic_write(paths["stdout"], (stdout or "").encode())
     _atomic_write(paths["stderr"], (stderr or "").encode())
 
-    post_git, _ = _safe(git_state, cwd)
-    post_snapshot, _ = _safe(workspace_snapshot, cwd)
-    changes, changes_exc = _safe(git_change_evidence, cwd)
+    post_git, _ = _safe(git_state, eval_cwd)
+    post_snapshot, _ = _safe(workspace_snapshot, eval_cwd)
+    changes, changes_exc = _safe(git_change_evidence, eval_cwd)
 
     if pre_snapshot and post_snapshot:
         fs_delta, delta_exc = _safe(snapshot_delta, pre_snapshot, post_snapshot)
@@ -1125,7 +1289,7 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
     else:
         fs_delta = {"complete": False, "error": "snapshot unavailable"}
 
-    audit = parse_claude_stream(stdout or "", cwd, allowed_tools)
+    audit = parse_claude_stream(stdout or "", eval_cwd, allowed_tools)
 
     changes_error = changes_exc or (changes or {}).get("error")
 
@@ -1157,6 +1321,44 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
 
     head_unchanged = (pre_git or {}).get("head") == (post_git or {}).get("head")
 
+    # Requirements 8/9/10: prove the ORIGINAL project was not modified. Re-read
+    # its Git truth and diff its filesystem snapshot now; isolated changes are
+    # NEVER promoted back into the source, on success or failure.
+    source_git_post, _ = _safe(git_state, source_path)
+    if source_snapshot:
+        source_now, _ = _safe(workspace_snapshot, source_path)
+        if source_now:
+            source_fs_delta, sdx = _safe(
+                snapshot_delta, source_snapshot, source_now
+            )
+            if source_fs_delta is None:
+                source_fs_delta = {"complete": False, "error": sdx}
+        else:
+            source_fs_delta = {
+                "complete": False, "error": "snapshot unavailable"
+            }
+    else:
+        source_fs_delta = {"complete": False, "error": "snapshot unavailable"}
+
+    source_head_unchanged = (
+        (source_git or {}).get("head") == (source_git_post or {}).get("head")
+    )
+    source_unchanged = (
+        source_head_unchanged and source_fs_delta.get("unchanged") is True
+    )
+
+    workspace_evidence = {
+        "isolated": isolated,
+        "source_project_path": str(source_path),
+        "execution_workspace_path": str(workspace) if isolated else None,
+        "source_git_pre": source_git,
+        "source_git_post": source_git_post,
+        "source_head_unchanged": source_head_unchanged,
+        "source_filesystem_delta": source_fs_delta,
+        "source_unchanged": source_unchanged,
+        "changes_promoted_to_source": False,
+    }
+
     result = {
         "ok": bridge_ok,
         "job_id": job_id,
@@ -1172,12 +1374,26 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
             "post": post_git,
             "head_unchanged": head_unchanged,
             "changes": changes,
+            "scope": (
+                "isolated_execution_workspace" if isolated
+                else "source_readonly"
+            ),
         },
         "filesystem_evidence": fs_delta,
+        "workspace_evidence": workspace_evidence,
         "tool_audit": audit,
         "stderr": (stderr or "")[-20000:],
     }
     atomic_write_json(paths["result"], result)
+
+    # Requirement 13: bounded, safe cleanup - remove only the workspace tree,
+    # never the durable evidence just persisted above.
+    if isolated and not keep_job_workspace():
+        workspace_cleaned = cleanup_job_workspace(job_id)
+    elif isolated:
+        workspace_cleaned = False
+    else:
+        workspace_cleaned = None
 
     update_state(job_id, {
         "status": final_status,
@@ -1186,7 +1402,17 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
         "timed_out": timed_out,
         "failure": failure,
         "result_available": True,
+        "source_project_path": str(source_path),
+        "execution_workspace_path": str(workspace) if isolated else None,
+        "workspace_cleaned": workspace_cleaned,
         "evidence": {
+            "source_project_path": str(source_path),
+            "source_git": source_git,
+            "source_git_post": source_git_post,
+            "source_fs_delta": source_fs_delta,
+            "source_unchanged": source_unchanged,
+            "execution_workspace_path": str(workspace) if isolated else None,
+            "isolated": isolated,
             "pre_git": pre_git,
             "pre_fs_summary": (pre_snapshot or {}).get("summary"),
             "post_git": post_git,
@@ -1201,44 +1427,96 @@ def _finalize(job_id, spec, *, pre_git, pre_snapshot, rc, timed_out,
 
 
 def execute_job(job_id, spec):
-    """Run one job to a durable terminal state. Never raises for an expected
-    Claude outcome (success / non-zero / timeout / internal exception)."""
-    cwd = spec["cwd"]
+    """Run one job to a durable terminal state inside a per-job isolated
+    workspace. Never raises for an expected Claude outcome (success / non-zero /
+    timeout / internal exception)."""
+    src = Path(spec["cwd"]).resolve()
     mode = spec["mode"]
 
     with LOCK:
         update_state(job_id, {"status": RUNNING, "started_at": time.time()})
 
-        pre_git, pre_git_exc = _safe(git_state, cwd)
-        pre_snapshot, pre_snap_exc = _safe(workspace_snapshot, cwd)
-        pre_fs_summary = (
-            pre_snapshot["summary"] if pre_snapshot
-            else {"complete": False, "error": pre_snap_exc}
+        # Requirement 5: capture the ORIGINAL project's exact starting Git truth
+        # (path / branch / HEAD / clean-dirty) and a filesystem snapshot before
+        # anything is copied or executed.
+        source_git, _ = _safe(git_state, src)
+        source_snapshot, source_snap_exc = _safe(workspace_snapshot, src)
+        source_fs_summary = (
+            source_snapshot["summary"] if source_snapshot
+            else {"complete": False, "error": source_snap_exc}
         )
-        update_state(job_id, {"evidence": {
-            "pre_git": pre_git,
-            "pre_fs_summary": pre_fs_summary,
-        }})
+        update_state(job_id, {
+            "source_project_path": str(src),
+            "evidence": {
+                "source_project_path": str(src),
+                "source_git": source_git,
+                "source_fs_summary": source_fs_summary,
+            },
+        })
 
-        # Implement-mode gating - identical checks to V4 /v1/run, enforced
-        # under LOCK so they cannot race, but here they produce a durable
-        # FAILED job with evidence instead of a transient HTTP 409.
+        # Requirement 6: implementation jobs may start only from a clean source
+        # repo. The existing clean-workspace gate, evaluated against the
+        # ORIGINAL project - Claude still only ever touches the isolated copy.
         if mode == "implement":
             gate = None
-            if not (pre_git or {}).get("is_repo"):
+            if not (source_git or {}).get("is_repo"):
                 gate = "IMPLEMENT_REQUIRES_GIT_REPOSITORY"
-            elif (pre_git or {}).get("clean") is not True:
+            elif (source_git or {}).get("clean") is not True:
                 gate = "IMPLEMENT_REQUIRES_CLEAN_WORKSPACE"
-            elif not (pre_fs_summary or {}).get("complete"):
+            elif not (source_fs_summary or {}).get("complete"):
                 gate = "PRE_SNAPSHOT_INCOMPLETE"
             if gate:
                 return _finalize(
                     job_id, spec,
-                    pre_git=pre_git, pre_snapshot=pre_snapshot,
+                    pre_git=source_git, pre_snapshot=source_snapshot,
                     rc=None, timed_out=False,
                     failure={"reason": gate, "phase": "pre_gate"},
                     stdout="", stderr="", ran_claude=False,
+                    workspace=None,
+                    source_git=source_git, source_snapshot=source_snapshot,
                 )
+
+        # Requirements 1/2/3/12: build the per-job isolated execution workspace.
+        # Any failure here is a durable, fail-closed FAILED - Claude never runs
+        # and the original project is never used as a cwd.
+        try:
+            ws_meta = prepare_job_workspace(job_id, src)
+        except (WorkspaceSetupError, ValueError) as we:
+            return _finalize(
+                job_id, spec,
+                pre_git=source_git, pre_snapshot=source_snapshot,
+                rc=None, timed_out=False,
+                failure={
+                    "reason": "WORKSPACE_SETUP_FAILED",
+                    "phase": "workspace_setup",
+                    "detail": f"{type(we).__name__}: {we}"[:300],
+                },
+                stdout="", stderr="", ran_claude=False,
+                workspace=None,
+                source_git=source_git, source_snapshot=source_snapshot,
+            )
+
+        workspace = Path(ws_meta["workspace_path"])
+
+        # PRE evidence for the run is taken INSIDE the isolated workspace: that
+        # copy is what Claude executes against, so pre/post deltas describe it.
+        pre_git, _ = _safe(git_state, workspace)
+        pre_snapshot, pre_snap_exc = _safe(workspace_snapshot, workspace)
+        pre_fs_summary = (
+            pre_snapshot["summary"] if pre_snapshot
+            else {"complete": False, "error": pre_snap_exc}
+        )
+        update_state(job_id, {
+            "execution_workspace_path": str(workspace),
+            "evidence": {
+                "source_project_path": str(src),
+                "source_git": source_git,
+                "source_fs_summary": source_fs_summary,
+                "execution_workspace_path": str(workspace),
+                "pre_git": pre_git,
+                "pre_fs_summary": pre_fs_summary,
+            },
+        })
 
         rc = None
         timed_out = False
@@ -1247,7 +1525,8 @@ def execute_job(job_id, spec):
         stdout = ""
         stderr = ""
         try:
-            run = run_claude_bounded(spec["cmd"], cwd, claude_timeout())
+            # Requirement 7: Claude executes ONLY inside the isolated workspace.
+            run = run_claude_bounded(spec["cmd"], workspace, claude_timeout())
             rc = run.returncode
             stdout = run.stdout or ""
             stderr = run.stderr or ""
@@ -1294,6 +1573,8 @@ def execute_job(job_id, spec):
             pre_git=pre_git, pre_snapshot=pre_snapshot,
             rc=rc, timed_out=timed_out, failure=failure,
             stdout=stdout, stderr=stderr, ran_claude=True,
+            workspace=workspace,
+            source_git=source_git, source_snapshot=source_snapshot,
         )
 
 
@@ -1401,6 +1682,11 @@ def recover_orphaned_jobs():
             ),
             "unverified_prior_result": prior_result,
         })
+        # Requirement 8/13: an orphaned job's isolated workspace is abandoned
+        # in-progress state. Bound-cleanup the tree (durable evidence files are
+        # left untouched); the original project was never Claude's cwd so it
+        # cannot be half-modified.
+        _safe_rmtree(child / WORKSPACE_DIRNAME)
         st.update({
             "status": FAILED,
             "finished_at": time.time(),
@@ -1408,6 +1694,7 @@ def recover_orphaned_jobs():
             "failure": failure,
             "recovery": failure,
             "result_available": True,
+            "workspace_cleaned": not (child / WORKSPACE_DIRNAME).exists(),
         })
         atomic_write_json(sp, st)
         recovered.append(child.name)
