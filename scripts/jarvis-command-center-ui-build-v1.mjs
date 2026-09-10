@@ -37,6 +37,11 @@ const FORBIDDEN = [
   "A BRIGHTER YOU", "PERSONAL AI OS", "--blue:#8bd2ff", "/jarvis/api/",
   // fake per-service System Status metrics that were removed from SERVICES
   "38 ms", "64 ms", "210 ms", "99,98 %", "99,91 %", "99,80 %", "1 von 2 Slots",
+  // Wave 4: seeded mock Runs / Activity / Approvals removed from init()
+  "Command Center V1: Home-Ansicht", "Nightly: Dependency-Audit aller Repos",
+  "AURENTARA: Landing-Copy veröffentlichen", "HAMYREN: Staging-Deploy",
+  "main@a3f9e21", "94 %", "+11 diese Woche", "Evidence-Paket E-3812 signiert",
+  "Wartet auf Freigabe A-031",
 ];
 
 const result = await build({

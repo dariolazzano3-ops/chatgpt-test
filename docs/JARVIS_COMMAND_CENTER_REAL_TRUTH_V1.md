@@ -274,6 +274,42 @@ accepted amber design tokens and CSS markers are served, the legacy blue markers
 not, System Status is wired to `/runtime-truth`, and the fake per-service metrics are
 gone).
 
+## Wave 4 — real Runs + real Activity
+
+Seeded mock Runs / Activity / Approvals were removed from the accepted UI's `init()`.
+The Home Runs panel, Tasks, the Activity feed, Logs, Freigaben and the Chat context
+panel now render from `GET <base>/api/runtime-truth` (or an honest
+`Nicht verbunden` / `Noch keine …` / loading state).
+
+Source of truth:
+
+- `store.readAudit({ owner_id, owner_ref, limit })` — a new bounded, owner-scoped,
+  deterministic, read-only audit reader added to the memory store, the Supabase
+  REST store and the Supabase RPC store (RPC `jarvis_service_audit_read_v1`,
+  migration `20260911090000_jarvis_audit_read_v1.sql`). Missing / erroring →
+  the caller throws and the domain fails closed. No fabricated empty success.
+- `src/jarvis/command-center-read-bindings-v1.js` — `createJarvisCommandCenterReadBindingsV1`
+  projects the real persisted audit events into source envelopes:
+  - `activity` = **REAL** (`jarvis-audit-reader-v1`) — one row per persisted event,
+    real persisted timestamp only; rows with no parseable timestamp / no content
+    are rejected.
+  - `runs` = **DERIVED** (`jarvis-run-projection-v1`, `derived_from` the audit
+    reader) — grouped by `request_id`; canonical run states only
+    (`QUEUED/RUNNING/WAITING_APPROVAL/COMPLETE/FAILED/INTERRUPTED/RESUMED/BLOCKED`);
+    `progress` is **always `null`** (never a fabricated percentage; the detail
+    panel shows `Unbekannt` and no progress bar).
+  - `approvals` = **DERIVED** — audit events that required an approval gate;
+    `AWAITING_APPROVAL` → `PENDING` (not `GRANTED`).
+  - `evidence` = **DERIVED** — commit / audit references carried by events.
+- `GET /jarvis/api/runtime-truth` merges these over the Wave 3 probe bindings.
+- With no audit history the panels show `Noch keine Runs` / `Noch keine Aktivität`;
+  with no readable store they show `Nicht verbunden`.
+- The command field no longer fabricates runs, approvals, logs or a synthetic
+  JARVIS reply (Wave 6 makes it real). `TICK` only animates session-local
+  optimistic runs, never a projected one.
+
+Acceptance smoke: `scripts/jarvis-command-center-wave4-smoke.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

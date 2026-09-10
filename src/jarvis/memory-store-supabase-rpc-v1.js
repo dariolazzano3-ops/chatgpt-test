@@ -121,6 +121,36 @@ export function createSupabaseJarvisRpcMemoryStoreV1({
         occurred_at: clean(row?.occurred_at, 80) || null,
         isolation: clone(redacted.isolation)
       };
+    },
+
+    // Bounded, owner-scoped, read-only audit reader (Wave 4). Requires the
+    // service-role RPC jarvis_service_audit_read_v1 (see migration
+    // 20260911_jarvis_audit_read_v1.sql). Fails closed if the function or the
+    // durable store is unavailable — never returns a fabricated empty success.
+    async readAudit({ owner_id, owner_ref, limit = 50 } = {}) {
+      requireScope(owner_id, owner_ref);
+      const rows = await call('jarvis_service_audit_read_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: clean(owner_ref, 320),
+        p_limit: Math.max(1, Math.min(200, Number(limit) || 50))
+      });
+      if (!Array.isArray(rows)) throw new Error('JARVIS_RPC_AUDIT_READ_INVALID');
+      return rows.map((row) => ({
+        event_id: clean(row?.event_id, 120) || null,
+        owner_ref: clean(row?.owner_ref, 320) || clean(owner_ref, 320),
+        request_id: clean(row?.request_id, 200) || null,
+        intent: clone(row?.intent),
+        tools_used: Array.isArray(row?.tools_used) ? clone(row.tools_used) : [],
+        permissions: Array.isArray(row?.permissions) ? clone(row.permissions) : [],
+        action: clean(row?.action, 120) || null,
+        result: clone(row?.result),
+        approval: clone(row?.approval),
+        cost: clone(row?.cost),
+        memory_updates: clone(row?.memory_updates),
+        isolation: clone(row?.isolation),
+        timestamp: clean(row?.occurred_at, 80) || null,
+        occurred_at: clean(row?.occurred_at, 80) || null
+      }));
     }
   };
 }

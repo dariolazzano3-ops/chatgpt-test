@@ -6,15 +6,20 @@ on:
       - 'factory/jarvis-command-center-real-truth-v1'
     paths:
       - 'src/jarvis/command-center-runtime-truth-v1.js'
+      - 'src/jarvis/command-center-read-bindings-v1.js'
       - 'src/jarvis/command-center-v1.js'
       - 'src/jarvis/command-center-ui/**'
       - 'src/jarvis/http-v1.js'
       - 'src/jarvis/integration-layer-v1.js'
+      - 'src/jarvis/memory-store-memory-v1.js'
+      - 'src/jarvis/memory-store-supabase-v1.js'
+      - 'src/jarvis/memory-store-supabase-rpc-v1.js'
       - 'src/source-of-truth.js'
       - 'scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs'
       - 'scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs'
       - 'scripts/jarvis-command-center-ui-build-v1.mjs'
       - 'scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave4-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
       - '.github/workflows/jarvis-command-center-real-truth-v1.yml'
   workflow_dispatch:
@@ -59,6 +64,9 @@ jobs:
 
       - name: Wave 3 frontend — accepted orange Command Center is served
         run: node scripts/jarvis-command-center-orange-ui-v1-smoke.mjs
+
+      - name: Wave 4 — real Runs + real Activity projection
+        run: node scripts/jarvis-command-center-wave4-smoke.mjs
 
       - name: Source-of-truth + integration-layer + rendered-UI regression
         run: |

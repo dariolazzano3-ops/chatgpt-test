@@ -146,52 +146,19 @@ const MEMORY = [
   { c: "routinen", k: "Evidence-Rotation", v: "Evidence-Pakete 30 Tage aufbewahren, danach archivieren.", src: "Bridge", upd: "vor 1 Monat" },
 ];
 
-const INTRO = "Zwei Runs laufen, drei Freigaben warten auf dich. Die Home-Ansicht steht bei vierundsechzig Prozent.";
-const SUGG = ["Systemstatus", "Chat-Ansicht polieren", "Freigaben prüfen", "HAMYREN deployen"];
+const SUGG = ["Systemstatus", "Was steht heute an?", "Freigaben prüfen", "Repo-Diff zusammenfassen"];
 
 function init() {
-  const runs = [
-    { id: "R-0142", title: "Command Center V1: Home-Ansicht", project: "jarvis", worker: "Claude Code, Slot 1", state: "running", progress: 64, stage: 3, note: "Komponente 7 von 11: Orb-Stage", started: ago(26).slice(0, 5), live: true, speed: 0.15 },
-    { id: "R-0141", title: "AURENTARA: Landing-Copy veröffentlichen", project: "aurentara", worker: "Claude Code, Slot 2", state: "waiting", progress: 90, stage: 6, note: "Wartet auf Freigabe A-031", started: ago(59).slice(0, 5) },
-    { id: "R-0140", title: "HAMYREN: Staging-Deploy", project: "hamyren", worker: "–", state: "blocked", progress: 72, stage: 4, note: "Bridge: Zugriff außerhalb des Scopes", started: ago(97).slice(0, 5) },
-    { id: "R-0139", title: "RIOSYSTEMS: Lead-Pipeline Refactor", project: "riosystems", worker: "Claude Code, Slot 1", state: "success", progress: 100, stage: 6, note: "Gemerged nach main@a3f9e21", started: ago(155).slice(0, 5) },
-    { id: "R-0138", title: "Lunara: Retry-Logik für Story-Webhook", project: "lunara", worker: "Claude Code, Slot 2", state: "failed", progress: 41, stage: 3, note: "Test 3 von 8 rot, Timeout nach 30 s", started: ago(170).slice(0, 5) },
-    { id: "R-0137", title: "JARVIS: Memory-Index neu aufbauen", project: "jarvis", worker: "Claude Code, Slot 2", state: "resumed", progress: 33, stage: 3, note: "Fortgesetzt ab Checkpoint 2", started: ago(202).slice(0, 5), live: true, speed: 0.12 },
-    { id: "R-0136", title: "Bio Techno Society: Event-Seite, erster Entwurf", project: "bts", worker: "–", state: "interrupted", progress: 18, stage: 2, note: "Session-Limit erreicht", started: "gestern" },
-    { id: "R-0135", title: "Nightly: Dependency-Audit aller Repos", project: "jarvis", worker: "Claude Code", state: "scheduled", progress: 0, stage: 0, note: "Start heute um 02:00", started: "–" },
-  ];
-  const L = (m, s, src, lvl, msg, run, ev) => ({ id: uid(), t: ago(m, s), src, lvl, msg, run, ev });
-  const logs = [
-    L(0, 12, "jarvis", "info", "Spracheingabe erkannt: „Wie weit ist das Command Center?“"),
-    L(0, 40, "bridge", "evidence", "Evidence-Paket E-3812 signiert, 4 Prüfungen bestanden", "R-0142", { hash: "sha256:9f2c7e1b…a41e", checks: ["Diff innerhalb des Scopes", "Keine Secrets im Diff", "Build grün", "Lint grün"] }),
-    L(1, 20, "claude", "ok", "Komponente OrbStage implementiert, 212 Zeilen", "R-0142"),
-    L(2, 55, "git", "ok", "Commit a3f9e21 auf feature/command-center-v1", "R-0142"),
-    L(6, 10, "astra", "info", "Plan geprüft: 11 Komponenten, 3 Risiken markiert", "R-0142"),
-    L(9, 2, "bridge", "warn", "Schreibzugriff außerhalb des Scopes blockiert: /srv/hamyren/.env", "R-0140", { hash: "sha256:1c04d9aa…77b2", checks: ["Policy v3, Regel 12: nur Lesezugriff auf Staging", "Aktion verworfen, nichts geschrieben", "Freigabe A-030 angelegt"] }),
-    L(14, 30, "hermes", "info", "Freigabe A-031 angefordert: AURENTARA Landing-Copy", "R-0141"),
-    L(16, 18, "claude", "error", "Test „webhook retries on 502“ fehlgeschlagen", "R-0138", { trace: "AssertionError: expected 3 retries, got 1\n  at retry.spec.ts:48:12\n  Timeout nach 30000 ms beim zweiten Versuch" }),
-    L(20, 5, "hermes", "info", "Run fortgesetzt ab Checkpoint 2", "R-0137"),
-    L(24, 40, "git", "ok", "Merge nach main: RIOSYSTEMS Lead-Pipeline", "R-0139"),
-    L(26, 0, "hermes", "info", "Auftrag angenommen: Command Center V1", "R-0142"),
-    L(37, 11, "astra", "warn", "Kontextfenster bei 78 %, Zusammenfassung erstellt"),
-    L(41, 50, "bridge", "evidence", "Evidence-Paket E-3799 signiert, 12 Prüfungen bestanden", "R-0139", { hash: "sha256:e8b1f403…0c9d", checks: ["14 Dateien, alle im Scope", "Tests 48 von 48 grün", "Keine neuen Abhängigkeiten", "Review-Diff erzeugt"] }),
-    L(58, 3, "hermes", "info", "Heartbeat stabil, 5 von 5 Diensten erreichbar"),
-  ];
-  const approvals = [
-    { id: "A-031", title: "AURENTARA: Landing-Copy veröffentlichen", run: "R-0141", risk: "niedrig", reason: "Öffentliche Inhalte ändern sich. Veröffentlichen braucht dein OK.", scope: "content/landing/*.md, 6 Dateien", systems: ["Git", "Hosting (Preview)"], action: "git merge copy/landing-v2 → main\nPreview-Build auslösen", requested: ago(14).slice(0, 5), status: "pending" },
-    { id: "A-030", title: "HAMYREN: Scope für Staging-Deploy erweitern", run: "R-0140", risk: "mittel", reason: "Bridge hat einen Schreibzugriff außerhalb des Scopes blockiert. Der Run braucht Lesezugriff auf die Staging-Umgebung.", scope: "/srv/hamyren/staging, nur lesen, 60 Minuten", systems: ["Bridge", "Staging", "Git"], action: "Scope temporär erweitern (60 Min.)\nStaging-Deploy ausführen, keine Produktion", requested: ago(9).slice(0, 5), status: "pending" },
-    { id: "A-029", title: "Bridge: Policy v3 auf v3.1 aktualisieren", run: null, risk: "hoch", reason: "Ändert Sicherheitsregeln für alle Worker. Betrifft die Evidence-Pflicht bei Refactors.", scope: "bridge/policies/*.yaml", systems: ["Bridge", "Claude Worker", "Hermes"], action: "Policy v3.1 aktivieren\nAlle laufenden Runs neu validieren", requested: ago(112).slice(0, 5), status: "pending" },
-    { id: "A-028", title: "RIOSYSTEMS: Merge nach main", run: "R-0139", risk: "niedrig", reason: "", scope: "", systems: [], action: "", requested: ago(60).slice(0, 5), status: "approved", decided: ago(45).slice(0, 5) },
-    { id: "A-027", title: "Lunara: Automations-Plan auf kostenpflichtigen Tarif heben", run: null, risk: "mittel", reason: "", scope: "", systems: [], action: "", requested: "gestern", status: "rejected", decided: "gestern" },
-  ];
-  const messages = [
-    { id: uid(), role: "user", text: "Wie weit ist das Command Center?", t: ago(0, 14).slice(0, 5) },
-    { id: uid(), role: "jarvis", text: "R-0142 läuft. Claude Code baut gerade die Orb-Stage, Komponente 7 von 11. Bridge hat bisher 38 Evidence-Einträge signiert, alle im Scope.", t: ago(0, 10).slice(0, 5), runId: "R-0142" },
-  ];
+  // No seeded operational data. Runs / Activity / Approvals / Evidence are
+  // populated from GET <apiBase>/runtime-truth (real persisted JARVIS audit
+  // projection). Locally-added optimistic runs from this session's own commands
+  // are marked { local: true } and merged on top by syncRuntimeTruth().
   return {
-    view: "home", voice: "speaking", utterance: INTRO, utterId: 1, messages, runs, approvals, logs,
-    taskFilter: "all", projectFilter: null, selRun: "R-0142",
+    view: "home", voice: "idle", utterance: "", utterId: 0,
+    messages: [], runs: [], approvals: [], logs: [],
+    taskFilter: "all", projectFilter: null, selRun: null,
     logFilter: { src: "all", lvl: "all", run: null, q: "" }, memCat: "all",
+    rtMeta: { loaded: false, systemsReal: false, runsReal: false, activityReal: false, approvalsReal: false, evidenceReal: false, sourceState: null },
   };
 }
 
@@ -223,10 +190,13 @@ function reducer(s, a) {
       const log = { id: uid(), t: nowHMS(), src: "hermes", lvl: a.decision === "approved" ? "ok" : "info", run: ap.run || undefined, msg: `Freigabe ${ap.id} ${verb}: ${ap.title}` };
       return { ...s, approvals, runs, logs: [log, ...s.logs] };
     }
+    case "SYNC_RT": return { ...s, ...a.patch };
     case "TICK": {
       const add = [];
       const runs = s.runs.map((r) => {
-        if (!r.live || !isActive(r)) return r;
+        // Only session-local optimistic runs animate; real projected runs never
+        // get a fabricated progress bump.
+        if (r.local !== true || !r.live || !isActive(r)) return r;
         const p = Math.min(100, r.progress + (r.speed || 0.15) * (0.6 + Math.random() * 0.8));
         const st = stageFor(p);
         if (p >= 100) {
@@ -319,23 +289,41 @@ const RT_STATE_COLOR = {
   ONLINE: "#a8d8a0", AVAILABLE: "#a8d8a0", HEALTHY: "#a8d8a0", SYNCED: "#a8d8a0", STANDBY: "#a8d8a0", ACTIVE: "#a8d8a0",
   BUSY: "#ffc24a", DEGRADED: "#ffc24a", CHANGED: "#ffc24a", OFFLINE: "#ff5d4f", UNAVAILABLE: "#ff5d4f",
 };
-const _RT = { state: { loaded: false, ok: false, canonical: false, data: {}, source: null }, subs: new Set(), started: false, iv: null };
+const _RT_EMPTY = {
+  loaded: false, ok: false, canonical: false, data: {}, source: null,
+  runs: { real: false, items: [] }, activity: { real: false, items: [] },
+  approvals: { real: false, items: [], pending: 0 }, evidence: { real: false, items: [] },
+};
+const _RT = { state: _RT_EMPTY, subs: new Set(), started: false, iv: null };
 function _rtPublish(next) { _RT.state = next; _RT.subs.forEach((fn) => { try { fn(next); } catch {} }); }
+function _domainReal(d) {
+  const c = d && d.source && d.source.classification;
+  return c === "REAL" || c === "DERIVED";
+}
 async function _rtLoad() {
   try {
     const r = await fetch(`${RT_API_BASE()}/runtime-truth`, { headers: { accept: "application/json" }, credentials: "same-origin" });
     const b = await r.json().catch(() => ({}));
     const source = (b && b.systems && b.systems.source) || null;
     const canonical = !!source && (source.classification === "REAL" || source.classification === "DERIVED");
+    const dom = (name) => (b && b[name]) || {};
     _rtPublish({
       loaded: true,
       ok: r.ok === true && b && b.ok === true,
       canonical,
       data: canonical && b.systems.data && typeof b.systems.data === "object" ? b.systems.data : {},
       source,
+      runs: { real: _domainReal(dom("runs")), items: (dom("runs").data && dom("runs").data.items) || [] },
+      activity: { real: _domainReal(dom("activity")), items: (dom("activity").data && dom("activity").data.items) || [] },
+      approvals: {
+        real: _domainReal(dom("approvals")),
+        items: (dom("approvals").data && dom("approvals").data.items) || [],
+        pending: (dom("approvals").data && dom("approvals").data.pending_count) || 0,
+      },
+      evidence: { real: _domainReal(dom("evidence")), items: (dom("evidence").data && dom("evidence").data.items) || [] },
     });
   } catch {
-    _rtPublish({ loaded: true, ok: false, canonical: false, data: {}, source: null });
+    _rtPublish({ ..._RT_EMPTY, loaded: true });
   }
 }
 function useRuntimeTruth() {
@@ -368,12 +356,79 @@ function rtServiceStatus(rt, serviceKey) {
 }
 function RuntimeBadge() {
   const rt = useRuntimeTruth();
+  const live = rt.loaded && (rt.canonical || rt.runs.real || rt.activity.real);
   const txt = !rt.loaded
     ? "Runtime wird geprüft …"
-    : rt.canonical
-      ? "System Status: Live · übrige Bereiche: Mock"
-      : "Runtime nicht verbunden · Mock-Daten";
+    : live
+      ? "Live-Daten aus Runtime Truth · restliche Bereiche Mock"
+      : "Runtime nicht verbunden · fail-closed";
   return <span className="mock">{txt}</span>;
+}
+
+/* ── Runtime-truth → view-model mappers (System Status stays in rtServiceStatus) ── */
+const RT_RUN_STATE = {
+  QUEUED: "scheduled", RUNNING: "running", WAITING_APPROVAL: "waiting", COMPLETE: "success",
+  FAILED: "failed", BLOCKED: "blocked", INTERRUPTED: "interrupted", RESUMED: "resumed",
+};
+const RT_LOG_LEVEL = { COMPLETED: "ok", COMPLETE: "ok", FAILED: "error", ERROR: "error", BLOCKED: "warn", SECURITY_VIOLATION: "warn", PENDING: "info" };
+const RT_APPROVAL_STATUS = { GRANTED: "approved", REVOKED: "rejected", EXPIRED: "rejected", PENDING: "pending", UNKNOWN: "pending" };
+const hm = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? "–" : `${p2(d.getHours())}:${p2(d.getMinutes())}`; };
+const hmsIso = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? nowHMS() : hms(d); };
+
+function rtRunToLocal(r) {
+  const state = RT_RUN_STATE[String(r.status || "").toUpperCase()] || "scheduled";
+  return {
+    id: r.id, title: r.title || r.id, project: "jarvis",
+    worker: r.worker || "JARVIS Runtime", state,
+    progress: 0, stage: 0, note: r.approval_state ? `Freigabe: ${r.approval_state}` : (r.status || ""),
+    started: r.started_at ? hm(r.started_at) : "–",
+    updated_at: r.updated_at || null, live: false, real: true,
+    evidence_ref: r.evidence_ref || null, approval_state: r.approval_state || null,
+  };
+}
+function rtActivityToLog(a) {
+  return {
+    id: `rt-${a.at}-${a.event}`, t: hmsIso(a.at),
+    src: "jarvis", lvl: RT_LOG_LEVEL[String(a.status || "").toUpperCase()] || "info",
+    msg: a.summary || a.event || "Runtime-Ereignis", run: a.run_id || null, ev: undefined, real: true,
+  };
+}
+function rtApprovalToLocal(a) {
+  return {
+    id: a.approval_id, title: a.approval_type || "Freigabe", run: a.run_id || null,
+    risk: "mittel", reason: "", scope: a.scope_key || "", systems: a.capability ? [a.capability] : [],
+    action: "", requested: a.requested_at ? hm(a.requested_at) : "–",
+    status: RT_APPROVAL_STATUS[String(a.state || "").toUpperCase()] || "pending",
+    decided: a.state === "GRANTED" || a.state === "REVOKED" ? (a.requested_at ? hm(a.requested_at) : "") : undefined,
+    real: true,
+  };
+}
+function syncRuntimeTruthPatch(rt, prev) {
+  const rtRuns = rt.runs.real ? rt.runs.items.map(rtRunToLocal) : [];
+  const localRuns = (prev.runs || []).filter((r) => r.local === true && !rtRuns.some((x) => x.id === r.id));
+  const runs = [...localRuns, ...rtRuns];
+  const logs = rt.activity.real ? rt.activity.items.map(rtActivityToLog) : [];
+  const approvals = rt.approvals.real ? rt.approvals.items.map(rtApprovalToLocal) : [];
+  return {
+    runs, logs, approvals,
+    selRun: prev.selRun && runs.some((r) => r.id === prev.selRun) ? prev.selRun : (runs[0] ? runs[0].id : null),
+    rtMeta: {
+      loaded: rt.loaded,
+      systemsReal: rt.canonical,
+      runsReal: rt.runs.real,
+      activityReal: rt.activity.real,
+      approvalsReal: rt.approvals.real,
+      evidenceReal: rt.evidence.real,
+      sourceState: rt.source && rt.source.source_state ? rt.source.source_state : null,
+    },
+  };
+}
+/** One honest line for a domain that is not connected / empty / loading. */
+function RtNote({ meta, real, count, loadingText = "Runtime wird geladen …", emptyText = "Noch keine Daten", offText = "Nicht verbunden" }) {
+  if (!meta || !meta.loaded) return <div className="empty">{loadingText}</div>;
+  if (!real) return <div className="empty">{offText}</div>;
+  if (!count) return <div className="empty">{emptyText}</div>;
+  return null;
 }
 
 /* ── 05 SIGNATURE VISUALS ─────────────────────────────────────────────── */
@@ -679,8 +734,10 @@ function MobileNav({ s, go }) {
 /* ── 07 VIEWS ─────────────────────────────────────────────────────────── */
 
 /* HOME */
-function Hero({ active, pending }) {
+function Hero({ active, pending, meta }) {
   const n = useNow();
+  const runsReal = meta && meta.runsReal;
+  const apprReal = meta && meta.approvalsReal;
   const lights = useMemo(() => {
     const out = [];
     while (out.length < 110) {
@@ -699,7 +756,11 @@ function Hero({ active, pending }) {
         <div className="focus"><span className="focus-k">Fokus heute</span>Command Center V1 präsentierbar machen</div>
       </div>
       <div className="hero-m">
-        <p className="lage">{active} Runs laufen<br />{pending} Freigaben offen<br />System stabil</p>
+        <p className="lage">
+          {runsReal ? `${active} Runs laufen` : "Runs nicht verbunden"}<br />
+          {apprReal ? `${pending} Freigaben offen` : "Freigaben nicht verbunden"}<br />
+          Runtime Truth aktiv
+        </p>
       </div>
       <div className="hero-r">
         <div className="clock">{p2(n.getHours())}:{p2(n.getMinutes())}<span className="sec">{p2(n.getSeconds())}</span></div>
@@ -712,28 +773,32 @@ function Hero({ active, pending }) {
 }
 
 function RunsPanel({ s, go }) {
+  const meta = s.rtMeta || {};
   const active = s.runs.filter(isActive), waiting = s.runs.filter((r) => r.state === "waiting");
-  const list = [...active, ...waiting].slice(0, 3);
+  const done = s.runs.filter((r) => r.state === "success").length;
+  const failed = s.runs.filter((r) => r.state === "failed" || r.state === "blocked").length;
+  const list = [...active, ...waiting, ...s.runs.filter((r) => !isActive(r) && r.state !== "waiting")].slice(0, 3);
   return (
-    <Panel area="runs" title="Runs" right={<LiveTag label="Aktiv" />}>
+    <Panel area="runs" title="Runs" right={<LiveTag label={meta.runsReal ? "Live" : "Nicht verbunden"} color={meta.runsReal ? "#ffab40" : "#a3968a"} pulse={false} />}>
       <div className="runs-top">
-        <div className="big">{active.length + waiting.length}</div>
-        <p className="big-l">Runs in Arbeit<br /><span>{active.length} laufen, {waiting.length} warten</span></p>
+        <div className="big">{meta.runsReal ? active.length + waiting.length : "–"}</div>
+        <p className="big-l">In Arbeit<br /><span>{meta.runsReal ? `${active.length} laufen, ${waiting.length} warten` : "Runtime-Quelle nicht verbunden"}</span></p>
       </div>
       <div className="runs-mid">
-        <div className="bars" aria-label="Runs der letzten 14 Tage">{HIST.map((v, i) => <i key={i} style={{ height: `${v}%`, opacity: 0.45 + (i / HIST.length) * 0.55 }} />)}</div>
         <dl className="stats">
-          <div><dt>+{2 + s.runs.length - 8}</dt><dd>heute</dd></div>
-          <div><dt>+11</dt><dd>diese Woche</dd></div>
-          <div><dt>94 %</dt><dd>erfolgreich</dd></div>
+          <div><dt>{meta.runsReal ? s.runs.length : "–"}</dt><dd>bekannt</dd></div>
+          <div><dt>{meta.runsReal ? done : "–"}</dt><dd>abgeschlossen</dd></div>
+          <div><dt>{meta.runsReal ? failed : "–"}</dt><dd>fehlgeschlagen</dd></div>
         </dl>
       </div>
       <div className="mini-runs">
+        <RtNote meta={meta} real={meta.runsReal} count={list.length}
+          emptyText="Noch keine Runs" offText="Runs nicht verbunden" loadingText="Runs werden geladen …" />
         {list.map((r) => (
           <button key={r.id} className="mini-run" onClick={() => go("tasks", { selRun: r.id, taskFilter: "all", projectFilter: null })}>
             <div className="mr-h"><span className="rid">{r.id}</span><Chip state={r.state} small /></div>
             <div className="mr-t">{r.title}</div>
-            <Prog v={r.progress} c={STATE[r.state].c} />
+            <div className="mr-b"><span>{r.note || STATE[r.state]?.label}</span><ChevronRight size={14} /></div>
           </button>
         ))}
       </div>
@@ -861,8 +926,10 @@ function HomeView({ s, go, command, inputRef, onMic }) {
   const pending = s.approvals.filter(isPending).length;
   return (
     <div className="home-grid">
-      <Hero active={active} pending={pending} />
-      <Panel area="act" title="Aktivität" right={<LiveTag />}>
+      <Hero active={active} pending={pending} meta={s.rtMeta} />
+      <Panel area="act" title="Aktivität" right={<LiveTag label={s.rtMeta?.activityReal ? "Live" : "Nicht verbunden"} color={s.rtMeta?.activityReal ? "#ffab40" : "#a3968a"} pulse={false} />}>
+        <RtNote meta={s.rtMeta} real={s.rtMeta?.activityReal} count={s.logs.length}
+          emptyText="Noch keine Aktivität" offText="Aktivitäts-Quelle nicht verbunden" loadingText="Aktivität wird geladen …" />
         <div className="feed">
           {s.logs.slice(0, 9).map((l) => (
             <button key={l.id} className="feed-r" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: l.run || null, q: "" } })}>
@@ -952,14 +1019,18 @@ function ChatView({ s, go, command, inputRef, onMic }) {
         </section>
         <aside className="ctx">
           <Panel title="Kontext">
-            <dl className="kv">
-              <div><dt>Projekt</dt><dd>{projName(ctxRun.project)}</dd></div>
-              <div><dt>Branch</dt><dd className="mono">{PROJECTS.find((p) => p.id === ctxRun.project)?.branch}</dd></div>
-              <div><dt>Worker</dt><dd>{ctxRun.worker}</dd></div>
-              <div><dt>Aktive Regeln</dt><dd>{MEMORY.filter((m) => m.lock).length} Policies</dd></div>
-            </dl>
+            {ctxRun ? (
+              <dl className="kv">
+                <div><dt>Run</dt><dd className="mono">{ctxRun.id}</dd></div>
+                <div><dt>Worker</dt><dd>{ctxRun.worker}</dd></div>
+                <div><dt>Status</dt><dd>{STATE[ctxRun.state]?.label || ctxRun.state}</dd></div>
+                <div><dt>Aktive Regeln</dt><dd>{MEMORY.filter((m) => m.lock).length} Policies</dd></div>
+              </dl>
+            ) : (
+              <div className="empty">{s.rtMeta?.runsReal ? "Noch kein aktiver Run" : "Runs nicht verbunden"}</div>
+            )}
           </Panel>
-          <Panel title={`Pipeline ${ctxRun.id}`} right={<Chip state={ctxRun.state} small />}><MiniStepper run={ctxRun} /></Panel>
+          {ctxRun && <Panel title={`Pipeline ${ctxRun.id}`} right={<Chip state={ctxRun.state} small />}><MiniStepper run={ctxRun} /></Panel>}
           <Panel title="Aus dem Memory">
             <div className="mem-mini">
               {MEMORY.filter((m) => m.c === "regeln").slice(0, 3).map((m) => (
@@ -993,7 +1064,8 @@ function TasksView({ s, d, go }) {
   const act = (patch, msg) => { d({ type: "RUN", id: sel.id, patch }); d({ type: "LOG", log: { src: "hermes", lvl: "info", run: sel.id, msg } }); };
   return (
     <>
-      <PageHead title="Tasks" sub="Laufende, geplante und abgeschlossene Runs. Jeder Schritt mit Evidence." />
+      <PageHead title="Tasks" sub="Runs aus der JARVIS-Runtime-Truth-Projektion. Kein Fortschritt ohne belegte Grundlage."
+        right={<LiveTag label={s.rtMeta?.runsReal ? "Live" : "Nicht verbunden"} color={s.rtMeta?.runsReal ? "#ffab40" : "#a3968a"} pulse={false} />} />
       <div className="tabs" role="tablist">
         {TASK_FILTERS.map(([id, label, f]) => (
           <button key={id} role="tab" aria-selected={s.taskFilter === id} className={`tab${s.taskFilter === id ? " on" : ""}`} onClick={() => d({ type: "PATCH", patch: { taskFilter: id } })}>
@@ -1006,15 +1078,16 @@ function TasksView({ s, d, go }) {
       </div>
       <div className="split">
         <div className="rows">
-          {list.length === 0 && <div className="empty">Keine Runs in diesem Filter. Starte einen neuen Auftrag über Home oder Chat.</div>}
+          <RtNote meta={s.rtMeta} real={s.rtMeta?.runsReal} count={list.length}
+            emptyText="Keine Runs in diesem Filter." offText="Runs nicht verbunden." loadingText="Runs werden geladen …" />
           {list.map((r) => (
             <button key={r.id} className={`row${sel?.id === r.id ? " sel" : ""}`} onClick={() => d({ type: "PATCH", patch: { selRun: r.id } })}>
               <span className="row-bar" style={{ background: STATE[r.state].c, boxShadow: `0 0 12px ${hexA(STATE[r.state].c, 0.6)}` }} />
               <div className="row-main">
                 <div className="row-t">{r.title}</div>
-                <div className="row-m"><span>{r.id}</span><span>{projName(r.project)}</span><span>{r.note}</span></div>
+                <div className="row-m"><span>{r.id}</span><span>{r.worker}</span><span>{r.note}</span></div>
               </div>
-              <div className="row-r"><Chip state={r.state} small /><div style={{ width: 120 }}><Prog v={r.progress} c={STATE[r.state].c} /></div></div>
+              <div className="row-r"><Chip state={r.state} small /></div>
             </button>
           ))}
         </div>
@@ -1022,20 +1095,18 @@ function TasksView({ s, d, go }) {
           <Panel className="detail" title={sel.id} right={<Chip state={sel.state} />}>
             <h2 className="d-t">{sel.title}</h2>
             <dl className="kv two">
-              <div><dt>Projekt</dt><dd>{projName(sel.project)}</dd></div>
               <div><dt>Worker</dt><dd>{sel.worker}</dd></div>
-              <div><dt>Gestartet</dt><dd className="mono">{sel.started}</dd></div>
-              <div><dt>Fortschritt</dt><dd className="mono">{Math.round(sel.progress)} %</dd></div>
+              <div><dt>Status</dt><dd>{STATE[sel.state]?.label || sel.state}</dd></div>
+              <div><dt>Gestartet</dt><dd className="mono">{sel.started || "–"}</dd></div>
+              <div><dt>Fortschritt</dt><dd className="mono">Unbekannt</dd></div>
             </dl>
-            <Prog v={sel.progress} c={STATE[sel.state].c} />
-            <div className="note">{sel.note}</div>
+            {sel.approval_state && <div className="note">Freigabe: {sel.approval_state}</div>}
+            {sel.note && <div className="note">{sel.note}</div>}
             <MiniStepper run={sel} />
             <div className="acts">
-              {isActive(sel) && <button className="btn" onClick={() => act({ state: "interrupted", live: false, note: "Pausiert durch dich" }, `${sel.id} pausiert`)}><Pause size={14} />Pausieren</button>}
-              {["interrupted", "failed"].includes(sel.state) && <button className="btn pri" onClick={() => act({ state: "resumed", live: true, speed: Math.max(sel.speed || 0, 0.9), stage: Math.max(sel.stage, 1), note: "Fortgesetzt ab letztem Checkpoint" }, `${sel.id} fortgesetzt`)}><Play size={14} />Fortsetzen</button>}
+              {sel.local === true && isActive(sel) && <button className="btn" onClick={() => act({ state: "interrupted", live: false, note: "Pausiert durch dich" }, `${sel.id} pausiert`)}><Pause size={14} />Pausieren</button>}
               {(sel.state === "waiting" || (sel.state === "blocked" && ap)) && <button className="btn pri" onClick={() => go("approvals")}><ShieldCheck size={14} />Freigabe prüfen</button>}
-              {sel.state === "blocked" && !ap && <button className="btn" onClick={() => act({ state: "resumed", live: true, speed: 0.9, note: "Erneut gestartet" }, `${sel.id} erneut gestartet`)}><Play size={14} />Erneut starten</button>}
-              <button className="btn ghost" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: sel.id, q: "" } })}><FileText size={14} />Evidence</button>
+              <button className="btn ghost" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: sel.id, q: "" } })}><FileText size={14} />Aktivität</button>
             </div>
           </Panel>
         )}
@@ -1048,7 +1119,8 @@ function TasksView({ s, d, go }) {
 function ProjectsView({ s, go }) {
   return (
     <>
-      <PageHead title="Projekte" sub="Deine Workspaces mit Status, Kontext und letzter Aktivität." />
+      <PageHead title="Projekte" sub="Workspace-Register des Operators. Branch und letzte Aktivität sind noch Mock."
+        right={<span className="rid">Mock (Register real)</span>} />
       <div className="cards">
         {PROJECTS.map((p) => {
           const runs = s.runs.filter((r) => r.project === p.id);
@@ -1059,10 +1131,10 @@ function ProjectsView({ s, go }) {
               <div className="proj-h"><span className="proj-tag">{p.tag}</span>{lead && <Chip state={lead.state} small />}</div>
               <h2 className="proj-n">{p.name}</h2>
               <p className="proj-d">{p.desc}</p>
-              {lead && <><div className="proj-run"><span className="rid">{lead.id}</span>{lead.title}</div><Prog v={lead.progress} c={STATE[lead.state].c} /></>}
+              {lead && <div className="proj-run"><span className="rid">{lead.id}</span>{lead.title}</div>}
               <div className="proj-f">
                 <span><GitBranch size={12} />{p.branch}</span>
-                <span>{open} offen</span>
+                <span>{s.rtMeta?.runsReal ? `${open} offen` : "Runs n/v"}</span>
                 <span>{p.last}</span>
               </div>
               <button className="btn ghost full" onClick={() => go("tasks", { projectFilter: p.id, taskFilter: "all", selRun: lead?.id })}>Runs ansehen</button>
@@ -1121,8 +1193,11 @@ function ApprovalsView({ s, d, go }) {
   const done = s.approvals.filter((a) => !isPending(a));
   return (
     <>
-      <PageHead title="Freigaben" sub="Nichts, was Live-Systeme, Kosten oder Sicherheitsregeln berührt, passiert ohne dich." />
-      {pending.length === 0 && <div className="empty big-empty"><Check size={18} /> Alles entschieden. Neue Freigaben erscheinen hier, sobald ein Run sie braucht.</div>}
+      <PageHead title="Freigaben" sub="Aus der Runtime-Truth-Projektion. Nichts, was Live-Systeme, Kosten oder Sicherheitsregeln berührt, passiert ohne dich."
+        right={<LiveTag label={s.rtMeta?.approvalsReal ? "Live" : "Nicht verbunden"} color={s.rtMeta?.approvalsReal ? "#ffab40" : "#a3968a"} pulse={false} />} />
+      {!s.rtMeta?.loaded && <div className="empty big-empty">Freigaben werden geladen …</div>}
+      {s.rtMeta?.loaded && !s.rtMeta?.approvalsReal && <div className="empty big-empty">Freigaben-Quelle nicht verbunden. Fail-closed: keine Freigabe wird angezeigt.</div>}
+      {s.rtMeta?.approvalsReal && pending.length === 0 && <div className="empty big-empty"><Check size={18} /> Keine offenen Freigaben. Neue erscheinen hier, sobald ein Run sie braucht.</div>}
       <div className="ap-list">
         {pending.map((a) => (
           <Panel key={a.id} className="ap">
@@ -1138,9 +1213,15 @@ function ApprovalsView({ s, d, go }) {
               <div className="span2"><div className="k">Vorgeschlagene Aktion</div><pre className="code">{a.action}</pre></div>
             </div>
             <div className="acts">
-              <button className="btn pri" onClick={() => d({ type: "DECIDE", id: a.id, decision: "approved" })}><Check size={14} />Freigeben</button>
-              <button className="btn danger" onClick={() => d({ type: "DECIDE", id: a.id, decision: "rejected" })}><X size={14} />Ablehnen</button>
-              <button className="btn ghost" onClick={() => d({ type: "DECIDE", id: a.id, decision: "later" })}><Clock size={14} />Später</button>
+              {a.local === true ? (
+                <>
+                  <button className="btn pri" onClick={() => d({ type: "DECIDE", id: a.id, decision: "approved" })}><Check size={14} />Freigeben</button>
+                  <button className="btn danger" onClick={() => d({ type: "DECIDE", id: a.id, decision: "rejected" })}><X size={14} />Ablehnen</button>
+                  <button className="btn ghost" onClick={() => d({ type: "DECIDE", id: a.id, decision: "later" })}><Clock size={14} />Später</button>
+                </>
+              ) : (
+                <span className="dim" style={{ fontSize: 12 }}>Entscheidung über die Runtime wird in Wave 6 freigeschaltet.</span>
+              )}
               {a.run && <button className="btn ghost" onClick={() => go("tasks", { selRun: a.run, taskFilter: "all", projectFilter: null })}>Run {a.run} ansehen</button>}
             </div>
           </Panel>
@@ -1246,8 +1327,10 @@ function LogsView({ s, d }) {
   const list = s.logs.filter((l) => (f.src === "all" || l.src === f.src) && (f.lvl === "all" || l.lvl === f.lvl) && (!f.run || l.run === f.run) && (!f.q || l.msg.toLowerCase().includes(f.q.toLowerCase())));
   return (
     <>
-      <PageHead title="Logs" sub="Ereignisse, Prüfschritte und Evidence. Klick auf einen Eintrag für Details."
+      <PageHead title="Logs" sub="Aktivität aus der JARVIS-Runtime-Truth-Projektion. Nur real persistierte Ereignisse."
         right={<label className="search"><Search size={15} /><input value={f.q} onChange={(e) => setF({ q: e.target.value })} placeholder="Logs durchsuchen" aria-label="Logs durchsuchen" /></label>} />
+      <RtNote meta={s.rtMeta} real={s.rtMeta?.activityReal} count={list.length}
+        emptyText="Keine Einträge für diese Filter." offText="Aktivitäts-Quelle nicht verbunden." loadingText="Aktivität wird geladen …" />
       <div className="tabs">
         {["all", ...Object.keys(SRC)].map((k) => (
           <button key={k} className={`tab${f.src === k ? " on" : ""}`} onClick={() => setF({ src: k })}>{k === "all" ? "Alle Quellen" : SRC[k]}</button>
@@ -1260,7 +1343,7 @@ function LogsView({ s, d }) {
         {f.run && <button className="tab pf" onClick={() => setF({ run: null })}>{f.run} <X size={12} /></button>}
       </div>
       <section className="pnl logs">
-        {list.length === 0 && <div className="empty">Keine Einträge für diese Filter. Setz einen Filter zurück, um mehr zu sehen.</div>}
+        {list.length === 0 && s.rtMeta?.activityReal && <div className="empty">Setz einen Filter zurück, um mehr zu sehen.</div>}
         {list.map((l) => {
           const has = !!l.ev, isOpen = open === l.id;
           return (
@@ -1308,6 +1391,12 @@ export default function JarvisCommandCenter() {
 
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [s.view]);
 
+  // Real Runs / Activity / Approvals from GET <apiBase>/runtime-truth.
+  const rt = useRuntimeTruth();
+  useEffect(() => {
+    d({ type: "SYNC_RT", patch: syncRuntimeTruthPatch(rt, sRef.current) });
+  }, [rt]);
+
   const go = useCallback((view, patch) => d({ type: "NAV", view, patch }), []);
   const onMic = () => {
     const v = sRef.current.voice;
@@ -1316,49 +1405,19 @@ export default function JarvisCommandCenter() {
     if (v !== "listening") inputRef.current?.focus();
   };
 
+  // Wave 6 replaces this with a real submission to POST <apiBase>/command.
+  // Until then the command field is honest: it does NOT fabricate runs,
+  // approvals, logs, worker output or a synthetic JARVIS reply.
   const command = useCallback((raw) => {
-    const text = raw.trim();
+    const text = String(raw || "").trim();
     if (!text) return;
-    const t = text.toLowerCase();
-    const kind = /status|system|gesund|health/.test(t) ? "status"
-      : /deploy|veröffentlich|produktion|dns|go live|live schalten/.test(t) ? "approval"
-      : /freigabe|approval/.test(t) ? "approvals" : "task";
-    const project = /aurentara/.test(t) ? "aurentara" : /hamyren/.test(t) ? "hamyren" : /riosystems/.test(t) ? "riosystems" : /lunara/.test(t) ? "lunara" : /bio techno|bts/.test(t) ? "bts" : "jarvis";
-    const title = (text.charAt(0).toUpperCase() + text.slice(1)).slice(0, 56) + (text.length > 56 ? " …" : "");
-    const runId = kind === "task" || kind === "approval" ? `R-0${runSeq.current++}` : null;
-
     d({ type: "MSG", msg: { id: uid(), role: "user", text, t: nowHM() } });
-    d({ type: "LOG", log: { src: "jarvis", lvl: "info", msg: `Eingabe: „${text.slice(0, 60)}${text.length > 60 ? " …" : ""}“` } });
-    d({ type: "VOICE", voice: "listening" });
-
-    later(450, () => d({ type: "VOICE", voice: "thinking" }));
-    later(600, () => {
-      if (!runId) return;
-      d({ type: "ADD_RUN", run: { id: runId, title: `${projName(project)}: ${title}`, project, worker: kind === "approval" ? "–" : "Claude Code, Slot 2", state: kind === "approval" ? "waiting" : "running", progress: 3, stage: 1, note: STAGE_NOTE[1], started: nowHM(), live: kind !== "approval", speed: 3.2 } });
-      d({ type: "LOG", log: { src: "hermes", lvl: "info", run: runId, msg: `Auftrag angenommen: ${runId}` } });
-    });
-    later(1700, () => {
-      d({ type: "VOICE", voice: "analyzing" });
-      d({ type: "LOG", log: { src: "astra", lvl: "info", run: runId || undefined, msg: kind === "status" ? "Systemzustand aggregiert, 5 Dienste" : "Plan geprüft, Scope innerhalb der Policy" } });
-    });
-    later(3000, () => {
-      const st = sRef.current;
-      const act = st.runs.filter(isActive).length, pend = st.approvals.filter(isPending);
-      let reply;
-      if (kind === "status") reply = `Alle fünf Kernsysteme sind erreichbar. ${act} Runs laufen, ${pend.length} Freigaben warten. Claude Worker steht bei 62 % des Tageslimits, Bridge meldet einen Sicherheitshinweis.`;
-      else if (kind === "approvals") reply = pend.length ? `${pend.length} Freigaben warten. Am dringendsten: ${pend[0].title}, Risiko ${pend[0].risk}.` : "Keine offenen Freigaben. Alles entschieden.";
-      else if (kind === "approval") {
-        const apId = `A-0${apSeq.current++}`;
-        d({ type: "ADD_APPROVAL", ap: { id: apId, title: `${projName(project)}: ${title}`, run: runId, risk: "mittel", reason: "Der Auftrag berührt eine Live- oder Produktionsumgebung. Laut Policy nur mit deiner ausdrücklichen Freigabe.", scope: "Deploy-Ziel laut Projektkonfiguration", systems: ["Bridge", "Git", "Hosting"], action: "Build erstellen\nDeploy nach Staging, Produktion erst nach zweiter Freigabe", requested: nowHM(), status: "pending" } });
-        d({ type: "RUN", id: runId, patch: { note: `Wartet auf Freigabe ${apId}`, stage: 2 } });
-        d({ type: "LOG", log: { src: "bridge", lvl: "warn", run: runId, msg: `Live-Umgebung erkannt, Freigabe ${apId} angefordert` } });
-        reply = `Das berührt eine Live-Umgebung. Ich habe Freigabe ${apId} angelegt. Ohne dein OK passiert nichts.`;
-      } else reply = `Verstanden. ${runId} läuft. Astra hat den Plan geprüft, Claude Code setzt um. Das Ergebnis kommt mit Evidence zu dir in die Review.`;
-      const id = ++utterSeq.current;
-      d({ type: "VOICE", voice: "speaking" });
-      d({ type: "SAY", text: reply, id });
-      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: reply, t: nowHM(), runId } });
-      later(Math.max(2800, reply.length * 34 + 1200), () => d({ type: "IDLE_IF", id }));
+    d({ type: "VOICE", voice: "thinking" });
+    const id = ++utterSeq.current;
+    later(500, () => {
+      const reply = "Befehlseingang. Die echte Übergabe an die JARVIS-Runtime (Hermes → Astra → Claude Code → Bridge → Git) wird in Wave 6 aktiviert. Bis dahin wird hier nichts ausgeführt und nichts erfunden.";
+      d({ type: "VOICE", voice: "idle" });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: reply, t: nowHM(), runId: null } });
     });
   }, []);
 

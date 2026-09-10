@@ -15,6 +15,7 @@ import {
   createJarvisCommandCenterTruthSnapshotV1,
   createJarvisCommandCenterLiveProbeBindingsV1
 } from './command-center-runtime-truth-v1.js';
+import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-bindings-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 let localMemoryStore = null;
@@ -265,7 +266,19 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const probes = options.command_center_probes && typeof options.command_center_probes === 'object'
       ? options.command_center_probes
       : {};
-    const bindings = createJarvisCommandCenterLiveProbeBindingsV1(probes, { now: options.now });
+    // Wave 4/5: real Runs / Activity / Approvals / Evidence projected from the
+    // owner-scoped persisted JARVIS audit log. Absent store.readAudit -> no
+    // binding -> those domains fail closed to NOT_CONNECTED.
+    const readBindings = createJarvisCommandCenterReadBindingsV1({
+      store,
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      now: options.now
+    });
+    const bindings = {
+      ...createJarvisCommandCenterLiveProbeBindingsV1(probes, { now: options.now }),
+      ...readBindings
+    };
     const snapshot = await createJarvisCommandCenterTruthSnapshotV1(bindings, { now: options.now });
     return json({
       ok: true,

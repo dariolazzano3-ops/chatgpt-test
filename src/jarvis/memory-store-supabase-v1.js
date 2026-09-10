@@ -229,6 +229,43 @@ export function createSupabaseJarvisMemoryStoreV1({
         occurred_at: clean(rows[0].occurred_at, 80) || row.occurred_at,
         isolation: clone(row.isolation)
       };
+    },
+
+    // Bounded, owner-scoped, read-only audit reader (Wave 4). Fails closed on
+    // any transport / storage error — never fabricates an empty success.
+    async readAudit({ owner_id, owner_ref, limit = 50 } = {}) {
+      const ownerId = clean(owner_id, 80);
+      const ownerRef = clean(owner_ref, 320);
+      if (!validUuid(ownerId)) throw new Error('JARVIS_AUDIT_OWNER_ID_REQUIRED');
+      if (!ownerRef) throw new Error('JARVIS_AUDIT_OWNER_REF_REQUIRED');
+      const safeLimit = Math.max(1, Math.min(200, Number(limit) || 50));
+      const query = [
+        `owner_id=eq.${encodeURIComponent(ownerId)}`,
+        `owner_ref=eq.${encodeURIComponent(ownerRef)}`,
+        'select=event_id,owner_ref,request_id,intent,tools_used,permissions,action,result,approval,cost,memory_updates,isolation,occurred_at',
+        'order=occurred_at.desc',
+        `limit=${safeLimit}`
+      ].join('&');
+      const response = await request(auditTable, query, { method: 'GET', headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error(`JARVIS_AUDIT_STORE_READ_FAILED:${response.status}`);
+      const rows = await parseJson(response);
+      if (!Array.isArray(rows)) throw new Error('JARVIS_MEMORY_STORE_INVALID_RESPONSE');
+      return rows.map((row) => ({
+        event_id: clean(row.event_id, 120) || null,
+        owner_ref: clean(row.owner_ref, 320) || ownerRef,
+        request_id: clean(row.request_id, 200) || null,
+        intent: clone(row.intent),
+        tools_used: Array.isArray(row.tools_used) ? clone(row.tools_used) : [],
+        permissions: Array.isArray(row.permissions) ? clone(row.permissions) : [],
+        action: clean(row.action, 120) || null,
+        result: clone(row.result),
+        approval: clone(row.approval),
+        cost: clone(row.cost),
+        memory_updates: clone(row.memory_updates),
+        isolation: clone(row.isolation),
+        timestamp: clean(row.occurred_at, 80) || null,
+        occurred_at: clean(row.occurred_at, 80) || null
+      }));
     }
   };
 }
