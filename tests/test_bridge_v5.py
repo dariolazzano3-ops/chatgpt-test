@@ -1592,6 +1592,66 @@ if __name__ == "__main__":
     unittest.main(verbosity=2)
 
 class FallbackSprint(Base):
+    def test_codex_fallback_prompt_carries_isolated_snapshot_contract(self):
+        task = "Review: summarise README.md and list the top-level files."
+        wrapped = bridge._codex_fallback_prompt(task)
+        # the original task is preserved verbatim, at the end, unchanged
+        self.assertTrue(wrapped.endswith(task))
+        self.assertIn(task, wrapped)
+        # the isolated-snapshot execution contract is prepended
+        for phrase in ("isolated filesystem snapshot",
+                       "Git metadata is intentionally unavailable",
+                       "Do not run git commands",
+                       "absence of .git is expected"):
+            self.assertIn(phrase, wrapped)
+        self.assertTrue(wrapped.startswith(bridge.CODEX_FALLBACK_PREAMBLE))
+        # never exceeds the worker's accepted prompt length, even at the limit
+        self.assertLessEqual(len(wrapped), bridge.MAX_PROMPT_CHARS)
+        self.assertLessEqual(
+            len(bridge._codex_fallback_prompt("x" * bridge.MAX_PROMPT_CHARS)),
+            bridge.MAX_PROMPT_CHARS)
+
+    def test_codex_fallback_request_body_uses_wrapped_prompt(self):
+        name = self.make_project()
+        source = pathlib.Path(self.projects) / name
+        init_git_repo(source)
+        exchange = pathlib.Path(self.tmp) / 'exchange_wrap'
+        exchange.mkdir()
+        env = {'JARVIS_BRIDGE_FALLBACK_URL': 'http://worker',
+               'JARVIS_BRIDGE_FALLBACK_TOKEN': 'secret',
+               'JARVIS_BRIDGE_FALLBACK_EXCHANGE_ROOT': str(exchange)}
+        task = "Do the review task."
+        spec = self.spec(project=name, mode='review')
+        spec['prompt'] = task
+        job = bridge.create_job(spec)
+        seen = {}
+
+        def remote(request, timeout):
+            body = json.loads(request.data)
+            seen['prompt'] = body['prompt']
+            ws = exchange / job / 'workspace'
+            self.assertFalse((ws / '.git').exists())
+            pre = bridge.workspace_snapshot(ws)['summary']
+            result = {'job_id': job, 'ok': True, 'exit_code': 0, 'timed_out': False,
+                      'fs_pre': pre, 'fs_post': pre,
+                      'audit': {'complete': True, 'compliant': True,
+                                'schema': 'codex-json-v1-strict'}}
+            response = mock.MagicMock()
+            response.__enter__.return_value.read.return_value = json.dumps(result).encode()
+            return response
+
+        opener = mock.Mock()
+        opener.open.side_effect = remote
+        with mock.patch.dict('sys.modules', {'codex_worker': None}), \
+             mock.patch.dict(os.environ, env), \
+             mock.patch('urllib.request.build_opener', return_value=opener), \
+             mock.patch.object(bridge, 'run_claude_bounded',
+                               return_value=FakeClaudeRun(stderr="You've hit your session limit", returncode=1)):
+            bridge.execute_job(job, spec)
+        self.assertEqual(seen['prompt'], bridge._codex_fallback_prompt(task))
+        self.assertTrue(seen['prompt'].endswith(task))
+        self.assertIn("Do not run git commands", seen['prompt'])
+
     def test_classifier(self):
         for message, expected in [("You've hit your session limit", True), ('Provider unavailable', True), ('usage limit reached', True), ('test failure', False), ('timeout', False)]:
             self.assertEqual(bool(bridge.fallback_reason('', message, self.tmp, [])), expected)

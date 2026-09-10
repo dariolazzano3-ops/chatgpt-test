@@ -705,6 +705,25 @@ IMPLEMENT_PREAMBLE = (
     "authorized below.\n\n"
 )
 
+# Prepended to the user task before it is handed to the Codex fallback worker.
+# run_codex_fallback() copies the execution workspace into the exchange WITHOUT
+# .git (a deliberate isolation invariant); absent this contract the model may run
+# git commands that fail in the snapshot and trip the strict command-exit audit,
+# turning an otherwise-valid fallback into a FAILED job.
+CODEX_FALLBACK_PREAMBLE = (
+    "You are operating on an isolated filesystem snapshot.\n"
+    "Git metadata is intentionally unavailable.\n"
+    "Do not run git commands.\n"
+    "Inspect and modify files directly using filesystem/shell tools.\n"
+    "The absence of .git is expected and is not an error.\n\n"
+)
+
+
+def _codex_fallback_prompt(prompt):
+    """CODEX_FALLBACK_PREAMBLE + the original user task, unchanged, bounded to
+    MAX_PROMPT_CHARS so the worker's length guard never rejects the request."""
+    return (CODEX_FALLBACK_PREAMBLE + prompt)[:MAX_PROMPT_CHARS]
+
 
 def build_spec(data):
     """Validate a logical bridge request and derive the execution spec.
@@ -1346,7 +1365,8 @@ def run_codex_fallback(job_id, spec, workspace):
         pre = fallback_exchange_snapshot(root, job_id)
         request = urllib.request.Request(
             os.environ['JARVIS_BRIDGE_FALLBACK_URL'].rstrip('/') + '/v1/run',
-            data=json.dumps({'job_id': job_id, 'mode': spec['mode'], 'prompt': spec['prompt']}).encode(),
+            data=json.dumps({'job_id': job_id, 'mode': spec['mode'],
+                             'prompt': _codex_fallback_prompt(spec['prompt'])}).encode(),
             headers={'Authorization': 'Bearer ' + os.environ['JARVIS_BRIDGE_FALLBACK_TOKEN'],
                      'Content-Type': 'application/json'})
         # Never forward bearer authentication through redirects.
