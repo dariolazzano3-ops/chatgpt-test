@@ -382,6 +382,43 @@ connector execution / prepare-only. No second brain was built.
 
 Acceptance smoke: `scripts/jarvis-command-center-wave6-smoke.mjs`.
 
+## Wave 7 — desktop + mobile + browser acceptance
+
+Real headless-Chromium acceptance runs against a local server that serves the
+shell and mocks `/api/*` (no deploy). Two viewports: **1440×900** and
+**390×844**. `scripts/jarvis-command-center-wave7-browser-acceptance.mjs` asserts,
+for each viewport:
+
+- the accepted structure renders — `.jcc`, `.bg-glow`, `canvas.stars`
+  (Starfield), `.orb-wrap canvas` (Orb), `.beam` (Beam), `.side .logo` (desktop
+  sidebar), `.mnav` (mobile nav), `.core .stage`;
+- the amber design system is in the injected CSS (`--amber:#ffab40`);
+- no legacy blue leakage (`A BRIGHTER YOU` / `--blue:#8bd2ff`);
+- System Status is fail-closed (`Nicht verbunden` on every service row);
+- Runs / Activity show honest empty / loading / offline states;
+- **no horizontal overflow** (`scrollWidth − innerWidth ≤ 1`);
+- the command input is present and, on submit, calls `POST /api/chat` with a
+  valid `correlation_id`;
+- with a real mock snapshot the projected runs, activity feed and Freigaben
+  approval render without a crash;
+- every navigation target (Home / Chat / Tasks / Projekte / Memory / Freigaben /
+  System / Logs) is reachable and switches views;
+- no fatal console / page errors.
+
+Deterministic screenshots (`wave7-{desktop,mobile}-{empty,real}.png`) are written
+to the scratchpad, not deployed.
+
+### Regression fixed in Wave 7
+
+The accepted source's `@media (max-width:980px)` block was authored **before** the
+plain `.mtop` / `.mnav` base rules, so at equal specificity the later
+`display:none` won and the **mobile top bar and bottom navigation were hidden on
+mobile** (a pre-existing defect, not caused by the real-data integration). The
+`@media` block was moved to follow those base rules; the mobile-nav styling
+itself is unchanged. Nothing else in the accepted visual system was touched.
+
+Acceptance: `scripts/jarvis-command-center-wave7-browser-acceptance.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

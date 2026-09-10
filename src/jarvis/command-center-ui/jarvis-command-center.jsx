@@ -1954,6 +1954,17 @@ const CSS = `
   .ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
   .sys-2{grid-template-columns:1fr}
 }
+.mtop{display:none;align-items:center;justify-content:space-between;padding:6px 4px 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.mtop-r{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--hi)}
+.mnav{display:none;position:fixed;left:10px;right:10px;bottom:10px;z-index:20;height:64px;border-radius:20px;border:1px solid var(--line2);background:rgba(10,8,6,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow-x:auto;padding:0 4px;align-items:center;scrollbar-width:none;box-shadow:0 20px 50px -10px rgba(0,0,0,.9)}
+.mnav::-webkit-scrollbar,.cats::-webkit-scrollbar{display:none}
+.mnav button{flex:1 0 62px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--dim);padding:8px 0;position:relative}
+.mnav button.on{color:var(--hi)}
+.mnav button.on svg{filter:drop-shadow(0 0 6px var(--amber))}
+.mnav .b{position:absolute;top:6px;right:calc(50% - 16px);width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+/* Wave 7: this block must follow the .mtop/.mnav base rules above so the
+   mobile top bar and bottom nav actually show on small viewports (equal
+   specificity -> later source wins). Visual styling itself is unchanged. */
 @media (max-width:980px){
   .shell{grid-template-columns:1fr}
   .side,.topbar{display:none}
@@ -1963,14 +1974,6 @@ const CSS = `
   .cats{position:static;flex-direction:row;overflow-x:auto;scrollbar-width:none}
   .cat{flex:none;gap:10px;width:auto}
 }
-.mtop{display:none;align-items:center;justify-content:space-between;padding:6px 4px 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
-.mtop-r{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--hi)}
-.mnav{display:none;position:fixed;left:10px;right:10px;bottom:10px;z-index:20;height:64px;border-radius:20px;border:1px solid var(--line2);background:rgba(10,8,6,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow-x:auto;padding:0 4px;align-items:center;scrollbar-width:none;box-shadow:0 20px 50px -10px rgba(0,0,0,.9)}
-.mnav::-webkit-scrollbar,.cats::-webkit-scrollbar{display:none}
-.mnav button{flex:1 0 62px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--dim);padding:8px 0;position:relative}
-.mnav button.on{color:var(--hi)}
-.mnav button.on svg{filter:drop-shadow(0 0 6px var(--amber))}
-.mnav .b{position:absolute;top:6px;right:calc(50% - 16px);width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
 @media (max-width:720px){
   .home-grid{grid-template-columns:1fr;grid-template-areas:"hero" "core" "runs" "act" "quick" "sys" "pipe";gap:14px}
   .hero{grid-template-columns:1fr auto;min-height:0;padding:22px 20px;align-items:start}
