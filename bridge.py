@@ -720,9 +720,15 @@ CODEX_FALLBACK_PREAMBLE = (
 
 
 def _codex_fallback_prompt(prompt):
-    """CODEX_FALLBACK_PREAMBLE + the original user task, unchanged, bounded to
-    MAX_PROMPT_CHARS so the worker's length guard never rejects the request."""
-    return (CODEX_FALLBACK_PREAMBLE + prompt)[:MAX_PROMPT_CHARS]
+    """CODEX_FALLBACK_PREAMBLE + the original user task, preserved byte-for-byte.
+
+    The task is NEVER truncated or altered. If the preamble plus the task would
+    exceed MAX_PROMPT_CHARS (the Codex worker's accepted prompt length), raise so
+    the fallback fails closed instead of forwarding a mangled task."""
+    wrapped = CODEX_FALLBACK_PREAMBLE + prompt
+    if len(wrapped) > MAX_PROMPT_CHARS:
+        raise ValueError('codex fallback prompt exceeds MAX_PROMPT_CHARS')
+    return wrapped
 
 
 def build_spec(data):

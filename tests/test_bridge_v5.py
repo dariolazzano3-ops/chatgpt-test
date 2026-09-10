@@ -1593,23 +1593,40 @@ if __name__ == "__main__":
 
 class FallbackSprint(Base):
     def test_codex_fallback_prompt_carries_isolated_snapshot_contract(self):
+        # 1. short task: preamble + task, byte-for-byte, nothing else
         task = "Review: summarise README.md and list the top-level files."
         wrapped = bridge._codex_fallback_prompt(task)
-        # the original task is preserved verbatim, at the end, unchanged
+        self.assertEqual(wrapped, bridge.CODEX_FALLBACK_PREAMBLE + task)
         self.assertTrue(wrapped.endswith(task))
-        self.assertIn(task, wrapped)
-        # the isolated-snapshot execution contract is prepended
         for phrase in ("isolated filesystem snapshot",
                        "Git metadata is intentionally unavailable",
                        "Do not run git commands",
                        "absence of .git is expected"):
             self.assertIn(phrase, wrapped)
-        self.assertTrue(wrapped.startswith(bridge.CODEX_FALLBACK_PREAMBLE))
-        # never exceeds the worker's accepted prompt length, even at the limit
-        self.assertLessEqual(len(wrapped), bridge.MAX_PROMPT_CHARS)
-        self.assertLessEqual(
-            len(bridge._codex_fallback_prompt("x" * bridge.MAX_PROMPT_CHARS)),
-            bridge.MAX_PROMPT_CHARS)
+
+    def test_codex_fallback_prompt_boundary_and_failclosed(self):
+        room = bridge.MAX_PROMPT_CHARS - len(bridge.CODEX_FALLBACK_PREAMBLE)
+        # 2. exact boundary: accepted, task preserved, length == MAX_PROMPT_CHARS
+        at_limit = "A" * room
+        w = bridge._codex_fallback_prompt(at_limit)
+        self.assertEqual(w, bridge.CODEX_FALLBACK_PREAMBLE + at_limit)
+        self.assertEqual(len(w), bridge.MAX_PROMPT_CHARS)
+        self.assertTrue(w.endswith(at_limit))
+        # 3. one char over the boundary: fail closed, never truncate/alter
+        over = "A" * (room + 1)
+        with self.assertRaises(ValueError):
+            bridge._codex_fallback_prompt(over)
+        # 4. a long, marked task that overflows is never silently truncated:
+        #    the tail marker is never dropped — the call raises instead
+        marked = ("B" * (room - 4)) + "TAIL"          # fits exactly
+        self.assertTrue(bridge._codex_fallback_prompt(marked).endswith("TAIL"))
+        marked_over = ("B" * (room - 3)) + "TAIL"      # one over
+        with self.assertRaises(ValueError):
+            bridge._codex_fallback_prompt(marked_over)
+        # a submit-legal 20000-char prompt (build_spec's own limit) still fails
+        # closed here rather than losing its last ~240 chars
+        with self.assertRaises(ValueError):
+            bridge._codex_fallback_prompt("x" * bridge.MAX_PROMPT_CHARS)
 
     def test_codex_fallback_request_body_uses_wrapped_prompt(self):
         name = self.make_project()
