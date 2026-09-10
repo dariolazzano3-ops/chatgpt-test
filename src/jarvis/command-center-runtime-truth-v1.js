@@ -222,12 +222,17 @@ function normalizeApproval(item = {}) {
   const state = ['PENDING', 'GRANTED', 'REVOKED', 'EXPIRED', 'UNKNOWN'].includes(explicitState)
     ? explicitState
     : item.granted === true ? 'GRANTED' : item.granted === false ? 'PENDING' : 'UNKNOWN';
+  const risk = clean(item.risk, 40).toLowerCase();
   return {
     approval_id: id,
+    run_id: clean(item.run_id || item.request_id, 200) || null,
     scope_key: clean(item.scope_key, 300) || null,
     approval_type: clean(item.approval_type, 120) || null,
     capability: clean(item.capability, 160) || null,
+    reason: clean(item.reason, 600) || null,
+    risk: ['niedrig', 'mittel', 'hoch', 'low', 'medium', 'high', 'critical'].includes(risk) ? risk : null,
     state,
+    requested_at: validIso(item.requested_at || item.at),
     expires_at: validIso(item.expires_at),
     actor_id: clean(item.actor_id, 160) || null
   };
@@ -269,7 +274,11 @@ function normalizeEvidence(item = {}) {
     observed_at: validIso(item.observed_at || item.at || item.created_at),
     url: clean(item.url, 1200) || null,
     path: clean(item.path, 800) || null,
-    summary: clean(item.summary, 800) || null
+    summary: clean(item.summary, 800) || null,
+    run_ref: clean(item.run_ref || item.run_id, 200) || null,
+    worker_verified: item.worker_verified === true,
+    independent_acceptance: item.independent_acceptance === true,
+    acceptance_ref: clean(item.acceptance_ref, 240) || null
   };
 }
 

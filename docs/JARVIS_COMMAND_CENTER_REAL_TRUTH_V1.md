@@ -310,6 +310,35 @@ Source of truth:
 
 Acceptance smoke: `scripts/jarvis-command-center-wave4-smoke.mjs`.
 
+## Wave 5 — real Approvals + real Evidence
+
+Both were already introduced as DERIVED projections in the Wave 4 read-bindings;
+Wave 5 hardens them and wires the surfaces:
+
+- **Approvals** — `state` comes only from the canonical `approval.gate_status`
+  (`AWAITING_APPROVAL` → `PENDING`, never `GRANTED`); `run_id`, `reason`, `risk`,
+  `capability`, `requested_at` pass through the adapter's `normalizeApproval`.
+  When the source is absent the Freigaben view fails closed
+  (`Freigaben-Quelle nicht verbunden`), no card shown. Decision buttons on a
+  projected approval are hidden until the Wave 6 runtime path.
+  Risk with no canonical value renders `Risiko unklassifiziert`, empty reason
+  renders `Keine Angabe in der Runtime-Truth-Quelle`.
+- **Evidence** — projected from the same audit rows, keyed by a real
+  `evidence_ref` (commit sha, acceptance ref, or `audit:<event_id>`).
+  **A worker self-report (`result.verified === true`) is never independent
+  acceptance.** `independent_acceptance` is `true` only when a distinct
+  `acceptance_ref` / `bridge_decision` / `review_ref` is carried by the
+  persisted result. Log rows render the evidence with honest check lines
+  (`Worker meldet: verifiziert (keine unabhängige Abnahme)` /
+  `Unabhängige Abnahme: <ref>`), never a fabricated `12 von 12 Prüfungen`.
+  The run detail panel shows the linked evidence id, kind, status and
+  acceptance state, or `Keine Evidence verknüpft`.
+- `jarvisCommandCenterReadBindingsManifestV1()` asserts
+  `worker_self_acceptance_treated_as_independent: false` and
+  `approval_state_from_canonical_gate_only: true`.
+
+Acceptance smoke: `scripts/jarvis-command-center-wave5-smoke.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

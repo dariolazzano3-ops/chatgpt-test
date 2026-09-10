@@ -155,7 +155,7 @@ function init() {
   // are marked { local: true } and merged on top by syncRuntimeTruth().
   return {
     view: "home", voice: "idle", utterance: "", utterId: 0,
-    messages: [], runs: [], approvals: [], logs: [],
+    messages: [], runs: [], approvals: [], logs: [], evidence: [],
     taskFilter: "all", projectFilter: null, selRun: null,
     logFilter: { src: "all", lvl: "all", run: null, q: "" }, memCat: "all",
     rtMeta: { loaded: false, systemsReal: false, runsReal: false, activityReal: false, approvalsReal: false, evidenceReal: false, sourceState: null },
@@ -386,17 +386,31 @@ function rtRunToLocal(r) {
     evidence_ref: r.evidence_ref || null, approval_state: r.approval_state || null,
   };
 }
-function rtActivityToLog(a) {
+function rtEvidenceToUi(e) {
+  const checks = [];
+  if (e.worker_verified) checks.push("Worker meldet: verifiziert (keine unabhängige Abnahme)");
+  if (e.independent_acceptance && e.acceptance_ref) checks.push(`Unabhängige Abnahme: ${e.acceptance_ref}`);
+  if (e.status) checks.push(`Status: ${e.status}`);
+  return {
+    hash: e.evidence_id,
+    checks: checks.length ? checks : undefined,
+    kind: e.kind || null,
+    independent_acceptance: e.independent_acceptance === true,
+  };
+}
+function rtActivityToLog(a, evByRef) {
+  const ev = a.evidence_ref && evByRef && evByRef[a.evidence_ref] ? rtEvidenceToUi(evByRef[a.evidence_ref]) : undefined;
   return {
     id: `rt-${a.at}-${a.event}`, t: hmsIso(a.at),
-    src: "jarvis", lvl: RT_LOG_LEVEL[String(a.status || "").toUpperCase()] || "info",
-    msg: a.summary || a.event || "Runtime-Ereignis", run: a.run_id || null, ev: undefined, real: true,
+    src: "jarvis", lvl: ev ? "evidence" : (RT_LOG_LEVEL[String(a.status || "").toUpperCase()] || "info"),
+    msg: a.summary || a.event || "Runtime-Ereignis", run: a.run_id || null, ev, real: true,
   };
 }
 function rtApprovalToLocal(a) {
+  const risk = ["niedrig", "mittel", "hoch"].includes(a.risk) ? a.risk : null;
   return {
     id: a.approval_id, title: a.approval_type || "Freigabe", run: a.run_id || null,
-    risk: "mittel", reason: "", scope: a.scope_key || "", systems: a.capability ? [a.capability] : [],
+    risk, reason: a.reason || "", scope: a.scope_key || "", systems: a.capability ? [a.capability] : [],
     action: "", requested: a.requested_at ? hm(a.requested_at) : "–",
     status: RT_APPROVAL_STATUS[String(a.state || "").toUpperCase()] || "pending",
     decided: a.state === "GRANTED" || a.state === "REVOKED" ? (a.requested_at ? hm(a.requested_at) : "") : undefined,
@@ -407,10 +421,13 @@ function syncRuntimeTruthPatch(rt, prev) {
   const rtRuns = rt.runs.real ? rt.runs.items.map(rtRunToLocal) : [];
   const localRuns = (prev.runs || []).filter((r) => r.local === true && !rtRuns.some((x) => x.id === r.id));
   const runs = [...localRuns, ...rtRuns];
-  const logs = rt.activity.real ? rt.activity.items.map(rtActivityToLog) : [];
+  const evByRef = {};
+  if (rt.evidence.real) for (const e of rt.evidence.items) if (e && e.evidence_id) evByRef[e.evidence_id] = e;
+  const logs = rt.activity.real ? rt.activity.items.map((a) => rtActivityToLog(a, evByRef)) : [];
   const approvals = rt.approvals.real ? rt.approvals.items.map(rtApprovalToLocal) : [];
+  const evidence = rt.evidence.real ? rt.evidence.items.slice() : [];
   return {
-    runs, logs, approvals,
+    runs, logs, approvals, evidence,
     selRun: prev.selRun && runs.some((r) => r.id === prev.selRun) ? prev.selRun : (runs[0] ? runs[0].id : null),
     rtMeta: {
       loaded: rt.loaded,
@@ -901,8 +918,8 @@ function PipePanel({ s, go }) {
           <div className="pnl res">
             <div className="res-h"><span className="pnl-t">Letztes Ergebnis</span><Chip state="success" small /></div>
             <div className="res-t">{last.title}</div>
-            <p className="res-d">{last.note}. 14 Dateien, 12 von 12 Prüfungen bestanden.</p>
-            <button className="lnk" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: last.id, q: "" } })}>Evidence öffnen</button>
+            <p className="res-d">{last.note || "Abgeschlossen."}{last.evidence_ref ? ` · Evidence ${last.evidence_ref}` : " · keine Evidence verknüpft"}</p>
+            <button className="lnk" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: last.id, q: "" } })}>Aktivität öffnen</button>
           </div>
         )}
         <div className="pipe-tag only-wide">
@@ -1102,6 +1119,17 @@ function TasksView({ s, d, go }) {
             </dl>
             {sel.approval_state && <div className="note">Freigabe: {sel.approval_state}</div>}
             {sel.note && <div className="note">{sel.note}</div>}
+            {(() => {
+              const evi = sel.evidence_ref ? (s.evidence || []).find((e) => e.evidence_id === sel.evidence_ref) : null;
+              if (!sel.evidence_ref) return <div className="note dim">Keine Evidence verknüpft</div>;
+              return (
+                <div className="note">
+                  <div className="k">Evidence</div>
+                  <div className="mono">{sel.evidence_ref}</div>
+                  {evi && <div>{evi.kind || "AUDIT"} · Status {evi.status || "Unbekannt"} · {evi.independent_acceptance ? "unabhängig abgenommen" : "keine unabhängige Abnahme"}</div>}
+                </div>
+              );
+            })()}
             <MiniStepper run={sel} />
             <div className="acts">
               {sel.local === true && isActive(sel) && <button className="btn" onClick={() => act({ state: "interrupted", live: false, note: "Pausiert durch dich" }, `${sel.id} pausiert`)}><Pause size={14} />Pausieren</button>}
@@ -1179,11 +1207,11 @@ function MemoryView({ s, d }) {
 
 /* APPROVALS */
 function RiskMeter({ risk }) {
-  const r = RISK[risk];
+  const r = RISK[risk] || { c: "#a3968a", n: 0 };
   return (
     <span className="risk" style={{ color: r.c }}>
       <span className="risk-b">{[1, 2, 3].map((i) => <i key={i} style={{ background: i <= r.n ? r.c : undefined, boxShadow: i <= r.n ? `0 0 8px ${hexA(r.c, 0.6)}` : undefined }} />)}</span>
-      Risiko {risk}
+      {risk ? `Risiko ${risk}` : "Risiko unklassifiziert"}
     </span>
   );
 }
@@ -1206,11 +1234,11 @@ function ApprovalsView({ s, d, go }) {
               <RiskMeter risk={a.risk} />
             </div>
             <div className="ap-grid">
-              <div><div className="k">Warum</div><p className="v">{a.reason}</p></div>
-              <div><div className="k">Scope</div><p className="v mono">{a.scope}</p></div>
-              <div><div className="k">Betroffene Systeme</div><div className="sys-chips">{a.systems.map((x) => <span key={x}>{x}</span>)}</div></div>
+              <div><div className="k">Warum</div><p className="v">{a.reason || "Keine Angabe in der Runtime-Truth-Quelle"}</p></div>
+              <div><div className="k">Scope</div><p className="v mono">{a.scope || "—"}</p></div>
+              <div><div className="k">Betroffene Systeme</div><div className="sys-chips">{a.systems.length ? a.systems.map((x) => <span key={x}>{x}</span>) : <span>—</span>}</div></div>
               <div><div className="k">Angefordert</div><p className="v mono">{a.requested}{a.run ? `, von ${a.run}` : ""}</p></div>
-              <div className="span2"><div className="k">Vorgeschlagene Aktion</div><pre className="code">{a.action}</pre></div>
+              {a.action && <div className="span2"><div className="k">Vorgeschlagene Aktion</div><pre className="code">{a.action}</pre></div>}
             </div>
             <div className="acts">
               {a.local === true ? (

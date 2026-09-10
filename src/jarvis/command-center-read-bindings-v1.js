@@ -182,6 +182,8 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
         scope_key: ownerRef,
         approval_type: row.action || 'RUNTIME_ACTION',
         capability: row.permissions[0] || null,
+        reason: clean(row.approval?.reason, 600) || null,
+        risk: clean(row.approval?.risk, 40).toLowerCase() || null,
         state: approvalState(row.approval),
         requested_at: row.at,
         expires_at: null,
@@ -205,13 +207,27 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
       if (!ref || seen.has(ref)) continue;
       seen.add(ref);
       const result = row.result || {};
+      const status = clean(result.status, 80).toUpperCase() || null;
+      // A worker self-reporting result.verified === true is NOT independent
+      // acceptance. Independent acceptance only when a distinct decision /
+      // acceptance / bridge reference is carried by the persisted result.
+      const independent = Boolean(
+        clean(result.acceptance_ref || result.independent_acceptance_ref || result.bridge_decision || result.review_ref, 240)
+      );
       items.push({
         evidence_id: ref,
-        kind: clean(result.commit_sha || result.commit ? 'GIT_COMMIT' : row.action ? `ACTION:${row.action}` : 'AUDIT', 120),
-        status: clean(result.status, 80).toUpperCase() || null,
+        kind: (result.commit_sha || result.commit) ? 'GIT_COMMIT' : (row.action ? `ACTION:${row.action}` : 'AUDIT'),
+        status,
         observed_at: row.at,
+        url: null,
+        path: null,
         summary: row.request || row.action || null,
-        run_ref: row.request_id || null
+        run_ref: row.request_id || null,
+        worker_verified: result.verified === true,
+        independent_acceptance: independent,
+        acceptance_ref: independent
+          ? clean(result.acceptance_ref || result.independent_acceptance_ref || result.bridge_decision || result.review_ref, 240)
+          : null
       });
     }
     return {
@@ -236,6 +252,8 @@ export function jarvisCommandCenterReadBindingsManifestV1() {
     evidence_classification: 'DERIVED',
     fabricates_data: false,
     progress_ever_synthesised: false,
+    worker_self_acceptance_treated_as_independent: false,
+    approval_state_from_canonical_gate_only: true,
     fail_closed_when_unavailable: true,
     production_deploy: false,
     hamyren_data_flow: false

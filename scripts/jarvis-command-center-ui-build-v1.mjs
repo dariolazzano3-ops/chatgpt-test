@@ -52,6 +52,7 @@ const result = await build({
   target: "es2022",
   jsx: "automatic",
   minify: true,
+  charset: "utf8",
   legalComments: "none",
   sourcemap: false,
   write: false,
