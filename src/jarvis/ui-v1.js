@@ -18,7 +18,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
 .brand{letter-spacing:.42em;font-size:18px;font-weight:500;color:#d8efff;padding:8px 10px 22px}.brand small{display:block;letter-spacing:.22em;font-size:9px;color:var(--muted);margin-top:8px}
 .nav{display:grid;gap:7px;margin-top:14px}.nav button{appearance:none;border:0;background:transparent;color:#7892a8;text-align:left;border-radius:12px;padding:11px 12px;font-size:12px;letter-spacing:.08em;cursor:pointer}.nav button:hover,.nav button.active{color:#eaf7ff;background:linear-gradient(90deg,rgba(92,177,255,.14),transparent);box-shadow:inset 2px 0 0 var(--blue)}
 .philosophy{margin-top:auto;padding:18px 11px 6px;color:#6f899e;font-size:10px;line-height:1.65;letter-spacing:.13em}.philosophy strong{display:block;color:#a7c9e1;font-size:11px;margin-bottom:8px}
-.main{min-width:0;display:flex;flex-direction:column;gap:18px}.topbar{height:74px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;padding:0 24px}.greeting{font-size:13px;letter-spacing:.16em;color:#a5c3d9}.greeting strong{display:block;font-size:20px;letter-spacing:.06em;color:#e7f6ff;margin-bottom:4px}.live{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.12em;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 18px var(--ok)}
+.main{min-width:0;display:flex;flex-direction:column;gap:18px}.topbar{height:74px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;padding:0 24px}.greeting{font-size:13px;letter-spacing:.16em;color:#a5c3d9}.greeting strong{display:block;font-size:20px;letter-spacing:.06em;color:#e7f6ff;margin-bottom:4px}.live{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.12em;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 18px var(--ok)}.dot.unknown{background:var(--warn);box-shadow:0 0 18px var(--warn)}
 .command{position:relative;min-height:calc(100vh - 128px);border-radius:30px;overflow:hidden;display:grid;grid-template-rows:minmax(260px,1fr) auto auto}
 .core-stage{position:relative;min-height:310px;display:grid;place-items:center;overflow:hidden}.core-stage:before{content:"";position:absolute;width:520px;height:520px;border-radius:50%;border:1px solid rgba(112,197,255,.12);box-shadow:0 0 90px rgba(58,154,226,.08),inset 0 0 90px rgba(58,154,226,.04);animation:drift 14s linear infinite}.core-stage:after{content:"";position:absolute;width:380px;height:380px;border-radius:50%;border:1px solid rgba(112,197,255,.18);box-shadow:0 0 60px rgba(58,154,226,.12);animation:drift 10s linear infinite reverse}
 .orb{width:220px;height:220px;border-radius:50%;position:relative;z-index:2;background:radial-gradient(circle at 38% 35%,rgba(154,222,255,.95) 0 2%,rgba(54,135,204,.78) 3% 10%,rgba(10,42,72,.94) 32%,#06111c 62%,#02060b 100%);box-shadow:0 0 0 1px rgba(154,222,255,.28),0 0 55px rgba(57,158,232,.34),inset -30px -20px 65px #01050a}.orb:before{content:"";position:absolute;inset:-26px;border:1px solid rgba(128,207,255,.32);border-radius:50%;clip-path:polygon(0 42%,100% 22%,100% 60%,0 80%);transform:rotate(-12deg)}.orb-label{position:absolute;z-index:3;text-align:center;letter-spacing:.5em;font-size:13px;color:#dff4ff;text-shadow:0 0 16px rgba(131,211,255,.8)}.orb-label small{display:block;margin-top:12px;letter-spacing:.2em;font-size:8px;color:#7ca5c0}
@@ -52,7 +52,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
   <main class="main">
     <header class="topbar glass">
       <div class="greeting"><strong id="greeting">JARVIS</strong><span id="session-label">Private session wird geprüft…</span></div>
-      <div class="live"><span class="dot"></span><span id="live-label">CORE ONLINE</span></div>
+      <div class="live"><span id="live-dot" class="dot unknown"></span><span id="live-label">RUNTIME TRUTH</span></div>
     </header>
 
     <section class="command glass">
@@ -78,10 +78,18 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:lin
 
   <aside class="right">
     <section class="panel glass"><h3>SYSTEMS</h3>
-      <div class="row"><span>JARVIS Core</span><span id="core" class="pill">CHECK</span></div>
+      <div class="row"><span>JARVIS</span><span id="sys-jarvis" class="pill">CHECK</span></div>
+      <div class="row"><span>Hermes</span><span id="sys-hermes" class="pill">CHECK</span></div>
+      <div class="row"><span>Astra</span><span id="sys-astra" class="pill">CHECK</span></div>
+      <div class="row"><span>Claude</span><span id="sys-claude" class="pill">CHECK</span></div>
+      <div class="row"><span>Codex</span><span id="sys-codex" class="pill">CHECK</span></div>
+      <div class="row"><span>Bridge</span><span id="sys-bridge" class="pill">CHECK</span></div>
+      <div class="row"><span>Git</span><span id="sys-git" class="pill">CHECK</span></div>
       <div class="row"><span>Private Session</span><span id="session" class="pill">CHECK</span></div>
       <div class="row"><span>Memory</span><span id="memory" class="pill">CHECK</span></div>
-      <div class="row"><span>Google OAuth</span><span id="oauth" class="pill">CHECK</span></div>\n      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>\n      <a id="connect-google" href="${basePath}/connect/google" style="display:none;margin-top:12px;text-decoration:none;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:#dff4ff;font-size:10px;letter-spacing:.08em;text-align:center">CONNECT GOOGLE CALENDAR</a>
+      <div class="row"><span>Google OAuth</span><span id="oauth" class="pill">CHECK</span></div>
+      <div class="row"><span>Calendar Read</span><span id="calendar" class="pill">CHECK</span></div>
+      <a id="connect-google" href="${basePath}/connect/google" style="display:none;margin-top:12px;text-decoration:none;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;color:#dff4ff;font-size:10px;letter-spacing:.08em;text-align:center">CONNECT GOOGLE CALENDAR</a>
     </section>
     <section class="panel glass"><h3>SAFETY</h3>
       <div class="row"><span>Production</span><strong>OFF</strong></div>
@@ -97,22 +105,47 @@ const chat=document.getElementById('chat'),form=document.getElementById('compose
 function bubble(text,type){const el=document.createElement('div');el.className='bubble '+type;el.textContent=String(text||'');chat.appendChild(el);chat.scrollTop=chat.scrollHeight}
 function pill(id,text,ok){const el=document.getElementById(id);el.textContent=text;el.className='pill '+(ok?'ok':'warn')}
 async function getJson(path,init){const r=await fetch(path,init);const body=await r.json().catch(()=>({error:'INVALID_RESPONSE'}));if(!r.ok)throw Object.assign(new Error(body.error||('HTTP '+r.status)),{body,status:r.status});return body}
+const SYS_ROWS={jarvis:'JARVIS',hermes:'HERMES',astra:'ASTRA',claude:'CLAUDE',codex:'CODEX',bridge:'BRIDGE',git:'GIT'};
+const SYS_HEALTHY=['ONLINE','AVAILABLE','HEALTHY','SYNCED','STANDBY','ACTIVE'];
+function paintSystem(id,state){
+  const known=Boolean(state)&&state!=='UNKNOWN';
+  pill('sys-'+id,known?state:'Nicht verbunden',known&&SYS_HEALTHY.indexOf(state)>=0);
+}
+function paintSystemsUnknown(){for(const id in SYS_ROWS)paintSystem(id,'UNKNOWN')}
+function setLive(label,unknown){document.getElementById('live-label').textContent=label;document.getElementById('live-dot').className='dot'+(unknown?' unknown':'')}
+async function loadRuntimeTruth(){
+  let truth;
+  try{truth=await getJson(API_BASE+'/runtime-truth')}
+  catch(e){paintSystemsUnknown();setLive('RUNTIME TRUTH · NICHT VERBUNDEN',true);return}
+  const systems=(truth&&truth.systems)||{};
+  const src=systems.source||{};
+  const canonical=src.classification==='REAL'||src.classification==='DERIVED';
+  const data=(canonical&&systems.data)||{};
+  for(const id in SYS_ROWS){
+    const state=canonical?String(data[SYS_ROWS[id]]||'UNKNOWN').toUpperCase():'UNKNOWN';
+    paintSystem(id,state);
+  }
+  const jarvis=canonical?String(data.JARVIS||'UNKNOWN').toUpperCase():'UNKNOWN';
+  if(jarvis==='ONLINE')setLive('JARVIS ONLINE',false);
+  else if(jarvis==='DEGRADED')setLive('JARVIS DEGRADED',true);
+  else setLive('JARVIS · NICHT VERBUNDEN',true);
+}
 async function boot(){
   try{
     const [s,status]=await Promise.all([getJson(API_BASE+'/session'),getJson(API_BASE+'/status')]);
     document.getElementById('session-label').textContent='Private · '+(s.display_name||'Operator');
-    pill('core','ONLINE',true);pill('session','PRIVATE',true);
+    pill('session',s.authenticated===false?'BLOCKED':'PRIVATE',s.authenticated!==false);
     pill('memory',status.durable_memory_ready?'DURABLE':'NOT BOUND',status.durable_memory_ready);
     pill('oauth',status.google_calendar_connected?'CONNECTED':status.google_oauth_configured?'READY':'SETUP',status.google_calendar_connected);
     pill('calendar',status.calendar_read_bound?'READ ONLY':'PENDING',status.calendar_read_bound);
     const connect=document.getElementById('connect-google');
     if(status.google_oauth_configured&&!status.google_calendar_connected)connect.style.display='block';
-    if(!status.calendar_read_bound) document.getElementById('live-label').textContent='CORE ONLINE · CALENDAR PENDING';
     const q=new URLSearchParams(location.search).get('google');
     if(q==='connected')bubble('Google Calendar ist jetzt read-only mit JARVIS verbunden.','assistant');
     if(q==='error')bubble('Google Calendar konnte nicht verbunden werden. Es wurden keine Zugangsdaten angezeigt oder gespeichert.','error');
     if(q==='cancelled')bubble('Google-Verbindung wurde abgebrochen.','assistant');
   }catch(e){pill('session','BLOCKED',false);bubble('Private Session konnte nicht verifiziert werden.','error')}
+  loadRuntimeTruth();
 }
 async function ask(text){
   const value=String(text||'').trim();if(!value)return;

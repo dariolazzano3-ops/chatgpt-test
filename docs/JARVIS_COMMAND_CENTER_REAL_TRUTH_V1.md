@@ -215,6 +215,38 @@ consumed by the runtime-truth snapshot.
 Still read-only. The route and helpers contain no deploy, merge, DNS, billing, secret, or
 database-mutation path. `permissions: contents: read` on CI; no deploy step.
 
+## Wave 3 — Frontend closure
+
+Implemented in: `src/jarvis/ui-v1.js` (the served JARVIS Command Center surface).
+
+Nothing is redesigned. The accepted dark / amber baseline — layout grid, `--warn:#ffd28b`
+amber token, `.glass` panels, orb, desktop `210px minmax(0,1fr) 280px` grid and the
+`@media(max-width:760px)` mobile stack — is byte-for-byte preserved. Only the **data path**
+of the `SYSTEMS` panel and the top-bar live indicator changed:
+
+- The `SYSTEMS` panel now carries the canonical system rows `JARVIS`, `Hermes`, `Astra`,
+  `Claude`, `Codex`, `Bridge`, `Git`, rendered with the existing `.row` / `.pill`
+  components. Session / Memory / OAuth / Calendar rows (genuine request-scoped facts)
+  are unchanged.
+- `boot()` now also calls `GET <base>/api/runtime-truth` (`loadRuntimeTruth()`), via the
+  same `API_BASE` used by `/session` and `/status`, so the neutral standalone host stays
+  on `/api/...`.
+- A system pill renders a live state (`ONLINE`, `AVAILABLE`, `HEALTHY`, `SYNCED`, …) only
+  when `systems.source.classification` is `REAL` or `DERIVED`. Otherwise — and for any
+  `UNKNOWN` value — it renders **`Nicht verbunden`** with the amber `.pill.warn` style.
+- The removed hardcoded path: `pill('core','ONLINE',true)`, the static `id="core"` row,
+  and the static `CORE ONLINE` / `CORE ONLINE · CALENDAR PENDING` top-bar text. The live
+  dot now defaults to the amber `.dot.unknown` state and only turns green when canonical
+  truth reports `JARVIS = ONLINE` — no fake heartbeat.
+- The shell prints no latency, uptime, usage %, slot count, or timestamp of its own.
+
+Runs / Activity / Approvals are not part of this surface yet and may remain visibly mock
+elsewhere; they are not fed by this change.
+
+Frontend acceptance smoke: `scripts/jarvis-command-center-frontend-truth-v1-smoke.mjs`
+(plus the existing rendered-HTML assertions in `jarvis-private-chat-v1-smoke.mjs` and
+`jarvis-private-worker-v1-smoke.mjs`, and the `jarvis-pages-build-v1.mjs` bundle build).
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.
@@ -228,8 +260,12 @@ database-mutation path. `permissions: contents: read` on CI; no deploy step.
 
 ## Definition for Wave 3 acceptance
 
-- Accepted visual design unchanged (`src/jarvis/ui-v1.js` untouched).
+- Accepted desktop / mobile visual baseline preserved; only the `SYSTEMS` data path changed.
 - `GET /jarvis/api/runtime-truth` added with `Request` → `Response`, private, read-only.
+- The served Command Center UI consumes that endpoint; `UNKNOWN` → `Nicht verbunden`.
+- No `Online` / `Available` / `Synced` rendered from mock or static data; hardcoded
+  `pill('core','ONLINE',true)` path removed; no fake latency / uptime / heartbeat / timestamp.
+- Old blue JARVIS UI not touched.
 - Git status only from genuine remote truth; otherwise `UNKNOWN`.
 - JARVIS/Hermes/Astra/Claude/Codex/Bridge `UNKNOWN` unless a genuine live probe proves otherwise.
 - No fake operational status values in the route response.

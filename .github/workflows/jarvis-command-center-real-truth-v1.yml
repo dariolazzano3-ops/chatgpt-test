@@ -8,9 +8,11 @@ on:
       - 'src/jarvis/command-center-runtime-truth-v1.js'
       - 'src/jarvis/http-v1.js'
       - 'src/jarvis/integration-layer-v1.js'
+      - 'src/jarvis/ui-v1.js'
       - 'src/source-of-truth.js'
       - 'scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs'
       - 'scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs'
+      - 'scripts/jarvis-command-center-frontend-truth-v1-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
       - '.github/workflows/jarvis-command-center-real-truth-v1.yml'
   workflow_dispatch:
@@ -36,8 +38,10 @@ jobs:
           node --check src/jarvis/http-v1.js
           node --check src/jarvis/integration-layer-v1.js
           node --check src/source-of-truth.js
+          node --check src/jarvis/ui-v1.js
           node --check scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs
           node --check scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs
+          node --check scripts/jarvis-command-center-frontend-truth-v1-smoke.mjs
 
       - name: Wave 1 + Wave 2 read-only acceptance
         run: node scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs
@@ -45,8 +49,18 @@ jobs:
       - name: Wave 3 live-binding fail-closed acceptance
         run: node scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs
 
-      - name: Source-of-truth + integration-layer regression
+      - name: Wave 3 frontend closure — accepted UI consumes runtime truth
+        run: node scripts/jarvis-command-center-frontend-truth-v1-smoke.mjs
+
+      - name: Source-of-truth + integration-layer + rendered-UI regression
         run: |
           node scripts/source-of-truth-smoke.mjs
           node scripts/jarvis-integration-layer-v1-smoke.mjs
           node scripts/jarvis-private-chat-v1-smoke.mjs
+          node scripts/jarvis-private-worker-v1-smoke.mjs
+
+      - name: Install build deps
+        run: npm install --no-audit --no-fund
+
+      - name: JARVIS Pages bundle build (frontend build regression)
+        run: node scripts/jarvis-pages-build-v1.mjs
