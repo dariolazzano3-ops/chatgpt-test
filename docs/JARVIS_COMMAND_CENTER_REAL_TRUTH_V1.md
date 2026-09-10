@@ -339,6 +339,49 @@ Wave 5 hardens them and wires the surfaces:
 
 Acceptance smoke: `scripts/jarvis-command-center-wave5-smoke.mjs`.
 
+## Wave 6 — real command input
+
+The accepted command field now submits to the **existing** safe JARVIS runtime —
+`POST /jarvis/api/chat` → `handleJarvisRuntimeRequestV1` → intent → action gate →
+connector execution / prepare-only. No second brain was built.
+
+- The Command Center generates a `correlation_id` (UUID) and sends it with the
+  message; the chat route uses it as the runtime `request_id` (invalid → server
+  generates one), so the optimistic run and the persisted audit projection share
+  one id. The response echoes `request_id` / `correlation_id`, `gate_status`,
+  `approval_required`, `blocked`, `run_state`, `external_effect`.
+- On submit the UI adds a user message and an optimistic **local** run
+  (`{ local: true, real: false, state: "running", note: "An JARVIS-Runtime
+  übergeben …" }` — not a fabricated success), then on response sets the honest
+  run state and pulls `/runtime-truth` so the projection replaces it.
+- **Approval gate cannot be bypassed.** Write / external actions come back
+  `approval_required: true`, `external_effect: false`, `run_state:
+  WAITING_APPROVAL`, and a real approval is projected. Financial / critical
+  actions are `BLOCKED` (HTTP 409), nothing executed. Read / calendar-read run
+  as before.
+- Duplicate-submission guard: an in-flight ref blocks concurrent submits and an
+  identical message within 3 s is ignored; the same `correlation_id` groups into
+  a single projected run.
+- `src/jarvis/command-center-worker-binding-v1.js` reports the real chain binding
+  and is exposed on the runtime-truth response as `command_chain`:
+  - `CLAUDE_CODE` is the **primary** implementation worker but
+    `claude_execution_bridge_bound: false` — **no Claude Code execution adapter
+    and no Anthropic credential are wired to the JARVIS runtime**, so
+    implementation commands fail closed to prepare-only / approval-gated and
+    nothing is executed or simulated.
+  - `CODEX` fallback: `fallback_active: false`, `codex_binding_present: false` —
+    never used by default, no real binding.
+  - `BRIDGE`: `bound: true` — the policy gate genuinely runs on every command.
+  - `HERMES` / `ASTRA`: `LOCAL_ONLY` (local intake / gating, no external service).
+  - `GIT`: `ADAPTER_REQUIRED`. `VERIFICATION`: not bound;
+    `worker_output_self_accepts: false`.
+  The System view shows an "Ausführungskette — echte Bindung" panel with each
+  node's real binding state.
+- The old fabricated command replies ("Alle fünf Kernsysteme sind erreichbar",
+  "Das Ergebnis kommt mit Evidence …") are gone.
+
+Acceptance smoke: `scripts/jarvis-command-center-wave6-smoke.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

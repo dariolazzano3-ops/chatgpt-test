@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/jarvis/command-center-runtime-truth-v1.js'
       - 'src/jarvis/command-center-read-bindings-v1.js'
+      - 'src/jarvis/command-center-worker-binding-v1.js'
       - 'src/jarvis/command-center-v1.js'
       - 'src/jarvis/command-center-ui/**'
       - 'src/jarvis/http-v1.js'
@@ -21,6 +22,7 @@ on:
       - 'scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'
       - 'scripts/jarvis-command-center-wave4-smoke.mjs'
       - 'scripts/jarvis-command-center-wave5-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave6-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
       - '.github/workflows/jarvis-command-center-real-truth-v1.yml'
   workflow_dispatch:
@@ -71,6 +73,9 @@ jobs:
 
       - name: Wave 5 — real Approvals + real Evidence projection
         run: node scripts/jarvis-command-center-wave5-smoke.mjs
+
+      - name: Wave 6 — real command input + worker chain binding
+        run: node scripts/jarvis-command-center-wave6-smoke.mjs
 
       - name: Source-of-truth + integration-layer + rendered-UI regression
         run: |

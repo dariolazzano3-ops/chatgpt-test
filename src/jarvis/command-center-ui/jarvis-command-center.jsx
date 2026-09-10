@@ -293,6 +293,7 @@ const _RT_EMPTY = {
   loaded: false, ok: false, canonical: false, data: {}, source: null,
   runs: { real: false, items: [] }, activity: { real: false, items: [] },
   approvals: { real: false, items: [], pending: 0 }, evidence: { real: false, items: [] },
+  commandChain: null,
 };
 const _RT = { state: _RT_EMPTY, subs: new Set(), started: false, iv: null };
 function _rtPublish(next) { _RT.state = next; _RT.subs.forEach((fn) => { try { fn(next); } catch {} }); }
@@ -321,6 +322,7 @@ async function _rtLoad() {
         pending: (dom("approvals").data && dom("approvals").data.pending_count) || 0,
       },
       evidence: { real: _domainReal(dom("evidence")), items: (dom("evidence").data && dom("evidence").data.items) || [] },
+      commandChain: (b && b.command_chain) || null,
     });
   } catch {
     _rtPublish({ ..._RT_EMPTY, loaded: true });
@@ -1306,6 +1308,29 @@ function SystemView({ s }) {
           })}
         </div>
       </Panel>
+      <Panel title="Ausführungskette — echte Bindung" right={<span className="rid">Runtime Truth</span>}>
+        {!rt.commandChain && <div className="empty">Bindungsstatus nicht verbunden</div>}
+        {rt.commandChain && (
+          <div className="svc-list">
+            {rt.commandChain.nodes.map((n) => {
+              const bound = n.bound === true;
+              const color = bound ? "#a8d8a0" : n.bound === "LOCAL_ONLY" || n.bound === "ADAPTER_REQUIRED" ? "#ffc24a" : "#a3968a";
+              const label = bound ? "gebunden" : n.bound === "LOCAL_ONLY" ? "nur lokal" : n.bound === "ADAPTER_REQUIRED" ? "Adapter nötig" : "nicht gebunden";
+              return (
+                <div key={n.node} className="svc-r" style={{ cursor: "default" }}>
+                  <span className="svc-n">{n.node.replace(/_/g, " ")}<span className="dim" style={{ fontSize: 10, marginLeft: 8 }}>{n.role}</span></span>
+                  <span className="svc-s" style={{ color }}><Dot color={color} />{label}</span>
+                </div>
+              );
+            })}
+            <div className="dim" style={{ fontSize: 11, marginTop: 8 }}>
+              Claude-Code-Ausführungsbrücke: {rt.commandChain.claude_execution_bridge_bound ? "gebunden" : "nicht gebunden"} ·
+              Codex-Fallback: {rt.commandChain.fallback_active ? "aktiv" : "inaktiv"} ·
+              Worker-Selbstabnahme: {rt.commandChain.worker_output_self_accepts ? "JA" : "nein"}
+            </div>
+          </div>
+        )}
+      </Panel>
       <div className="svc-grid">
         {SERVICES.map((x) => {
           const st = rtServiceStatus(rt, x.k);
@@ -1433,20 +1458,79 @@ export default function JarvisCommandCenter() {
     if (v !== "listening") inputRef.current?.focus();
   };
 
-  // Wave 6 replaces this with a real submission to POST <apiBase>/command.
-  // Until then the command field is honest: it does NOT fabricate runs,
-  // approvals, logs, worker output or a synthetic JARVIS reply.
-  const command = useCallback((raw) => {
+  // Wave 6: real submission to the existing safe JARVIS runtime (POST <base>/api/chat
+  // -> intent -> action gate -> connector execution / prepare-only). No second
+  // brain, no fabricated worker output. A client correlation id ties the
+  // optimistic run to the persisted audit projection. Dangerous actions come
+  // back approval-gated and are never executed here.
+  const inFlight = useRef(false);
+  const lastSubmit = useRef({ text: "", at: 0 });
+  const command = useCallback(async (raw) => {
     const text = String(raw || "").trim();
     if (!text) return;
+    const nowMs = Date.now();
+    if (inFlight.current) return;
+    if (text === lastSubmit.current.text && nowMs - lastSubmit.current.at < 3000) return;
+    lastSubmit.current = { text, at: nowMs };
+    inFlight.current = true;
+
+    const corr = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     d({ type: "MSG", msg: { id: uid(), role: "user", text, t: nowHM() } });
     d({ type: "VOICE", voice: "thinking" });
-    const id = ++utterSeq.current;
-    later(500, () => {
-      const reply = "Befehlseingang. Die echte Übergabe an die JARVIS-Runtime (Hermes → Astra → Claude Code → Bridge → Git) wird in Wave 6 aktiviert. Bis dahin wird hier nichts ausgeführt und nichts erfunden.";
-      d({ type: "VOICE", voice: "idle" });
-      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: reply, t: nowHM(), runId: null } });
-    });
+    d({ type: "ADD_RUN", run: {
+      id: corr, local: true, real: false, title: text.slice(0, 80), project: "jarvis",
+      worker: "JARVIS Runtime", state: "running", progress: 0, stage: 0,
+      note: "An JARVIS-Runtime übergeben …", started: nowHM(), live: false,
+    } });
+
+    let body = null, httpOk = false, status = 0;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ message: text, correlation_id: corr }),
+      });
+      status = r.status;
+      httpOk = r.ok;
+      body = await r.json().catch(() => null);
+    } catch (e) {
+      body = null;
+    }
+
+    d({ type: "VOICE", voice: "idle" });
+
+    if (!body) {
+      d({ type: "RUN", id: corr, patch: { state: "failed", note: "Runtime nicht erreichbar" } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die JARVIS-Runtime ist nicht erreichbar. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      inFlight.current = false;
+      return;
+    }
+
+    if (status === 503) {
+      d({ type: "RUN", id: corr, patch: { state: "blocked", note: "Runtime-Speicher nicht gebunden" } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.message || "JARVIS Memory ist in dieser Umgebung noch nicht gebunden. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      inFlight.current = false;
+      return;
+    }
+
+    const runState = body.run_state === "COMPLETE" ? "success"
+      : body.run_state === "WAITING_APPROVAL" ? "waiting"
+      : body.run_state === "BLOCKED" ? "blocked"
+      : httpOk ? "running" : "failed";
+    d({ type: "RUN", id: corr, patch: {
+      state: runState,
+      note: body.blocked ? `Blockiert: ${body.gate_status || body.error || "Policy"}`
+        : body.approval_required ? "Wartet auf Freigabe"
+        : body.action ? `Aktion: ${body.action}` : (body.gate_status || "Übergeben"),
+      approval_state: body.approval_required ? "PENDING" : null,
+    } });
+    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.answer || (httpOk ? "Verarbeitet." : "Konnte nicht ausgeführt werden."), t: nowHM(), runId: corr } });
+
+    // Pull the persisted projection so the optimistic run/activity/approval get
+    // replaced by real runtime truth.
+    _rtLoad();
+    inFlight.current = false;
   }, []);
 
   const props = { s, d, go, command, inputRef, onMic };

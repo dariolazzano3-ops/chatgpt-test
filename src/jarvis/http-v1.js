@@ -16,8 +16,10 @@ import {
   createJarvisCommandCenterLiveProbeBindingsV1
 } from './command-center-runtime-truth-v1.js';
 import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-bindings-v1.js';
+import { jarvisCommandCenterWorkerChainV1 } from './command-center-worker-binding-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 let localMemoryStore = null;
 
 function json(body, status = 200, extraHeaders = {}) {
@@ -286,6 +288,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       read_only: true,
       production_deploy: false,
       hamyren_data_flow: false,
+      command_chain: jarvisCommandCenterWorkerChainV1(),
       ...snapshot
     });
   }
@@ -304,6 +307,12 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const message = clean(body.message, 4000);
     if (!message) return json({ ok: false, error: 'JARVIS_MESSAGE_REQUIRED' }, 400);
 
+    // Wave 6: the Command Center supplies a correlation id so its optimistic run
+    // and the persisted audit projection share one id. Only a well-formed UUID is
+    // accepted; anything else is replaced with a server-generated id.
+    const clientCorrelation = clean(body.correlation_id || body.request_id, 80);
+    const correlationId = UUID_RE.test(clientCorrelation) ? clientCorrelation.toLowerCase() : crypto.randomUUID();
+
     const now = new Date().toISOString();
     const timezone = clean(env.JARVIS_TIMEZONE, 120) || 'Europe/Berlin';
     const window = inferJarvisCalendarWindowV1(message, { now, timezone });
@@ -312,7 +321,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const runtime = await handleJarvisRuntimeRequestV1({
       owner_id: session.owner_id,
       owner_ref: session.owner_ref,
-      request_id: crypto.randomUUID(),
+      request_id: correlationId,
       message,
       now,
       granted_permissions: ['CALENDAR_READ'],
@@ -328,13 +337,22 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     });
 
     const presentation = presentJarvisRuntimeResponseV1(runtime, { timezone });
+    const gate = runtime.core?.action_gate || {};
+    const approvalRequired = gate.approval_required === true;
+    const blocked = gate.ok === false || runtime.core?.status === 'BLOCKED';
     return json({
       ok: runtime.ok,
       schema: 'aurentara.jarvis.private-chat-response.v1',
+      request_id: correlationId,
+      correlation_id: correlationId,
       answer: presentation.text,
       tone: presentation.tone,
       intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
       action: runtime.core?.intent?.action || null,
+      gate_status: gate.status || (blocked ? 'BLOCKED' : null),
+      approval_required: approvalRequired,
+      blocked,
+      run_state: blocked ? 'BLOCKED' : approvalRequired ? 'WAITING_APPROVAL' : (runtime.connector_execution?.status === 'COMPLETED' ? 'COMPLETE' : 'RUNNING'),
       connector_status: runtime.connector_execution?.status || null,
       memory_loaded: runtime.core?.memory_retrieval?.count || 0,
       audit_persisted: runtime.audit_persisted === true,
@@ -357,6 +375,10 @@ export function jarvisHttpManifestV1() {
     command_center_legacy_blue_route: '/jarvis/legacy',
     command_center_runtime_truth_route: '/jarvis/api/runtime-truth',
     command_center_runtime_truth_fail_closed: true,
+    command_center_command_route: '/jarvis/api/chat',
+    command_center_command_correlation_id: true,
+    command_center_command_approval_gated: true,
+    command_center_command_external_writes: false,
     operator_dashboard_audience_reused: false,
     browser_secrets: false,
     durable_memory_required_in_staging: true,
