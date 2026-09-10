@@ -8,6 +8,7 @@ import { handleJarvisRuntimeRequestV1 } from './runtime-v1.js';
 import { inferJarvisCalendarWindowV1 } from './calendar-window-v1.js';
 import { presentJarvisRuntimeResponseV1 } from './presenter-v1.js';
 import { renderJarvisPrivateChatV1 } from './ui-v1.js';
+import { renderJarvisCommandCenterV1 } from './command-center-v1.js';
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { createJarvisGoogleOAuthServiceV1, jarvisGoogleOAuthConfigFromEnvV1 } from './google-oauth-v1.js';
 import {
@@ -43,6 +44,18 @@ function html(body, status = 200, extraHeaders = {}) {
       'content-security-policy': "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
       ...extraHeaders
     }
+  });
+}
+
+// The accepted Command Center injects its own <style> and pulls webfonts via
+// an @import inside that style block. Allow only Google Fonts origins on top of
+// the private baseline; everything else stays 'self'. No script origin is added
+// (the bundle is delivered inline).
+function commandCenterHtml(body, status = 200, extraHeaders = {}) {
+  return html(body, status, {
+    'content-security-policy':
+      "default-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    ...extraHeaders
   });
 }
 
@@ -202,6 +215,10 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   }
 
   if (url.pathname === '/jarvis' || url.pathname === '/jarvis/') {
+    return commandCenterHtml(renderJarvisCommandCenterV1({ base_path: options.ui_base_path === '' ? '' : '/jarvis' }));
+  }
+
+  if (url.pathname === '/jarvis/legacy' && request.method === 'GET') {
     return html(renderJarvisPrivateChatV1({ base_path: options.ui_base_path === '' ? '' : '/jarvis' }));
   }
 
@@ -322,6 +339,9 @@ export function jarvisHttpManifestV1() {
     schema: 'aurentara.jarvis.private-http.v1',
     route: '/jarvis',
     auth: 'dedicated_cloudflare_access_fail_closed',
+    command_center_route: '/jarvis',
+    command_center_visual_baseline: 'ACCEPTED',
+    command_center_legacy_blue_route: '/jarvis/legacy',
     command_center_runtime_truth_route: '/jarvis/api/runtime-truth',
     command_center_runtime_truth_fail_closed: true,
     operator_dashboard_audience_reused: false,

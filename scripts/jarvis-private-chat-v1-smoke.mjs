@@ -29,10 +29,20 @@ const options = { authorize, memory_store: store, connectors: [calendar], displa
 const page = await handleJarvisHttpV1(new Request('https://example.invalid/jarvis'), {}, {}, options);
 assert.equal(page.status, 200);
 const html = await page.text();
-assert.match(html, /JARVIS · Private Command Center/);
-assert.match(html, /A BRIGHTER YOU/);
-assert.match(html, /HAMYREN flow/);
+// /jarvis serves the ACCEPTED orange/amber Command Center, never the legacy blue UI.
+assert.match(html, /JARVIS · Command Center/);
+assert.match(html, /VISUAL_BASELINE=ACCEPTED/);
+assert.match(html, /--amber:#ffab40/);
+assert.match(html, /\.jcc\{/);
+assert.match(html, /Denken\. Bauen\./);
+assert.doesNotMatch(html, /A BRIGHTER YOU/, 'legacy blue UI must not be served at /jarvis');
+assert.doesNotMatch(html, /--blue:#8bd2ff/);
 assert.match(page.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
+
+// The legacy blue surface stays reachable, explicitly, at /jarvis/legacy.
+const legacy = await handleJarvisHttpV1(new Request('https://example.invalid/jarvis/legacy'), {}, {}, options);
+assert.equal(legacy.status, 200);
+assert.match(await legacy.text(), /A BRIGHTER YOU/);
 
 const session = await handleJarvisHttpV1(new Request('https://example.invalid/jarvis/api/session'), {}, {}, options);
 const sessionBody = await session.json();

@@ -215,43 +215,71 @@ consumed by the runtime-truth snapshot.
 Still read-only. The route and helpers contain no deploy, merge, DNS, billing, secret, or
 database-mutation path. `permissions: contents: read` on CI; no deploy step.
 
-## Wave 3 — Frontend closure
+## Wave 3 — Frontend closure (accepted orange Command Center)
 
-Implemented in: `src/jarvis/ui-v1.js` (the served JARVIS Command Center surface).
+The first frontend-closure attempt wired the wrong surface: `src/jarvis/ui-v1.js`
+is the **legacy blue** JARVIS chat surface, not the accepted Command Center. That
+change was reverted (the blue file is back to its Wave‑3 state and stays reachable
+at `GET /jarvis/legacy`).
 
-Nothing is redesigned. The accepted dark / amber baseline — layout grid, `--warn:#ffd28b`
-amber token, `.glass` panels, orb, desktop `210px minmax(0,1fr) 280px` grid and the
-`@media(max-width:760px)` mobile stack — is byte-for-byte preserved. Only the **data path**
-of the `SYSTEMS` panel and the top-bar live indicator changed:
+The accepted UI is the operator's orange/amber React design, vendored verbatim as
+the visual source of truth:
 
-- The `SYSTEMS` panel now carries the canonical system rows `JARVIS`, `Hermes`, `Astra`,
-  `Claude`, `Codex`, `Bridge`, `Git`, rendered with the existing `.row` / `.pill`
-  components. Session / Memory / OAuth / Calendar rows (genuine request-scoped facts)
-  are unchanged.
-- `boot()` now also calls `GET <base>/api/runtime-truth` (`loadRuntimeTruth()`), via the
-  same `API_BASE` used by `/session` and `/status`, so the neutral standalone host stays
-  on `/api/...`.
-- A system pill renders a live state (`ONLINE`, `AVAILABLE`, `HEALTHY`, `SYNCED`, …) only
-  when `systems.source.classification` is `REAL` or `DERIVED`. Otherwise — and for any
-  `UNKNOWN` value — it renders **`Nicht verbunden`** with the amber `.pill.warn` style.
-- The removed hardcoded path: `pill('core','ONLINE',true)`, the static `id="core"` row,
-  and the static `CORE ONLINE` / `CORE ONLINE · CALENDAR PENDING` top-bar text. The live
-  dot now defaults to the amber `.dot.unknown` state and only turns green when canonical
-  truth reports `JARVIS = ONLINE` — no fake heartbeat.
-- The shell prints no latency, uptime, usage %, slot count, or timestamp of its own.
+`src/jarvis/command-center-ui/jarvis-command-center.jsx` — `VISUAL_BASELINE=ACCEPTED`
 
-Runs / Activity / Approvals are not part of this surface yet and may remain visibly mock
-elsewhere; they are not fed by this change.
+### Repo / build integration (minimal)
 
-Frontend acceptance smoke: `scripts/jarvis-command-center-frontend-truth-v1-smoke.mjs`
-(plus the existing rendered-HTML assertions in `jarvis-private-chat-v1-smoke.mjs` and
-`jarvis-private-worker-v1-smoke.mjs`, and the `jarvis-pages-build-v1.mjs` bundle build).
+- The `.jsx` is bundled with React + `lucide-react` into one self-contained IIFE by
+  `scripts/jarvis-command-center-ui-build-v1.mjs` and vendored as
+  `src/jarvis/command-center-ui/bundle.built.js` (a generated string module).
+- `src/jarvis/command-center-v1.js` wraps that bundle in an HTML document and sets
+  `window.__JARVIS_CC__ = { apiBase }`. Delivery is **inline** — no deploy‑time asset
+  pipeline, works for both the mounted worker and the neutral standalone host.
+- `GET /jarvis` now serves this shell (`commandCenterHtml`, CSP additionally allows
+  only `https://fonts.googleapis.com` / `https://fonts.gstatic.com` for the design's
+  webfonts; no external script origin — the bundle is inline).
+- React / react-dom / lucide-react are **devDependencies**; the runtime worker never
+  imports them (only the pre-built string).
+
+### What is connected
+
+Only the **System Status** section (`SystemPanel` on Home, the service grid in
+`SystemView`) reads `GET <base>/api/runtime-truth`:
+
+- a live state is shown only when `systems.source.classification` is `REAL` or
+  `DERIVED`; every `UNKNOWN` / non-canonical / fetch-failure case renders
+  **`Nicht verbunden`**.
+- the map is `hermes→HERMES`, `astra→ASTRA`, `claude→CLAUDE`, `bridge→BRIDGE`,
+  `git→GIT`; the accepted row set is unchanged (no rows added or removed).
+- the static per-service `Online` / `Synchron` / `1 von 2 Slots` / `38 ms` /
+  `99,98 %` / heartbeat / "last event" values were removed from `SERVICES`;
+  Heartbeat / Latenz / Uptime render `Unbekannt`, the sparkline is a flat baseline,
+  the Home "Worker-Limit heute" figure is `Unbekannt`.
+- the top-bar badge is honest: `System Status: Live · übrige Bereiche: Mock` when the
+  fetch succeeds, otherwise `Runtime nicht verbunden · Mock-Daten`.
+
+Runs, Activity, Freigaben, Limits und Nutzung, Sicherheit and the Pipeline stay
+**mock** (now marked `Mock`) until their own waves.
+
+### Preserved
+
+Amber/orange token system (`--amber:#ffab40`, `--bg:#040405`, `--hi:#ffd08a`,
+`--deep:#ff7a1a`), layout, the Orb / OrbStage / Beam / Starfield visuals, sidebar and
+mobile navigation, all panels, Michroma / IBM Plex Mono / Manrope typography,
+interactions and spacing — byte-for-byte from the accepted source apart from the
+System Status data swap above.
+
+Acceptance smoke: `scripts/jarvis-command-center-orange-ui-v1-smoke.mjs` (asserts
+accepted amber design tokens and CSS markers are served, the legacy blue markers are
+not, System Status is wired to `/runtime-truth`, and the fake per-service metrics are
+gone).
 
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.
 2. Use `command-center-runtime-truth-v1.js` as the only operational data ingress for the Command Center.
-3. Wave 3 (done): explicit live read bindings for JARVIS/Hermes/Astra/Claude/Codex/Bridge and genuine-remote-truth Git status, exposed at `GET /jarvis/api/runtime-truth`. Anything not bound remains UNKNOWN.
+3. Wave 3 backend (done): explicit live read bindings for JARVIS/Hermes/Astra/Claude/Codex/Bridge and genuine-remote-truth Git status, exposed at `GET /jarvis/api/runtime-truth`. Anything not bound remains UNKNOWN.
+3b. Wave 3 frontend (done): serve the accepted orange `jarvis-command-center.jsx` at `GET /jarvis`; wire only its System Status section to `/jarvis/api/runtime-truth`; legacy blue UI moved to `/jarvis/legacy`.
 4. Wave 4: bind persisted runs and add a bounded, owner-scoped JARVIS audit reader for Activity.
 5. Wave 5: bind canonical approvals and Evidence.
 6. Only after read-only truth is stable, Wave 6 may connect text commands through the existing safe JARVIS path.
@@ -260,16 +288,23 @@ Frontend acceptance smoke: `scripts/jarvis-command-center-frontend-truth-v1-smok
 
 ## Definition for Wave 3 acceptance
 
-- Accepted desktop / mobile visual baseline preserved; only the `SYSTEMS` data path changed.
+Backend:
+
 - `GET /jarvis/api/runtime-truth` added with `Request` → `Response`, private, read-only.
-- The served Command Center UI consumes that endpoint; `UNKNOWN` → `Nicht verbunden`.
-- No `Online` / `Available` / `Synced` rendered from mock or static data; hardcoded
-  `pill('core','ONLINE',true)` path removed; no fake latency / uptime / heartbeat / timestamp.
-- Old blue JARVIS UI not touched.
 - Git status only from genuine remote truth; otherwise `UNKNOWN`.
 - JARVIS/Hermes/Astra/Claude/Codex/Bridge `UNKNOWN` unless a genuine live probe proves otherwise.
 - No fake operational status values in the route response.
 - Wave 1 + Wave 2 smoke plus `jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs` pass.
+
+Frontend closure:
+
+- The accepted orange `jarvis-command-center.jsx` is the served Command Center at `GET /jarvis`; the legacy blue `ui-v1.js` is restored and moved to `/jarvis/legacy`.
+- Amber/orange visual system, layout, Orb, desktop + mobile design, navigation, panels, typography, interactions and spacing preserved.
+- Only System Status consumes canonical Runtime Truth (`REAL`/`DERIVED` only); `UNKNOWN` → `Nicht verbunden`.
+- No fake latency / usage / uptime / heartbeat / timestamp in System Status.
+- `scripts/jarvis-command-center-orange-ui-v1-smoke.mjs` proves the accepted UI (amber tokens) is served and the blue UI cannot satisfy it.
+- W1/W2/W3 smokes, the rendered-UI regressions and the bundle builds pass.
+
 - No deploy, no merge, no Cloudflare/DNS/billing/secret changes.
 
 ## Definition for Wave 1 + Wave 2 acceptance
