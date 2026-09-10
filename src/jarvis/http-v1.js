@@ -10,6 +10,10 @@ import { presentJarvisRuntimeResponseV1 } from './presenter-v1.js';
 import { renderJarvisPrivateChatV1 } from './ui-v1.js';
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { createJarvisGoogleOAuthServiceV1, jarvisGoogleOAuthConfigFromEnvV1 } from './google-oauth-v1.js';
+import {
+  createJarvisCommandCenterTruthSnapshotV1,
+  createJarvisCommandCenterLiveProbeBindingsV1
+} from './command-center-runtime-truth-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 let localMemoryStore = null;
@@ -240,6 +244,22 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     });
   }
 
+  if (url.pathname === '/jarvis/api/runtime-truth' && request.method === 'GET') {
+    const probes = options.command_center_probes && typeof options.command_center_probes === 'object'
+      ? options.command_center_probes
+      : {};
+    const bindings = createJarvisCommandCenterLiveProbeBindingsV1(probes, { now: options.now });
+    const snapshot = await createJarvisCommandCenterTruthSnapshotV1(bindings, { now: options.now });
+    return json({
+      ok: true,
+      private: true,
+      read_only: true,
+      production_deploy: false,
+      hamyren_data_flow: false,
+      ...snapshot
+    });
+  }
+
   if (url.pathname === '/jarvis/api/chat' && request.method === 'POST') {
     if (!store) {
       return json({
@@ -302,6 +322,8 @@ export function jarvisHttpManifestV1() {
     schema: 'aurentara.jarvis.private-http.v1',
     route: '/jarvis',
     auth: 'dedicated_cloudflare_access_fail_closed',
+    command_center_runtime_truth_route: '/jarvis/api/runtime-truth',
+    command_center_runtime_truth_fail_closed: true,
     operator_dashboard_audience_reused: false,
     browser_secrets: false,
     durable_memory_required_in_staging: true,

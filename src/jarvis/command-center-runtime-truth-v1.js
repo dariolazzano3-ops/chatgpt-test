@@ -1,3 +1,5 @@
+import { deriveRemoteGitStatus } from '../source-of-truth.js';
+
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 
@@ -332,6 +334,121 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
   return { ...snapshot, validation };
 }
 
+// --- Wave 3: explicit live read bindings -------------------------------------
+// JARVIS / HERMES / ASTRA / CLAUDE / CODEX / BRIDGE stay UNKNOWN unless a
+// genuine live probe returns { live: true, state, source_id, observed_at }.
+// GIT status is derived only from genuine remote truth (remote head vs local head).
+
+const SYSTEM_PROBE_KEYS = Object.freeze(['jarvis', 'hermes', 'astra', 'claude', 'codex', 'bridge']);
+const SYSTEM_LIVE_STATES = Object.freeze(Object.fromEntries(
+  SYSTEMS.filter((system) => system !== 'GIT').map((system) => [
+    system,
+    JARVIS_SYSTEM_STATUS[system].filter((value) => value !== 'UNKNOWN')
+  ])
+));
+
+function probeIsFresh(observedAt, staleAfterMs, nowMs) {
+  if (!Number.isFinite(staleAfterMs) || staleAfterMs < 0) return true;
+  return nowMs - Date.parse(observedAt) <= staleAfterMs;
+}
+
+async function runSystemLiveProbe(domain, probe, nowMs) {
+  if (typeof probe !== 'function') return null;
+  let raw;
+  try {
+    raw = await probe();
+  } catch {
+    return null;
+  }
+  if (!raw || typeof raw !== 'object' || raw.live !== true) return null;
+  const state = clean(raw.state ?? raw.status, 40).toUpperCase();
+  if (!SYSTEM_LIVE_STATES[domain] || !SYSTEM_LIVE_STATES[domain].includes(state)) return null;
+  const observedAt = validIso(raw.observed_at);
+  const sourceId = clean(raw.source_id, 240);
+  if (!observedAt || !sourceId) return null;
+  if (!probeIsFresh(observedAt, Number(raw.stale_after_ms), nowMs)) return null;
+  return { domain, state, observed_at: observedAt, source_id: sourceId };
+}
+
+async function runGitRemoteTruthProbe(probe, nowMs) {
+  if (typeof probe !== 'function') return null;
+  let raw;
+  try {
+    raw = await probe();
+  } catch {
+    return null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const observedAt = validIso(raw.observed_at);
+  if (observedAt && !probeIsFresh(observedAt, Number(raw.stale_after_ms), nowMs)) return null;
+  const derived = deriveRemoteGitStatus({
+    remote_head: raw.remote_head ?? raw.remote_project_head ?? raw.genuine_remote_head,
+    local_head: raw.local_head ?? raw.project_head ?? raw.observed_project_head,
+    source_id: raw.source_id,
+    observed_at: raw.observed_at
+  });
+  if (derived.status !== 'SYNCED' && derived.status !== 'CHANGED') return null;
+  return { domain: 'GIT', state: derived.status, observed_at: derived.observed_at, source_id: derived.source_id };
+}
+
+export function createJarvisCommandCenterLiveProbeBindingsV1(probes = {}, options = {}) {
+  const config = probes && typeof probes === 'object' ? probes : {};
+  const hasSystemBinding = SYSTEM_PROBE_KEYS.some((key) => typeof config[key] === 'function')
+    || typeof config.git === 'function';
+
+  const bindings = {};
+
+  if (hasSystemBinding) {
+    bindings.system_status = async () => {
+      const parsedNow = options.now ? new Date(options.now).getTime() : Date.now();
+      const nowMs = Number.isNaN(parsedNow) ? Date.now() : parsedNow;
+
+      const results = await Promise.all([
+        ...SYSTEM_PROBE_KEYS.map((key) => runSystemLiveProbe(key.toUpperCase(), config[key], nowMs)),
+        runGitRemoteTruthProbe(config.git, nowMs)
+      ]);
+      const proven = results.filter(Boolean);
+
+      const data = {};
+      for (const item of proven) data[item.domain] = item.state;
+
+      const observedAt = proven.length
+        ? new Date(Math.max(...proven.map((item) => Date.parse(item.observed_at)))).toISOString()
+        : new Date(nowMs).toISOString();
+
+      return {
+        classification: JARVIS_TRUTH_CLASSIFICATION.DERIVED,
+        source_id: 'jarvis-command-center-live-probes-v1',
+        observed_at: observedAt,
+        derived_from: proven.map((item) => `${item.domain.toLowerCase()}:${item.source_id}`),
+        data
+      };
+    };
+  }
+
+  for (const key of ['runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs']) {
+    if (typeof config[key] === 'function') bindings[key] = config[key];
+  }
+
+  return bindings;
+}
+
+export function jarvisCommandCenterLiveProbeContractV1() {
+  return {
+    schema: 'aurentara.jarvis.command-center.live-probe.v1',
+    wave: 3,
+    system_probe_domains: SYSTEM_PROBE_KEYS.map((key) => key.toUpperCase()),
+    system_probe_envelope: { live: true, state: 'ENUM', source_id: 'string', observed_at: 'ISO-8601', stale_after_ms: 'optional' },
+    git_status_source: 'genuine_remote_truth_only',
+    git_status_states: JARVIS_SYSTEM_STATUS.GIT,
+    unproven_system_result: 'UNKNOWN',
+    fail_closed: true,
+    writes_enabled: false,
+    production_deploy: false,
+    hamyren_data_flow: false
+  };
+}
+
 export function validateJarvisCommandCenterTruthSnapshotV1(snapshot = {}) {
   const violations = [];
   const domains = ['systems', 'runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs'];
@@ -358,8 +475,10 @@ export function validateJarvisCommandCenterTruthSnapshotV1(snapshot = {}) {
 export function jarvisCommandCenterRuntimeTruthManifestV1() {
   return {
     schema: 'aurentara.jarvis.command-center.runtime-truth.v1',
-    wave: 2,
+    wave: 3,
     mode: 'READ_ONLY',
+    live_probe_bindings: true,
+    git_status_requires_remote_truth: true,
     visual_baseline: 'ACCEPTED',
     data_classifications: Object.values(JARVIS_TRUTH_CLASSIFICATION),
     run_states: Object.values(JARVIS_RUN_STATE),

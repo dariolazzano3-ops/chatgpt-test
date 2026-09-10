@@ -1,6 +1,6 @@
 # JARVIS Command Center V1 — Real Runtime Truth
 
-Status: WAVE 1 + WAVE 2 implementation candidate
+Status: WAVE 1 + WAVE 2 + WAVE 3 implementation candidate
 
 Visual baseline: **ACCEPTED**
 
@@ -156,16 +156,85 @@ Wave 2 is deliberately read-only:
 
 The adapter contains no deploy, merge, billing, DNS, secret, database mutation, or worker execution path.
 
+## Wave 3 — Explicit live read bindings
+
+Implemented in:
+
+- `src/jarvis/command-center-runtime-truth-v1.js` — `createJarvisCommandCenterLiveProbeBindingsV1`, `jarvisCommandCenterLiveProbeContractV1`
+- `src/source-of-truth.js` — `deriveRemoteGitStatus` (genuine remote truth only)
+- `src/jarvis/integration-layer-v1.js` — `jarvisIntegrationLivenessClaimV1` (registry proves policy, never liveness)
+- `src/jarvis/http-v1.js` — `GET /jarvis/api/runtime-truth` (private, `Request` → `Response`)
+
+Acceptance smoke:
+
+`scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs`
+
+### System status binding contract
+
+`JARVIS`, `HERMES`, `ASTRA`, `CLAUDE`, `CODEX`, `BRIDGE` remain `UNKNOWN` unless a genuine
+live probe returns:
+
+```js
+{
+  live: true,                 // explicit proof marker — anything else is rejected
+  state: 'ONLINE',            // must be in that system's enum, excluding UNKNOWN
+  source_id: 'stable-probe',
+  observed_at: 'ISO-8601',
+  stale_after_ms: 60000       // optional freshness bound
+}
+```
+
+A missing probe, `live !== true`, an out-of-enum state, missing provenance, a stale
+`observed_at`, or a probe that throws all collapse to `UNKNOWN`. No probe is wired by
+default, so the shipped `GET /jarvis/api/runtime-truth` response reports every system as
+`UNKNOWN` with `systems.source.source_state = NOT_CONNECTED` until a real probe is injected
+through `options.command_center_probes`.
+
+### Git status binding contract
+
+`GIT` is derived only from genuine remote truth. The git probe must return a real remote
+head plus the local head with provenance; `deriveRemoteGitStatus` then yields:
+
+- `SYNCED` — remote head equals local head (both full 40-char SHAs)
+- `CHANGED` — remote and local heads are valid but differ
+- `UNKNOWN` — remote head unproven, not a full SHA, or missing provenance
+
+There is no static `SYNCHRON` / `SYNCED` decoration.
+
+### Fake operational values removed
+
+The Wave 3 route never emits the accepted-screenshot demo values (`3 Runs in Arbeit`,
+`94 % erfolgreich`, `R-0142`, `HERMES ONLINE`, `GIT SYNCHRON`, worker-slot percentages,
+demo activity timestamps, …). Runs / activity / approvals / evidence / projects / costs
+stay empty unless a real Wave 2 source envelope is bound. The legacy static
+`core_online: true` liveness claim on `GET /jarvis/api/status` is untouched but is **not**
+consumed by the runtime-truth snapshot.
+
+### Wave 3 safety boundary
+
+Still read-only. The route and helpers contain no deploy, merge, DNS, billing, secret, or
+database-mutation path. `permissions: contents: read` on CI; no deploy step.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.
 2. Use `command-center-runtime-truth-v1.js` as the only operational data ingress for the Command Center.
-3. Wave 3: add explicit read bindings for JARVIS/Hermes/Astra/Claude/Codex/Bridge/Git. Anything not bound remains UNKNOWN.
+3. Wave 3 (done): explicit live read bindings for JARVIS/Hermes/Astra/Claude/Codex/Bridge and genuine-remote-truth Git status, exposed at `GET /jarvis/api/runtime-truth`. Anything not bound remains UNKNOWN.
 4. Wave 4: bind persisted runs and add a bounded, owner-scoped JARVIS audit reader for Activity.
 5. Wave 5: bind canonical approvals and Evidence.
 6. Only after read-only truth is stable, Wave 6 may connect text commands through the existing safe JARVIS path.
 7. Voice remains presentation-only until a secure speech pipeline exists.
 8. V5 deployment closure remains a separate project. This branch must not trigger a V5 cutover.
+
+## Definition for Wave 3 acceptance
+
+- Accepted visual design unchanged (`src/jarvis/ui-v1.js` untouched).
+- `GET /jarvis/api/runtime-truth` added with `Request` → `Response`, private, read-only.
+- Git status only from genuine remote truth; otherwise `UNKNOWN`.
+- JARVIS/Hermes/Astra/Claude/Codex/Bridge `UNKNOWN` unless a genuine live probe proves otherwise.
+- No fake operational status values in the route response.
+- Wave 1 + Wave 2 smoke plus `jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs` pass.
+- No deploy, no merge, no Cloudflare/DNS/billing/secret changes.
 
 ## Definition for Wave 1 + Wave 2 acceptance
 

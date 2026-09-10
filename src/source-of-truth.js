@@ -142,6 +142,39 @@ export async function resolveAndValidateSourceOfTruth(context = {}, options = {}
   return validateSourceOfTruth(built.context, observed);
 }
 
+export function deriveRemoteGitStatus(input = {}) {
+  const remoteHead = normalizeSha(input.remote_head || input.remote_project_head || input.genuine_remote_head);
+  const localHead = normalizeSha(input.local_head || input.observed_project_head || input.project_head || input.active_revision);
+  const observedAt = clean(input.observed_at, 80) || null;
+  const sourceId = clean(input.source_id, 240) || null;
+
+  if (!remoteHead || !FULL_SHA.test(remoteHead) || !sourceId || !observedAt) {
+    return {
+      status: 'UNKNOWN',
+      code: 'REMOTE_GIT_TRUTH_UNPROVEN',
+      remote_head: FULL_SHA.test(remoteHead || '') ? remoteHead : null,
+      local_head: FULL_SHA.test(localHead || '') ? localHead : null,
+      source_id: sourceId,
+      observed_at: observedAt
+    };
+  }
+
+  if (!localHead || !FULL_SHA.test(localHead)) {
+    return {
+      status: 'UNKNOWN',
+      code: 'LOCAL_PROJECT_HEAD_REQUIRED',
+      remote_head: remoteHead,
+      local_head: null,
+      source_id: sourceId,
+      observed_at: observedAt
+    };
+  }
+
+  return remoteHead === localHead
+    ? { status: 'SYNCED', code: 'REMOTE_GIT_TRUTH_CURRENT', remote_head: remoteHead, local_head: localHead, source_id: sourceId, observed_at: observedAt }
+    : { status: 'CHANGED', code: 'REMOTE_GIT_TRUTH_DIVERGED', remote_head: remoteHead, local_head: localHead, source_id: sourceId, observed_at: observedAt };
+}
+
 export function sourceOfTruthManifest() {
   return {
     version: '1.0',
@@ -149,6 +182,7 @@ export function sourceOfTruthManifest() {
     stale_project_head_blocks_execution: true,
     resolver_is_explicitly_injected: true,
     legacy_unbound_compatibility: true,
+    remote_git_status_fails_closed_to_unknown: true,
     production_deploy: false
   };
 }
