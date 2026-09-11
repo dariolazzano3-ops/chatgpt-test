@@ -419,6 +419,66 @@ itself is unchanged. Nothing else in the accepted visual system was touched.
 
 Acceptance: `scripts/jarvis-command-center-wave7-browser-acceptance.mjs`.
 
+## Wave 8 — final runtime-truth + safety audit
+
+`src/jarvis/command-center-field-audit-v1.js` holds a machine-readable
+classification of every visible operational field; `auditJarvisCommandCenterFieldsV1()`
+enforces the invariants and `scripts/jarvis-command-center-wave8-audit-smoke.mjs`
+runs the audit plus a static scan of the served bundle.
+
+### Field classification (summary)
+
+| Surface | Field | Class | Fail-closed |
+|---|---|---|---|
+| System Status | service state (JARVIS/Hermes/Astra/Claude/Bridge/Git) | DERIVED | `Nicht verbunden` |
+| System Status | heartbeat / latency / uptime / worker-limit | UNKNOWN | `Unbekannt` |
+| System Status | per-service sparkline | STATIC (flat, decorative) | — |
+| Runs | id/title/worker/state/started/updated | DERIVED (audit projection) | `Noch keine Runs` |
+| Runs | progress | UNKNOWN — **never fabricated** | `Unbekannt` |
+| Activity | event/timestamp/summary/link/level | REAL (persisted audit) | `Noch keine Aktivität` |
+| Approvals | id/run/type/capability/requested/state | DERIVED | `Freigaben-Quelle nicht verbunden` |
+| Approvals | risk / reason | DERIVED | `unklassifiziert` |
+| Evidence | ref/kind/status/observed_at | DERIVED | `Keine Evidence verknüpft` |
+| Evidence | independent acceptance | DERIVED (worker self-report ≠ acceptance) | `keine unabhängige Abnahme` |
+| Command | submission / correlation id / reply | REAL (POST /jarvis/api/chat) | `Runtime nicht erreichbar` |
+| Command | execution-chain binding | REAL (`command_chain`) | `Bindungsstatus nicht verbunden` |
+| Limits / Notices (System) | usage bars / notices | MOCK — **labelled `Mock`** | — |
+| Projekte | per-project branch / last activity | MOCK — **labelled `Mock (Register real)`** | — |
+| Memory | entries + sources | MOCK — **labelled** (banner + subtitle) | — |
+| Hero / Orb / Beam / Starfield / voice word | — | STATIC decorative | — |
+| Top bar / sidebar / footer | runtime indicator | DERIVED (reflects whether runtime-truth returned data) | `Nicht verbunden` / `Fail-closed` |
+| Top bar | wall clock | REAL (device time) | — |
+
+No operational MOCK is presented as REAL. The static `LiveTag "Online"` health
+claims in the sidebar and footer were removed and are now runtime-truth-driven.
+The unused fabricated-progress helper (`Prog`), the run-history bar chart
+(`HIST`), the mock reducer `TICK` progress animation and the fabricating branch
+of `DECIDE` were deleted.
+
+### System semantics (unchanged, enforced)
+
+`JARVIS: ONLINE|DEGRADED|UNKNOWN` · `HERMES: ONLINE|OFFLINE|UNKNOWN` ·
+`ASTRA: AVAILABLE|DEGRADED|UNKNOWN` · `CLAUDE: AVAILABLE|BUSY|UNAVAILABLE|UNKNOWN` ·
+`CODEX: STANDBY|ACTIVE|UNAVAILABLE|UNKNOWN` · `BRIDGE: HEALTHY|DEGRADED|OFFLINE|UNKNOWN` ·
+`GIT: SYNCED|CHANGED|UNKNOWN`. Missing evidence is never converted to success.
+
+### Final security audit (verified against git diff/history)
+
+- No production deploy, Cloudflare deploy, DNS mutation, billing action, purchase,
+  secret rotation or secret exposure. No `wrangler*.jsonc`, `.env`, deploy /
+  staging workflow, or Dockerfile touched. No secret-like strings added.
+- No `main` / canonical / PR merge. No force push. All commits pushed only to
+  `factory/jarvis-command-center-real-truth-v1`.
+- No Docker socket, no security weakening. HAMYREN isolation intact
+  (`hamyren_data_flow: false`, no HAMYREN table refs, audit isolation preserved).
+- The new migration `20260911090000_jarvis_audit_read_v1.sql` adds one
+  `security definer` **read-only** RPC, `revoke`d from public/anon/authenticated,
+  `grant execute` to `service_role`, bounded to ≤ 200 rows.
+- CSP for `/jarvis` was widened only to `https://fonts.googleapis.com` /
+  `https://fonts.gstatic.com` (Wave 3), no external script origin.
+
+Acceptance: `scripts/jarvis-command-center-wave8-audit-smoke.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

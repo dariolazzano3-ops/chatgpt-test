@@ -8,6 +8,7 @@ on:
       - 'src/jarvis/command-center-runtime-truth-v1.js'
       - 'src/jarvis/command-center-read-bindings-v1.js'
       - 'src/jarvis/command-center-worker-binding-v1.js'
+      - 'src/jarvis/command-center-field-audit-v1.js'
       - 'src/jarvis/command-center-v1.js'
       - 'src/jarvis/command-center-ui/**'
       - 'src/jarvis/http-v1.js'
@@ -24,6 +25,7 @@ on:
       - 'scripts/jarvis-command-center-wave5-smoke.mjs'
       - 'scripts/jarvis-command-center-wave6-smoke.mjs'
       - 'scripts/jarvis-command-center-wave7-browser-acceptance.mjs'
+      - 'scripts/jarvis-command-center-wave8-audit-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
       - '.github/workflows/jarvis-command-center-real-truth-v1.yml'
   workflow_dispatch:
@@ -83,6 +85,9 @@ jobs:
 
       - name: Wave 7 — desktop + mobile browser acceptance (1440x900 / 390x844)
         run: node scripts/jarvis-command-center-wave7-browser-acceptance.mjs
+
+      - name: Wave 8 — final runtime-truth + safety field audit
+        run: node scripts/jarvis-command-center-wave8-audit-smoke.mjs
 
       - name: Source-of-truth + integration-layer + rendered-UI regression
         run: |

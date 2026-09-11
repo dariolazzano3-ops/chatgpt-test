@@ -57,7 +57,6 @@ const STAGE_NOTE = {
   1: "Hermes routet den Auftrag", 2: "Astra plant und prüft Risiken", 3: "Claude Code setzt um",
   4: "Bridge prüft Policy und Evidence", 5: "Git committet und synchronisiert", 6: "Bereit für deine Review",
 };
-const STAGE_SRC = { 1: "hermes", 2: "astra", 3: "claude", 4: "bridge", 5: "git", 6: "hermes" };
 
 const SRC = { jarvis: "JARVIS", hermes: "Hermes", astra: "Astra", claude: "Claude Code", bridge: "Bridge", git: "Git" };
 const LVL = {
@@ -75,7 +74,6 @@ const nowHMS = () => hms(new Date());
 const nowHM = () => nowHMS().slice(0, 5);
 const ago = (min, sec = 0) => hms(new Date(Date.now() - (min * 60 + sec) * 1000));
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
-const stageFor = (p) => (p < 6 ? 1 : p < 22 ? 2 : p < 80 ? 3 : p < 90 ? 4 : p < 100 ? 5 : 6);
 const isActive = (r) => r.state === "running" || r.state === "resumed";
 const isPending = (a) => a.status === "pending" || a.status === "later";
 const WD = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
@@ -125,7 +123,6 @@ const NOTICES = [
   { lvl: "ok", t: "Keine Secrets in Diffs der letzten 24 Stunden", d: "214 Prüfungen, alle bestanden." },
 ];
 
-const HIST = [22, 48, 30, 40, 26, 44, 38, 56, 50, 68, 58, 82, 64, 92];
 
 const MEM_CATS = [["all", "Alle"], ["profil", "Über dich"], ["setup", "Setup"], ["projekte", "Projekte"], ["ziele", "Ziele"], ["regeln", "Regeln"], ["routinen", "Routinen"]];
 const MEMORY = [
@@ -176,42 +173,16 @@ function reducer(s, a) {
     case "RUN": return { ...s, runs: s.runs.map((r) => (r.id === a.id ? { ...r, ...a.patch } : r)) };
     case "ADD_APPROVAL": return { ...s, approvals: [a.ap, ...s.approvals] };
     case "DECIDE": {
+      // Only session-local approvals can be decided in the UI; a projected
+      // approval's decision must go through the runtime (Wave 6+). No run state
+      // or worker is fabricated here.
       const ap = s.approvals.find((x) => x.id === a.id);
-      if (!ap) return s;
-      const verb = { approved: "freigegeben", rejected: "abgelehnt", later: "auf später gelegt" }[a.decision];
+      if (!ap || ap.local !== true) return s;
       let approvals = s.approvals.map((x) => (x.id === a.id ? { ...x, status: a.decision, decided: nowHM() } : x));
       if (a.decision === "later") approvals = [...approvals.filter((x) => x.id !== a.id), approvals.find((x) => x.id === a.id)];
-      let runs = s.runs;
-      if (ap.run && a.decision !== "later") {
-        runs = runs.map((r) => r.id !== ap.run ? r : a.decision === "approved"
-          ? { ...r, state: "running", live: true, speed: Math.max(r.speed || 0, 1.4), note: "Freigegeben, Umsetzung läuft", worker: r.worker === "–" ? "Claude Code, Slot 2" : r.worker }
-          : { ...r, state: "blocked", live: false, note: `Freigabe ${ap.id} abgelehnt` });
-      }
-      const log = { id: uid(), t: nowHMS(), src: "hermes", lvl: a.decision === "approved" ? "ok" : "info", run: ap.run || undefined, msg: `Freigabe ${ap.id} ${verb}: ${ap.title}` };
-      return { ...s, approvals, runs, logs: [log, ...s.logs] };
+      return { ...s, approvals };
     }
     case "SYNC_RT": return { ...s, ...a.patch };
-    case "TICK": {
-      const add = [];
-      const runs = s.runs.map((r) => {
-        // Only session-local optimistic runs animate; real projected runs never
-        // get a fabricated progress bump.
-        if (r.local !== true || !r.live || !isActive(r)) return r;
-        const p = Math.min(100, r.progress + (r.speed || 0.15) * (0.6 + Math.random() * 0.8));
-        const st = stageFor(p);
-        if (p >= 100) {
-          add.push({ src: "git", lvl: "ok", run: r.id, msg: `${r.id} abgeschlossen, bereit für deine Review` });
-          return { ...r, progress: 100, stage: 6, state: "success", live: false, note: "Review bereit, Evidence vollständig" };
-        }
-        if (st !== r.stage) {
-          add.push({ src: STAGE_SRC[st], lvl: st === 4 ? "evidence" : "info", run: r.id, msg: `${r.id}: ${STAGE_NOTE[st]}` });
-          return { ...r, progress: p, stage: st, note: STAGE_NOTE[st] };
-        }
-        return { ...r, progress: p };
-      });
-      const t = nowHMS();
-      return { ...s, runs, logs: add.length ? [...add.reverse().map((l) => ({ id: uid(), t, ...l })), ...s.logs] : s.logs };
-    }
     default: return s;
   }
 }
@@ -237,9 +208,6 @@ function Panel({ title, right, children, className = "", area, style }) {
       {children}
     </section>
   );
-}
-function Prog({ v, c = "#ffab40" }) {
-  return <div className="prog"><i style={{ width: `${v}%`, background: `linear-gradient(90deg, ${hexA(c, 0.55)}, ${c})`, boxShadow: `0 0 8px ${hexA(c, 0.6)}` }} /></div>;
 }
 function LiveTag({ label = "Live", color = "#ffab40", pulse = true }) {
   return <span className="tag" style={{ color }}><Dot color={color} pulse={pulse} />{label}</span>;
@@ -714,8 +682,12 @@ function Sidebar({ s, go }) {
         ))}
       </nav>
       <div className="side-f">
-        <LiveTag label="Online" />
-        <div className="side-v">V1.0 Vorschau<br />Mock-Daten</div>
+        <LiveTag
+          label={!s.rtMeta?.loaded ? "Prüft …" : (s.rtMeta?.runsReal || s.rtMeta?.activityReal) ? "Runtime Truth" : "Nicht verbunden"}
+          color={(s.rtMeta?.runsReal || s.rtMeta?.activityReal) ? "#ffab40" : "#a3968a"}
+          pulse={false}
+        />
+        <div className="side-v">V1 · System Status,<br />Runs, Aktivität live</div>
       </div>
     </aside>
   );
@@ -959,7 +931,7 @@ function HomeView({ s, go, command, inputRef, onMic }) {
       </Panel>
       <div className="core">
         <OrbStage voice={s.voice} />
-        <Spoken text={s.utterance} id={s.utterId} />
+        {s.utterance ? <Spoken text={s.utterance} id={s.utterId} /> : null}
         <VoiceBars voice={s.voice} />
         <div className="caption">{VOICE_CAPTION[s.voice]}</div>
         <CommandBar onSend={command} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={SUGG} />
@@ -978,8 +950,7 @@ function RunCard({ run, onOpen }) {
     <button className="runcard" onClick={onOpen}>
       <div className="mr-h"><span className="rid">{run.id}</span><Chip state={run.state} small /></div>
       <div className="mr-t">{run.title}</div>
-      <Prog v={run.progress} c={STATE[run.state].c} />
-      <div className="rc-b"><span>{run.note}</span><ChevronRight size={14} /></div>
+      <div className="rc-b"><span>{run.note || STATE[run.state]?.label}</span><ChevronRight size={14} /></div>
     </button>
   );
 }
@@ -1182,8 +1153,9 @@ function MemoryView({ s, d }) {
   const items = MEMORY.filter((m) => (s.memCat === "all" || m.c === s.memCat) && (!q || `${m.k} ${m.v}`.toLowerCase().includes(q.toLowerCase())));
   return (
     <>
-      <PageHead title="Memory" sub="Was JARVIS über dich, dein Setup und deine Projekte weiß."
+      <PageHead title="Memory" sub="Was JARVIS über dich, dein Setup und deine Projekte weiß — Inhalte noch Mock."
         right={<label className="search"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Memory durchsuchen" aria-label="Memory durchsuchen" /></label>} />
+      <div className="empty" style={{ marginBottom: 12 }}>Mock: der echte private Memory-Store (src/jarvis/memory-store-*) wird in einer späteren Welle angebunden.</div>
       <div className="mem">
         <div className="cats" role="tablist">
           {MEM_CATS.map(([id, label]) => (
@@ -1433,13 +1405,12 @@ export default function JarvisCommandCenter() {
   const later = (ms, fn) => { timers.current.push(setTimeout(fn, ms)); };
 
   useEffect(() => {
-    later(7200, () => d({ type: "IDLE_IF", id: 1 }));
-    const id = setInterval(() => d({ type: "TICK" }), 2200);
     const onKey = (e) => {
       if (e.key === "/" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) { e.preventDefault(); inputRef.current?.focus(); }
     };
     window.addEventListener("keydown", onKey);
-    return () => { clearInterval(id); timers.current.forEach(clearTimeout); window.removeEventListener("keydown", onKey); };
+    const timerList = timers.current;
+    return () => { timerList.forEach(clearTimeout); window.removeEventListener("keydown", onKey); };
   }, []);
 
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [s.view]);
@@ -1556,7 +1527,11 @@ export default function JarvisCommandCenter() {
           <footer className="foot">
             <span className="logo xs">JARVIS</span>
             <span className="foot-m">Immer einen Schritt voraus</span>
-            <LiveTag label="Online" />
+            <LiveTag
+              label={!s.rtMeta?.loaded ? "Prüft …" : (s.rtMeta?.runsReal || s.rtMeta?.activityReal || s.rtMeta?.systemsReal) ? "Runtime Truth" : "Fail-closed"}
+              color={(s.rtMeta?.runsReal || s.rtMeta?.activityReal || s.rtMeta?.systemsReal) ? "#ffab40" : "#a3968a"}
+              pulse={false}
+            />
           </footer>
         </main>
       </div>
