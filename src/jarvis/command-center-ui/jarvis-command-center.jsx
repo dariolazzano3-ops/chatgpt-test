@@ -182,6 +182,14 @@ function reducer(s, a) {
       if (a.decision === "later") approvals = [...approvals.filter((x) => x.id !== a.id), approvals.find((x) => x.id === a.id)];
       return { ...s, approvals };
     }
+    case "APPROVAL_PENDING":
+      return { ...s, approvals: s.approvals.map((x) => (x.id === a.id ? { ...x, deciding: a.decision } : x)) };
+    case "APPROVAL_DECIDED":
+      return { ...s, approvals: s.approvals.map((x) => (x.id === a.id
+        ? { ...x, deciding: null, status: a.decision === "approve" ? "approved" : a.decision === "reject" ? "rejected" : "later", decided: nowHM(), gate_status: a.gate_status || null }
+        : x)) };
+    case "APPROVAL_DECISION_FAILED":
+      return { ...s, approvals: s.approvals.map((x) => (x.id === a.id ? { ...x, deciding: null, decide_error: a.error } : x)) };
     case "SYNC_RT": return { ...s, ...a.patch };
     default: return s;
   }
@@ -1190,7 +1198,7 @@ function RiskMeter({ risk }) {
   );
 }
 
-function ApprovalsView({ s, d, go }) {
+function ApprovalsView({ s, d, go, decideApproval }) {
   const pending = s.approvals.filter(isPending);
   const done = s.approvals.filter((a) => !isPending(a));
   return (
@@ -1222,7 +1230,12 @@ function ApprovalsView({ s, d, go }) {
                   <button className="btn ghost" onClick={() => d({ type: "DECIDE", id: a.id, decision: "later" })}><Clock size={14} />Später</button>
                 </>
               ) : (
-                <span className="dim" style={{ fontSize: 12 }}>Entscheidung über die Runtime wird in Wave 6 freigeschaltet.</span>
+                <>
+                  <button className="btn pri" disabled={!!a.deciding} onClick={() => decideApproval && decideApproval(a, "approve")}><Check size={14} />Freigeben</button>
+                  <button className="btn danger" disabled={!!a.deciding} onClick={() => decideApproval && decideApproval(a, "reject")}><X size={14} />Ablehnen</button>
+                  <button className="btn ghost" disabled={!!a.deciding} onClick={() => decideApproval && decideApproval(a, "defer")}><Clock size={14} />Später</button>
+                  <span className="dim" style={{ fontSize: 11 }}>{a.deciding ? "Entscheidung wird an die Runtime übergeben …" : a.decide_error ? `Fehler: ${a.decide_error}` : "Entscheidung wird protokolliert — keine Ausführung, kein externer Effekt."}</span>
+                </>
               )}
               {a.run && <button className="btn ghost" onClick={() => go("tasks", { selRun: a.run, taskFilter: "all", projectFilter: null })}>Run {a.run} ansehen</button>}
             </div>
@@ -1504,7 +1517,35 @@ export default function JarvisCommandCenter() {
     inFlight.current = false;
   }, []);
 
-  const props = { s, d, go, command, inputRef, onMic };
+  // Operator decision on a projected approval -> POST <base>/api/approvals/decide.
+  // Records a decision; never executes, never sets external_effect.
+  const decidingRef = useRef(new Set());
+  const decideApproval = useCallback(async (approval, decision) => {
+    const id = approval && approval.id;
+    if (!id || decidingRef.current.has(id)) return;
+    decidingRef.current.add(id);
+    d({ type: "APPROVAL_PENDING", id, decision });
+    let body = null, httpOk = false;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/approvals/decide`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ approval_id: id, run_id: approval.run || null, decision }),
+      });
+      httpOk = r.ok;
+      body = await r.json().catch(() => null);
+    } catch { body = null; }
+    if (httpOk && body && body.ok) {
+      d({ type: "APPROVAL_DECIDED", id, decision, gate_status: body.gate_status });
+    } else {
+      d({ type: "APPROVAL_DECISION_FAILED", id, error: (body && body.error) || "Runtime nicht erreichbar" });
+    }
+    decidingRef.current.delete(id);
+    _rtLoad();
+  }, []);
+
+  const props = { s, d, go, command, inputRef, onMic, decideApproval };
   const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView }[s.view];
 
   return (

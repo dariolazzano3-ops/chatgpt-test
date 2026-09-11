@@ -532,6 +532,83 @@ complete and every path fails closed.
 
 Acceptance: `scripts/jarvis-claude-code-bridge-v1-smoke.mjs`.
 
+### 2. Git remote truth — `src/jarvis/git-remote-truth-v1.js`
+
+`createGithubRemoteHeadResolverV1({ owner, repo, branch, token, local_head,
+fetch_impl, timeout_ms })` reads the genuine remote HEAD SHA with a single
+**GET** `…/git/ref/heads/{branch}` (no write of any kind), pairs it with the
+runtime's own `local_head`, and feeds `deriveRemoteGitStatus`:
+
+- full 40-char SHA comparison only; explicit provenance (`api`, `endpoint`,
+  `http_status`, `ref`, `observed_at`, `read_only: true`);
+- `AbortController` timeout (default 8 s) → `GIT_REMOTE_TRUTH_TIMEOUT` → UNKNOWN;
+- HTTP error / invalid SHA / not configured → UNKNOWN; **never** fabricates SYNCED;
+- the token is used only as a request header — never returned or logged.
+
+`createJarvisGitRemoteTruthProbeFromEnvV1(env)` builds the `git` probe from
+`GITHUB_REPOSITORY` / `GITHUB_TOKEN` (or `JARVIS_GIT_*`) + `JARVIS_PROJECT_HEAD`;
+absent → no probe → GIT stays UNKNOWN. Acceptance:
+`scripts/jarvis-git-remote-truth-v1-smoke.mjs`.
+
+### 3. System health probes — `src/jarvis/system-health-probes-v1.js`
+
+`createHttpHealthProbeV1({ domain, url, … })` returns a live state **only** on a
+genuine 2xx from a real `https://` health endpoint; non-2xx / timeout / network
+error / unparseable body / no URL → the probe is absent or returns `null` → the
+domain stays UNKNOWN. `state_from` may narrow the state but only within the
+domain's allowed enum. `createJarvisSelfProbeV1` genuinely exercises the durable
+memory store (ONLINE / DEGRADED / — never a static claim) and is **opt-in**
+(`JARVIS_SELF_PROBE=on`) so the default response is fail-closed.
+`createJarvisSystemHealthProbesFromEnvV1(env)` wires only the domains that have a
+real `*_HEALTH_URL`. Acceptance:
+`scripts/jarvis-system-health-probes-v1-smoke.mjs`.
+
+### 4. Approval runtime path — `POST /jarvis/api/approvals/decide`
+
+`evaluateJarvisApprovalDecisionV1` + the route record an operator decision
+(`approve` / `reject` / `defer`) as a **new** owner-scoped audit event
+(`action: APPROVAL_DECISION`, `approval.actor_type: OPERATOR`, `explicit: true`,
+`request_id` = the correlated run):
+
+- a projected approval **cannot self-approve** — the decision is a distinct
+  operator action, never emitted by a worker path;
+- the decision must **correlate to the canonical run** (`run_id` must equal the
+  projected approval's `run_id`) → `JARVIS_APPROVAL_RUN_CORRELATION_MISMATCH`;
+- approving **does not bypass the action gate**: `execution_authorized: false`,
+  `external_effect: false`, `executed: false` — an authorised-executor run is a
+  separate step;
+- worker output never counts as acceptance;
+- no store → `503` fail-closed.
+
+The accepted UI's decision buttons now POST this endpoint for projected approvals
+(`disabled` while in flight; honest "keine Ausführung, kein externer Effekt"
+caption). Acceptance:
+`scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs`.
+
+### 5. Supabase audit readiness
+
+`scripts/jarvis-supabase-audit-migration-v1-smoke.mjs` statically validates
+`supabase/migrations/20260911090000_jarvis_audit_read_v1.sql` **offline** — the
+read RPC is `security definer` + pinned `search_path`, owner-scoped, deterministic
+order, clamped to ≤ 200 rows, `revoke`d from `public/anon/authenticated`,
+`grant execute` to `service_role` only, and contains **no** insert / update /
+delete / drop / truncate / alter / create-table / copy / server-file statement.
+
+**One-step operator action (only if durable audit is wanted in staging):** apply
+that single migration file to the `jarvis_private` schema of the JARVIS private
+Supabase project (e.g. `supabase db push` against that project, or paste the file
+into its SQL editor). No secret change, no destructive SQL. Until then the
+durable store's `readAudit` fails closed and Runs/Activity/Approvals/Evidence show
+`Nicht verbunden` on that path; the in-memory path is unaffected.
+
+### 6. Command Center runtime integration
+
+`GET /jarvis/api/runtime-truth` now builds genuine probes from `env`
+(`createJarvisSystemHealthProbesFromEnvV1` + `createJarvisGitRemoteTruthProbeFromEnvV1`),
+merges injected test probes on top, and reports the real `command_chain` binding
+state (Claude bridge / Codex / Git). With nothing configured every system stays
+UNKNOWN and every projection stays fail-closed — unchanged default behaviour.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

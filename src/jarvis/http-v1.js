@@ -17,6 +17,9 @@ import {
 } from './command-center-runtime-truth-v1.js';
 import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-bindings-v1.js';
 import { jarvisCommandCenterWorkerChainV1 } from './command-center-worker-binding-v1.js';
+import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runtime-v1.js';
+import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
+import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -265,9 +268,24 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   }
 
   if (url.pathname === '/jarvis/api/runtime-truth' && request.method === 'GET') {
-    const probes = options.command_center_probes && typeof options.command_center_probes === 'object'
+    // Injected probes (tests) take precedence; otherwise build genuine probes
+    // from env. Every one fails closed to UNKNOWN when the source is absent.
+    const injectedProbes = options.command_center_probes && typeof options.command_center_probes === 'object'
       ? options.command_center_probes
       : {};
+    const envHealthProbes = createJarvisSystemHealthProbesFromEnvV1(env, {
+      fetch_impl: options.fetch_impl,
+      store,
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      clock: options.now ? () => options.now : undefined
+    });
+    const gitProbe = createJarvisGitRemoteTruthProbeFromEnvV1(env, {
+      fetch_impl: options.fetch_impl,
+      clock: options.now ? () => options.now : undefined
+    });
+    const probes = { ...envHealthProbes, ...(gitProbe ? { git: gitProbe } : {}), ...injectedProbes };
+
     // Wave 4/5: real Runs / Activity / Approvals / Evidence projected from the
     // owner-scoped persisted JARVIS audit log. Absent store.readAudit -> no
     // binding -> those domains fail closed to NOT_CONNECTED.
@@ -288,8 +306,63 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       read_only: true,
       production_deploy: false,
       hamyren_data_flow: false,
-      command_chain: jarvisCommandCenterWorkerChainV1(),
+      command_chain: jarvisCommandCenterWorkerChainV1({
+        claude_bridge: options.claude_bridge || null,
+        codex_bridge: options.codex_bridge || null,
+        git_remote_truth_bound: Boolean(gitProbe && gitProbe.configured)
+      }),
       ...snapshot
+    });
+  }
+
+  if (url.pathname === '/jarvis/api/approvals/decide' && request.method === 'POST') {
+    if (!store || typeof store.readAudit !== 'function') {
+      return json({ ok: false, error: 'JARVIS_APPROVAL_RUNTIME_UNAVAILABLE', executed: false, external_effect: false }, 503);
+    }
+    const body = await bodyJson(request);
+    const readBindings = createJarvisCommandCenterReadBindingsV1({
+      store, owner_id: session.owner_id, owner_ref: session.owner_ref, now: options.now
+    });
+    let approvals = [];
+    try {
+      const env0 = typeof readBindings.approvals === 'function' ? await readBindings.approvals() : null;
+      approvals = Array.isArray(env0?.data) ? env0.data : [];
+    } catch {
+      return json({ ok: false, error: 'JARVIS_APPROVAL_PROJECTION_UNAVAILABLE', executed: false, external_effect: false }, 503);
+    }
+
+    const evaluation = evaluateJarvisApprovalDecisionV1({
+      approvals,
+      approval_id: clean(body.approval_id, 240),
+      run_id: clean(body.run_id, 200),
+      decision: clean(body.decision, 20),
+      correlation_id: clean(body.correlation_id, 80),
+      owner_ref: session.owner_ref,
+      now: options.now || new Date().toISOString()
+    });
+    if (!evaluation.ok) {
+      return json({ ok: false, error: evaluation.error, executed: false, external_effect: false, ...evaluation }, evaluation.status || 409);
+    }
+
+    try {
+      await store.appendAudit({ owner_id: session.owner_id, owner_ref: session.owner_ref, event: evaluation.audit_event });
+    } catch {
+      return json({ ok: false, error: 'JARVIS_APPROVAL_PERSIST_FAILED', executed: false, external_effect: false }, 503);
+    }
+
+    return json({
+      ok: true,
+      schema: 'aurentara.jarvis.approval-decision-response.v1',
+      approval_id: evaluation.approval_id,
+      run_id: evaluation.run_id,
+      decision: evaluation.decision,
+      gate_status: evaluation.gate_status,
+      execution_authorized: false,
+      external_effect: false,
+      executed: false,
+      action_gate_bypassed: false,
+      production_deploy: false,
+      hamyren_data_flow: false
     });
   }
 
@@ -379,6 +452,10 @@ export function jarvisHttpManifestV1() {
     command_center_command_correlation_id: true,
     command_center_command_approval_gated: true,
     command_center_command_external_writes: false,
+    command_center_approval_decide_route: '/jarvis/api/approvals/decide',
+    command_center_approval_decide_records_audit: true,
+    command_center_approval_decide_bypasses_gate: false,
+    command_center_approval_decide_external_effect: false,
     operator_dashboard_audience_reused: false,
     browser_secrets: false,
     durable_memory_required_in_staging: true,
