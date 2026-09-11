@@ -8,6 +8,10 @@ on:
       - 'src/jarvis/command-center-runtime-truth-v1.js'
       - 'src/jarvis/command-center-read-bindings-v1.js'
       - 'src/jarvis/command-center-worker-binding-v1.js'
+      - 'src/jarvis/claude-code-bridge-v1.js'
+      - 'src/jarvis/git-remote-truth-v1.js'
+      - 'src/jarvis/system-health-probes-v1.js'
+      - 'src/jarvis/command-center-approval-runtime-v1.js'
       - 'src/jarvis/command-center-field-audit-v1.js'
       - 'src/jarvis/command-center-v1.js'
       - 'src/jarvis/command-center-ui/**'
@@ -24,6 +28,11 @@ on:
       - 'scripts/jarvis-command-center-wave4-smoke.mjs'
       - 'scripts/jarvis-command-center-wave5-smoke.mjs'
       - 'scripts/jarvis-command-center-wave6-smoke.mjs'
+      - 'scripts/jarvis-claude-code-bridge-v1-smoke.mjs'
+      - 'scripts/jarvis-git-remote-truth-v1-smoke.mjs'
+      - 'scripts/jarvis-system-health-probes-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs'
+      - 'scripts/jarvis-supabase-audit-migration-v1-smoke.mjs'
       - 'scripts/jarvis-command-center-wave7-browser-acceptance.mjs'
       - 'scripts/jarvis-command-center-wave8-audit-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
@@ -79,6 +88,21 @@ jobs:
 
       - name: Wave 6 — real command input + worker chain binding
         run: node scripts/jarvis-command-center-wave6-smoke.mjs
+
+      - name: Live binding — Claude Code execution bridge contract
+        run: node scripts/jarvis-claude-code-bridge-v1-smoke.mjs
+
+      - name: Live binding — Git remote truth resolver
+        run: node scripts/jarvis-git-remote-truth-v1-smoke.mjs
+
+      - name: Live binding — system health probes (fail-closed to UNKNOWN)
+        run: node scripts/jarvis-system-health-probes-v1-smoke.mjs
+
+      - name: Live binding — approval runtime path
+        run: node scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs
+
+      - name: Live binding — Supabase audit-read migration static validation
+        run: node scripts/jarvis-supabase-audit-migration-v1-smoke.mjs
 
       - name: Wave 7 — install headless Chromium
         run: npx playwright install --with-deps chromium

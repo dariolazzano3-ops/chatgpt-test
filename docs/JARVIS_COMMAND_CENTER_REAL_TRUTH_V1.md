@@ -479,6 +479,59 @@ of `DECIDE` were deleted.
 
 Acceptance: `scripts/jarvis-command-center-wave8-audit-smoke.mjs`.
 
+## Live Binding V1 — activation preparation
+
+Everything below is *preparation*: durable contracts and read-only adapters that
+fail closed. No live worker, no live probe endpoint and no database mutation is
+performed. Each capability stays UNKNOWN / not-bound until a genuine external
+binding is injected.
+
+### 1. Claude Code execution bridge — `src/jarvis/claude-code-bridge-v1.js`
+
+`createJarvisClaudeCodeBridgeV1({ executor, timeout_ms, max_output_bytes, env_allowlist, clock })`
+is the smallest durable contract for handing a bounded implementation request to
+a Claude Code executor:
+
+- **request** — validated fail-closed: full-UUID `correlation_id`, `owner_ref`,
+  a non-empty `task`, `workspace` must start with `/workspace/projects/`;
+  `protected_branch`, `production` and `allow_external_writes` are rejected.
+- **states** — `QUEUED → RUNNING → COMPLETE | FAILED | TIMEOUT | CANCELLED |
+  BLOCKED | UNAVAILABLE`.
+- **no executor bound → `UNAVAILABLE`** for every submit (`bound: false`,
+  `reason: NO_EXECUTOR_BOUND`). Config / registry presence is never enough.
+- **timeout** — an `AbortController` fires after `timeout_ms` (default 120 s,
+  max 900 s); result `TIMEOUT`.
+- **cancellation** — `submit()` returns `{ result, cancel() }`; an external
+  `AbortSignal` is also honoured → `CANCELLED`.
+- **correlation continuity** — `correlation_id` / `request_id` are echoed in every
+  state and in the evidence record; a repeated `correlation_id` is idempotent
+  (the executor runs once; the second call returns `{ duplicate: true }`).
+- **stdout/stderr/result normalisation** — clamped to `max_output_bytes`, sha-256
+  hashed into the evidence record, exit code preserved.
+- **evidence** — `{ evidence_id: "claude-code:<correlation_id>", kind:
+  "CLAUDE_CODE_EXECUTION", status, stdout_sha256, stderr_sha256, exit_code,
+  duration_ms, worker_verified: false, independent_acceptance: false }`.
+- **independent-acceptance boundary** — the bridge NEVER sets
+  `independent_acceptance: true`; `isIndependentlyAccepted()` requires a distinct
+  external `acceptance_ref`. Worker success is not acceptance.
+- **external effect** — `false` unless an authorised executor explicitly reports
+  one; the bridge never infers it.
+
+`createLocalFixtureExecutorV1` (deterministic) and `createChildProcessExecutorV1`
+(Node-only, bounded, **refuses a `claude`/`anthropic`-shaped command unless
+`allow_model_session` is explicitly set** — which an autonomous run must never
+do) are provided for tests and a future self-hosted runner.
+
+`command-center-worker-binding-v1.js` now takes an optional `{ claude_bridge,
+codex_bridge, git_remote_truth_bound }` and only flips a node to `bound: true`
+when a genuine adapter is present.
+
+**Live binding status: PENDING_EXTERNAL_ACTIVATION** — no Claude Code executor
+and no approved execution mechanism is available to this runtime; the contract is
+complete and every path fails closed.
+
+Acceptance: `scripts/jarvis-claude-code-bridge-v1-smoke.mjs`.
+
 ## Smallest clean integration plan
 
 1. Keep the accepted visuals frozen.

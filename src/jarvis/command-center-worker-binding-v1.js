@@ -63,17 +63,39 @@ const NODES = Object.freeze([
   }
 ]);
 
-export function jarvisCommandCenterWorkerChainV1() {
+export function jarvisCommandCenterWorkerChainV1(options = {}) {
+  // A genuine bridge is bound only when an executor was injected AND
+  // command-center-worker-binding was told about it. Config/registry presence
+  // is never enough.
+  const claudeBridgeBound = options.claude_bridge && options.claude_bridge.bound === true;
+  const gitRemoteTruthBound = options.git_remote_truth_bound === true;
+  const codexBound = options.codex_bridge && options.codex_bridge.bound === true;
+
+  const nodes = NODES.map((n) => {
+    if (n.node === 'CLAUDE_CODE' && claudeBridgeBound) {
+      return { ...n, bound: true, reason: null, evidence: 'src/jarvis/claude-code-bridge-v1.js executor injected' };
+    }
+    if (n.node === 'CODEX' && codexBound) {
+      return { ...n, bound: true, reason: 'FALLBACK_BOUND_INACTIVE' };
+    }
+    if (n.node === 'GIT' && gitRemoteTruthBound) {
+      return { ...n, bound: true, reason: null, evidence: 'src/jarvis/git-remote-truth-v1.js read-only remote-head resolver injected' };
+    }
+    return { ...n };
+  });
+
   return {
     schema: 'aurentara.jarvis.command-center.worker-chain.v1',
     primary_worker: 'CLAUDE_CODE',
     fallback_worker: 'CODEX',
     fallback_active: false,
-    claude_execution_bridge_bound: false,
-    codex_binding_present: false,
+    claude_execution_bridge_bound: Boolean(claudeBridgeBound),
+    claude_execution_bridge_contract: 'aurentara.jarvis.claude-code-bridge.v1',
+    codex_binding_present: Boolean(codexBound),
+    git_remote_truth_bound: Boolean(gitRemoteTruthBound),
     implementation_commands_fail_closed: true,
     worker_output_self_accepts: false,
-    nodes: NODES.map((n) => ({ ...n })),
+    nodes,
     production_deploy: false,
     hamyren_data_flow: false
   };
@@ -86,11 +108,13 @@ export function resolveJarvisCommandWorkerV1(input = {}) {
   const action = String(input.action || '').toUpperCase();
   const approvalRequired = input.approval_required === true;
   const blocked = input.blocked === true;
+  const claudeBridgeBound = input.claude_bridge && input.claude_bridge.bound === true;
+  const codexBound = input.codex_bridge && input.codex_bridge.bound === true;
 
   if (blocked) {
     return { worker: null, executable: false, reason: 'BLOCKED_BY_POLICY' };
   }
-  // The only genuinely executable path today is the read-only calendar connector.
+  // The only genuinely executable connector path today is read-only calendar.
   if (action === 'READ_CALENDAR') {
     return { worker: 'JARVIS_CONNECTOR', executable: true, reason: null };
   }
@@ -98,9 +122,23 @@ export function resolveJarvisCommandWorkerV1(input = {}) {
     return { worker: 'JARVIS_RUNTIME', executable: true, reason: 'LOCAL_READ_ONLY' };
   }
   if (approvalRequired) {
-    return { worker: 'CLAUDE_CODE', executable: false, reason: 'AWAITING_APPROVAL_THEN_CLAUDE_CODE_BRIDGE_REQUIRED' };
+    // Approval first; only then may the Claude Code bridge run (if bound).
+    return {
+      worker: 'CLAUDE_CODE',
+      executable: false,
+      reason: claudeBridgeBound
+        ? 'AWAITING_APPROVAL_THEN_CLAUDE_CODE'
+        : 'AWAITING_APPROVAL_THEN_CLAUDE_CODE_BRIDGE_REQUIRED'
+    };
   }
-  // Anything else that would need real implementation: Claude Code is primary,
-  // but the bridge is not bound -> not executable.
+  // Implementation work: Claude Code is primary.
+  if (claudeBridgeBound) {
+    return { worker: 'CLAUDE_CODE', executable: true, reason: 'CLAUDE_CODE_BRIDGE_BOUND' };
+  }
+  // Codex is a fallback ONLY when Claude is genuinely unavailable and a real
+  // Codex binding exists and policy permits it. Never by default.
+  if (codexBound && input.claude_unavailable === true && input.codex_fallback_permitted === true) {
+    return { worker: 'CODEX', executable: true, reason: 'CLAUDE_UNAVAILABLE_CODEX_FALLBACK' };
+  }
   return { worker: 'CLAUDE_CODE', executable: false, reason: 'CLAUDE_CODE_EXECUTION_BRIDGE_NOT_BOUND' };
 }
