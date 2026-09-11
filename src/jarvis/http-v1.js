@@ -406,13 +406,26 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       } : {}
     }, {
       memory_store: store,
-      connectors
+      connectors,
+      // Local/private-only, explicit opt-in (default undefined -> stays
+      // NOT_BOUND). Never constructed here: http-v1.js has no Node-only
+      // imports and never spawns a process itself. A caller that wants
+      // genuine Claude Code execution must inject an already-built, already-
+      // bound bridge via options.claude_bridge — see
+      // claude-code-local-runtime-binding-v1.js (Node-only, never imported
+      // by this file or any deployed-Worker entry point).
+      claude_bridge: options.claude_bridge || null,
+      claude_timeout_ms: options.claude_timeout_ms
     });
 
     const presentation = presentJarvisRuntimeResponseV1(runtime, { timezone });
     const gate = runtime.core?.action_gate || {};
     const approvalRequired = gate.approval_required === true;
     const blocked = gate.ok === false || runtime.core?.status === 'BLOCKED';
+    const claudeExecution = runtime.claude_execution || null;
+    const claudeCompleted = claudeExecution?.state === 'COMPLETE';
+    const claudeFailedTerminal = claudeExecution && !claudeCompleted
+      && ['FAILED', 'TIMEOUT', 'CANCELLED', 'BLOCKED', 'UNAVAILABLE'].includes(claudeExecution.state);
     return json({
       ok: runtime.ok,
       schema: 'aurentara.jarvis.private-chat-response.v1',
@@ -425,11 +438,17 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       gate_status: gate.status || (blocked ? 'BLOCKED' : null),
       approval_required: approvalRequired,
       blocked,
-      run_state: blocked ? 'BLOCKED' : approvalRequired ? 'WAITING_APPROVAL' : (runtime.connector_execution?.status === 'COMPLETED' ? 'COMPLETE' : 'RUNNING'),
+      run_state: blocked ? 'BLOCKED'
+        : claudeCompleted ? 'COMPLETE'
+        : claudeFailedTerminal ? 'FAILED'
+        : approvalRequired ? 'WAITING_APPROVAL'
+        : (runtime.connector_execution?.status === 'COMPLETED' ? 'COMPLETE' : 'RUNNING'),
       connector_status: runtime.connector_execution?.status || null,
+      claude_execution: claudeExecution,
       memory_loaded: runtime.core?.memory_retrieval?.count || 0,
       audit_persisted: runtime.audit_persisted === true,
-      external_effect: runtime.connector_execution?.external_effect === true,
+      external_effect: runtime.connector_execution?.external_effect === true || claudeExecution?.external_effect === true,
+      independent_acceptance: claudeExecution?.independent_acceptance === true,
       production_deploy: false,
       hamyren_data_flow: false
     }, runtime.ok ? 200 : 409);
@@ -452,6 +471,10 @@ export function jarvisHttpManifestV1() {
     command_center_command_correlation_id: true,
     command_center_command_approval_gated: true,
     command_center_command_external_writes: false,
+    command_center_command_claude_routing_action: 'FILE_WRITE',
+    command_center_command_claude_routing_requires_injected_bound_bridge: true,
+    command_center_command_claude_routing_default_bound: false,
+    command_center_command_claude_routing_requires_prior_persisted_approval: true,
     command_center_approval_decide_route: '/jarvis/api/approvals/decide',
     command_center_approval_decide_records_audit: true,
     command_center_approval_decide_bypasses_gate: false,

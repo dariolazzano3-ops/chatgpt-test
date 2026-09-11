@@ -77,7 +77,11 @@ const LIVE_BINDING_FILES = [
   'src/jarvis/git-remote-truth-v1.js',
   'src/jarvis/system-health-probes-v1.js',
   'src/jarvis/command-center-approval-runtime-v1.js',
-  'src/jarvis/command-center-worker-binding-v1.js'
+  'src/jarvis/command-center-worker-binding-v1.js',
+  'src/jarvis/claude-code-local-cli-executor-v1.js',
+  'src/jarvis/claude-code-local-runtime-binding-v1.js',
+  'src/jarvis/runtime-v1.js',
+  'src/jarvis/http-v1.js'
 ];
 const FORBIDDEN_PATTERNS = [
   /wrangler\s+deploy/i, /\bDROP\s+TABLE/i, /\bTRUNCATE\b/i, /\brm\s+-rf\b/i,
@@ -108,6 +112,28 @@ assert.ok(healthMethods.every((m) => m === 'GET'), 'system-health-probes must on
 for (const file of LIVE_BINDING_FILES) {
   const text = fs.readFileSync(file, 'utf8');
   assert.doesNotMatch(text, /sk-[A-Za-z0-9]{16}|gh[pous]_[A-Za-z0-9]{20}|-----BEGIN [A-Z ]*PRIVATE KEY/, `${file} must not contain secret-shaped literals`);
+}
+
+// ── the Node-only local Claude Code binding files are never imported by any
+//    module that gets bundled into the deployed Cloudflare Worker — the
+//    "local worker binding boundary" from Phase 1 of the runtime-integration
+//    run. No config = Claude stays NOT_BOUND there, structurally, not just
+//    by convention. ──
+const DEPLOYED_WORKER_ENTRY_FILES = [
+  'src/jarvis/http-v1.js',
+  'src/jarvis/standalone-worker-v1.js',
+  'src/jarvis/pages-worker-v1.js',
+  'src/jarvis/command-center-worker-binding-v1.js'
+];
+const NODE_ONLY_LOCAL_FILES = ['claude-code-local-cli-executor-v1.js', 'claude-code-local-runtime-binding-v1.js'];
+for (const file of DEPLOYED_WORKER_ENTRY_FILES) {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const nodeOnly of NODE_ONLY_LOCAL_FILES) {
+    // An actual import/require statement, not merely a mention in a comment
+    // explaining why it's absent (http-v1.js documents that deliberately).
+    const importPattern = new RegExp(`(?:from|require\\()\\s*['"][^'"]*${nodeOnly.replace(/\./g, '\\.')}['"]`);
+    assert.doesNotMatch(text, importPattern, `${file} must never import the Node-only ${nodeOnly} (no production dependency)`);
+  }
 }
 
 console.log('JARVIS Live Binding V1 safety regression smoke: PASS');
