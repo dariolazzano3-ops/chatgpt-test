@@ -37,8 +37,23 @@ export function createMemoryJarvisStoreV1(seed = []) {
       const ownerId = clean(owner_id, 80);
       const ownerRef = clean(owner_ref, 320);
       if (!ownerId || !ownerRef) throw new Error('JARVIS_AUDIT_STORE_SCOPE_REQUIRED');
-      audits.push({ owner_id: ownerId, owner_ref: ownerRef, event: clone(event) });
-      return { ok: true, event_id: 'memory-audit-' + audits.length };
+      const eventId = 'memory-audit-' + (audits.length + 1);
+      const occurredAt = clean(event?.timestamp, 80) || new Date().toISOString();
+      audits.push({ owner_id: ownerId, owner_ref: ownerRef, event_id: eventId, occurred_at: occurredAt, event: clone(event) });
+      return { ok: true, event_id: eventId, occurred_at: occurredAt };
+    },
+
+    // Bounded, owner-scoped, read-only audit reader (Wave 4).
+    async readAudit({ owner_id, owner_ref, limit = 50 } = {}) {
+      const ownerId = clean(owner_id, 80);
+      const ownerRef = clean(owner_ref, 320);
+      if (!ownerId || !ownerRef) throw new Error('JARVIS_AUDIT_STORE_SCOPE_REQUIRED');
+      const safeLimit = Math.max(1, Math.min(200, Number(limit) || 50));
+      return audits
+        .filter((row) => row.owner_id === ownerId && row.owner_ref === ownerRef)
+        .map((row) => ({ event_id: row.event_id, occurred_at: row.occurred_at, ...clone(row.event) }))
+        .sort((a, b) => Date.parse(b.occurred_at || b.timestamp || 0) - Date.parse(a.occurred_at || a.timestamp || 0))
+        .slice(0, safeLimit);
     },
 
     inspect() {

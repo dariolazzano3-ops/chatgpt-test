@@ -1,0 +1,126 @@
+name: JARVIS Command Center Real Truth V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-command-center-real-truth-v1'
+    paths:
+      - 'src/jarvis/command-center-runtime-truth-v1.js'
+      - 'src/jarvis/command-center-read-bindings-v1.js'
+      - 'src/jarvis/command-center-worker-binding-v1.js'
+      - 'src/jarvis/claude-code-bridge-v1.js'
+      - 'src/jarvis/git-remote-truth-v1.js'
+      - 'src/jarvis/system-health-probes-v1.js'
+      - 'src/jarvis/command-center-approval-runtime-v1.js'
+      - 'src/jarvis/command-center-field-audit-v1.js'
+      - 'src/jarvis/command-center-v1.js'
+      - 'src/jarvis/command-center-ui/**'
+      - 'src/jarvis/http-v1.js'
+      - 'src/jarvis/integration-layer-v1.js'
+      - 'src/jarvis/memory-store-memory-v1.js'
+      - 'src/jarvis/memory-store-supabase-v1.js'
+      - 'src/jarvis/memory-store-supabase-rpc-v1.js'
+      - 'src/source-of-truth.js'
+      - 'scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs'
+      - 'scripts/jarvis-command-center-ui-build-v1.mjs'
+      - 'scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave4-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave5-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave6-smoke.mjs'
+      - 'scripts/jarvis-claude-code-bridge-v1-smoke.mjs'
+      - 'scripts/jarvis-git-remote-truth-v1-smoke.mjs'
+      - 'scripts/jarvis-system-health-probes-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs'
+      - 'scripts/jarvis-supabase-audit-migration-v1-smoke.mjs'
+      - 'scripts/jarvis-live-binding-v1-safety-regression-smoke.mjs'
+      - 'scripts/jarvis-command-center-wave7-browser-acceptance.mjs'
+      - 'scripts/jarvis-command-center-wave8-audit-smoke.mjs'
+      - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
+      - '.github/workflows/jarvis-command-center-real-truth-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-truth-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax
+        run: |
+          node --check src/jarvis/command-center-runtime-truth-v1.js
+          node --check src/jarvis/command-center-v1.js
+          node --check src/jarvis/http-v1.js
+          node --check src/jarvis/integration-layer-v1.js
+          node --check src/source-of-truth.js
+          node --check scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs
+          node --check scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs
+          node --check scripts/jarvis-command-center-orange-ui-v1-smoke.mjs
+
+      - name: Wave 1 + Wave 2 read-only acceptance
+        run: node scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs
+
+      - name: Wave 3 live-binding fail-closed acceptance
+        run: node scripts/jarvis-command-center-runtime-truth-v1-wave3-smoke.mjs
+
+      - name: Wave 3 frontend — accepted orange Command Center bundle build
+        run: node scripts/jarvis-command-center-ui-build-v1.mjs
+
+      - name: Wave 3 frontend — accepted orange Command Center is served
+        run: node scripts/jarvis-command-center-orange-ui-v1-smoke.mjs
+
+      - name: Wave 4 — real Runs + real Activity projection
+        run: node scripts/jarvis-command-center-wave4-smoke.mjs
+
+      - name: Wave 5 — real Approvals + real Evidence projection
+        run: node scripts/jarvis-command-center-wave5-smoke.mjs
+
+      - name: Wave 6 — real command input + worker chain binding
+        run: node scripts/jarvis-command-center-wave6-smoke.mjs
+
+      - name: Live binding — Claude Code execution bridge contract
+        run: node scripts/jarvis-claude-code-bridge-v1-smoke.mjs
+
+      - name: Live binding — Git remote truth resolver
+        run: node scripts/jarvis-git-remote-truth-v1-smoke.mjs
+
+      - name: Live binding — system health probes (fail-closed to UNKNOWN)
+        run: node scripts/jarvis-system-health-probes-v1-smoke.mjs
+
+      - name: Live binding — approval runtime path
+        run: node scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs
+
+      - name: Live binding — Supabase audit-read migration static validation
+        run: node scripts/jarvis-supabase-audit-migration-v1-smoke.mjs
+
+      - name: Live binding — safety regression
+        run: node scripts/jarvis-live-binding-v1-safety-regression-smoke.mjs
+
+      - name: Wave 7 — install headless Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Wave 7 — desktop + mobile browser acceptance (1440x900 / 390x844)
+        run: node scripts/jarvis-command-center-wave7-browser-acceptance.mjs
+
+      - name: Wave 8 — final runtime-truth + safety field audit
+        run: node scripts/jarvis-command-center-wave8-audit-smoke.mjs
+
+      - name: Source-of-truth + integration-layer + rendered-UI regression
+        run: |
+          node scripts/source-of-truth-smoke.mjs
+          node scripts/jarvis-integration-layer-v1-smoke.mjs
+          node scripts/jarvis-private-chat-v1-smoke.mjs
+          node scripts/jarvis-private-worker-v1-smoke.mjs
+          node scripts/jarvis-pages-build-v1.mjs

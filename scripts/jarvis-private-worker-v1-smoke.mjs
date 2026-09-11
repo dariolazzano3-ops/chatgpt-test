@@ -21,9 +21,11 @@ assert.equal(root.status, 200);
 assert.equal(root.headers.get('x-jarvis-standalone-worker'), 'v1');
 assert.equal(root.headers.get('x-jarvis-aurentara-runtime-shared'), 'false');
 const html = await root.text();
-assert.match(html, /JARVIS · Private Command Center/);
+assert.match(html, /JARVIS · Command Center/);
+assert.match(html, /VISUAL_BASELINE=ACCEPTED/);
+assert.match(html, /--amber:#ffab40/);
+assert.doesNotMatch(html, /A BRIGHTER YOU/, 'accepted orange Command Center, not the legacy blue UI');
 assert.doesNotMatch(html, /\/jarvis\/api\//);
-assert.match(html, /href="\/connect\/google"/);
 
 const session = await handleJarvisStandaloneWorkerV1(
   new Request('https://jarvis-private.example.workers.dev/api/session'),

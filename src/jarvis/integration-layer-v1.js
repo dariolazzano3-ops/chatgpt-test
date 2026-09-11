@@ -159,6 +159,21 @@ export function evaluateJarvisIntegrationActionV1(input = {}) {
   return { ok: false, status: 'BLOCKED', error: 'JARVIS_INTEGRATION_POLICY_INVALID', execution_authorized: false };
 }
 
+export function jarvisIntegrationLivenessClaimV1(capabilityId = 'claude_code.analyze') {
+  const registry = createJarvisIntegrationRegistryV1();
+  const capability = (registry.capabilities || []).find((item) => item.id === clean(capabilityId, 180)) || null;
+  return {
+    schema: 'aurentara.jarvis.integration-layer.liveness-claim.v1',
+    capability_id: capability?.id || null,
+    provider: capability?.provider || null,
+    registered: Boolean(capability),
+    proves_runtime_liveness: false,
+    proves_availability: false,
+    proves_busy_state: false,
+    note: 'The integration registry proves policy and routing only. Command Center system status must come from a genuine live probe.'
+  };
+}
+
 export function jarvisIntegrationManifestV1() {
   const registry = createJarvisIntegrationRegistryV1();
   return {
@@ -169,6 +184,7 @@ export function jarvisIntegrationManifestV1() {
     remote_truth_provider: 'GITHUB',
     coding_specialist: 'CLAUDE_CODE',
     default_remote_write: 'OFF',
+    registry_proves_runtime_liveness: false,
     production_actions_enabled: false,
     billing_actions_enabled: false,
     hamyren_private_data_flow: false,

@@ -33,7 +33,8 @@ export const JARVIS_INTENTS = Object.freeze([
   'EXECUTION_REQUEST',
   'APPROVAL_REQUEST',
   'RESEARCH_REQUEST',
-  'DECISION_SUPPORT_REQUEST'
+  'DECISION_SUPPORT_REQUEST',
+  'IMPLEMENTATION_MISSION_REQUEST'
 ]);
 
 export const JARVIS_DOMAINS = Object.freeze([
@@ -48,7 +49,8 @@ export const JARVIS_DOMAINS = Object.freeze([
   'PROJECTS',
   'RESEARCH',
   'AUTOMATION',
-  'SMART_HOME'
+  'SMART_HOME',
+  'ENGINEERING'
 ]);
 
 export const JARVIS_ACTIONS = Object.freeze({
@@ -66,6 +68,10 @@ export const JARVIS_ACTIONS = Object.freeze({
   SEND_EMAIL: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'email.send' },
   FILE_WRITE: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'files.write' },
   SMART_HOME_ACTION: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'devices.write' },
+  // Explicit operator-dispatched engineering work (see engineering-mission-v1.js).
+  // Never reached via the free-text intent resolver (intent-v1.js) — an
+  // operator must call the dedicated /jarvis/api/engineering-mission route.
+  IMPLEMENTATION_MISSION: { class: 'EXTERNAL_WRITE', risk: 'HIGH', approval_required: true, external_write: true, capability: 'engineering.mission' },
   FINANCIAL_ACTION: { class: 'BLOCKED', risk: 'CRITICAL', approval_required: true, external_write: true, capability: 'finance.write' }
 });
 
