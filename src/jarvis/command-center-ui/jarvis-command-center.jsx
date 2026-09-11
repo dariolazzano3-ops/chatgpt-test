@@ -365,6 +365,7 @@ function rtRunToLocal(r) {
     started: r.started_at ? hm(r.started_at) : "–",
     updated_at: r.updated_at || null, live: false, real: true,
     evidence_ref: r.evidence_ref || null, approval_state: r.approval_state || null,
+    resumable: r.resumable === true,
   };
 }
 function rtEvidenceToUi(e) {
@@ -1106,7 +1107,7 @@ const TASK_FILTERS = [
   ["blocked", "Blockiert", (r) => r.state === "blocked" || r.state === "interrupted"],
 ];
 
-function TasksView({ s, d, go }) {
+function TasksView({ s, d, go, resumeMission }) {
   const base = s.projectFilter ? s.runs.filter((r) => r.project === s.projectFilter) : s.runs;
   const fn = TASK_FILTERS.find((f) => f[0] === s.taskFilter)?.[2] || (() => true);
   const list = base.filter(fn);
@@ -1168,6 +1169,7 @@ function TasksView({ s, d, go }) {
             <div className="acts">
               {sel.local === true && isActive(sel) && <button className="btn" onClick={() => act({ state: "interrupted", live: false, note: "Pausiert durch dich" }, `${sel.id} pausiert`)}><Pause size={14} />Pausieren</button>}
               {(sel.state === "waiting" || (sel.state === "blocked" && ap)) && <button className="btn pri" onClick={() => go("approvals")}><ShieldCheck size={14} />Freigabe prüfen</button>}
+              {sel.resumable === true && <button className="btn pri" onClick={() => resumeMission && resumeMission(sel)} title="Freigegebene, noch nicht ausgeführte Mission jetzt an Claude Code übergeben"><Play size={14} />Mission ausführen</button>}
               <button className="btn ghost" onClick={() => go("logs", { logFilter: { src: "all", lvl: "all", run: sel.id, q: "" } })}><FileText size={14} />Aktivität</button>
             </div>
           </Panel>
@@ -1668,7 +1670,46 @@ export default function JarvisCommandCenter() {
     _rtLoad();
   }, []);
 
-  const props = { s, d, go, command, engineeringMission, inputRef, onMic, decideApproval };
+  // Explicit operator resume of an approved-but-not-yet-dispatched Engineering
+  // Mission -> POST <base>/api/engineering-mission/resume. Sends ONLY the
+  // request_id; the mission itself is re-read from the durable audit trail
+  // server-side (see engineering-mission-resume-v1.js) — this call can never
+  // supply replacement mission fields.
+  const resumingRef = useRef(new Set());
+  const resumeMission = useCallback(async (run) => {
+    const id = run && run.id;
+    if (!id || resumingRef.current.has(id)) return;
+    resumingRef.current.add(id);
+    d({ type: "RUN", id, patch: { note: "Mission wird fortgesetzt …" } });
+    d({ type: "VOICE", voice: "thinking" });
+    let body = null, httpOk = false;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/engineering-mission/resume`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ request_id: id }),
+      });
+      httpOk = r.ok;
+      body = await r.json().catch(() => null);
+    } catch { body = null; }
+    d({ type: "VOICE", voice: "idle" });
+    if (!body) {
+      d({ type: "RUN", id, patch: { note: "Runtime nicht erreichbar" } });
+    } else if (!body.ok && !body.resumed) {
+      d({ type: "RUN", id, patch: { note: body.error || "Fortsetzen nicht möglich" } });
+    } else {
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.claude_bridge_bound
+        ? `Mission fortgesetzt und an Claude Code übergeben (${body.wave_state || "läuft"}).`
+        : body.executed ? `Mission fortgesetzt (${body.wave_state || "läuft"}).`
+        : "Bereits ausgeführt — keine erneute Ausführung.",
+        t: nowHM(), runId: id } });
+    }
+    resumingRef.current.delete(id);
+    _rtLoad();
+  }, []);
+
+  const props = { s, d, go, command, engineeringMission, inputRef, onMic, decideApproval, resumeMission };
   const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView }[s.view];
 
   return (

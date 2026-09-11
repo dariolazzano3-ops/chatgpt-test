@@ -13,6 +13,7 @@
    run, an event, a timestamp, an approval or an evidence record. */
 
 import { computeJarvisV2ProgressV1, JARVIS_V2_PROGRAM_ID } from './v2-progress-v1.js';
+import { evaluateJarvisEngineeringMissionResumeStateV1 } from './engineering-mission-resume-v1.js';
 
 const clean = (value, max = 800) => String(value ?? '').trim().slice(0, max);
 const isoOrNull = (value) => {
@@ -141,6 +142,11 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
 
   const runs = async () => {
     const audit = await loadNormalizedAudit(store, ownerId, ownerRef, limit);
+    // Raw (unnormalized) rows, read separately so the exact same rule the
+    // resume endpoint enforces (evaluateJarvisEngineeringMissionResumeStateV1,
+    // which needs intent.intent_type) can be applied here too — never a
+    // looser, UI-only approximation of it.
+    const rawAudit = await store.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit });
     const groups = new Map();
     for (const row of audit) {
       if (!row.request_id) continue;
@@ -152,6 +158,7 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
       events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
       const first = events[0];
       const last = events[events.length - 1];
+      const resumeState = evaluateJarvisEngineeringMissionResumeStateV1(rawAudit, requestId);
       items.push({
         id: requestId,
         title: events.map((e) => e.request).find(Boolean) || events.map((e) => e.action).find(Boolean) || requestId,
@@ -162,7 +169,8 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
         progress: null,
         progress_verified: false,
         approval_state: events.some((e) => e.approval?.required === true) ? approvalState(last.approval) : null,
-        evidence_ref: events.map((e) => e.evidence_ref).find(Boolean) || null
+        evidence_ref: events.map((e) => e.evidence_ref).find(Boolean) || null,
+        resumable: resumeState.resumable === true
       });
     }
     return {
@@ -279,6 +287,7 @@ export function jarvisCommandCenterReadBindingsManifestV1() {
     evidence_classification: 'DERIVED',
     v2_progress_classification: 'DERIVED',
     v2_progress_requires_independent_acceptance: true,
+    runs_resumable_field_matches_resume_endpoint_rule: true,
     fabricates_data: false,
     progress_ever_synthesised: false,
     worker_self_acceptance_treated_as_independent: false,

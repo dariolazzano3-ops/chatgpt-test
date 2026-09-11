@@ -19,6 +19,7 @@ import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-b
 import { jarvisCommandCenterWorkerChainV1 } from './command-center-worker-binding-v1.js';
 import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runtime-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
+import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 
@@ -536,6 +537,57 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       production_deploy: false,
       hamyren_data_flow: false
     }, mission.ok ? 200 : 409);
+  }
+
+  if (url.pathname === '/jarvis/api/engineering-mission/resume' && request.method === 'POST') {
+    // Canonical approval-resume path (V1 gap closure). The caller sends ONLY
+    // a request_id — any mission-shaped fields in the body are ignored; the
+    // mission is re-read from the durable audit trail. See
+    // engineering-mission-resume-v1.js for the full contract.
+    if (!store) {
+      return json({
+        ok: false,
+        error: 'JARVIS_DURABLE_MEMORY_NOT_READY',
+        message: 'JARVIS Memory ist in dieser Staging-Runtime noch nicht gebunden.',
+        production_deploy: false
+      }, 503);
+    }
+
+    const body = await bodyJson(request);
+    const requestId = clean(body.request_id || body.correlation_id, 80).toLowerCase();
+    const now = new Date().toISOString();
+
+    const resume = await handleJarvisEngineeringMissionResumeRuntimeV1({
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      request_id: requestId,
+      now
+    }, {
+      memory_store: store,
+      claude_bridge: options.claude_bridge || null,
+      claude_timeout_ms: options.claude_timeout_ms
+    });
+
+    return json({
+      ok: resume.ok,
+      schema: resume.schema || 'aurentara.jarvis.engineering-mission-resume-response.v1',
+      request_id: resume.request_id || requestId,
+      correlation_id: resume.correlation_id || requestId,
+      same_request_id: resume.same_request_id === true,
+      resumed: resume.resumed === true,
+      executed: resume.executed === true,
+      wave_state: resume.wave_state || null,
+      claude_bridge_bound: resume.claude_bridge_bound === true,
+      claude_execution: resume.claude_execution || null,
+      duplicate_execution_guard: resume.duplicate_execution_guard || null,
+      last_execution_state: resume.last_execution_state || null,
+      error: resume.ok ? null : (resume.error || null),
+      audit_persisted: resume.audit_persisted === true,
+      action_gate_bypassed: false,
+      independent_acceptance: false,
+      production_deploy: false,
+      hamyren_data_flow: false
+    }, resume.status || (resume.ok ? 200 : 409));
   }
 
   return json({ ok: false, error: 'JARVIS_ROUTE_NOT_FOUND', production_deploy: false }, 404);

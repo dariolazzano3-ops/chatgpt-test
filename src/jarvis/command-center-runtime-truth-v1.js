@@ -206,7 +206,12 @@ function normalizeRun(item = {}) {
     progress_basis: Number.isFinite(progress) && progress >= 0 && progress <= 100 && progressVerified && progressBasis ? progressBasis : null,
     result: item.result === undefined ? null : clone(item.result),
     evidence_ref: clean(item.evidence_ref || item.evidence_id, 300) || null,
-    approval_state: clean(item.approval_state, 80).toUpperCase() || null
+    approval_state: clean(item.approval_state, 80).toUpperCase() || null,
+    // Mirrors evaluateJarvisEngineeringMissionResumeStateV1's `resumable` rule
+    // exactly (see command-center-read-bindings-v1.js / engineering-mission-
+    // resume-v1.js) — never a looser one. Purely a UI visibility hint; the
+    // resume endpoint re-derives and re-checks this itself on every call.
+    resumable: item.resumable === true
   };
 }
 
