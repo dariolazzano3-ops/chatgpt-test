@@ -56,6 +56,7 @@ const REAL_TRUTH = {
 
 let TRUTH = EMPTY_TRUTH;
 let chatCalls = [];
+let decideCalls = [];
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -79,6 +80,20 @@ const server = http.createServer((req, res) => {
         intent: 'STATUS_REQUEST', action: 'READ_PERSONAL_CONTEXT',
         gate_status: 'ALLOWED', approval_required: false, blocked: false,
         run_state: 'RUNNING', connector_status: null, audit_persisted: true, external_effect: false,
+      });
+    });
+    return;
+  }
+  if (url.pathname === '/api/approvals/decide' && req.method === 'POST') {
+    let raw = '';
+    req.on('data', (c) => (raw += c));
+    req.on('end', () => {
+      let body = {};
+      try { body = JSON.parse(raw); } catch {}
+      decideCalls.push(body);
+      send({
+        ok: true, approval_id: body.approval_id, run_id: body.run_id, decision: body.decision,
+        gate_status: 'APPROVED_BY_OPERATOR', execution_authorized: false, external_effect: false, executed: false,
       });
     });
     return;
@@ -173,6 +188,32 @@ async function acceptViewport(name, width, height) {
   await page.waitForTimeout(250);
   const apText = await page.textContent('body');
   if (!/DEPLOY_STAGING|Berührt eine Live-Umgebung/.test(apText)) problems.push(`[${name}] projected approval not shown on Freigaben`);
+
+  // 9b. Live Binding: operator decision on a projected approval -> POST
+  // /api/approvals/decide with the correlated run, never claims execution.
+  decideCalls = [];
+  const freigebenBtn = page.locator('.ap .btn.pri:has-text("Freigeben")').first();
+  if (await freigebenBtn.count()) {
+    await freigebenBtn.click();
+    await page.waitForTimeout(400);
+    if (!decideCalls.length) problems.push(`[${name}] approval decision did not call /api/approvals/decide`);
+    else {
+      const call = decideCalls[0];
+      if (call.approval_id !== 'bbbbbbbb-2222-4222-8222-222222222222:approval') problems.push(`[${name}] approval decision sent wrong approval_id`);
+      if (call.run_id !== 'bbbbbbbb-2222-4222-8222-222222222222') problems.push(`[${name}] approval decision did not correlate to the run`);
+    }
+    const decidedText = await page.textContent('body');
+    if (/wurde ausgeführt|external.effect.*true/i.test(decidedText)) problems.push(`[${name}] UI must never claim execution from an approval decision`);
+  } else {
+    problems.push(`[${name}] projected approval has no decision button`);
+  }
+
+  // System view shows the real execution-chain binding state (no fake availability)
+  await nav(page, 'System');
+  await page.waitForTimeout(250);
+  const sysText = await page.textContent('body');
+  if (!/Ausführungskette/.test(sysText)) problems.push(`[${name}] execution-chain binding panel missing`);
+  if (!/nicht gebunden|CLAUDE_CODE/i.test(sysText)) problems.push(`[${name}] Claude Code binding state not shown honestly`);
 
   // 10. command submit -> mocked /api/chat with correlation_id -> optimistic run
   chatCalls = [];

@@ -33,6 +33,7 @@ on:
       - 'scripts/jarvis-system-health-probes-v1-smoke.mjs'
       - 'scripts/jarvis-command-center-approval-runtime-v1-smoke.mjs'
       - 'scripts/jarvis-supabase-audit-migration-v1-smoke.mjs'
+      - 'scripts/jarvis-live-binding-v1-safety-regression-smoke.mjs'
       - 'scripts/jarvis-command-center-wave7-browser-acceptance.mjs'
       - 'scripts/jarvis-command-center-wave8-audit-smoke.mjs'
       - 'docs/JARVIS_COMMAND_CENTER_REAL_TRUTH_V1.md'
@@ -103,6 +104,9 @@ jobs:
 
       - name: Live binding — Supabase audit-read migration static validation
         run: node scripts/jarvis-supabase-audit-migration-v1-smoke.mjs
+
+      - name: Live binding — safety regression
+        run: node scripts/jarvis-live-binding-v1-safety-regression-smoke.mjs
 
       - name: Wave 7 — install headless Chromium
         run: npx playwright install --with-deps chromium
