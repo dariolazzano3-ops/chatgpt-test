@@ -12,6 +12,8 @@
    adapter fails those domains closed to NOT_CONNECTED. Nothing here fabricates a
    run, an event, a timestamp, an approval or an evidence record. */
 
+import { computeJarvisV2ProgressV1, JARVIS_V2_PROGRAM_ID } from './v2-progress-v1.js';
+
 const clean = (value, max = 800) => String(value ?? '').trim().slice(0, max);
 const isoOrNull = (value) => {
   const text = clean(value, 80);
@@ -239,7 +241,32 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
     };
   };
 
-  return { activity, runs, approvals, evidence };
+  // Wave: truthful V2 progress, derived ONLY from persisted Engineering
+  // Mission audit rows (action IMPLEMENTATION_MISSION, result.program ===
+  // JARVIS_MASTERARCHITECTURE_V2). Never inferred from elapsed time, chat
+  // activity, run count, or a worker's own claim — see v2-progress-v1.js.
+  const v2Progress = async () => {
+    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, limit);
+    const rows = audit
+      .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === JARVIS_V2_PROGRAM_ID)
+      .map((row) => ({
+        wave_index: row.result?.wave_index,
+        wave_state: row.result?.wave_state,
+        independent_acceptance: row.result?.independent_acceptance === true,
+        acceptance_ref: clean(row.result?.acceptance_ref || row.result?.independent_acceptance_ref, 240) || null,
+        at: row.at,
+        evidence_ref: row.evidence_ref
+      }));
+    return {
+      classification: 'DERIVED',
+      source_id: 'jarvis-v2-progress-projection-v1',
+      derived_from: ['jarvis-audit-reader-v1'],
+      observed_at: nowIso(),
+      data: computeJarvisV2ProgressV1(rows)
+    };
+  };
+
+  return { activity, runs, approvals, evidence, v2_progress: v2Progress };
 }
 
 export function jarvisCommandCenterReadBindingsManifestV1() {
@@ -250,6 +277,8 @@ export function jarvisCommandCenterReadBindingsManifestV1() {
     runs_classification: 'DERIVED',
     approvals_classification: 'DERIVED',
     evidence_classification: 'DERIVED',
+    v2_progress_classification: 'DERIVED',
+    v2_progress_requires_independent_acceptance: true,
     fabricates_data: false,
     progress_ever_synthesised: false,
     worker_self_acceptance_treated_as_independent: false,

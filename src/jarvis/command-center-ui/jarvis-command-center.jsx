@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useReducer, useMemo, useCallback } 
 import {
   Home, MessageSquare, ListChecks, FolderKanban, Brain, ShieldCheck, Cpu, ScrollText,
   Mic, ArrowUp, Search, Play, Pause, Check, X, Clock, GitBranch, AlertTriangle,
-  ChevronRight, ChevronDown, Zap, Lock, Radio, FileText,
+  ChevronRight, ChevronDown, Zap, Lock, Radio, FileText, Wrench,
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -269,7 +269,7 @@ const _RT_EMPTY = {
   loaded: false, ok: false, canonical: false, data: {}, source: null,
   runs: { real: false, items: [] }, activity: { real: false, items: [] },
   approvals: { real: false, items: [], pending: 0 }, evidence: { real: false, items: [] },
-  commandChain: null,
+  commandChain: null, v2: null,
 };
 const _RT = { state: _RT_EMPTY, subs: new Set(), started: false, iv: null };
 function _rtPublish(next) { _RT.state = next; _RT.subs.forEach((fn) => { try { fn(next); } catch {} }); }
@@ -299,6 +299,9 @@ async function _rtLoad() {
       },
       evidence: { real: _domainReal(dom("evidence")), items: (dom("evidence").data && dom("evidence").data.items) || [] },
       commandChain: (b && b.command_chain) || null,
+      // V2 progress HUD: verified only, never inferred. real=false unless the
+      // v2_progress domain came back REAL/DERIVED (see command-center-runtime-truth-v1.js).
+      v2: { real: _domainReal(dom("v2_progress")), data: (dom("v2_progress").data) || null },
     });
   } catch {
     _rtPublish({ ..._RT_EMPTY, loaded: true });
@@ -634,21 +637,35 @@ function VoiceBars({ voice }) {
   );
 }
 
-function CommandBar({ onSend, voice, onMic, inputRef, suggestions, compact }) {
+function CommandBar({ onSend, onMission, voice, onMic, inputRef, suggestions, compact }) {
   const [v, setV] = useState("");
+  const [eng, setEng] = useState(false);
   const busy = voice === "thinking" || voice === "analyzing";
-  const send = () => { if (!v.trim() || busy) return; onSend(v); setV(""); };
+  const send = () => {
+    if (!v.trim() || busy) return;
+    if (eng && onMission) onMission(v); else onSend(v);
+    setV("");
+  };
   return (
     <div className={`cmdwrap${compact ? " compact" : ""}`}>
+      {onMission && (
+        <div className="eng-toggle">
+          <button type="button" className={`eng-b${eng ? " on" : ""}`} onClick={() => setEng((x) => !x)}
+            aria-pressed={eng} title="Engineering Mission starten — explizite Implementierungs-Mission statt Chat">
+            <Wrench size={13} /> Engineering Mission {eng ? "an" : "starten"}
+          </button>
+        </div>
+      )}
       <div className="cmd">
         <span className="cmd-k" aria-hidden="true">›</span>
         <input ref={inputRef} value={v} onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-          placeholder="Sag JARVIS, was zu tun ist …" aria-label="Befehl an JARVIS" />
+          placeholder={eng ? "Titel | Ziel der Engineering Mission …" : "Sag JARVIS, was zu tun ist …"}
+          aria-label={eng ? "Engineering Mission an JARVIS" : "Befehl an JARVIS"} />
         <button className={`ibtn${voice === "listening" ? " on" : ""}`} onClick={onMic} title="Spracheingabe (Vorschau, noch nicht verbunden)" aria-label="Spracheingabe"><Mic size={16} /></button>
-        <button className="ibtn send" disabled={!v.trim() || busy} onClick={send} title="Senden" aria-label="Senden"><ArrowUp size={17} /></button>
+        <button className="ibtn send" disabled={!v.trim() || busy} onClick={send} title={eng ? "Engineering Mission senden" : "Senden"} aria-label="Senden"><ArrowUp size={17} /></button>
       </div>
-      {suggestions && (
+      {suggestions && !eng && (
         <div className="sugg">
           {suggestions.map((x) => <button key={x} onClick={() => onSend(x)} disabled={busy}>{x}</button>)}
         </div>
@@ -805,6 +822,41 @@ function RunsPanel({ s, go }) {
   );
 }
 
+/* Compact, truthful V2 progress HUD. Sourced only from GET <apiBase>/runtime-truth
+   v2_progress (see v2-progress-v1.js). Never infers from time / chat / run
+   count / worker claims — an unverified or absent source renders UNKNOWN /
+   0% · NOT STARTED, never a fabricated percentage or ETA. */
+function V2ProgressHud() {
+  const rt = useRuntimeTruth();
+  if (!rt.loaded) return <div className="v2hud"><div className="v2h-row"><b>JARVIS V2</b><span className="v2h-pct">…</span></div></div>;
+  if (!rt.v2 || !rt.v2.real || !rt.v2.data) {
+    return (
+      <div className="v2hud off">
+        <div className="v2h-row"><b>JARVIS V2</b><span className="v2h-pct">UNKNOWN</span></div>
+        <div className="v2h-sub">Quelle nicht verbunden</div>
+      </div>
+    );
+  }
+  const p = rt.v2.data;
+  const blocked = Number.isInteger(p.blocked_wave);
+  const pct = Number.isFinite(p.verified_progress_percent) ? p.verified_progress_percent : 0;
+  const started = Boolean(p.program);
+  return (
+    <div className={`v2hud${blocked ? " blocked" : ""}`}>
+      <div className="v2h-row">
+        <b>JARVIS V2</b>
+        <span className="v2h-pct">{blocked ? "BLOCKED" : `${pct}%`}</span>
+      </div>
+      <div className="v2h-bar"><i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
+      <div className="v2h-sub">
+        {started ? `Wave ${p.current_wave} / 12` : "NOT STARTED"}
+        {blocked && ` · Wave ${p.blocked_wave} blockiert`}
+        {p.updated_at && ` · Evidence ${hm(p.updated_at)}`}
+      </div>
+    </div>
+  );
+}
+
 function SystemPanel({ go }) {
   const rt = useRuntimeTruth();
   const tag = !rt.loaded ? "Prüft …" : rt.canonical ? "Live" : "Nicht verbunden";
@@ -825,6 +877,7 @@ function SystemPanel({ go }) {
         <div className="usage-h"><span>Worker-Limit heute</span><b>Unbekannt</b></div>
         <div className="qbar"><i style={{ width: "0%" }} /><em style={{ left: "80%" }} title="Warnschwelle 80 %" /></div>
       </div>
+      <V2ProgressHud />
     </Panel>
   );
 }
@@ -920,7 +973,7 @@ function PipePanel({ s, go }) {
   );
 }
 
-function HomeView({ s, go, command, inputRef, onMic }) {
+function HomeView({ s, go, command, engineeringMission, inputRef, onMic }) {
   const active = s.runs.filter(isActive).length;
   const pending = s.approvals.filter(isPending).length;
   return (
@@ -942,7 +995,7 @@ function HomeView({ s, go, command, inputRef, onMic }) {
         {s.utterance ? <Spoken text={s.utterance} id={s.utterId} /> : null}
         <VoiceBars voice={s.voice} />
         <div className="caption">{VOICE_CAPTION[s.voice]}</div>
-        <CommandBar onSend={command} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={SUGG} />
+        <CommandBar onSend={command} onMission={engineeringMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={SUGG} />
       </div>
       <RunsPanel s={s} go={go} />
       <SystemPanel go={go} />
@@ -981,7 +1034,7 @@ function MiniStepper({ run }) {
   );
 }
 
-function ChatView({ s, go, command, inputRef, onMic }) {
+function ChatView({ s, go, command, engineeringMission, inputRef, onMic }) {
   const end = useRef(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [s.messages.length, s.voice]);
   const busy = s.voice === "thinking" || s.voice === "analyzing";
@@ -1013,7 +1066,7 @@ function ChatView({ s, go, command, inputRef, onMic }) {
             )}
             <div ref={end} />
           </div>
-          <CommandBar compact onSend={command} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={["Systemstatus", "Freigaben prüfen", "Lunara-Webhook reparieren"]} />
+          <CommandBar compact onSend={command} onMission={engineeringMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={["Systemstatus", "Freigaben prüfen", "Lunara-Webhook reparieren"]} />
         </section>
         <aside className="ctx">
           <Panel title="Kontext">
@@ -1517,6 +1570,76 @@ export default function JarvisCommandCenter() {
     inFlight.current = false;
   }, []);
 
+  // Explicit Engineering Mission dispatch (Part 1/2 of the V1 usability-gap
+  // closure): POST <base>/api/engineering-mission — a dedicated route, never
+  // the chat intent resolver, so a large implementation prompt can never be
+  // misclassified as READ_PERSONAL_CONTEXT. "Titel | Ziel" splits the input;
+  // with no "|" the whole text is used as both. Approval-gated exactly like
+  // any other external-write action; nothing here bypasses that.
+  const engineeringMission = useCallback(async (raw) => {
+    const text = String(raw || "").trim();
+    if (!text) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
+
+    const sep = text.indexOf("|");
+    const title = (sep > -1 ? text.slice(0, sep) : text).trim().slice(0, 200) || text.slice(0, 80);
+    const goal = (sep > -1 ? text.slice(sep + 1) : text).trim() || text;
+    const program = "JARVIS_MASTERARCHITECTURE_V2";
+
+    const corr = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    d({ type: "MSG", msg: { id: uid(), role: "user", text: `🛠 Engineering Mission: ${title}`, t: nowHM() } });
+    d({ type: "VOICE", voice: "thinking" });
+    d({ type: "ADD_RUN", run: {
+      id: corr, local: true, real: false, title: title.slice(0, 80), project: "jarvis",
+      worker: "Claude Code", state: "running", progress: 0, stage: 0,
+      note: "Engineering-Mission übergeben …", started: nowHM(), live: false,
+    } });
+
+    let body = null, httpOk = false;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/engineering-mission`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ title, goal, program, correlation_id: corr }),
+      });
+      httpOk = r.ok;
+      body = await r.json().catch(() => null);
+    } catch (e) { body = null; }
+
+    d({ type: "VOICE", voice: "idle" });
+
+    if (!body) {
+      d({ type: "RUN", id: corr, patch: { state: "failed", note: "Runtime nicht erreichbar" } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die JARVIS-Runtime ist nicht erreichbar. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      inFlight.current = false;
+      return;
+    }
+
+    const runState = body.run_state === "COMPLETE" ? "success"
+      : body.run_state === "WAITING_APPROVAL" ? "waiting"
+      : body.run_state === "BLOCKED" ? "blocked"
+      : body.run_state === "FAILED" ? "failed"
+      : httpOk ? "running" : "failed";
+    d({ type: "RUN", id: corr, patch: {
+      state: runState,
+      note: body.blocked ? `Blockiert: ${body.gate_status || body.wave_state || "Policy"}`
+        : body.approval_required ? "Wartet auf Freigabe"
+        : body.wave_state ? `Wave-Status: ${body.wave_state}` : (body.gate_status || "Übergeben"),
+      approval_state: body.approval_required ? "PENDING" : null,
+    } });
+    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.approval_required
+      ? "Engineering Mission angelegt — wartet auf Freigabe, bevor Claude Code dispatched wird."
+      : body.claude_bridge_bound
+        ? `Engineering Mission an Claude Code übergeben (${body.wave_state || body.run_state}).`
+        : "Freigegeben, aber keine echte Claude-Code-Bridge gebunden — es wurde nichts ausgeführt.",
+      t: nowHM(), runId: corr } });
+
+    _rtLoad();
+    inFlight.current = false;
+  }, []);
+
   // Operator decision on a projected approval -> POST <base>/api/approvals/decide.
   // Records a decision; never executes, never sets external_effect.
   const decidingRef = useRef(new Set());
@@ -1545,7 +1668,7 @@ export default function JarvisCommandCenter() {
     _rtLoad();
   }, []);
 
-  const props = { s, d, go, command, inputRef, onMic, decideApproval };
+  const props = { s, d, go, command, engineeringMission, inputRef, onMic, decideApproval };
   const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView }[s.view];
 
   return (
@@ -1757,6 +1880,11 @@ const CSS = `
 .sugg button{font-size:12px;color:var(--muted);padding:6px 12px;border:1px solid var(--line) !important;border-radius:999px;transition:.2s}
 .sugg button:hover:not(:disabled){color:var(--hi);border-color:var(--line2) !important}
 .sugg button:disabled{opacity:.4;cursor:default}
+.eng-toggle{display:flex;justify-content:center;margin-bottom:8px}
+.compact .eng-toggle{justify-content:flex-start}
+.eng-b{display:inline-flex;align-items:center;gap:6px;font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:5px 12px;border:1px solid var(--line) !important;border-radius:999px;transition:.2s}
+.eng-b:hover{color:var(--hi);border-color:var(--line2) !important}
+.eng-b.on{color:#1a0e03;background:var(--amber);border-color:var(--amber) !important;box-shadow:0 0 14px rgba(255,160,60,.45)}
 
 .runs-top{display:flex;align-items:center;gap:18px}
 .big{font-weight:300;font-size:60px;line-height:1;color:#fff3e2;font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,170,80,.35)}
@@ -1782,6 +1910,16 @@ const CSS = `
 .usage{margin-top:16px}
 .usage-h{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:9px}
 .usage-h b{font-family:var(--fm);font-weight:500;color:var(--hi)}
+.v2hud{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,170,70,.1)}
+.v2h-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted)}
+.v2h-row b{font-family:var(--fm);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.v2h-pct{font-family:var(--fm);font-size:13px;font-weight:500;color:var(--amber);font-variant-numeric:tabular-nums}
+.v2hud.blocked .v2h-pct{color:#ff7a4d}
+.v2hud.off .v2h-pct{color:var(--dim)}
+.v2h-bar{position:relative;height:3px;border-radius:2px;background:rgba(255,170,70,.1);margin-top:9px;overflow:hidden}
+.v2h-bar i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--deep),var(--hi));transition:width .4s}
+.v2hud.blocked .v2h-bar i{background:#ff7a4d}
+.v2h-sub{margin-top:7px;font-size:11px;color:var(--dim)}
 
 .quick{display:flex;flex-direction:column}
 .q-i{display:flex;align-items:center;gap:14px;padding:9px 6px;border-radius:8px;color:var(--amber);width:100%;transition:background .2s}

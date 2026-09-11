@@ -55,7 +55,8 @@ export const JARVIS_COMMAND_CENTER_DATA_SOURCE_MAP_V1 = Object.freeze([
   Object.freeze({ domain: 'EVIDENCE', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'Evidence must be explicitly resolved from a real evidence source, never synthesized from UI state.' }),
   Object.freeze({ domain: 'PROJECTS', classification: 'DERIVED', source: 'src/command-center.js portfolio snapshot', binding_state: 'STATE_DEPENDENT', note: 'Valid only when the supplied portfolio itself is authoritative runtime state.' }),
   Object.freeze({ domain: 'MEMORY', classification: 'REAL', source: 'src/jarvis/memory-store-supabase-v1.js', binding_state: 'READ_CAPABLE', note: 'Private JARVIS memory has a real read path when the durable store is configured.' }),
-  Object.freeze({ domain: 'COSTS', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'No complete JARVIS cost truth reader is established. Runtime audit defaults must not be presented as total spend.' })
+  Object.freeze({ domain: 'COSTS', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'No complete JARVIS cost truth reader is established. Runtime audit defaults must not be presented as total spend.' }),
+  Object.freeze({ domain: 'V2_PROGRESS', classification: 'DERIVED', source: 'src/jarvis/v2-progress-v1.js + src/jarvis/engineering-mission-v1.js', binding_state: 'READ_CAPABLE', note: 'Verified only from persisted Engineering Mission audit rows carrying independent_acceptance + acceptance_ref for JARVIS_MASTERARCHITECTURE_V2; never from elapsed time, chat activity, run count, or worker self-report.' })
 ]);
 
 const SYSTEMS = Object.freeze(Object.keys(JARVIS_SYSTEM_STATUS));
@@ -288,6 +289,27 @@ function normalizeEvidenceList(data) {
   return { items, accepted_count: items.length, rejected_count: input.length - items.length };
 }
 
+const V2_PROGRESS_FALLBACK = Object.freeze({
+  program: null, current_wave: 0, completed_waves: [], blocked_wave: null,
+  verified_progress_percent: 0, updated_at: null, evidence_refs: []
+});
+
+function normalizeV2Progress(data = {}) {
+  const completedWaves = Array.isArray(data.completed_waves)
+    ? data.completed_waves.filter((n) => Number.isInteger(n) && n >= 0 && n <= 12)
+    : [];
+  const percent = Number(data.verified_progress_percent);
+  return {
+    program: clean(data.program, 80) || null,
+    current_wave: Number.isInteger(data.current_wave) && data.current_wave >= 0 && data.current_wave <= 12 ? data.current_wave : 0,
+    completed_waves: completedWaves,
+    blocked_wave: Number.isInteger(data.blocked_wave) && data.blocked_wave >= 0 && data.blocked_wave <= 12 ? data.blocked_wave : null,
+    verified_progress_percent: Number.isFinite(percent) && percent >= 0 && percent <= 100 ? percent : 0,
+    updated_at: validIso(data.updated_at),
+    evidence_refs: Array.isArray(data.evidence_refs) ? data.evidence_refs.map((v) => clean(v, 300)).filter(Boolean) : []
+  };
+}
+
 function domainPayload(read, normalize, fallback) {
   return {
     source: read.source,
@@ -300,7 +322,7 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
   const nowMs = now.getTime();
   if (Number.isNaN(nowMs)) throw new Error('JARVIS_COMMAND_CENTER_TRUTH_NOW_INVALID');
 
-  const [systemsRead, runsRead, approvalsRead, activityRead, evidenceRead, projectsRead, memoryRead, costsRead] = await Promise.all([
+  const [systemsRead, runsRead, approvalsRead, activityRead, evidenceRead, projectsRead, memoryRead, costsRead, v2ProgressRead] = await Promise.all([
     safeRead('SYSTEM_STATUS', bindings.system_status, nowMs),
     safeRead('RUNS', bindings.runs, nowMs),
     safeRead('APPROVALS', bindings.approvals, nowMs),
@@ -308,7 +330,8 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
     safeRead('EVIDENCE', bindings.evidence, nowMs),
     safeRead('PROJECTS', bindings.projects, nowMs),
     safeRead('MEMORY', bindings.memory, nowMs),
-    safeRead('COSTS', bindings.costs, nowMs)
+    safeRead('COSTS', bindings.costs, nowMs),
+    safeRead('V2_PROGRESS', bindings.v2_progress, nowMs)
   ]);
 
   const snapshot = {
@@ -324,6 +347,7 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
     projects: { source: projectsRead.source, data: projectsRead.accepted ? clone(projectsRead.data) : null },
     memory: { source: memoryRead.source, data: memoryRead.accepted ? clone(memoryRead.data) : null },
     costs: { source: costsRead.source, data: costsRead.accepted ? clone(costsRead.data) : null },
+    v2_progress: domainPayload(v2ProgressRead, normalizeV2Progress, V2_PROGRESS_FALLBACK),
     safeguards: {
       read_only: true,
       command_dispatch_enabled: false,
@@ -435,7 +459,7 @@ export function createJarvisCommandCenterLiveProbeBindingsV1(probes = {}, option
     };
   }
 
-  for (const key of ['runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs']) {
+  for (const key of ['runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs', 'v2_progress']) {
     if (typeof config[key] === 'function') bindings[key] = config[key];
   }
 
@@ -460,7 +484,7 @@ export function jarvisCommandCenterLiveProbeContractV1() {
 
 export function validateJarvisCommandCenterTruthSnapshotV1(snapshot = {}) {
   const violations = [];
-  const domains = ['systems', 'runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs'];
+  const domains = ['systems', 'runs', 'approvals', 'activity', 'evidence', 'projects', 'memory', 'costs', 'v2_progress'];
   for (const domain of domains) {
     const classification = snapshot?.[domain]?.source?.classification;
     if (classification === JARVIS_TRUTH_CLASSIFICATION.MOCK || classification === JARVIS_TRUTH_CLASSIFICATION.STATIC) {

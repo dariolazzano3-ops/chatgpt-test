@@ -1,0 +1,42 @@
+{
+  "schema": "aurentara.jarvis.v2-start-gate-proof.v1",
+  "program": "JARVIS_MASTERARCHITECTURE_V2",
+  "accepted_v1_head": "9fbc56a9bb5498108b7804c4a49d6558cbfa7e2c",
+  "target_branch": "factory/jarvis-masterarchitecture-v2",
+  "generated_at": "2026-09-11T16:06:46.830Z",
+  "remote_url": "https://github.com/dariolazzano3-ops/chatgpt-test.git",
+  "remote_head_of_current_branch": "9fbc56a9bb5498108b7804c4a49d6558cbfa7e2c",
+  "v2_branch_exists": true,
+  "v2_branch_head": "9fbc56a9bb5498108b7804c4a49d6558cbfa7e2c",
+  "v2_branch_head_matches_accepted_v1_head": true,
+  "v2_branch_checked_out": false,
+  "v2_branch_pushed": false,
+  "request_id": "7eda76f2-a354-4f8e-b878-54ea61a29d1f",
+  "propose_run_state": "WAITING_APPROVAL",
+  "propose_approval_required": true,
+  "approval_decision_ok": true,
+  "approval_decision_executed": false,
+  "claude_code_dispatched": true,
+  "wave_0_status": "COMPLETE",
+  "run_state": "COMPLETE",
+  "claude_exit_code": 0,
+  "claude_evidence_id": "claude-code:7eda76f2-a354-4f8e-b878-54ea61a29d1f",
+  "independent_acceptance": false,
+  "independent_verification": {
+    "fixture_path": "/tmp/jarvis-v2-wave0-vjKDFW/WAVE_0_BOOTSTRAP.md",
+    "fixture_found": true,
+    "fixture_non_empty": true,
+    "only_expected_file_present": true,
+    "workspace_entries": [
+      "WAVE_0_BOOTSTRAP.md"
+    ]
+  },
+  "appears_in_runs": true,
+  "appears_in_activity": true,
+  "verified_progress_percent": 0,
+  "v2_progress_program": "JARVIS_MASTERARCHITECTURE_V2",
+  "v2_progress_source_classification": "DERIVED",
+  "evidence_ref": "evidence:claude-code:7eda76f2-a354-4f8e-b878-54ea61a29d1f",
+  "genuine_success": true,
+  "worker_self_report_treated_as_acceptance": false
+}
