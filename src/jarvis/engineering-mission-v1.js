@@ -191,7 +191,12 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
       wave_index: intent.wave_index,
       wave_state: waveState,
       title: intent.title,
-      goal: intent.goal
+      goal: intent.goal,
+      // Bridge-side-computed evidence only (never a worker self-report) —
+      // null unless a repo-bound executor was genuinely bound. Read back by
+      // engineering-mission-acceptance-v1.js as the ONLY basis for whether
+      // Independent Acceptance may be granted.
+      verification: bridgeExecution?.evidence?.verification || null
     },
     approval: approvalGranted ? {
       required: true,

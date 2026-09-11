@@ -101,7 +101,12 @@ function normalizeExecutorResult(raw, maxOutput) {
     // one. The bridge never infers it.
     external_effect: raw?.external_effect === true,
     // A distinct acceptance reference from outside the worker (Bridge / review).
-    acceptance_ref: clean(raw?.acceptance_ref, 240) || null
+    acceptance_ref: clean(raw?.acceptance_ref, 240) || null,
+    // Additive, optional: bridge-side-computed evidence a repo-bound executor
+    // (claude-code-repo-bound-executor-v1.js) attaches — never self-reported
+    // by the worker itself. Every other executor leaves this null; nothing
+    // here changes existing behaviour for them.
+    verification: raw?.verification && typeof raw.verification === 'object' ? raw.verification : null
   };
 }
 
@@ -126,7 +131,8 @@ async function buildEvidence(request, state, normalized, startedAt, finishedAt) 
     worker_verified: false,
     independent_acceptance: false,
     acceptance_ref: normalized ? normalized.acceptance_ref : null,
-    external_effect: normalized ? normalized.external_effect : false
+    external_effect: normalized ? normalized.external_effect : false,
+    verification: normalized ? normalized.verification : null
   };
 }
 
@@ -322,7 +328,17 @@ export function createLocalFixtureExecutorV1(fixtures = {}) {
       });
     }
     if (spec.throw) throw new Error(String(spec.throw));
-    return { exit_code: spec.exit_code ?? 0, stdout: spec.stdout ?? '', stderr: spec.stderr ?? '', external_effect: spec.external_effect === true, acceptance_ref: spec.acceptance_ref };
+    return {
+      exit_code: spec.exit_code ?? 0,
+      stdout: spec.stdout ?? '',
+      stderr: spec.stderr ?? '',
+      external_effect: spec.external_effect === true,
+      acceptance_ref: spec.acceptance_ref,
+      // Test-only stand-in for what claude-code-repo-bound-executor-v1.js
+      // computes for real; lets fixture-based tests exercise the acceptance
+      // path without a real git repo.
+      verification: spec.verification || null
+    };
   };
 }
 

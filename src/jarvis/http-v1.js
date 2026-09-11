@@ -20,6 +20,7 @@ import { jarvisCommandCenterWorkerChainV1 } from './command-center-worker-bindin
 import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runtime-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
+import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering-mission-acceptance-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 
@@ -588,6 +589,53 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       production_deploy: false,
       hamyren_data_flow: false
     }, resume.status || (resume.ok ? 200 : 409));
+  }
+
+  if (url.pathname === '/jarvis/api/engineering-mission/accept' && request.method === 'POST') {
+    // Independent Acceptance (V1 gap closure, final step). The caller sends
+    // ONLY a request_id — the mission, its dispatch state, and its
+    // bridge-computed verification evidence are all re-read from the durable
+    // audit trail. See engineering-mission-acceptance-v1.js for the full
+    // contract: this can never be satisfied by a worker's own report.
+    if (!store) {
+      return json({
+        ok: false,
+        error: 'JARVIS_DURABLE_MEMORY_NOT_READY',
+        message: 'JARVIS Memory ist in dieser Staging-Runtime noch nicht gebunden.',
+        production_deploy: false
+      }, 503);
+    }
+
+    const body = await bodyJson(request);
+    const requestId = clean(body.request_id || body.correlation_id, 80).toLowerCase();
+    const now = new Date().toISOString();
+
+    const acceptance = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      request_id: requestId,
+      now
+    }, { memory_store: store });
+
+    return json({
+      ok: acceptance.ok,
+      schema: acceptance.schema || 'aurentara.jarvis.engineering-mission-acceptance-response.v1',
+      request_id: acceptance.request_id || requestId,
+      accepted: acceptance.accepted === true,
+      acceptance_ref: acceptance.acceptance_ref || null,
+      program: acceptance.program || null,
+      wave_index: acceptance.wave_index ?? null,
+      wave_state: acceptance.wave_state || null,
+      verification_summary: acceptance.verification_summary || null,
+      duplicate_acceptance_guard: acceptance.duplicate_acceptance_guard || null,
+      reason: acceptance.reason || null,
+      error: acceptance.ok ? null : (acceptance.error || null),
+      audit_persisted: acceptance.audit_persisted === true,
+      self_acceptance_by_worker: false,
+      action_gate_bypassed: false,
+      production_deploy: false,
+      hamyren_data_flow: false
+    }, acceptance.status || (acceptance.ok ? 200 : 409));
   }
 
   return json({ ok: false, error: 'JARVIS_ROUTE_NOT_FOUND', production_deploy: false }, 404);

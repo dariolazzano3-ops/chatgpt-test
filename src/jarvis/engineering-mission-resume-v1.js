@@ -230,7 +230,10 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
       wave_state: waveState,
       title: intent.title,
       goal: intent.goal,
-      resumed_from_request_id: requestId
+      resumed_from_request_id: requestId,
+      // Bridge-side-computed evidence only (never a worker self-report) —
+      // see engineering-mission-v1.js for the full contract this mirrors.
+      verification: bridgeExecution?.evidence?.verification || null
     },
     approval: {
       required: true,

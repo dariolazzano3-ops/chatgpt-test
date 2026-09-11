@@ -80,6 +80,11 @@ const LIVE_BINDING_FILES = [
   'src/jarvis/command-center-worker-binding-v1.js',
   'src/jarvis/claude-code-local-cli-executor-v1.js',
   'src/jarvis/claude-code-local-runtime-binding-v1.js',
+  'src/jarvis/claude-code-repo-bound-executor-v1.js',
+  'src/jarvis/claude-code-repo-bound-runtime-binding-v1.js',
+  'src/jarvis/engineering-mission-v1.js',
+  'src/jarvis/engineering-mission-resume-v1.js',
+  'src/jarvis/engineering-mission-acceptance-v1.js',
   'src/jarvis/runtime-v1.js',
   'src/jarvis/http-v1.js'
 ];
@@ -125,7 +130,12 @@ const DEPLOYED_WORKER_ENTRY_FILES = [
   'src/jarvis/pages-worker-v1.js',
   'src/jarvis/command-center-worker-binding-v1.js'
 ];
-const NODE_ONLY_LOCAL_FILES = ['claude-code-local-cli-executor-v1.js', 'claude-code-local-runtime-binding-v1.js'];
+const NODE_ONLY_LOCAL_FILES = [
+  'claude-code-local-cli-executor-v1.js',
+  'claude-code-local-runtime-binding-v1.js',
+  'claude-code-repo-bound-executor-v1.js',
+  'claude-code-repo-bound-runtime-binding-v1.js'
+];
 for (const file of DEPLOYED_WORKER_ENTRY_FILES) {
   const text = fs.readFileSync(file, 'utf8');
   for (const nodeOnly of NODE_ONLY_LOCAL_FILES) {

@@ -31,6 +31,10 @@ import {
   createJarvisClaudeLocalRuntimeBindingV1,
   JARVIS_CLAUDE_LOCAL_EXECUTION_FLAG
 } from './claude-code-local-runtime-binding-v1.js';
+import {
+  createJarvisClaudeRepoBoundRuntimeBindingV1,
+  JARVIS_CLAUDE_REPO_BOUND_EXECUTION_FLAG
+} from './claude-code-repo-bound-runtime-binding-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 
@@ -107,21 +111,40 @@ function preflightJarvisClaudeCliV1(env = process.env) {
   }
 }
 
-/** Resolves { bridge, bound, requested, reason }. Never fabricates `bound`:
- *  when JARVIS_CLAUDE_LOCAL_EXECUTION=on is requested but the CLI or the
- *  local Node binding is unavailable, `bound` stays false and the caller
- *  (main, below) fails startup closed rather than simulating availability. */
+/** Resolves { bridge, bound, requested, reason, worker_kind }. Never
+ *  fabricates `bound`: when either execution mode is requested but the CLI,
+ *  the local Node binding, or (repo-bound only) the repo/branch bounds are
+ *  unavailable, `bound` stays false and the caller (main, below) fails
+ *  startup closed rather than simulating availability.
+ *
+ *  Two independent opt-ins exist:
+ *    - JARVIS_CLAUDE_LOCAL_EXECUTION=on       -> disposable os.tmpdir() worker
+ *    - JARVIS_CLAUDE_REPO_BOUND_EXECUTION=on  -> real-repo worker (JARVIS_CLAUDE_REPO_DIR)
+ *  Repo-bound takes precedence when both are set — it is the strictly more
+ *  specific, more consequential opt-in, so an operator who sets both is
+ *  read as wanting the real-repo worker, not silently getting the weaker
+ *  one instead. */
 export function resolveJarvisLocalOperatorClaudeBridgeV1(env = process.env, options = {}) {
+  const repoBoundRequested = clean(env[JARVIS_CLAUDE_REPO_BOUND_EXECUTION_FLAG], 10).toLowerCase() === 'on';
+  if (repoBoundRequested) {
+    const preflight = options.skip_cli_preflight ? { ok: true } : preflightJarvisClaudeCliV1(env);
+    if (!preflight.ok) {
+      return { bridge: null, bound: false, requested: true, worker_kind: 'REPO_BOUND', reason: 'JARVIS_CLAUDE_CLI_UNAVAILABLE: ' + preflight.error };
+    }
+    const binding = createJarvisClaudeRepoBoundRuntimeBindingV1(env, options.repo_bound_options || options);
+    return { bridge: binding.bridge, bound: binding.bound, requested: true, worker_kind: 'REPO_BOUND', reason: binding.reason };
+  }
+
   const requested = clean(env[JARVIS_CLAUDE_LOCAL_EXECUTION_FLAG], 10).toLowerCase() === 'on';
   if (!requested) {
-    return { bridge: null, bound: false, requested: false, reason: 'JARVIS_CLAUDE_LOCAL_EXECUTION_DISABLED' };
+    return { bridge: null, bound: false, requested: false, worker_kind: null, reason: 'JARVIS_CLAUDE_LOCAL_EXECUTION_DISABLED' };
   }
   const preflight = options.skip_cli_preflight ? { ok: true } : preflightJarvisClaudeCliV1(env);
   if (!preflight.ok) {
-    return { bridge: null, bound: false, requested: true, reason: 'JARVIS_CLAUDE_CLI_UNAVAILABLE: ' + preflight.error };
+    return { bridge: null, bound: false, requested: true, worker_kind: 'DISPOSABLE_TMP', reason: 'JARVIS_CLAUDE_CLI_UNAVAILABLE: ' + preflight.error };
   }
   const binding = createJarvisClaudeLocalRuntimeBindingV1(env, options);
-  return { bridge: binding.bridge, bound: binding.bound, requested: true, reason: binding.reason };
+  return { bridge: binding.bridge, bound: binding.bound, requested: true, worker_kind: 'DISPOSABLE_TMP', reason: binding.reason };
 }
 
 /* ── runtime wiring shared by the real server and tests ──────────────────── */
@@ -258,7 +281,7 @@ if (isMainModule) {
     console.log('JARVIS Local Operator V1');
     console.log(`Command Center: ${result.url}`);
     console.log(`Supabase: BOUND (schema: ${result.supabase_schema})`);
-    console.log(`Claude Code: ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
+    console.log(`Claude Code: ${result.claude_bridge_result.bound ? `BOUND (${result.claude_bridge_result.worker_kind})` : 'NOT_BOUND'}`);
     console.log(`Local operator: ${result.operator_email}`);
     console.log('Mode: LOCAL_PRIVATE');
 
