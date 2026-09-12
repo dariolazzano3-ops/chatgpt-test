@@ -70,7 +70,15 @@ export function evaluateJarvisBranchTruthV1({ repo_dir, target_branch, base_ref 
   report.is_git_repo = true;
 
   report.current_branch = gitOrNull(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
-  const statusRaw = gitOrNull(repoDir, ['status', '--porcelain']);
+  // --untracked-files=no deliberately: an untracked file/directory sitting
+  // in the working tree (build output, node_modules, unrelated scratch
+  // debris) never blocks a branch checkout or a fast-forward-only merge —
+  // git itself only refuses when an operation would actually overwrite one,
+  // and that failure is still caught and reported honestly by
+  // prepareJarvisTargetBranchV1 below. What genuinely risks losing real
+  // work is an UNCOMMITTED CHANGE TO A TRACKED FILE, which this still
+  // catches exactly as before.
+  const statusRaw = gitOrNull(repoDir, ['status', '--porcelain', '--untracked-files=no']);
   report.working_tree_clean = statusRaw !== null && statusRaw.length === 0;
 
   if (report.target_branch_protected) {

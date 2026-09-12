@@ -47,6 +47,20 @@ function makeFixtureRepo() {
   assert.equal(prep.error, 'WORKING_TREE_DIRTY');
 }
 
+// ── 2b. Untracked debris (build output, node_modules-shaped junk) never counts as
+//       dirty — only uncommitted changes to TRACKED files do ──
+{
+  const repo = makeFixtureRepo();
+  fs.mkdirSync(path.join(repo, 'node_modules', 'some-pkg'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'node_modules', 'some-pkg', 'index.js'), '// junk\n');
+  fs.writeFileSync(path.join(repo, 'unrelated-scratch-file.txt'), 'debris\n');
+  const truth = evaluateJarvisBranchTruthV1({ repo_dir: repo, target_branch: 'feature/untracked-ok', base_ref: 'main' });
+  assert.equal(truth.working_tree_clean, true, 'untracked debris must never block preparation');
+  const prep = prepareJarvisTargetBranchV1({ repo_dir: repo, target_branch: 'feature/untracked-ok', base_ref: 'main' });
+  assert.equal(prep.ok, true);
+  assert.ok(fs.existsSync(path.join(repo, 'unrelated-scratch-file.txt')), 'the debris is left alone, not touched');
+}
+
 // ── 3. Target branch does not exist -> created fresh from base_ref, nothing destroyed ──
 {
   const repo = makeFixtureRepo();
