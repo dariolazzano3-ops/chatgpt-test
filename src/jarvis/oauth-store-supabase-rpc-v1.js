@@ -1,3 +1,5 @@
+import { jarvisSupabaseServiceAuthHeadersV1 } from './supabase-service-auth-headers-v1.js';
+
 const clean = (value, max = 12000) => String(value ?? '').trim().slice(0, max);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -7,10 +9,15 @@ function endpoint(baseUrl, fn) {
   return base + '/rest/v1/rpc/' + fn;
 }
 
+// Header selection lives centrally in supabase-service-auth-headers-v1.js —
+// see that file for why a modern sb_secret_* key and a legacy service_role
+// JWT are NOT interchangeable at the wire level.
 function authHeaders(key) {
-  const secret = clean(key, 12000);
-  if (!secret) throw new Error('JARVIS_OAUTH_RPC_SERVICE_ROLE_KEY_REQUIRED');
-  return { apikey: secret, authorization: 'Bearer ' + secret, 'content-type': 'application/json', accept: 'application/json' };
+  return jarvisSupabaseServiceAuthHeadersV1(
+    key,
+    { 'content-type': 'application/json', accept: 'application/json' },
+    'JARVIS_OAUTH_RPC_SERVICE_ROLE_KEY_REQUIRED'
+  );
 }
 
 async function parse(response) {

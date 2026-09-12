@@ -124,4 +124,24 @@ assert.equal(oauthManifest.access_token_persisted, false);
 assert.equal(oauthManifest.hamyren_data_flow, false);
 
 assert.ok(calls.every((call) => call.url.includes('/rest/v1/rpc/jarvis_service_')));
+
+// ── modern sb_secret_* key: apikey ONLY, never also Authorization: Bearer ──
+// (real-world regression: sending both made a real Supabase project 401
+// the RPC call even though the key and function were both correct).
+{
+  let capturedHeaders = null;
+  const modernFetch = async (url, init = {}) => {
+    capturedHeaders = init.headers;
+    return new Response(JSON.stringify([]), { status: 200 });
+  };
+  const modernMemory = createSupabaseJarvisRpcMemoryStoreV1({
+    supabase_url: 'https://synthetic.supabase.co',
+    service_role_key: 'sb_secret_fixture_value_not_real',
+    fetch_impl: modernFetch
+  });
+  await modernMemory.loadMemory({ owner_id: ownerId, owner_ref: ownerRef });
+  assert.equal(capturedHeaders.apikey, 'sb_secret_fixture_value_not_real');
+  assert.equal('authorization' in capturedHeaders, false, 'a modern sb_secret_* key must never also be sent as Authorization: Bearer');
+}
+
 console.log('JARVIS Supabase Private RPC Gateway V1 smoke: PASS');

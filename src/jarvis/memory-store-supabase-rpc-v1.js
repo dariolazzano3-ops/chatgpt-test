@@ -1,5 +1,6 @@
 import { normalizeJarvisMemoryEntryV1 } from './memory-v1.js';
 import { redactJarvisSensitiveDataV1 } from './audit-v1.js';
+import { jarvisSupabaseServiceAuthHeadersV1 } from './supabase-service-auth-headers-v1.js';
 
 const clean = (value, max = 12000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
@@ -12,15 +13,16 @@ function endpoint(baseUrl, fn) {
   return base + '/rest/v1/rpc/' + fn;
 }
 
+// Header selection (apikey-only for a modern sb_secret_* key, apikey +
+// Authorization: Bearer for a legacy service_role JWT) lives centrally in
+// supabase-service-auth-headers-v1.js — see that file for why the two
+// formats are NOT interchangeable at the wire level.
 function headers(serviceRoleKey) {
-  const key = clean(serviceRoleKey, 12000);
-  if (!key) throw new Error('JARVIS_RPC_SERVICE_ROLE_KEY_REQUIRED');
-  return {
-    apikey: key,
-    authorization: 'Bearer ' + key,
-    'content-type': 'application/json',
-    accept: 'application/json'
-  };
+  return jarvisSupabaseServiceAuthHeadersV1(
+    serviceRoleKey,
+    { 'content-type': 'application/json', accept: 'application/json' },
+    'JARVIS_RPC_SERVICE_ROLE_KEY_REQUIRED'
+  );
 }
 
 async function body(response) {
