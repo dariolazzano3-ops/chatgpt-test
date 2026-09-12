@@ -46,6 +46,7 @@ export const JARVIS_PROGRAM_APPROVAL_ACTION = 'PROGRAM_APPROVAL';
 export const JARVIS_PROGRAM_APPROVAL_GRANT_INTENT = 'PROGRAM_APPROVAL_GRANT';
 export const JARVIS_PROGRAM_APPROVAL_REVOKE_INTENT = 'PROGRAM_APPROVAL_REVOKE';
 export const JARVIS_PROGRAM_APPROVAL_ROUTE = '/api/program/approve';
+export const JARVIS_PROGRAM_APPROVAL_REVOKE_ROUTE = '/api/program/approve/revoke';
 
 // What a Program Approval CAN ever cover, if the grant explicitly names it.
 export const JARVIS_PROGRAM_APPROVAL_COVERABLE = Object.freeze([
@@ -207,15 +208,91 @@ export async function handleJarvisProgramApprovalGrantRuntimeV1(request = {}, de
   };
 }
 
+/** Explicit, operator-only revoke. Supersedes any earlier grant for this
+ *  program (latest-wins by timestamp, same as every other audit-derived
+ *  state in this codebase) — scoped to the PROGRAM only, never to a
+ *  specific repo_dir/target_branch, so it removes authorization outright
+ *  regardless of which repo/branch the grant it supersedes covered. Never
+ *  self-issued: nothing in http-v1.js calls this automatically. */
+export async function handleJarvisProgramApprovalRevokeRuntimeV1(request = {}, deps = {}) {
+  const ownerId = clean(request.owner_id, 80);
+  const ownerRef = clean(request.owner_ref, 320);
+  const program = clean(request.program, 80).toUpperCase();
+
+  if (!UUID_RE.test(ownerId)) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_APPROVAL_OWNER_ID_REQUIRED' };
+  if (!ownerRef) return { ok: false, status: 403, error: 'JARVIS_PROGRAM_APPROVAL_OWNER_REF_REQUIRED' };
+  if (!program || !PROGRAM_RE.test(program)) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_APPROVAL_PROGRAM_INVALID' };
+  if (request.confirm_revoke !== true) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_APPROVAL_CONFIRM_REVOKE_REQUIRED' };
+  if (!deps.memory_store || typeof deps.memory_store.appendAudit !== 'function' || typeof deps.memory_store.readAudit !== 'function') {
+    return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_MEMORY_STORE_REQUIRED' };
+  }
+
+  let audit = [];
+  try {
+    audit = await deps.memory_store.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
+  } catch {
+    return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_AUDIT_READ_FAILED' };
+  }
+  // Read back the real prior state (never assumed) purely to report what was
+  // actually revoked — an idempotent revoke-when-nothing-granted still
+  // records a real audit event, it just truthfully reports was_granted: false.
+  const priorState = evaluateJarvisProgramApprovalStateV1(audit, program);
+
+  const now = clean(request.now, 80) || new Date().toISOString();
+  const auditEvent = createJarvisAuditEventV1({
+    timestamp: now,
+    owner_ref: ownerRef,
+    request: `[PROGRAM APPROVAL REVOKE] ${program}`,
+    intent: { intent_type: JARVIS_PROGRAM_APPROVAL_REVOKE_INTENT, domain: 'PROGRAM', action: JARVIS_PROGRAM_APPROVAL_ACTION },
+    tools_used: [],
+    permissions: [],
+    action: JARVIS_PROGRAM_APPROVAL_ACTION,
+    result: {
+      status: 'REVOKED',
+      program,
+      previously_granted: priorState.granted,
+      previous_scope: priorState.scope
+    },
+    approval: {
+      required: true,
+      explicit: true,
+      actor_type: 'OPERATOR',
+      gate_status: 'PROGRAM_REVOKED_BY_OPERATOR',
+      decision: 'revoke'
+    },
+    cost: { estimated_eur: 0, actual_eur: 0 },
+    memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
+  });
+
+  try {
+    await deps.memory_store.appendAudit({ owner_id: ownerId, owner_ref: ownerRef, event: auditEvent });
+  } catch {
+    return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_PERSIST_FAILED' };
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    schema: 'aurentara.jarvis.program-approval-revoke-response.v1',
+    program,
+    was_granted: priorState.granted,
+    revoked_scope: priorState.scope,
+    audit_persisted: true
+  };
+}
+
 export function jarvisProgramApprovalManifestV1() {
   return {
     schema: 'aurentara.jarvis.program-approval.v1',
     route: JARVIS_PROGRAM_APPROVAL_ROUTE,
+    revoke_route: JARVIS_PROGRAM_APPROVAL_REVOKE_ROUTE,
     coverable: [...JARVIS_PROGRAM_APPROVAL_COVERABLE],
     never_covered: [...JARVIS_PROGRAM_APPROVAL_NEVER_COVERED],
     scoped_to_single_repo_dir_and_branch: true,
     grant_requires_explicit_operator_action: true,
     grant_never_issued_automatically: true,
+    revoke_requires_explicit_operator_action: true,
+    revoke_never_issued_automatically: true,
     scope_deny_list_checked_before_allow_list: true,
     revocable: true,
     production_deploy: false,

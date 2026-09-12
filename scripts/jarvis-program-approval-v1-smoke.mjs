@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
 import {
   handleJarvisProgramApprovalGrantRuntimeV1,
+  handleJarvisProgramApprovalRevokeRuntimeV1,
   evaluateJarvisProgramApprovalStateV1,
   evaluateJarvisProgramApprovalActionV1,
   jarvisProgramApprovalManifestV1,
@@ -94,7 +95,63 @@ for (const denied of JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) {
   assert.equal(state.revoked, true);
 }
 
-// ── 7. Invalid program / missing repo_dir / missing target_branch all fail closed ──
+// ── 6b. handleJarvisProgramApprovalRevokeRuntimeV1: requires explicit confirm_revoke ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const r = await handleJarvisProgramApprovalRevokeRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM
+  }, { memory_store: store });
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'JARVIS_PROGRAM_APPROVAL_CONFIRM_REVOKE_REQUIRED');
+}
+
+// ── 6c. Real revoke via the handler: supersedes a real prior grant, reads back correctly, and is scoped to the program only (not repo_dir/target_branch) ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const grant = await handleJarvisProgramApprovalGrantRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: REPO_DIR, target_branch: BRANCH,
+    scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE'], confirm_scope: true
+  }, { memory_store: store });
+  assert.equal(grant.ok, true);
+
+  const revoke = await handleJarvisProgramApprovalRevokeRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, confirm_revoke: true
+  }, { memory_store: store });
+  assert.equal(revoke.ok, true);
+  assert.equal(revoke.was_granted, true, 'honestly reports what it actually revoked');
+  assert.deepEqual(revoke.revoked_scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
+  assert.equal(revoke.audit_persisted, true);
+
+  const audit = await readAudit(store);
+  const state = evaluateJarvisProgramApprovalStateV1(audit, PROGRAM);
+  assert.equal(state.granted, false, 'the real revoke event, not a manually-constructed one, supersedes the real grant');
+  const check = evaluateJarvisProgramApprovalActionV1(state, { capability: 'CLAUDE_REPO_BOUND_EXECUTION', program: PROGRAM, repo_dir: REPO_DIR, target_branch: BRANCH });
+  assert.equal(check.covered, false);
+  assert.equal(check.reason, 'NO_PROGRAM_APPROVAL_GRANTED');
+}
+
+// ── 6d. Idempotent: revoking when nothing was ever granted is not an error, and honestly reports was_granted: false ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const revoke = await handleJarvisProgramApprovalRevokeRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, confirm_revoke: true
+  }, { memory_store: store });
+  assert.equal(revoke.ok, true);
+  assert.equal(revoke.was_granted, false);
+  assert.deepEqual(revoke.revoked_scope, []);
+}
+
+// ── 6e. Revoke never itself requires or checks repo_dir/target_branch — it is scoped to the program only ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const r = await handleJarvisProgramApprovalRevokeRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, confirm_revoke: true
+    // deliberately no repo_dir / target_branch
+  }, { memory_store: store });
+  assert.equal(r.ok, true);
+}
+
+// ── 7. Invalid program / missing repo_dir / missing target_branch all fail closed (grant); invalid program fails closed (revoke) ──
 {
   const store = createMemoryJarvisStoreV1();
   const bad1 = await handleJarvisProgramApprovalGrantRuntimeV1({ owner_id: OWNER_ID, owner_ref: OWNER_REF, program: 'not a valid program name', repo_dir: REPO_DIR, target_branch: BRANCH, confirm_scope: true }, { memory_store: store });
@@ -103,6 +160,8 @@ for (const denied of JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) {
   assert.equal(bad2.error, 'JARVIS_PROGRAM_APPROVAL_REPO_DIR_REQUIRED');
   const bad3 = await handleJarvisProgramApprovalGrantRuntimeV1({ owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: REPO_DIR, confirm_scope: true }, { memory_store: store });
   assert.equal(bad3.error, 'JARVIS_PROGRAM_APPROVAL_TARGET_BRANCH_REQUIRED');
+  const bad4 = await handleJarvisProgramApprovalRevokeRuntimeV1({ owner_id: OWNER_ID, owner_ref: OWNER_REF, program: 'not a valid program name', confirm_revoke: true }, { memory_store: store });
+  assert.equal(bad4.error, 'JARVIS_PROGRAM_APPROVAL_PROGRAM_INVALID');
 }
 
 // ── 8. Manifest / safety invariants ──
@@ -110,6 +169,9 @@ for (const denied of JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) {
   const man = jarvisProgramApprovalManifestV1();
   assert.equal(man.grant_requires_explicit_operator_action, true);
   assert.equal(man.grant_never_issued_automatically, true);
+  assert.equal(man.revoke_requires_explicit_operator_action, true);
+  assert.equal(man.revoke_never_issued_automatically, true);
+  assert.equal(man.revoke_route, '/api/program/approve/revoke');
   assert.equal(man.scope_deny_list_checked_before_allow_list, true);
   assert.ok(man.never_covered.includes('MAIN_MASTER_MUTATION'));
   assert.ok(man.never_covered.includes('MERGE'));

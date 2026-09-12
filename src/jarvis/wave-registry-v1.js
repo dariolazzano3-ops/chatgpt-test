@@ -94,6 +94,28 @@ const REGISTRY = new Map([
     // its size. Still required to appear in the commit's real diff (see
     // expected_files above) — only exempt from the content scan itself.
     generated_files: ['src/jarvis/command-center-ui/bundle.built.js']
+  }],
+  [3, {
+    id: 'wave-3-program-approval-grant-revoke',
+    title: 'Program Approval Grant/Revoke in the Command Center',
+    goal: 'Let the operator grant and revoke Program Approval (the authorization that lets the Program Controller actually dispatch/accept for a program+repo+branch) directly from the Command Center, instead of a curl command — the last manual step before Wave 2\'s tick button can do anything on a fresh program/repo/branch. Adds a real handleJarvisProgramApprovalRevokeRuntimeV1 (program-approval-v1.js had grant only) and its /api/program/approve/revoke route, mirroring the existing grant handler/route exactly (same audit shape, same fail-closed rules, same distinct-explicit-operator-action requirement). No change to what capabilities are approvable (JARVIS_PROGRAM_APPROVAL_COVERABLE / _NEVER_COVERED untouched), no new scope invented, no automatic grant or revoke ever issued by the controller itself.',
+    depends_on: [2],
+    expected_files: [
+      'scripts/jarvis-command-center-program-controller-v1-smoke.mjs',
+      'scripts/jarvis-program-approval-v1-smoke.mjs',
+      'src/jarvis/command-center-ui/bundle.built.js',
+      'src/jarvis/command-center-ui/jarvis-command-center.jsx',
+      'src/jarvis/http-v1.js',
+      'src/jarvis/program-approval-v1.js'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-program-approval-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-local-operator-server-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'] }
+    ],
+    // Same reasoning as Wave 2 — see its comment above.
+    generated_files: ['src/jarvis/command-center-ui/bundle.built.js']
   }]
 ]);
 

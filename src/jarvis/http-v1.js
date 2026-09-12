@@ -21,7 +21,7 @@ import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runt
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering-mission-acceptance-v1.js';
-import { handleJarvisProgramApprovalGrantRuntimeV1 } from './program-approval-v1.js';
+import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalRevokeRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 
@@ -668,6 +668,24 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       now: new Date().toISOString()
     }, { memory_store: store });
     return json({ ...grant, production_deploy: false, hamyren_data_flow: false }, grant.status || (grant.ok ? 200 : 400));
+  }
+
+  if (url.pathname === '/jarvis/api/program/approve/revoke' && request.method === 'POST') {
+    // Program-level approval revoke (Wave 3). Same DISTINCT, explicit
+    // OPERATOR-action shape as the grant route above — this route is never
+    // called automatically by anything else in http-v1.js.
+    if (!store) {
+      return json({ ok: false, error: 'JARVIS_DURABLE_MEMORY_NOT_READY', production_deploy: false }, 503);
+    }
+    const body = await bodyJson(request);
+    const revoke = await handleJarvisProgramApprovalRevokeRuntimeV1({
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      program: body.program,
+      confirm_revoke: body.confirm_revoke,
+      now: new Date().toISOString()
+    }, { memory_store: store });
+    return json({ ...revoke, production_deploy: false, hamyren_data_flow: false }, revoke.status || (revoke.ok ? 200 : 400));
   }
 
   if ((url.pathname === '/jarvis/api/program/tick' && request.method === 'POST')

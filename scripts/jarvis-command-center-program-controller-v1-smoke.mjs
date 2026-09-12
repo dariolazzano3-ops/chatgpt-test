@@ -1,5 +1,5 @@
-/* Wave 2 — targeted regression: the Command Center's Program Controller
-   panel plumbing. Covers exactly what changed for this wave:
+/* Wave 2/3 — targeted regression: the Command Center's Program Controller
+   panel plumbing. Covers exactly what changed for these waves:
      - resolveJarvisLocalOperatorProgramLocationV1 (real git, fail-closed to
        null when unconfigured/unavailable — never guessed);
      - renderJarvisCommandCenterV1 embeds programName/programRepoDir/
@@ -7,8 +7,11 @@
        when not configured;
      - the existing /api/program/state + /api/program/tick routes (already
        accepted, unmodified) are genuinely reachable end-to-end through the
-       real local operator server once repo_dir/target_branch are wired in —
-       no acceptance rule, approval, budget, or attempt-limit code touched. */
+       real local operator server once repo_dir/target_branch are wired in;
+     - Wave 3: the new /api/program/approve + /api/program/approve/revoke
+       routes are genuinely reachable end-to-end, and /api/program/state
+       reflects a real grant/revoke round-trip — no acceptance rule,
+       approval scope, budget, or attempt-limit code touched. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -109,9 +112,43 @@ function makeFixtureRepo() {
     // deriveJarvisProgramWaveStateV1 exactly, unmodified by this wave.
     assert.equal(stateBody.wave_state, 'PENDING');
     assert.deepEqual(stateBody.next_action, { action: 'PROPOSE_WAVE_TASK' });
+
+    // ── 6. Wave 3: the real grant/revoke HTTP routes, end-to-end ──
+    const revokeNoConfirm = await fetch(base + '/api/program/approve/revoke', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ program: JARVIS_V2_PROGRAM_ID })
+    });
+    const revokeNoConfirmBody = await revokeNoConfirm.json();
+    assert.equal(revokeNoConfirm.status, 400);
+    assert.equal(revokeNoConfirmBody.error, 'JARVIS_PROGRAM_APPROVAL_CONFIRM_REVOKE_REQUIRED');
+
+    const grantRes = await fetch(base + '/api/program/approve', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ program: JARVIS_V2_PROGRAM_ID, repo_dir: repo, target_branch: 'factory/fixture-branch', scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE'], confirm_scope: true })
+    });
+    const grantBody = await grantRes.json();
+    assert.equal(grantRes.status, 200);
+    assert.equal(grantBody.ok, true);
+    assert.deepEqual(grantBody.granted_scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
+
+    const stateAfterGrant = await (await fetch(base + '/api/program/state?' + q.toString())).json();
+    assert.equal(stateAfterGrant.program_approval.granted, true);
+    assert.deepEqual(stateAfterGrant.program_approval.scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
+
+    const revokeRes = await fetch(base + '/api/program/approve/revoke', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ program: JARVIS_V2_PROGRAM_ID, confirm_revoke: true })
+    });
+    const revokeBody = await revokeRes.json();
+    assert.equal(revokeRes.status, 200);
+    assert.equal(revokeBody.ok, true);
+    assert.equal(revokeBody.was_granted, true);
+
+    const stateAfterRevoke = await (await fetch(base + '/api/program/state?' + q.toString())).json();
+    assert.equal(stateAfterRevoke.program_approval.granted, false, 'the real revoke route genuinely supersedes the real grant');
   } finally {
     await new Promise((resolve) => started.server.close(resolve));
   }
 }
 
-console.log('JARVIS Command Center Program Controller V1 (Wave 2 plumbing) smoke: PASS');
+console.log('JARVIS Command Center Program Controller V1 (Wave 2/3 plumbing) smoke: PASS');

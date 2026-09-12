@@ -870,8 +870,29 @@ function V2ProgressHud() {
    rules, approval scope, budget limits and the repair-attempt bound are
    untouched — this only reads and displays them, or triggers the SAME
    already-existing, already-audited tick endpoint an operator would
-   otherwise call by hand. */
+   otherwise call by hand.
+
+   Wave 3: adds POST <apiBase>/program/approve (grant, the FULL coverable
+   scope — the server-side denylist is still checked first, unconditionally,
+   regardless of what is requested) and POST <apiBase>/program/approve/revoke
+   — the last two program-level actions that otherwise needed a curl command.
+   Same shared inFlight guard as the tick button (only one mutating action
+   from this panel at a time), same "no auto-retry on failure/timeout" rule,
+   same distinct-explicit-operator-click shape — no new scope, no change to
+   what a Program Approval can ever cover. */
 const PROGRAM_TICK_TIMEOUT_MS = 360000; // comfortably above the bridge's own default dispatch timeout (300000ms)
+const PROGRAM_APPROVAL_TIMEOUT_MS = 20000; // grant/revoke are local audit writes only, never a dispatch — no need for a long cap
+// Mirrors program-approval-v1.js's JARVIS_PROGRAM_APPROVAL_COVERABLE exactly
+// (Wave 3). Requesting the full coverable set changes nothing about what can
+// actually be granted — the server-side denylist (JARVIS_PROGRAM_APPROVAL_
+// NEVER_COVERED) is checked first and unconditionally, regardless of what a
+// grant call requests.
+const PROGRAM_APPROVAL_FULL_SCOPE = [
+  "REPO_INTERNAL_READ", "REPO_INTERNAL_WRITE", "REPO_INTERNAL_TEST",
+  "LOCAL_FEATURE_BRANCH_MANAGEMENT", "CLAUDE_REPO_BOUND_EXECUTION",
+  "INDEPENDENT_VERIFICATION", "REPAIR_RETRY", "ACCEPTANCE",
+  "PROGRESS_ADVANCEMENT", "NEXT_WAVE_CONTINUATION",
+];
 const PROGRAM_NEXT_ACTION_LABEL = {
   PREPARE_BRANCH: "Branch vorbereiten",
   PROPOSE_WAVE_TASK: "Nächsten Auftrag vorschlagen",
@@ -894,6 +915,10 @@ function useProgramController() {
   const [loadError, setLoadError] = useState(null);
   const [tickPending, setTickPending] = useState(false);
   const [tickError, setTickError] = useState(null);
+  const [approvalPending, setApprovalPending] = useState(false);
+  const [approvalError, setApprovalError] = useState(null);
+  // Shared across tick/grant/revoke: only ONE mutating action from this
+  // panel may be in flight at a time, whichever it is.
   const inFlight = useRef(false);
 
   const load = useCallback(async () => {
@@ -948,7 +973,70 @@ function useProgramController() {
     }
   }, [configured, boot.programName, boot.programRepoDir, boot.programTargetBranch, load]);
 
-  return { configured, state, loadError, tick, tickPending, tickError, boot };
+  // Wave 3: explicit operator grant/revoke of Program Approval, instead of a
+  // curl command. Same shared inFlight guard as tick() above (only one
+  // mutating action from this panel at a time); a client-side timeout or any
+  // other failure here never auto-retries either — a fresh click is always
+  // required. Grant/revoke are local audit writes only (no dispatch), so a
+  // short timeout is enough and this never touches the Claude bridge.
+  const grant = useCallback(async () => {
+    if (!configured || inFlight.current) return;
+    inFlight.current = true;
+    setApprovalPending(true);
+    setApprovalError(null);
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), PROGRAM_APPROVAL_TIMEOUT_MS) : null;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/program/approve`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({
+          program: boot.programName, repo_dir: boot.programRepoDir, target_branch: boot.programTargetBranch,
+          scope: PROGRAM_APPROVAL_FULL_SCOPE, confirm_scope: true,
+        }),
+      });
+      const body = await r.json().catch(() => null);
+      if (!(r.ok && body && body.ok)) setApprovalError((body && body.error) || "Freigabe fehlgeschlagen");
+    } catch (e) {
+      setApprovalError(e && e.name === "AbortError" ? "Zeitüberschreitung — Status prüfen, bevor erneut ausgelöst wird" : "Runtime nicht erreichbar");
+    } finally {
+      if (timer) clearTimeout(timer);
+      setApprovalPending(false);
+      inFlight.current = false;
+      load();
+    }
+  }, [configured, boot.programName, boot.programRepoDir, boot.programTargetBranch, load]);
+
+  const revoke = useCallback(async () => {
+    if (!configured || inFlight.current) return;
+    inFlight.current = true;
+    setApprovalPending(true);
+    setApprovalError(null);
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), PROGRAM_APPROVAL_TIMEOUT_MS) : null;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/program/approve/revoke`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ program: boot.programName, confirm_revoke: true }),
+      });
+      const body = await r.json().catch(() => null);
+      if (!(r.ok && body && body.ok)) setApprovalError((body && body.error) || "Widerruf fehlgeschlagen");
+    } catch (e) {
+      setApprovalError(e && e.name === "AbortError" ? "Zeitüberschreitung — Status prüfen, bevor erneut ausgelöst wird" : "Runtime nicht erreichbar");
+    } finally {
+      if (timer) clearTimeout(timer);
+      setApprovalPending(false);
+      inFlight.current = false;
+      load();
+    }
+  }, [configured, boot.programName, load]);
+
+  return { configured, state, loadError, tick, tickPending, tickError, grant, revoke, approvalPending, approvalError, boot };
 }
 
 function ProgramControllerPanel() {
@@ -994,10 +1082,19 @@ function ProgramControllerPanel() {
             <div><dt>Program Approval</dt><dd>{approval ? (approval.granted ? `Erteilt (${(approval.scope || []).length} Scopes)` : "Nicht erteilt") : "Unbekannt"}</dd></div>
             <div><dt>Budget</dt><dd>Unbekannt</dd></div>
           </dl>
-          <button className="btn pri full" disabled={pc.tickPending || !st.next_action} onClick={pc.tick}>
+          <button className="btn pri full" disabled={pc.tickPending || pc.approvalPending || !st.next_action} onClick={pc.tick}>
             {pc.tickPending ? "Läuft …" : "Tick ausführen"}
           </button>
           {pc.tickError && <div className="empty" style={{ color: "#ff9186", marginTop: 10 }}>{pc.tickError}</div>}
+          <div className="kv two" style={{ marginTop: 14 }}>
+            <button className="btn ghost" disabled={pc.tickPending || pc.approvalPending} onClick={pc.grant}>
+              {pc.approvalPending ? "Läuft …" : "Freigabe erteilen"}
+            </button>
+            <button className="btn danger" disabled={pc.tickPending || pc.approvalPending || !(approval && approval.granted)} onClick={pc.revoke}>
+              {pc.approvalPending ? "Läuft …" : "Freigabe widerrufen"}
+            </button>
+          </div>
+          {pc.approvalError && <div className="empty" style={{ color: "#ff9186", marginTop: 10 }}>{pc.approvalError}</div>}
         </>
       )}
     </Panel>
