@@ -149,7 +149,7 @@ async function grantAcceptance(store, repoDir, targetBranch) {
     if (commitKnown) {
       const evidence = computeJarvisCommitRangeEvidenceV1({
         repo_dir: repoRoot, target_branch: realBranch, commit_sha,
-        expected_files: entry.expected_files, required_checks: entry.required_checks
+        expected_files: entry.expected_files, required_checks: entry.required_checks, generated_files: entry.generated_files
       });
       assert.equal(evidence.sufficient, true, `Wave ${wave_index}'s real registry entry is not currently satisfiable: ${JSON.stringify(evidence, null, 2)}`);
       console.log(`Part B: real Wave ${wave_index} commit-range evidence is sufficient (commit=${evidence.commit}, files=${evidence.files_changed.join(', ')})`);
