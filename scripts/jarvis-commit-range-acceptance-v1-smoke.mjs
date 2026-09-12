@@ -127,30 +127,35 @@ async function grantAcceptance(store, repoDir, targetBranch) {
   assert.equal(again.duplicate_acceptance_guard, 'ALREADY_ACCEPTED');
 }
 
-/* ── Part B: real, read-only sanity check of the ACTUAL Wave 1 registry
-      entry's evidence against the real project repo — never persisted from
-      here. Confirms wave-registry-v1.js's expected_files/required_checks
-      for Wave 1 are actually satisfied by the real commit before the real,
-      one-time acceptance is ever run. ── */
+/* ── Part B: real, read-only sanity check of the ACTUAL registered waves'
+      evidence against the real project repo — never persisted from here.
+      Confirms wave-registry-v1.js's expected_files/required_checks for each
+      registered wave are actually satisfied by its real, pinned commit
+      before the real, one-time acceptance is ever run. ── */
 {
   const repoRoot = path.resolve(new URL('../', import.meta.url).pathname);
   const realBranch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoRoot }).toString('utf8').trim();
-  const wave1 = getJarvisWaveRegistryEntryV1(PROGRAM, 1);
-  const WAVE_1_COMMIT_SHA = '70ab85c05e8b4e78c118e897bb15372a7ba30b0f';
+  const PINNED_WAVE_COMMITS = [
+    { wave_index: 1, commit_sha: '70ab85c05e8b4e78c118e897bb15372a7ba30b0f' },
+    { wave_index: 2, commit_sha: 'be87a8e0034ab3172f6d2307f802a9c61f5d8ad7' }
+  ];
 
-  let commitKnown = true;
-  try { execFileSync('git', ['cat-file', '-e', WAVE_1_COMMIT_SHA + '^{commit}'], { cwd: repoRoot, stdio: 'ignore' }); }
-  catch { commitKnown = false; }
+  for (const { wave_index, commit_sha } of PINNED_WAVE_COMMITS) {
+    const entry = getJarvisWaveRegistryEntryV1(PROGRAM, wave_index);
+    let commitKnown = true;
+    try { execFileSync('git', ['cat-file', '-e', commit_sha + '^{commit}'], { cwd: repoRoot, stdio: 'ignore' }); }
+    catch { commitKnown = false; }
 
-  if (commitKnown) {
-    const evidence = computeJarvisCommitRangeEvidenceV1({
-      repo_dir: repoRoot, target_branch: realBranch, commit_sha: WAVE_1_COMMIT_SHA,
-      expected_files: wave1.expected_files, required_checks: wave1.required_checks
-    });
-    assert.equal(evidence.sufficient, true, `Wave 1's real registry entry is not currently satisfiable: ${JSON.stringify(evidence, null, 2)}`);
-    console.log(`Part B: real Wave 1 commit-range evidence is sufficient (commit=${evidence.commit}, files=${evidence.files_changed.join(', ')})`);
-  } else {
-    console.log('Part B: skipped — the pinned Wave 1 commit is not present in this checkout\'s history.');
+    if (commitKnown) {
+      const evidence = computeJarvisCommitRangeEvidenceV1({
+        repo_dir: repoRoot, target_branch: realBranch, commit_sha,
+        expected_files: entry.expected_files, required_checks: entry.required_checks
+      });
+      assert.equal(evidence.sufficient, true, `Wave ${wave_index}'s real registry entry is not currently satisfiable: ${JSON.stringify(evidence, null, 2)}`);
+      console.log(`Part B: real Wave ${wave_index} commit-range evidence is sufficient (commit=${evidence.commit}, files=${evidence.files_changed.join(', ')})`);
+    } else {
+      console.log(`Part B: skipped for Wave ${wave_index} — the pinned commit is not present in this checkout's history.`);
+    }
   }
 }
 

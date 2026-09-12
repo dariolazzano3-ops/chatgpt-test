@@ -66,6 +66,25 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] },
       { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] }
     ]
+  }],
+  [2, {
+    id: 'wave-2-command-center-program-controller',
+    title: 'Program Controller in the Command Center',
+    goal: 'Let the operator drive the already-accepted Program Controller (/api/program/state, /api/program/tick) from the existing Command Center instead of typing repo_dir/target_branch into curl by hand: real program-state display (Auftrag, Laufstatus, Ergebnis, Blocker), one explicit operator-triggered controller action, double-click/duplicate-dispatch protection, Program Approval/Budget shown with unknown values marked honestly, and no automatic start of further waves. No change to acceptance, approval, budget, or repair-attempt rules.',
+    depends_on: [1],
+    expected_files: [
+      'scripts/jarvis-command-center-program-controller-v1-smoke.mjs',
+      'src/jarvis/command-center-ui/bundle.built.js',
+      'src/jarvis/command-center-ui/jarvis-command-center.jsx',
+      'src/jarvis/command-center-v1.js',
+      'src/jarvis/http-v1.js',
+      'src/jarvis/local-operator-server-v1.js'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-command-center-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-local-operator-server-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'] }
+    ]
   }]
 ]);
 

@@ -43,8 +43,15 @@ function makeFixtureRepo() {
   assert.deepEqual(wave1.depends_on, [0]);
   assert.ok(wave1.title.length > 0 && wave1.goal.length > 0);
 
-  // Unregistered wave -> null, never invented.
-  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 2), null);
+  const wave2 = getJarvisWaveRegistryEntryV1(PROGRAM, 2);
+  assert.equal(wave2.wave_index, 2);
+  assert.deepEqual(wave2.depends_on, [1]);
+  assert.ok(wave2.title.length > 0 && wave2.goal.length > 0);
+  assert.ok(wave2.expected_files.includes('src/jarvis/command-center-v1.js'));
+  assert.equal(wave2.required_checks.length, 3);
+
+  // Unregistered wave (3, still undefined) -> null, never invented.
+  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 3), null);
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 99), null);
   // Wrong / unknown program -> null.
   assert.equal(getJarvisWaveRegistryEntryV1('SOME_OTHER_PROGRAM', 0), null);
@@ -82,8 +89,15 @@ function makeFixtureRepo() {
   assert.equal(ready.registry_id, 'wave-1-wave-registry-and-planner');
   assert.equal(ready.program, PROGRAM);
 
-  const unregistered = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 2, completedWaves: [0, 1] });
-  assert.equal(unregistered, null, 'Wave 2 has no registry entry — never guessed');
+  const wave2Blocked = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 2, completedWaves: [0] });
+  assert.equal(wave2Blocked, null, 'Wave 2 depends on Wave 1 — never proposed early');
+
+  const wave2Ready = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 2, completedWaves: [0, 1] });
+  assert.equal(wave2Ready.source, 'REGISTRY_PROPOSAL');
+  assert.equal(wave2Ready.registry_id, 'wave-2-command-center-program-controller');
+
+  const unregistered = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 3, completedWaves: [0, 1, 2] });
+  assert.equal(unregistered, null, 'Wave 3 has no registry entry — never guessed');
 }
 
 // ── 4. Manifests ──
@@ -124,13 +138,14 @@ function makeFixtureRepo() {
   assert.equal(t2.performed.detail.mission.intent.title, 'OPERATOR OVERRIDE TITLE', 'the operator-supplied title, never the registry one, was actually dispatched');
 }
 
-// ── 6. Full real acceptance run: Wave 0 -> Wave 1 (auto-proposed from the registry, no operator task) -> completed_waves == [0,1], verified_progress_percent == 15 exactly ──
+// ── 6. Full real acceptance run: Wave 0 -> Wave 1 -> Wave 2 (each auto-proposed from the registry, no operator task) -> completed_waves == [0,1,2], verified_progress_percent == 25 exactly ──
 {
   const repo = makeFixtureRepo();
   const branch = 'factory/jarvis-masterarchitecture-v2-wave1-acceptance';
   const store = createMemoryJarvisStoreV1();
   const wave0Entry = getJarvisWaveRegistryEntryV1(PROGRAM, 0);
   const wave1Entry = getJarvisWaveRegistryEntryV1(PROGRAM, 1);
+  const wave2Entry = getJarvisWaveRegistryEntryV1(PROGRAM, 2);
   const bridge = createJarvisClaudeCodeBridgeV1({ executor: createLocalFixtureExecutorV1({
     [wave0Entry.title]: {
       exit_code: 0,
@@ -146,6 +161,14 @@ function makeFixtureRepo() {
         schema: 'aurentara.jarvis.repo-bound-verification.v1', repo_dir: repo, branch, branch_drift: false,
         files_changed: ['src/jarvis/wave-registry-v1.js', 'src/jarvis/wave-task-planner-v1.js', 'src/jarvis/program-controller-v1.js'],
         pre_existing_dirty_files: [], syntax_check: { passed: true, checked: 3, results: [] }, at: new Date().toISOString()
+      }
+    },
+    [wave2Entry.title]: {
+      exit_code: 0,
+      verification: {
+        schema: 'aurentara.jarvis.repo-bound-verification.v1', repo_dir: repo, branch, branch_drift: false,
+        files_changed: ['src/jarvis/command-center-v1.js', 'src/jarvis/http-v1.js'],
+        pre_existing_dirty_files: [], syntax_check: { passed: true, checked: 2, results: [] }, at: new Date().toISOString()
       }
     }
   }) });
@@ -199,22 +222,40 @@ function makeFixtureRepo() {
   assert.equal(w1Accept.current_wave, 2, 'advanced to Wave 2');
   assert.equal(w1Accept.wave_state, 'PENDING');
 
-  // Wave 2 is NOT in the registry — the planner must stay silent, never guess.
-  const w2Tick = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
-  assert.equal(w2Tick.performed.action, 'NONE', 'Wave 2 has no registry entry — no fabricated task, ever');
-  assert.equal(w2Tick.wave_state, 'PENDING');
-  assert.equal(w2Tick.verified_progress_percent, 15, 'unchanged — Wave 2 contributes nothing until it is real, reviewed, and accepted');
+  // Wave 2: still no operator task — auto-proposed from the registry exactly
+  // like Wave 1 was, now that Wave 1 (its dependency) is accepted.
+  const w2Propose = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+  assert.equal(w2Propose.performed.action, 'PROPOSE_WAVE_TASK', 'Wave 2 auto-proposed from the registry — no operator click needed');
+  assert.equal(w2Propose.performed.detail.task_source, 'REGISTRY_PROPOSAL');
+  assert.equal(w2Propose.performed.detail.mission.intent.title, wave2Entry.title);
+
+  const w2Resume = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+  assert.equal(w2Resume.performed.action, 'AUTHORIZE_AND_RESUME');
+  assert.equal(w2Resume.performed.detail.claude_execution.state, 'COMPLETE');
+
+  const w2Accept = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+  assert.equal(w2Accept.performed.action, 'VERIFY_AND_ACCEPT');
+  assert.equal(w2Accept.performed.detail.accepted, true, 'Wave 2 independently accepted from real bridge-computed verification evidence, never a worker self-report');
+  assert.equal(w2Accept.verified_progress_percent, 25, 'Wave 0 (5%) + Wave 1 (10%) + Wave 2 (10%) == 25% exactly');
+  assert.equal(w2Accept.current_wave, 3, 'advanced to Wave 3');
+  assert.equal(w2Accept.wave_state, 'PENDING');
+
+  // Wave 3 is NOT in the registry — the planner must stay silent, never guess.
+  const w3Tick = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+  assert.equal(w3Tick.performed.action, 'NONE', 'Wave 3 has no registry entry — no fabricated task, ever');
+  assert.equal(w3Tick.wave_state, 'PENDING');
+  assert.equal(w3Tick.verified_progress_percent, 25, 'unchanged — Wave 3 contributes nothing until it is real, reviewed, and accepted');
 
   // Independent, read-only confirmation via the state endpoint (not just the
   // tick responses above) — this is the acceptance tick the operator checks.
   const finalState = await handleJarvisProgramStateRuntimeV1(tickReq, { memory_store: store });
   assert.equal(finalState.ok, true);
-  assert.deepEqual(finalState.completed_waves, [0, 1], 'completed_waves is exactly [0, 1]');
-  assert.equal(finalState.verified_progress_percent, 15, 'verified_progress_percent is exactly 15');
-  assert.equal(finalState.current_wave, 2);
+  assert.deepEqual(finalState.completed_waves, [0, 1, 2], 'completed_waves is exactly [0, 1, 2]');
+  assert.equal(finalState.verified_progress_percent, 25, 'verified_progress_percent is exactly 25');
+  assert.equal(finalState.current_wave, 3);
   assert.equal(finalState.program_approval.granted, true);
 
-  console.log(`WAVE 1 ACCEPTED — completed_waves=${JSON.stringify(finalState.completed_waves)} verified_progress_percent=${finalState.verified_progress_percent}`);
+  console.log(`WAVE 2 ACCEPTED — completed_waves=${JSON.stringify(finalState.completed_waves)} verified_progress_percent=${finalState.verified_progress_percent}`);
 }
 
 console.log('JARVIS Wave Registry V1 smoke: PASS');
