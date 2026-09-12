@@ -97,6 +97,45 @@ function makeFixtureClaudeBin(scriptBody) {
   assert.equal(result.external_effect, false);
 }
 
+// ── 6b. A second (e.g. repair) dispatch that edits a file a PRIOR dispatch
+//        already created untracked is STILL detected as a real change — the
+//        exact real-world case a content-blind, path-only diff would miss
+//        (git collapses/keeps the same "?? path" line before and after; only
+//        the file's bytes differ) ──
+{
+  const repo = makeFixtureRepo();
+  git(repo, ['checkout', '-q', '-b', 'feature/second-touch']);
+  const claudeBin1 = makeFixtureClaudeBin(`mkdir -p docs/jarvis/v2; echo '## section one' > docs/jarvis/v2/CONTRACT.md; exit 0`);
+  const executor1 = createJarvisRepoBoundClaudeCodeCliExecutorV1({ repo_dir: repo, claude_bin: claudeBin1 });
+  const first = await executor1({ task: 'create the contract doc', timeout_ms: 5000 });
+  assert.deepEqual(first.verification.files_changed, ['docs/jarvis/v2/CONTRACT.md']);
+
+  const claudeBin2 = makeFixtureClaudeBin(`printf '## section two\\n' >> docs/jarvis/v2/CONTRACT.md; exit 0`);
+  const executor2 = createJarvisRepoBoundClaudeCodeCliExecutorV1({ repo_dir: repo, claude_bin: claudeBin2 });
+  const second = await executor2({ task: 'append a missing section to the same still-untracked file', timeout_ms: 5000 });
+  assert.deepEqual(second.verification.files_changed, ['docs/jarvis/v2/CONTRACT.md'], 'content-diffed, not just path-diffed — the append is genuinely detected');
+  assert.deepEqual(second.verification.pre_existing_dirty_files, ['docs/jarvis/v2/CONTRACT.md'], 'still honestly reported as already dirty going in');
+  const content = fs.readFileSync(path.join(repo, 'docs/jarvis/v2/CONTRACT.md'), 'utf8');
+  assert.match(content, /section one/);
+  assert.match(content, /section two/);
+}
+
+// ── 6c. ...but a second dispatch that leaves an already-dirty file BYTE-FOR-BYTE
+//        unchanged still correctly reports no change (the content-diff cuts
+//        both ways) ──
+{
+  const repo = makeFixtureRepo();
+  git(repo, ['checkout', '-q', '-b', 'feature/no-real-edit']);
+  const claudeBin1 = makeFixtureClaudeBin(`echo 'module.exports = {};' > touched.js; exit 0`);
+  const executor1 = createJarvisRepoBoundClaudeCodeCliExecutorV1({ repo_dir: repo, claude_bin: claudeBin1 });
+  await executor1({ task: 'create a file', timeout_ms: 5000 });
+
+  const claudeBin2 = makeFixtureClaudeBin(`exit 0`); // touches nothing
+  const executor2 = createJarvisRepoBoundClaudeCodeCliExecutorV1({ repo_dir: repo, claude_bin: claudeBin2 });
+  const second = await executor2({ task: 'do nothing to the existing file', timeout_ms: 5000 });
+  assert.deepEqual(second.verification.files_changed, [], 'unchanged content on an already-dirty path is still correctly excluded');
+}
+
 // ── 7. A file already dirty BEFORE the run is never attributed to the run itself ──
 {
   const repo = makeFixtureRepo();
