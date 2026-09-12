@@ -103,10 +103,12 @@ const REGISTRY = new Map([
     expected_files: [
       'scripts/jarvis-command-center-program-controller-v1-smoke.mjs',
       'scripts/jarvis-program-approval-v1-smoke.mjs',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs',
       'src/jarvis/command-center-ui/bundle.built.js',
       'src/jarvis/command-center-ui/jarvis-command-center.jsx',
       'src/jarvis/http-v1.js',
-      'src/jarvis/program-approval-v1.js'
+      'src/jarvis/program-approval-v1.js',
+      'src/jarvis/wave-registry-v1.js'
     ],
     required_checks: [
       { command: 'node', args: ['scripts/jarvis-program-approval-v1-smoke.mjs'] },
