@@ -18,7 +18,7 @@
        construction time, and execution is refused outright if that branch
        is `main` or `master` (JARVIS_REPO_BOUND_PROTECTED_BRANCHES) or does
        not match an optional pinned `expected_branch`;
-     - the nested session's --tools allowlist is Read,Write,Edit,Glob,Grep
+     - the nested session's --allowedTools allowlist is Read,Write,Edit,Glob,Grep
        ONLY — no Bash, no WebFetch/WebSearch, no NotebookEdit. It can read
        and edit real files; it structurally CANNOT commit, push, merge,
        switch branches, or deploy anything, and it cannot reach the network
@@ -152,7 +152,7 @@ export function createJarvisRepoBoundClaudeCodeCliExecutorV1(config = {}) {
         '--print',
         '--output-format', 'json',
         '--restricted',
-        '--tools', allowedTools,
+        '--allowedTools', allowedTools,
         '--permission-mode', 'acceptEdits',
         '--permission-prompts', 'none',
         '--no-session-persistence',

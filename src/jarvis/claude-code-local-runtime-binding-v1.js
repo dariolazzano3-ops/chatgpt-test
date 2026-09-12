@@ -85,7 +85,7 @@ function perCallExecutor(config = {}) {
           '--print',
           '--output-format', 'json',
           '--restricted',
-          '--tools', allowedTools,
+          '--allowedTools', allowedTools,
           '--permission-mode', 'acceptEdits',
           '--permission-prompts', 'none',
           '--no-session-persistence',
