@@ -80,13 +80,29 @@ export function createJarvisLocalOperatorAuthorizeV1(env = process.env) {
 
 /* ── 5. SUPABASE — fail closed with one concise error, never a secret ────── */
 
+/** The local operator requires the service-role-only RPC gateway
+ *  (memory-store-supabase-rpc-v1.js), never the legacy direct-table store
+ *  (memory-store-supabase-v1.js). The legacy store reads/writes jarvis_private
+ *  directly via PostgREST's Accept-Profile header, which only works if
+ *  jarvis_private is added to PostgREST's exposed-schemas list — something
+ *  this project deliberately does NOT do (jarvis_private must stay
+ *  unexposed; see memory-store-supabase-rpc-v1.js's manifest). Accepting
+ *  JARVIS_PERSONAL_MEMORY_STORE=supabase here would silently bind that
+ *  legacy store instead and fail at request time (a bare 500/406) rather
+ *  than at this explicit, named startup gate — so it is refused outright,
+ *  not merely deprioritized. There is no memory-store fallback for this
+ *  local operator: either the real supabase-rpc store binds, or startup
+ *  fails closed. */
 export function verifyJarvisLocalOperatorSupabaseConfigV1(env = process.env) {
   const mode = clean(env.JARVIS_PERSONAL_MEMORY_STORE, 80).toLowerCase();
-  if (mode !== 'supabase') {
+  if (mode !== 'supabase-rpc') {
     return {
       ok: false,
-      error: 'JARVIS_LOCAL_OPERATOR_SUPABASE_MODE_REQUIRED',
-      message: 'Set JARVIS_PERSONAL_MEMORY_STORE=supabase before running npm run jarvis:local.'
+      error: 'JARVIS_LOCAL_OPERATOR_SUPABASE_RPC_MODE_REQUIRED',
+      message: 'Set JARVIS_PERSONAL_MEMORY_STORE=supabase-rpc before running npm run jarvis:local. '
+        + '(The legacy "supabase" mode is refused here — it selects the direct-table store, which '
+        + 'requires exposing the jarvis_private schema in PostgREST; this local operator only ever '
+        + 'binds the service-role-only RPC gateway, which keeps jarvis_private unexposed.)'
     };
   }
   const missing = REQUIRED_SUPABASE_ENV_KEYS.filter((key) => !clean(env[key], 4000));
@@ -98,7 +114,7 @@ export function verifyJarvisLocalOperatorSupabaseConfigV1(env = process.env) {
       message: `Missing required Supabase env var(s): ${missing.join(', ')}.`
     };
   }
-  return { ok: true, schema: clean(env.JARVIS_PERSONAL_MEMORY_SUPABASE_SCHEMA, 80) || 'jarvis_private' };
+  return { ok: true };
 }
 
 /* ── 4. CLAUDE CODE BINDING — genuine only, fail closed, never simulated ─── */
@@ -245,7 +261,7 @@ export async function startJarvisLocalOperatorV1(env = process.env, overrides = 
 
   const supabaseCheck = overrides.supabase_check || verifyJarvisLocalOperatorSupabaseConfigV1(env);
   if (!supabaseCheck.ok) {
-    return { ok: false, error: supabaseCheck.error, message: supabaseCheck.message };
+    return { ok: false, error: supabaseCheck.error, missing: supabaseCheck.missing, message: supabaseCheck.message };
   }
 
   const { options, claude_bridge_result } = buildJarvisLocalOperatorOptionsV1(env, overrides);
@@ -256,6 +272,18 @@ export async function startJarvisLocalOperatorV1(env = process.env, overrides = 
       message: `JARVIS_CLAUDE_LOCAL_EXECUTION=on but the local Claude bridge did not bind (${claude_bridge_result.reason}). Fix the local Claude CLI / Node runtime, or unset JARVIS_CLAUDE_LOCAL_EXECUTION to run without it.`
     };
   }
+
+  // Resolve the memory store the SAME way every real request will
+  // (resolveJarvisMemoryStoreV1) and report what actually bound — never a
+  // hardcoded "Supabase: BOUND" that could drift from request-time reality.
+  // This is reporting only: the hard fail-closed gate against the legacy
+  // store already happened above (verifyJarvisLocalOperatorSupabaseConfigV1)
+  // — re-deriving a second hard requirement here would also wrongly reject
+  // the injected-fixture-store path tests rely on (options.memory_store /
+  // overrides.memory_store), which never claims to be the real RPC store.
+  const resolvedStore = overrides.memory_store || resolveJarvisMemoryStoreV1(env, overrides);
+  const memoryStoreKind = resolvedStore?.kind || null;
+  const durableMemoryReady = resolvedStore?.durable === true;
 
   const server = overrides.server || createJarvisLocalOperatorServerV1(options, host, port);
   await new Promise((resolve, reject) => {
@@ -270,7 +298,8 @@ export async function startJarvisLocalOperatorV1(env = process.env, overrides = 
     port,
     url: `http://${host}:${port}`,
     operator_email: jarvisLocalOperatorEmailV1(env),
-    supabase_schema: supabaseCheck.schema,
+    memory_store_kind: memoryStoreKind,
+    durable_memory_ready: durableMemoryReady,
     claude_bridge_result,
     options
   };
@@ -308,7 +337,7 @@ if (isMainModule) {
   } else {
     console.log('JARVIS Local Operator V1');
     console.log(`Command Center: ${result.url}`);
-    console.log(`Supabase: BOUND (schema: ${result.supabase_schema})`);
+    console.log(`Memory store: ${result.memory_store_kind} (durable: ${result.durable_memory_ready})`);
     console.log(`Claude Code: ${result.claude_bridge_result.bound ? `BOUND (${result.claude_bridge_result.worker_kind})` : 'NOT_BOUND'}`);
     console.log(`Local operator: ${result.operator_email}`);
     console.log('Mode: LOCAL_PRIVATE');

@@ -55,23 +55,38 @@ await check('C. production Cloudflare Access auth module is unmodified by this f
 });
 
 // ── D. Supabase store is durable-bound (config verification, no network call) ──
-await check('D. Supabase config verifier fails closed and binds when configured', () => {
-  const missing = verifyJarvisLocalOperatorSupabaseConfigV1({});
-  assert.equal(missing.ok, false);
-  assert.equal(missing.error, 'JARVIS_LOCAL_OPERATOR_SUPABASE_MODE_REQUIRED');
+await check('D. Supabase config verifier requires supabase-rpc, refuses the legacy mode, and binds when configured', () => {
+  const unset = verifyJarvisLocalOperatorSupabaseConfigV1({});
+  assert.equal(unset.ok, false);
+  assert.equal(unset.error, 'JARVIS_LOCAL_OPERATOR_SUPABASE_RPC_MODE_REQUIRED');
 
-  const partial = verifyJarvisLocalOperatorSupabaseConfigV1({ JARVIS_PERSONAL_MEMORY_STORE: 'supabase' });
+  // The legacy direct-table mode is explicitly refused here, never merely
+  // deprioritized — it would otherwise require exposing jarvis_private in
+  // PostgREST, which this project deliberately never does.
+  const legacy = verifyJarvisLocalOperatorSupabaseConfigV1({
+    JARVIS_PERSONAL_MEMORY_STORE: 'supabase',
+    JARVIS_PERSONAL_MEMORY_SUPABASE_URL: 'https://example.supabase.co',
+    JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY: 'fixture-key-not-real'
+  });
+  assert.equal(legacy.ok, false);
+  assert.equal(legacy.error, 'JARVIS_LOCAL_OPERATOR_SUPABASE_RPC_MODE_REQUIRED', 'legacy "supabase" mode fails closed, same as unset');
+
+  const partial = verifyJarvisLocalOperatorSupabaseConfigV1({ JARVIS_PERSONAL_MEMORY_STORE: 'supabase-rpc' });
   assert.equal(partial.ok, false);
   assert.equal(partial.error, 'JARVIS_LOCAL_OPERATOR_SUPABASE_ENV_MISSING');
   assert.deepEqual(partial.missing, ['JARVIS_PERSONAL_MEMORY_SUPABASE_URL', 'JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY']);
 
   const ok = verifyJarvisLocalOperatorSupabaseConfigV1({
-    JARVIS_PERSONAL_MEMORY_STORE: 'supabase',
+    JARVIS_PERSONAL_MEMORY_STORE: 'supabase-rpc',
     JARVIS_PERSONAL_MEMORY_SUPABASE_URL: 'https://example.supabase.co',
     JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY: 'fixture-key-not-real'
   });
   assert.equal(ok.ok, true);
-  assert.equal(ok.schema, 'jarvis_private', 'defaults to jarvis_private per the known PostgREST exposure requirement');
+
+  // No secret value ever appears in a verifier result, in either direction.
+  for (const result of [unset, legacy, partial, ok]) {
+    assert.doesNotMatch(JSON.stringify(result), /fixture-key-not-real/);
+  }
 });
 
 // ── E. Claude bridge is genuinely bound when env enables it (fixture executor) ──
@@ -100,11 +115,16 @@ const memoryStore = createMemoryJarvisStoreV1();
 // A fixed, non-default port: avoids colliding with a real `npm run
 // jarvis:local` instance that may genuinely be running on 8787 already.
 const started = await startJarvisLocalOperatorV1({ JARVIS_LOCAL_PORT: '18787' }, {
-  supabase_check: { ok: true, schema: 'jarvis_private' },
+  supabase_check: { ok: true },
   authorize,
   claude_bridge_result: { bridge: fixtureBridge, bound: true, requested: true, reason: null }
 });
 assert.equal(started.ok, true, 'server starts when config checks are satisfied');
+// Startup honestly reports whatever memory store actually resolved — here
+// the in-memory fallback (no JARVIS_PERSONAL_MEMORY_STORE env set), never a
+// hardcoded claim of Supabase.
+assert.equal(typeof started.memory_store_kind, 'string');
+assert.equal(started.durable_memory_ready, false, 'the in-memory fallback used by this fixture test is honestly reported as non-durable');
 started.options.memory_store = memoryStore;
 
 const base = started.url;
