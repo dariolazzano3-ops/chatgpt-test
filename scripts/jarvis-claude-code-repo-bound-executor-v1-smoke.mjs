@@ -127,6 +127,14 @@ function makeFixtureClaudeBin(scriptBody) {
   assert.match(capturedArgs, /--restricted/);
   assert.match(capturedArgs, /--permission-mode\nacceptEdits/);
   assert.match(capturedArgs, /--strict-mcp-config/);
+  // The real `claude` CLI has no `--tools` flag at all (confirmed against
+  // `claude --help`) — only `--allowedTools`/`--allowed-tools`. Passing the
+  // wrong one silently produced a working (exit 0) session that never saw
+  // the real task, which is exactly what caused every real dogfood dispatch
+  // to report NO_REAL_FILES_CHANGED. Assert the real flag name so this
+  // class of bug fails loudly here instead of only in a live run.
+  assert.match(capturedArgs, /--allowedTools\nRead,Write,Edit,Glob,Grep/);
+  assert.doesNotMatch(capturedArgs, /^--tools$/m);
 }
 
 // ── 9. Manifest / safety invariants ──
