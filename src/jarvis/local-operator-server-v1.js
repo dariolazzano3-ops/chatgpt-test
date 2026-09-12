@@ -191,14 +191,40 @@ export function createJarvisLocalOperatorProgramControllerV1(env = process.env, 
   };
 }
 
+/** Wave 2: the ONLY thing the Command Center needs to call /api/program/tick
+ *  and /api/program/state itself, instead of an operator typing repo_dir/
+ *  target_branch into a curl command by hand. Reuses the SAME
+ *  JARVIS_CLAUDE_REPO_DIR env var repo-bound execution already requires —
+ *  no new config surface. target_branch is read live via real `git`, never
+ *  cached/guessed, so the UI can never drift from what branch is actually
+ *  checked out. Absent/failing either -> both null (never fabricated); the
+ *  UI is required to render "nicht konfiguriert" for that case, never a
+ *  guess. */
+export function resolveJarvisLocalOperatorProgramLocationV1(env = process.env) {
+  const repoDir = clean(env.JARVIS_CLAUDE_REPO_DIR, 400);
+  if (!repoDir) return { repo_dir: null, target_branch: null };
+  try {
+    const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: repoDir, stdio: ['ignore', 'pipe', 'ignore']
+    }).toString('utf8').trim();
+    return branch ? { repo_dir: repoDir, target_branch: branch } : { repo_dir: null, target_branch: null };
+  } catch {
+    return { repo_dir: null, target_branch: null };
+  }
+}
+
 export function buildJarvisLocalOperatorOptionsV1(env = process.env, overrides = {}) {
   const authorize = overrides.authorize || createJarvisLocalOperatorAuthorizeV1(env);
   const claudeBridgeResult = overrides.claude_bridge_result
     || resolveJarvisLocalOperatorClaudeBridgeV1(env, overrides.claude_binding_options);
   const programController = overrides.program_controller
     || createJarvisLocalOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
+  const programLocation = overrides.program_location || resolveJarvisLocalOperatorProgramLocationV1(env);
   return {
-    options: { authorize, claude_bridge: claudeBridgeResult.bridge, program_controller: programController },
+    options: {
+      authorize, claude_bridge: claudeBridgeResult.bridge, program_controller: programController,
+      program_repo_dir: programLocation.repo_dir, program_target_branch: programLocation.target_branch
+    },
     claude_bridge_result: claudeBridgeResult
   };
 }

@@ -225,7 +225,16 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   }
 
   if (url.pathname === '/jarvis' || url.pathname === '/jarvis/') {
-    return commandCenterHtml(renderJarvisCommandCenterV1({ base_path: options.ui_base_path === '' ? '' : '/jarvis' }));
+    return commandCenterHtml(renderJarvisCommandCenterV1({
+      base_path: options.ui_base_path === '' ? '' : '/jarvis',
+      // DI-injected by the Node-only local operator launcher only (this
+      // file never imports it — see that launcher's own module header).
+      // Absent on any deployed Worker (never set there), so the Command
+      // Center there correctly renders "nicht konfiguriert" for the
+      // Program Controller panel.
+      program_repo_dir: options.program_repo_dir || null,
+      program_target_branch: options.program_target_branch || null
+    }));
   }
 
   if (url.pathname === '/jarvis/legacy' && request.method === 'GET') {

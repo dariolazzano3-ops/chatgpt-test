@@ -13,11 +13,25 @@ import {
   JARVIS_COMMAND_CENTER_BUNDLE_SHA256_V1,
   JARVIS_COMMAND_CENTER_BUNDLE_BYTES_V1
 } from './command-center-ui/bundle.built.js';
+import { JARVIS_V2_PROGRAM_ID } from './v2-progress-v1.js';
 
 export function renderJarvisCommandCenterV1(options = {}) {
   const basePath = options.base_path === '' ? '' : '/jarvis';
   const apiBase = basePath + '/api';
-  const boot = JSON.stringify({ apiBase, runtime_truth_path: apiBase + '/runtime-truth' });
+  // Wave 2: lets the Command Center call /api/program/state + /api/program/
+  // tick itself instead of an operator typing repo_dir/target_branch into a
+  // curl command. Both are injected DI-style from the Node-only local
+  // operator launcher (see local-operator-server-v1.js) — this module stays
+  // Cloudflare-Worker-safe and never derives them itself. Absent ->
+  // null -> the client is required to render "nicht konfiguriert", never a
+  // guess.
+  const boot = JSON.stringify({
+    apiBase,
+    runtime_truth_path: apiBase + '/runtime-truth',
+    programName: JARVIS_V2_PROGRAM_ID,
+    programRepoDir: options.program_repo_dir || null,
+    programTargetBranch: options.program_target_branch || null
+  });
 
   return `<!doctype html>
 <html lang="de">
@@ -56,6 +70,10 @@ export function jarvisCommandCenterManifestV1() {
     system_status_source: '/jarvis/api/runtime-truth',
     system_status_canonical_only: true,
     system_status_fail_closed: 'Nicht verbunden',
+    program_controller_source: '/jarvis/api/program/state',
+    program_controller_action_source: '/jarvis/api/program/tick',
+    program_controller_fail_closed: 'Nicht konfiguriert',
+    program_controller_auto_advances_further_waves: false,
     mock_areas: ['runs', 'activity', 'approvals', 'limits', 'notices', 'pipeline'],
     legacy_blue_ui_used: false,
     production_deploy: false,

@@ -858,6 +858,152 @@ function V2ProgressHud() {
   );
 }
 
+/* Wave 2: the real Program Controller, operable from the Command Center
+   instead of an operator typing repo_dir/target_branch into a curl command
+   by hand. GET <apiBase>/program/state (read, polled) + POST <apiBase>/
+   program/tick (the ONE explicit, operator-triggered mutating action — a
+   click never auto-chains into another tick, and a client-side timeout or
+   any other failure never auto-retries; the operator must click again).
+   repo_dir/target_branch come from window.__JARVIS_CC__, injected only by
+   the Node-only local operator launcher (see local-operator-server-v1.js);
+   absent here -> "Nicht konfiguriert", never a guessed value. Acceptance
+   rules, approval scope, budget limits and the repair-attempt bound are
+   untouched — this only reads and displays them, or triggers the SAME
+   already-existing, already-audited tick endpoint an operator would
+   otherwise call by hand. */
+const PROGRAM_TICK_TIMEOUT_MS = 360000; // comfortably above the bridge's own default dispatch timeout (300000ms)
+const PROGRAM_NEXT_ACTION_LABEL = {
+  PREPARE_BRANCH: "Branch vorbereiten",
+  PROPOSE_WAVE_TASK: "Nächsten Auftrag vorschlagen",
+  AUTHORIZE_AND_RESUME: "Freigeben und fortsetzen (echter Dispatch)",
+  RESUME: "Fortsetzen",
+  VERIFY_AND_ACCEPT: "Evidence prüfen und abnehmen",
+  ANALYZE_FOR_REPAIR: "Reparatur analysieren",
+  ADVANCE_TO_NEXT_WAVE: "Zur nächsten Wave",
+  WAIT: "Warten",
+};
+
+function ccBoot() {
+  return (typeof window !== "undefined" && window.__JARVIS_CC__) || {};
+}
+
+function useProgramController() {
+  const boot = ccBoot();
+  const configured = Boolean(boot.programRepoDir && boot.programTargetBranch);
+  const [state, setState] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [tickPending, setTickPending] = useState(false);
+  const [tickError, setTickError] = useState(null);
+  const inFlight = useRef(false);
+
+  const load = useCallback(async () => {
+    if (!configured) return;
+    try {
+      const q = new URLSearchParams({ program: boot.programName, repo_dir: boot.programRepoDir, target_branch: boot.programTargetBranch });
+      const r = await fetch(`${RT_API_BASE()}/program/state?${q.toString()}`, { headers: { accept: "application/json" }, credentials: "same-origin" });
+      const body = await r.json().catch(() => null);
+      if (r.ok && body && body.ok) { setState(body); setLoadError(null); }
+      else { setLoadError((body && body.error) || "Runtime nicht erreichbar"); }
+    } catch { setLoadError("Runtime nicht erreichbar"); }
+  }, [configured, boot.programName, boot.programRepoDir, boot.programTargetBranch]);
+
+  useEffect(() => {
+    if (!configured) return;
+    load();
+    const iv = setInterval(load, 20000); // read-only polling; never triggers a tick
+    return () => clearInterval(iv);
+  }, [configured, load]);
+
+  // The one explicit, operator-triggered mutating action. inFlight.current
+  // guards a double-click; tickPending disables the button visually for the
+  // same duration. Neither a client-side AbortController timeout nor any
+  // other failure here ever calls tick() again automatically — only a
+  // fresh, explicit click does.
+  const tick = useCallback(async () => {
+    if (!configured || inFlight.current) return;
+    inFlight.current = true;
+    setTickPending(true);
+    setTickError(null);
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), PROGRAM_TICK_TIMEOUT_MS) : null;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/program/tick`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({ program: boot.programName, repo_dir: boot.programRepoDir, target_branch: boot.programTargetBranch }),
+      });
+      const body = await r.json().catch(() => null);
+      if (!(r.ok && body && body.ok)) setTickError((body && body.error) || "Aktion fehlgeschlagen");
+    } catch (e) {
+      setTickError(e && e.name === "AbortError"
+        ? "Zeitüberschreitung — Status prüfen, bevor erneut ausgelöst wird"
+        : "Runtime nicht erreichbar");
+    } finally {
+      if (timer) clearTimeout(timer);
+      setTickPending(false);
+      inFlight.current = false;
+      load(); // re-read real state once; never re-ticks
+    }
+  }, [configured, boot.programName, boot.programRepoDir, boot.programTargetBranch, load]);
+
+  return { configured, state, loadError, tick, tickPending, tickError, boot };
+}
+
+function ProgramControllerPanel() {
+  const pc = useProgramController();
+  const rt = useRuntimeTruth();
+
+  if (!pc.configured) {
+    return (
+      <Panel title="Programm-Controller" right={<LiveTag label="Nicht konfiguriert" color="#a3968a" pulse={false} />}>
+        <div className="empty">JARVIS_CLAUDE_REPO_DIR ist auf diesem lokalen Operator nicht gesetzt — der Programm-Controller ist nicht ansprechbar.</div>
+      </Panel>
+    );
+  }
+
+  const st = pc.state;
+  const known = Boolean(st);
+  const currentRun = known && rt.runs.real
+    ? rt.runs.items.find((r) => r.program === pc.boot.programName && r.wave_index === st.current_wave)
+    : null;
+  const blocked = known && st.wave_state === "BLOCKED_OPERATOR";
+  const nextLabel = !known ? "Unbekannt" : st.next_action ? (PROGRAM_NEXT_ACTION_LABEL[st.next_action.action] || st.next_action.action) : "Keine Aktion verfügbar";
+  const approval = known ? st.program_approval : null;
+
+  return (
+    <Panel
+      title="Programm-Controller — Wave-Fortschritt"
+      right={<LiveTag label={!known ? "Nicht verbunden" : blocked ? "Blockiert" : "Verbunden"} color={!known ? "#a3968a" : blocked ? "#ff5d4f" : "#a8d8a0"} pulse={false} />}
+    >
+      {!known && <div className="empty">{pc.loadError || "Status wird geladen …"}</div>}
+      {known && (
+        <>
+          <dl className="kv three">
+            <div><dt>Wave</dt><dd className="mono">{st.current_wave} / 12</dd></div>
+            <div><dt>Fortschritt</dt><dd className="mono">{st.verified_progress_percent}%</dd></div>
+            <div><dt>Versuche</dt><dd className="mono">{st.attempts_used}</dd></div>
+          </dl>
+          <dl className="kv two">
+            <div><dt>Status</dt><dd>{st.wave_state}{st.wave_reason ? ` · ${st.wave_reason}` : ""}</dd></div>
+            <div><dt>Nächste Aktion</dt><dd>{nextLabel}</dd></div>
+            <div><dt>Auftrag</dt><dd>{currentRun ? currentRun.title : "Unbekannt"}</dd></div>
+            <div><dt>Ergebnis</dt><dd>{currentRun ? (currentRun.acceptance_state || currentRun.status) : "Unbekannt"}</dd></div>
+            <div><dt>Blocker</dt><dd>{blocked ? (st.wave_reason || "Blockiert") : "Kein Blocker"}</dd></div>
+            <div><dt>Program Approval</dt><dd>{approval ? (approval.granted ? `Erteilt (${(approval.scope || []).length} Scopes)` : "Nicht erteilt") : "Unbekannt"}</dd></div>
+            <div><dt>Budget</dt><dd>Unbekannt</dd></div>
+          </dl>
+          <button className="btn pri full" disabled={pc.tickPending || !st.next_action} onClick={pc.tick}>
+            {pc.tickPending ? "Läuft …" : "Tick ausführen"}
+          </button>
+          {pc.tickError && <div className="empty" style={{ color: "#ff9186", marginTop: 10 }}>{pc.tickError}</div>}
+        </>
+      )}
+    </Panel>
+  );
+}
+
 function SystemPanel({ go }) {
   const rt = useRuntimeTruth();
   const tag = !rt.loaded ? "Prüft …" : rt.canonical ? "Live" : "Nicht verbunden";
@@ -1371,6 +1517,7 @@ function SystemView({ s }) {
           </div>
         )}
       </Panel>
+      <ProgramControllerPanel />
       <div className="svc-grid">
         {SERVICES.map((x) => {
           const st = rtServiceStatus(rt, x.k);
