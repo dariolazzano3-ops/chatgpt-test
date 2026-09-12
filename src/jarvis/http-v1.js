@@ -21,6 +21,7 @@ import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runt
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering-mission-acceptance-v1.js';
+import { handleJarvisProgramApprovalGrantRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 
@@ -86,7 +87,7 @@ function staging(env = {}) {
   return mode === 'staging' || mode === 'private-staging';
 }
 
-function memoryStore(env = {}, options = {}) {
+export function resolveJarvisMemoryStoreV1(env = {}, options = {}) {
   if (options.memory_store) return options.memory_store;
 
   const mode = clean(env.JARVIS_PERSONAL_MEMORY_STORE || options.mode || '', 80).toLowerCase();
@@ -174,7 +175,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   }
 
   const session = resolved.session;
-  const store = memoryStore(env, options);
+  const store = resolveJarvisMemoryStoreV1(env, options);
   const oauth = oauthService(env, options);
 
   if (url.pathname === '/jarvis/connect/google' && request.method === 'GET') {
@@ -636,6 +637,54 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       production_deploy: false,
       hamyren_data_flow: false
     }, acceptance.status || (acceptance.ok ? 200 : 409));
+  }
+
+  if (url.pathname === '/jarvis/api/program/approve' && request.method === 'POST') {
+    // Program-level approval grant (JARVIS V2 Autopilot). Pure, Cloudflare-
+    // Worker-safe logic — see program-approval-v1.js. This is a DISTINCT,
+    // explicit OPERATOR action; nothing here or anywhere else in http-v1.js
+    // ever calls this route automatically on the operator's behalf.
+    if (!store) {
+      return json({ ok: false, error: 'JARVIS_DURABLE_MEMORY_NOT_READY', production_deploy: false }, 503);
+    }
+    const body = await bodyJson(request);
+    const grant = await handleJarvisProgramApprovalGrantRuntimeV1({
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      program: body.program,
+      repo_dir: body.repo_dir,
+      target_branch: body.target_branch,
+      scope: body.scope,
+      confirm_scope: body.confirm_scope,
+      now: new Date().toISOString()
+    }, { memory_store: store });
+    return json({ ...grant, production_deploy: false, hamyren_data_flow: false }, grant.status || (grant.ok ? 200 : 400));
+  }
+
+  if ((url.pathname === '/jarvis/api/program/tick' && request.method === 'POST')
+    || (url.pathname === '/jarvis/api/program/state' && request.method === 'GET')) {
+    // The Program Controller itself is Node-only (real `git` access via
+    // branch-manager-v1.js) and is DELIBERATELY never imported here — see
+    // program-controller-v1.js's header. It is injected the same way
+    // options.claude_bridge already is: only the Node-only local operator
+    // launcher ever constructs a real one. No config here -> fails closed,
+    // never simulated.
+    if (!options.program_controller || typeof options.program_controller.tick !== 'function' || typeof options.program_controller.state !== 'function') {
+      return json({ ok: false, error: 'JARVIS_PROGRAM_CONTROLLER_NOT_BOUND', production_deploy: false }, 503);
+    }
+    const isTick = url.pathname.endsWith('/tick');
+    const body = isTick ? await bodyJson(request) : Object.fromEntries(url.searchParams);
+    const req = {
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      program: body.program,
+      repo_dir: body.repo_dir,
+      target_branch: body.target_branch,
+      task: body.task,
+      now: new Date().toISOString()
+    };
+    const result = isTick ? await options.program_controller.tick(req) : await options.program_controller.state(req);
+    return json({ ...result, production_deploy: false, hamyren_data_flow: false }, result.status || (result.ok ? 200 : 400));
   }
 
   return json({ ok: false, error: 'JARVIS_ROUTE_NOT_FOUND', production_deploy: false }, 404);

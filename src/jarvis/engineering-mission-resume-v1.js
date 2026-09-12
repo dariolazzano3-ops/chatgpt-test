@@ -124,11 +124,19 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
   }
 
   const state = evaluateJarvisEngineeringMissionResumeStateV1(audit, requestId);
+  // Program-controller-v1.js only path: a caller may assert program-approval
+  // coverage ONLY by passing this flag, which it must have derived itself
+  // from a real, persisted Program Approval grant via
+  // evaluateJarvisProgramApprovalActionV1 — this function never checks that
+  // itself and never accepts a client-supplied claim of "already approved"
+  // through `request`. Every other caller (http-v1.js's normal resume route)
+  // never sets this, so default behaviour is byte-for-byte unchanged.
+  const viaProgramApproval = !state.approval_granted && deps.program_approval_covers_dispatch === true;
 
   if (!state.mission_found) {
     return { ok: false, status: 404, error: 'JARVIS_ENGINEERING_MISSION_RESUME_MISSION_NOT_FOUND', request_id: requestId, executed: false };
   }
-  if (!state.approval_granted) {
+  if (!state.approval_granted && !viaProgramApproval) {
     return { ok: false, status: 409, error: 'JARVIS_ENGINEERING_MISSION_RESUME_NOT_APPROVED', request_id: requestId, executed: false };
   }
   if (state.already_executed) {
@@ -238,12 +246,17 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
     approval: {
       required: true,
       explicit: true,
-      actor_type: 'OPERATOR',
-      gate_status: 'APPROVED_BY_OPERATOR',
+      // Honest provenance: a program-controller-authorized dispatch is
+      // never mislabeled as a fresh OPERATOR click — it is attributed to
+      // the real, distinct Program Approval grant it was actually
+      // authorized by (see program-approval-v1.js / program-controller-v1.js).
+      actor_type: viaProgramApproval ? 'PROGRAM_CONTROLLER' : 'OPERATOR',
+      gate_status: viaProgramApproval ? 'APPROVED_VIA_PROGRAM_APPROVAL' : 'APPROVED_BY_OPERATOR',
       decision: 'approve',
       approval_id: `${requestId}:approval`,
       decided_run_id: requestId,
-      reused_prior_decision: true
+      reused_prior_decision: !viaProgramApproval,
+      program_approval_authorized: viaProgramApproval
     },
     cost: { estimated_eur: 0, actual_eur: 0 },
     memory_updates: { accepted: 0, proposed: 0, rejected: 0 }

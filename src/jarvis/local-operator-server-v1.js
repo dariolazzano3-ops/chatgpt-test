@@ -35,6 +35,8 @@ import {
   createJarvisClaudeRepoBoundRuntimeBindingV1,
   JARVIS_CLAUDE_REPO_BOUND_EXECUTION_FLAG
 } from './claude-code-repo-bound-runtime-binding-v1.js';
+import { resolveJarvisMemoryStoreV1 } from './http-v1.js';
+import { handleJarvisProgramTickRuntimeV1, handleJarvisProgramStateRuntimeV1 } from './program-controller-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 
@@ -149,12 +151,38 @@ export function resolveJarvisLocalOperatorClaudeBridgeV1(env = process.env, opti
 
 /* ── runtime wiring shared by the real server and tests ──────────────────── */
 
+/** The Program Controller (program-controller-v1.js) is Node-only (real
+ *  `git` access via branch-manager-v1.js) and is never imported by http-v1.js
+ *  itself — this is the one place that constructs it and injects it through
+ *  the same options seam claude_bridge already uses. It re-resolves the
+ *  memory store from `env` on every call via resolveJarvisMemoryStoreV1 —
+ *  the exact same resolution http-v1.js itself would perform for a plain
+ *  request — so ticking never drifts from what the running server would
+ *  otherwise persist. */
+export function createJarvisLocalOperatorProgramControllerV1(env = process.env, options = {}) {
+  const memoryStoreFor = () => options.memory_store || resolveJarvisMemoryStoreV1(env, options);
+  return {
+    async tick(request) {
+      const store = memoryStoreFor();
+      if (!store) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_TICK_MEMORY_STORE_REQUIRED' };
+      return handleJarvisProgramTickRuntimeV1(request, { memory_store: store, claude_bridge: options.claude_bridge, claude_timeout_ms: options.claude_timeout_ms });
+    },
+    async state(request) {
+      const store = memoryStoreFor();
+      if (!store) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_STATE_MEMORY_STORE_REQUIRED' };
+      return handleJarvisProgramStateRuntimeV1(request, { memory_store: store });
+    }
+  };
+}
+
 export function buildJarvisLocalOperatorOptionsV1(env = process.env, overrides = {}) {
   const authorize = overrides.authorize || createJarvisLocalOperatorAuthorizeV1(env);
   const claudeBridgeResult = overrides.claude_bridge_result
     || resolveJarvisLocalOperatorClaudeBridgeV1(env, overrides.claude_binding_options);
+  const programController = overrides.program_controller
+    || createJarvisLocalOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   return {
-    options: { authorize, claude_bridge: claudeBridgeResult.bridge },
+    options: { authorize, claude_bridge: claudeBridgeResult.bridge, program_controller: programController },
     claude_bridge_result: claudeBridgeResult
   };
 }

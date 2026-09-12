@@ -53,7 +53,7 @@ function workerFromTools(tools = []) {
   return 'JARVIS Runtime';
 }
 
-function approvalState(approval = {}) {
+export function approvalState(approval = {}) {
   const gate = clean(approval?.gate_status, 80).toUpperCase();
   if (/REJECT|DENIED|DENY|REVOK/.test(gate)) return 'REVOKED';
   if (/EXPIRE/.test(gate)) return 'EXPIRED';
@@ -61,7 +61,7 @@ function approvalState(approval = {}) {
   return 'PENDING';
 }
 
-function runStateFor(events = []) {
+export function runStateFor(events = []) {
   const latest = events[events.length - 1] || {};
   const anyApprovalPending = events.some(
     (e) => e?.approval?.required === true && approvalState(e.approval) === 'PENDING'
@@ -179,6 +179,11 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
         approval_state: events.some((e) => e.approval?.required === true) ? approvalState(last.approval) : null,
         evidence_ref: events.map((e) => e.evidence_ref).find(Boolean) || null,
         resumable: resumeState.resumable === true,
+        // Engineering-mission correlation only (null for non-mission runs) —
+        // lets a caller (program-controller-v1.js) find "the run(s) for wave
+        // N of program P" without re-deriving it from raw audit itself.
+        program: events.map((e) => clean(e.result?.program, 80)).find(Boolean) || null,
+        wave_index: events.map((e) => e.result?.wave_index).find((v) => v !== undefined && v !== null) ?? null,
         // Section 6: execution state (`status` above) and acceptance state
         // are deliberately never collapsed into one field. A run can be
         // `status: COMPLETE` and still be ACCEPTANCE_PENDING forever — that

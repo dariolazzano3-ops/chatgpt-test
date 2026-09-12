@@ -97,7 +97,9 @@ const fixtureBridge = createJarvisClaudeCodeBridgeV1({
 const authorize = createJarvisLocalOperatorAuthorizeV1({ JARVIS_LOCAL_OPERATOR_EMAIL: 'smoke-operator@example.invalid' });
 const memoryStore = createMemoryJarvisStoreV1();
 
-const started = await startJarvisLocalOperatorV1({}, {
+// A fixed, non-default port: avoids colliding with a real `npm run
+// jarvis:local` instance that may genuinely be running on 8787 already.
+const started = await startJarvisLocalOperatorV1({ JARVIS_LOCAL_PORT: '18787' }, {
   supabase_check: { ok: true, schema: 'jarvis_private' },
   authorize,
   claude_bridge_result: { bridge: fixtureBridge, bound: true, requested: true, reason: null }
