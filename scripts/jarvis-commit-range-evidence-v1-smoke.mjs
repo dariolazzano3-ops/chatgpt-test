@@ -94,6 +94,38 @@ function commitFile(dir, relPath, content, message) {
   assert.equal(evidence.reason, 'FORBIDDEN_PATTERN_IN_COMMIT_DIFF');
 }
 
+// ── 4a2. The SAME forbidden text inside a declared generated_files path is
+//    exempt from the content scan (minified build output is not meaningfully
+//    reviewable line-by-line) — but ONLY for that path; a sibling
+//    non-generated file with the same content in the same commit is still
+//    flagged, and the generated file still has to be a real, expected part
+//    of the diff (this is not a way to sneak an unlisted file through). ──
+{
+  const repo = makeFixtureRepo();
+  fs.mkdirSync(path.join(repo, 'dist'), { recursive: true });
+  fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'dist/bundle.js'), '// minified: wrangler deploy --env production\n');
+  fs.writeFileSync(path.join(repo, 'src/real.js'), 'export const ok = 1;\n');
+  git(repo, ['add', '.']);
+  git(repo, ['commit', '-q', '-m', 'build output + real change']);
+  const sha = git(repo, ['rev-parse', 'HEAD']);
+
+  const exempt = computeJarvisCommitRangeEvidenceV1({
+    repo_dir: repo, target_branch: BRANCH, commit_sha: sha,
+    expected_files: ['dist/bundle.js', 'src/real.js'], generated_files: ['dist/bundle.js']
+  });
+  assert.equal(exempt.sufficient, true, JSON.stringify(exempt));
+  assert.deepEqual(exempt.generated_files, ['dist/bundle.js']);
+
+  // Same commit, but dist/bundle.js is NOT declared generated this time -> flagged.
+  const notExempt = computeJarvisCommitRangeEvidenceV1({
+    repo_dir: repo, target_branch: BRANCH, commit_sha: sha,
+    expected_files: ['dist/bundle.js', 'src/real.js'], generated_files: []
+  });
+  assert.equal(notExempt.sufficient, false);
+  assert.equal(notExempt.reason, 'FORBIDDEN_PATTERN_IN_COMMIT_DIFF');
+}
+
 // ── 4b. The codebase's own pervasive `hamyren_..._data_flow: false` /
 //    `hamyren_tables_referenced: false` compliance fields must NEVER false-
 //    positive this scan — only a genuine (non-"...: false") hamyren mention does ──
@@ -228,6 +260,8 @@ function commitFile(dir, relPath, content, message) {
   assert.equal(manifest.trusts_worker_or_caller_self_report, false);
   assert.equal(manifest.runs_required_checks_itself, true);
   assert.equal(manifest.mutates_repo, false);
+  assert.equal(manifest.generated_files_exempt_from_content_scan_only, true);
+  assert.equal(manifest.generated_files_still_subject_to_expected_files_check, true);
 }
 
 console.log('JARVIS Commit-Range Evidence V1 smoke: PASS');

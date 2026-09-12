@@ -109,7 +109,8 @@ export async function handleJarvisCommitRangeAcceptanceRuntimeV1(request = {}, d
     target_branch: targetBranch,
     commit_sha: commitSha,
     expected_files: entry.expected_files,
-    required_checks: entry.required_checks
+    required_checks: entry.required_checks,
+    generated_files: entry.generated_files
   });
 
   if (!evidence.sufficient) {

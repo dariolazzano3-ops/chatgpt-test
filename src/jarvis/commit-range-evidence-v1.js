@@ -30,7 +30,14 @@
        pattern (deploy, force push, merge, destructive SQL, a genuine HAMYREN
        reference — but never a false positive on this codebase's own
        pervasive `..._data_flow: false` / `..._referenced: false` compliance
-       fields, which are deliberately excluded from the scan);
+       fields, which are deliberately excluded from the scan). This scan is
+       skipped ONLY for paths the wave itself lists in `generated_files`
+       (e.g. a minified build bundle mechanically regenerated from a source
+       file that IS scanned) — never for a hand-authored file, and never
+       exempting a `generated_files` path from the expected_files/
+       non-empty-diff checks above, only from line-by-line content scanning
+       that is meaningless (and prone to incidental false positives) against
+       machine-minified output;
      - a branch other than the wave's own `target_branch`, a protected
        branch, or a dirty (tracked-file) working tree at evaluation time
        (reuses branch-manager-v1.js's evaluateJarvisBranchTruthV1 — the same
@@ -111,14 +118,21 @@ function runRequiredCheckV1(repoDir, check = {}) {
  *  committed, already-reachable commit. Read-only: never mutates the repo.
  *  `required_checks` are [{command, args}] — commands actually executed
  *  here, e.g. `{ command: 'node', args: ['scripts/jarvis-wave-registry-v1-
- *  smoke.mjs'] }`. */
+ *  smoke.mjs'] }`. `generated_files` (subset of expected_files) are
+ *  mechanically-regenerated build artifacts (e.g. a minified bundle) —
+ *  still required to appear correctly in expected_files/the real diff, but
+ *  excluded from the line-by-line forbidden-pattern content scan, which is
+ *  meaningless (and prone to incidental false positives) against minified
+ *  output; the source file they are generated FROM is not exempt and is
+ *  still fully scanned. */
 export function computeJarvisCommitRangeEvidenceV1({
-  repo_dir, target_branch, commit_sha, expected_files = [], required_checks = []
+  repo_dir, target_branch, commit_sha, expected_files = [], required_checks = [], generated_files = []
 } = {}) {
   const repoDir = clean(repo_dir, 400);
   const branch = clean(target_branch, 200);
   const sha = clean(commit_sha, 80);
   const allowed = new Set((Array.isArray(expected_files) ? expected_files : []).map((f) => clean(f, 400)).filter(Boolean));
+  const generated = new Set((Array.isArray(generated_files) ? generated_files : []).map((f) => clean(f, 400)).filter(Boolean));
   const at = new Date().toISOString();
 
   if (!repoDir || !branch) return { sufficient: false, reason: 'REPO_DIR_OR_TARGET_BRANCH_REQUIRED', at };
@@ -176,12 +190,19 @@ export function computeJarvisCommitRangeEvidenceV1({
     };
   }
 
-  // 5. Forbidden-external-effect scan of the commit's own ADDED diff text.
-  let diffText;
-  try { diffText = git(repoDir, ['diff', parentSha, sha]); } catch {
-    return { sufficient: false, reason: 'COMMIT_DIFF_TEXT_FAILED', commit: sha, parent_commit: parentSha, at };
+  // 5. Forbidden-external-effect scan of the commit's own ADDED diff text —
+  // scoped to non-generated files only (see generated_files above). If
+  // every changed file is generated, there is nothing to scan (still fully
+  // covered by the expected_files/non-empty-diff checks above).
+  const scannableFiles = filesChanged.filter((f) => !generated.has(f));
+  let forbiddenHits = [];
+  if (scannableFiles.length) {
+    let diffText;
+    try { diffText = git(repoDir, ['diff', parentSha, sha, '--', ...scannableFiles]); } catch {
+      return { sufficient: false, reason: 'COMMIT_DIFF_TEXT_FAILED', commit: sha, parent_commit: parentSha, at };
+    }
+    forbiddenHits = scanAddedLinesForForbiddenPatternsV1(diffText);
   }
-  const forbiddenHits = scanAddedLinesForForbiddenPatternsV1(diffText);
   if (forbiddenHits.length) {
     return {
       sufficient: false, reason: 'FORBIDDEN_PATTERN_IN_COMMIT_DIFF', forbidden_hits: forbiddenHits,
@@ -211,6 +232,7 @@ export function computeJarvisCommitRangeEvidenceV1({
     parent_commit: parentSha,
     files_changed: filesChanged,
     expected_files: [...allowed],
+    generated_files: [...generated],
     check_results: checkResults,
     branch_truth: branchTruth,
     at
@@ -227,6 +249,8 @@ export function jarvisCommitRangeEvidenceManifestV1() {
     admits_protected_branch: false,
     admits_dirty_tracked_working_tree: false,
     trusts_worker_or_caller_self_report: false,
+    generated_files_exempt_from_content_scan_only: true,
+    generated_files_still_subject_to_expected_files_check: true,
     runs_required_checks_itself: true,
     mutates_repo: false,
     production_deploy: false,
