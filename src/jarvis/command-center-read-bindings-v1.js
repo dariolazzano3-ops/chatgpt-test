@@ -14,6 +14,7 @@
 
 import { computeJarvisV2ProgressV1, JARVIS_V2_PROGRAM_ID } from './v2-progress-v1.js';
 import { evaluateJarvisEngineeringMissionResumeStateV1 } from './engineering-mission-resume-v1.js';
+import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
 
 const clean = (value, max = 800) => String(value ?? '').trim().slice(0, max);
 const isoOrNull = (value) => {
@@ -26,6 +27,12 @@ const RESULT_TO_RUN_STATE = {
   COMPLETE: 'COMPLETE',
   FAILED: 'FAILED',
   ERROR: 'FAILED',
+  // A bridge TIMEOUT/CANCELLED is a genuine terminal outcome, not an
+  // in-progress one — without this mapping both fell through to the
+  // "still RUNNING" fallback below and stayed there forever (section 6 fix:
+  // a timed-out run must never keep showing as active).
+  TIMEOUT: 'FAILED',
+  CANCELLED: 'FAILED',
   BLOCKED: 'BLOCKED',
   SECURITY_VIOLATION: 'BLOCKED',
   INVALID_PLAN: 'FAILED',
@@ -159,6 +166,7 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
       const first = events[0];
       const last = events[events.length - 1];
       const resumeState = evaluateJarvisEngineeringMissionResumeStateV1(rawAudit, requestId);
+      const acceptanceState = evaluateJarvisEngineeringMissionAcceptanceStateV1(rawAudit, requestId);
       items.push({
         id: requestId,
         title: events.map((e) => e.request).find(Boolean) || events.map((e) => e.action).find(Boolean) || requestId,
@@ -170,7 +178,16 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
         progress_verified: false,
         approval_state: events.some((e) => e.approval?.required === true) ? approvalState(last.approval) : null,
         evidence_ref: events.map((e) => e.evidence_ref).find(Boolean) || null,
-        resumable: resumeState.resumable === true
+        resumable: resumeState.resumable === true,
+        // Section 6: execution state (`status` above) and acceptance state
+        // are deliberately never collapsed into one field. A run can be
+        // `status: COMPLETE` and still be ACCEPTANCE_PENDING forever — that
+        // distinction is the whole point of Independent Acceptance.
+        acceptance_state: !acceptanceState.dispatched
+          ? 'NOT_APPLICABLE'
+          : acceptanceState.already_accepted
+            ? 'INDEPENDENTLY_ACCEPTED'
+            : 'ACCEPTANCE_PENDING'
       });
     }
     return {

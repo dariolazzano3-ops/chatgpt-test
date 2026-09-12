@@ -211,7 +211,12 @@ function normalizeRun(item = {}) {
     // exactly (see command-center-read-bindings-v1.js / engineering-mission-
     // resume-v1.js) — never a looser one. Purely a UI visibility hint; the
     // resume endpoint re-derives and re-checks this itself on every call.
-    resumable: item.resumable === true
+    resumable: item.resumable === true,
+    // Execution state (`status` above) vs Independent Acceptance state,
+    // deliberately kept distinct (section 6) — never collapsed.
+    acceptance_state: ['NOT_APPLICABLE', 'ACCEPTANCE_PENDING', 'INDEPENDENTLY_ACCEPTED'].includes(item.acceptance_state)
+      ? item.acceptance_state
+      : 'NOT_APPLICABLE'
   };
 }
 

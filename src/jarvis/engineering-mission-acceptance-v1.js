@@ -83,10 +83,18 @@ export function evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows = []
     .filter((row) => row?.result?.claude_execution_state != null)
     .sort((a, b) => Date.parse(a?.timestamp || 0) - Date.parse(b?.timestamp || 0));
   const lastDispatch = dispatchRows[dispatchRows.length - 1] || null;
-  const dispatched = Boolean(lastDispatch) && lastDispatch.result.claude_execution_state === 'COMPLETE';
-
+  const lastState = lastDispatch?.result?.claude_execution_state || null;
   const verification = lastDispatch?.result?.verification || null;
   const verificationCheck = evaluateJarvisRepoBoundVerificationV1(verification);
+  // A TIMEOUT is only "dispatched" (acceptable) if the bridge-computed
+  // verification evidence already shows real, sufficient work — the process
+  // being killed mid-run never counts on its own. A plain FAILED/BLOCKED/
+  // CANCELLED/UNAVAILABLE dispatch is never acceptable regardless of
+  // verification (there is no reason to expect the file it wrote, if any,
+  // reflects a genuinely finished task).
+  const dispatched = Boolean(lastDispatch) && (
+    lastState === 'COMPLETE' || (lastState === 'TIMEOUT' && verificationCheck.sufficient)
+  );
 
   const alreadyAccepted = rows.some((row) => row?.intent?.intent_type === JARVIS_ENGINEERING_MISSION_ACCEPTANCE_INTENT);
 
@@ -239,6 +247,7 @@ export function jarvisEngineeringMissionAcceptanceManifestV1() {
     route: JARVIS_ENGINEERING_MISSION_ACCEPTANCE_ROUTE,
     intent_type: JARVIS_ENGINEERING_MISSION_ACCEPTANCE_INTENT,
     requires_prior_complete_dispatch: true,
+    accepts_timeout_with_sufficient_verification: true,
     requires_repo_bound_verification: true,
     requires_real_files_changed: true,
     requires_syntax_check_pass: true,
