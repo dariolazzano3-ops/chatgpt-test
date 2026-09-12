@@ -137,7 +137,8 @@ async function grantAcceptance(store, repoDir, targetBranch) {
   const realBranch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoRoot }).toString('utf8').trim();
   const PINNED_WAVE_COMMITS = [
     { wave_index: 1, commit_sha: '70ab85c05e8b4e78c118e897bb15372a7ba30b0f' },
-    { wave_index: 2, commit_sha: 'be87a8e0034ab3172f6d2307f802a9c61f5d8ad7' }
+    { wave_index: 2, commit_sha: 'be87a8e0034ab3172f6d2307f802a9c61f5d8ad7' },
+    { wave_index: 3, commit_sha: '7b876215f13f6f61e8e19bfe6c9bc00471e57f18' }
   ];
 
   for (const { wave_index, commit_sha } of PINNED_WAVE_COMMITS) {
