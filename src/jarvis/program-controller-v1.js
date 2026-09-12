@@ -37,6 +37,7 @@ import { evaluateJarvisBranchTruthV1, prepareJarvisTargetBranchV1 } from './bran
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1, evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
+import { proposeJarvisWaveTaskV1 } from './wave-task-planner-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -199,16 +200,29 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
     const prep = prepareJarvisTargetBranchV1({ repo_dir: repoDir, target_branch: targetBranch, base_ref: 'HEAD' });
     performed = { action: 'PREPARE_BRANCH', detail: prep };
   } else if (action.action === 'PROPOSE_WAVE_TASK') {
-    if (!request.task || !clean(request.task.title, 1) || !clean(request.task.goal, 1)) {
+    // Operator-supplied task ALWAYS takes precedence, unchanged. The
+    // deterministic Wave Registry proposal (wave-task-planner-v1.js) is
+    // consulted ONLY as a fallback when no task was supplied — it never
+    // overrides an operator task, and it never fabricates one for a wave
+    // the registry does not define (see wave-registry-v1.js).
+    const operatorTask = (request.task && clean(request.task.title, 1) && clean(request.task.goal, 1)) ? request.task : null;
+    const registryTask = operatorTask ? null : proposeJarvisWaveTaskV1({
+      program, waveIndex: ctx.currentWave, completedWaves: ctx.v2Progress.completed_waves
+    });
+    const task = operatorTask || registryTask;
+    if (!task) {
       // No fabricated task. Report PENDING and wait for a real one.
       performed = { action: 'NONE', detail: 'AWAITING_OPERATOR_SUPPLIED_WAVE_TASK' };
     } else {
       const correlationId = newRequestId();
       const mission = await handleJarvisEngineeringMissionRuntimeV1({
         owner_id: ownerId, owner_ref: ownerRef, now,
-        title: request.task.title, goal: request.task.goal, program, correlation_id: correlationId, wave_index: ctx.currentWave
+        title: task.title, goal: task.goal, program, correlation_id: correlationId, wave_index: ctx.currentWave
       }, { memory_store: deps.memory_store });
-      performed = { action: 'PROPOSE_WAVE_TASK', detail: { request_id: correlationId, mission } };
+      performed = {
+        action: 'PROPOSE_WAVE_TASK',
+        detail: { request_id: correlationId, mission, task_source: operatorTask ? 'OPERATOR_SUPPLIED' : 'REGISTRY_PROPOSAL' }
+      };
     }
   } else if (action.action === 'AUTHORIZE_AND_RESUME') {
     if (!ctx.dispatchCovered) {
@@ -275,6 +289,8 @@ export function jarvisProgramControllerManifestV1() {
     acceptance_without_program_approval_ever: false,
     acceptance_is_worker_self_report: false,
     repair_task_fabricated: false,
+    wave_task_source_precedence: 'OPERATOR_SUPPLIED_THEN_REGISTRY_PROPOSAL',
+    wave_task_fabricated_for_unregistered_wave: false,
     one_mutating_action_per_tick: true,
     production_deploy: false,
     hamyren_data_flow: false

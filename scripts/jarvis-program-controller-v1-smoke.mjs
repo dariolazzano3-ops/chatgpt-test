@@ -150,10 +150,15 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   assert.equal(t4.wave_state, 'PENDING');
   assert.deepEqual(t4.next_action, { action: 'PROPOSE_WAVE_TASK' });
 
+  // Wave 1 IS registered (wave-registry-v1.js), and its one dependency
+  // (Wave 0) is already independently accepted, so the Wave Task Planner
+  // proposes it automatically — no operator click needed, and still not a
+  // fabrication (see wave-registry-v1.js's header for why).
   const t5 = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
   assert.equal(t5.current_wave, 1);
-  assert.equal(t5.performed.action, 'NONE', 'no fabricated Wave 1 task — it stays PENDING, awaiting a real one');
-  assert.equal(t5.wave_state, 'PENDING');
+  assert.equal(t5.performed.action, 'PROPOSE_WAVE_TASK', 'Wave 1 has a registry entry — the Wave Task Planner proposes it automatically');
+  assert.equal(t5.performed.detail.task_source, 'REGISTRY_PROPOSAL');
+  assert.equal(t5.wave_state, 'EXECUTING');
 
   const state = await handleJarvisProgramStateRuntimeV1(tickReq, { memory_store: store });
   assert.equal(state.verified_progress_percent, 5);
