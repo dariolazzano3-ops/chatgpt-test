@@ -1,0 +1,53 @@
+# JARVIS Private 24/7 Operator Runtime V1 — systemd unit template.
+#
+# NOT applied automatically by anything in this repo. An operator installs
+# this by hand on the target VPS. Copy to /etc/systemd/system/jarvis-remote-operator.service,
+# fill in the paths, then:
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jarvis-remote-operator
+#
+# Deliberately plain systemd, not a container: this satisfies "no Docker
+# socket" trivially (there is no Docker involved at all), needs no image
+# build/registry, and is the smallest restart-safe, health-checkable option
+# for a single Node process. Reachability from Cloudflare Access is expected
+# to come from a separate `cloudflared` tunnel service pointed at
+# 127.0.0.1:8788 — this unit never binds a public interface itself.
+
+[Unit]
+Description=JARVIS Private 24/7 Operator Runtime V1
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# A dedicated, non-root, least-privilege system user/group — never the
+# account that owns Docker/root/DNS/billing credentials.
+User=jarvis-operator
+Group=jarvis-operator
+
+# The real JARVIS repo checkout this process is bound to (must match
+# JARVIS_CLAUDE_REPO_DIR in the EnvironmentFile below).
+WorkingDirectory=/opt/jarvis/chatgpt-test
+ExecStart=/usr/bin/node src/jarvis/remote-operator-server-v1.js
+
+# Secrets and config live only here, outside the repo, mode 600, owned by
+# jarvis-operator — never committed to git.
+EnvironmentFile=/etc/jarvis/remote-operator.env
+
+Restart=on-failure
+RestartSec=5
+# Health-checkable: GET http://127.0.0.1:8788/api/status through the
+# private tunnel (200 with a valid Access session, 401 without one).
+
+# Least-privilege sandboxing — no Docker socket is ever mounted or needed;
+# this also blocks reads/writes anywhere outside the repo and /etc/jarvis.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/jarvis/chatgpt-test
+ReadOnlyPaths=/etc/jarvis
+
+[Install]
+WantedBy=multi-user.target

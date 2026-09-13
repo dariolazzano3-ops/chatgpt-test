@@ -1,0 +1,20 @@
+{
+  "schema": "jarvis-remote-operator-activation-request-v1",
+  "target": "private-vps-jarvis-remote-operator",
+  "status": "CODE_PREPARED_NOT_ACTIVATED",
+  "confirmation": "ACTIVATE_JARVIS_REMOTE_OPERATOR",
+  "production_deploy": false,
+  "public_access": false,
+  "external_writes": false,
+  "wave_acceptance_performed": false,
+  "program_tick_performed": false,
+  "paid_claude_dispatch_performed": false,
+  "required_operator_actions": [
+    "create a dedicated Cloudflare Access application + audience for this runtime, distinct from the Pages Command Center's audience",
+    "run a private reverse-proxy (e.g. a cloudflared tunnel) from that Access application to 127.0.0.1:8788 on the VPS — no raw public Node port",
+    "place runtime secrets in /etc/jarvis/remote-operator.env on the VPS (mode 600), never committed",
+    "install deploy/jarvis-remote-operator.service.example as a systemd unit and enable it",
+    "confirm /api/status returns 401 with no Access session and 200 with one, through the Access-fronted URL"
+  ],
+  "purpose": "expose the existing, accepted V2 Command Center + Program Controller privately and continuously from the operator's own VPS, without weakening local-operator-server-v1.js's local-only auth contract"
+}
