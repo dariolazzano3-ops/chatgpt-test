@@ -21,6 +21,7 @@ import {
   verifyJarvisRemoteOperatorSafetyFlagsV1,
   verifyJarvisRemoteOperatorAccessConfigV1,
   verifyJarvisRemoteOperatorSupabaseConfigV1,
+  verifyJarvisRemoteOperatorCanonicalOwnerConfigV1,
   resolveJarvisRemoteOperatorProgramLocationV1,
   resolveJarvisRemoteOperatorClaudeBridgeV1,
   createJarvisRemoteOperatorProgramControllerV1,
@@ -29,6 +30,10 @@ import {
   REMOTE_OPERATOR_AUTHENTICATION_LABEL
 } from '../src/jarvis/remote-operator-server-v1.js';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
+import { authorizeJarvisV1 } from '../src/jarvis/access-v1.js';
+
+const CANONICAL_HISTORICAL_OWNER_ID = '8048e3a6-941f-5ea7-ac74-11f9929d2523';
+const CANONICAL_HISTORICAL_OWNER_REF = 'jarvis:operator:local-operator@localhost';
 
 let passed = 0;
 async function check(name, fn) {
@@ -271,13 +276,100 @@ await check('L. manifest declares no local-auth acceptance, repo-bound-only exec
   assert.equal(manifest.auth, 'CLOUDFLARE_ACCESS_JWT');
 });
 
+// ── M. canonical owner config fails startup closed when malformed ──
+await check('M. malformed JARVIS_CANONICAL_OWNER_EMAIL fails startup closed', async () => {
+  const invalid = verifyJarvisRemoteOperatorCanonicalOwnerConfigV1({ JARVIS_CANONICAL_OWNER_EMAIL: 'not-an-email' });
+  assert.equal(invalid.ok, false);
+  assert.equal(invalid.error, 'JARVIS_REMOTE_OPERATOR_CANONICAL_OWNER_EMAIL_INVALID');
+
+  const startResult = await startJarvisRemoteOperatorV1(
+    { ...REAL_ACCESS_ENV, ...REAL_SUPABASE_ENV, JARVIS_CANONICAL_OWNER_EMAIL: 'not-an-email', JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir },
+    {}
+  );
+  assert.equal(startResult.ok, false);
+  assert.equal(startResult.error, 'JARVIS_REMOTE_OPERATOR_CANONICAL_OWNER_EMAIL_INVALID');
+});
+
+// ── N. absent by default -> unchanged behavior ──
+await check('N. no JARVIS_CANONICAL_OWNER_EMAIL -> config check passes with an empty override (unchanged default behavior)', () => {
+  const absent = verifyJarvisRemoteOperatorCanonicalOwnerConfigV1({});
+  assert.equal(absent.ok, true);
+  assert.equal(absent.canonical_owner_email, '');
+});
+
+// ── O. wrong Cloudflare identity still gets 403 from the real, unmodified access-v1.js path ──
+await check('O. a verified-but-wrong Cloudflare email is refused (403) by the real authorizeJarvisV1 path', async () => {
+  const env = { JARVIS_OPERATOR_EMAIL: 'operator@example.invalid', JARVIS_ACCESS_AUD: 'fixture-aud' };
+  // ctx.access is the same Cloudflare-Pages-style Access binding adapter
+  // authorizeJarvisV1 already supports — exercised here without a live JWT/
+  // JWKS round trip, since only the post-verification identity check is
+  // under test.
+  const ctx = { access: { aud: 'fixture-aud', getIdentity: async () => ({ email: 'someone-else@example.invalid' }) } };
+  const result = await authorizeJarvisV1(new Request('https://example.invalid/jarvis/api/status'), env, ctx, {});
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 403);
+  assert.equal(result.error, 'JARVIS_IDENTITY_NOT_ALLOWED');
+});
+
+// ── P. end-to-end: Program Controller receives the canonical owner_id/owner_ref,
+//     regardless of which real Cloudflare identity authenticated, and no
+//     client-supplied header/query can override it ──
+await check('P. Program Controller receives canonical owner_id/owner_ref end-to-end; client overrides are ignored', async () => {
+  const calls = [];
+  const spyProgramController = {
+    async tick(request) { calls.push(request); return { ok: true, status: 200 }; },
+    async state(request) { calls.push(request); return { ok: true, status: 200, schema: 'aurentara.jarvis.program-state.v1' }; }
+  };
+  // A DIFFERENT real Cloudflare identity than the canonical owner — proves
+  // owner scope is not simply "whoever is logged in".
+  const authorize = async () => ({
+    ok: true, operator_id: 'jarvis-operator:different-real-user@example.invalid',
+    email: 'different-real-user@example.invalid', authentication: 'CLOUDFLARE_ACCESS_JWT'
+  });
+
+  const started = await startJarvisRemoteOperatorV1(
+    { ...REAL_ACCESS_ENV, ...REAL_SUPABASE_ENV, JARVIS_REMOTE_PORT: '18801' },
+    {
+      safety_check: { ok: true }, access_check: { ok: true }, supabase_check: { ok: true },
+      authorize, memory_store: memoryStore,
+      program_controller: spyProgramController,
+      canonical_owner_email: 'local-operator@localhost',
+      program_location: { ok: true, repo_dir: fixtureRepoDir, target_branch: 'jarvis-remote-smoke-fixture-branch' }
+    }
+  );
+  assert.equal(started.ok, true);
+  assert.equal(started.canonical_owner_email, 'local-operator@localhost');
+
+  try {
+    const qs = new URLSearchParams({
+      program: 'JARVIS_MASTERARCHITECTURE_V2', repo_dir: fixtureRepoDir, target_branch: 'jarvis-remote-smoke-fixture-branch',
+      // client-supplied attempts to override owner scope directly — must be ignored
+      owner_id: 'client-supplied-owner-id', owner_ref: 'client-supplied-owner-ref', canonical_owner_email: 'attacker@example.invalid'
+    });
+    const res = await fetch(started.url + '/api/program/state?' + qs.toString(), {
+      headers: {
+        'x-jarvis-canonical-owner-email': 'attacker@example.invalid',
+        'x-jarvis-owner-id': 'client-supplied-owner-id'
+      }
+    });
+    assert.equal(res.status, 200);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].owner_id, CANONICAL_HISTORICAL_OWNER_ID, 'Program Controller must receive the canonical owner_id, never a client-supplied one');
+    assert.equal(calls[0].owner_ref, CANONICAL_HISTORICAL_OWNER_REF, 'Program Controller must receive the canonical owner_ref, never a client-supplied one');
+  } finally {
+    await new Promise((resolve) => started.server.close(resolve));
+  }
+});
+
 fs.rmSync(fixtureRepoDir, { recursive: true, force: true });
 fs.rmSync(detachedRepoDir, { recursive: true, force: true });
 
 console.log(JSON.stringify({
   schema: 'aurentara.jarvis.remote-operator-server.smoke.v1',
   passed,
+  canonical_historical_owner_id_verified: CANONICAL_HISTORICAL_OWNER_ID,
   live_claude_cli_invoked: false,
   live_supabase_network_call: false,
-  live_cloudflare_access_jwks_fetch: false
+  live_cloudflare_access_jwks_fetch: false,
+  supabase_mutated: false
 }, null, 2));

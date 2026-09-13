@@ -100,6 +100,36 @@ export function verifyJarvisRemoteOperatorAccessConfigV1(env = process.env) {
   return { ok: true };
 }
 
+/* ── 2b. canonical owner namespace — optional, server-side config ONLY ── */
+
+/** JARVIS_CANONICAL_OWNER_EMAIL lets this runtime persist under a durable
+ *  JARVIS owner scope that pre-dates this remote runtime's own Cloudflare
+ *  Access identity (e.g. the historical `local-operator@localhost` scope
+ *  the accepted V2 rollout history already lives under in Supabase) without
+ *  weakening authentication in any way: the real Cloudflare Access identity
+ *  still must verify first (see authorizeJarvisV1), and this value is never
+ *  read from the request — only from process env at startup, then frozen
+ *  into the fixed `options` object every request reuses (see
+ *  buildJarvisRemoteOperatorOptionsV1 / createJarvisRemoteOperatorServerV1).
+ *  There is no seam here a client header, query string, or cookie could
+ *  ever reach. Absent (the default): owner scope stays exactly the real
+ *  authenticated identity, unchanged from today's behavior. Present but
+ *  malformed: fails startup closed rather than silently falling back to the
+ *  real identity or to some guessed default. */
+export function verifyJarvisRemoteOperatorCanonicalOwnerConfigV1(env = process.env) {
+  const raw = clean(env.JARVIS_CANONICAL_OWNER_EMAIL, 320);
+  if (!raw) return { ok: true, canonical_owner_email: '' };
+  const email = raw.toLowerCase();
+  if (!email.includes('@') || email.startsWith('@') || email.endsWith('@')) {
+    return {
+      ok: false,
+      error: 'JARVIS_REMOTE_OPERATOR_CANONICAL_OWNER_EMAIL_INVALID',
+      message: 'JARVIS_CANONICAL_OWNER_EMAIL is set but is not a valid email address.'
+    };
+  }
+  return { ok: true, canonical_owner_email: email };
+}
+
 /* ── 3. Supabase RPC — same fail-closed rule as the local operator, checked independently ── */
 
 /** Requires the service-role-only RPC gateway (memory-store-supabase-rpc-v1.js),
@@ -219,6 +249,12 @@ export function buildJarvisRemoteOperatorOptionsV1(env = process.env, overrides 
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
+  // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
+  // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
+  // ever called for the real entrypoint; a test may also pass one directly.
+  // Frozen into the fixed `options` object every request reuses — never
+  // re-derived per request, so no request-time input can reach it.
+  const canonicalOwnerEmail = clean(overrides.canonical_owner_email, 320).toLowerCase();
   return {
     // `authorize` is intentionally only ever set by a TEST override here.
     // The real entrypoint below never passes one, so authorizeJarvisV1's
@@ -228,7 +264,8 @@ export function buildJarvisRemoteOperatorOptionsV1(env = process.env, overrides 
       claude_bridge: claudeBridgeResult.bridge,
       program_controller: programController,
       program_repo_dir: programLocation.ok ? programLocation.repo_dir : null,
-      program_target_branch: programLocation.ok ? programLocation.target_branch : null
+      program_target_branch: programLocation.ok ? programLocation.target_branch : null,
+      canonical_owner_email: canonicalOwnerEmail || undefined
     },
     claude_bridge_result: claudeBridgeResult,
     program_location: programLocation
@@ -300,7 +337,13 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const supabaseCheck = overrides.supabase_check || verifyJarvisRemoteOperatorSupabaseConfigV1(env);
   if (!supabaseCheck.ok) return { ok: false, error: supabaseCheck.error, missing: supabaseCheck.missing, message: supabaseCheck.message };
 
-  const { options, claude_bridge_result, program_location } = buildJarvisRemoteOperatorOptionsV1(env, overrides);
+  const canonicalOwnerCheck = overrides.canonical_owner_check || verifyJarvisRemoteOperatorCanonicalOwnerConfigV1(env);
+  if (!canonicalOwnerCheck.ok) return { ok: false, error: canonicalOwnerCheck.error, message: canonicalOwnerCheck.message };
+
+  const { options, claude_bridge_result, program_location } = buildJarvisRemoteOperatorOptionsV1(env, {
+    ...overrides,
+    canonical_owner_email: overrides.canonical_owner_email ?? canonicalOwnerCheck.canonical_owner_email
+  });
 
   if (!program_location.ok) {
     return {
@@ -340,6 +383,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     program_target_branch: options.program_target_branch,
     memory_store_kind: memoryStoreKind,
     durable_memory_ready: durableMemoryReady,
+    canonical_owner_email: options.canonical_owner_email || null,
     claude_bridge_result,
     options
   };
@@ -353,6 +397,10 @@ export function jarvisRemoteOperatorManifestV1() {
     default_port: JARVIS_REMOTE_OPERATOR_DEFAULT_PORT,
     auth: REMOTE_OPERATOR_AUTHENTICATION_LABEL,
     local_operator_auth_accepted: false,
+    canonical_owner_namespace_supported: true,
+    canonical_owner_source: 'SERVER_SIDE_ENV_ONLY',
+    canonical_owner_client_overridable: false,
+    canonical_owner_changes_authenticated_identity: false,
     auth_header_derived: true,
     production_auth_modified: false,
     execution_mode: 'REPO_BOUND_ONLY',
@@ -384,6 +432,7 @@ if (isMainModule) {
     console.log(`Repo truth: ${result.program_repo_dir} @ ${result.program_target_branch}`);
     console.log(`Memory store: ${result.memory_store_kind} (durable: ${result.durable_memory_ready})`);
     console.log(`Claude Code (Bridge V5, repo-bound): ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
+    console.log(`Canonical owner namespace: ${result.canonical_owner_email || '(none — using real authenticated identity)'}`);
     console.log('Mode: PRIVATE_REMOTE — public_access=false, production_deploy=false');
 
     const shutdown = (signal) => {
