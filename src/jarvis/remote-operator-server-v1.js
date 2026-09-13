@@ -8,11 +8,16 @@
    reverse proxy to JARVIS_REMOTE_OPERATOR_BIND_HOST, never a directly
    internet-exposed port). It exists because the accepted V2 Program
    Controller needs real Node `git` access (branch-manager-v1.js) and a
-   real repo-bound Claude Code worker (claude-code-repo-bound-executor-v1.js
-   / claude-code-repo-bound-runtime-binding-v1.js — the "Bridge V5"
-   boundary) — neither of which a Cloudflare Worker (pages-worker-v1.js /
-   standalone-worker-v1.js as deployed) can provide, since Workers have no
-   filesystem or child_process.
+   real repo-bound Claude Code worker — neither of which a Cloudflare Worker
+   (pages-worker-v1.js / standalone-worker-v1.js as deployed) can provide,
+   since Workers have no filesystem or child_process.
+
+   Execution is bound through claude-code-bridge-http-runtime-binding-v1.js
+   / claude-code-bridge-http-executor-v1.js: the ONE implementation-worker
+   path, delegating to the EXISTING private jarvis-claude Bridge service
+   (POST /v1/run) over a private HTTP interface instead of spawning a local
+   `claude` CLI process. There is no local-CLI fallback anywhere in this
+   file — a Bridge that is unavailable at startup fails startup closed.
 
    This file is DELIBERATELY independent of local-operator-server-v1.js: it
    never imports it, never references LOCAL_OPERATOR_AUTH, and defines no
@@ -37,20 +42,18 @@
    pages-worker-v1.js, standalone-worker-v1.js, or any other module bundled
    into a deployed Cloudflare Worker. It only ever imports from the
    cloud-safe runtime (standalone-worker-v1.js / http-v1.js) and from the
-   Node-only repo-bound Claude binding — never the disposable-tmp local
-   binding (claude-code-local-runtime-binding-v1.js), which this file never
-   imports at all: the remote runtime offers exactly one execution mode,
-   the real-repo one, never the weaker general-purpose one. */
+   Node-only Bridge HTTP binding — never the disposable-tmp local binding
+   (claude-code-local-runtime-binding-v1.js) nor the local-CLI repo-bound
+   binding (claude-code-repo-bound-runtime-binding-v1.js), neither of which
+   this file imports at all: the remote runtime offers exactly one
+   execution mode, the private Bridge HTTP one, never a local CLI. */
 
 import http from 'node:http';
 import { execFileSync } from 'node:child_process';
 import { handleJarvisStandaloneWorkerV1 } from './standalone-worker-v1.js';
 import { resolveJarvisMemoryStoreV1 } from './http-v1.js';
 import { handleJarvisProgramTickRuntimeV1, handleJarvisProgramStateRuntimeV1 } from './program-controller-v1.js';
-import {
-  createJarvisClaudeRepoBoundRuntimeBindingV1,
-  JARVIS_CLAUDE_REPO_BOUND_EXECUTION_FLAG
-} from './claude-code-repo-bound-runtime-binding-v1.js';
+import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-http-runtime-binding-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const isOn = (value) => ['true', '1', 'on', 'yes'].includes(clean(value, 20).toLowerCase());
@@ -182,44 +185,22 @@ export function resolveJarvisRemoteOperatorProgramLocationV1(env = process.env) 
   }
 }
 
-/* ── 5. Claude execution — repo-bound only ("Bridge V5"); no second worker path ── */
+/* ── 5. Claude execution — private Bridge HTTP only; no second worker path ── */
 
-/** createJarvisClaudeRepoBoundRuntimeBindingV1 constructs its executor
- *  eagerly but never shells out to the `claude` binary itself at
- *  construction time — a missing/renamed binary would otherwise silently
- *  report `bound: true` until the first real dispatch fails. This preflight
- *  (same check the local operator runs before calling the same factory)
- *  closes that gap: a CLI that cannot even report --version is never
- *  reported as bound. */
-function preflightJarvisClaudeCliV1(env = process.env) {
-  const bin = clean(env.JARVIS_CLAUDE_BIN, 200) || 'claude';
-  try {
-    execFileSync(bin, ['--version'], { stdio: ['ignore', 'ignore', 'ignore'], timeout: 5000 });
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: String(error?.message || error).slice(0, 200) };
-  }
-}
-
-/** The remote runtime offers exactly one execution mode: the real-repo
- *  bridge (claude-code-repo-bound-runtime-binding-v1.js). It never imports
- *  claude-code-local-runtime-binding-v1.js (the disposable-tmp,
- *  general-purpose mode local-operator-server-v1.js also offers) — there is
- *  no second implementation-worker path to keep in sync or accidentally
- *  weaken. Execution stays fully opt-in (JARVIS_CLAUDE_REPO_BOUND_EXECUTION=on,
- *  default off): a remote operator can run read-only (status/state/UI)
- *  with no Claude binding at all. */
-export function resolveJarvisRemoteOperatorClaudeBridgeV1(env = process.env, options = {}) {
-  const requested = clean(env[JARVIS_CLAUDE_REPO_BOUND_EXECUTION_FLAG], 10).toLowerCase() === 'on';
-  if (!requested) {
-    return { bridge: null, bound: false, requested: false, reason: 'JARVIS_CLAUDE_REPO_BOUND_EXECUTION_DISABLED' };
-  }
-  const preflight = options.skip_cli_preflight ? { ok: true } : preflightJarvisClaudeCliV1(env);
-  if (!preflight.ok) {
-    return { bridge: null, bound: false, requested: true, reason: 'JARVIS_CLAUDE_CLI_UNAVAILABLE: ' + preflight.error };
-  }
-  const binding = createJarvisClaudeRepoBoundRuntimeBindingV1(env, options.repo_bound_options || options);
-  return { bridge: binding.bridge, bound: binding.bound, requested: true, reason: binding.reason };
+/** The remote runtime offers exactly one execution mode: the existing
+ *  private Bridge HTTP service (claude-code-bridge-http-runtime-binding-v1.js
+ *  / claude-code-bridge-http-executor-v1.js), reached only over its private
+ *  interface (never 0.0.0.0, never a public/internet-facing address). It
+ *  never imports claude-code-local-runtime-binding-v1.js (disposable-tmp)
+ *  or claude-code-repo-bound-runtime-binding-v1.js (local `claude` CLI) —
+ *  there is no second implementation-worker path to keep in sync or
+ *  accidentally weaken, and no fallback to a local CLI if the Bridge is
+ *  unavailable. Execution stays fully opt-in
+ *  (JARVIS_BRIDGE_HTTP_EXECUTION=on, default off): a remote operator can
+ *  run read-only (status/state/UI) with no Claude binding at all. */
+export async function resolveJarvisRemoteOperatorClaudeBridgeV1(env = process.env, options = {}) {
+  const binding = await createJarvisBridgeHttpRuntimeBindingV1(env, options.bridge_http_options || options);
+  return { bridge: binding.bridge, bound: binding.bound, requested: binding.requested, reason: binding.reason };
 }
 
 /* ── runtime wiring shared by the real server and tests ── */
@@ -243,9 +224,9 @@ export function createJarvisRemoteOperatorProgramControllerV1(env = process.env,
   };
 }
 
-export function buildJarvisRemoteOperatorOptionsV1(env = process.env, overrides = {}) {
+export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, overrides = {}) {
   const claudeBridgeResult = overrides.claude_bridge_result
-    || resolveJarvisRemoteOperatorClaudeBridgeV1(env, overrides.claude_binding_options);
+    || await resolveJarvisRemoteOperatorClaudeBridgeV1(env, overrides.claude_binding_options);
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
@@ -340,7 +321,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const canonicalOwnerCheck = overrides.canonical_owner_check || verifyJarvisRemoteOperatorCanonicalOwnerConfigV1(env);
   if (!canonicalOwnerCheck.ok) return { ok: false, error: canonicalOwnerCheck.error, message: canonicalOwnerCheck.message };
 
-  const { options, claude_bridge_result, program_location } = buildJarvisRemoteOperatorOptionsV1(env, {
+  const { options, claude_bridge_result, program_location } = await buildJarvisRemoteOperatorOptionsV1(env, {
     ...overrides,
     canonical_owner_email: overrides.canonical_owner_email ?? canonicalOwnerCheck.canonical_owner_email
   });
@@ -357,9 +338,9 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   if (claude_bridge_result.requested && !claude_bridge_result.bound) {
     return {
       ok: false,
-      error: 'JARVIS_CLAUDE_REPO_BOUND_EXECUTION_REQUESTED_BUT_UNBOUND',
-      message: `JARVIS_CLAUDE_REPO_BOUND_EXECUTION=on but the repo-bound Claude bridge did not bind (${claude_bridge_result.reason}). `
-        + 'Fix the local Claude CLI / repo binding, or unset JARVIS_CLAUDE_REPO_BOUND_EXECUTION to run read-only.'
+      error: 'JARVIS_BRIDGE_HTTP_EXECUTION_REQUESTED_BUT_UNBOUND',
+      message: `JARVIS_BRIDGE_HTTP_EXECUTION=on but the private Bridge did not bind (${claude_bridge_result.reason}). `
+        + 'Fix the Bridge URL/token/availability, or unset JARVIS_BRIDGE_HTTP_EXECUTION to run read-only. There is no local-CLI fallback.'
     };
   }
 
@@ -403,7 +384,8 @@ export function jarvisRemoteOperatorManifestV1() {
     canonical_owner_changes_authenticated_identity: false,
     auth_header_derived: true,
     production_auth_modified: false,
-    execution_mode: 'REPO_BOUND_ONLY',
+    execution_mode: 'PRIVATE_BRIDGE_HTTP_ONLY',
+    local_claude_cli_required: false,
     disposable_tmp_execution_available: false,
     riosystems_durable_object_dependency: false,
     hamyren_data_flow: false,
@@ -431,7 +413,7 @@ if (isMainModule) {
     console.log(`Command Center (private, behind Access): ${result.url}`);
     console.log(`Repo truth: ${result.program_repo_dir} @ ${result.program_target_branch}`);
     console.log(`Memory store: ${result.memory_store_kind} (durable: ${result.durable_memory_ready})`);
-    console.log(`Claude Code (Bridge V5, repo-bound): ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
+    console.log(`Claude Code (private Bridge HTTP): ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
     console.log(`Canonical owner namespace: ${result.canonical_owner_email || '(none — using real authenticated identity)'}`);
     console.log('Mode: PRIVATE_REMOTE — public_access=false, production_deploy=false');
 

@@ -144,32 +144,45 @@ await check('G. repo truth resolves only from a real repo on a resolvable, non-d
   assert.equal(real.target_branch, 'jarvis-remote-smoke-fixture-branch');
 });
 
-// ── H. fail-closed: Claude execution is repo-bound only and never fabricates binding ──
-await check('H. Claude bridge resolves off by default and never fabricates binding when unavailable', () => {
-  const off = resolveJarvisRemoteOperatorClaudeBridgeV1({});
+// ── H. fail-closed: Claude execution is private Bridge HTTP only and never fabricates binding ──
+await check('H. Claude bridge resolves off by default and never fabricates binding when the private Bridge is unavailable', async () => {
+  const off = await resolveJarvisRemoteOperatorClaudeBridgeV1({});
   assert.equal(off.requested, false);
   assert.equal(off.bound, false);
 
-  const unavailable = resolveJarvisRemoteOperatorClaudeBridgeV1({
-    JARVIS_CLAUDE_REPO_BOUND_EXECUTION: 'on',
-    JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir,
-    JARVIS_CLAUDE_BIN: 'jarvis-fixture-nonexistent-binary-v1'
-  });
+  const unavailable = await resolveJarvisRemoteOperatorClaudeBridgeV1({
+    JARVIS_BRIDGE_HTTP_EXECUTION: 'on',
+    JARVIS_BRIDGE_URL: 'http://127.0.0.1:1',
+    JARVIS_BRIDGE_TOKEN: 'fixture-token-not-real'
+  }, { bridge_http_options: { health_timeout_ms: 500 } });
   assert.equal(unavailable.requested, true);
-  assert.equal(unavailable.bound, false, 'a missing CLI must never be reported as bound');
+  assert.equal(unavailable.bound, false, 'an unreachable Bridge must never be reported as bound');
 });
 
 // ── I. startup wiring end-to-end refuses to start when requested execution is unbound ──
-await check('I. startJarvisRemoteOperatorV1 fails closed when repo-bound execution is requested but unbound', async () => {
+await check('I. startJarvisRemoteOperatorV1 fails closed when Bridge HTTP execution is requested but unbound', async () => {
   const result = await startJarvisRemoteOperatorV1({
     ...REAL_ACCESS_ENV,
     ...REAL_SUPABASE_ENV,
     JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir,
-    JARVIS_CLAUDE_REPO_BOUND_EXECUTION: 'on',
-    JARVIS_CLAUDE_BIN: 'jarvis-fixture-nonexistent-binary-v1'
-  });
+    JARVIS_BRIDGE_HTTP_EXECUTION: 'on',
+    JARVIS_BRIDGE_URL: 'http://127.0.0.1:1',
+    JARVIS_BRIDGE_TOKEN: 'fixture-token-not-real'
+  }, { claude_binding_options: { health_timeout_ms: 500 } });
   assert.equal(result.ok, false);
-  assert.equal(result.error, 'JARVIS_CLAUDE_REPO_BOUND_EXECUTION_REQUESTED_BUT_UNBOUND');
+  assert.equal(result.error, 'JARVIS_BRIDGE_HTTP_EXECUTION_REQUESTED_BUT_UNBOUND');
+});
+
+// ── H2. no local Claude CLI is ever required to start this runtime ──
+await check('H2. the remote operator never shells out to a `claude` binary anywhere in its own source', () => {
+  const src = fs.readFileSync(new URL('../src/jarvis/remote-operator-server-v1.js', import.meta.url), 'utf8');
+  // Prose comments legitimately name these modules to document the
+  // contrast (see check B above for the same reasoning) — what must never
+  // appear is an actual import statement wiring one in.
+  assert.doesNotMatch(src, /from\s+['"][^'"]*claude-code-repo-bound-runtime-binding/, 'must not import the local-CLI repo-bound path');
+  assert.doesNotMatch(src, /from\s+['"][^'"]*claude-code-local-runtime-binding/, 'must not import the disposable-tmp local path');
+  assert.match(src, /from\s+['"][^'"]*claude-code-bridge-http-runtime-binding/, 'must import the Bridge HTTP binding');
+  assert.doesNotMatch(src, /'claude'/, 'must not reference a local claude binary name');
 });
 
 // ── J. Program Controller is genuinely bound (not stubbed) when real deps are present ──
@@ -266,10 +279,12 @@ try {
 }
 
 // ── L. manifest is honest about this runtime's shape ──
-await check('L. manifest declares no local-auth acceptance, repo-bound-only execution, no public/production access', () => {
+await check('L. manifest declares no local-auth acceptance, private-Bridge-HTTP-only execution, no public/production access', () => {
   const manifest = jarvisRemoteOperatorManifestV1();
   assert.equal(manifest.local_operator_auth_accepted, false);
   assert.equal(manifest.disposable_tmp_execution_available, false);
+  assert.equal(manifest.execution_mode, 'PRIVATE_BRIDGE_HTTP_ONLY');
+  assert.equal(manifest.local_claude_cli_required, false);
   assert.equal(manifest.public_access, false);
   assert.equal(manifest.production_deploy, false);
   assert.equal(manifest.hamyren_data_flow, false);
