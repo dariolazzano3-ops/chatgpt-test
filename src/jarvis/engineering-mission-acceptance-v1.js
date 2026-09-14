@@ -39,6 +39,7 @@ import {
   JARVIS_ENGINEERING_MISSION_DOMAIN
 } from './engineering-mission-v1.js';
 import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './claude-code-repo-bound-executor-v1.js';
+import { isLegacyBridgeHttpEvidenceV1, reverifyLegacyBridgeHttpEvidenceV1 } from './legacy-bridge-evidence-reverification-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -162,12 +163,44 @@ export async function handleJarvisEngineeringMissionAcceptanceRuntimeV1(request 
       audit_persisted: false
     };
   }
-  if (!state.verification_sufficient) {
+  // Everything below reads `verification` (this local, possibly-reverified
+  // one) instead of `state.verification` directly — `state` itself, and
+  // evaluateJarvisEngineeringMissionAcceptanceStateV1 that produced it,
+  // are completely unchanged by this fallback (existing canonical-shape
+  // missions never reach it: verification_sufficient is already true for
+  // them, and isLegacyBridgeHttpEvidenceV1 is false for them either way).
+  let verification = state.verification;
+  let verificationSufficient = state.verification_sufficient;
+  let verificationInsufficientReason = state.verification_insufficient_reason;
+
+  // A NARROW, additive fallback for a mission dispatched before the
+  // canonical Bridge HTTP evidence path existed (commit 5d5569844a) — see
+  // legacy-bridge-evidence-reverification-v1.js's header for exactly what
+  // it does and does not prove. Only ever attempted when the initial,
+  // unmodified check above already says insufficient, the persisted shape
+  // is specifically the legacy one, and a TRUSTED caller (never the
+  // request body) supplies real repo_dir/target_branch — e.g. Program
+  // Controller passing its own already-validated scope, never a value an
+  // HTTP caller of this route could supply itself.
+  if (!verificationSufficient && isLegacyBridgeHttpEvidenceV1(state.verification) && deps.repo_dir && deps.target_branch) {
+    const reverify = reverifyLegacyBridgeHttpEvidenceV1({
+      verification: state.verification, repo_dir: deps.repo_dir, target_branch: deps.target_branch
+    });
+    if (reverify.sufficient) {
+      verification = reverify.verification;
+      verificationSufficient = true;
+      verificationInsufficientReason = null;
+    } else {
+      verificationInsufficientReason = reverify.reason;
+    }
+  }
+
+  if (!verificationSufficient) {
     return {
       ok: false,
       status: 409,
       error: 'JARVIS_ENGINEERING_MISSION_ACCEPTANCE_VERIFICATION_INSUFFICIENT',
-      reason: state.verification_insufficient_reason,
+      reason: verificationInsufficientReason,
       request_id: requestId,
       accepted: false
     };
@@ -202,7 +235,7 @@ export async function handleJarvisEngineeringMissionAcceptanceRuntimeV1(request 
       title: state.mission_payload.title,
       goal: state.mission_payload.goal,
       accepted_from_request_id: requestId,
-      verification: state.verification
+      verification
     },
     approval: {
       required: false,
@@ -234,8 +267,8 @@ export async function handleJarvisEngineeringMissionAcceptanceRuntimeV1(request 
     wave_index: state.mission_payload.wave_index,
     wave_state: 'COMPLETE',
     verification_summary: {
-      files_changed: state.verification?.files_changed || [],
-      syntax_checked: state.verification?.syntax_check?.checked ?? 0
+      files_changed: verification?.files_changed || [],
+      syntax_checked: verification?.syntax_check?.checked ?? 0
     },
     audit_persisted: true
   };
@@ -252,6 +285,9 @@ export function jarvisEngineeringMissionAcceptanceManifestV1() {
     requires_real_files_changed: true,
     requires_syntax_check_pass: true,
     requires_no_branch_drift: true,
+    legacy_bridge_http_evidence_reverification_supported: true,
+    legacy_reverification_requires_trusted_repo_scope_dependency: true,
+    legacy_reverification_still_requires_syntax_check_pass: true,
     protected_branches: [...JARVIS_REPO_BOUND_PROTECTED_BRANCHES],
     self_acceptance_by_worker: false,
     distinct_operator_action_required: true,
