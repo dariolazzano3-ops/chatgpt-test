@@ -59,10 +59,18 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
   const ownerRef = clean(input.owner_ref, 320);
   const task = clean(input.task, 8000);
   const workspace = clean(input.workspace, 400);
+  // Only clamp/materialize a timeout here when the RAW request explicitly
+  // gave one. Leaving it `null` otherwise (never defaulting to
+  // DEFAULT_TIMEOUT_MS here) is what lets submit()'s own
+  // `request.timeout_ms || defaultTimeout` correctly fall through to the
+  // bridge's OWN configured default (createJarvisClaudeCodeBridgeV1's
+  // `config.timeout_ms`, e.g. claude-code-bridge-http-runtime-binding-v1.js's
+  // 300000) instead of this validator silently pre-empting it with 120000
+  // on every request that didn't ask for a specific timeout.
   const rawTimeout = Number(input.timeout_ms);
-  const timeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0
+  const explicitTimeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0
     ? Math.min(MAX_TIMEOUT_MS, Math.max(1000, Math.round(rawTimeout)))
-    : DEFAULT_TIMEOUT_MS;
+    : null;
 
   if (!UUID_RE.test(correlationId)) return { ok: false, error: 'CLAUDE_BRIDGE_CORRELATION_ID_REQUIRED' };
   if (!ownerRef) return { ok: false, error: 'CLAUDE_BRIDGE_OWNER_REF_REQUIRED' };
@@ -80,7 +88,7 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
       owner_ref: ownerRef,
       task,
       workspace,
-      timeout_ms: timeoutMs,
+      timeout_ms: explicitTimeoutMs,
       bounded: true,
       protected_branch: false,
       production: false

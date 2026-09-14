@@ -136,6 +136,67 @@ assert.equal(validateJarvisClaudeCodeRequestV1(base).ok, true);
   assert.equal(r.state, 'TIMEOUT');
 }
 
+// ── timeout precedence: bridge-configured default vs. per-request override vs. hardcoded fallback ──
+// A raw request with no explicit timeout_ms must leave it `null` after
+// validation — never silently backfilled to DEFAULT_TIMEOUT_MS here, or
+// submit()'s own `request.timeout_ms || defaultTimeout` could never fall
+// through to the bridge's configured default.
+{
+  const noTimeout = validateJarvisClaudeCodeRequestV1(base);
+  assert.equal(noTimeout.request.timeout_ms, null, 'no explicit timeout -> null, not a hardcoded default');
+
+  const explicit = validateJarvisClaudeCodeRequestV1({ ...base, timeout_ms: 5000 });
+  assert.equal(explicit.request.timeout_ms, 5000, 'an explicit timeout is preserved exactly');
+
+  // ── 3. MAX_TIMEOUT_MS=900000 clamp still enforced on an explicit request timeout ──
+  const overMax = validateJarvisClaudeCodeRequestV1({ ...base, timeout_ms: 999999999 });
+  assert.equal(overMax.request.timeout_ms, 900000, 'an explicit timeout above the max is clamped to MAX_TIMEOUT_MS');
+}
+
+// ── 1. bridge config default is honored when the raw request omits timeout_ms ──
+{
+  // submit() floors any resolved timeout at 1000ms, so the smallest
+  // observable config default is 1000ms itself. A fixture delay well past
+  // that (2500ms) must now genuinely time out at ~1000ms, proving the
+  // bridge's own config.timeout_ms (not a pre-empted 120000 default) is
+  // what actually governs when the request itself specifies nothing.
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: createLocalFixtureExecutorV1({ 'config-default task': { delay_ms: 2500, exit_code: 0 } }),
+    timeout_ms: 1000
+  });
+  const started = Date.now();
+  const r = await bridge.submit({ ...base, correlation_id: '44444444-5555-4666-8777-888888888888', request_id: '44444444-5555-4666-8777-888888888888', task: 'config-default task' }).result;
+  assert.equal(r.state, 'TIMEOUT', 'the bridge-configured 1000ms default fired, not a stale 120000ms default');
+  assert.ok(Date.now() - started < 5000, 'timed out at the configured ~1000ms, not anywhere near 120000ms');
+}
+
+// ── 2. an explicit per-request timeout still overrides the bridge's configured default ──
+{
+  // Same short 1000ms bridge default as above, but this request explicitly
+  // asks for far longer (8000ms) — the same fixture delay (2500ms) must now
+  // complete normally, proving the explicit override wins over the config.
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: createLocalFixtureExecutorV1({ 'explicit-override task': { delay_ms: 2500, exit_code: 0 } }),
+    timeout_ms: 1000
+  });
+  const r = await bridge.submit({ ...base, correlation_id: '55555555-6666-4777-8888-999999999999', request_id: '55555555-6666-4777-8888-999999999999', task: 'explicit-override task', timeout_ms: 8000 }).result;
+  assert.equal(r.state, 'COMPLETE', 'an explicit request timeout overrides the shorter bridge-configured default');
+}
+
+// ── 4. the original 120000ms fallback still applies when NEITHER a bridge config nor the request provides a timeout ──
+{
+  // No `timeout_ms` in the bridge config at all here (unlike the two blocks
+  // above) — a short fixture delay must still complete normally, i.e. the
+  // fallback is still some large, sane value (still DEFAULT_TIMEOUT_MS
+  // internally — unchanged by this fix), never accidentally 0 or `null`
+  // reaching the real timer.
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: createLocalFixtureExecutorV1({ 'unconfigured-default task': { delay_ms: 50, exit_code: 0 } })
+  });
+  const r = await bridge.submit({ ...base, correlation_id: '66666666-7777-4888-8999-aaaaaaaaaaaa', request_id: '66666666-7777-4888-8999-aaaaaaaaaaaa', task: 'unconfigured-default task' }).result;
+  assert.equal(r.state, 'COMPLETE', 'the original hardcoded fallback (still 120000ms) remains in force when nothing else configures a timeout');
+}
+
 assert.deepEqual(Object.values(JARVIS_CLAUDE_BRIDGE_STATE).sort(), ['BLOCKED', 'CANCELLED', 'COMPLETE', 'FAILED', 'QUEUED', 'RUNNING', 'TIMEOUT', 'UNAVAILABLE']);
 
 console.log('JARVIS Claude Code Execution Bridge V1 smoke: PASS');
