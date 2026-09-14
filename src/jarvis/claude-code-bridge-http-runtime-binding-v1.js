@@ -89,12 +89,23 @@ export async function createJarvisBridgeHttpRuntimeBindingV1(env = {}, options =
     return { bridge: null, bound: false, requested: true, reason: 'BRIDGE_UNAVAILABLE: ' + preflight.reason };
   }
 
+  // Optional, but always present in real remote-operator usage: the same
+  // JARVIS_CLAUDE_REPO_DIR the runtime already resolves real branch truth
+  // from. Passed through so the executor can compute canonical
+  // repo-bound-verification-v1.js evidence (branch/files_changed/
+  // syntax_check) itself — see that executor's own file header. An
+  // invalid/missing repo_dir here degrades to an empty/unproven
+  // verification (handled fail-closed by the acceptance path that reads
+  // it), never a crash.
+  const repoDir = clean(env.JARVIS_CLAUDE_REPO_DIR, 400) || clean(options.repo_dir, 400) || null;
+
   let executor;
   try {
     executor = createJarvisBridgeHttpExecutorV1({
       bridge_url: bridgeUrl,
       bridge_token: bridgeToken,
       project,
+      repo_dir: repoDir,
       fetch_impl: options.fetch_impl
     });
   } catch (error) {
@@ -114,6 +125,8 @@ export function jarvisBridgeHttpRuntimeBindingManifestV1() {
     activation_flag: JARVIS_BRIDGE_HTTP_EXECUTION_FLAG,
     url_env: JARVIS_BRIDGE_URL_ENV,
     token_env: JARVIS_BRIDGE_TOKEN_ENV,
+    repo_dir_env: 'JARVIS_CLAUDE_REPO_DIR',
+    canonical_verification_wired: true,
     default: 'off',
     url_has_default: false,
     token_has_default: false,

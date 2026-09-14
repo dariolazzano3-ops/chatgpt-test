@@ -47,65 +47,26 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { createChildProcessExecutorV1 } from './claude-code-bridge-v1.js';
+import {
+  currentBranchOrNullV1,
+  beginJarvisRepoBoundVerificationV1,
+  finishJarvisRepoBoundVerificationV1
+} from './repo-bound-verification-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const DEFAULT_MAX_BUDGET_USD = 2;
-const GIT_TIMEOUT_MS = 10000;
 
 export const JARVIS_REPO_BOUND_PROTECTED_BRANCHES = Object.freeze(['main', 'master']);
 // Deliberately excludes Bash, WebFetch, WebSearch, NotebookEdit — see file header.
 export const JARVIS_REPO_BOUND_DEFAULT_ALLOWED_TOOLS = 'Read,Write,Edit,Glob,Grep';
-
-// Deliberately does NOT trim() the raw output: `git status --porcelain`'s
-// first two columns are meaningful, possibly-leading-space status codes
-// (" M path") — trimming the whole string would eat that leading space and
-// shift every column, silently corrupting the first line's path.
-function git(repoDir, args) {
-  return execFileSync('git', args, { cwd: repoDir, stdio: ['ignore', 'pipe', 'pipe'], timeout: GIT_TIMEOUT_MS }).toString('utf8');
-}
-
-function currentBranchOrNull(repoDir) {
-  try { return git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']).trim(); } catch { return null; }
-}
-
-/** One entry per dirty path, using git's porcelain short-status format
- *  (`XY path`, XY always exactly 2 columns). `--untracked-files=all` is
- *  required, not optional: without it, git collapses an ENTIRELY untracked
- *  directory into one summary line for the directory itself — so a second
- *  dispatch that edits a file inside a directory a PRIOR dispatch already
- *  created untracked would see the exact same single line before and after
- *  and (wrongly, conservatively) conclude nothing changed. Expanding to
- *  per-file lines is what makes the before/after diff below precise. This
- *  only enumerates CANDIDATE dirty paths; whether one genuinely changed is
- *  then decided by content, via snapshotFileV1 below — a path already dirty
- *  before the run is a candidate, not an automatic exclusion, because a
- *  second (e.g. repair) dispatch legitimately edits a file a prior one
- *  already left dirty. */
-function porcelainPaths(repoDir) {
-  let raw;
-  try { raw = git(repoDir, ['status', '--porcelain', '--untracked-files=all']); } catch { return null; }
-  return raw
-    .split('\n')
-    .map((line) => line.slice(3).trim())
-    .filter(Boolean);
-}
-
-/** Raw file bytes, or null if the path doesn't exist / can't be read (a
- *  legitimate state for "not created yet" or "deleted"). Content, not a
- *  git object hash, so it works identically for tracked and untracked
- *  paths without needing anything staged. */
-function snapshotFileV1(repoDir, relPath) {
-  try { return fs.readFileSync(path.join(repoDir, relPath)); } catch { return null; }
-}
 
 /** Fail-closed repo/branch check. Called at construction (fail fast) AND
  *  fresh on every single call (the authoritative check — never assumed to
  *  still hold from construction time). */
 function assertRepoBoundV1(repoDir, expectedBranch) {
   if (!fs.existsSync(path.join(repoDir, '.git'))) throw new Error('REPO_BOUND_EXECUTOR_NOT_A_GIT_REPO');
-  const branch = currentBranchOrNull(repoDir);
+  const branch = currentBranchOrNullV1(repoDir);
   if (!branch) throw new Error('REPO_BOUND_EXECUTOR_GIT_UNAVAILABLE');
   if (JARVIS_REPO_BOUND_PROTECTED_BRANCHES.includes(branch.toLowerCase())) {
     throw new Error(`REPO_BOUND_EXECUTOR_PROTECTED_BRANCH_BLOCKED:${branch}`);
@@ -114,25 +75,6 @@ function assertRepoBoundV1(repoDir, expectedBranch) {
     throw new Error(`REPO_BOUND_EXECUTOR_BRANCH_MISMATCH:expected=${expectedBranch}:actual=${branch}`);
   }
   return branch;
-}
-
-/** `node --check` on every changed file that looks like JS, run by THIS
- *  trusted code (never the nested agent). A path the run deleted can't be
- *  checked and is skipped, not counted as a failure. */
-function syntaxCheckFilesV1(repoDir, files) {
-  const results = files
-    .filter((file) => /\.(m?js)$/i.test(file))
-    .map((file) => {
-      const abs = path.join(repoDir, file);
-      if (!fs.existsSync(abs)) return { file, passed: true, skipped: true, reason: 'DELETED_OR_MISSING' };
-      try {
-        execFileSync(process.execPath, ['--check', abs], { stdio: ['ignore', 'pipe', 'pipe'], timeout: GIT_TIMEOUT_MS });
-        return { file, passed: true };
-      } catch (error) {
-        return { file, passed: false, error: clean(error?.stderr?.toString() || error?.message, 600) };
-      }
-    });
-  return { passed: results.every((r) => r.passed !== false), checked: results.length, results };
 }
 
 /** Build a Node-only executor for claude-code-bridge-v1.js bound to a real
@@ -156,16 +98,12 @@ export function createJarvisRepoBoundClaudeCodeCliExecutorV1(config = {}) {
   const onBeforeReturn = typeof config.on_before_return === 'function' ? config.on_before_return : null;
 
   return async (call) => {
-    const branch = assertRepoBoundV1(repoDir, expectedBranch); // re-checked, every call — never cached
-    const beforePaths = porcelainPaths(repoDir) || [];
-    // Content, not just path presence: a REPAIR dispatch, by definition, edits
-    // a file a PRIOR dispatch already left dirty/untracked — its status line
-    // ("?? path" or "M path") is identical before and after even though the
-    // content genuinely changed. A path-set diff alone would misclassify
-    // that as a no-op every time. Snapshotting content for every already-
-    // dirty path fixes this without losing the original guarantee: a path
-    // dirty before AND unchanged in content is still correctly excluded.
-    const beforeContent = new Map(beforePaths.map((p) => [p, snapshotFileV1(repoDir, p)]));
+    assertRepoBoundV1(repoDir, expectedBranch); // re-checked, every call — never cached
+    // Content-diffed before/after snapshot + syntax check — the ONE shared,
+    // canonical computation (repo-bound-verification-v1.js) also used by
+    // the private Bridge HTTP path, so both produce byte-identical evidence
+    // shape regardless of where Claude actually ran.
+    const snapshot = beginJarvisRepoBoundVerificationV1(repoDir);
 
     const exec = createChildProcessExecutorV1({
       command: claudeBin,
@@ -187,31 +125,7 @@ export function createJarvisRepoBoundClaudeCodeCliExecutorV1(config = {}) {
 
     const raw = await exec(call);
 
-    const branchAfter = currentBranchOrNull(repoDir);
-    const branchDrift = branchAfter === null || branchAfter !== branch;
-    const afterPaths = porcelainPaths(repoDir);
-    const candidatePaths = afterPaths === null ? [] : [...new Set([...beforePaths, ...afterPaths])];
-    const filesChanged = candidatePaths.filter((p) => {
-      const wasTracked = beforeContent.has(p);
-      const after = snapshotFileV1(repoDir, p);
-      if (!wasTracked) return true; // newly dirty at all -> genuinely touched
-      const before = beforeContent.get(p);
-      if (before === null && after === null) return false; // still missing both times
-      if (before === null || after === null) return true; // created or deleted
-      return !before.equals(after);
-    });
-    const syntaxCheck = syntaxCheckFilesV1(repoDir, filesChanged);
-
-    const verification = {
-      schema: 'aurentara.jarvis.repo-bound-verification.v1',
-      repo_dir: repoDir,
-      branch,
-      branch_drift: branchDrift,
-      files_changed: filesChanged,
-      pre_existing_dirty_files: beforePaths,
-      syntax_check: syntaxCheck,
-      at: new Date().toISOString()
-    };
+    const verification = finishJarvisRepoBoundVerificationV1(snapshot);
     if (onBeforeReturn) { try { onBeforeReturn(verification, raw); } catch { /* observability only */ } }
 
     return {
@@ -219,7 +133,7 @@ export function createJarvisRepoBoundClaudeCodeCliExecutorV1(config = {}) {
       // Real files in the real repo changed as a direct, bridge-computed
       // fact of THIS run — never a claim accepted from `raw` itself, and
       // withheld entirely if the branch drifted mid-run (anomaly, not trust).
-      external_effect: filesChanged.length > 0 && !branchDrift,
+      external_effect: verification.files_changed.length > 0 && !verification.branch_drift,
       verification
     };
   };

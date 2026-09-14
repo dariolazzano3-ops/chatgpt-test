@@ -8,7 +8,10 @@
    CLI. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import http from 'node:http';
+import { execFileSync } from 'node:child_process';
 import {
   createJarvisBridgeHttpExecutorV1,
   jarvisBridgeHttpExecutorManifestV1
@@ -18,6 +21,7 @@ import {
   preflightJarvisBridgeHttpV1,
   jarvisBridgeHttpRuntimeBindingManifestV1
 } from '../src/jarvis/claude-code-bridge-http-runtime-binding-v1.js';
+import { evaluateJarvisRepoBoundVerificationV1 } from '../src/jarvis/engineering-mission-acceptance-v1.js';
 
 const FIXTURE_TOKEN = 'fixture-bridge-token-not-real-8f2c9a';
 
@@ -310,17 +314,117 @@ await check('runtime binding is off by default, requires URL+token, fails closed
   }
 });
 
+// ── canonical repo-bound verification: closes the acceptance-evidence contract gap ──
+function git(dir, args) { return execFileSync('git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] }).toString('utf8').trim(); }
+function makeFixtureRepoV1(branch) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-bridge-verification-fixture-'));
+  git(dir, ['init', '-q']);
+  git(dir, ['symbolic-ref', 'HEAD', `refs/heads/${branch}`]);
+  git(dir, ['config', 'user.email', 'fixture@example.invalid']);
+  git(dir, ['config', 'user.name', 'Fixture']);
+  fs.writeFileSync(path.join(dir, 'README.md'), '# fixture\n');
+  git(dir, ['add', '.']);
+  git(dir, ['commit', '-q', '-m', 'init']);
+  return dir;
+}
+
+await check('with repo_dir configured, a real file change is independently verified and satisfies Independent Acceptance (evaluateJarvisRepoBoundVerificationV1)', async () => {
+  const repo = makeFixtureRepoV1('factory/bridge-verification-smoke');
+  try {
+    const fixture = await startFixtureBridgeV1((req, res) => {
+      // Simulate Claude having genuinely edited a real, valid file inside
+      // the shared repo before Bridge responds.
+      fs.writeFileSync(path.join(repo, 'healthz.js'), 'module.exports = () => ({ ok: true });\n');
+      jsonRes(res, 200, {
+        ok: true, service: 'jarvis-claude-bridge', version: 4, mode: 'implement', project: 'chatgpt-test',
+        exit_code: 0, stderr: '',
+        git_evidence: { diff: 'healthz.js added' }, filesystem_evidence: { created: ['healthz.js'] },
+        tool_audit: [{ tool: 'Write', path: 'healthz.js' }]
+      });
+    });
+    try {
+      const executor = createJarvisBridgeHttpExecutorV1({ bridge_url: fixture.url, bridge_token: FIXTURE_TOKEN, project: 'chatgpt-test', repo_dir: repo });
+      const result = await executor({ task: 'add healthz' });
+
+      assert.equal(result.verification.schema, 'aurentara.jarvis.repo-bound-verification.v1');
+      assert.equal(result.verification.branch, 'factory/bridge-verification-smoke');
+      assert.equal(result.verification.branch_drift, false);
+      assert.deepEqual(result.verification.files_changed, ['healthz.js']);
+      assert.equal(result.verification.syntax_check.passed, true);
+      assert.equal(result.verification.syntax_check.checked, 1);
+      // Bridge's raw evidence is still merged in, unmodified.
+      assert.deepEqual(result.verification.git_evidence, { diff: 'healthz.js added' });
+      assert.deepEqual(result.verification.tool_audit, [{ tool: 'Write', path: 'healthz.js' }]);
+      assert.equal(result.external_effect, true);
+
+      // The actual acceptance gate: this is the direct proof the evidence
+      // contract gap is closed — the SAME function
+      // engineering-mission-acceptance-v1.js uses now accepts Bridge HTTP
+      // evidence, with no change to that file at all.
+      const acceptance = evaluateJarvisRepoBoundVerificationV1(result.verification);
+      assert.equal(acceptance.sufficient, true, JSON.stringify(acceptance));
+    } finally {
+      await fixture.close();
+    }
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('syntax validation remains mandatory: a genuinely broken file still fails Independent Acceptance, never bypassed', async () => {
+  const repo = makeFixtureRepoV1('factory/bridge-verification-syntax-fail');
+  try {
+    const fixture = await startFixtureBridgeV1((req, res) => {
+      // Simulate a broken edit — invalid JS syntax.
+      fs.writeFileSync(path.join(repo, 'broken.js'), 'module.exports = ( => {\n');
+      jsonRes(res, 200, { ok: true, exit_code: 0, mode: 'implement', project: 'chatgpt-test', stderr: '', git_evidence: {}, filesystem_evidence: {}, tool_audit: [] });
+    });
+    try {
+      const executor = createJarvisBridgeHttpExecutorV1({ bridge_url: fixture.url, bridge_token: FIXTURE_TOKEN, project: 'chatgpt-test', repo_dir: repo });
+      const result = await executor({ task: 'break it' });
+
+      assert.equal(result.verification.syntax_check.passed, false, 'a genuinely invalid file must fail the syntax check');
+      const acceptance = evaluateJarvisRepoBoundVerificationV1(result.verification);
+      assert.equal(acceptance.sufficient, false);
+      assert.equal(acceptance.reason, 'SYNTAX_CHECK_FAILED_OR_MISSING');
+    } finally {
+      await fixture.close();
+    }
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('without repo_dir configured, verification falls back to Bridge-only evidence, unchanged from before', async () => {
+  const fixture = await startFixtureBridgeV1((req, res) => jsonRes(res, 200, {
+    ok: true, exit_code: 0, mode: 'implement', project: 'chatgpt-test', stderr: '',
+    git_evidence: { x: 1 }, filesystem_evidence: { y: 2 }, tool_audit: []
+  }));
+  try {
+    const executor = createJarvisBridgeHttpExecutorV1({ bridge_url: fixture.url, bridge_token: FIXTURE_TOKEN, project: 'chatgpt-test' });
+    const result = await executor({ task: 'no repo dir' });
+    assert.equal(result.verification.schema, 'aurentara.jarvis.bridge-http-verification.v1');
+    assert.equal(result.verification.branch, undefined, 'no canonical fields fabricated without repo_dir');
+  } finally {
+    await fixture.close();
+  }
+});
+
 // ── manifests are honest ──
 await check('manifests declare no local-CLI fallback and server-side-only token source', () => {
   const executorManifest = jarvisBridgeHttpExecutorManifestV1();
   assert.equal(executorManifest.local_cli_fallback, false);
   assert.equal(executorManifest.token_source, 'SERVER_SIDE_CONFIG_ONLY');
   assert.equal(executorManifest.token_ever_logged, false);
+  assert.equal(executorManifest.canonical_verification_schema, 'aurentara.jarvis.repo-bound-verification.v1');
+  assert.equal(executorManifest.syntax_check_mandatory_when_repo_dir_configured, true);
+  assert.equal(executorManifest.shares_verification_computation_with_local_cli_executor, true);
 
   const bindingManifest = jarvisBridgeHttpRuntimeBindingManifestV1();
   assert.equal(bindingManifest.local_cli_fallback, false);
   assert.equal(bindingManifest.health_preflight_required, true);
   assert.equal(bindingManifest.default, 'off');
+  assert.equal(bindingManifest.canonical_verification_wired, true);
 });
 
 console.log(JSON.stringify({
