@@ -12,7 +12,8 @@ import {
   handleJarvisProgramTickRuntimeV1,
   handleJarvisProgramStateRuntimeV1,
   jarvisProgramControllerManifestV1,
-  JARVIS_PROGRAM_MAX_REPAIR_ATTEMPTS
+  JARVIS_PROGRAM_MAX_REPAIR_ATTEMPTS,
+  JARVIS_AUTONOMY_PAUSED_ENV_VAR
 } from '../src/jarvis/program-controller-v1.js';
 
 const OWNER_ID = '11111111-1111-4111-8111-111111111111';
@@ -194,6 +195,65 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   assert.equal(man.max_repair_attempts, 3);
   assert.equal(man.production_deploy, false);
   assert.equal(man.hamyren_data_flow, false);
+  assert.equal(man.autonomy_pause_env_var, JARVIS_AUTONOMY_PAUSED_ENV_VAR);
+  assert.equal(man.autonomy_paused, false, 'not paused by default in this process');
+  assert.equal(man.autonomy_pause_blocks_all_mutating_actions, true);
+  assert.equal(man.autonomy_pause_blocks_program_state_reads, false);
+}
+
+// ── 11. JARVIS_AUTONOMY_PAUSED: global pause gate — Tick performs no
+//        mutating action while paused and reports it explicitly; Program
+//        State stays readable throughout; unset/disabled leaves the
+//        pre-existing tick behavior unchanged ──
+{
+  const repo = makeFixtureRepo();
+  const branch = 'factory/autonomy-pause';
+  const store = createMemoryJarvisStoreV1();
+  const tickReq = { owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: repo, target_branch: branch };
+  const deps = { memory_store: store };
+  const previousEnv = process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR];
+
+  try {
+    process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR] = 'true';
+
+    const auditBefore = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 500 });
+    const paused1 = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+    assert.equal(paused1.ok, true);
+    assert.equal(paused1.paused, true);
+    assert.equal(paused1.pause_reason, JARVIS_AUTONOMY_PAUSED_ENV_VAR);
+    assert.deepEqual(paused1.performed, { action: 'NONE', detail: JARVIS_AUTONOMY_PAUSED_ENV_VAR });
+    assert.equal(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']), 'main', 'paused: PREPARE_BRANCH was never actually performed');
+    assert.equal(paused1.wave_state, 'PREPARING', 'state reporting keeps working while paused — it just is not acted on');
+    const auditAfter1 = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 500 });
+    assert.equal(auditAfter1.length, auditBefore.length, 'a paused tick writes no new audit rows');
+
+    // Program State stays fully readable while paused.
+    const state = await handleJarvisProgramStateRuntimeV1(tickReq, { memory_store: store });
+    assert.equal(state.ok, true);
+    assert.equal(state.wave_state, 'PREPARING');
+
+    // A second paused tick is equally inert — pausing is not a one-shot.
+    const paused2 = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+    assert.equal(paused2.paused, true);
+    assert.equal(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']), 'main');
+
+    // An explicit falsy value ("false") counts as disabled, not paused.
+    process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR] = 'false';
+    const disabled = await handleJarvisProgramTickRuntimeV1(tickReq, deps);
+    assert.equal(disabled.paused, undefined);
+    assert.equal(disabled.performed.action, 'PREPARE_BRANCH');
+    assert.equal(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']), branch, 'disabled ("false"): tick actually prepared the branch, same as pre-existing behavior');
+  } finally {
+    if (previousEnv === undefined) delete process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR];
+    else process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR] = previousEnv;
+  }
+
+  // Unset entirely: still identical to pre-existing (never-gated) behavior —
+  // the next pending action (proposing Wave 0's task) actually happens.
+  assert.equal(process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR], previousEnv);
+  const resumed = await handleJarvisProgramTickRuntimeV1({ ...tickReq, task: { title: 'Wave 0', goal: 'Wave 0 goal text' } }, deps);
+  assert.equal(resumed.paused, undefined);
+  assert.equal(resumed.performed.action, 'PROPOSE_WAVE_TASK');
 }
 
 console.log('JARVIS Program Controller V1 smoke: PASS');

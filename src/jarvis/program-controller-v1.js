@@ -29,7 +29,16 @@
        operator-supplied task, rather than fabricating one;
      - one tick == at most one mutating action. Nothing loops internally;
        autonomy comes from calling tick repeatedly (a timer, a script, or an
-       operator), so each step stays independently observable and auditable. */
+       operator), so each step stays independently observable and auditable;
+     - JARVIS_AUTONOMY_PAUSED is a single global kill switch: while it is set
+       to a truthy value, Program Tick performs NO mutating action at all
+       (not even the "safe" ones like preparing a branch or proposing a wave
+       task) and instead returns an explicit paused result with a reason.
+       Program State stays fully readable regardless — pausing autonomy
+       never hides what state the program is in, it only stops the
+       controller from acting on it. When the env var is unset, empty, or
+       set to a recognized falsy value ("false"/"0"/"off"), behavior is
+       byte-for-byte identical to before this gate existed. */
 
 import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-bindings-v1.js';
 import { evaluateJarvisProgramApprovalStateV1, evaluateJarvisProgramApprovalActionV1 } from './program-approval-v1.js';
@@ -46,9 +55,20 @@ export const JARVIS_PROGRAM_WAVE_STATES = Object.freeze([
   'PENDING', 'PREPARING', 'EXECUTING', 'VERIFYING', 'REPAIRING', 'ACCEPTING', 'ACCEPTED', 'BLOCKED_OPERATOR', 'FAILED'
 ]);
 export const JARVIS_PROGRAM_MAX_REPAIR_ATTEMPTS = 3;
+export const JARVIS_AUTONOMY_PAUSED_ENV_VAR = 'JARVIS_AUTONOMY_PAUSED';
 
 function newRequestId() {
   return (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+/** Pure (reads only the one env var it's named for). A single global
+ *  autonomy kill switch, deliberately NOT threaded through request/deps —
+ *  it has to stay effective even if a caller forgets to pass it. Only a
+ *  small set of recognized truthy strings pause; anything else (unset,
+ *  empty, "false", "0", "off") leaves existing behavior unchanged. */
+export function isJarvisAutonomyPausedV1() {
+  const raw = String(process.env[JARVIS_AUTONOMY_PAUSED_ENV_VAR] ?? '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
 }
 
 /** Pure. Decide ONE wave's canonical state + next action from already-
@@ -189,6 +209,27 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
   }
   if (!deps.memory_store) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_TICK_MEMORY_STORE_REQUIRED' };
 
+  if (isJarvisAutonomyPausedV1()) {
+    // computeProgramContextV1 is read-only (git status + audit reads) — safe
+    // to run even while paused, so Program State stays visible in the same
+    // response shape. What's suppressed is everything below this block: no
+    // branch prep, no dispatch, no repair, no acceptance — nothing mutates.
+    const pausedCtx = await computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore: deps.memory_store, now });
+    return {
+      ok: true, status: 200,
+      schema: 'aurentara.jarvis.program-tick-response.v1',
+      program, repo_dir: repoDir, target_branch: targetBranch,
+      performed: { action: 'NONE', detail: JARVIS_AUTONOMY_PAUSED_ENV_VAR },
+      paused: true,
+      pause_reason: JARVIS_AUTONOMY_PAUSED_ENV_VAR,
+      current_wave: pausedCtx.currentWave,
+      verified_progress_percent: pausedCtx.v2Progress.verified_progress_percent,
+      wave_state: pausedCtx.waveState.state,
+      wave_reason: pausedCtx.waveState.reason,
+      next_action: pausedCtx.waveState.next_action
+    };
+  }
+
   const ctx = await computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore: deps.memory_store, now });
   const action = ctx.waveState.next_action;
   let performed = { action: null, detail: null };
@@ -292,6 +333,10 @@ export function jarvisProgramControllerManifestV1() {
     wave_task_source_precedence: 'OPERATOR_SUPPLIED_THEN_REGISTRY_PROPOSAL',
     wave_task_fabricated_for_unregistered_wave: false,
     one_mutating_action_per_tick: true,
+    autonomy_pause_env_var: JARVIS_AUTONOMY_PAUSED_ENV_VAR,
+    autonomy_paused: isJarvisAutonomyPausedV1(),
+    autonomy_pause_blocks_all_mutating_actions: true,
+    autonomy_pause_blocks_program_state_reads: false,
     production_deploy: false,
     hamyren_data_flow: false
   };
