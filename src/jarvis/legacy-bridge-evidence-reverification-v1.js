@@ -69,6 +69,7 @@ import {
 import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './claude-code-repo-bound-executor-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
+const JARVIS_AUDIT_STRING_MAX_CHARS = 1200; // audit-v1.js redacts/truncates every persisted string to this bound
 export const JARVIS_LEGACY_BRIDGE_HTTP_VERIFICATION_SCHEMA = 'aurentara.jarvis.bridge-http-verification.v1';
 
 /** Real, right-now `git diff` of exactly these paths (working tree vs
@@ -168,6 +169,21 @@ function sameSetV1(a, b) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+/** Audit V1 persistently truncates every string to 1200 characters. Legacy
+ *  Bridge evidence therefore may contain only the first 1200 characters of
+ *  a genuinely longer diff. Accept that one known persistence artifact only
+ *  when the stored value is exactly at the audit ceiling, the live diff is
+ *  genuinely longer, and the stored text matches the live diff prefix byte-
+ *  for-byte. Anything else remains an ordinary mismatch. */
+function comparePersistedDiffV1(currentDiff, persistedDiff) {
+  if (currentDiff === persistedDiff) return { ok: true, mode: 'EXACT' };
+  const auditTruncatedPrefix = persistedDiff.length === JARVIS_AUDIT_STRING_MAX_CHARS
+    && currentDiff.length > persistedDiff.length
+    && currentDiff.startsWith(persistedDiff);
+  if (auditTruncatedPrefix) return { ok: true, mode: 'AUDIT_TRUNCATED_PREFIX' };
+  return { ok: false, mode: null };
+}
+
 /** The one entry point. Returns `{ sufficient: false, reason }` on any
  *  fail-closed condition, or `{ sufficient: true, verification }` with a
  *  freshly-constructed CANONICAL aurentara.jarvis.repo-bound-verification.v1
@@ -242,14 +258,17 @@ export function reverifyLegacyBridgeHttpEvidenceV1({ verification, repo_dir, tar
   // CURRENT working-tree diff of exactly the claimed files, computed
   // fresh via real git, must match the persisted diff text exactly.
   const persistedDiff = extractPersistedDiffV1(verification.git_evidence);
+  let diffComparisonMode = 'NOT_AVAILABLE';
   if (persistedDiff !== null) {
     const currentDiff = currentWorkingTreeDiffV1(repoDir, claimedFiles);
     if (currentDiff === null) {
       return { sufficient: false, reason: 'LEGACY_REVERIFY_REPO_UNAVAILABLE' };
     }
-    if (currentDiff !== persistedDiff) {
+    const diffComparison = comparePersistedDiffV1(currentDiff, persistedDiff);
+    if (!diffComparison.ok) {
       return { sufficient: false, reason: 'LEGACY_REVERIFY_DIFF_MISMATCH' };
     }
+    diffComparisonMode = diffComparison.mode;
   }
 
   // 6. Mandatory, real, right-now syntax check — never bypassed, never a
@@ -274,6 +293,10 @@ export function reverifyLegacyBridgeHttpEvidenceV1({ verification, repo_dir, tar
       syntax_check: syntaxCheck,
       at: new Date().toISOString(),
       reverified_from_legacy_evidence: true,
+      legacy_diff_comparison: {
+        mode: diffComparisonMode,
+        audit_string_max_chars: JARVIS_AUDIT_STRING_MAX_CHARS
+      },
       legacy_evidence: {
         bridge_service: verification.bridge_service ?? null,
         bridge_version: verification.bridge_version ?? null,
@@ -300,6 +323,8 @@ export function jarvisLegacyBridgeEvidenceReverificationManifestV1() {
     nested_tracked_name_status_supported: true,
     nested_untracked_files_supported: true,
     nested_diff_location_supported: true,
+    audit_truncated_diff_prefix_supported: true,
+    audit_string_max_chars: JARVIS_AUDIT_STRING_MAX_CHARS,
     ambiguous_rename_or_copy_records_fail_closed: true,
     syntax_check_mandatory: true,
     production_deploy: false,

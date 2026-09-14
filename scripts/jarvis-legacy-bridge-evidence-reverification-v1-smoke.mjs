@@ -145,6 +145,45 @@ await check('df92: nested changes.diff is enforced content-level — a further e
   }
 });
 
+await check('df92: real Audit V1 1200-char truncation is recognized only as an exact live-diff prefix', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const longA = `// ${'A'.repeat(1800)}\nmodule.exports = () => 2;\n`;
+    const longB = `// ${'B'.repeat(1800)}\nexport default () => 2;\n`;
+    const legacy = simulateDf92MissionV1(repo, longA, longB);
+    assert.ok(legacy.git_evidence.changes.diff.length > 1200);
+
+    const persisted = createJarvisAuditEventV1({
+      timestamp: '2026-09-14T00:00:00.000Z',
+      owner_ref: OWNER_REF,
+      result: { verification: legacy }
+    }).result.verification;
+    assert.equal(persisted.git_evidence.changes.diff.length, 1200, 'Audit V1 reproduces the real persistence truncation');
+
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: persisted, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, true, JSON.stringify(result));
+    assert.equal(result.verification.legacy_diff_comparison.mode, 'AUDIT_TRUNCATED_PREFIX');
+    assert.equal(result.verification.legacy_diff_comparison.audit_string_max_chars, 1200);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: a short/non-ceiling persisted prefix never gets the audit-truncation exception', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const longA = `// ${'A'.repeat(1800)}\nmodule.exports = () => 2;\n`;
+    const longB = `// ${'B'.repeat(1800)}\nexport default () => 2;\n`;
+    const legacy = simulateDf92MissionV1(repo, longA, longB);
+    legacy.git_evidence.changes.diff = legacy.git_evidence.changes.diff.slice(0, 1199);
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_DIFF_MISMATCH');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 await check('df92: an extra dirty file beyond the two claimed is rejected', () => {
   const repo = makeDf92FixtureRepoV1();
   try {
@@ -432,6 +471,8 @@ await check('manifests are honest about scope and non-duplication', () => {
   assert.equal(manifest.trusts_worker_self_report, false);
   assert.equal(manifest.trusts_request_supplied_repo_scope, false);
   assert.equal(manifest.repo_scope_source, 'TRUSTED_DEPENDENCY_INJECTION_ONLY');
+  assert.equal(manifest.audit_truncated_diff_prefix_supported, true);
+  assert.equal(manifest.audit_string_max_chars, 1200);
 
   const acceptanceManifest = jarvisEngineeringMissionAcceptanceManifestV1();
   assert.equal(acceptanceManifest.legacy_bridge_http_evidence_reverification_supported, true);
