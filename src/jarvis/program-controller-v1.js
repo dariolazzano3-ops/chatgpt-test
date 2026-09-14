@@ -107,6 +107,23 @@ export function deriveJarvisProgramWaveStateV1({ waveRuns = [], branchTruth = nu
     return { state: 'EXECUTING', reason: 'DISPATCH_IN_FLIGHT', next_action: { action: 'WAIT' } };
   }
   if (latest.status === 'COMPLETE') {
+    // COMPLETE only means the worker process ended cleanly. Independent
+    // Acceptance still requires real repo-bound evidence (including at
+    // least one changed file). A completed no-op must enter the same bounded
+    // repair budget as a failed run, otherwise a 24/7 tick loop would retry
+    // VERIFY_AND_ACCEPT forever against evidence that can never pass.
+    if (latest.verification_sufficient === false) {
+      const attempts = waveRuns.length;
+      if (attempts >= JARVIS_PROGRAM_MAX_REPAIR_ATTEMPTS) {
+        return { state: 'BLOCKED_OPERATOR', reason: 'MAX_REPAIR_ATTEMPTS_EXCEEDED', next_action: null };
+      }
+      const evidenceReason = clean(latest.verification_insufficient_reason, 120) || 'UNKNOWN';
+      return {
+        state: 'REPAIRING',
+        reason: `VERIFICATION_INSUFFICIENT:${evidenceReason}`,
+        next_action: { action: 'ANALYZE_FOR_REPAIR', request_id: latest.id, attempts_used: attempts }
+      };
+    }
     if (!acceptCovered) return { state: 'VERIFYING', reason: 'ACCEPTANCE_NOT_COVERED_BY_PROGRAM_APPROVAL', next_action: null };
     return { state: 'VERIFYING', reason: 'READY_FOR_ACCEPTANCE_EVALUATION', next_action: { action: 'VERIFY_AND_ACCEPT', request_id: latest.id } };
   }

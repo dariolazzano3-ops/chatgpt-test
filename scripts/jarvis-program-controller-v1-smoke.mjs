@@ -67,6 +67,20 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   assert.equal(r.state, 'VERIFYING');
   assert.deepEqual(r.next_action, { action: 'VERIFY_AND_ACCEPT', request_id: 'r1' });
 }
+// ── 4b. COMPLETE with insufficient repo evidence -> bounded repair, never an impossible acceptance loop ──
+{
+  const r = deriveJarvisProgramWaveStateV1({
+    waveRuns: [{
+      id: 'r-noop', approval_state: 'GRANTED', status: 'COMPLETE', acceptance_state: 'ACCEPTANCE_PENDING',
+      verification_sufficient: false, verification_insufficient_reason: 'NO_REAL_FILES_CHANGED'
+    }],
+    branchTruth: ON_TARGET, dispatchCovered: true, acceptCovered: true
+  });
+  assert.equal(r.state, 'REPAIRING');
+  assert.equal(r.reason, 'VERIFICATION_INSUFFICIENT:NO_REAL_FILES_CHANGED');
+  assert.deepEqual(r.next_action, { action: 'ANALYZE_FOR_REPAIR', request_id: 'r-noop', attempts_used: 1 });
+}
+
 // ── 5. Pure state derivation: complete but acceptance NOT covered -> stalls without an action (never silently self-authorizes) ──
 {
   const r = deriveJarvisProgramWaveStateV1({
@@ -165,6 +179,37 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   assert.equal(state.verified_progress_percent, 5);
   assert.equal(state.current_wave, 1);
   assert.equal(state.program_approval.granted, true);
+}
+
+// ── 8b. End-to-end: a worker COMPLETE with zero changed files is projected as insufficient evidence and enters REPAIRING ──
+{
+  const repo = makeFixtureRepo();
+  const branch = 'factory/complete-noop-repair';
+  const store = createMemoryJarvisStoreV1();
+  const bridge = createJarvisClaudeCodeBridgeV1({ executor: createLocalFixtureExecutorV1({
+    'No-op proof': {
+      exit_code: 0,
+      verification: {
+        schema: 'aurentara.jarvis.repo-bound-verification.v1', repo_dir: repo, branch, branch_drift: false,
+        files_changed: [], pre_existing_dirty_files: [],
+        syntax_check: { passed: true, checked: 0, results: [] }, at: new Date().toISOString()
+      }
+    }
+  }) });
+  await handleJarvisProgramApprovalGrantRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: repo, target_branch: branch,
+    scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE', 'LOCAL_FEATURE_BRANCH_MANAGEMENT'], confirm_scope: true
+  }, { memory_store: store });
+  const req = { owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: repo, target_branch: branch };
+  const deps = { memory_store: store, claude_bridge: bridge };
+  await handleJarvisProgramTickRuntimeV1(req, deps); // PREPARE_BRANCH
+  await handleJarvisProgramTickRuntimeV1({ ...req, task: { title: 'No-op proof', goal: 'Must change one file.' } }, deps);
+  const executed = await handleJarvisProgramTickRuntimeV1(req, deps);
+  assert.equal(executed.performed.action, 'AUTHORIZE_AND_RESUME');
+  assert.equal(executed.performed.detail.claude_execution.state, 'COMPLETE');
+  assert.equal(executed.wave_state, 'REPAIRING');
+  assert.equal(executed.wave_reason, 'VERIFICATION_INSUFFICIENT:NO_REAL_FILES_CHANGED');
+  assert.equal(executed.next_action.action, 'ANALYZE_FOR_REPAIR');
 }
 
 // ── 9. Without a Program Approval grant, dispatch is never auto-authorized — stays BLOCKED_OPERATOR ──

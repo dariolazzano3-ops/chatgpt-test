@@ -192,7 +192,14 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
           ? 'NOT_APPLICABLE'
           : acceptanceState.already_accepted
             ? 'INDEPENDENTLY_ACCEPTED'
-            : 'ACCEPTANCE_PENDING'
+            : 'ACCEPTANCE_PENDING',
+        // Keep execution COMPLETE distinct from evidence being acceptable.
+        // Program Controller uses this to repair a completed no-op instead
+        // of retrying Independent Acceptance forever.
+        verification_sufficient: acceptanceState.verification_sufficient === true,
+        verification_insufficient_reason: acceptanceState.verification_sufficient === true
+          ? null
+          : acceptanceState.verification_insufficient_reason
       });
     }
     return {
