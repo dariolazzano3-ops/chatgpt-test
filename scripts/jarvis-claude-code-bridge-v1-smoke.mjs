@@ -148,9 +148,9 @@ assert.equal(validateJarvisClaudeCodeRequestV1(base).ok, true);
   const explicit = validateJarvisClaudeCodeRequestV1({ ...base, timeout_ms: 5000 });
   assert.equal(explicit.request.timeout_ms, 5000, 'an explicit timeout is preserved exactly');
 
-  // ── 3. MAX_TIMEOUT_MS=900000 clamp still enforced on an explicit request timeout ──
+  // ── 3. MAX_TIMEOUT_MS=960000 clamp still enforced on an explicit request timeout ──
   const overMax = validateJarvisClaudeCodeRequestV1({ ...base, timeout_ms: 999999999 });
-  assert.equal(overMax.request.timeout_ms, 900000, 'an explicit timeout above the max is clamped to MAX_TIMEOUT_MS');
+  assert.equal(overMax.request.timeout_ms, 960000, 'an explicit timeout above the max is clamped to MAX_TIMEOUT_MS');
 }
 
 // ── 1. bridge config default is honored when the raw request omits timeout_ms ──

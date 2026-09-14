@@ -23,7 +23,8 @@ import { createJarvisClaudeCodeBridgeV1 } from './claude-code-bridge-v1.js';
 import { createJarvisBridgeHttpExecutorV1 } from './claude-code-bridge-http-executor-v1.js';
 
 const clean = (value, max = 400) => String(value ?? '').trim().slice(0, max);
-const DEFAULT_TIMEOUT_MS = 300000; // real implementation work needs headroom, same default the repo-bound binding used
+const BRIDGE_SERVER_WORKER_TIMEOUT_MS = 900000; // verified Bridge V5 bridge.py subprocess.run timeout
+const DEFAULT_TIMEOUT_MS = 930000; // server must reach its terminal state before this client-side deadline
 const DEFAULT_HEALTH_TIMEOUT_MS = 5000;
 const DEFAULT_PROJECT = 'chatgpt-test';
 
@@ -137,6 +138,9 @@ export function jarvisBridgeHttpRuntimeBindingManifestV1() {
     fail_closed_when_token_missing: true,
     fail_closed_when_health_check_fails: true,
     local_cli_fallback: false,
+    bridge_server_worker_timeout_ms: BRIDGE_SERVER_WORKER_TIMEOUT_MS,
+    default_timeout_ms: DEFAULT_TIMEOUT_MS,
+    client_timeout_exceeds_server_worker_timeout: DEFAULT_TIMEOUT_MS > BRIDGE_SERVER_WORKER_TIMEOUT_MS,
     production_deploy: false,
     hamyren_data_flow: false
   };

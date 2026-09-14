@@ -37,7 +37,10 @@ export const JARVIS_CLAUDE_BRIDGE_STATE = Object.freeze({
 });
 
 const DEFAULT_TIMEOUT_MS = 120000;
-const MAX_TIMEOUT_MS = 900000;
+// Must be strictly above Bridge V5's 900s server-side Claude kill deadline so
+// the HTTP client can receive the server's terminal result instead of aborting
+// first and leaving the server-side worker alive.
+const MAX_TIMEOUT_MS = 960000;
 const DEFAULT_MAX_OUTPUT = 200000;
 
 async function sha256Hex(text) {
@@ -65,7 +68,7 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
   // `request.timeout_ms || defaultTimeout` correctly fall through to the
   // bridge's OWN configured default (createJarvisClaudeCodeBridgeV1's
   // `config.timeout_ms`, e.g. claude-code-bridge-http-runtime-binding-v1.js's
-  // 300000) instead of this validator silently pre-empting it with 120000
+  // 930000) instead of this validator silently pre-empting it with 120000
   // on every request that didn't ask for a specific timeout.
   const rawTimeout = Number(input.timeout_ms);
   const explicitTimeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0

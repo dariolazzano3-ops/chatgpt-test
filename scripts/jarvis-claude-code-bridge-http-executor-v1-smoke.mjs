@@ -309,6 +309,10 @@ await check('runtime binding is off by default, requires URL+token, fails closed
     );
     assert.equal(bound.bound, true);
     assert.equal(bound.bridge.bound, true);
+    const manifest = jarvisBridgeHttpRuntimeBindingManifestV1();
+    assert.equal(manifest.bridge_server_worker_timeout_ms, 900000);
+    assert.equal(manifest.default_timeout_ms, 930000);
+    assert.equal(manifest.client_timeout_exceeds_server_worker_timeout, true, 'client deadline must be later than Bridge server worker kill deadline');
   } finally {
     await healthyFixture.close();
   }
