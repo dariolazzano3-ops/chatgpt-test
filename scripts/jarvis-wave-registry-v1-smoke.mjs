@@ -57,8 +57,22 @@ function makeFixtureRepo() {
   assert.ok(wave3.expected_files.includes('src/jarvis/program-approval-v1.js'));
   assert.equal(wave3.required_checks.length, 4);
 
-  // Unregistered wave (4, still undefined) -> null, never invented.
+  const wave6 = getJarvisWaveRegistryEntryV1(PROGRAM, 6);
+  assert.equal(wave6.wave_index, 6);
+  assert.deepEqual(wave6.depends_on, [5]);
+  assert.ok(wave6.title.length > 0 && wave6.goal.length > 0);
+  assert.deepEqual(wave6.expected_files, [
+    'src/jarvis/program-loop-v1.js',
+    'scripts/jarvis-program-loop-v1-smoke.mjs',
+    'src/jarvis/wave-registry-v1.js',
+    'scripts/jarvis-wave-registry-v1-smoke.mjs'
+  ]);
+  assert.equal(wave6.required_checks.length, 2);
+
+  // Unregistered waves (4, 5, 7 — still undefined) -> null, never invented.
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 4), null);
+  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 5), null, 'Wave 5 is not yet defined here — Wave 6 depends on it via completed_waves, not via a registry entry');
+  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 7), null);
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 99), null);
   // Wrong / unknown program -> null.
   assert.equal(getJarvisWaveRegistryEntryV1('SOME_OTHER_PROGRAM', 0), null);
@@ -80,6 +94,14 @@ function makeFixtureRepo() {
 
   const wave0 = getJarvisWaveRegistryEntryV1(PROGRAM, 0);
   assert.equal(isJarvisWaveDependencySatisfiedV1(wave0, []), true, 'no dependencies -> always satisfied');
+
+  // Wave 6 depends on Wave 5 by index only — it is proposable once 5 is in
+  // completed_waves, regardless of whether Wave 5 itself has a registry entry.
+  const wave6 = getJarvisWaveRegistryEntryV1(PROGRAM, 6);
+  assert.equal(isJarvisWaveDependencySatisfiedV1(wave6, []), false, 'Wave 5 not yet accepted -> Wave 6 not proposable');
+  assert.equal(isJarvisWaveDependencySatisfiedV1(wave6, [0, 1, 2, 3, 4]), false, 'Wave 5 still missing -> Wave 6 not proposable');
+  assert.equal(isJarvisWaveDependencySatisfiedV1(wave6, [5]), true);
+  assert.equal(isJarvisWaveDependencySatisfiedV1(wave6, [0, 1, 2, 3, 4, 5]), true);
 }
 
 // ── 3. Planner: proposes only when registered AND dependencies satisfied, never fabricates ──
@@ -112,6 +134,19 @@ function makeFixtureRepo() {
 
   const unregistered = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 4, completedWaves: [0, 1, 2, 3] });
   assert.equal(unregistered, null, 'Wave 4 has no registry entry — never guessed');
+
+  // Wave 6 is registered/proposable only once Wave 5 is in completed_waves —
+  // Waves 4, 5, 7 stay unregistered and never fabricate a proposal either.
+  const wave6Blocked = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 6, completedWaves: [0, 1, 2, 3, 4] });
+  assert.equal(wave6Blocked, null, 'Wave 6 depends on Wave 5 — never proposed before it is completed');
+
+  const wave6Ready = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 6, completedWaves: [0, 1, 2, 3, 4, 5] });
+  assert.equal(wave6Ready.source, 'REGISTRY_PROPOSAL');
+  assert.equal(wave6Ready.registry_id, 'wave-6-bounded-autonomous-program-loop');
+  assert.equal(wave6Ready.program, PROGRAM);
+
+  assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 5, completedWaves: [0, 1, 2, 3, 4, 5, 6] }), null, 'Wave 5 has no registry entry — never guessed');
+  assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 7, completedWaves: [0, 1, 2, 3, 4, 5, 6] }), null, 'Wave 7 has no registry entry — never guessed');
 }
 
 // ── 4. Manifests ──
@@ -119,6 +154,8 @@ function makeFixtureRepo() {
   const regMan = jarvisWaveRegistryManifestV1();
   assert.equal(regMan.fabricates_undefined_waves, false);
   assert.ok(regMan.registered_waves.includes(0) && regMan.registered_waves.includes(1));
+  assert.ok(regMan.registered_waves.includes(6), 'Wave 6 is registered');
+  assert.ok(!regMan.registered_waves.includes(4) && !regMan.registered_waves.includes(5) && !regMan.registered_waves.includes(7), 'Waves 4, 5, 7 remain unregistered');
 
   const planMan = jarvisWaveTaskPlannerManifestV1();
   assert.equal(planMan.operator_supplied_task_precedence, true);

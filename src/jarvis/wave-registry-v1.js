@@ -118,6 +118,23 @@ const REGISTRY = new Map([
     ],
     // Same reasoning as Wave 2 — see its comment above.
     generated_files: ['src/jarvis/command-center-ui/bundle.built.js']
+  }],
+  [6, {
+    id: 'wave-6-bounded-autonomous-program-loop',
+    title: 'Bounded Autonomous Program Loop',
+    goal: 'Add a Bounded Autonomous Program Loop V1 (src/jarvis/program-loop-v1.js) as an EXTERNAL, sequential caller around the already-accepted Program Controller — repeatedly calling controller.state() then controller.tick() with a hard maximum of 24 ticks (default 12, any requested value clamped to 1..24), never granting Program Approval and never inventing task title/goal text. Stops fail-closed on a state read failure, BLOCKED_OPERATOR, a missing next_action, or WAIT; stops before ever calling tick() when the working tree is dirty and the next action is PROPOSE_WAVE_TASK or PREPARE_BRANCH (ACCEPTED_WORK_AWAITS_PUBLICATION), so newly accepted but not-yet-published work is never carried into another wave; stops when a tick reports paused (AUTONOMY_PAUSED) or verified_progress_percent reaches 100 (PROGRAM_COMPLETE). An optional exact per-wave {title, goal} may be supplied and is passed through ONLY when the current next action is PROPOSE_WAVE_TASK or ANALYZE_FOR_REPAIR, never otherwise. The Program Controller itself is unchanged and still performs at most one mutating action per tick.',
+    depends_on: [5],
+    expected_files: [
+      'src/jarvis/program-loop-v1.js',
+      'scripts/jarvis-program-loop-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-program-loop-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 
