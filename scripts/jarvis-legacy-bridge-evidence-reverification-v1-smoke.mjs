@@ -65,6 +65,156 @@ function simulateLegacyMissionV1(repo, newContent) {
   };
 }
 
+/** The REAL, observed df92-style nested shape: two committed files
+ *  ('a.js', 'b.js', standing in for the real mission's
+ *  src/jarvis/program-controller-v1.js /
+ *  scripts/jarvis-program-controller-v1-smoke.mjs), edited via
+ *  `newContentA`/`newContentB`, with tracked_name_status/diff captured
+ *  from real `git diff --name-status` / `git diff` — exactly the fields
+ *  the real persisted evidence carries. */
+function makeDf92FixtureRepoV1() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-df92-fixture-'));
+  git(dir, ['init', '-q']);
+  git(dir, ['symbolic-ref', 'HEAD', `refs/heads/${BRANCH}`]);
+  git(dir, ['config', 'user.email', 'fixture@example.invalid']);
+  git(dir, ['config', 'user.name', 'Fixture']);
+  fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'a.js'), 'module.exports = () => 1;\n');
+  fs.writeFileSync(path.join(dir, 'scripts', 'b.mjs'), 'export default () => 1;\n');
+  git(dir, ['add', '.']);
+  git(dir, ['commit', '-q', '-m', 'init']);
+  return dir;
+}
+function simulateDf92MissionV1(repo, newContentA, newContentB) {
+  fs.writeFileSync(path.join(repo, 'src', 'a.js'), newContentA);
+  fs.writeFileSync(path.join(repo, 'scripts', 'b.mjs'), newContentB);
+  const trackedNameStatus = git(repo, ['diff', '--name-status', '--', 'src/a.js', 'scripts/b.mjs']).trim().split('\n').filter(Boolean);
+  const diff = git(repo, ['diff', '--', 'src/a.js', 'scripts/b.mjs']).trim();
+  const changed = trackedNameStatus.map((line) => line.split('\t')[1]);
+  return {
+    schema: 'aurentara.jarvis.bridge-http-verification.v1',
+    bridge_service: 'jarvis-claude-bridge', bridge_version: 4, mode: 'implement', project: 'chatgpt-test',
+    git_evidence: {
+      pre: { head: 'abc' }, post: { head: 'abc' }, head_unchanged: true,
+      changes: { tracked_name_status: trackedNameStatus, untracked_files: [], diff_stat: `${changed.length} files changed`, diff }
+    },
+    filesystem_evidence: { changed },
+    tool_audit: [{ tool: 'Edit', path: 'src/a.js' }, { tool: 'Edit', path: 'scripts/b.mjs' }],
+    at: new Date().toISOString()
+  };
+}
+
+// ── real df92 nested shape ──
+await check('df92: nested tracked_name_status + untracked_files + nested diff + filesystem_evidence.changed => parsed and accepted', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, true, JSON.stringify(result));
+    assert.deepEqual(result.verification.files_changed.sort(), ['scripts/b.mjs', 'src/a.js']);
+    assert.equal(result.verification.syntax_check.passed, true);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: exact current two-file dirty set matches the nested claim exactly', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    const dirty = git(repo, ['status', '--porcelain']).split('\n').map((l) => l.slice(3).trim()).filter(Boolean).sort();
+    assert.deepEqual(dirty, ['scripts/b.mjs', 'src/a.js']);
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, true);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: nested changes.diff is enforced content-level — a further edit to one claimed file after capture is rejected', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    fs.writeFileSync(path.join(repo, 'src', 'a.js'), 'module.exports = () => 999;\n'); // altered after capture
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_DIFF_MISMATCH');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: an extra dirty file beyond the two claimed is rejected', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    fs.writeFileSync(path.join(repo, 'src', 'extra.js'), 'module.exports = () => 3;\n');
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_UNEXPECTED_DIRTY_FILES');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: a genuinely broken claimed file still fails syntax check, never bypassed', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = ( => {\n', 'export default () => 2;\n');
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_SYNTAX_CHECK_FAILED');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: a rename/copy name-status record (3 columns) fails the whole extraction closed, never guessed', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    legacy.git_evidence.changes.tracked_name_status = ['R100\tsrc/a.js\tsrc/a-renamed.js', 'M\tscripts/b.mjs'];
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_AMBIGUOUS_CHANGED_FILE_EVIDENCE');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: a malformed name-status entry (wrong column count / unrecognized status) fails closed', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    legacy.git_evidence.changes.tracked_name_status = ['src/a.js', 'M\tscripts/b.mjs']; // first entry missing status/tab
+    const badStatus = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(badStatus.sufficient, false);
+    assert.equal(badStatus.reason, 'LEGACY_REVERIFY_AMBIGUOUS_CHANGED_FILE_EVIDENCE');
+
+    const legacy2 = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    legacy2.git_evidence.changes.tracked_name_status = ['X\tsrc/a.js', 'M\tscripts/b.mjs']; // unrecognized status letter
+    const badLetter = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy2, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(badLetter.sufficient, false);
+    assert.equal(badLetter.reason, 'LEGACY_REVERIFY_AMBIGUOUS_CHANGED_FILE_EVIDENCE');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+await check('df92: git_evidence.changes vs filesystem_evidence.changed disagreement still fails closed', () => {
+  const repo = makeDf92FixtureRepoV1();
+  try {
+    const legacy = simulateDf92MissionV1(repo, 'module.exports = () => 2;\n', 'export default () => 2;\n');
+    legacy.filesystem_evidence.changed = ['src/a.js']; // drops scripts/b.mjs — disagrees with git_evidence
+    const result = reverifyLegacyBridgeHttpEvidenceV1({ verification: legacy, repo_dir: repo, target_branch: BRANCH });
+    assert.equal(result.sufficient, false);
+    assert.equal(result.reason, 'LEGACY_REVERIFY_EVIDENCE_DISAGREEMENT');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 // ── 1. legacy evidence + exact matching real repo + valid syntax => sufficient ──
 await check('1. exact matching legacy evidence, unaltered, valid syntax -> sufficient, canonical object produced', () => {
   const repo = makeFixtureRepoV1();
