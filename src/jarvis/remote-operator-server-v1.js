@@ -377,8 +377,9 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     target_branch: options.program_target_branch,
     enabled: runnerConfig.capability_enabled,
     interval_ms: runnerConfig.interval_ms,
-    max_ticks: runnerConfig.max_ticks
-  }, { controller: options.program_controller });
+    max_ticks: runnerConfig.max_ticks,
+    require_recovery: true
+  }, { controller: options.program_controller, memory_store: resolvedStore });
   options.program_runner = programRunner;
 
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);
@@ -387,7 +388,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     server.listen(port, host, resolve);
   });
 
-  if (runnerConfig.auto_start) programRunner.start({ confirm_run: true });
+  if (runnerConfig.auto_start) await programRunner.start({ confirm_run: true });
 
   return {
     ok: true,
@@ -431,7 +432,9 @@ export function jarvisRemoteOperatorManifestV1() {
     program_runner_capability_env: 'JARVIS_PROGRAM_RUNNER_ENABLED',
     program_runner_auto_start_env: 'JARVIS_PROGRAM_RUNNER_AUTO_START',
     program_runner_enabled_by_default: false,
-    program_runner_single_flight: true
+    program_runner_single_flight: true,
+    program_runner_recovery_required: true,
+    program_runner_recovery_source: 'DURABLE_AUDIT_PLUS_CONTROLLER_STATE'
   };
 }
 

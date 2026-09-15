@@ -23,7 +23,7 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
 {
   const runner = createJarvisProgramRunnerV1({ ...REQUEST }, { controller: { state: async () => ({ ok: true }), tick: async () => ({ ok: true }) } });
   assert.equal(runner.state().capability_enabled, false, 'runner is OFF unless explicitly capability-enabled');
-  assert.equal(runner.start({ confirm_run: true }).error, 'JARVIS_PROGRAM_RUNNER_DISABLED');
+  assert.equal((await runner.start({ confirm_run: true })).error, 'JARVIS_PROGRAM_RUNNER_DISABLED');
 }
 
 {
@@ -46,8 +46,8 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
       }
     }
   );
-  assert.equal(runner.start({}).error, 'JARVIS_PROGRAM_RUNNER_CONFIRM_RUN_REQUIRED');
-  const started = runner.start({ confirm_run: true });
+  assert.equal((await runner.start({})).error, 'JARVIS_PROGRAM_RUNNER_CONFIRM_RUN_REQUIRED');
+  const started = await runner.start({ confirm_run: true });
   assert.equal(started.ok, true);
   assert.equal(scheduled.length, 1);
   assert.equal(scheduled[0].ms, 0, 'explicit start schedules first cycle immediately but asynchronously');
@@ -76,7 +76,7 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
       run_loop: async () => { await pending; return { ok: true, stop_reason: 'WAIT', final_state: {} }; }
     }
   );
-  runner.start({ confirm_run: true });
+  await runner.start({ confirm_run: true });
   const first = runner.run_once();
   await Promise.resolve();
   const duplicate = await runner.run_once();
@@ -97,7 +97,7 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
       run_loop: async () => ({ ok: true, stop_reason: 'AUTONOMY_PAUSED', final_state: { current_wave: 7, verified_progress_percent: 63 } })
     }
   );
-  runner.start({ confirm_run: true });
+  await runner.start({ confirm_run: true });
   const result = await runner.run_once();
   assert.equal(result.ok, true);
   assert.equal(result.stop_reason, 'AUTONOMY_PAUSED');
@@ -111,7 +111,7 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
     { ...REQUEST, enabled: true },
     { controller, set_timeout: () => ({ unref() {} }), clear_timeout: () => {}, run_loop: async () => { loopCalled = true; return { ok: true }; } }
   );
-  runner.start({ confirm_run: true });
+  await runner.start({ confirm_run: true });
   const result = await runner.run_once();
   assert.equal(result.stop_reason, 'PROGRAM_APPROVAL_REQUIRED');
   assert.equal(loopCalled, false, 'no Program Approval means the bounded loop is never entered');
@@ -122,6 +122,7 @@ const man = jarvisProgramRunnerManifestV1();
 assert.equal(man.capability_enabled_by_default, false);
 assert.equal(man.explicit_start_confirmation_required, true);
 assert.equal(man.recursive_single_flight_scheduler, true);
+assert.equal(man.durable_recovery_supported, true);
 assert.equal(man.overlapping_cycles_ever, false);
 assert.equal(man.grants_program_approval_ever, false);
 assert.equal(man.invents_wave_task_ever, false);

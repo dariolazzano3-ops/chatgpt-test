@@ -1,30 +1,24 @@
 /* JARVIS — Private Program Runner V1.
 
-   A small scheduler around the already-accepted bounded Program Loop. It never
-   performs a controller mutation itself: every real program action still goes
-   through runJarvisBoundedProgramLoopV1 -> Program Controller, preserving the
-   controller's one-mutating-action-per-tick rule and every approval gate.
-
-   The runner is capability-gated and OFF by default. A start is explicit,
-   single-flight, and recursively scheduled with setTimeout only after the prior
-   cycle finishes, so two cycles can never overlap. */
+   Scheduler around the accepted bounded Program Loop. Every real program
+   action still goes through Program Loop -> Program Controller. The runner is
+   capability-gated OFF by default, single-flight, audit-backed, and restart
+   recovery is derived from durable audit + fresh controller state. */
 
 import { runJarvisBoundedProgramLoopV1 } from './program-loop-v1.js';
+import { createJarvisAuditEventV1 } from './audit-v1.js';
+import { evaluateJarvisProgramRunnerRecoveryV1 } from './program-runner-recovery-v1.js';
 
 export const JARVIS_PROGRAM_RUNNER_DEFAULT_INTERVAL_MS = 60_000;
 export const JARVIS_PROGRAM_RUNNER_MIN_INTERVAL_MS = 30_000;
 export const JARVIS_PROGRAM_RUNNER_MAX_INTERVAL_MS = 15 * 60_000;
 
 const TERMINAL_STOP_REASONS = new Set([
-  'AUTONOMY_PAUSED',
-  'BLOCKED_OPERATOR',
-  'NO_NEXT_ACTION',
-  'ACCEPTED_WORK_AWAITS_PUBLICATION',
-  'PROGRAM_COMPLETE',
-  'STATE_READ_FAILED',
-  'TICK_FAILED'
+  'AUTONOMY_PAUSED', 'BLOCKED_OPERATOR', 'NO_NEXT_ACTION',
+  'ACCEPTED_WORK_AWAITS_PUBLICATION', 'PROGRAM_COMPLETE',
+  'STATE_READ_FAILED', 'TICK_FAILED'
 ]);
-
+const RUNNER_ACTION = 'PROGRAM_RUNNER_CYCLE';
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
 
 export function clampJarvisProgramRunnerIntervalMsV1(value) {
@@ -36,17 +30,16 @@ export function clampJarvisProgramRunnerIntervalMsV1(value) {
 export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   const controller = deps.controller;
   const runLoop = deps.run_loop || runJarvisBoundedProgramLoopV1;
+  const store = deps.memory_store || null;
   const setTimer = deps.set_timeout || ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = deps.clear_timeout || ((id) => clearTimeout(id));
   const now = deps.now || (() => new Date().toISOString());
+  const requireRecovery = config.require_recovery === true;
 
   const fixedRequest = Object.freeze({
-    owner_id: clean(config.owner_id, 80),
-    owner_ref: clean(config.owner_ref, 320),
-    program: clean(config.program, 80).toUpperCase(),
-    repo_dir: clean(config.repo_dir, 400),
-    target_branch: clean(config.target_branch, 200),
-    max_ticks: config.max_ticks
+    owner_id: clean(config.owner_id, 80), owner_ref: clean(config.owner_ref, 320),
+    program: clean(config.program, 80).toUpperCase(), repo_dir: clean(config.repo_dir, 400),
+    target_branch: clean(config.target_branch, 200), max_ticks: config.max_ticks
   });
   const capabilityEnabled = config.enabled === true;
   const intervalMs = clampJarvisProgramRunnerIntervalMsV1(config.interval_ms);
@@ -61,35 +54,26 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   let lastError = null;
   let lastResult = null;
   let nextScheduledAt = null;
+  let recovery = { status: requireRecovery ? 'NOT_CHECKED' : 'NOT_REQUIRED', resume_allowed: !requireRecovery, reason: null };
 
   function validBinding() {
-    return Boolean(
-      fixedRequest.owner_id && fixedRequest.owner_ref && fixedRequest.program
-      && fixedRequest.repo_dir && fixedRequest.target_branch
-      && controller && typeof controller.state === 'function' && typeof controller.tick === 'function'
-    );
+    return Boolean(fixedRequest.owner_id && fixedRequest.owner_ref && fixedRequest.program
+      && fixedRequest.repo_dir && fixedRequest.target_branch && controller
+      && typeof controller.state === 'function' && typeof controller.tick === 'function');
   }
 
   function snapshot() {
     return {
-      ok: true,
-      status: 200,
-      schema: 'aurentara.jarvis.program-runner-state.v1',
-      capability_enabled: capabilityEnabled,
-      active,
-      cycle_in_flight: inFlight,
-      cycle_count: cycleCount,
-      interval_ms: intervalMs,
-      last_started_at: lastStartedAt,
-      last_finished_at: lastFinishedAt,
-      last_stop_reason: lastStopReason,
-      last_error: lastError,
-      next_scheduled_at: nextScheduledAt,
-      program: fixedRequest.program || null,
-      repo_dir: fixedRequest.repo_dir || null,
+      ok: true, status: 200, schema: 'aurentara.jarvis.program-runner-state.v1',
+      capability_enabled: capabilityEnabled, active, cycle_in_flight: inFlight, cycle_count: cycleCount,
+      interval_ms: intervalMs, last_started_at: lastStartedAt, last_finished_at: lastFinishedAt,
+      last_stop_reason: lastStopReason, last_error: lastError, next_scheduled_at: nextScheduledAt,
+      program: fixedRequest.program || null, repo_dir: fixedRequest.repo_dir || null,
       target_branch: fixedRequest.target_branch || null,
-      current_wave: lastResult?.final_state?.current_wave ?? null,
-      verified_progress_percent: lastResult?.final_state?.verified_progress_percent ?? null
+      current_wave: lastResult?.final_state?.current_wave ?? recovery?.current_wave ?? null,
+      verified_progress_percent: lastResult?.final_state?.verified_progress_percent ?? recovery?.verified_progress_percent ?? null,
+      recovery_status: recovery?.status || null, recovery_reason: recovery?.reason || null,
+      interrupted_cycle: recovery?.interrupted_cycle || null
     };
   }
 
@@ -104,6 +88,54 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
     lastStopReason = reason || lastStopReason;
     lastError = error || null;
     cancelScheduled();
+  }
+
+  async function appendCycleAudit(status, cycleId, extra = {}) {
+    if (!store || typeof store.appendAudit !== 'function') {
+      if (requireRecovery) throw new Error('JARVIS_PROGRAM_RUNNER_AUDIT_STORE_REQUIRED');
+      return null;
+    }
+    const event = createJarvisAuditEventV1({
+      timestamp: now(), owner_ref: fixedRequest.owner_ref,
+      request: `[PROGRAM RUNNER] ${fixedRequest.program} · ${fixedRequest.target_branch}`,
+      intent: { intent_type: RUNNER_ACTION, domain: 'PROGRAM', action: RUNNER_ACTION },
+      tools_used: [], permissions: [], action: RUNNER_ACTION,
+      result: {
+        status, program: fixedRequest.program, repo_dir: fixedRequest.repo_dir,
+        target_branch: fixedRequest.target_branch, cycle_id: cycleId, ...extra
+      },
+      approval: { required: false, explicit: false, actor_type: 'SYSTEM', gate_status: 'PROGRAM_APPROVAL_ENFORCED_BY_CONTROLLER' },
+      cost: { estimated_eur: 0, actual_eur: 0 },
+      memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
+    });
+    return store.appendAudit({ owner_id: fixedRequest.owner_id, owner_ref: fixedRequest.owner_ref, event });
+  }
+
+  async function recover() {
+    if (!requireRecovery) {
+      recovery = { status: 'NOT_REQUIRED', resume_allowed: true, reason: null };
+      return { ok: true, ...recovery };
+    }
+    if (!store || typeof store.readAudit !== 'function') {
+      recovery = { status: 'BLOCKED', resume_allowed: false, reason: 'AUDIT_READ_REQUIRED' };
+      return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_STORE_REQUIRED', ...recovery };
+    }
+    let audit;
+    let state;
+    try {
+      [audit, state] = await Promise.all([
+        store.readAudit({ owner_id: fixedRequest.owner_id, owner_ref: fixedRequest.owner_ref, limit: 200 }),
+        controller.state(fixedRequest)
+      ]);
+    } catch {
+      recovery = { status: 'BLOCKED', resume_allowed: false, reason: 'RECOVERY_READ_FAILED' };
+      return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_READ_FAILED', ...recovery };
+    }
+    recovery = evaluateJarvisProgramRunnerRecoveryV1({
+      audit, program: fixedRequest.program, repo_dir: fixedRequest.repo_dir,
+      target_branch: fixedRequest.target_branch, controller_state: state
+    });
+    return recovery;
   }
 
   function schedule(delayMs = intervalMs) {
@@ -133,45 +165,73 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
     cycleCount += 1;
     lastStartedAt = now();
     lastError = null;
+    const cycleId = `${lastStartedAt}#${cycleCount}`;
+    let output;
+    let finishExtra = {};
     try {
       const preflight = await controller.state(fixedRequest);
       if (!preflight || preflight.ok !== true) {
         suspend('STATE_READ_FAILED', 'JARVIS_PROGRAM_RUNNER_STATE_READ_FAILED');
-        return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_STATE_READ_FAILED', state: snapshot() };
+        output = { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_STATE_READ_FAILED' };
+        return output;
       }
       if (preflight.program_approval?.granted !== true) {
         suspend('PROGRAM_APPROVAL_REQUIRED');
-        return { ok: true, status: 200, cycle_executed: false, stop_reason: 'PROGRAM_APPROVAL_REQUIRED', state: snapshot() };
+        output = { ok: true, status: 200, cycle_executed: false, stop_reason: 'PROGRAM_APPROVAL_REQUIRED' };
+        return output;
+      }
+
+      try { await appendCycleAudit('STARTED', cycleId, { current_wave: preflight.current_wave ?? null }); }
+      catch {
+        suspend('AUDIT_PERSIST_FAILED', 'JARVIS_PROGRAM_RUNNER_AUDIT_PERSIST_FAILED');
+        output = { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_AUDIT_PERSIST_FAILED' };
+        return output;
       }
 
       const result = await runLoop(fixedRequest, { controller });
       lastResult = result;
       lastStopReason = result?.stop_reason || (result?.ok ? 'UNKNOWN' : 'RUNNER_LOOP_FAILED');
+      finishExtra = {
+        stop_reason: lastStopReason,
+        current_wave: result?.final_state?.current_wave ?? null,
+        verified_progress_percent: result?.final_state?.verified_progress_percent ?? null
+      };
       if (!result || result.ok !== true) {
         suspend(lastStopReason, result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED');
-        return { ok: false, status: result?.status || 503, error: result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED', result, state: snapshot() };
+        output = { ok: false, status: result?.status || 503, error: result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED', result };
+        return output;
       }
       if (TERMINAL_STOP_REASONS.has(lastStopReason)) suspend(lastStopReason);
-      return { ok: true, status: 200, cycle_executed: true, stop_reason: lastStopReason, result, state: snapshot() };
+      output = { ok: true, status: 200, cycle_executed: true, stop_reason: lastStopReason, result };
+      return output;
     } catch (error) {
       suspend('RUNNER_CYCLE_FAILED', clean(error?.message, 300) || 'JARVIS_PROGRAM_RUNNER_CYCLE_FAILED');
-      return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_CYCLE_FAILED', state: snapshot() };
+      output = { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_CYCLE_FAILED' };
+      return output;
     } finally {
-      inFlight = false;
       lastFinishedAt = now();
+      if (store && typeof store.appendAudit === 'function' && cycleId) {
+        try { await appendCycleAudit('FINISHED', cycleId, { ...finishExtra, final_ok: output?.ok === true }); }
+        catch { suspend('AUDIT_PERSIST_FAILED', 'JARVIS_PROGRAM_RUNNER_AUDIT_PERSIST_FAILED'); }
+      }
+      inFlight = false;
     }
   }
 
-  function start(request = {}) {
+  async function start(request = {}) {
     if (request.confirm_run !== true) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_RUNNER_CONFIRM_RUN_REQUIRED', state: snapshot() };
     if (!capabilityEnabled) return { ok: false, status: 403, error: 'JARVIS_PROGRAM_RUNNER_DISABLED', state: snapshot() };
     if (!validBinding()) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_BINDING_INVALID', state: snapshot() };
     if (active) return { ok: true, status: 200, already_active: true, state: snapshot() };
+    const recovered = await recover();
+    if (requireRecovery && (!recovered.ok || recovered.resume_allowed !== true)) {
+      return { ok: false, status: recovered.status === 'COMPLETE' ? 409 : 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_BLOCKED', recovery: recovered, state: snapshot() };
+    }
     active = true;
     lastStopReason = null;
     lastError = null;
     schedule(0);
-    return { ok: true, status: 200, started: true, state: snapshot() };
+    return { ok: true, status: 200, started: true, recovery: recovered, state: snapshot() };
   }
 
   function stop(request = {}) {
@@ -186,7 +246,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
     return clean(ownerId, 80) === fixedRequest.owner_id && clean(ownerRef, 320) === fixedRequest.owner_ref;
   }
 
-  return { start, stop, run_once: runOnce, state: snapshot, matches_scope: matchesScope };
+  return { start, stop, run_once: runOnce, recover, state: snapshot, matches_scope: matchesScope };
 }
 
 export function jarvisProgramRunnerManifestV1() {
@@ -197,6 +257,8 @@ export function jarvisProgramRunnerManifestV1() {
     recursive_single_flight_scheduler: true,
     overlapping_cycles_ever: false,
     delegates_to_bounded_program_loop: true,
+    durable_recovery_supported: true,
+    recovery_source: 'AUDIT_PLUS_FRESH_CONTROLLER_STATE',
     grants_program_approval_ever: false,
     invents_wave_task_ever: false,
     mutates_program_directly: false,

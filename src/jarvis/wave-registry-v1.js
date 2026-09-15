@@ -156,6 +156,31 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: []
+  }],
+  [8, {
+    id: 'wave-8-runner-restart-recovery',
+    title: 'Durable Runner State + Restart Recovery',
+    goal: 'Add durable restart recovery for the Private Program Runner without creating a new mutable program-state table. Persist bounded STARTED/FINISHED runner-cycle audit evidence in the existing owner-scoped audit store, derive recovery from that audit plus a fresh Program Controller state read, detect an interrupted prior cycle without blindly replaying it, and fail closed when durable audit or controller truth is unavailable. Wire the Remote Operator runner to require this recovery path before activation.',
+    depends_on: [7],
+    expected_files: [
+      'src/jarvis/program-runner-recovery-v1.js',
+      'scripts/jarvis-program-runner-recovery-v1-smoke.mjs',
+      'src/jarvis/program-runner-v1.js',
+      'scripts/jarvis-program-runner-v1-smoke.mjs',
+      'src/jarvis/remote-operator-server-v1.js',
+      'scripts/jarvis-remote-operator-server-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-program-runner-recovery-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-runner-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-engineering-mission-resume-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-remote-operator-server-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 
