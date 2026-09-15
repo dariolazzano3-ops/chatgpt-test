@@ -205,6 +205,25 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: ['src/jarvis/command-center-ui/bundle.built.js']
+  }],
+  [10, {
+    id: 'wave-10-autonomous-e2e-proof',
+    title: 'Autonomous End-to-End Continuation Proof',
+    goal: 'Prove the complete accepted V2 orchestration as one controlled private chain: Program State -> registry task -> branch preparation -> Program Approval enforcement -> Bridge execution -> Independent Acceptance -> verified progress update -> next wave -> runner continuation, plus an explicit autonomy pause and audit-derived restart recovery. The proof uses only private fixture repos and in-memory audit storage, causes no production/public/DNS/billing effects, and must show that worker COMPLETE alone never counts as progress.',
+    depends_on: [9],
+    expected_files: [
+      'scripts/jarvis-v2-autonomous-e2e-v1.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-v2-autonomous-e2e-v1.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-runner-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-runner-recovery-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 
