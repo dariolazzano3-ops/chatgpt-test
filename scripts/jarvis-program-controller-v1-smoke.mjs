@@ -37,6 +37,7 @@ function makeFixtureRepo() {
 // "safe to check out" — these two fixtures mirror that distinction exactly
 // as evaluateJarvisBranchTruthV1 would report it.
 const ON_TARGET = { current_branch: 'feature/x', target_branch: 'feature/x', safe_to_prepare: true, working_tree_clean: true, target_branch_protected: false };
+const ON_TARGET_DIRTY = { current_branch: 'feature/x', target_branch: 'feature/x', safe_to_prepare: false, working_tree_clean: false, target_branch_protected: false };
 const OFF_TARGET_CLEAN = { current_branch: 'main', target_branch: 'feature/x', safe_to_prepare: true, working_tree_clean: true, target_branch_protected: false };
 const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', safe_to_prepare: false, working_tree_clean: false, target_branch_protected: false };
 
@@ -51,6 +52,13 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   const r = deriveJarvisProgramWaveStateV1({ waveRuns: [], branchTruth: OFF_TARGET_DIRTY, dispatchCovered: true, acceptCovered: true });
   assert.equal(r.state, 'BLOCKED_OPERATOR');
   assert.equal(r.reason, 'WORKING_TREE_DIRTY');
+}
+// ── 2b. Already on target but dirty with no mission -> BLOCKED_OPERATOR ──
+{
+  const r = deriveJarvisProgramWaveStateV1({ waveRuns: [], branchTruth: ON_TARGET_DIRTY, dispatchCovered: true, acceptCovered: true });
+  assert.equal(r.state, 'BLOCKED_OPERATOR');
+  assert.equal(r.reason, 'WORKING_TREE_DIRTY');
+  assert.equal(r.next_action, null);
 }
 // ── 3. Pure state derivation: no run yet -> PENDING, needs a task ──
 {

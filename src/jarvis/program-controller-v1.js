@@ -88,6 +88,13 @@ export function deriveJarvisProgramWaveStateV1({ waveRuns = [], branchTruth = nu
 
   const latest = waveRuns[waveRuns.length - 1] || null;
   if (!latest) {
+    // Starting a brand-new mission on top of pre-existing tracked changes is
+    // unsafe even when we are already on the intended feature branch. A
+    // completed/active mission is handled below because its own work may
+    // legitimately make the tree dirty while awaiting verification.
+    if (branchTruth?.working_tree_clean === false) {
+      return { state: 'BLOCKED_OPERATOR', reason: 'WORKING_TREE_DIRTY', next_action: null };
+    }
     return { state: 'PENDING', reason: 'NO_MISSION_DISPATCHED_YET', next_action: { action: 'PROPOSE_WAVE_TASK' } };
   }
 

@@ -224,6 +224,29 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: []
+  }],
+  [11, {
+    id: 'wave-11-failure-matrix-safety-hardening',
+    title: 'Failure Matrix + Safety Hardening',
+    goal: 'Systematically attack the completed V2 orchestration with fail-closed scenarios: missing/revoked Program Approval, autonomy pause, protected/dirty branch truth, branch drift, no-op COMPLETE, failed syntax verification, missing independent acceptance, timeout/duplicate dispatch, overlapping runner cycles, interrupted restart recovery, max repair attempts, unknown run status, undefined waves, missing next_action and Program Complete. Every unsafe or ambiguous case must block, pause, fail, or remain non-mutating; the constitutional denylist remains non-coverable.',
+    depends_on: [10],
+    expected_files: [
+      'scripts/jarvis-v2-failure-matrix-v1-smoke.mjs',
+      'scripts/jarvis-v2-safety-closure-v1-smoke.mjs',
+      'src/jarvis/program-controller-v1.js',
+      'scripts/jarvis-program-controller-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-v2-failure-matrix-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-safety-closure-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-loop-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-runner-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 
