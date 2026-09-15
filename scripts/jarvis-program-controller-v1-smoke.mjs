@@ -252,6 +252,8 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   assert.equal(man.autonomy_paused, false, 'not paused by default in this process');
   assert.equal(man.autonomy_pause_blocks_all_mutating_actions, true);
   assert.equal(man.autonomy_pause_blocks_program_state_reads, false);
+  assert.equal(man.program_complete_is_terminal, true);
+  assert.equal(man.program_complete_next_action, null);
 }
 
 // ── 11. JARVIS_AUTONOMY_PAUSED: global pause gate — Tick performs no
@@ -307,6 +309,34 @@ const OFF_TARGET_DIRTY = { current_branch: 'main', target_branch: 'feature/x', s
   const resumed = await handleJarvisProgramTickRuntimeV1({ ...tickReq, task: { title: 'Wave 0', goal: 'Wave 0 goal text' } }, deps);
   assert.equal(resumed.paused, undefined);
   assert.equal(resumed.performed.action, 'PROPOSE_WAVE_TASK');
+}
+
+// ── 12. 100% is terminal: PROGRAM_COMPLETE, no next action, Tick is inert ──
+{
+  const repo = makeFixtureRepo();
+  const branch = 'factory/program-complete';
+  git(repo, ['checkout', '-q', '-b', branch]);
+  const store = createMemoryJarvisStoreV1();
+  for (let wave = 0; wave <= 12; wave += 1) {
+    await store.appendAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, event: {
+      timestamp: new Date(Date.UTC(2026, 0, 1, 0, wave, 0)).toISOString(),
+      action: 'IMPLEMENTATION_MISSION',
+      result: { program: PROGRAM, wave_index: wave, wave_state: 'COMPLETE', independent_acceptance: true, acceptance_ref: `accept:${wave}` }
+    }});
+  }
+  const req = { owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: repo, target_branch: branch };
+  const before = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 200 });
+  const state = await handleJarvisProgramStateRuntimeV1(req, { memory_store: store });
+  assert.equal(state.verified_progress_percent, 100);
+  assert.equal(state.wave_state, 'PROGRAM_COMPLETE');
+  assert.equal(state.wave_reason, 'PROGRAM_COMPLETE');
+  assert.equal(state.next_action, null);
+  const tick = await handleJarvisProgramTickRuntimeV1(req, { memory_store: store });
+  assert.equal(tick.performed.action, 'NONE');
+  assert.equal(tick.wave_state, 'PROGRAM_COMPLETE');
+  assert.equal(tick.next_action, null);
+  const after = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 200 });
+  assert.equal(after.length, before.length, 'terminal tick writes no audit row');
 }
 
 console.log('JARVIS Program Controller V1 smoke: PASS');

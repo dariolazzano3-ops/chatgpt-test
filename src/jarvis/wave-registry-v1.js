@@ -247,6 +247,31 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: []
+  }],
+  [12, {
+    id: 'wave-12-v2-completion-seal',
+    title: 'V2 Completion Seal',
+    goal: 'Formally close JARVIS MASTERARCHITECTURE V2. The read-only Completion Seal must prove Waves 0-11 are independently accepted with real acceptance references and exact pre-seal progress of 96%, with controller truth on Wave 12 and no unsafe active state. The final regression must keep E2E, failure-matrix and safety gates green. Only the normal independent acceptance of this Wave 12 commit may raise canonical progress to 100%; after that Program State is terminal PROGRAM_COMPLETE with no next action and no further automatic mutation.',
+    depends_on: [11],
+    expected_files: [
+      'src/jarvis/program-completion-seal-v1.js',
+      'scripts/jarvis-program-completion-seal-v1-smoke.mjs',
+      'scripts/jarvis-v2-final-regression-v1.mjs',
+      'src/jarvis/program-controller-v1.js',
+      'scripts/jarvis-program-controller-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-program-completion-seal-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-final-regression-v1.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-safety-closure-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-autonomous-e2e-v1.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-failure-matrix-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 

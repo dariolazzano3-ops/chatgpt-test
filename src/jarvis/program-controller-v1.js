@@ -52,7 +52,7 @@ const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const JARVIS_PROGRAM_WAVE_STATES = Object.freeze([
-  'PENDING', 'PREPARING', 'EXECUTING', 'VERIFYING', 'REPAIRING', 'ACCEPTING', 'ACCEPTED', 'BLOCKED_OPERATOR', 'FAILED'
+  'PENDING', 'PREPARING', 'EXECUTING', 'VERIFYING', 'REPAIRING', 'ACCEPTING', 'ACCEPTED', 'PROGRAM_COMPLETE', 'BLOCKED_OPERATOR', 'FAILED'
 ]);
 export const JARVIS_PROGRAM_MAX_REPAIR_ATTEMPTS = 3;
 export const JARVIS_AUTONOMY_PAUSED_ENV_VAR = 'JARVIS_AUTONOMY_PAUSED';
@@ -177,9 +177,12 @@ async function computeProgramContextV1({ ownerId, ownerRef, program, repoDir, ta
     capability: 'ACCEPTANCE', program, repo_dir: repoDir, target_branch: targetBranch
   });
 
-  const waveState = deriveJarvisProgramWaveStateV1({
-    waveRuns, branchTruth, dispatchCovered: dispatchCheck.covered, acceptCovered: acceptCheck.covered
-  });
+  const programComplete = Number(v2Env.data.verified_progress_percent) >= 100;
+  const waveState = programComplete
+    ? { state: 'PROGRAM_COMPLETE', reason: 'PROGRAM_COMPLETE', next_action: null }
+    : deriveJarvisProgramWaveStateV1({
+      waveRuns, branchTruth, dispatchCovered: dispatchCheck.covered, acceptCovered: acceptCheck.covered
+    });
 
   return {
     audit, approvalState, branchTruth, currentWave, waveRuns, waveState,
@@ -363,6 +366,8 @@ export function jarvisProgramControllerManifestV1() {
     autonomy_paused: isJarvisAutonomyPausedV1(),
     autonomy_pause_blocks_all_mutating_actions: true,
     autonomy_pause_blocks_program_state_reads: false,
+    program_complete_is_terminal: true,
+    program_complete_next_action: null,
     production_deploy: false,
     hamyren_data_flow: false
   };

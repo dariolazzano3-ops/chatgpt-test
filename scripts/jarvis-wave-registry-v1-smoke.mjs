@@ -105,6 +105,13 @@ function makeFixtureRepo() {
   assert.ok(wave11.expected_files.includes('scripts/jarvis-v2-failure-matrix-v1-smoke.mjs'));
   assert.equal(wave11.required_checks.length, 6);
 
+  const wave12 = getJarvisWaveRegistryEntryV1(PROGRAM, 12);
+  assert.equal(wave12.wave_index, 12);
+  assert.deepEqual(wave12.depends_on, [11]);
+  assert.equal(wave12.id, 'wave-12-v2-completion-seal');
+  assert.ok(wave12.expected_files.includes('src/jarvis/program-completion-seal-v1.js'));
+  assert.equal(wave12.required_checks.length, 7);
+
   // Historical Waves 4/5 remain audit-defined; unknown future waves are null.
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 4), null);
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 5), null, 'Wave 5 is audit-defined; Wave 6 depends on its accepted index');
@@ -200,6 +207,10 @@ function makeFixtureRepo() {
   assert.equal(wave11Ready.source, 'REGISTRY_PROPOSAL');
   assert.equal(wave11Ready.registry_id, 'wave-11-failure-matrix-safety-hardening');
   assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 11, completedWaves: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }), null, 'Wave 11 depends on accepted Wave 10');
+  const wave12Ready = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 12, completedWaves: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] });
+  assert.equal(wave12Ready.source, 'REGISTRY_PROPOSAL');
+  assert.equal(wave12Ready.registry_id, 'wave-12-v2-completion-seal');
+  assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 12, completedWaves: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }), null, 'Wave 12 depends on accepted Wave 11');
 }
 
 // ── 4. Manifests ──
@@ -213,6 +224,7 @@ function makeFixtureRepo() {
   assert.ok(regMan.registered_waves.includes(9), 'Wave 9 is registered');
   assert.ok(regMan.registered_waves.includes(10), 'Wave 10 is registered');
   assert.ok(regMan.registered_waves.includes(11), 'Wave 11 is registered');
+  assert.ok(regMan.registered_waves.includes(12), 'Wave 12 is registered');
   assert.ok(!regMan.registered_waves.includes(4) && !regMan.registered_waves.includes(5), 'Historical Waves 4/5 remain audit-defined');
 
   const planMan = jarvisWaveTaskPlannerManifestV1();
