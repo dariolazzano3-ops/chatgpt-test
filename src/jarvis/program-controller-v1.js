@@ -47,6 +47,8 @@ import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1, evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
 import { proposeJarvisWaveTaskV1 } from './wave-task-planner-v1.js';
+import { isKnownJarvisProgramV1, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
+import { computeJarvisWorkingTreeWaveEvidenceV1 } from './working-tree-wave-evidence-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -161,11 +163,11 @@ export function deriveJarvisMechanicalRepairTaskV1(verification, title, program,
 
 async function computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore, now }) {
   const bindings = createJarvisCommandCenterReadBindingsV1({ store: memoryStore, owner_id: ownerId, owner_ref: ownerRef, now });
-  const [runsEnv, v2Env] = await Promise.all([bindings.runs(), bindings.v2_progress()]);
+  const [runsEnv, progressEnv] = await Promise.all([bindings.runs(), bindings.program_progress(program)]);
   const audit = await memoryStore.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
   const approvalState = evaluateJarvisProgramApprovalStateV1(audit, program);
   const branchTruth = evaluateJarvisBranchTruthV1({ repo_dir: repoDir, target_branch: targetBranch, base_ref: 'HEAD' });
-  const currentWave = v2Env.data.program ? v2Env.data.current_wave : 0;
+  const currentWave = progressEnv.data.current_wave ?? 0;
   const waveRuns = runsEnv.data
     .filter((r) => r.program === program && r.wave_index === currentWave)
     .sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
@@ -177,7 +179,7 @@ async function computeProgramContextV1({ ownerId, ownerRef, program, repoDir, ta
     capability: 'ACCEPTANCE', program, repo_dir: repoDir, target_branch: targetBranch
   });
 
-  const programComplete = Number(v2Env.data.verified_progress_percent) >= 100;
+  const programComplete = Number(progressEnv.data.verified_progress_percent) >= 100;
   const waveState = programComplete
     ? { state: 'PROGRAM_COMPLETE', reason: 'PROGRAM_COMPLETE', next_action: null }
     : deriveJarvisProgramWaveStateV1({
@@ -186,7 +188,7 @@ async function computeProgramContextV1({ ownerId, ownerRef, program, repoDir, ta
 
   return {
     audit, approvalState, branchTruth, currentWave, waveRuns, waveState,
-    v2Progress: v2Env.data,
+    programProgress: progressEnv.data,
     dispatchCovered: dispatchCheck.covered, dispatchCoverReason: dispatchCheck.reason,
     acceptCovered: acceptCheck.covered, acceptCoverReason: acceptCheck.reason
   };
@@ -202,6 +204,7 @@ export async function handleJarvisProgramStateRuntimeV1(request = {}, deps = {})
   if (!UUID_RE.test(ownerId) || !ownerRef || !program || !repoDir || !targetBranch) {
     return { ok: false, status: 400, error: 'JARVIS_PROGRAM_STATE_REQUEST_INVALID' };
   }
+  if (!isKnownJarvisProgramV1(program)) return { ok: false, status: 404, error: 'JARVIS_PROGRAM_UNKNOWN', program };
   if (!deps.memory_store) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_STATE_MEMORY_STORE_REQUIRED' };
 
   const ctx = await computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore: deps.memory_store, now: request.now });
@@ -210,8 +213,8 @@ export async function handleJarvisProgramStateRuntimeV1(request = {}, deps = {})
     schema: 'aurentara.jarvis.program-state.v1',
     program, repo_dir: repoDir, target_branch: targetBranch,
     current_wave: ctx.currentWave,
-    completed_waves: ctx.v2Progress.completed_waves,
-    verified_progress_percent: ctx.v2Progress.verified_progress_percent,
+    completed_waves: ctx.programProgress.completed_waves,
+    verified_progress_percent: ctx.programProgress.verified_progress_percent,
     program_approval: { granted: ctx.approvalState.granted, scope: ctx.approvalState.scope },
     dispatch_covered: ctx.dispatchCovered,
     accept_covered: ctx.acceptCovered,
@@ -236,6 +239,7 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
   if (!UUID_RE.test(ownerId) || !ownerRef || !program || !repoDir || !targetBranch) {
     return { ok: false, status: 400, error: 'JARVIS_PROGRAM_TICK_REQUEST_INVALID' };
   }
+  if (!isKnownJarvisProgramV1(program)) return { ok: false, status: 404, error: 'JARVIS_PROGRAM_UNKNOWN', program };
   if (!deps.memory_store) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_TICK_MEMORY_STORE_REQUIRED' };
 
   if (isJarvisAutonomyPausedV1()) {
@@ -252,7 +256,7 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
       paused: true,
       pause_reason: JARVIS_AUTONOMY_PAUSED_ENV_VAR,
       current_wave: pausedCtx.currentWave,
-      verified_progress_percent: pausedCtx.v2Progress.verified_progress_percent,
+      verified_progress_percent: pausedCtx.programProgress.verified_progress_percent,
       wave_state: pausedCtx.waveState.state,
       wave_reason: pausedCtx.waveState.reason,
       next_action: pausedCtx.waveState.next_action
@@ -262,6 +266,8 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
   const ctx = await computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore: deps.memory_store, now });
   const action = ctx.waveState.next_action;
   let performed = { action: null, detail: null };
+  let tickOk = true;
+  let tickStatus = 200;
 
   if (!action) {
     // BLOCKED_OPERATOR / VERIFYING-but-not-covered / nothing to do this tick.
@@ -277,7 +283,7 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
     // the registry does not define (see wave-registry-v1.js).
     const operatorTask = (request.task && clean(request.task.title, 1) && clean(request.task.goal, 1)) ? request.task : null;
     const registryTask = operatorTask ? null : proposeJarvisWaveTaskV1({
-      program, waveIndex: ctx.currentWave, completedWaves: ctx.v2Progress.completed_waves
+      program, waveIndex: ctx.currentWave, completedWaves: ctx.programProgress.completed_waves
     });
     const task = operatorTask || registryTask;
     if (!task) {
@@ -309,10 +315,29 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
     }, { memory_store: deps.memory_store, claude_bridge: deps.claude_bridge, claude_timeout_ms: deps.claude_timeout_ms });
     performed = { action: 'RESUME', detail: resume };
   } else if (action.action === 'VERIFY_AND_ACCEPT') {
-    const accept = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
-      owner_id: ownerId, owner_ref: ownerRef, request_id: action.request_id, now
-    }, { memory_store: deps.memory_store });
-    performed = { action: 'VERIFY_AND_ACCEPT', detail: accept };
+    if (program === JARVIS_V3_PROGRAM_ID) {
+      const acceptState = evaluateJarvisEngineeringMissionAcceptanceStateV1(ctx.audit, action.request_id);
+      const trustedWaveEvidence = computeJarvisWorkingTreeWaveEvidenceV1({
+        repo_dir: repoDir, target_branch: targetBranch, program, wave_index: ctx.currentWave,
+        verification: acceptState.verification
+      });
+      if (!trustedWaveEvidence.sufficient) {
+        tickOk = false;
+        tickStatus = 409;
+        performed = { action: 'VERIFY_AND_ACCEPT', detail: { ok: false, error: 'JARVIS_TRUSTED_WAVE_PRECHECK_FAILED', evidence: trustedWaveEvidence } };
+      } else {
+        const accept = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
+          owner_id: ownerId, owner_ref: ownerRef, request_id: action.request_id, now
+        }, { memory_store: deps.memory_store });
+        performed = { action: 'VERIFY_AND_ACCEPT', detail: { ...accept, trusted_wave_evidence: trustedWaveEvidence } };
+        if (!accept?.ok || accept?.accepted !== true) { tickOk = false; tickStatus = accept?.status || 409; }
+      }
+    } else {
+      const accept = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
+        owner_id: ownerId, owner_ref: ownerRef, request_id: action.request_id, now
+      }, { memory_store: deps.memory_store });
+      performed = { action: 'VERIFY_AND_ACCEPT', detail: accept };
+    }
   } else if (action.action === 'ANALYZE_FOR_REPAIR') {
     const acceptState = evaluateJarvisEngineeringMissionAcceptanceStateV1(ctx.audit, action.request_id);
     const lastRun = ctx.waveRuns[ctx.waveRuns.length - 1];
@@ -336,12 +361,12 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
 
   const after = await computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore: deps.memory_store, now });
   return {
-    ok: true, status: 200,
+    ok: tickOk, status: tickStatus,
     schema: 'aurentara.jarvis.program-tick-response.v1',
     program, repo_dir: repoDir, target_branch: targetBranch,
     performed,
     current_wave: after.currentWave,
-    verified_progress_percent: after.v2Progress.verified_progress_percent,
+    verified_progress_percent: after.programProgress.verified_progress_percent,
     wave_state: after.waveState.state,
     wave_reason: after.waveState.reason,
     next_action: after.waveState.next_action
@@ -368,6 +393,9 @@ export function jarvisProgramControllerManifestV1() {
     autonomy_pause_blocks_program_state_reads: false,
     program_complete_is_terminal: true,
     program_complete_next_action: null,
+    supports_multiple_registered_programs: true,
+    unknown_program_fails_closed: true,
+    trusted_registry_precheck_before_acceptance: true,
     production_deploy: false,
     hamyren_data_flow: false
   };

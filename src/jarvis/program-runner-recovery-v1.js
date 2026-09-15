@@ -64,8 +64,11 @@ export function evaluateJarvisProgramRunnerRecoveryV1({
     };
   }
   if (state.wave_state === 'BLOCKED_OPERATOR') {
+    const acceptedWorkAwaitsPublication = state.wave_reason === 'WORKING_TREE_DIRTY'
+      && state.branch_truth?.working_tree_clean === false;
     return {
-      ok: true, resume_allowed: false, status: 'BLOCKED', reason: 'BLOCKED_OPERATOR',
+      ok: true, resume_allowed: false, status: 'BLOCKED',
+      reason: acceptedWorkAwaitsPublication ? 'ACCEPTED_WORK_AWAITS_PUBLICATION' : 'BLOCKED_OPERATOR',
       interrupted_cycle: unfinished.at(-1)?.cycle_id || null, last_cycle_id: latest?.cycle_id || null
     };
   }

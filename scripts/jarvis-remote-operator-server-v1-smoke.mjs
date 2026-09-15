@@ -105,12 +105,20 @@ await check('D2. private Program Runner is capability-gated OFF by default and a
   const off = resolveJarvisRemoteOperatorProgramRunnerConfigV1({});
   assert.equal(off.capability_enabled, false);
   assert.equal(off.auto_start, false);
+  assert.equal(off.program, 'JARVIS_MASTERARCHITECTURE_V2');
+  assert.equal(off.publisher_enabled, false);
   const ready = resolveJarvisRemoteOperatorProgramRunnerConfigV1({ JARVIS_PROGRAM_RUNNER_ENABLED: 'on' });
   assert.equal(ready.capability_enabled, true);
   assert.equal(ready.auto_start, false);
   const auto = resolveJarvisRemoteOperatorProgramRunnerConfigV1({ JARVIS_PROGRAM_RUNNER_ENABLED: 'on', JARVIS_PROGRAM_RUNNER_AUTO_START: 'true' });
   assert.equal(auto.capability_enabled, true);
   assert.equal(auto.auto_start, true);
+  const v3 = resolveJarvisRemoteOperatorProgramRunnerConfigV1({
+    JARVIS_PROGRAM_RUNNER_ENABLED: 'on', JARVIS_PROGRAM_RUNNER_AUTO_START: 'true',
+    JARVIS_PROGRAM_RUNNER_PROGRAM: 'JARVIS_CAPABILITY_EXPANSION_V3', JARVIS_ACCEPTED_WORK_PUBLISHER_ENABLED: 'on'
+  });
+  assert.equal(v3.program, 'JARVIS_CAPABILITY_EXPANSION_V3');
+  assert.equal(v3.publisher_enabled, true);
 });
 
 // ── E. fail-closed: Cloudflare Access config required at startup ──
@@ -155,6 +163,21 @@ await check('G. repo truth resolves only from a real repo on a resolvable, non-d
   assert.equal(real.ok, true);
   assert.equal(real.repo_dir, fixtureRepoDir);
   assert.equal(real.target_branch, 'jarvis-remote-smoke-fixture-branch');
+});
+
+await check('D3. V3 auto-start fails closed without Trusted Publisher and unknown programs are refused', async () => {
+  const baseEnv = { ...REAL_ACCESS_ENV, ...REAL_SUPABASE_ENV, JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir };
+  const noPublisher = await startJarvisRemoteOperatorV1({
+    ...baseEnv, JARVIS_PROGRAM_RUNNER_ENABLED: 'on', JARVIS_PROGRAM_RUNNER_AUTO_START: 'on',
+    JARVIS_PROGRAM_RUNNER_PROGRAM: 'JARVIS_CAPABILITY_EXPANSION_V3'
+  }, { safety_check:{ok:true}, access_check:{ok:true}, supabase_check:{ok:true}, memory_store:createMemoryJarvisStoreV1(), program_location:{ok:true,repo_dir:fixtureRepoDir,target_branch:'jarvis-remote-smoke-fixture-branch'} });
+  assert.equal(noPublisher.ok, false);
+  assert.equal(noPublisher.error, 'JARVIS_V3_AUTO_START_REQUIRES_TRUSTED_PUBLISHER');
+  const unknown = await startJarvisRemoteOperatorV1({
+    ...baseEnv, JARVIS_PROGRAM_RUNNER_ENABLED: 'on', JARVIS_PROGRAM_RUNNER_PROGRAM: 'JARVIS_UNKNOWN_V99'
+  }, { safety_check:{ok:true}, access_check:{ok:true}, supabase_check:{ok:true}, memory_store:createMemoryJarvisStoreV1(), program_location:{ok:true,repo_dir:fixtureRepoDir,target_branch:'jarvis-remote-smoke-fixture-branch'} });
+  assert.equal(unknown.ok, false);
+  assert.equal(unknown.error, 'JARVIS_PROGRAM_RUNNER_PROGRAM_UNKNOWN');
 });
 
 // ── H. fail-closed: Claude execution is private Bridge HTTP only and never fabricates binding ──

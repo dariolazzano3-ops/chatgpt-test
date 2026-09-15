@@ -13,6 +13,7 @@
    run, an event, a timestamp, an approval or an evidence record. */
 
 import { computeJarvisV2ProgressV1, JARVIS_V2_PROGRAM_ID } from './v2-progress-v1.js';
+import { computeJarvisProgramProgressV1 } from './program-progress-v1.js';
 import { evaluateJarvisEngineeringMissionResumeStateV1 } from './engineering-mission-resume-v1.js';
 import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
 
@@ -278,14 +279,14 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
     };
   };
 
-  // Wave: truthful V2 progress, derived ONLY from persisted Engineering
-  // Mission audit rows (action IMPLEMENTATION_MISSION, result.program ===
-  // JARVIS_MASTERARCHITECTURE_V2). Never inferred from elapsed time, chat
-  // activity, run count, or a worker's own claim — see v2-progress-v1.js.
-  const v2Progress = async () => {
-    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, limit);
+  // Generic program progress. Uses a dedicated wider audit read so 24/7
+  // runner-cycle chatter can never evict older Independent Acceptance rows
+  // from the progress projection. UI lists above remain bounded by `limit`.
+  const programProgress = async (program) => {
+    const programId = clean(program, 80).toUpperCase();
+    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, 500);
     const rows = audit
-      .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === JARVIS_V2_PROGRAM_ID)
+      .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === programId)
       .map((row) => ({
         wave_index: row.result?.wave_index,
         wave_state: row.result?.wave_state,
@@ -296,14 +297,32 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
       }));
     return {
       classification: 'DERIVED',
-      source_id: 'jarvis-v2-progress-projection-v1',
+      source_id: 'jarvis-program-progress-projection-v1',
       derived_from: ['jarvis-audit-reader-v1'],
       observed_at: nowIso(),
+      data: computeJarvisProgramProgressV1(programId, rows)
+    };
+  };
+
+  // Compatibility surface: all existing V2 callers keep their exact API.
+  const v2Progress = async () => {
+    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, 500);
+    const rows = audit
+      .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === JARVIS_V2_PROGRAM_ID)
+      .map((row) => ({
+        wave_index: row.result?.wave_index, wave_state: row.result?.wave_state,
+        independent_acceptance: row.result?.independent_acceptance === true,
+        acceptance_ref: clean(row.result?.acceptance_ref || row.result?.independent_acceptance_ref, 240) || null,
+        at: row.at, evidence_ref: row.evidence_ref
+      }));
+    return {
+      classification: 'DERIVED', source_id: 'jarvis-v2-progress-projection-v1',
+      derived_from: ['jarvis-audit-reader-v1'], observed_at: nowIso(),
       data: computeJarvisV2ProgressV1(rows)
     };
   };
 
-  return { activity, runs, approvals, evidence, v2_progress: v2Progress };
+  return { activity, runs, approvals, evidence, program_progress: programProgress, v2_progress: v2Progress };
 }
 
 export function jarvisCommandCenterReadBindingsManifestV1() {
@@ -314,6 +333,8 @@ export function jarvisCommandCenterReadBindingsManifestV1() {
     runs_classification: 'DERIVED',
     approvals_classification: 'DERIVED',
     evidence_classification: 'DERIVED',
+    program_progress_classification: 'DERIVED',
+    program_progress_audit_limit: 500,
     v2_progress_classification: 'DERIVED',
     v2_progress_requires_independent_acceptance: true,
     runs_resumable_field_matches_resume_endpoint_rule: true,

@@ -56,6 +56,8 @@ import { handleJarvisProgramTickRuntimeV1, handleJarvisProgramStateRuntimeV1 } f
 import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-http-runtime-binding-v1.js';
 import { createJarvisSessionV1 } from './session-v1.js';
 import { createJarvisProgramRunnerV1, clampJarvisProgramRunnerIntervalMsV1 } from './program-runner-v1.js';
+import { createJarvisAcceptedWorkPublisherV1 } from './accepted-work-publisher-v1.js';
+import { isKnownJarvisProgramV1, JARVIS_V2_PROGRAM_ID, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const isOn = (value) => ['true', '1', 'on', 'yes'].includes(clean(value, 20).toLowerCase());
@@ -73,9 +75,12 @@ const REQUIRED_ACCESS_ENV_KEYS = ['JARVIS_ACCESS_AUD', 'JARVIS_ACCESS_TEAM_DOMAI
 
 export function resolveJarvisRemoteOperatorProgramRunnerConfigV1(env = process.env) {
   const capabilityEnabled = isOn(env.JARVIS_PROGRAM_RUNNER_ENABLED);
+  const program = clean(env.JARVIS_PROGRAM_RUNNER_PROGRAM, 80).toUpperCase() || JARVIS_V2_PROGRAM_ID;
   return {
     capability_enabled: capabilityEnabled,
     auto_start: capabilityEnabled && isOn(env.JARVIS_PROGRAM_RUNNER_AUTO_START),
+    program,
+    publisher_enabled: capabilityEnabled && isOn(env.JARVIS_ACCEPTED_WORK_PUBLISHER_ENABLED),
     interval_ms: clampJarvisProgramRunnerIntervalMsV1(env.JARVIS_PROGRAM_RUNNER_INTERVAL_MS),
     max_ticks: env.JARVIS_PROGRAM_RUNNER_MAX_TICKS
   };
@@ -362,6 +367,12 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const durableMemoryReady = resolvedStore?.durable === true;
 
   const runnerConfig = resolveJarvisRemoteOperatorProgramRunnerConfigV1(env);
+  if (!isKnownJarvisProgramV1(runnerConfig.program)) {
+    return { ok: false, error: 'JARVIS_PROGRAM_RUNNER_PROGRAM_UNKNOWN', program: runnerConfig.program };
+  }
+  if (runnerConfig.auto_start && runnerConfig.program === JARVIS_V3_PROGRAM_ID && !runnerConfig.publisher_enabled) {
+    return { ok: false, error: 'JARVIS_V3_AUTO_START_REQUIRES_TRUSTED_PUBLISHER' };
+  }
   const runnerSession = await createJarvisSessionV1(
     { ok: true, email: clean(env.JARVIS_OPERATOR_EMAIL, 320) },
     { canonical_owner_email: options.canonical_owner_email }
@@ -369,17 +380,20 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   if (!runnerSession.ok) {
     return { ok: false, error: 'JARVIS_PROGRAM_RUNNER_OWNER_SCOPE_UNAVAILABLE' };
   }
+  const trustedPublisher = runnerConfig.publisher_enabled
+    ? createJarvisAcceptedWorkPublisherV1({}, { memory_store: resolvedStore })
+    : null;
   const programRunner = overrides.program_runner || createJarvisProgramRunnerV1({
     owner_id: runnerSession.owner_id,
     owner_ref: runnerSession.owner_ref,
-    program: 'JARVIS_MASTERARCHITECTURE_V2',
+    program: runnerConfig.program,
     repo_dir: options.program_repo_dir,
     target_branch: options.program_target_branch,
     enabled: runnerConfig.capability_enabled,
     interval_ms: runnerConfig.interval_ms,
     max_ticks: runnerConfig.max_ticks,
     require_recovery: true
-  }, { controller: options.program_controller, memory_store: resolvedStore });
+  }, { controller: options.program_controller, memory_store: resolvedStore, publisher: trustedPublisher });
   options.program_runner = programRunner;
 
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);
@@ -431,6 +445,9 @@ export function jarvisRemoteOperatorManifestV1() {
     external_writes: false,
     program_runner_capability_env: 'JARVIS_PROGRAM_RUNNER_ENABLED',
     program_runner_auto_start_env: 'JARVIS_PROGRAM_RUNNER_AUTO_START',
+    program_runner_program_env: 'JARVIS_PROGRAM_RUNNER_PROGRAM',
+    trusted_publisher_env: 'JARVIS_ACCEPTED_WORK_PUBLISHER_ENABLED',
+    trusted_publisher_local_commit_only: true,
     program_runner_enabled_by_default: false,
     program_runner_single_flight: true,
     program_runner_recovery_required: true,

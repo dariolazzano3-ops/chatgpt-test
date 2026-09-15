@@ -35,13 +35,14 @@
        skip its own verification. */
 
 export const JARVIS_WAVE_REGISTRY_PROGRAM = 'JARVIS_MASTERARCHITECTURE_V2';
+export const JARVIS_V3_WAVE_REGISTRY_PROGRAM = 'JARVIS_CAPABILITY_EXPANSION_V3';
 
 // wave_index -> { id, title, goal, depends_on }. Only waves whose real,
 // reviewed content is already decided belong here — see the file header.
 // Weights for these indices are canonical in v2-progress-v1.js
 // (JARVIS_V2_WAVE_WEIGHTS); this registry only ever describes the WORK, it
 // never re-defines or re-derives the WEIGHT or the acceptance rule.
-const REGISTRY = new Map([
+const V2_REGISTRY = new Map([
   [0, {
     id: 'wave-0-contract',
     title: 'V2 Masterarchitecture Contract',
@@ -275,13 +276,89 @@ const REGISTRY = new Map([
   }]
 ]);
 
+
+const V3_REGISTRY = new Map([
+  [0, {
+    id: 'v3-wave-0-contract-constitution',
+    title: 'V3 Contract + Constitution',
+    goal: 'Create ONLY docs/jarvis/v3/JARVIS_CAPABILITY_EXPANSION_V3_CONTRACT.md, src/jarvis/v3-constitution-v1.js and scripts/jarvis-v3-constitution-v1-smoke.mjs. Define the fixed W0-W19 roadmap, Phase A boundary W10, Human Gate W11, immutable safety constraints, acceptance rules and no self-granted permissions. No external calls, account connections, production/public/DNS/billing actions, secrets, merge, push or deployment. Run node scripts/jarvis-v3-constitution-v1-smoke.mjs.',
+    depends_on: [],
+    expected_files: ['docs/jarvis/v3/JARVIS_CAPABILITY_EXPANSION_V3_CONTRACT.md', 'src/jarvis/v3-constitution-v1.js', 'scripts/jarvis-v3-constitution-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-v3-constitution-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [1, {
+    id: 'v3-wave-1-skill-registry', title: 'Skill Registry V1',
+    goal: 'Create ONLY src/jarvis/skill-registry-v1.js and scripts/jarvis-skill-registry-v1-smoke.mjs. Implement a pure versioned skill registry with fixed IDs, schemas, capability declarations and fail-closed unknown-skill lookup. It must never invent skills or grant permissions. Run the smoke test.',
+    depends_on: [0], expected_files: ['src/jarvis/skill-registry-v1.js', 'scripts/jarvis-skill-registry-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-skill-registry-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [2, {
+    id: 'v3-wave-2-skill-runtime', title: 'Skill Runtime V1',
+    goal: 'Create ONLY src/jarvis/skill-runtime-v1.js and scripts/jarvis-skill-runtime-v1-smoke.mjs. Execute only registered skills through injected handlers, validate input before execution, return evidence-shaped results, reject missing handlers and unknown skills, and keep external effects disabled by default. Run the smoke test.',
+    depends_on: [1], expected_files: ['src/jarvis/skill-runtime-v1.js', 'scripts/jarvis-skill-runtime-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-skill-runtime-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [3, {
+    id: 'v3-wave-3-skill-permission-engine', title: 'Skill Permission Engine',
+    goal: 'Create ONLY src/jarvis/skill-permission-v1.js and scripts/jarvis-skill-permission-v1-smoke.mjs. Implement fixed READ, PREPARE, INTERNAL_EXECUTE and APPROVAL_REQUIRED permission classes. A skill can never widen its own permission, unknown capability is denied, and constitutional forbidden capabilities are never coverable. Run the smoke test.',
+    depends_on: [2], expected_files: ['src/jarvis/skill-permission-v1.js', 'scripts/jarvis-skill-permission-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-skill-permission-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [4, {
+    id: 'v3-wave-4-memory-model', title: 'Memory Model V1',
+    goal: 'Create ONLY src/jarvis/memory-model-v1.js and scripts/jarvis-memory-model-v1-smoke.mjs. Define structured owner-scoped memory records for people, companies, projects, decisions and preferences with source reference, observed timestamp, confidence and lifecycle state. No cross-owner reads and no raw chat dump as memory. Run the smoke test.',
+    depends_on: [3], expected_files: ['src/jarvis/memory-model-v1.js', 'scripts/jarvis-memory-model-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-memory-model-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [5, {
+    id: 'v3-wave-5-memory-ingestion', title: 'Memory Ingestion V1',
+    goal: 'Create ONLY src/jarvis/memory-ingestion-v1.js and scripts/jarvis-memory-ingestion-v1-smoke.mjs. Convert explicit candidate facts into validated structured memory candidates, deduplicate deterministically, preserve provenance, reject secret-like values and low-information noise, and never persist by itself. Run the smoke test.',
+    depends_on: [4], expected_files: ['src/jarvis/memory-ingestion-v1.js', 'scripts/jarvis-memory-ingestion-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-memory-ingestion-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [6, {
+    id: 'v3-wave-6-memory-retrieval-context', title: 'Memory Retrieval + Context Compiler',
+    goal: 'Create ONLY src/jarvis/memory-retrieval-v1.js, src/jarvis/context-compiler-v1.js and scripts/jarvis-memory-retrieval-context-v1-smoke.mjs. Rank only owner-scoped supplied memory by deterministic relevance, source confidence and recency, then compile a bounded context with explicit provenance and token/character budget. No hidden connector reads. Run the smoke test.',
+    depends_on: [5], expected_files: ['src/jarvis/memory-retrieval-v1.js', 'src/jarvis/context-compiler-v1.js', 'scripts/jarvis-memory-retrieval-context-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-memory-retrieval-context-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [7, {
+    id: 'v3-wave-7-memory-governance', title: 'Memory Governance',
+    goal: 'Create ONLY src/jarvis/memory-governance-v1.js and scripts/jarvis-memory-governance-v1-smoke.mjs. Resolve supersession and contradiction mechanically from explicit timestamps, confidence and correction links, keep conflicts visible, and never silently overwrite higher-confidence truth. Run the smoke test.',
+    depends_on: [6], expected_files: ['src/jarvis/memory-governance-v1.js', 'scripts/jarvis-memory-governance-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-memory-governance-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [8, {
+    id: 'v3-wave-8-connector-core', title: 'Connector Core V1',
+    goal: 'Create ONLY src/jarvis/connector-core-v1.js and scripts/jarvis-connector-core-v1-smoke.mjs. Define a provider-neutral connector contract with separate READ and WRITE capabilities, injected adapters only, server-side credential handles only, bounded responses and fail-closed disconnected state. No real OAuth, account connection or external write in this wave. Run the smoke test.',
+    depends_on: [7], expected_files: ['src/jarvis/connector-core-v1.js', 'scripts/jarvis-connector-core-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-connector-core-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [9, {
+    id: 'v3-wave-9-unified-action-plane', title: 'Connector Pack + Unified Action Plane',
+    goal: 'Create ONLY src/jarvis/connector-registry-v1.js, src/jarvis/unified-action-plane-v1.js and scripts/jarvis-unified-action-plane-v1-smoke.mjs. Register connector capability descriptors for GitHub, Supabase, mail, calendar and files without credentials or live account activation. Route READ/PREPARE actions through injected connector adapters; external writes remain approval-gated and disabled by default. Run the smoke test.',
+    depends_on: [8], expected_files: ['src/jarvis/connector-registry-v1.js', 'src/jarvis/unified-action-plane-v1.js', 'scripts/jarvis-unified-action-plane-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-unified-action-plane-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [10, {
+    id: 'v3-wave-10-autonomy-readiness', title: '24/7 Readiness V1',
+    goal: 'Create ONLY src/jarvis/autonomy-readiness-v1.js and scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs. Build a pure readiness evaluator for restart, timeout, rate-limit, connector-unavailable, quota, duplicate-cycle, pause and human-gate conditions. It must classify retryable versus terminal states with bounded backoff recommendations and declare Phase A ready only when all safety invariants pass. It must not activate the runner or change service configuration. Run the smoke test.',
+    depends_on: [9], expected_files: ['src/jarvis/autonomy-readiness-v1.js', 'scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs'],
+    required_checks: [{ command: 'node', args: ['scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs'] }], generated_files: []
+  }]
+]);
+
 /** Pure. Returns the registry entry for one wave, or null if this wave has
  *  no registered task yet (never invented on the fly). */
 export function getJarvisWaveRegistryEntryV1(program, waveIndex) {
-  if (String(program ?? '').trim().toUpperCase() !== JARVIS_WAVE_REGISTRY_PROGRAM) return null;
+  const programId = String(program ?? '').trim().toUpperCase();
+  const registry = programId === JARVIS_WAVE_REGISTRY_PROGRAM
+    ? V2_REGISTRY
+    : programId === JARVIS_V3_WAVE_REGISTRY_PROGRAM ? V3_REGISTRY : null;
+  if (!registry) return null;
   const idx = Number(waveIndex);
   if (!Number.isInteger(idx) || idx < 0) return null;
-  const entry = REGISTRY.get(idx);
+  const entry = registry.get(idx);
   if (!entry) return null;
   return {
     wave_index: idx,
@@ -304,17 +381,21 @@ export function isJarvisWaveDependencySatisfiedV1(entry, completedWaves = []) {
 }
 
 export function jarvisWaveRegistryManifestV1() {
-  const entries = [...REGISTRY.entries()]
+  const project = (registry) => [...registry.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([wave_index, e]) => ({
-      wave_index, id: e.id, title: e.title, depends_on: [...e.depends_on],
-      expected_files: [...e.expected_files], required_checks_count: e.required_checks.length
-    }));
+    .map(([wave_index, e]) => ({ wave_index, id: e.id, title: e.title, depends_on: [...e.depends_on], expected_files: [...e.expected_files], required_checks_count: e.required_checks.length }));
+  const entries = project(V2_REGISTRY);
+  const v3Entries = project(V3_REGISTRY);
   return {
     schema: 'aurentara.jarvis.wave-registry.v1',
     program: JARVIS_WAVE_REGISTRY_PROGRAM,
     registered_waves: entries.map((e) => e.wave_index),
     entries,
+    programs: {
+      [JARVIS_WAVE_REGISTRY_PROGRAM]: { registered_waves: entries.map((e) => e.wave_index), entries },
+      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, first_unregistered_human_gate_wave: 11 }
+    },
+    v3_phase_a_stops_before_wave_11: true,
     fabricates_undefined_waves: false,
     pure: true
   };

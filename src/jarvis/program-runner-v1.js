@@ -16,7 +16,7 @@ export const JARVIS_PROGRAM_RUNNER_MAX_INTERVAL_MS = 15 * 60_000;
 const TERMINAL_STOP_REASONS = new Set([
   'AUTONOMY_PAUSED', 'BLOCKED_OPERATOR', 'NO_NEXT_ACTION',
   'ACCEPTED_WORK_AWAITS_PUBLICATION', 'PROGRAM_COMPLETE',
-  'STATE_READ_FAILED', 'TICK_FAILED'
+  'STATE_READ_FAILED', 'TICK_FAILED', 'NONE'
 ]);
 const RUNNER_ACTION = 'PROGRAM_RUNNER_CYCLE';
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
@@ -31,6 +31,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   const controller = deps.controller;
   const runLoop = deps.run_loop || runJarvisBoundedProgramLoopV1;
   const store = deps.memory_store || null;
+  const publisher = deps.publisher || null;
   const setTimer = deps.set_timeout || ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = deps.clear_timeout || ((id) => clearTimeout(id));
   const now = deps.now || (() => new Date().toISOString());
@@ -54,6 +55,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   let lastError = null;
   let lastResult = null;
   let nextScheduledAt = null;
+  let lastPublication = null;
   let recovery = { status: requireRecovery ? 'NOT_CHECKED' : 'NOT_REQUIRED', resume_allowed: !requireRecovery, reason: null };
 
   function validBinding() {
@@ -73,7 +75,9 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
       current_wave: lastResult?.final_state?.current_wave ?? recovery?.current_wave ?? null,
       verified_progress_percent: lastResult?.final_state?.verified_progress_percent ?? recovery?.verified_progress_percent ?? null,
       recovery_status: recovery?.status || null, recovery_reason: recovery?.reason || null,
-      interrupted_cycle: recovery?.interrupted_cycle || null
+      interrupted_cycle: recovery?.interrupted_cycle || null,
+      trusted_publisher_bound: Boolean(publisher && typeof publisher.publish === 'function'),
+      last_publication: lastPublication
     };
   }
 
@@ -201,7 +205,19 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         output = { ok: false, status: result?.status || 503, error: result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED', result };
         return output;
       }
-      if (TERMINAL_STOP_REASONS.has(lastStopReason)) suspend(lastStopReason);
+      const publicationNeeded = lastStopReason === 'ACCEPTED_WORK_AWAITS_PUBLICATION'
+        || (lastStopReason === 'BLOCKED_OPERATOR' && result?.final_state?.wave_reason === 'WORKING_TREE_DIRTY');
+      if (publicationNeeded && publisher && typeof publisher.publish === 'function') {
+        const publication = await publisher.publish(fixedRequest);
+        lastPublication = publication;
+        if (!publication?.ok) {
+          suspend('PUBLICATION_FAILED', publication?.error || 'JARVIS_ACCEPTED_WORK_PUBLICATION_FAILED');
+          output = { ok: false, status: 409, error: 'JARVIS_ACCEPTED_WORK_PUBLICATION_FAILED', publication, result };
+          return output;
+        }
+        lastStopReason = 'ACCEPTED_WORK_PUBLISHED';
+        finishExtra = { ...finishExtra, stop_reason: lastStopReason, publication_commit: publication.commit || null };
+      } else if (TERMINAL_STOP_REASONS.has(lastStopReason)) suspend(lastStopReason);
       output = { ok: true, status: 200, cycle_executed: true, stop_reason: lastStopReason, result };
       return output;
     } catch (error) {
@@ -223,9 +239,15 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
     if (!capabilityEnabled) return { ok: false, status: 403, error: 'JARVIS_PROGRAM_RUNNER_DISABLED', state: snapshot() };
     if (!validBinding()) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_BINDING_INVALID', state: snapshot() };
     if (active) return { ok: true, status: 200, already_active: true, state: snapshot() };
-    const recovered = await recover();
+    let recovered = await recover();
+    if (requireRecovery && recovered?.reason === 'ACCEPTED_WORK_AWAITS_PUBLICATION' && publisher && typeof publisher.publish === 'function') {
+      const publication = await publisher.publish(fixedRequest);
+      lastPublication = publication;
+      if (!publication?.ok) return { ok: false, status: 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_PUBLICATION_FAILED', publication, recovery: recovered, state: snapshot() };
+      recovered = await recover();
+    }
     if (requireRecovery && (!recovered.ok || recovered.resume_allowed !== true)) {
-      return { ok: false, status: recovered.status === 'COMPLETE' ? 409 : 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_BLOCKED', recovery: recovered, state: snapshot() };
+      return { ok: false, status: 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_BLOCKED', recovery: recovered, state: snapshot() };
     }
     active = true;
     lastStopReason = null;
@@ -258,6 +280,8 @@ export function jarvisProgramRunnerManifestV1() {
     overlapping_cycles_ever: false,
     delegates_to_bounded_program_loop: true,
     durable_recovery_supported: true,
+    optional_trusted_publisher_supported: true,
+    trusted_publisher_can_be_worker_supplied: false,
     recovery_source: 'AUDIT_PLUS_FRESH_CONTROLLER_STATE',
     grants_program_approval_ever: false,
     invents_wave_task_ever: false,
