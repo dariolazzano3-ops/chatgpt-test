@@ -57,6 +57,14 @@ fs.writeFileSync(path.join(repo,'scripts/jarvis-skill-registry-v1-smoke.mjs'), "
 const verification = { branch, branch_drift:false, files_changed:['src/jarvis/skill-registry-v1.js','scripts/jarvis-skill-registry-v1-smoke.mjs'], pre_existing_dirty_files:[], syntax_check:{passed:true,checked:2,results:[]} };
 const evidence = computeJarvisWorkingTreeWaveEvidenceV1({ repo_dir:repo, target_branch:branch, program:JARVIS_V3_PROGRAM_ID, wave_index:1, verification });
 assert.equal(evidence.sufficient, true);
+fs.writeFileSync(path.join(repo,'src/jarvis/skill-registry-v1.js'), "export const denied = 'HAMYREN_DATA_FLOW';\n");
+const hamyrenDenyToken = computeJarvisWorkingTreeWaveEvidenceV1({ repo_dir:repo, target_branch:branch, program:JARVIS_V3_PROGRAM_ID, wave_index:1, verification });
+assert.equal(hamyrenDenyToken.sufficient, true, 'denylist token must not be mistaken for a HAMYREN data flow');
+fs.writeFileSync(path.join(repo,'src/jarvis/skill-registry-v1.js'), "export const unsafe = 'enable hamyren data flow';\n");
+const hamyrenUnsafe = computeJarvisWorkingTreeWaveEvidenceV1({ repo_dir:repo, target_branch:branch, program:JARVIS_V3_PROGRAM_ID, wave_index:1, verification });
+assert.equal(hamyrenUnsafe.sufficient, false);
+assert.equal(hamyrenUnsafe.reason, 'FORBIDDEN_PATTERN_IN_WORKING_TREE');
+fs.writeFileSync(path.join(repo,'src/jarvis/skill-registry-v1.js'), 'export const skills = Object.freeze([]);\n');
 fs.writeFileSync(path.join(repo,'unexpected.txt'),'nope\n');
 const bad = computeJarvisWorkingTreeWaveEvidenceV1({ repo_dir:repo, target_branch:branch, program:JARVIS_V3_PROGRAM_ID, wave_index:1, verification });
 assert.equal(bad.sufficient, false);

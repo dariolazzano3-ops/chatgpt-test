@@ -8,8 +8,13 @@ const clean = (v, max = 4000) => String(v ?? '').trim().slice(0, max);
 const FORBIDDEN = /wrangler\s+deploy|DROP\s+TABLE|TRUNCATE\s|rm\s+-rf|git\s+push|git\s+merge|--force\b/i;
 const HAMYREN_FALSE_FIELD_RE = /\b[a-z0-9_]*hamyren[a-z0-9_]*\s*:\s*false\b/i;
 const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+(?:hamyren[\w$]*|[A-Za-z_$][\w$]*hamyren[\w$]*)\s*,\s*false\s*(?:,|\))/i;
+const HAMYREN_DENY_TOKEN_RE = /['\"`]HAMYREN_DATA_FLOW['\"`]/;
+const HAMYREN_NEGATED_PROSE_RE = /\b(?:no|without)\s+hamyren\s+data\s+flow\b/i;
 function git(repo, args) { return execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8'); }
-function allowedHamyren(line) { return HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line); }
+function allowedHamyren(line) {
+  return HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line)
+    || HAMYREN_DENY_TOKEN_RE.test(line) || HAMYREN_NEGATED_PROSE_RE.test(line);
+}
 function scanLine(line, hits) {
   if (FORBIDDEN.test(line)) hits.push(line.trim().slice(0, 300));
   else if (/hamyren/i.test(line) && !allowedHamyren(line)) hits.push(line.trim().slice(0, 300));
