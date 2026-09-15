@@ -81,7 +81,7 @@ async function grantAcceptance(store, repoDir, targetBranch) {
 
   const result = await handleJarvisCommitRangeAcceptanceRuntimeV1({
     owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: repo, target_branch: BRANCH,
-    wave_index: 7, commit_sha: sha // wave 7 is not registered
+    wave_index: 12, commit_sha: sha // Wave 12 is intentionally still unregistered here
   }, { memory_store: store });
   assert.equal(result.ok, false);
   assert.equal(result.error, 'JARVIS_COMMIT_RANGE_ACCEPTANCE_WAVE_NOT_REGISTERED');

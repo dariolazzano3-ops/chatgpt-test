@@ -71,7 +71,7 @@ const FORBIDDEN_DIFF_PATTERN = /wrangler\s+deploy|DROP\s+TABLE|TRUNCATE\s|rm\s+-
 // trip this scan. Only a "hamyren" mention that is NOT one of these
 // declared-false compliance fields counts as a hit.
 const HAMYREN_FALSE_FIELD_RE = /\b[a-z0-9_]*hamyren[a-z0-9_]*\s*:\s*false\b/i;
-const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+[A-Za-z_$][\w$]*hamyren[\w$]*\s*,\s*false\s*(?:,|\))/i;
+const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+(?:hamyren[\w$]*|[A-Za-z_$][\w$]*hamyren[\w$]*)\s*,\s*false\s*(?:,|\))/i;
 
 function isHamyrenComplianceAssertionV1(line) {
   return HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line);

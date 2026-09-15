@@ -137,6 +137,19 @@ function commitFile(dir, relPath, content, message) {
   });
   assert.equal(okEvidence.sufficient, true, JSON.stringify(okEvidence));
 
+  const assertSha = commitFile(repo, 'src/compliance-assert.js', "import assert from 'node:assert/strict'; assert.equal(man.hamyren_data_flow, false); assert.strictEqual(man.touches_hamyren_ever, false);\n", 'compliant hamyren false assertions');
+  const assertEvidence = computeJarvisCommitRangeEvidenceV1({
+    repo_dir: repo, target_branch: BRANCH, commit_sha: assertSha, expected_files: ['src/compliance-assert.js']
+  });
+  assert.equal(assertEvidence.sufficient, true, JSON.stringify(assertEvidence));
+
+  const callSha = commitFile(repo, 'src/compliance-call.js', "import assert from 'node:assert/strict'; assert.equal(run_hamyren_pipeline(), false);\n", 'real hamyren call');
+  const callEvidence = computeJarvisCommitRangeEvidenceV1({
+    repo_dir: repo, target_branch: BRANCH, commit_sha: callSha, expected_files: ['src/compliance-call.js']
+  });
+  assert.equal(callEvidence.sufficient, false);
+  assert.equal(callEvidence.reason, 'FORBIDDEN_PATTERN_IN_COMMIT_DIFF');
+
   const badSha = commitFile(repo, 'src/leak.js', "export const flow = 'hamyren_pipeline_enabled';\n", 'genuine hamyren reference');
   const badEvidence = computeJarvisCommitRangeEvidenceV1({
     repo_dir: repo, target_branch: BRANCH, commit_sha: badSha, expected_files: ['src/leak.js']
