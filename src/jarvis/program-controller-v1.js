@@ -209,7 +209,9 @@ export async function handleJarvisProgramStateRuntimeV1(request = {}, deps = {})
     wave_state: ctx.waveState.state,
     wave_reason: ctx.waveState.reason,
     next_action: ctx.waveState.next_action,
-    attempts_used: ctx.waveRuns.length
+    attempts_used: ctx.waveRuns.length,
+    autonomy_paused: isJarvisAutonomyPausedV1(),
+    autonomy_pause_reason: isJarvisAutonomyPausedV1() ? JARVIS_AUTONOMY_PAUSED_ENV_VAR : null
   };
 }
 

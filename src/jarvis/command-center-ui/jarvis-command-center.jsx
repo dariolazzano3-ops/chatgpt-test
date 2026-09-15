@@ -917,6 +917,10 @@ function useProgramController() {
   const [tickError, setTickError] = useState(null);
   const [approvalPending, setApprovalPending] = useState(false);
   const [approvalError, setApprovalError] = useState(null);
+  const [runnerState, setRunnerState] = useState(null);
+  const [runnerLoadError, setRunnerLoadError] = useState(null);
+  const [runnerPending, setRunnerPending] = useState(false);
+  const [runnerError, setRunnerError] = useState(null);
   // Shared across tick/grant/revoke: only ONE mutating action from this
   // panel may be in flight at a time, whichever it is.
   const inFlight = useRef(false);
@@ -925,11 +929,20 @@ function useProgramController() {
     if (!configured) return;
     try {
       const q = new URLSearchParams({ program: boot.programName, repo_dir: boot.programRepoDir, target_branch: boot.programTargetBranch });
-      const r = await fetch(`${RT_API_BASE()}/program/state?${q.toString()}`, { headers: { accept: "application/json" }, credentials: "same-origin" });
-      const body = await r.json().catch(() => null);
-      if (r.ok && body && body.ok) { setState(body); setLoadError(null); }
+      const [stateRes, runnerRes] = await Promise.all([
+        fetch(`${RT_API_BASE()}/program/state?${q.toString()}`, { headers: { accept: "application/json" }, credentials: "same-origin" }),
+        fetch(`${RT_API_BASE()}/program/runner/state`, { headers: { accept: "application/json" }, credentials: "same-origin" }),
+      ]);
+      const [body, runnerBody] = await Promise.all([stateRes.json().catch(() => null), runnerRes.json().catch(() => null)]);
+      if (stateRes.ok && body && body.ok) { setState(body); setLoadError(null); }
       else { setLoadError((body && body.error) || "Runtime nicht erreichbar"); }
-    } catch { setLoadError("Runtime nicht erreichbar"); }
+      if (runnerRes.ok && runnerBody && runnerBody.ok) { setRunnerState(runnerBody); setRunnerLoadError(null); }
+      else { setRunnerState(null); setRunnerLoadError((runnerBody && runnerBody.error) || "Runner nicht verbunden"); }
+    } catch {
+      setLoadError("Runtime nicht erreichbar");
+      setRunnerState(null);
+      setRunnerLoadError("Runner nicht verbunden");
+    }
   }, [configured, boot.programName, boot.programRepoDir, boot.programTargetBranch]);
 
   useEffect(() => {
@@ -1036,7 +1049,31 @@ function useProgramController() {
     }
   }, [configured, boot.programName, load]);
 
-  return { configured, state, loadError, tick, tickPending, tickError, grant, revoke, approvalPending, approvalError, boot };
+  const runnerAction = useCallback(async (action) => {
+    if (!configured || inFlight.current || !["start", "stop"].includes(action)) return;
+    inFlight.current = true;
+    setRunnerPending(true);
+    setRunnerError(null);
+    try {
+      const r = await fetch(`${RT_API_BASE()}/program/runner/${action}`, {
+        method: "POST", headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(action === "start" ? { confirm_run: true } : { confirm_stop: true }),
+      });
+      const body = await r.json().catch(() => null);
+      if (!(r.ok && body && body.ok)) setRunnerError((body && (body.error || body.recovery?.reason)) || "Runner-Aktion fehlgeschlagen");
+    } catch { setRunnerError("Runner nicht erreichbar"); }
+    finally {
+      setRunnerPending(false);
+      inFlight.current = false;
+      load();
+    }
+  }, [configured, load]);
+
+  const startRunner = useCallback(() => runnerAction("start"), [runnerAction]);
+  const stopRunner = useCallback(() => runnerAction("stop"), [runnerAction]);
+
+  return { configured, state, loadError, tick, tickPending, tickError, grant, revoke, approvalPending, approvalError, runnerState, runnerLoadError, runnerPending, runnerError, startRunner, stopRunner, boot };
 }
 
 function ProgramControllerPanel() {
@@ -1059,6 +1096,10 @@ function ProgramControllerPanel() {
   const blocked = known && st.wave_state === "BLOCKED_OPERATOR";
   const nextLabel = !known ? "Unbekannt" : st.next_action ? (PROGRAM_NEXT_ACTION_LABEL[st.next_action.action] || st.next_action.action) : "Keine Aktion verfügbar";
   const approval = known ? st.program_approval : null;
+  const runner = pc.runnerState;
+  const runnerKnown = Boolean(runner);
+  const runnerLabel = !runnerKnown ? "Nicht verbunden" : runner.active ? "Aktiv" : runner.capability_enabled ? "Bereit" : "Aus";
+  const runnerBlocker = runnerKnown ? (runner.last_error || runner.recovery_reason || runner.last_stop_reason || "Kein Runner-Blocker") : (pc.runnerLoadError || "Unbekannt");
 
   return (
     <Panel
@@ -1080,6 +1121,11 @@ function ProgramControllerPanel() {
             <div><dt>Ergebnis</dt><dd>{currentRun ? (currentRun.acceptance_state || currentRun.status) : "Unbekannt"}</dd></div>
             <div><dt>Blocker</dt><dd>{blocked ? (st.wave_reason || "Blockiert") : "Kein Blocker"}</dd></div>
             <div><dt>Program Approval</dt><dd>{approval ? (approval.granted ? `Erteilt (${(approval.scope || []).length} Scopes)` : "Nicht erteilt") : "Unbekannt"}</dd></div>
+            <div><dt>Autonomie-Pause</dt><dd>{st.autonomy_paused === true ? "AKTIV" : st.autonomy_paused === false ? "Aus" : "Unbekannt"}</dd></div>
+            <div><dt>24/7 Runner</dt><dd>{runnerLabel}{runnerKnown && runner.cycle_in_flight ? " · Zyklus läuft" : ""}</dd></div>
+            <div><dt>Letzter Runner-Zyklus</dt><dd>{runnerKnown ? (runner.last_finished_at ? `${hm(runner.last_finished_at)} · ${runner.last_stop_reason || "ohne Grund"}` : "Noch keiner") : "Unbekannt"}</dd></div>
+            <div><dt>Recovery</dt><dd>{runnerKnown ? `${runner.recovery_status || "Unbekannt"}${runner.interrupted_cycle ? ` · ${runner.interrupted_cycle}` : ""}` : "Unbekannt"}</dd></div>
+            <div><dt>Runner-Blocker</dt><dd>{runnerBlocker}</dd></div>
             <div><dt>Budget</dt><dd>Unbekannt</dd></div>
           </dl>
           <button className="btn pri full" disabled={pc.tickPending || pc.approvalPending || !st.next_action} onClick={pc.tick}>
@@ -1095,6 +1141,15 @@ function ProgramControllerPanel() {
             </button>
           </div>
           {pc.approvalError && <div className="empty" style={{ color: "#ff9186", marginTop: 10 }}>{pc.approvalError}</div>}
+          <div className="kv two" style={{ marginTop: 14 }}>
+            <button className="btn ghost" disabled={pc.runnerPending || pc.tickPending || pc.approvalPending || !runnerKnown || !runner.capability_enabled || runner.active || !(approval && approval.granted)} onClick={pc.startRunner}>
+              {pc.runnerPending ? "Läuft …" : "24/7 Runner starten"}
+            </button>
+            <button className="btn danger" disabled={pc.runnerPending || pc.tickPending || pc.approvalPending || !runnerKnown || !runner.active} onClick={pc.stopRunner}>
+              {pc.runnerPending ? "Läuft …" : "Runner stoppen"}
+            </button>
+          </div>
+          {pc.runnerError && <div className="empty" style={{ color: "#ff9186", marginTop: 10 }}>{pc.runnerError}</div>}
         </>
       )}
     </Panel>

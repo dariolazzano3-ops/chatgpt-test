@@ -688,6 +688,26 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     return json({ ...revoke, production_deploy: false, hamyren_data_flow: false }, revoke.status || (revoke.ok ? 200 : 400));
   }
 
+  if ((url.pathname === '/jarvis/api/program/runner/state' && request.method === 'GET')
+    || (url.pathname === '/jarvis/api/program/runner/start' && request.method === 'POST')
+    || (url.pathname === '/jarvis/api/program/runner/stop' && request.method === 'POST')) {
+    const runner = options.program_runner;
+    if (!runner || typeof runner.state !== 'function' || typeof runner.start !== 'function' || typeof runner.stop !== 'function') {
+      return json({ ok: false, error: 'JARVIS_PROGRAM_RUNNER_NOT_BOUND', production_deploy: false }, 503);
+    }
+    if (typeof runner.matches_scope === 'function' && !runner.matches_scope(session.owner_id, session.owner_ref)) {
+      return json({ ok: false, error: 'JARVIS_PROGRAM_RUNNER_OWNER_SCOPE_MISMATCH', production_deploy: false }, 403);
+    }
+    if (url.pathname.endsWith('/state')) {
+      return json({ ...runner.state(), production_deploy: false, hamyren_data_flow: false }, 200);
+    }
+    const body = await bodyJson(request);
+    const result = url.pathname.endsWith('/start')
+      ? await runner.start({ confirm_run: body.confirm_run === true })
+      : runner.stop({ confirm_stop: body.confirm_stop === true, reason: 'OPERATOR_HTTP_STOP' });
+    return json({ ...result, production_deploy: false, hamyren_data_flow: false }, result.status || (result.ok ? 200 : 400));
+  }
+
   if ((url.pathname === '/jarvis/api/program/tick' && request.method === 'POST')
     || (url.pathname === '/jarvis/api/program/state' && request.method === 'GET')) {
     // The Program Controller itself is Node-only (real `git` access via
@@ -735,6 +755,11 @@ export function jarvisHttpManifestV1() {
     command_center_command_claude_routing_requires_injected_bound_bridge: true,
     command_center_command_claude_routing_default_bound: false,
     command_center_command_claude_routing_requires_prior_persisted_approval: true,
+    command_center_program_runner_state_route: '/jarvis/api/program/runner/state',
+    command_center_program_runner_start_route: '/jarvis/api/program/runner/start',
+    command_center_program_runner_stop_route: '/jarvis/api/program/runner/stop',
+    command_center_program_runner_scope_checked: true,
+    command_center_program_runner_explicit_confirmation_required: true,
     command_center_approval_decide_route: '/jarvis/api/approvals/decide',
     command_center_approval_decide_records_audit: true,
     command_center_approval_decide_bypasses_gate: false,

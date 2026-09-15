@@ -181,6 +181,30 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: []
+  }],
+  [9, {
+    id: 'wave-9-command-center-autonomy-operations',
+    title: 'Autonomous Operations in Command Center',
+    goal: 'Expose the real private Program Runner state and controls in the existing Command Center without changing orchestration semantics. Add authenticated owner-scope-checked runner state/start/stop routes, require explicit confirmation for runner mutations, expose the Program Controller autonomy-pause truth read-only, and show current wave, verified progress, next action, Program Approval, pause state, runner active/inactive state, last cycle, recovery state and blocker. Unknown or unavailable runner truth must render as not connected, never as healthy. Reuse the existing panel single-flight guard so runner, tick and approval actions cannot be double-dispatched from the UI.',
+    depends_on: [8],
+    expected_files: [
+      'src/jarvis/http-v1.js',
+      'src/jarvis/program-controller-v1.js',
+      'src/jarvis/command-center-ui/jarvis-command-center.jsx',
+      'src/jarvis/command-center-ui/bundle.built.js',
+      'scripts/jarvis-command-center-autonomy-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-command-center-autonomy-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-runtime-truth-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-command-center-orange-ui-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-controller-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: ['src/jarvis/command-center-ui/bundle.built.js']
   }]
 ]);
 
