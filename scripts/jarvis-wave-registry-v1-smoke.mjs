@@ -69,10 +69,16 @@ function makeFixtureRepo() {
   ]);
   assert.equal(wave6.required_checks.length, 2);
 
-  // Unregistered waves (4, 5, 7 — still undefined) -> null, never invented.
+  const wave7 = getJarvisWaveRegistryEntryV1(PROGRAM, 7);
+  assert.equal(wave7.wave_index, 7);
+  assert.deepEqual(wave7.depends_on, [6]);
+  assert.equal(wave7.id, 'wave-7-private-program-runner');
+  assert.ok(wave7.expected_files.includes('src/jarvis/program-runner-v1.js'));
+  assert.equal(wave7.required_checks.length, 4);
+
+  // Historical Waves 4/5 remain audit-defined; unknown future waves are null.
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 4), null);
-  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 5), null, 'Wave 5 is not yet defined here — Wave 6 depends on it via completed_waves, not via a registry entry');
-  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 7), null);
+  assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 5), null, 'Wave 5 is audit-defined; Wave 6 depends on its accepted index');
   assert.equal(getJarvisWaveRegistryEntryV1(PROGRAM, 99), null);
   // Wrong / unknown program -> null.
   assert.equal(getJarvisWaveRegistryEntryV1('SOME_OTHER_PROGRAM', 0), null);
@@ -135,8 +141,7 @@ function makeFixtureRepo() {
   const unregistered = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 4, completedWaves: [0, 1, 2, 3] });
   assert.equal(unregistered, null, 'Wave 4 has no registry entry — never guessed');
 
-  // Wave 6 is registered/proposable only once Wave 5 is in completed_waves —
-  // Waves 4, 5, 7 stay unregistered and never fabricate a proposal either.
+  // Wave 6 is registered/proposable only once Wave 5 is in completed_waves.
   const wave6Blocked = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 6, completedWaves: [0, 1, 2, 3, 4] });
   assert.equal(wave6Blocked, null, 'Wave 6 depends on Wave 5 — never proposed before it is completed');
 
@@ -146,7 +151,10 @@ function makeFixtureRepo() {
   assert.equal(wave6Ready.program, PROGRAM);
 
   assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 5, completedWaves: [0, 1, 2, 3, 4, 5, 6] }), null, 'Wave 5 has no registry entry — never guessed');
-  assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 7, completedWaves: [0, 1, 2, 3, 4, 5, 6] }), null, 'Wave 7 has no registry entry — never guessed');
+  const wave7Ready = proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 7, completedWaves: [0, 1, 2, 3, 4, 5, 6] });
+  assert.equal(wave7Ready.source, 'REGISTRY_PROPOSAL');
+  assert.equal(wave7Ready.registry_id, 'wave-7-private-program-runner');
+  assert.equal(proposeJarvisWaveTaskV1({ program: PROGRAM, waveIndex: 7, completedWaves: [0, 1, 2, 3, 4, 5] }), null, 'Wave 7 depends on accepted Wave 6');
 }
 
 // ── 4. Manifests ──
@@ -155,7 +163,8 @@ function makeFixtureRepo() {
   assert.equal(regMan.fabricates_undefined_waves, false);
   assert.ok(regMan.registered_waves.includes(0) && regMan.registered_waves.includes(1));
   assert.ok(regMan.registered_waves.includes(6), 'Wave 6 is registered');
-  assert.ok(!regMan.registered_waves.includes(4) && !regMan.registered_waves.includes(5) && !regMan.registered_waves.includes(7), 'Waves 4, 5, 7 remain unregistered');
+  assert.ok(regMan.registered_waves.includes(7), 'Wave 7 is registered');
+  assert.ok(!regMan.registered_waves.includes(4) && !regMan.registered_waves.includes(5), 'Historical Waves 4/5 remain audit-defined');
 
   const planMan = jarvisWaveTaskPlannerManifestV1();
   assert.equal(planMan.operator_supplied_task_precedence, true);

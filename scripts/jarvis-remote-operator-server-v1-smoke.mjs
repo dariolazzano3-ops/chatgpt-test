@@ -27,7 +27,8 @@ import {
   createJarvisRemoteOperatorProgramControllerV1,
   jarvisRemoteOperatorManifestV1,
   JARVIS_REMOTE_OPERATOR_BIND_HOST,
-  REMOTE_OPERATOR_AUTHENTICATION_LABEL
+  REMOTE_OPERATOR_AUTHENTICATION_LABEL,
+  resolveJarvisRemoteOperatorProgramRunnerConfigV1
 } from '../src/jarvis/remote-operator-server-v1.js';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
 import { authorizeJarvisV1 } from '../src/jarvis/access-v1.js';
@@ -98,6 +99,18 @@ await check('D. refuses to start when JARVIS_PUBLIC_ACCESS or JARVIS_PRODUCTION_
   const prodOn = verifyJarvisRemoteOperatorSafetyFlagsV1({ JARVIS_PRODUCTION_DEPLOY: 'on' });
   assert.equal(prodOn.ok, false);
   assert.equal(prodOn.error, 'JARVIS_REMOTE_OPERATOR_PRODUCTION_DEPLOY_FORBIDDEN');
+});
+
+await check('D2. private Program Runner is capability-gated OFF by default and auto-start is separately explicit', () => {
+  const off = resolveJarvisRemoteOperatorProgramRunnerConfigV1({});
+  assert.equal(off.capability_enabled, false);
+  assert.equal(off.auto_start, false);
+  const ready = resolveJarvisRemoteOperatorProgramRunnerConfigV1({ JARVIS_PROGRAM_RUNNER_ENABLED: 'on' });
+  assert.equal(ready.capability_enabled, true);
+  assert.equal(ready.auto_start, false);
+  const auto = resolveJarvisRemoteOperatorProgramRunnerConfigV1({ JARVIS_PROGRAM_RUNNER_ENABLED: 'on', JARVIS_PROGRAM_RUNNER_AUTO_START: 'true' });
+  assert.equal(auto.capability_enabled, true);
+  assert.equal(auto.auto_start, true);
 });
 
 // ── E. fail-closed: Cloudflare Access config required at startup ──

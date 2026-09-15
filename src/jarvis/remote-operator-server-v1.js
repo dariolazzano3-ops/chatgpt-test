@@ -54,6 +54,8 @@ import { handleJarvisStandaloneWorkerV1 } from './standalone-worker-v1.js';
 import { resolveJarvisMemoryStoreV1 } from './http-v1.js';
 import { handleJarvisProgramTickRuntimeV1, handleJarvisProgramStateRuntimeV1 } from './program-controller-v1.js';
 import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-http-runtime-binding-v1.js';
+import { createJarvisSessionV1 } from './session-v1.js';
+import { createJarvisProgramRunnerV1, clampJarvisProgramRunnerIntervalMsV1 } from './program-runner-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const isOn = (value) => ['true', '1', 'on', 'yes'].includes(clean(value, 20).toLowerCase());
@@ -67,6 +69,17 @@ const REQUIRED_SUPABASE_ENV_KEYS = [
   'JARVIS_PERSONAL_MEMORY_SUPABASE_SERVICE_ROLE_KEY'
 ];
 const REQUIRED_ACCESS_ENV_KEYS = ['JARVIS_ACCESS_AUD', 'JARVIS_ACCESS_TEAM_DOMAIN', 'JARVIS_OPERATOR_EMAIL'];
+
+
+export function resolveJarvisRemoteOperatorProgramRunnerConfigV1(env = process.env) {
+  const capabilityEnabled = isOn(env.JARVIS_PROGRAM_RUNNER_ENABLED);
+  return {
+    capability_enabled: capabilityEnabled,
+    auto_start: capabilityEnabled && isOn(env.JARVIS_PROGRAM_RUNNER_AUTO_START),
+    interval_ms: clampJarvisProgramRunnerIntervalMsV1(env.JARVIS_PROGRAM_RUNNER_INTERVAL_MS),
+    max_ticks: env.JARVIS_PROGRAM_RUNNER_MAX_TICKS
+  };
+}
 
 /* ── 1. safety flags — refuse to start if any hard constitutional line is crossed ── */
 
@@ -348,11 +361,33 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const memoryStoreKind = resolvedStore?.kind || null;
   const durableMemoryReady = resolvedStore?.durable === true;
 
+  const runnerConfig = resolveJarvisRemoteOperatorProgramRunnerConfigV1(env);
+  const runnerSession = await createJarvisSessionV1(
+    { ok: true, email: clean(env.JARVIS_OPERATOR_EMAIL, 320) },
+    { canonical_owner_email: options.canonical_owner_email }
+  );
+  if (!runnerSession.ok) {
+    return { ok: false, error: 'JARVIS_PROGRAM_RUNNER_OWNER_SCOPE_UNAVAILABLE' };
+  }
+  const programRunner = overrides.program_runner || createJarvisProgramRunnerV1({
+    owner_id: runnerSession.owner_id,
+    owner_ref: runnerSession.owner_ref,
+    program: 'JARVIS_MASTERARCHITECTURE_V2',
+    repo_dir: options.program_repo_dir,
+    target_branch: options.program_target_branch,
+    enabled: runnerConfig.capability_enabled,
+    interval_ms: runnerConfig.interval_ms,
+    max_ticks: runnerConfig.max_ticks
+  }, { controller: options.program_controller });
+  options.program_runner = programRunner;
+
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, host, resolve);
   });
+
+  if (runnerConfig.auto_start) programRunner.start({ confirm_run: true });
 
   return {
     ok: true,
@@ -366,6 +401,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     durable_memory_ready: durableMemoryReady,
     canonical_owner_email: options.canonical_owner_email || null,
     claude_bridge_result,
+    program_runner_state: programRunner.state(),
     options
   };
 }
@@ -391,7 +427,11 @@ export function jarvisRemoteOperatorManifestV1() {
     hamyren_data_flow: false,
     production_deploy: false,
     public_access: false,
-    external_writes: false
+    external_writes: false,
+    program_runner_capability_env: 'JARVIS_PROGRAM_RUNNER_ENABLED',
+    program_runner_auto_start_env: 'JARVIS_PROGRAM_RUNNER_AUTO_START',
+    program_runner_enabled_by_default: false,
+    program_runner_single_flight: true
   };
 }
 
@@ -415,10 +455,12 @@ if (isMainModule) {
     console.log(`Memory store: ${result.memory_store_kind} (durable: ${result.durable_memory_ready})`);
     console.log(`Claude Code (private Bridge HTTP): ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
     console.log(`Canonical owner namespace: ${result.canonical_owner_email || '(none — using real authenticated identity)'}`);
+    console.log(`Program runner capability: ${result.program_runner_state.capability_enabled ? 'ENABLED' : 'DISABLED'} (active: ${result.program_runner_state.active})`);
     console.log('Mode: PRIVATE_REMOTE — public_access=false, production_deploy=false');
 
     const shutdown = (signal) => {
       console.log(`\nJARVIS Remote Operator V1: received ${signal}, shutting down...`);
+      result.options.program_runner?.stop({ confirm_stop: true, reason: 'SERVER_SHUTDOWN' });
       result.server.close(() => process.exit(0));
       setTimeout(() => process.exit(0), 2000).unref();
     };

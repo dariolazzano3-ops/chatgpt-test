@@ -135,6 +135,27 @@ const REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
     ],
     generated_files: []
+  }],
+  [7, {
+    id: 'wave-7-private-program-runner',
+    title: 'Private 24/7 Program Runner',
+    goal: 'Add a capability-gated Private Program Runner V1 around the accepted Bounded Autonomous Program Loop. The runner is OFF by default, binds to one exact owner/program/repo/branch, requires explicit start confirmation, prevents overlapping cycles, and schedules the next cycle only after the prior cycle finishes. It never grants Program Approval or invents wave task text. A cycle stops safely on the Program Loop safety reasons; terminal safety reasons suspend further scheduling. Wire it into the existing private Remote Operator as an optional server-side capability without changing system service configuration or public runtime behavior.',
+    depends_on: [6],
+    expected_files: [
+      'src/jarvis/program-runner-v1.js',
+      'scripts/jarvis-program-runner-v1-smoke.mjs',
+      'src/jarvis/remote-operator-server-v1.js',
+      'scripts/jarvis-remote-operator-server-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-program-runner-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-remote-operator-server-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-program-loop-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] }
+    ],
+    generated_files: []
   }]
 ]);
 
