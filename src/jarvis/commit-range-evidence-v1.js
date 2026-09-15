@@ -70,7 +70,12 @@ const FORBIDDEN_DIFF_PATTERN = /wrangler\s+deploy|DROP\s+TABLE|TRUNCATE\s|rm\s+-
 // COMPLIANCE assertion — that is the opposite of a violation and must never
 // trip this scan. Only a "hamyren" mention that is NOT one of these
 // declared-false compliance fields counts as a hit.
-const HAMYREN_COMPLIANCE_RE = /hamyren[a-z_]*\s*:\s*false/i;
+const HAMYREN_FALSE_FIELD_RE = /\b[a-z0-9_]*hamyren[a-z0-9_]*\s*:\s*false\b/i;
+const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+[A-Za-z_$][\w$]*hamyren[\w$]*\s*,\s*false\s*(?:,|\))/i;
+
+function isHamyrenComplianceAssertionV1(line) {
+  return HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line);
+}
 
 export const JARVIS_COMMIT_RANGE_VERIFICATION_SCHEMA = 'aurentara.jarvis.commit-range-verification.v1';
 
@@ -87,7 +92,7 @@ function scanAddedLinesForForbiddenPatternsV1(diffText) {
     if (!ADDED_LINE_RE.test(rawLine)) continue;
     const line = rawLine.slice(1);
     if (FORBIDDEN_DIFF_PATTERN.test(line)) { hits.push(line.trim().slice(0, 300)); continue; }
-    if (/hamyren/i.test(line) && !HAMYREN_COMPLIANCE_RE.test(line)) hits.push(line.trim().slice(0, 300));
+    if (/hamyren/i.test(line) && !isHamyrenComplianceAssertionV1(line)) hits.push(line.trim().slice(0, 300));
   }
   return hits;
 }
