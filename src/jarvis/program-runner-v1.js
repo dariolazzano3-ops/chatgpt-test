@@ -16,7 +16,7 @@ export const JARVIS_PROGRAM_RUNNER_MAX_INTERVAL_MS = 15 * 60_000;
 const TERMINAL_STOP_REASONS = new Set([
   'AUTONOMY_PAUSED', 'BLOCKED_OPERATOR', 'NO_NEXT_ACTION',
   'ACCEPTED_WORK_AWAITS_PUBLICATION', 'PROGRAM_COMPLETE',
-  'STATE_READ_FAILED', 'TICK_FAILED', 'NONE'
+  'STATE_READ_FAILED', 'TICK_FAILED'
 ]);
 const RUNNER_ACTION = 'PROGRAM_RUNNER_CYCLE';
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
@@ -307,6 +307,7 @@ export function jarvisProgramRunnerManifestV1() {
     capability_enabled_by_default: false,
     explicit_start_confirmation_required: true,
     recursive_single_flight_scheduler: true,
+    none_keeps_scheduler_active: true,
     overlapping_cycles_ever: false,
     delegates_to_bounded_program_loop: true,
     durable_recovery_supported: true,

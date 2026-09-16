@@ -19,6 +19,7 @@ import { getJarvisWaveRegistryEntryV1, isJarvisWaveDependencySatisfiedV1 } from 
 export function proposeJarvisWaveTaskV1({ program, waveIndex, completedWaves = [] } = {}) {
   const entry = getJarvisWaveRegistryEntryV1(program, waveIndex);
   if (!entry) return null;
+  if (entry.operator_task_required === true) return null;
   if (!isJarvisWaveDependencySatisfiedV1(entry, completedWaves)) return null;
   return {
     title: entry.title,
@@ -36,6 +37,7 @@ export function jarvisWaveTaskPlannerManifestV1() {
     operator_supplied_task_precedence: true,
     fabricates_task_text: false,
     reads_registry_only: true,
+    operator_required_registry_entries_auto_proposed: false,
     pure: true
   };
 }

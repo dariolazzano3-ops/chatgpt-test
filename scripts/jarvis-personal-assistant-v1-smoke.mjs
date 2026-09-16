@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { handleJarvisRequestV1, jarvisServiceManifestV1 } from '../src/jarvis/service-v1.js';
 import { normalizeJarvisMemoryEntryV1, retrieveJarvisMemoryV1 } from '../src/jarvis/memory-v1.js';
 import { createJarvisToolRegistryV1 } from '../src/jarvis/tools-v1.js';
-import { redactJarvisSensitiveDataV1 } from '../src/jarvis/audit-v1.js';
+import { redactJarvisSensitiveDataV1, createJarvisAuditEventV1 } from '../src/jarvis/audit-v1.js';
 
 const manifest = jarvisServiceManifestV1();
 assert.equal(manifest.codename, 'JARVIS');
@@ -119,5 +119,16 @@ assert.equal(registry.tools.some((tool) => /^hamyren/i.test(tool.tool_id)), fals
 const redacted = redactJarvisSensitiveDataV1({ authorization: 'Bearer abcdefghijklmnop', note: 'sk-abcdefghijklmnop' });
 assert.equal(redacted.authorization, '[REDACTED]');
 assert.equal(redacted.note.includes('sk-'), false);
+
+const longGoal = 'g'.repeat(2400);
+const longGoalEvent = createJarvisAuditEventV1({
+  owner_ref: owner, request: 'bounded long goal', action: 'IMPLEMENTATION_MISSION',
+  result: { goal: longGoal, note: 'n'.repeat(2400) }
+});
+assert.equal(longGoalEvent.result.goal.length, 2400, 'mission goal keeps its bounded 4000-char contract in durable audit');
+assert.equal(longGoalEvent.result.note.length, 1200, 'ordinary audit strings remain bounded at 1200');
+const secretGoal = redactJarvisSensitiveDataV1({ goal: `prefix sk-abcdefghijklmnop ${'x'.repeat(1600)}` });
+assert.equal(secretGoal.goal.includes('sk-'), false, 'long goal path still redacts secret-like text');
+assert.ok(secretGoal.goal.length > 1200, 'goal-specific bound is larger than the generic audit bound');
 
 console.log('JARVIS Personal AI Operating System V1 smoke: PASS');

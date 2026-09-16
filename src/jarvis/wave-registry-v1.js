@@ -345,6 +345,30 @@ const V3_REGISTRY = new Map([
     goal: 'Create ONLY src/jarvis/autonomy-readiness-v1.js and scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs. Build a pure readiness evaluator for restart, timeout, rate-limit, connector-unavailable, quota, duplicate-cycle, pause and human-gate conditions. It must classify retryable versus terminal states with bounded backoff recommendations and declare Phase A ready only when all safety invariants pass. It must not activate the runner or change service configuration. Run the smoke test.',
     depends_on: [9], expected_files: ['src/jarvis/autonomy-readiness-v1.js', 'scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs'],
     required_checks: [{ command: 'node', args: ['scripts/jarvis-v3-autonomy-readiness-v1-smoke.mjs'] }], generated_files: []
+  }],
+  [11, {
+    id: 'v3-wave-11-phase-b-authorization-v3-1', title: 'Phase B Authorization + Constitution Amendment V3.1',
+    goal: 'Amend ONLY the V3 contract, constitution, program catalog, wave registry/planner and their gate/bootstrap smokes to encode the operator-approved W11-W25 roadmap. Preserve W0-W10 at 55%, make W11-W25 3% each, keep W11 operator-supplied-only, and allow only explicitly operator-authorized post-gate connector reads/account connections plus approval-gated external writes. W11 performs no external call, account connection or external write; no production/public/DNS/Cloudflare/billing action; no secret output; no HAMYREN data flow; and no merge, push or deploy. Do not register W12-W25 in this wave. Run all W11 gate checks.',
+    operator_task_required: true,
+    depends_on: [10],
+    expected_files: [
+      'docs/jarvis/v3/JARVIS_CAPABILITY_EXPANSION_V3_CONTRACT.md',
+      'src/jarvis/v3-constitution-v1.js',
+      'src/jarvis/program-catalog-v1.js',
+      'src/jarvis/wave-registry-v1.js',
+      'src/jarvis/wave-task-planner-v1.js',
+      'scripts/jarvis-v3-constitution-v1-smoke.mjs',
+      'scripts/jarvis-v3-bootstrap-v1-smoke.mjs',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs',
+      'scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v3-constitution-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v3-bootstrap-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-final-regression-v1.mjs'] }
+    ], generated_files: []
   }]
 ]);
 
@@ -368,7 +392,8 @@ export function getJarvisWaveRegistryEntryV1(program, waveIndex) {
     depends_on: [...entry.depends_on],
     expected_files: [...entry.expected_files],
     required_checks: entry.required_checks.map((c) => ({ command: c.command, args: [...c.args] })),
-    generated_files: [...entry.generated_files]
+    generated_files: [...entry.generated_files],
+    operator_task_required: entry.operator_task_required === true
   };
 }
 
@@ -383,7 +408,7 @@ export function isJarvisWaveDependencySatisfiedV1(entry, completedWaves = []) {
 export function jarvisWaveRegistryManifestV1() {
   const project = (registry) => [...registry.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([wave_index, e]) => ({ wave_index, id: e.id, title: e.title, depends_on: [...e.depends_on], expected_files: [...e.expected_files], required_checks_count: e.required_checks.length }));
+    .map(([wave_index, e]) => ({ wave_index, id: e.id, title: e.title, depends_on: [...e.depends_on], expected_files: [...e.expected_files], required_checks_count: e.required_checks.length, operator_task_required: e.operator_task_required === true }));
   const entries = project(V2_REGISTRY);
   const v3Entries = project(V3_REGISTRY);
   return {
@@ -393,7 +418,7 @@ export function jarvisWaveRegistryManifestV1() {
     entries,
     programs: {
       [JARVIS_WAVE_REGISTRY_PROGRAM]: { registered_waves: entries.map((e) => e.wave_index), entries },
-      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, first_unregistered_human_gate_wave: 11 }
+      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, human_gate_wave: 11, human_gate_operator_task_required: true, first_unregistered_post_gate_wave: 12 }
     },
     v3_phase_a_stops_before_wave_11: true,
     fabricates_undefined_waves: false,

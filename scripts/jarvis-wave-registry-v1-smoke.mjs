@@ -7,7 +7,8 @@ import {
   getJarvisWaveRegistryEntryV1,
   isJarvisWaveDependencySatisfiedV1,
   jarvisWaveRegistryManifestV1,
-  JARVIS_WAVE_REGISTRY_PROGRAM
+  JARVIS_WAVE_REGISTRY_PROGRAM,
+  JARVIS_V3_WAVE_REGISTRY_PROGRAM
 } from '../src/jarvis/wave-registry-v1.js';
 import { proposeJarvisWaveTaskV1, jarvisWaveTaskPlannerManifestV1 } from '../src/jarvis/wave-task-planner-v1.js';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
@@ -404,6 +405,36 @@ function makeFixtureRepo() {
   assert.equal(finalState.program_approval.granted, true);
 
   console.log(`WAVE 3 ACCEPTED — completed_waves=${JSON.stringify(finalState.completed_waves)} verified_progress_percent=${finalState.verified_progress_percent}`);
+}
+
+
+// V3.1 human-gate registry: W11 is evidence-registered but never auto-proposed.
+{
+  const v3w11 = getJarvisWaveRegistryEntryV1(JARVIS_V3_WAVE_REGISTRY_PROGRAM, 11);
+  assert.ok(v3w11);
+  assert.equal(v3w11.id, 'v3-wave-11-phase-b-authorization-v3-1');
+  assert.deepEqual(v3w11.depends_on, [10]);
+  assert.equal(v3w11.operator_task_required, true);
+  assert.ok(v3w11.expected_files.includes('docs/jarvis/v3/JARVIS_CAPABILITY_EXPANSION_V3_CONTRACT.md'));
+  assert.ok(v3w11.expected_files.includes('scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'));
+  assert.equal(v3w11.required_checks.length, 5);
+  assert.equal(proposeJarvisWaveTaskV1({
+    program: JARVIS_V3_WAVE_REGISTRY_PROGRAM,
+    waveIndex: 11,
+    completedWaves: [0,1,2,3,4,5,6,7,8,9,10]
+  }), null, 'W11 is a real registry surface but must never be auto-proposed');
+  for (let i=12;i<=25;i++) {
+    assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_WAVE_REGISTRY_PROGRAM, i), null, `V3 post-gate wave ${i} stays unregistered until W11 acceptance`);
+  }
+  const manifest = jarvisWaveRegistryManifestV1();
+  const v3 = manifest.programs[JARVIS_V3_WAVE_REGISTRY_PROGRAM];
+  assert.equal(v3.human_gate_wave, 11);
+  assert.equal(v3.human_gate_operator_task_required, true);
+  assert.equal(v3.first_unregistered_post_gate_wave, 12);
+  assert.ok(v3.registered_waves.includes(11));
+  assert.ok(!v3.registered_waves.includes(12));
+  const planner = jarvisWaveTaskPlannerManifestV1();
+  assert.equal(planner.operator_required_registry_entries_auto_proposed, false);
 }
 
 console.log('JARVIS Wave Registry V1 smoke: PASS');

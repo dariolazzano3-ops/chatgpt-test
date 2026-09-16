@@ -23,8 +23,16 @@ import { createJarvisClaudeCodeBridgeV1 } from './claude-code-bridge-v1.js';
 import { createJarvisBridgeHttpExecutorV1 } from './claude-code-bridge-http-executor-v1.js';
 
 const clean = (value, max = 400) => String(value ?? '').trim().slice(0, max);
-const BRIDGE_SERVER_WORKER_TIMEOUT_MS = 900000; // verified Bridge V5 bridge.py subprocess.run timeout
-const DEFAULT_TIMEOUT_MS = 930000; // server must reach its terminal state before this client-side deadline
+export const BRIDGE_SERVER_WORKER_TIMEOUT_MS = 900000; // verified Bridge V5 bridge.py subprocess.run timeout
+export const BRIDGE_HTTP_MIN_TIMEOUT_MS = 930000; // client must outlive the server worker deadline
+export const BRIDGE_HTTP_DEFAULT_TIMEOUT_MS = 930000;
+export const BRIDGE_HTTP_MAX_TIMEOUT_MS = 960000; // matches the durable Claude bridge cap
+
+export function resolveBridgeHttpTimeoutMsV1(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return BRIDGE_HTTP_DEFAULT_TIMEOUT_MS;
+  return Math.min(BRIDGE_HTTP_MAX_TIMEOUT_MS, Math.max(BRIDGE_HTTP_MIN_TIMEOUT_MS, Math.trunc(n)));
+}
 const DEFAULT_HEALTH_TIMEOUT_MS = 5000;
 const DEFAULT_PROJECT = 'chatgpt-test';
 
@@ -115,7 +123,7 @@ export async function createJarvisBridgeHttpRuntimeBindingV1(env = {}, options =
 
   const bridge = createJarvisClaudeCodeBridgeV1({
     executor,
-    timeout_ms: Number(env.JARVIS_BRIDGE_TIMEOUT_MS) || options.timeout_ms || DEFAULT_TIMEOUT_MS
+    timeout_ms: resolveBridgeHttpTimeoutMsV1(env.JARVIS_BRIDGE_TIMEOUT_MS || options.timeout_ms)
   });
   return { bridge, bound: true, requested: true, reason: null };
 }
@@ -139,8 +147,11 @@ export function jarvisBridgeHttpRuntimeBindingManifestV1() {
     fail_closed_when_health_check_fails: true,
     local_cli_fallback: false,
     bridge_server_worker_timeout_ms: BRIDGE_SERVER_WORKER_TIMEOUT_MS,
-    default_timeout_ms: DEFAULT_TIMEOUT_MS,
-    client_timeout_exceeds_server_worker_timeout: DEFAULT_TIMEOUT_MS > BRIDGE_SERVER_WORKER_TIMEOUT_MS,
+    minimum_timeout_ms: BRIDGE_HTTP_MIN_TIMEOUT_MS,
+    default_timeout_ms: BRIDGE_HTTP_DEFAULT_TIMEOUT_MS,
+    maximum_timeout_ms: BRIDGE_HTTP_MAX_TIMEOUT_MS,
+    configured_timeout_cannot_preempt_server_worker: BRIDGE_HTTP_MIN_TIMEOUT_MS > BRIDGE_SERVER_WORKER_TIMEOUT_MS,
+    client_timeout_exceeds_server_worker_timeout: BRIDGE_HTTP_DEFAULT_TIMEOUT_MS > BRIDGE_SERVER_WORKER_TIMEOUT_MS,
     production_deploy: false,
     hamyren_data_flow: false
   };

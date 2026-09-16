@@ -19,6 +19,10 @@ import {
 import {
   createJarvisBridgeHttpRuntimeBindingV1,
   preflightJarvisBridgeHttpV1,
+  resolveBridgeHttpTimeoutMsV1,
+  BRIDGE_HTTP_MIN_TIMEOUT_MS,
+  BRIDGE_HTTP_DEFAULT_TIMEOUT_MS,
+  BRIDGE_HTTP_MAX_TIMEOUT_MS,
   jarvisBridgeHttpRuntimeBindingManifestV1
 } from '../src/jarvis/claude-code-bridge-http-runtime-binding-v1.js';
 import { evaluateJarvisRepoBoundVerificationV1 } from '../src/jarvis/engineering-mission-acceptance-v1.js';
@@ -278,6 +282,14 @@ await check('health preflight fails closed on non-2xx, malformed JSON, ok:false,
   assert.match(unreachable.reason, /BRIDGE_HEALTH_UNREACHABLE/);
 });
 
+// ── runtime timeout contract: a configured client deadline may never pre-empt Bridge V5's 900s worker deadline ──
+assert.equal(resolveBridgeHttpTimeoutMsV1(), BRIDGE_HTTP_DEFAULT_TIMEOUT_MS);
+assert.equal(resolveBridgeHttpTimeoutMsV1('not-a-number'), BRIDGE_HTTP_DEFAULT_TIMEOUT_MS);
+assert.equal(resolveBridgeHttpTimeoutMsV1(300_000), BRIDGE_HTTP_MIN_TIMEOUT_MS, 'legacy 5-minute config is raised to the safe floor');
+assert.equal(resolveBridgeHttpTimeoutMsV1(930_000), BRIDGE_HTTP_MIN_TIMEOUT_MS);
+assert.equal(resolveBridgeHttpTimeoutMsV1(99_999_999), BRIDGE_HTTP_MAX_TIMEOUT_MS);
+assert.ok(BRIDGE_HTTP_MIN_TIMEOUT_MS > 900_000);
+
 // ── runtime binding: fail-closed wiring, opt-in, no fabricated binding ──
 await check('runtime binding is off by default, requires URL+token, fails closed when health check fails, never fabricates bound:true', async () => {
   const off = await createJarvisBridgeHttpRuntimeBindingV1({});
@@ -311,7 +323,10 @@ await check('runtime binding is off by default, requires URL+token, fails closed
     assert.equal(bound.bridge.bound, true);
     const manifest = jarvisBridgeHttpRuntimeBindingManifestV1();
     assert.equal(manifest.bridge_server_worker_timeout_ms, 900000);
+    assert.equal(manifest.minimum_timeout_ms, 930000);
     assert.equal(manifest.default_timeout_ms, 930000);
+    assert.equal(manifest.maximum_timeout_ms, 960000);
+    assert.equal(manifest.configured_timeout_cannot_preempt_server_worker, true);
     assert.equal(manifest.client_timeout_exceeds_server_worker_timeout, true, 'client deadline must be later than Bridge server worker kill deadline');
   } finally {
     await healthyFixture.close();

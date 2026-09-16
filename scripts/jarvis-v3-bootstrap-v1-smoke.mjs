@@ -19,8 +19,10 @@ const branch = 'factory/jarvis-capability-expansion-v3';
 const git = (repo, args) => execFileSync('git', args, { cwd: repo, stdio: ['ignore','pipe','pipe'] }).toString('utf8').trim();
 
 const definition = getJarvisProgramDefinitionV1(JARVIS_V3_PROGRAM_ID);
-assert.equal(definition.wave_weights.length, 20);
+assert.equal(definition.wave_weights.length, 26);
 assert.equal(definition.wave_weights.reduce((a,b)=>a+b,0), 100);
+assert.equal(definition.wave_weights.slice(0,11).reduce((a,b)=>a+b,0), 55);
+assert.deepEqual(definition.wave_weights.slice(11), Array(15).fill(3));
 assert.equal(definition.autonomous_phase_a_last_wave, 10);
 assert.equal(definition.first_human_gate_wave, 11);
 assert.equal(computeJarvisProgramProgressV1('UNKNOWN', []).known_program, false);
@@ -32,7 +34,10 @@ assert.equal(progress.verified_progress_percent, 5);
 assert.deepEqual(progress.completed_waves, [0]);
 assert.equal(progress.current_wave, 1);
 for (let i=0;i<=10;i++) assert.ok(getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID, i), `wave ${i} must be registered`);
-assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID, 11), null, 'Wave 11 is the explicit Phase A human gate');
+const w11 = getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID, 11);
+assert.ok(w11, 'Wave 11 is registered only so Independent Acceptance can verify its fixed surface');
+assert.equal(w11.operator_task_required, true, 'Wave 11 can never be mechanically proposed');
+assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID, 12), null, 'post-gate tasks remain unregistered until W11 is accepted');
 
 const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-v3-bootstrap-'));
 git(repo, ['init','-q']);
@@ -106,4 +111,4 @@ assert.equal(publicationCalls, 1);
 runner.stop({confirm_stop:true});
 fs.rmSync(repo, {recursive:true,force:true});
 
-console.log(JSON.stringify({ schema:'aurentara.jarvis.v3.bootstrap.smoke.v1', passed:true, phase_a_waves:'0-10', human_gate_wave:11, trusted_local_publication:true, push:false, merge:false, deploy:false }, null, 2));
+console.log(JSON.stringify({ schema:'aurentara.jarvis.v3.bootstrap.smoke.v1.1', passed:true, phase_a_waves:'0-10', phase_a_verified_weight:55, human_gate_wave:11, total_waves:26, trusted_local_publication:true, push:false, merge:false, deploy:false }, null, 2));

@@ -65,6 +65,26 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
 }
 
 {
+  const scheduled = [];
+  const controller = { state: async () => ({ ok: true, program_approval: { granted: true }, current_wave: 11, verified_progress_percent: 55 }), tick: async () => ({ ok: true }) };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true, interval_ms: 30_000 },
+    {
+      controller,
+      set_timeout: (fn, ms) => { scheduled.push({ fn, ms }); return { unref() {} }; },
+      clear_timeout: () => {},
+      run_loop: async () => ({ ok: true, status: 200, stop_reason: 'NONE', final_state: { current_wave: 11, verified_progress_percent: 55 } })
+    }
+  );
+  await runner.start({ confirm_run: true });
+  await scheduled.shift().fn();
+  assert.equal(runner.state().active, true, 'NONE is idle, not terminal, so later audit work can be picked up without a service restart');
+  assert.equal(scheduled.length, 1, 'NONE schedules the next bounded poll');
+  assert.equal(scheduled[0].ms, 30_000);
+  runner.stop({ confirm_stop: true });
+}
+
+{
   let release;
   const pending = new Promise((resolve) => { release = resolve; });
   const controller = { state: async () => ({ ok: true, program_approval: { granted: true } }), tick: async () => ({ ok: true }) };
@@ -122,6 +142,7 @@ const man = jarvisProgramRunnerManifestV1();
 assert.equal(man.capability_enabled_by_default, false);
 assert.equal(man.explicit_start_confirmation_required, true);
 assert.equal(man.recursive_single_flight_scheduler, true);
+assert.equal(man.none_keeps_scheduler_active, true);
 assert.equal(man.durable_recovery_supported, true);
 assert.equal(man.overlapping_cycles_ever, false);
 assert.equal(man.grants_program_approval_ever, false);

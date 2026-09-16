@@ -1,10 +1,15 @@
-const clean = (value, max = 1200) => String(value ?? '').trim().slice(0, max);
+const AUDIT_STRING_MAX = 1200;
+const AUDIT_GOAL_MAX = 4000;
+const clean = (value, max = AUDIT_STRING_MAX) => String(value ?? '').trim().slice(0, max);
 const SECRET_KEY = /(password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|cookie|credential|secret)/i;
 const SECRET_TEXT = /(Bearer\s+[A-Za-z0-9._~+/-]+=*|sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,})/gi;
 
 export function redactJarvisSensitiveDataV1(value, key = '') {
   if (SECRET_KEY.test(key)) return '[REDACTED]';
-  if (typeof value === 'string') return clean(value.replace(SECRET_TEXT, '[REDACTED]'));
+  if (typeof value === 'string') {
+    const max = key === 'goal' ? AUDIT_GOAL_MAX : AUDIT_STRING_MAX;
+    return clean(value.replace(SECRET_TEXT, '[REDACTED]'), max);
+  }
   if (Array.isArray(value)) return value.map((item) => redactJarvisSensitiveDataV1(item));
   if (value && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactJarvisSensitiveDataV1(v, k)]));

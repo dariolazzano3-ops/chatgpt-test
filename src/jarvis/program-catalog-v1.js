@@ -17,7 +17,7 @@ const DEFINITIONS = Object.freeze({
   [JARVIS_V3_PROGRAM_ID]: Object.freeze({
     program: JARVIS_V3_PROGRAM_ID,
     title: 'JARVIS Capability Expansion V3',
-    wave_weights: Object.freeze(Array(20).fill(5)),
+    wave_weights: Object.freeze([...Array(11).fill(5), ...Array(15).fill(3)]),
     first_human_gate_wave: 11,
     autonomous_phase_a_last_wave: 10
   })
