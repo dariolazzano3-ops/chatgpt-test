@@ -43,6 +43,24 @@ export function createMemoryJarvisStoreV1(seed = []) {
       return { ok: true, event_id: eventId, occurred_at: occurredAt };
     },
 
+
+    // Unbounded-by-noise targeted state lookup for one Program Approval.
+    // Returns ONLY the latest GRANT/REVOKE row for this owner + program.
+    async readProgramApproval({ owner_id, owner_ref, program } = {}) {
+      const ownerId = clean(owner_id, 80);
+      const ownerRef = clean(owner_ref, 320);
+      const programUpper = clean(program, 80).toUpperCase();
+      if (!ownerId || !ownerRef || !programUpper) throw new Error('JARVIS_PROGRAM_APPROVAL_STORE_SCOPE_REQUIRED');
+      const row = audits
+        .filter((item) => item.owner_id === ownerId && item.owner_ref === ownerRef)
+        .map((item) => ({ event_id: item.event_id, occurred_at: item.occurred_at, ...clone(item.event) }))
+        .filter((item) => item.action === 'PROGRAM_APPROVAL'
+          && clean(item?.result?.program, 80).toUpperCase() === programUpper
+          && ['PROGRAM_APPROVAL_GRANT', 'PROGRAM_APPROVAL_REVOKE'].includes(item?.intent?.intent_type))
+        .sort((a, b) => Date.parse(b.occurred_at || b.timestamp || 0) - Date.parse(a.occurred_at || a.timestamp || 0))[0] || null;
+      return clone(row);
+    },
+
     // Bounded, owner-scoped, read-only audit reader (Wave 4).
     async readAudit({ owner_id, owner_ref, limit = 50 } = {}) {
       const ownerId = clean(owner_id, 80);

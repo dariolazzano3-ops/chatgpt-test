@@ -27,6 +27,16 @@ async function fakeFetch(url, init = {}) {
   if (fn === 'jarvis_service_audit_append_v1') {
     return new Response(JSON.stringify({ event_id: '22222222-2222-4222-8222-222222222222', occurred_at: '2026-09-07T01:00:00Z' }), { status: 200 });
   }
+  if (fn === 'jarvis_service_program_approval_read_v1') {
+    assert.equal(p.p_program, 'JARVIS_CAPABILITY_EXPANSION_V3');
+    return new Response(JSON.stringify({
+      event_id: '33333333-3333-4333-8333-333333333333', owner_ref: ownerRef,
+      request_id: null, intent: { intent_type: 'PROGRAM_APPROVAL_GRANT' }, tools_used: [], permissions: [],
+      action: 'PROGRAM_APPROVAL', result: { status: 'GRANTED', program: p.p_program, scope: ['ACCEPTANCE'] },
+      approval: { explicit: true, actor_type: 'OPERATOR' }, cost: {}, memory_updates: {}, isolation: {},
+      occurred_at: '2026-09-07T01:01:00Z'
+    }), { status: 200 });
+  }
   if (fn === 'jarvis_service_oauth_load_v1') {
     return new Response(JSON.stringify({
       owner_id: ownerId,
@@ -94,6 +104,14 @@ await memory.appendAudit({
   }
 });
 
+
+const targetedApproval = await memory.readProgramApproval({
+  owner_id: ownerId, owner_ref: ownerRef, program: 'JARVIS_CAPABILITY_EXPANSION_V3'
+});
+assert.equal(targetedApproval.action, 'PROGRAM_APPROVAL');
+assert.equal(targetedApproval.intent.intent_type, 'PROGRAM_APPROVAL_GRANT');
+assert.equal(targetedApproval.result.program, 'JARVIS_CAPABILITY_EXPANSION_V3');
+
 const oauth = createSupabaseJarvisOAuthStoreV1({
   supabase_url: 'https://synthetic.supabase.co',
   service_role_key: 'service-role-test',
@@ -117,6 +135,8 @@ assert.equal(await oauth.touchConnection({ owner_id: ownerId, owner_ref: ownerRe
 const memoryManifest = jarvisRpcMemoryStoreManifestV1();
 assert.equal(memoryManifest.private_schema_exposed_to_postgrest, false);
 assert.equal(memoryManifest.public_rpc_functions_service_role_only, true);
+assert.equal(memoryManifest.targeted_program_approval_read, true);
+assert.equal(memoryManifest.bounded_audit_window_not_used_for_program_approval_state, true);
 
 const oauthManifest = jarvisOAuthStoreManifestV1();
 assert.equal(oauthManifest.refresh_token_plaintext_persisted, false);

@@ -132,6 +132,27 @@ export function evaluateJarvisProgramApprovalStateV1(auditRows = [], program = '
   };
 }
 
+
+/** Durable read of Program Approval state. Prefer a store-native targeted
+ *  lookup so a long-lived grant/revoke can never fall out of a bounded
+ *  general audit window. Stores without the capability retain the existing
+ *  bounded-audit fallback for local/legacy compatibility. */
+export async function readJarvisProgramApprovalStateV1(memoryStore, {
+  owner_id, owner_ref, program, audit_limit = 500
+} = {}) {
+  const programUpper = clean(program, 80).toUpperCase();
+  if (!memoryStore) throw new Error('JARVIS_PROGRAM_APPROVAL_MEMORY_STORE_REQUIRED');
+  if (typeof memoryStore.readProgramApproval === 'function') {
+    const latest = await memoryStore.readProgramApproval({ owner_id, owner_ref, program: programUpper });
+    return evaluateJarvisProgramApprovalStateV1(latest ? [latest] : [], programUpper);
+  }
+  if (typeof memoryStore.readAudit !== 'function') {
+    throw new Error('JARVIS_PROGRAM_APPROVAL_STATE_READER_REQUIRED');
+  }
+  const audit = await memoryStore.readAudit({ owner_id, owner_ref, limit: audit_limit });
+  return evaluateJarvisProgramApprovalStateV1(audit, programUpper);
+}
+
 /** Explicit, operator-only grant. `request` must state exactly the scope
  *  being granted; anything in JARVIS_PROGRAM_APPROVAL_NEVER_COVERED is
  *  stripped before persisting, never silently widened. */
@@ -223,20 +244,21 @@ export async function handleJarvisProgramApprovalRevokeRuntimeV1(request = {}, d
   if (!ownerRef) return { ok: false, status: 403, error: 'JARVIS_PROGRAM_APPROVAL_OWNER_REF_REQUIRED' };
   if (!program || !PROGRAM_RE.test(program)) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_APPROVAL_PROGRAM_INVALID' };
   if (request.confirm_revoke !== true) return { ok: false, status: 400, error: 'JARVIS_PROGRAM_APPROVAL_CONFIRM_REVOKE_REQUIRED' };
-  if (!deps.memory_store || typeof deps.memory_store.appendAudit !== 'function' || typeof deps.memory_store.readAudit !== 'function') {
+  if (!deps.memory_store || typeof deps.memory_store.appendAudit !== 'function') {
     return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_MEMORY_STORE_REQUIRED' };
   }
 
-  let audit = [];
+  let priorState;
   try {
-    audit = await deps.memory_store.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
+    priorState = await readJarvisProgramApprovalStateV1(deps.memory_store, {
+      owner_id: ownerId, owner_ref: ownerRef, program
+    });
   } catch {
-    return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_AUDIT_READ_FAILED' };
+    return { ok: false, status: 503, error: 'JARVIS_PROGRAM_APPROVAL_STATE_READ_FAILED' };
   }
   // Read back the real prior state (never assumed) purely to report what was
   // actually revoked — an idempotent revoke-when-nothing-granted still
   // records a real audit event, it just truthfully reports was_granted: false.
-  const priorState = evaluateJarvisProgramApprovalStateV1(audit, program);
 
   const now = clean(request.now, 80) || new Date().toISOString();
   const auditEvent = createJarvisAuditEventV1({
@@ -295,6 +317,8 @@ export function jarvisProgramApprovalManifestV1() {
     revoke_never_issued_automatically: true,
     scope_deny_list_checked_before_allow_list: true,
     revocable: true,
+    targeted_state_read_supported: true,
+    targeted_state_read_preferred_over_bounded_audit: true,
     production_deploy: false,
     hamyren_data_flow: false
   };

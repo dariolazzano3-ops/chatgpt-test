@@ -41,7 +41,7 @@
        byte-for-byte identical to before this gate existed. */
 
 import { createJarvisCommandCenterReadBindingsV1 } from './command-center-read-bindings-v1.js';
-import { evaluateJarvisProgramApprovalStateV1, evaluateJarvisProgramApprovalActionV1 } from './program-approval-v1.js';
+import { readJarvisProgramApprovalStateV1, evaluateJarvisProgramApprovalActionV1 } from './program-approval-v1.js';
 import { evaluateJarvisBranchTruthV1, prepareJarvisTargetBranchV1 } from './branch-manager-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
@@ -163,9 +163,12 @@ export function deriveJarvisMechanicalRepairTaskV1(verification, title, program,
 
 async function computeProgramContextV1({ ownerId, ownerRef, program, repoDir, targetBranch, memoryStore, now }) {
   const bindings = createJarvisCommandCenterReadBindingsV1({ store: memoryStore, owner_id: ownerId, owner_ref: ownerRef, now });
-  const [runsEnv, progressEnv] = await Promise.all([bindings.runs(), bindings.program_progress(program)]);
-  const audit = await memoryStore.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
-  const approvalState = evaluateJarvisProgramApprovalStateV1(audit, program);
+  const [runsEnv, progressEnv, audit, approvalState] = await Promise.all([
+    bindings.runs(),
+    bindings.program_progress(program),
+    memoryStore.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 }),
+    readJarvisProgramApprovalStateV1(memoryStore, { owner_id: ownerId, owner_ref: ownerRef, program })
+  ]);
   const branchTruth = evaluateJarvisBranchTruthV1({ repo_dir: repoDir, target_branch: targetBranch, base_ref: 'HEAD' });
   const currentWave = progressEnv.data.current_wave ?? 0;
   const waveRuns = runsEnv.data

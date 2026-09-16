@@ -5,6 +5,7 @@ import { jarvisSupabaseServiceAuthHeadersV1 } from './supabase-service-auth-head
 const clean = (value, max = 12000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PROGRAM = /^[A-Z][A-Z0-9_]{2,79}$/;
 
 function endpoint(baseUrl, fn) {
   const base = clean(baseUrl, 2000).replace(/\/+$/, '');
@@ -72,6 +73,27 @@ export function createSupabaseJarvisRpcMemoryStoreV1({
     return body(response);
   }
 
+
+  function normalizeAuditRow(row, ownerRef) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+    return {
+      event_id: clean(row?.event_id, 120) || null,
+      owner_ref: clean(row?.owner_ref, 320) || ownerRef,
+      request_id: clean(row?.request_id, 200) || null,
+      intent: clone(row?.intent),
+      tools_used: Array.isArray(row?.tools_used) ? clone(row.tools_used) : [],
+      permissions: Array.isArray(row?.permissions) ? clone(row.permissions) : [],
+      action: clean(row?.action, 120) || null,
+      result: clone(row?.result),
+      approval: clone(row?.approval),
+      cost: clone(row?.cost),
+      memory_updates: clone(row?.memory_updates),
+      isolation: clone(row?.isolation),
+      timestamp: clean(row?.occurred_at, 80) || null,
+      occurred_at: clean(row?.occurred_at, 80) || null
+    };
+  }
+
   return {
     kind: 'supabase-jarvis-rpc-memory',
     durable: true,
@@ -125,6 +147,28 @@ export function createSupabaseJarvisRpcMemoryStoreV1({
       };
     },
 
+
+    async readProgramApproval({ owner_id, owner_ref, program } = {}) {
+      requireScope(owner_id, owner_ref);
+      const ownerRef = clean(owner_ref, 320);
+      const programUpper = clean(program, 80).toUpperCase();
+      if (!PROGRAM.test(programUpper)) throw new Error('JARVIS_RPC_PROGRAM_APPROVAL_PROGRAM_INVALID');
+      const row = await call('jarvis_service_program_approval_read_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: ownerRef,
+        p_program: programUpper
+      });
+      if (row === null) return null;
+      const normalized = normalizeAuditRow(row, ownerRef);
+      if (!normalized
+        || normalized.action !== 'PROGRAM_APPROVAL'
+        || clean(normalized?.result?.program, 80).toUpperCase() !== programUpper
+        || !['PROGRAM_APPROVAL_GRANT', 'PROGRAM_APPROVAL_REVOKE'].includes(normalized?.intent?.intent_type)) {
+        throw new Error('JARVIS_RPC_PROGRAM_APPROVAL_READ_INVALID');
+      }
+      return normalized;
+    },
+
     // Bounded, owner-scoped, read-only audit reader (Wave 4). Requires the
     // service-role RPC jarvis_service_audit_read_v1 (see migration
     // 20260911_jarvis_audit_read_v1.sql). Fails closed if the function or the
@@ -137,22 +181,7 @@ export function createSupabaseJarvisRpcMemoryStoreV1({
         p_limit: Math.max(1, Math.min(200, Number(limit) || 50))
       });
       if (!Array.isArray(rows)) throw new Error('JARVIS_RPC_AUDIT_READ_INVALID');
-      return rows.map((row) => ({
-        event_id: clean(row?.event_id, 120) || null,
-        owner_ref: clean(row?.owner_ref, 320) || clean(owner_ref, 320),
-        request_id: clean(row?.request_id, 200) || null,
-        intent: clone(row?.intent),
-        tools_used: Array.isArray(row?.tools_used) ? clone(row.tools_used) : [],
-        permissions: Array.isArray(row?.permissions) ? clone(row.permissions) : [],
-        action: clean(row?.action, 120) || null,
-        result: clone(row?.result),
-        approval: clone(row?.approval),
-        cost: clone(row?.cost),
-        memory_updates: clone(row?.memory_updates),
-        isolation: clone(row?.isolation),
-        timestamp: clean(row?.occurred_at, 80) || null,
-        occurred_at: clean(row?.occurred_at, 80) || null
-      }));
+      return rows.map((row) => normalizeAuditRow(row, clean(owner_ref, 320)));
     }
   };
 }
@@ -176,6 +205,8 @@ export function jarvisRpcMemoryStoreManifestV1() {
     browser_service_role_exposed: false,
     hamyren_tables_referenced: false,
     durable: true,
+    targeted_program_approval_read: true,
+    bounded_audit_window_not_used_for_program_approval_state: true,
     production_deploy: false
   };
 }

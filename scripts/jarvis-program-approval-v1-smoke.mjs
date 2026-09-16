@@ -4,6 +4,7 @@ import {
   handleJarvisProgramApprovalGrantRuntimeV1,
   handleJarvisProgramApprovalRevokeRuntimeV1,
   evaluateJarvisProgramApprovalStateV1,
+  readJarvisProgramApprovalStateV1,
   evaluateJarvisProgramApprovalActionV1,
   jarvisProgramApprovalManifestV1,
   JARVIS_PROGRAM_APPROVAL_NEVER_COVERED
@@ -149,6 +150,32 @@ for (const denied of JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) {
     // deliberately no repo_dir / target_branch
   }, { memory_store: store });
   assert.equal(r.ok, true);
+}
+
+
+// ── 6f. A durable Program Approval must survive general audit-window noise ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const grant = await handleJarvisProgramApprovalGrantRuntimeV1({
+    owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: REPO_DIR, target_branch: BRANCH,
+    scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE'], confirm_scope: true,
+    now: '2026-01-01T00:00:00.000Z'
+  }, { memory_store: store });
+  assert.equal(grant.ok, true);
+  for (let i = 0; i < 250; i += 1) {
+    await store.appendAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, event: {
+      timestamp: new Date(Date.parse('2026-01-02T00:00:00.000Z') + i * 1000).toISOString(),
+      owner_ref: OWNER_REF, request: `noise-${i}`, action: 'PROGRAM_RUNNER_CYCLE',
+      intent: { intent_type: 'PROGRAM_RUNNER_CYCLE', domain: 'PROGRAM', action: 'PROGRAM_RUNNER_CYCLE' },
+      result: { status: 'FINISHED', program: PROGRAM }, approval: {}, cost: {}, memory_updates: {}
+    }});
+  }
+  const bounded = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 500 });
+  assert.equal(bounded.length, 200, 'general audit reader deliberately remains bounded to 200');
+  assert.equal(evaluateJarvisProgramApprovalStateV1(bounded, PROGRAM).granted, false, 'bounded general audit no longer sees the old grant');
+  const durableState = await readJarvisProgramApprovalStateV1(store, { owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM });
+  assert.equal(durableState.granted, true, 'targeted state read survives audit noise');
+  assert.deepEqual(durableState.scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
 }
 
 // ── 7. Invalid program / missing repo_dir / missing target_branch all fail closed (grant); invalid program fails closed (revoke) ──
