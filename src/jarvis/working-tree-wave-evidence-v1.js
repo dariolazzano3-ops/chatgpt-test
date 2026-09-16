@@ -10,14 +10,22 @@ const HAMYREN_FALSE_FIELD_RE = /\b[a-z0-9_]*hamyren[a-z0-9_]*\s*:\s*false\b/i;
 const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+(?:hamyren[\w$]*|[A-Za-z_$][\w$]*hamyren[\w$]*)\s*,\s*false\s*(?:,|\))/i;
 const HAMYREN_DENY_TOKEN_RE = /['\"`]HAMYREN_DATA_FLOW['\"`]/;
 const HAMYREN_NEGATED_PROSE_RE = /\b(?:no|without)\s+hamyren\s+data\s+flow\b/i;
+const HAMYREN_DENY_ERROR_RE = /\b[A-Z0-9_]*HAMYREN[A-Z0-9_]*(?:BLOCKED|DENIED|FORBIDDEN|DISABLED)\b/;
+const HAMYREN_DENY_GUARD_RE = /(?:\/\^hamyren[^\n]*\.test\(|toLowerCase\(\)\s*===\s*['\"`]hamyren['\"`])/i;
+const HAMYREN_SMOKE_LITERAL_RE = /\b(?:connector_id|provider)\s*:\s*['\"`]hamyren(?:[.:/][^'\"`]*)?['\"`]/i;
+const SMOKE_FILE_RE = /(?:^|\/)[^/]*smoke\.mjs$/i;
 function git(repo, args) { return execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8'); }
-function allowedHamyren(line) {
-  return HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line)
-    || HAMYREN_DENY_TOKEN_RE.test(line) || HAMYREN_NEGATED_PROSE_RE.test(line);
+function allowedHamyren(line, sourcePath = '', context = '') {
+  if (HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line)
+    || HAMYREN_DENY_TOKEN_RE.test(line) || HAMYREN_NEGATED_PROSE_RE.test(line)
+    || HAMYREN_DENY_ERROR_RE.test(line)) return true;
+  if (HAMYREN_DENY_GUARD_RE.test(line) && HAMYREN_DENY_ERROR_RE.test(context)) return true;
+  return SMOKE_FILE_RE.test(sourcePath) && HAMYREN_SMOKE_LITERAL_RE.test(line)
+    && /assert\.throws\s*\(/.test(context) && HAMYREN_DENY_ERROR_RE.test(context);
 }
-function scanLine(line, hits) {
+function scanLine(line, hits, sourcePath = '', context = '') {
   if (FORBIDDEN.test(line)) hits.push(line.trim().slice(0, 300));
-  else if (/hamyren/i.test(line) && !allowedHamyren(line)) hits.push(line.trim().slice(0, 300));
+  else if (/hamyren/i.test(line) && !allowedHamyren(line, sourcePath, context)) hits.push(line.trim().slice(0, 300));
 }
 function statusEntries(repo) {
   const raw = git(repo, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
@@ -29,8 +37,13 @@ function scanWorkingTree(repo, entries) {
   try { tracked = git(repo, ['diff', '--no-ext-diff', '--unified=0', '--']); } catch { return ['WORKING_TREE_DIFF_UNREADABLE']; }
   for (const raw of tracked.split('\n')) if (/^\+(?!\+\+)/.test(raw)) scanLine(raw.slice(1), hits);
   for (const e of entries.filter((x) => x.status === '??')) {
-    try { for (const line of fs.readFileSync(path.join(repo, e.path), 'utf8').split('\n')) scanLine(line, hits); }
-    catch { hits.push(`UNREADABLE_UNTRACKED:${e.path}`); }
+    try {
+      const lines = fs.readFileSync(path.join(repo, e.path), 'utf8').split('\n');
+      for (let i = 0; i < lines.length; i += 1) {
+        const context = lines.slice(Math.max(0, i - 4), Math.min(lines.length, i + 7)).join('\n');
+        scanLine(lines[i], hits, e.path, context);
+      }
+    } catch { hits.push(`UNREADABLE_UNTRACKED:${e.path}`); }
   }
   return hits;
 }
