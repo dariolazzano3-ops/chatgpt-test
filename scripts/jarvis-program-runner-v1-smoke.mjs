@@ -201,6 +201,68 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
   assert.equal(runner.state().active, false);
 }
 
+
+// Restart with a dirty tree probes strict candidate recovery before publication.
+{
+  const scheduled = [];
+  let candidateRecovered = false;
+  let candidateCalls = 0;
+  let publicationCalls = 0;
+  const controller = {
+    state: async () => candidateRecovered
+      ? { ok: true, program_approval: { granted: true }, current_wave: 11, verified_progress_percent: 55, wave_state: 'READY', next_action: { action: 'ACCEPT_WAVE' }, branch_truth: { working_tree_clean: false } }
+      : { ok: true, program_approval: { granted: true }, current_wave: 11, verified_progress_percent: 55, wave_state: 'BLOCKED_OPERATOR', wave_reason: 'WORKING_TREE_DIRTY', next_action: { action: 'PROPOSE_WAVE_TASK' }, branch_truth: { working_tree_clean: false } },
+    tick: async () => ({ ok: true })
+  };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true, require_recovery: true },
+    {
+      controller,
+      memory_store: { readAudit: async () => [], appendAudit: async () => ({ ok: true }) },
+      trusted_candidate_recoverer: { recover: async () => { candidateCalls += 1; candidateRecovered = true; return { ok: true, request_id: 'trusted-startup-fixture' }; } },
+      publisher: { publish: async () => { publicationCalls += 1; return { ok: true, commit: 'should-not-run' }; } },
+      set_timeout: (fn, ms) => { scheduled.push({ fn, ms }); return { unref() {} }; }, clear_timeout: () => {}
+    }
+  );
+  const started = await runner.start({ confirm_run: true });
+  assert.equal(started.ok, true);
+  assert.equal(candidateCalls, 1, 'startup dirty tree asks trusted recovery first');
+  assert.equal(publicationCalls, 0, 'unaccepted candidate is never published before trusted recovery');
+  assert.equal(scheduled.length, 1);
+  runner.stop({ confirm_stop: true });
+}
+
+// If strict candidate recovery is ineligible, established accepted-work
+// publication remains the fallback and restart behavior is preserved.
+{
+  const scheduled = [];
+  let published = false;
+  let candidateCalls = 0;
+  let publicationCalls = 0;
+  const controller = {
+    state: async () => published
+      ? { ok: true, program_approval: { granted: true }, current_wave: 12, verified_progress_percent: 60, wave_state: 'READY', next_action: { action: 'PROPOSE_WAVE_TASK' }, branch_truth: { working_tree_clean: true } }
+      : { ok: true, program_approval: { granted: true }, current_wave: 11, verified_progress_percent: 55, wave_state: 'BLOCKED_OPERATOR', wave_reason: 'WORKING_TREE_DIRTY', next_action: { action: 'PROPOSE_WAVE_TASK' }, branch_truth: { working_tree_clean: false } },
+    tick: async () => ({ ok: true })
+  };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true, require_recovery: true },
+    {
+      controller,
+      memory_store: { readAudit: async () => [], appendAudit: async () => ({ ok: true }) },
+      trusted_candidate_recoverer: { recover: async () => { candidateCalls += 1; return { ok: false, status: 409, error: 'TRUSTED_CANDIDATE_RECOVERY_INELIGIBLE', reason: 'WAVE_ALREADY_ACCEPTED' }; } },
+      publisher: { publish: async () => { publicationCalls += 1; published = true; return { ok: true, commit: 'accepted-fixture' }; } },
+      set_timeout: (fn, ms) => { scheduled.push({ fn, ms }); return { unref() {} }; }, clear_timeout: () => {}
+    }
+  );
+  const started = await runner.start({ confirm_run: true });
+  assert.equal(started.ok, true);
+  assert.equal(candidateCalls, 1);
+  assert.equal(publicationCalls, 1, 'accepted work still publishes after candidate probe declines');
+  assert.equal(scheduled.length, 1);
+  runner.stop({ confirm_stop: true });
+}
+
 const man = jarvisProgramRunnerManifestV1();
 assert.equal(man.capability_enabled_by_default, false);
 assert.equal(man.explicit_start_confirmation_required, true);

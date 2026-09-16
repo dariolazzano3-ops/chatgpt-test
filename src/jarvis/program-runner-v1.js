@@ -272,19 +272,28 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
     if (!validBinding()) return { ok: false, status: 503, error: 'JARVIS_PROGRAM_RUNNER_BINDING_INVALID', state: snapshot() };
     if (active) return { ok: true, status: 200, already_active: true, state: snapshot() };
     let recovered = await recover();
-    if (requireRecovery && recovered?.reason === 'ACCEPTED_WORK_AWAITS_PUBLICATION' && publisher && typeof publisher.publish === 'function') {
-      const publication = await publisher.publish(fixedRequest);
-      lastPublication = publication;
-      if (!publication?.ok) return { ok: false, status: 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_PUBLICATION_FAILED', publication, recovery: recovered, state: snapshot() };
-      recovered = await recover();
-    }
-    if (requireRecovery && recovered?.reason === 'TRUSTED_CANDIDATE_RECOVERY_REQUIRED'
-        && trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function') {
+    // A dirty tree after restart is ambiguous: it may be already-accepted work
+    // awaiting publication, or an exhausted same-wave candidate that first needs
+    // trusted evidence recovery. Ask the strict recoverer first. Ineligibility is
+    // not an error and falls through to the established publication/block path.
+    const startupCandidateProbe = requireRecovery
+      && ['ACCEPTED_WORK_AWAITS_PUBLICATION', 'TRUSTED_CANDIDATE_RECOVERY_REQUIRED', 'BLOCKED_OPERATOR'].includes(recovered?.reason)
+      && trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function';
+    if (startupCandidateProbe) {
       const candidateRecovery = await trustedCandidateRecoverer.recover({
         ...fixedRequest, wave_index: recovered.current_wave, max_repair_attempts: 3
       });
       lastCandidateRecovery = candidateRecovery;
-      if (!candidateRecovery?.ok) return { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_CANDIDATE_FAILED', candidate_recovery: candidateRecovery, recovery: recovered, state: snapshot() };
+      if (candidateRecovery?.ok) {
+        recovered = await recover();
+      } else if (candidateRecovery?.error !== 'TRUSTED_CANDIDATE_RECOVERY_INELIGIBLE') {
+        return { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_CANDIDATE_FAILED', candidate_recovery: candidateRecovery, recovery: recovered, state: snapshot() };
+      }
+    }
+    if (requireRecovery && recovered?.reason === 'ACCEPTED_WORK_AWAITS_PUBLICATION' && publisher && typeof publisher.publish === 'function') {
+      const publication = await publisher.publish(fixedRequest);
+      lastPublication = publication;
+      if (!publication?.ok) return { ok: false, status: 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_PUBLICATION_FAILED', publication, recovery: recovered, state: snapshot() };
       recovered = await recover();
     }
     if (requireRecovery && (!recovered.ok || recovered.resume_allowed !== true)) {
