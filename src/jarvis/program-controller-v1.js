@@ -342,9 +342,13 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
     const acceptState = evaluateJarvisEngineeringMissionAcceptanceStateV1(ctx.audit, action.request_id);
     const lastRun = ctx.waveRuns[ctx.waveRuns.length - 1];
     const mechanical = deriveJarvisMechanicalRepairTaskV1(acceptState.verification, lastRun?.title || 'Wave repair', program, ctx.currentWave);
-    const task = mechanical || (request.task && clean(request.task.title, 1) && clean(request.task.goal, 1) ? request.task : null);
+    const operatorRepair = request.task && clean(request.task.title, 1) && clean(request.task.goal, 1) ? request.task : null;
+    const registryRetry = (!mechanical && !operatorRepair && program === JARVIS_V3_PROGRAM_ID)
+      ? proposeJarvisWaveTaskV1({ program, waveIndex: ctx.currentWave, completedWaves: ctx.programProgress.completed_waves })
+      : null;
+    const task = mechanical || operatorRepair || registryRetry;
     if (!task) {
-      performed = { action: 'NONE', detail: 'NO_MECHANICAL_REPAIR_AND_NO_OPERATOR_TASK_SUPPLIED' };
+      performed = { action: 'NONE', detail: 'NO_MECHANICAL_REPAIR_AND_NO_OPERATOR_OR_REGISTRY_TASK' };
     } else if (!ctx.dispatchCovered) {
       performed = { action: 'NONE', detail: 'REPAIR_DISPATCH_NOT_COVERED' };
     } else {
@@ -353,7 +357,7 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
         owner_id: ownerId, owner_ref: ownerRef, now,
         title: task.title, goal: task.goal, program, correlation_id: correlationId, wave_index: ctx.currentWave
       }, { memory_store: deps.memory_store });
-      performed = { action: 'ANALYZE_FOR_REPAIR', detail: { request_id: correlationId, mechanical: Boolean(mechanical), mission } };
+      performed = { action: 'ANALYZE_FOR_REPAIR', detail: { request_id: correlationId, mechanical: Boolean(mechanical), task_source: mechanical ? 'MECHANICAL' : operatorRepair ? 'OPERATOR_SUPPLIED' : 'REGISTRY_RETRY', mission } };
     }
   } else if (action.action === 'ADVANCE_TO_NEXT_WAVE' || action.action === 'WAIT') {
     performed = { action: action.action, detail: null };
@@ -384,6 +388,7 @@ export function jarvisProgramControllerManifestV1() {
     acceptance_without_program_approval_ever: false,
     acceptance_is_worker_self_report: false,
     repair_task_fabricated: false,
+    v3_registry_retry_for_nonmechanical_failure: true,
     wave_task_source_precedence: 'OPERATOR_SUPPLIED_THEN_REGISTRY_PROPOSAL',
     wave_task_fabricated_for_unregistered_wave: false,
     one_mutating_action_per_tick: true,
