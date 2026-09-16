@@ -8,6 +8,7 @@ import { createJarvisAuditEventV1 } from '../src/jarvis/audit-v1.js';
 import {
   createJarvisTrustedCandidateRecovererV1,
   evaluateJarvisTrustedCandidateRecoveryV1,
+  matchJarvisRecoveryProvenanceV1,
   JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE
 } from '../src/jarvis/trusted-candidate-recovery-v1.js';
 import {
@@ -22,6 +23,10 @@ const BRANCH = 'factory/jarvis-capability-expansion-v3';
 const EXPECTED = ['src/jarvis/memory-ingestion-v1.js', 'scripts/jarvis-memory-ingestion-v1-smoke.mjs'];
 const ids = ['11111111-1111-4111-8111-111111111101','11111111-1111-4111-8111-111111111102','11111111-1111-4111-8111-111111111103'];
 const git = (repo, args) => execFileSync('git', args, { cwd: repo, stdio: ['ignore','pipe','pipe'] }).toString('utf8').trim();
+const provenanceExpected = ['src/jarvis/wave-task-planner-v1.js', 'scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'];
+assert.deepEqual(matchJarvisRecoveryProvenanceV1([...provenanceExpected], provenanceExpected), { matched:true, mode:'EXACT' });
+assert.deepEqual(matchJarvisRecoveryProvenanceV1(['src/jarvis/wave-ta[REDACTED].js', provenanceExpected[1]], provenanceExpected), { matched:true, mode:'LEGACY_AUDIT_REDACTION' });
+assert.deepEqual(matchJarvisRecoveryProvenanceV1(['src/jarvis/wave-[REDACTED].js', provenanceExpected[1]], provenanceExpected), { matched:false, mode:null });
 const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-trusted-candidate-'));
 git(repo, ['init','-q']);
 git(repo, ['config','user.email','fixture@example.invalid']);

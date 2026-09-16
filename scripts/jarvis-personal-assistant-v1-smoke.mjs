@@ -119,6 +119,9 @@ assert.equal(registry.tools.some((tool) => /^hamyren/i.test(tool.tool_id)), fals
 const redacted = redactJarvisSensitiveDataV1({ authorization: 'Bearer abcdefghijklmnop', note: 'sk-abcdefghijklmnop' });
 assert.equal(redacted.authorization, '[REDACTED]');
 assert.equal(redacted.note.includes('sk-'), false);
+const pathWithTask = 'src/jarvis/wave-task-planner-v1.js';
+assert.equal(redactJarvisSensitiveDataV1(pathWithTask), pathWithTask, 'ordinary file paths containing task- must not be corrupted by sk- secret redaction');
+assert.equal(redactJarvisSensitiveDataV1('prefix sk-abcdefghijklmnop suffix').includes('sk-'), false, 'standalone sk- token remains redacted');
 
 const longGoal = 'g'.repeat(2400);
 const longGoalEvent = createJarvisAuditEventV1({

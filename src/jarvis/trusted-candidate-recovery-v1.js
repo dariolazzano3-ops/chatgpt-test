@@ -22,6 +22,17 @@ const sameSet = (a = [], b = []) => {
   const bb = [...new Set(b.map(String))].sort();
   return aa.length === bb.length && aa.every((v, i) => v === bb[i]);
 };
+const LEGACY_AUDIT_SECRET_TEXT = /(Bearer\s+[A-Za-z0-9._~+/-]+=*|sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,})/gi;
+const legacyAuditRedactPath = (value) => String(value).replace(LEGACY_AUDIT_SECRET_TEXT, '[REDACTED]');
+export function matchJarvisRecoveryProvenanceV1(actual = [], expected = []) {
+  if (sameSet(actual, expected)) return { matched: true, mode: 'EXACT' };
+  const expectedStrings = expected.map(String);
+  const legacy = expectedStrings.map(legacyAuditRedactPath);
+  const changed = legacy.some((value, index) => value !== expectedStrings[index]);
+  const collisionFree = new Set(legacy).size === new Set(expectedStrings).size;
+  if (changed && collisionFree && sameSet(actual, legacy)) return { matched: true, mode: 'LEGACY_AUDIT_REDACTION' };
+  return { matched: false, mode: null };
+}
 function git(repo, args) {
   return execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8').trim();
 }
@@ -80,10 +91,15 @@ export function evaluateJarvisTrustedCandidateRecoveryV1({
   if (!firstPrepared) return { eligible: false, reason: 'FIRST_PREPARED_AFTER_DEPENDENCY_NOT_FOUND' };
 
   const expected = [...entry.expected_files];
+  let provenanceMatch = null;
   const retryEvidenceRow = failed.find((r) => {
     if (at(r) <= at(firstPrepared)) return false;
     const verification = r?.result?.verification;
-    return verification && sameSet(verification.pre_existing_dirty_files || [], expected);
+    if (!verification) return false;
+    const match = matchJarvisRecoveryProvenanceV1(verification.pre_existing_dirty_files || [], expected);
+    if (!match.matched) return false;
+    provenanceMatch = match;
+    return true;
   });
   if (!retryEvidenceRow) return { eligible: false, reason: 'SAME_WAVE_DIRTY_PROVENANCE_MISSING' };
 
@@ -119,6 +135,7 @@ export function evaluateJarvisTrustedCandidateRecoveryV1({
       first_prepared_request_id: clean(firstPrepared?.request_id, 80),
       failed_request_ids: failedRequestIds,
       retry_evidence_request_id: clean(retryEvidenceRow?.request_id, 80),
+      provenance_match_mode: provenanceMatch?.mode || 'EXACT',
       exact_expected_files: expected
     }
   };
