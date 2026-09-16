@@ -177,7 +177,10 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
         updated_at: last.at,
         progress: null,
         progress_verified: false,
-        approval_state: events.some((e) => e.approval?.required === true) ? approvalState(last.approval) : null,
+        approval_state: (() => {
+          const approvalEvents = events.filter((e) => e.approval?.required === true);
+          return approvalEvents.length ? approvalState(approvalEvents.at(-1).approval) : null;
+        })(),
         evidence_ref: events.map((e) => e.evidence_ref).find(Boolean) || null,
         resumable: resumeState.resumable === true,
         // Engineering-mission correlation only (null for non-mission runs) —
