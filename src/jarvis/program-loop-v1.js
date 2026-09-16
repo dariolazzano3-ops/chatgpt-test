@@ -96,13 +96,14 @@ export async function runJarvisBoundedProgramLoopV1(request = {}, deps = {}) {
 
   const maxTicks = clampJarvisProgramLoopMaxTicksV1(request.max_ticks);
   const tasksByWave = (request.tasks_by_wave && typeof request.tasks_by_wave === 'object') ? request.tasks_by_wave : {};
+  const stopAfterProgressIncrement = request.stop_after_progress_increment === true;
 
   // Forward everything else through to the controller unchanged, but strip
   // loop-only fields and any caller-supplied `task` — per-tick task
   // injection is this loop's own decision (see lookupJarvisLoopWaveTaskV1
   // and the TASK_ELIGIBLE_ACTIONS gate below), never a pass-through of
   // whatever the top-level request happened to contain.
-  const { max_ticks: _maxTicks, tasks_by_wave: _tasksByWave, task: _ignoredTask, ...baseRequest } = request;
+  const { max_ticks: _maxTicks, tasks_by_wave: _tasksByWave, task: _ignoredTask, stop_after_progress_increment: _stopAfterProgressIncrement, ...baseRequest } = request;
 
   const events = [];
   let ticksUsed = 0;
@@ -200,6 +201,13 @@ export async function runJarvisBoundedProgramLoopV1(request = {}, deps = {}) {
 
     if (tickResult.paused === true) {
       stopReason = 'AUTONOMY_PAUSED';
+      break;
+    }
+    const progressBeforeTick = Number(state.verified_progress_percent);
+    const progressAfterTick = Number(tickResult.verified_progress_percent);
+    if (stopAfterProgressIncrement && Number.isFinite(progressBeforeTick) && Number.isFinite(progressAfterTick)
+      && progressAfterTick > progressBeforeTick) {
+      stopReason = 'ACCEPTED_WORK_AWAITS_PUBLICATION';
       break;
     }
     if (performedAction === 'NONE') {

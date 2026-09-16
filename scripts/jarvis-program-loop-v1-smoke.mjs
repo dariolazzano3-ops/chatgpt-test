@@ -130,6 +130,23 @@ const DIRTY = { working_tree_clean: false };
   assert.deepEqual(controller.calls.map((c) => c.type), ['state', 'tick', 'state', 'tick', 'state', 'tick', 'state', 'tick', 'state', 'tick', 'state', 'tick']);
 }
 
+
+// ── Publisher handoff. When requested, the first independently accepted
+// progress increase must stop immediately so trusted publication happens
+// before any next-wave dispatch, including when accepted files are untracked.
+{
+  const controller = makeFakeControllerV1({
+    stateFn: () => ({ ok: true, wave_state: 'VERIFYING', next_action: { action: 'VERIFY_AND_ACCEPT' }, current_wave: 0, verified_progress_percent: 0, branch_truth: CLEAN }),
+    tickFn: () => ({ ok: true, performed: { action: 'VERIFY_AND_ACCEPT' }, wave_state: 'PENDING', next_action: { action: 'PROPOSE_WAVE_TASK' }, current_wave: 1, verified_progress_percent: 5 })
+  });
+  const result = await runJarvisBoundedProgramLoopV1({ ...BASE_REQUEST, stop_after_progress_increment: true }, { controller });
+  assert.equal(result.ok, true);
+  assert.equal(result.stop_reason, 'ACCEPTED_WORK_AWAITS_PUBLICATION');
+  assert.equal(result.ticks_used, 1);
+  assert.equal(result.final_state.verified_progress_percent, 5);
+  assert.deepEqual(controller.calls.map((c) => c.type), ['state', 'tick']);
+}
+
 // ── 5. Hard max clamp: a controller that never naturally stops is still cut
 //        off at exactly JARVIS_PROGRAM_LOOP_HARD_MAX_TICKS ──
 {

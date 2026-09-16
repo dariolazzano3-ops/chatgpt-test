@@ -192,7 +192,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         return output;
       }
 
-      const result = await runLoop(fixedRequest, { controller });
+      const result = await runLoop({ ...fixedRequest, stop_after_progress_increment: Boolean(publisher && typeof publisher.publish === 'function') }, { controller });
       lastResult = result;
       lastStopReason = result?.stop_reason || (result?.ok ? 'UNKNOWN' : 'RUNNER_LOOP_FAILED');
       finishExtra = {
