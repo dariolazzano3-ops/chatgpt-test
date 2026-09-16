@@ -369,6 +369,27 @@ const V3_REGISTRY = new Map([
       { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] },
       { command: 'node', args: ['scripts/jarvis-v2-final-regression-v1.mjs'] }
     ], generated_files: []
+  }],
+  [12, {
+    id: 'v3-wave-12-connector-live-read', title: 'Connector Live Read Activation',
+    goal: 'Create the W12 live-read activation path and register ONLY W12. A connector READ may execute only after trusted Program State proves W11 complete and a trusted authorization resolver confirms an OPERATOR grant for OPERATOR_AUTHORIZED_EXTERNAL_READ. Use already-bound injected adapters with opaque server-side credential handles only; never connect an account, never accept or expose raw credentials, never execute WRITE, never access HAMYREN, and never deploy/push/merge. Extend Engineering Mission wave validation from the old fixed <=12 ceiling to the known program catalog so V3 can safely reach Wave 25 while V2 remains capped at Wave 12. Run all W12 checks.',
+    depends_on: [11],
+    expected_files: [
+      'src/jarvis/connector-live-read-v1.js',
+      'scripts/jarvis-connector-live-read-v1-smoke.mjs',
+      'src/jarvis/engineering-mission-v1.js',
+      'scripts/jarvis-engineering-mission-v1-smoke.mjs',
+      'src/jarvis/wave-registry-v1.js',
+      'scripts/jarvis-wave-registry-v1-smoke.mjs',
+      'scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'
+    ],
+    required_checks: [
+      { command: 'node', args: ['scripts/jarvis-connector-live-read-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-engineering-mission-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-wave-registry-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'] },
+      { command: 'node', args: ['scripts/jarvis-v2-final-regression-v1.mjs'] }
+    ], generated_files: []
   }]
 ]);
 
@@ -418,7 +439,7 @@ export function jarvisWaveRegistryManifestV1() {
     entries,
     programs: {
       [JARVIS_WAVE_REGISTRY_PROGRAM]: { registered_waves: entries.map((e) => e.wave_index), entries },
-      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, human_gate_wave: 11, human_gate_operator_task_required: true, first_unregistered_post_gate_wave: 12 }
+      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, human_gate_wave: 11, human_gate_operator_task_required: true, first_unregistered_post_gate_wave: 13 }
     },
     v3_phase_a_stops_before_wave_11: true,
     fabricates_undefined_waves: false,

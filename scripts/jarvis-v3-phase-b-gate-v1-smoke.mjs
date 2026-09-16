@@ -43,8 +43,18 @@ assert.equal(isJarvisV3PostGateReachableV1(12,{human_gate_cleared:true}),true);
 assert.equal(isJarvisV3PostGateReachableV1(25,{human_gate_cleared:true}),true);
 assert.equal(isJarvisV3PostGateReachableV1(12,{human_gate_cleared:false}),false);
 
-for (let i=12;i<=25;i++) {
-  assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID,i),null,'W12-W25 task definitions must not exist before gate acceptance');
+const w12 = getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID,12);
+assert.ok(w12,'after W11 acceptance the next concrete wave may be registered');
+assert.deepEqual(w12.depends_on,[11]);
+assert.equal(proposeJarvisWaveTaskV1({
+  program:JARVIS_V3_PROGRAM_ID,waveIndex:12,completedWaves:atGate.completed_waves
+}),null,'registered W12 remains unreachable until W11 is actually accepted');
+const w12AfterGate = proposeJarvisWaveTaskV1({
+  program:JARVIS_V3_PROGRAM_ID,waveIndex:12,completedWaves:afterGate.completed_waves
+});
+assert.equal(w12AfterGate?.registry_id,'v3-wave-12-connector-live-read');
+for (let i=13;i<=25;i++) {
+  assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_PROGRAM_ID,i),null,'later post-gate task definitions remain absent until concretely authored');
 }
 
 for (const capability of JARVIS_V3_POST_GATE_CAPABILITIES) {
@@ -77,6 +87,6 @@ assert.equal(manifest.deploy_allowed,false);
 console.log(JSON.stringify({
   schema:'aurentara.jarvis.v3.phase-b-gate.smoke.v1',passed:true,
   before_gate_percent:55,after_gate_percent:58,final_percent:100,
-  operator_task_required:true,post_gate_tasks_registered:false,
+  operator_task_required:true,post_gate_next_task_registered:true,future_post_gate_tasks_registered:false,
   w11_external_effects:false
 },null,2));
