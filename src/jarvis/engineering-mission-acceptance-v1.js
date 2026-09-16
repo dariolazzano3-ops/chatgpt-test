@@ -40,6 +40,7 @@ import {
 } from './engineering-mission-v1.js';
 import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './claude-code-repo-bound-executor-v1.js';
 import { isLegacyBridgeHttpEvidenceV1, reverifyLegacyBridgeHttpEvidenceV1 } from './legacy-bridge-evidence-reverification-v1.js';
+import { JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE } from './trusted-candidate-recovery-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -94,7 +95,9 @@ export function evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows = []
   // verification (there is no reason to expect the file it wrote, if any,
   // reflects a genuinely finished task).
   const dispatched = Boolean(lastDispatch) && (
-    lastState === 'COMPLETE' || (lastState === 'TIMEOUT' && verificationCheck.sufficient)
+    lastState === 'COMPLETE'
+    || (lastState === 'TIMEOUT' && verificationCheck.sufficient)
+    || (lastState === JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE && verificationCheck.sufficient)
   );
 
   const alreadyAccepted = rows.some((row) => row?.intent?.intent_type === JARVIS_ENGINEERING_MISSION_ACCEPTANCE_INTENT);

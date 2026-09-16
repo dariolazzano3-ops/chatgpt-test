@@ -57,6 +57,7 @@ import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-htt
 import { createJarvisSessionV1 } from './session-v1.js';
 import { createJarvisProgramRunnerV1, clampJarvisProgramRunnerIntervalMsV1 } from './program-runner-v1.js';
 import { createJarvisAcceptedWorkPublisherV1 } from './accepted-work-publisher-v1.js';
+import { createJarvisTrustedCandidateRecovererV1 } from './trusted-candidate-recovery-v1.js';
 import { isKnownJarvisProgramV1, JARVIS_V2_PROGRAM_ID, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
@@ -383,6 +384,9 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const trustedPublisher = runnerConfig.publisher_enabled
     ? createJarvisAcceptedWorkPublisherV1({}, { memory_store: resolvedStore })
     : null;
+  const trustedCandidateRecoverer = runnerConfig.program === JARVIS_V3_PROGRAM_ID && runnerConfig.publisher_enabled
+    ? createJarvisTrustedCandidateRecovererV1({}, { memory_store: resolvedStore })
+    : null;
   const programRunner = overrides.program_runner || createJarvisProgramRunnerV1({
     owner_id: runnerSession.owner_id,
     owner_ref: runnerSession.owner_ref,
@@ -393,7 +397,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     interval_ms: runnerConfig.interval_ms,
     max_ticks: runnerConfig.max_ticks,
     require_recovery: true
-  }, { controller: options.program_controller, memory_store: resolvedStore, publisher: trustedPublisher });
+  }, { controller: options.program_controller, memory_store: resolvedStore, publisher: trustedPublisher, trusted_candidate_recoverer: trustedCandidateRecoverer });
   options.program_runner = programRunner;
 
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);

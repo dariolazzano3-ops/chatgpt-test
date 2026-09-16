@@ -32,6 +32,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   const runLoop = deps.run_loop || runJarvisBoundedProgramLoopV1;
   const store = deps.memory_store || null;
   const publisher = deps.publisher || null;
+  const trustedCandidateRecoverer = deps.trusted_candidate_recoverer || null;
   const setTimer = deps.set_timeout || ((fn, ms) => setTimeout(fn, ms));
   const clearTimer = deps.clear_timeout || ((id) => clearTimeout(id));
   const now = deps.now || (() => new Date().toISOString());
@@ -56,6 +57,7 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
   let lastResult = null;
   let nextScheduledAt = null;
   let lastPublication = null;
+  let lastCandidateRecovery = null;
   let recovery = { status: requireRecovery ? 'NOT_CHECKED' : 'NOT_REQUIRED', resume_allowed: !requireRecovery, reason: null };
 
   function validBinding() {
@@ -77,7 +79,8 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
       recovery_status: recovery?.status || null, recovery_reason: recovery?.reason || null,
       interrupted_cycle: recovery?.interrupted_cycle || null,
       trusted_publisher_bound: Boolean(publisher && typeof publisher.publish === 'function'),
-      last_publication: lastPublication
+      trusted_candidate_recoverer_bound: Boolean(trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function'),
+      last_publication: lastPublication, last_candidate_recovery: lastCandidateRecovery
     };
   }
 
@@ -205,9 +208,26 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         output = { ok: false, status: result?.status || 503, error: result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED', result };
         return output;
       }
-      const publicationNeeded = lastStopReason === 'ACCEPTED_WORK_AWAITS_PUBLICATION'
-        || (lastStopReason === 'BLOCKED_OPERATOR' && result?.final_state?.wave_reason === 'WORKING_TREE_DIRTY');
-      if (publicationNeeded && publisher && typeof publisher.publish === 'function') {
+      const candidateRecoveryNeeded = lastStopReason === 'BLOCKED_OPERATOR'
+        && result?.final_state?.wave_reason === 'MAX_REPAIR_ATTEMPTS_EXCEEDED';
+      if (candidateRecoveryNeeded && trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function') {
+        const candidateRecovery = await trustedCandidateRecoverer.recover({
+          ...fixedRequest,
+          wave_index: result?.final_state?.current_wave,
+          max_repair_attempts: 3
+        });
+        lastCandidateRecovery = candidateRecovery;
+        if (!candidateRecovery?.ok) {
+          suspend('TRUSTED_CANDIDATE_RECOVERY_FAILED', candidateRecovery?.reason || candidateRecovery?.error || 'TRUSTED_CANDIDATE_RECOVERY_FAILED');
+          output = { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_TRUSTED_CANDIDATE_RECOVERY_FAILED', candidate_recovery: candidateRecovery, result };
+          return output;
+        }
+        lastStopReason = 'TRUSTED_CANDIDATE_RECOVERED';
+        finishExtra = { ...finishExtra, stop_reason: lastStopReason, candidate_recovery_request_id: candidateRecovery.request_id || null };
+      } else {
+        const publicationNeeded = lastStopReason === 'ACCEPTED_WORK_AWAITS_PUBLICATION'
+          || (lastStopReason === 'BLOCKED_OPERATOR' && result?.final_state?.wave_reason === 'WORKING_TREE_DIRTY');
+        if (publicationNeeded && publisher && typeof publisher.publish === 'function') {
         const publication = await publisher.publish(fixedRequest);
         lastPublication = publication;
         if (!publication?.ok) {
@@ -217,7 +237,8 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         }
         lastStopReason = 'ACCEPTED_WORK_PUBLISHED';
         finishExtra = { ...finishExtra, stop_reason: lastStopReason, publication_commit: publication.commit || null };
-      } else if (TERMINAL_STOP_REASONS.has(lastStopReason)) suspend(lastStopReason);
+        } else if (TERMINAL_STOP_REASONS.has(lastStopReason)) suspend(lastStopReason);
+      }
       output = { ok: true, status: 200, cycle_executed: true, stop_reason: lastStopReason, result };
       return output;
     } catch (error) {
@@ -244,6 +265,15 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
       const publication = await publisher.publish(fixedRequest);
       lastPublication = publication;
       if (!publication?.ok) return { ok: false, status: 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_PUBLICATION_FAILED', publication, recovery: recovered, state: snapshot() };
+      recovered = await recover();
+    }
+    if (requireRecovery && recovered?.reason === 'TRUSTED_CANDIDATE_RECOVERY_REQUIRED'
+        && trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function') {
+      const candidateRecovery = await trustedCandidateRecoverer.recover({
+        ...fixedRequest, wave_index: recovered.current_wave, max_repair_attempts: 3
+      });
+      lastCandidateRecovery = candidateRecovery;
+      if (!candidateRecovery?.ok) return { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_PROGRAM_RUNNER_RECOVERY_CANDIDATE_FAILED', candidate_recovery: candidateRecovery, recovery: recovered, state: snapshot() };
       recovered = await recover();
     }
     if (requireRecovery && (!recovered.ok || recovered.resume_allowed !== true)) {

@@ -66,10 +66,15 @@ export function evaluateJarvisProgramRunnerRecoveryV1({
   if (state.wave_state === 'BLOCKED_OPERATOR') {
     const acceptedWorkAwaitsPublication = state.wave_reason === 'WORKING_TREE_DIRTY'
       && state.branch_truth?.working_tree_clean === false;
+    const trustedCandidateRecoveryRequired = state.wave_reason === 'MAX_REPAIR_ATTEMPTS_EXCEEDED';
     return {
       ok: true, resume_allowed: false, status: 'BLOCKED',
-      reason: acceptedWorkAwaitsPublication ? 'ACCEPTED_WORK_AWAITS_PUBLICATION' : 'BLOCKED_OPERATOR',
-      interrupted_cycle: unfinished.at(-1)?.cycle_id || null, last_cycle_id: latest?.cycle_id || null
+      reason: acceptedWorkAwaitsPublication
+        ? 'ACCEPTED_WORK_AWAITS_PUBLICATION'
+        : trustedCandidateRecoveryRequired ? 'TRUSTED_CANDIDATE_RECOVERY_REQUIRED' : 'BLOCKED_OPERATOR',
+      interrupted_cycle: unfinished.at(-1)?.cycle_id || null, last_cycle_id: latest?.cycle_id || null,
+      current_wave: state.current_wave ?? null, verified_progress_percent: state.verified_progress_percent ?? null,
+      wave_reason: state.wave_reason || null
     };
   }
   if (!state.next_action?.action) {
