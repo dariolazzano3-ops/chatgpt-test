@@ -208,8 +208,13 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         output = { ok: false, status: result?.status || 503, error: result?.error || 'JARVIS_PROGRAM_RUNNER_LOOP_FAILED', result };
         return output;
       }
-      const candidateRecoveryNeeded = lastStopReason === 'BLOCKED_OPERATOR'
-        && result?.final_state?.wave_reason === 'MAX_REPAIR_ATTEMPTS_EXCEEDED';
+      // BLOCKED_OPERATOR is only a prompt to ASK the trusted recoverer. The
+      // recoverer is the authority: it independently requires the exhausted
+      // repair budget, exact registry dirty set, same-wave provenance, branch
+      // truth, syntax, forbidden-pattern scan, and all registry checks. Do not
+      // couple that durable evidence gate to one presentation-level wave_reason.
+      const candidateRecoveryNeeded = lastStopReason === 'BLOCKED_OPERATOR';
+      let candidateRecoveryDeclined = false;
       if (candidateRecoveryNeeded && trustedCandidateRecoverer && typeof trustedCandidateRecoverer.recover === 'function') {
         const candidateRecovery = await trustedCandidateRecoverer.recover({
           ...fixedRequest,
@@ -218,13 +223,19 @@ export function createJarvisProgramRunnerV1(config = {}, deps = {}) {
         });
         lastCandidateRecovery = candidateRecovery;
         if (!candidateRecovery?.ok) {
-          suspend('TRUSTED_CANDIDATE_RECOVERY_FAILED', candidateRecovery?.reason || candidateRecovery?.error || 'TRUSTED_CANDIDATE_RECOVERY_FAILED');
-          output = { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_TRUSTED_CANDIDATE_RECOVERY_FAILED', candidate_recovery: candidateRecovery, result };
-          return output;
+          if (candidateRecovery?.error === 'TRUSTED_CANDIDATE_RECOVERY_INELIGIBLE') {
+            candidateRecoveryDeclined = true;
+          } else {
+            suspend('TRUSTED_CANDIDATE_RECOVERY_FAILED', candidateRecovery?.reason || candidateRecovery?.error || 'TRUSTED_CANDIDATE_RECOVERY_FAILED');
+            output = { ok: false, status: candidateRecovery?.status || 409, error: 'JARVIS_TRUSTED_CANDIDATE_RECOVERY_FAILED', candidate_recovery: candidateRecovery, result };
+            return output;
+          }
+        } else {
+          lastStopReason = 'TRUSTED_CANDIDATE_RECOVERED';
+          finishExtra = { ...finishExtra, stop_reason: lastStopReason, candidate_recovery_request_id: candidateRecovery.request_id || null };
         }
-        lastStopReason = 'TRUSTED_CANDIDATE_RECOVERED';
-        finishExtra = { ...finishExtra, stop_reason: lastStopReason, candidate_recovery_request_id: candidateRecovery.request_id || null };
-      } else {
+      }
+      if (!candidateRecoveryNeeded || candidateRecoveryDeclined || lastStopReason !== 'TRUSTED_CANDIDATE_RECOVERED') {
         const publicationNeeded = lastStopReason === 'ACCEPTED_WORK_AWAITS_PUBLICATION'
           || (lastStopReason === 'BLOCKED_OPERATOR' && result?.final_state?.wave_reason === 'WORKING_TREE_DIRTY');
         if (publicationNeeded && publisher && typeof publisher.publish === 'function') {

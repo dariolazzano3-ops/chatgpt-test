@@ -138,6 +138,69 @@ assert.equal(clampJarvisProgramRunnerIntervalMsV1(99_999_999), JARVIS_PROGRAM_RU
   assert.equal(runner.state().active, false);
 }
 
+
+// BLOCKED_OPERATOR may ask the trusted recoverer regardless of presentation-level
+// wave_reason. The recoverer itself owns the durable evidence gate.
+{
+  let recoveryCalls = 0;
+  const controller = { state: async () => ({ ok: true, program_approval: { granted: true } }), tick: async () => ({ ok: true }) };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true },
+    {
+      controller,
+      set_timeout: () => ({ unref() {} }), clear_timeout: () => {},
+      run_loop: async () => ({ ok: true, stop_reason: 'BLOCKED_OPERATOR', final_state: { current_wave: 11, wave_reason: 'UNKNOWN', verified_progress_percent: 55 } }),
+      trusted_candidate_recoverer: { recover: async () => { recoveryCalls += 1; return { ok: true, request_id: 'trusted-fixture' }; } }
+    }
+  );
+  await runner.start({ confirm_run: true });
+  const result = await runner.run_once();
+  assert.equal(recoveryCalls, 1, 'BLOCKED_OPERATOR asks the strict trusted recoverer even when wave_reason rendering differs');
+  assert.equal(result.ok, true);
+  assert.equal(result.stop_reason, 'TRUSTED_CANDIDATE_RECOVERED');
+}
+
+// An ineligible candidate is not promoted and does not turn an ordinary blocked
+// operator state into a recovery-system failure.
+{
+  let recoveryCalls = 0;
+  const controller = { state: async () => ({ ok: true, program_approval: { granted: true } }), tick: async () => ({ ok: true }) };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true },
+    {
+      controller,
+      set_timeout: () => ({ unref() {} }), clear_timeout: () => {},
+      run_loop: async () => ({ ok: true, stop_reason: 'BLOCKED_OPERATOR', final_state: { current_wave: 11, wave_reason: 'OTHER_BLOCK', verified_progress_percent: 55 } }),
+      trusted_candidate_recoverer: { recover: async () => { recoveryCalls += 1; return { ok: false, status: 409, error: 'TRUSTED_CANDIDATE_RECOVERY_INELIGIBLE', reason: 'REPAIR_BUDGET_NOT_EXHAUSTED' }; } }
+    }
+  );
+  await runner.start({ confirm_run: true });
+  const result = await runner.run_once();
+  assert.equal(recoveryCalls, 1);
+  assert.equal(result.ok, true);
+  assert.equal(result.stop_reason, 'BLOCKED_OPERATOR');
+  assert.equal(runner.state().active, false, 'ordinary blocked state remains fail-closed when recovery is ineligible');
+}
+
+// Infrastructure failures inside the recoverer remain hard failures.
+{
+  const controller = { state: async () => ({ ok: true, program_approval: { granted: true } }), tick: async () => ({ ok: true }) };
+  const runner = createJarvisProgramRunnerV1(
+    { ...REQUEST, enabled: true },
+    {
+      controller,
+      set_timeout: () => ({ unref() {} }), clear_timeout: () => {},
+      run_loop: async () => ({ ok: true, stop_reason: 'BLOCKED_OPERATOR', final_state: { current_wave: 11, wave_reason: 'UNKNOWN', verified_progress_percent: 55 } }),
+      trusted_candidate_recoverer: { recover: async () => ({ ok: false, status: 503, error: 'TRUSTED_CANDIDATE_RECOVERY_STORE_REQUIRED' }) }
+    }
+  );
+  await runner.start({ confirm_run: true });
+  const result = await runner.run_once();
+  assert.equal(result.ok, false);
+  assert.equal(result.error, 'JARVIS_TRUSTED_CANDIDATE_RECOVERY_FAILED');
+  assert.equal(runner.state().active, false);
+}
+
 const man = jarvisProgramRunnerManifestV1();
 assert.equal(man.capability_enabled_by_default, false);
 assert.equal(man.explicit_start_confirmation_required, true);
