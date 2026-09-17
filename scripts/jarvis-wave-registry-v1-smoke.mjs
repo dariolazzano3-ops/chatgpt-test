@@ -423,22 +423,42 @@ function makeFixtureRepo() {
     waveIndex: 11,
     completedWaves: [0,1,2,3,4,5,6,7,8,9,10]
   }), null, 'W11 is a real registry surface but must never be auto-proposed');
+
+  // W12 is now registered — W11 was independently accepted, so its concrete
+  // goal could be authored (contract §4). It behaves like any other normal,
+  // non-gated wave: proposable only once its dependency (W11) is accepted.
   const v3w12 = getJarvisWaveRegistryEntryV1(JARVIS_V3_WAVE_REGISTRY_PROGRAM, 12);
-  assert.ok(v3w12);
+  assert.ok(v3w12, 'W12 (Connector Live Read Activation) is registered now that W11 is accepted');
   assert.equal(v3w12.id, 'v3-wave-12-connector-live-read');
   assert.deepEqual(v3w12.depends_on, [11]);
-  assert.equal(v3w12.operator_task_required, false);
-  assert.ok(v3w12.expected_files.includes('src/jarvis/connector-live-read-v1.js'));
-  assert.ok(v3w12.expected_files.includes('scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'));
-  assert.equal(v3w12.required_checks.length, 5);
-  const proposedW12 = proposeJarvisWaveTaskV1({
-    program: JARVIS_V3_WAVE_REGISTRY_PROGRAM,
-    waveIndex: 12,
-    completedWaves: [0,1,2,3,4,5,6,7,8,9,10,11]
+  assert.equal(v3w12.operator_task_required, false, 'W12 is a normal wave, not a distinct human gate');
+  assert.deepEqual(v3w12.expected_files, [
+    'src/jarvis/connector-live-read-v1.js',
+    'scripts/jarvis-connector-live-read-v1-smoke.mjs',
+    'src/jarvis/engineering-mission-v1.js',
+    'scripts/jarvis-engineering-mission-v1-smoke.mjs',
+    'src/jarvis/wave-registry-v1.js',
+    'scripts/jarvis-wave-registry-v1-smoke.mjs',
+    'scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs'
+  ], 'W12 file scope is exactly seven files');
+  assert.deepEqual(v3w12.required_checks.map((c) => [c.command, ...c.args].join(' ')), [
+    'node scripts/jarvis-connector-live-read-v1-smoke.mjs',
+    'node scripts/jarvis-engineering-mission-v1-smoke.mjs',
+    'node scripts/jarvis-wave-registry-v1-smoke.mjs',
+    'node scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs',
+    'node scripts/jarvis-v2-final-regression-v1.mjs'
+  ], 'W12 check scope is exactly five checks');
+  assert.equal(proposeJarvisWaveTaskV1({
+    program: JARVIS_V3_WAVE_REGISTRY_PROGRAM, waveIndex: 12, completedWaves: [0,1,2,3,4,5,6,7,8,9,10]
+  }), null, 'W12 depends on accepted W11');
+  const v3w12Ready = proposeJarvisWaveTaskV1({
+    program: JARVIS_V3_WAVE_REGISTRY_PROGRAM, waveIndex: 12, completedWaves: [0,1,2,3,4,5,6,7,8,9,10,11]
   });
-  assert.equal(proposedW12?.registry_id, 'v3-wave-12-connector-live-read');
+  assert.equal(v3w12Ready.source, 'REGISTRY_PROPOSAL');
+  assert.equal(v3w12Ready.registry_id, 'v3-wave-12-connector-live-read');
+
   for (let i=13;i<=25;i++) {
-    assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_WAVE_REGISTRY_PROGRAM, i), null, `V3 post-gate wave ${i} stays unregistered until its predecessor is concretely accepted`);
+    assert.equal(getJarvisWaveRegistryEntryV1(JARVIS_V3_WAVE_REGISTRY_PROGRAM, i), null, `V3 post-gate wave ${i} stays unregistered until each is separately authored`);
   }
   const manifest = jarvisWaveRegistryManifestV1();
   const v3 = manifest.programs[JARVIS_V3_WAVE_REGISTRY_PROGRAM];
@@ -446,7 +466,7 @@ function makeFixtureRepo() {
   assert.equal(v3.human_gate_operator_task_required, true);
   assert.equal(v3.first_unregistered_post_gate_wave, 13);
   assert.ok(v3.registered_waves.includes(11));
-  assert.ok(v3.registered_waves.includes(12));
+  assert.ok(v3.registered_waves.includes(12), 'W12 is registered');
   assert.ok(!v3.registered_waves.includes(13));
   const planner = jarvisWaveTaskPlannerManifestV1();
   assert.equal(planner.operator_required_registry_entries_auto_proposed, false);

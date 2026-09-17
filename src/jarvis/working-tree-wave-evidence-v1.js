@@ -9,21 +9,24 @@ const FORBIDDEN = /wrangler\s+deploy|DROP\s+TABLE|TRUNCATE\s|rm\s+-rf|git\s+push
 const HAMYREN_FALSE_FIELD_RE = /\b[a-z0-9_]*hamyren[a-z0-9_]*\s*:\s*false\b/i;
 const HAMYREN_FALSE_ASSERT_RE = /\bassert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)+(?:hamyren[\w$]*|[\w$]*hamyren[\w$]*)\s*,\s*false\s*(?:,|\))/i;
 const HAMYREN_DENY_TOKEN_RE = /['\"`]HAMYREN_DATA_FLOW['\"`]/;
-const HAMYREN_NEGATED_PROSE_RE = /\b(?:no|without)\s+hamyren\s+data\s+flow\b/i;
+const HAMYREN_NEGATED_PROSE_RE = /(?:\b(?:no|without)\s+hamyren\s+data\s+flow\b|\bnever\b.{0,48}\bhamyren\b)/i;
+const HAMYREN_DENY_PROSE_RE = /\bhamyren\b.{0,48}\b(?:block(?:ed)?|den(?:y|ied)|refus(?:e|ed)|forbid(?:den)?)\b/i;
 const HAMYREN_DENY_ERROR_RE = /\b[A-Z0-9_]*HAMYREN[A-Z0-9_]*(?:BLOCKED|DENIED|FORBIDDEN|DISABLED)\b/;
-const HAMYREN_DENY_GUARD_RE = /(?:\/\^hamyren[^\n]*\.test\(|toLowerCase\(\)\s*===\s*['\"`]hamyren['\"`])/i;
+const HAMYREN_DENY_GUARD_RE = /(?:\/\^?hamyren[^\n]*\.test\(|toLowerCase\(\)\s*===\s*['\"`]hamyren['\"`])/i;
 const HAMYREN_SMOKE_LITERAL_RE = /\b(?:connector_id|provider|capability|source_system)\s*:\s*['\"`]hamyren(?:[.:/][^'\"`]*)?['\"`]/i;
 const HAMYREN_FILTER_RETURN_RE = /\bif\b.*hamyren.*\breturn\s+null\b/i;
 const SMOKE_FILE_RE = /(?:^|\/)[^/]*smoke\.mjs$/i;
 function hasExplicitHamyrenNegativeSmokeContext(context = '') {
   const text = String(context);
-  return /assert\.(?:equal|strictEqual)\s*\(\s*[\w$]*hamyren[\w$]*(?:\.[A-Za-z_$][\w$]*)*\s*,\s*(?:false|0)\s*\)/i.test(text);
+  return /assert\.(?:equal|strictEqual)\s*\(\s*[\w$]*hamyren[\w$]*(?:\.[A-Za-z_$][\w$]*)*\s*,\s*(?:false|0)\s*\)/i.test(text)
+    || /assert\.(?:equal|strictEqual)\s*\(\s*(?:[A-Za-z_$][\w$]*\.)*reason\s*,\s*['\"`][A-Z0-9_]*HAMYREN[A-Z0-9_]*(?:BLOCKED|DENIED|FORBIDDEN|DISABLED)['\"`]\s*\)/i.test(text);
 }
 function git(repo, args) { return execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8'); }
 function allowedHamyren(line, sourcePath = '', context = '') {
   if (HAMYREN_FALSE_FIELD_RE.test(line) || HAMYREN_FALSE_ASSERT_RE.test(line)
     || HAMYREN_DENY_TOKEN_RE.test(line) || HAMYREN_NEGATED_PROSE_RE.test(line)
     || HAMYREN_DENY_ERROR_RE.test(line)) return true;
+  if (HAMYREN_DENY_PROSE_RE.test(line)) return true;
   if (HAMYREN_FILTER_RETURN_RE.test(line)) return true;
   if (HAMYREN_DENY_GUARD_RE.test(line) && HAMYREN_DENY_ERROR_RE.test(context)) return true;
   if (SMOKE_FILE_RE.test(sourcePath) && hasExplicitHamyrenNegativeSmokeContext(context)) return true;

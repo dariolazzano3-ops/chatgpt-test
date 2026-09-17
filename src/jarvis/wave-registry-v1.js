@@ -372,7 +372,7 @@ const V3_REGISTRY = new Map([
   }],
   [12, {
     id: 'v3-wave-12-connector-live-read', title: 'Connector Live Read Activation',
-    goal: 'Create the W12 live-read activation path and register ONLY W12. A connector READ may execute only after trusted Program State proves W11 complete and a trusted authorization resolver confirms an OPERATOR grant for OPERATOR_AUTHORIZED_EXTERNAL_READ. Use already-bound injected adapters with opaque server-side credential handles only; never connect an account, never accept or expose raw credentials, never execute WRITE, never access HAMYREN, and never deploy/push/merge. Extend Engineering Mission wave validation from the old fixed <=12 ceiling to the known program catalog so V3 can safely reach Wave 25 while V2 remains capped at Wave 12. Run all W12 checks.',
+    goal: 'Create the W12 Connector Live Read path within exactly seven wave-scoped files: src/jarvis/connector-live-read-v1.js, scripts/jarvis-connector-live-read-v1-smoke.mjs, src/jarvis/engineering-mission-v1.js, scripts/jarvis-engineering-mission-v1-smoke.mjs, src/jarvis/wave-registry-v1.js, scripts/jarvis-wave-registry-v1-smoke.mjs, and scripts/jarvis-v3-phase-b-gate-v1-smoke.mjs. Extend Engineering Mission wave validation to the real V3 catalog ceiling without widening V2 or unknown programs. A connector READ may execute only once trusted independently-accepted Program State proves Wave 11 complete and the V3 constitutional authorization resolver confirms an explicit OPERATOR grant for OPERATOR_AUTHORIZED_EXTERNAL_READ. Use only already-injected connector-core-v1.js adapters with opaque server-side credential handles; never connect an account, never execute WRITE, never accept or expose raw credentials, never access HAMYREN, and never push, merge or deploy. Run exactly the five W12 checks listed in this registry entry.',
     depends_on: [11],
     expected_files: [
       'src/jarvis/connector-live-read-v1.js',
@@ -432,6 +432,12 @@ export function jarvisWaveRegistryManifestV1() {
     .map(([wave_index, e]) => ({ wave_index, id: e.id, title: e.title, depends_on: [...e.depends_on], expected_files: [...e.expected_files], required_checks_count: e.required_checks.length, operator_task_required: e.operator_task_required === true }));
   const entries = project(V2_REGISTRY);
   const v3Entries = project(V3_REGISTRY);
+  // Derived, never hardcoded: the first post-gate wave index (human gate + 1)
+  // that this file has not yet registered a real, reviewed entry for — stays
+  // correct as W12, W13, ... are authored one at a time after W11 acceptance.
+  const humanGateWave = 11;
+  let firstUnregisteredPostGateWave = humanGateWave + 1;
+  while (V3_REGISTRY.has(firstUnregisteredPostGateWave)) firstUnregisteredPostGateWave += 1;
   return {
     schema: 'aurentara.jarvis.wave-registry.v1',
     program: JARVIS_WAVE_REGISTRY_PROGRAM,
@@ -439,7 +445,7 @@ export function jarvisWaveRegistryManifestV1() {
     entries,
     programs: {
       [JARVIS_WAVE_REGISTRY_PROGRAM]: { registered_waves: entries.map((e) => e.wave_index), entries },
-      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, human_gate_wave: 11, human_gate_operator_task_required: true, first_unregistered_post_gate_wave: 13 }
+      [JARVIS_V3_WAVE_REGISTRY_PROGRAM]: { registered_waves: v3Entries.map((e) => e.wave_index), entries: v3Entries, human_gate_wave: humanGateWave, human_gate_operator_task_required: true, first_unregistered_post_gate_wave: firstUnregisteredPostGateWave }
     },
     v3_phase_a_stops_before_wave_11: true,
     fabricates_undefined_waves: false,
