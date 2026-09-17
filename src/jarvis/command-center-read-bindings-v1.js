@@ -119,6 +119,15 @@ async function loadNormalizedAudit(store, ownerId, ownerRef, limit) {
   return rows.map(normalizeAuditRow).filter(Boolean);
 }
 
+async function loadProgramProgressAudit(store, ownerId, ownerRef, program) {
+  if (typeof store.readProgramProgress === 'function') {
+    const rows = await store.readProgramProgress({ owner_id: ownerId, owner_ref: ownerRef, program });
+    if (!Array.isArray(rows)) throw new Error('JARVIS_PROGRAM_PROGRESS_READ_INVALID');
+    return rows.map(normalizeAuditRow).filter(Boolean);
+  }
+  return loadNormalizedAudit(store, ownerId, ownerRef, 500);
+}
+
 export function createJarvisCommandCenterReadBindingsV1(config = {}) {
   const store = config.store;
   const ownerId = clean(config.owner_id, 80);
@@ -287,7 +296,7 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
   // from the progress projection. UI lists above remain bounded by `limit`.
   const programProgress = async (program) => {
     const programId = clean(program, 80).toUpperCase();
-    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, 500);
+    const audit = await loadProgramProgressAudit(store, ownerId, ownerRef, programId);
     const rows = audit
       .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === programId)
       .map((row) => ({
@@ -309,7 +318,7 @@ export function createJarvisCommandCenterReadBindingsV1(config = {}) {
 
   // Compatibility surface: all existing V2 callers keep their exact API.
   const v2Progress = async () => {
-    const audit = await loadNormalizedAudit(store, ownerId, ownerRef, 500);
+    const audit = await loadProgramProgressAudit(store, ownerId, ownerRef, JARVIS_V2_PROGRAM_ID);
     const rows = audit
       .filter((row) => row.action === 'IMPLEMENTATION_MISSION' && clean(row.result?.program, 80).toUpperCase() === JARVIS_V2_PROGRAM_ID)
       .map((row) => ({
@@ -338,6 +347,8 @@ export function jarvisCommandCenterReadBindingsManifestV1() {
     evidence_classification: 'DERIVED',
     program_progress_classification: 'DERIVED',
     program_progress_audit_limit: 500,
+    program_progress_targeted_reader_preferred: true,
+    program_progress_noise_safe: true,
     v2_progress_classification: 'DERIVED',
     v2_progress_requires_independent_acceptance: true,
     runs_resumable_field_matches_resume_endpoint_rule: true,

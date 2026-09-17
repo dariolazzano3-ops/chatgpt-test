@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const sql = fs.readFileSync('supabase/migrations/20260916190000_jarvis_program_progress_read_v1.sql','utf8');
+const lower = sql.toLowerCase();
+assert.match(lower,/create or replace function public\.jarvis_service_program_progress_read_v1\s*\(/);
+assert.match(lower,/security definer/);
+assert.match(lower,/set search_path\s*=\s*pg_catalog/);
+assert.match(lower,/action\s*=\s*'implementation_mission'/);
+assert.match(lower,/owner_id\s*=\s*p_owner_id/);
+assert.match(lower,/owner_ref\s*=\s*p_owner_ref/);
+assert.match(lower,/distinct on\s*\(\(result ->> 'wave_index'\)::integer\)/);
+assert.match(lower,/between 0 and 63/);
+assert.match(lower,/revoke all on function public\.jarvis_service_program_progress_read_v1\(uuid, text, text\) from public, anon, authenticated/);
+assert.match(lower,/grant execute on function public\.jarvis_service_program_progress_read_v1\(uuid, text, text\) to service_role/);
+for (const forbidden of [/\binsert\s+into\b/,/\bupdate\s+\w+\s+set\b/,/\bdelete\s+from\b/,/\btruncate\b/,/\bcreate\s+table\b/,/\balter\s+table\b/,/\bdrop\s+(table|schema|database|role)\b/]) assert.doesNotMatch(lower,forbidden);
+console.log('JARVIS Program Progress targeted read migration: PASS');

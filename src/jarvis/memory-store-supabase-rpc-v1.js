@@ -169,6 +169,31 @@ export function createSupabaseJarvisRpcMemoryStoreV1({
       return normalized;
     },
 
+    async readProgramProgress({ owner_id, owner_ref, program } = {}) {
+      requireScope(owner_id, owner_ref);
+      const ownerRef = clean(owner_ref, 320);
+      const programUpper = clean(program, 80).toUpperCase();
+      if (!PROGRAM.test(programUpper)) throw new Error('JARVIS_RPC_PROGRAM_PROGRESS_PROGRAM_INVALID');
+      const rows = await call('jarvis_service_program_progress_read_v1', {
+        p_owner_id: clean(owner_id, 80),
+        p_owner_ref: ownerRef,
+        p_program: programUpper
+      });
+      if (!Array.isArray(rows)) throw new Error('JARVIS_RPC_PROGRAM_PROGRESS_READ_INVALID');
+      const seen = new Set();
+      return rows.map((row) => {
+        const normalized = normalizeAuditRow(row, ownerRef);
+        const wave = Number(normalized?.result?.wave_index);
+        if (!normalized || normalized.action !== 'IMPLEMENTATION_MISSION'
+          || clean(normalized?.result?.program, 80).toUpperCase() !== programUpper
+          || !Number.isInteger(wave) || wave < 0 || wave > 63 || seen.has(wave)) {
+          throw new Error('JARVIS_RPC_PROGRAM_PROGRESS_READ_INVALID');
+        }
+        seen.add(wave);
+        return normalized;
+      });
+    },
+
     // Bounded, owner-scoped, read-only audit reader (Wave 4). Requires the
     // service-role RPC jarvis_service_audit_read_v1 (see migration
     // 20260911_jarvis_audit_read_v1.sql). Fails closed if the function or the
@@ -206,6 +231,8 @@ export function jarvisRpcMemoryStoreManifestV1() {
     hamyren_tables_referenced: false,
     durable: true,
     targeted_program_approval_read: true,
+    targeted_program_progress_read: true,
+    bounded_audit_window_not_used_for_program_progress: true,
     bounded_audit_window_not_used_for_program_approval_state: true,
     production_deploy: false
   };

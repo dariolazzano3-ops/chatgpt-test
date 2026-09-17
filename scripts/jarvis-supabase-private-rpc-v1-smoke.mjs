@@ -37,6 +37,15 @@ async function fakeFetch(url, init = {}) {
       occurred_at: '2026-09-07T01:01:00Z'
     }), { status: 200 });
   }
+  if (fn === 'jarvis_service_program_progress_read_v1') {
+    assert.equal(p.p_program, 'JARVIS_CAPABILITY_EXPANSION_V3');
+    return new Response(JSON.stringify([{
+      event_id: '44444444-4444-4444-8444-444444444444', owner_ref: ownerRef,
+      request_id: '55555555-5555-4555-8555-555555555555', intent: { intent_type: 'IMPLEMENTATION_MISSION' }, tools_used: [], permissions: [],
+      action: 'IMPLEMENTATION_MISSION', result: { status: 'COMPLETE', program: p.p_program, wave_index: 11, wave_state: 'COMPLETE', independent_acceptance: true, acceptance_ref: 'accept:v3:11' },
+      approval: {}, cost: {}, memory_updates: {}, isolation: {}, occurred_at: '2026-09-07T01:02:00Z'
+    }]), { status: 200 });
+  }
   if (fn === 'jarvis_service_oauth_load_v1') {
     return new Response(JSON.stringify({
       owner_id: ownerId,
@@ -112,6 +121,15 @@ assert.equal(targetedApproval.action, 'PROGRAM_APPROVAL');
 assert.equal(targetedApproval.intent.intent_type, 'PROGRAM_APPROVAL_GRANT');
 assert.equal(targetedApproval.result.program, 'JARVIS_CAPABILITY_EXPANSION_V3');
 
+const targetedProgress = await memory.readProgramProgress({
+  owner_id: ownerId, owner_ref: ownerRef, program: 'JARVIS_CAPABILITY_EXPANSION_V3'
+});
+assert.equal(targetedProgress.length, 1);
+assert.equal(targetedProgress[0].action, 'IMPLEMENTATION_MISSION');
+assert.equal(targetedProgress[0].result.wave_index, 11);
+assert.equal(targetedProgress[0].result.independent_acceptance, true);
+await assert.rejects(() => memory.readProgramProgress({ owner_id: ownerId, owner_ref: ownerRef, program: 'bad program!' }), /PROGRAM_PROGRESS_PROGRAM_INVALID/);
+
 const oauth = createSupabaseJarvisOAuthStoreV1({
   supabase_url: 'https://synthetic.supabase.co',
   service_role_key: 'service-role-test',
@@ -136,6 +154,8 @@ const memoryManifest = jarvisRpcMemoryStoreManifestV1();
 assert.equal(memoryManifest.private_schema_exposed_to_postgrest, false);
 assert.equal(memoryManifest.public_rpc_functions_service_role_only, true);
 assert.equal(memoryManifest.targeted_program_approval_read, true);
+assert.equal(memoryManifest.targeted_program_progress_read, true);
+assert.equal(memoryManifest.bounded_audit_window_not_used_for_program_progress, true);
 assert.equal(memoryManifest.bounded_audit_window_not_used_for_program_approval_state, true);
 
 const oauthManifest = jarvisOAuthStoreManifestV1();

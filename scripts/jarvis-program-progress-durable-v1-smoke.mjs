@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
+import { createJarvisCommandCenterReadBindingsV1 } from '../src/jarvis/command-center-read-bindings-v1.js';
+const OWNER='11111111-1111-4111-8111-111111111111';
+const REF='jarvis:test:progress';
+const V3='JARVIS_CAPABILITY_EXPANSION_V3';
+const V2='JARVIS_MASTERARCHITECTURE_V2';
+const store=createMemoryJarvisStoreV1();
+const iso={namespace:'jarvis.personal',hamyren_memory_access:false,hamyren_memory_write:false};
+async function append(event){ return store.appendAudit({owner_id:OWNER,owner_ref:REF,event:{isolation:iso,...event}}); }
+for (const program of [V3,V2]) await append({timestamp:'2026-01-01T00:00:00.000Z',action:'IMPLEMENTATION_MISSION',result:{status:'COMPLETE',program,wave_index:0,wave_state:'COMPLETE',independent_acceptance:true,acceptance_ref:`accept:${program}:0`}});
+for(let i=0;i<250;i++) await append({timestamp:new Date(Date.parse('2026-01-02T00:00:00.000Z')+i*1000).toISOString(),action:'PROGRAM_RUNNER_CYCLE',result:{status:'FINISHED',program:V3,cycle_id:`noise-${i}`}});
+const bounded=await store.readAudit({owner_id:OWNER,owner_ref:REF,limit:500});
+assert.equal(bounded.length,200);
+assert.equal(bounded.some(r=>r.action==='IMPLEMENTATION_MISSION'),false,'bounded audit window intentionally loses the old acceptance rows');
+const targetedV3=await store.readProgramProgress({owner_id:OWNER,owner_ref:REF,program:V3});
+assert.equal(targetedV3.length,1);
+const bindings=createJarvisCommandCenterReadBindingsV1({store,owner_id:OWNER,owner_ref:REF,now:'2026-01-03T00:00:00.000Z'});
+const v3=await bindings.program_progress(V3);
+assert.deepEqual(v3.data.completed_waves,[0]);
+assert.equal(v3.data.verified_progress_percent,5);
+assert.equal(v3.data.current_wave,1);
+const v2=await bindings.v2_progress();
+assert.deepEqual(v2.data.completed_waves,[0]);
+assert.equal(v2.data.verified_progress_percent,5);
+assert.equal(v2.data.current_wave,1);
+console.log('JARVIS durable Program Progress under 250 audit-noise events: PASS');

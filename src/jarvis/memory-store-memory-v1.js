@@ -61,6 +61,28 @@ export function createMemoryJarvisStoreV1(seed = []) {
       return clone(row);
     },
 
+    // Noise-proof targeted Program Progress reader. Returns only the latest
+    // IMPLEMENTATION_MISSION audit row for each wave of one owner + program.
+    async readProgramProgress({ owner_id, owner_ref, program } = {}) {
+      const ownerId = clean(owner_id, 80);
+      const ownerRef = clean(owner_ref, 320);
+      const programUpper = clean(program, 80).toUpperCase();
+      if (!ownerId || !ownerRef || !programUpper) throw new Error('JARVIS_PROGRAM_PROGRESS_STORE_SCOPE_REQUIRED');
+      const byWave = new Map();
+      for (const item of audits) {
+        if (item.owner_id !== ownerId || item.owner_ref !== ownerRef) continue;
+        const row = { event_id: item.event_id, occurred_at: item.occurred_at, ...clone(item.event) };
+        if (row.action !== 'IMPLEMENTATION_MISSION' || clean(row?.result?.program, 80).toUpperCase() !== programUpper) continue;
+        const wave = Number(row?.result?.wave_index);
+        if (!Number.isInteger(wave) || wave < 0 || wave > 63) continue;
+        const prior = byWave.get(wave);
+        if (!prior || Date.parse(row.occurred_at || row.timestamp || 0) >= Date.parse(prior.occurred_at || prior.timestamp || 0)) byWave.set(wave, row);
+      }
+      return [...byWave.values()]
+        .sort((a, b) => Date.parse(b.occurred_at || b.timestamp || 0) - Date.parse(a.occurred_at || a.timestamp || 0))
+        .map(clone);
+    },
+
     // Bounded, owner-scoped, read-only audit reader (Wave 4).
     async readAudit({ owner_id, owner_ref, limit = 50 } = {}) {
       const ownerId = clean(owner_id, 80);
