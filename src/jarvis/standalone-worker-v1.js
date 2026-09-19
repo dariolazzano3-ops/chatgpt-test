@@ -1,4 +1,5 @@
 import { handleJarvisHttpV1 } from './http-v1.js';
+import { createJarvisClaudeConversationProviderV1 } from './conversation-provider-claude-bridge-v1.js';
 
 const INTERNAL_BASE = '/jarvis';
 
@@ -54,11 +55,18 @@ export async function handleJarvisStandaloneWorkerV1(request, env = {}, ctx = {}
     });
   }
 
+  const conversationProvider = options.conversation_provider
+    || createJarvisClaudeConversationProviderV1(env);
+
   const response = await handleJarvisHttpV1(
     internalizeRequest(request),
     env,
     ctx,
-    { ...options, ui_base_path: '' }
+    {
+      ...options,
+      conversation_provider: conversationProvider.configured === true ? conversationProvider : null,
+      ui_base_path: ''
+    }
   );
 
   return externalizeResponse(response, request.url);

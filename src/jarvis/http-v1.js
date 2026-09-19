@@ -435,6 +435,36 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const gate = runtime.core?.action_gate || {};
     const approvalRequired = gate.approval_required === true;
     const blocked = gate.ok === false || runtime.core?.status === 'BLOCKED';
+
+    let conversationBrain = null;
+    const readOnlyConversationActions = new Set(['READ_PERSONAL_CONTEXT', 'READ_PERSONAL_MEMORY', 'READ_CALENDAR']);
+    const conversationProvider = options.conversation_provider || null;
+    const conversationEligible = Boolean(
+      conversationProvider?.configured === true &&
+      runtime.ok === true &&
+      blocked === false &&
+      approvalRequired === false &&
+      runtime.core?.intent?.asks_for_action === false &&
+      readOnlyConversationActions.has(runtime.core?.intent?.action)
+    );
+
+    if (conversationEligible) {
+      try {
+        conversationBrain = await conversationProvider.generate({
+          message,
+          intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
+          action: runtime.core?.intent?.action || null,
+          context: runtime.core?.context || {},
+          runtime_summary: presentation.text
+        });
+      } catch {
+        conversationBrain = { ok: false, error: 'JARVIS_CONVERSATION_PROVIDER_FAILED_CLOSED' };
+      }
+    }
+
+    const finalAnswer = conversationBrain?.ok === true && conversationBrain.external_effect === false
+      ? conversationBrain.answer
+      : presentation.text;
     const claudeExecution = runtime.claude_execution || null;
     const claudeCompleted = claudeExecution?.state === 'COMPLETE';
     const claudeFailedTerminal = claudeExecution && !claudeCompleted
@@ -444,8 +474,15 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       schema: 'aurentara.jarvis.private-chat-response.v1',
       request_id: correlationId,
       correlation_id: correlationId,
-      answer: presentation.text,
-      tone: presentation.tone,
+      answer: finalAnswer,
+      tone: conversationBrain?.ok === true ? 'natural' : presentation.tone,
+      conversation_brain: conversationBrain ? {
+        ok: conversationBrain.ok === true,
+        provider: conversationProvider?.provider || null,
+        external_effect: conversationBrain.external_effect === true,
+        fallback_used: conversationBrain.ok !== true,
+        error: conversationBrain.ok === true ? null : (conversationBrain.error || 'JARVIS_CONVERSATION_PROVIDER_FAILED')
+      } : null,
       intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
       action: runtime.core?.intent?.action || null,
       gate_status: gate.status || (blocked ? 'BLOCKED' : null),
