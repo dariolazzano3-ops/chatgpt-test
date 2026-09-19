@@ -17,6 +17,7 @@ const prompt = buildJarvisConversationPromptV1({
   },
   runtime_summary: 'Private runtime active.'
 });
+assert.match(prompt, /RESPONSE DRAFTING TASK FOR THE PRIVATE JARVIS APPLICATION/);
 assert.match(prompt, /ZERO tools/);
 assert.doesNotMatch(prompt, /must-not-leak/);
 
@@ -51,6 +52,10 @@ assert.throws(() => validateJarvisConversationBridgeV1({
     unchanged: false,
     changed_count: 1
   }
+}));
+assert.throws(() => validateJarvisConversationBridgeV1({
+  ...bridgeOk,
+  tool_audit: { ...bridgeOk.tool_audit, result: 'Ich bin Claude Code und kein persönlicher Assistent namens Jarvis.' }
 }));
 
 const authorize = async () => ({
