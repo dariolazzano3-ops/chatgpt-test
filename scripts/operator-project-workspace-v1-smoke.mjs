@@ -95,9 +95,20 @@ const projectsResponse = await handleOperatorDashboard(new Request('https://oper
 assert.equal(projectsResponse.status, 200);
 const projects = await projectsResponse.json();
 const projected = projects.items.find((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE);
-assert.ok(projected, 'AURENTARA website must be visible before runtime registration');
-assert.equal(projected.runtime_registration, 'PENDING_UNTIL_PREFLIGHT');
+assert.ok(projected, 'AURENTARA website must be visible before any mission preflight');
+assert.equal(projected.runtime_registration, 'REGISTERED_AUTHORITATIVE_RUNTIME', 'project list must idempotently register AURENTARA in the runtime before preflight');
+assert.equal(projected.project_detail_openable, true, 'project list must expose AURENTARA through the generic project-detail lifecycle');
+assert.equal(projected.project_open_contract, 'GENERIC_PROJECT_DETAIL');
 assert.equal(projected.production_deploy, false);
+
+const runtimeProjectsBeforePreflight = await runtimeService.handle({ method: 'GET', path: '/projects' });
+assert.ok(runtimeProjectsBeforePreflight.body.items.some((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE), 'AURENTARA must be authoritatively represented in the runtime before any mission preflight');
+
+const projectDetailResponse = await handleOperatorDashboard(new Request(`https://operator.example.test/operator/api/project-detail/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`), {}, {}, options);
+assert.equal(projectDetailResponse.status, 200, 'generic project-detail route must return 200 immediately, before any mission preflight');
+const projectDetail = await projectDetailResponse.json();
+assert.equal(projectDetail.ok, true);
+assert.equal(projectDetail.project.scope_key, AURENTARA_WEBSITE_SCOPE);
 
 const workspacePage = await handleOperatorDashboard(new Request(`https://operator.example.test/operator/workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`), {}, {}, options);
 assert.equal(workspacePage.status, 200);
@@ -110,7 +121,7 @@ assert.match(workspacePage.headers.get('content-security-policy') || '', /frame-
 const workspaceBeforeResponse = await handleOperatorDashboard(new Request(`https://operator.example.test/operator/api/project-workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`), {}, {}, options);
 assert.equal(workspaceBeforeResponse.status, 200);
 const workspaceBefore = await workspaceBeforeResponse.json();
-assert.equal(workspaceBefore.runtime_registration, 'REPOSITORY_PROJECT_PENDING_RUNTIME_REGISTRATION');
+assert.equal(workspaceBefore.runtime_registration, 'REGISTERED_AUTHORITATIVE_RUNTIME');
 
 const changeText = 'Website visuell optimieren und die Hero-Sektion im privaten Staging ruhiger gestalten.';
 const classifiedResponse = await handleOperatorDashboard(new Request(`https://operator.example.test/operator/api/project-workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}/classify`, {
@@ -139,7 +150,7 @@ assert.equal(preflight.production_deploy, false);
 assert.ok(preflight.plan_token);
 
 const runtimeProjects = await runtimeService.handle({ method: 'GET', path: '/projects' });
-assert.ok(runtimeProjects.body.items.some((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE), 'preflight must register project in authoritative runtime through existing CREATE_PROJECT command');
+assert.ok(runtimeProjects.body.items.some((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE), 'project must remain idempotently registered in authoritative runtime through preflight via the existing CREATE_PROJECT command');
 
 const approveResponse = await handleOperatorDashboard(new Request('https://operator.example.test/operator/api/mission-plan-decision', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({

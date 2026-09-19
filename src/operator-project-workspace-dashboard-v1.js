@@ -111,8 +111,8 @@ function previewUrl(env = {}) {
 }
 
 async function workspaceSnapshot(service, operatorId, env) {
-  const runtimeProject = await currentRuntimeProject(service);
-  const project = runtimeProject || createAurentaraPublicWebsitePortfolioEntry();
+  const ensured = await ensureRuntimeProject(service);
+  const project = (ensured.ok && ensured.project) || createAurentaraPublicWebsitePortfolioEntry();
   const snapshot = buildOperatorProjectWorkspace({
     project,
     ui_audit: auditFor(operatorId),
@@ -121,8 +121,8 @@ async function workspaceSnapshot(service, operatorId, env) {
   });
   return {
     ...snapshot,
-    runtime_registration: runtimeProject ? 'REGISTERED_AUTHORITATIVE_RUNTIME' : 'REPOSITORY_PROJECT_PENDING_RUNTIME_REGISTRATION',
-    runtime_registration_occurs_on: 'EXPLICIT_PREFLIGHT_ACTION',
+    runtime_registration: ensured.ok ? 'REGISTERED_AUTHORITATIVE_RUNTIME' : 'REPOSITORY_PROJECT_PENDING_RUNTIME_REGISTRATION',
+    runtime_registration_occurs_on: 'IDEMPOTENT_ON_FIRST_OPERATOR_PROJECT_READ_OR_PREFLIGHT',
     duplicate_project_state: false
   };
 }
@@ -147,7 +147,8 @@ async function handleWorkspaceApi(request, env, ctx, options = {}) {
     const classified = classifyOperatorProjectChange(body);
     if (!classified.ok) return json(classified, 400);
     recordWorkspaceAudit(auth.operator_id, { event: 'WORKSPACE_CHANGE_CLASSIFIED', iteration_label: 'Change Request', status: classified.allowed ? 'PREFLIGHT_READY' : 'BLOCKED', qa_status: 'NOT_VERIFIED' });
-    return json({ ...classified, scope_key: scope, runtime_registration: (await currentRuntimeProject(service)) ? 'REGISTERED_AUTHORITATIVE_RUNTIME' : 'PENDING_UNTIL_PREFLIGHT' }, 200);
+    const classifyEnsured = await ensureRuntimeProject(service);
+    return json({ ...classified, scope_key: scope, runtime_registration: classifyEnsured.ok ? 'REGISTERED_AUTHORITATIVE_RUNTIME' : 'PENDING_UNTIL_PREFLIGHT' }, 200);
   }
 
   if (request.method === 'POST' && action === 'decision') {
@@ -176,12 +177,27 @@ async function maybeEnsureWebsiteForPreflight(request, options = {}) {
   return ensured.ok ? { ok: true, touched: ensured.created } : ensured;
 }
 
+function isAurentaraProjectDetailPath(pathname = '') {
+  const prefix = '/operator/api/project-detail/';
+  if (!pathname.startsWith(prefix)) return false;
+  try { return decodeURIComponent(pathname.slice(prefix.length)) === AURENTARA_WEBSITE_SCOPE; } catch { return false; }
+}
+
+async function ensureAurentaraRuntimeForRead(request, options = {}) {
+  const url = new URL(request.url);
+  const isProjectsList = request.method === 'GET' && url.pathname === '/operator/api/projects';
+  const isProjectDetail = request.method === 'GET' && isAurentaraProjectDetailPath(url.pathname);
+  if (!isProjectsList && !isProjectDetail) return;
+  await ensureRuntimeProject(options.runtime_service);
+}
+
 async function decorateProjectsResponse(response, env) {
   if (!response || response.status !== 200) return response;
   try {
     const body = await response.clone().json();
     const items = Array.isArray(body.items) ? body.items : [];
-    if (!items.some((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE)) {
+    const index = items.findIndex((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE);
+    if (index === -1) {
       const entry = createAurentaraPublicWebsitePortfolioEntry();
       items.unshift({
         ...entry,
@@ -199,6 +215,13 @@ async function decorateProjectsResponse(response, env) {
         project_open_contract: 'DEDICATED_PROJECT_WORKSPACE',
         project_workspace_route: `/operator/workspace/${encodeURIComponent(entry.scope_key)}`
       });
+    } else {
+      items[index] = {
+        ...items[index],
+        runtime_registration: 'REGISTERED_AUTHORITATIVE_RUNTIME',
+        project_open_contract: 'GENERIC_PROJECT_DETAIL',
+        project_workspace_route: `/operator/workspace/${encodeURIComponent(AURENTARA_WEBSITE_SCOPE)}`
+      };
     }
     return json({ ...body, items, project_workspace_v1: true, production_deploy: false });
   } catch {
@@ -226,6 +249,8 @@ export async function handleOperatorDashboard(request, env = {}, ctx = {}, optio
   const ensure = await maybeEnsureWebsiteForPreflight(request, options);
   if (!ensure.ok) return json({ error: ensure.error, runtime_registration_failed: true, production_deploy: false }, ensure.status || 409);
 
+  await ensureAurentaraRuntimeForRead(request, options);
+
   const response = await handleExistingOperatorDashboard(request, env, ctx, options);
   if (!response) return null;
 
@@ -245,8 +270,8 @@ export function operatorProjectWorkspaceDashboardManifest() {
     schema: 'riosystems.operator-project-workspace-dashboard.v1',
     outer_wrapper_over_existing_operator_chain: true,
     authoritative_runtime_registration_command: 'CREATE_PROJECT',
-    runtime_registration_side_effect_timing: 'EXPLICIT_PREFLIGHT_ONLY',
-    repository_projection_before_runtime_registration: true,
+    runtime_registration_side_effect_timing: 'IDEMPOTENT_ON_FIRST_OPERATOR_PROJECT_READ_OR_PREFLIGHT',
+    repository_projection_before_runtime_registration: false,
     existing_mission_preflight_reused: true,
     existing_operator_approval_reused: true,
     existing_execution_layer_reused: true,

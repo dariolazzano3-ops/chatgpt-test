@@ -113,18 +113,25 @@ try {
 
   const opens = page.locator('#projects .project-open');
   assert.ok(await opens.count() > 0);
-  const workspaceOpen = premiumPortfolio
-    ? page.locator('#projects .project-workspace-open')
-    : page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
-  await workspaceOpen.first().waitFor();
-  assert.equal(await workspaceOpen.count(), 1, 'exactly one projected website workspace action expected');
-  assert.equal(await workspaceOpen.first().getAttribute('data-scope'), AURENTARA_WEBSITE_SCOPE);
   if (premiumPortfolio) {
-    assert.equal(
-      await workspaceOpen.first().getAttribute('href'),
-      '/operator/workspace/' + encodeURIComponent(AURENTARA_WEBSITE_SCOPE),
-      'Premium projected website workspace must preserve the existing dedicated workspace route'
-    );
+    const aurentaraOpen = page.locator('#projects .pm-open[data-scope="' + AURENTARA_WEBSITE_SCOPE + '"]');
+    await aurentaraOpen.first().waitFor();
+    assert.equal(await aurentaraOpen.count(), 1, 'AURENTARA must expose exactly one generic project-detail action');
+    const projectsProbe = await page.request.get(origin + '/operator/api/projects');
+    assert.equal(projectsProbe.status(), 200, 'authoritative project list must remain available');
+    const projectsPayload = await projectsProbe.json();
+    const aurentaraProject = (projectsPayload.items || []).find((item) => item.scope_key === AURENTARA_WEBSITE_SCOPE);
+    assert.ok(aurentaraProject, 'AURENTARA must be present in the authoritative runtime-backed portfolio');
+    assert.equal(aurentaraProject.runtime_registration, 'REGISTERED_AUTHORITATIVE_RUNTIME');
+    assert.equal(aurentaraProject.project_detail_openable, true);
+    assert.equal(aurentaraProject.project_open_contract, 'GENERIC_PROJECT_DETAIL');
+    const compatibilityProbe = await page.request.get(origin + '/operator/workspace/' + encodeURIComponent(AURENTARA_WEBSITE_SCOPE));
+    assert.equal(compatibilityProbe.status(), 200, 'dedicated workspace route must remain available as compatibility surface');
+  } else {
+    const workspaceOpen = page.locator('#projects .project-open').filter({ hasText: 'Workspace' });
+    await workspaceOpen.first().waitFor();
+    assert.equal(await workspaceOpen.count(), 1, 'exactly one projected website workspace action expected');
+    assert.equal(await workspaceOpen.first().getAttribute('data-scope'), AURENTARA_WEBSITE_SCOPE);
   }
 
   const workspacePage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
