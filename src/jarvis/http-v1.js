@@ -450,12 +450,23 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
 
     if (conversationEligible) {
       try {
+        const conversationRuntimeSummary = runtime.core?.intent?.action === 'READ_CALENDAR'
+          ? presentation.text
+          : JSON.stringify({
+              private_runtime_active: true,
+              runtime_ok: runtime.ok === true,
+              conversation_provider_invoked: true,
+              action: runtime.core?.intent?.action || null,
+              memory_loaded: runtime.core?.memory_retrieval?.count || 0,
+              connector_status: runtime.connector_execution?.status || null,
+              external_effect: false
+            });
         conversationBrain = await conversationProvider.generate({
           message,
           intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
           action: runtime.core?.intent?.action || null,
           context: runtime.core?.context || {},
-          runtime_summary: presentation.text
+          runtime_summary: conversationRuntimeSummary
         });
       } catch {
         conversationBrain = { ok: false, error: 'JARVIS_CONVERSATION_PROVIDER_FAILED_CLOSED' };

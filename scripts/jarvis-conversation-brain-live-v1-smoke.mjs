@@ -102,6 +102,8 @@ globalThis.fetch = async (url, init = {}) => {
   const sent = JSON.parse(init.body);
   assert.equal(sent.mode, 'review');
   assert.match(sent.prompt, /ZERO tools/);
+  assert.match(sent.prompt, /conversation_provider_invoked/);
+  assert.doesNotMatch(sent.prompt, /Freie generative Antworten/);
   return {
     ok: true,
     status: 200,
