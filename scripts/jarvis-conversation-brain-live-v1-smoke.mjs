@@ -17,13 +17,13 @@ const prompt = buildJarvisConversationPromptV1({
   },
   runtime_summary: 'Private runtime active.'
 });
-assert.match(prompt, /SOFTWARE RESPONSE-DRAFTING TASK/);
+assert.match(prompt, /Software copywriting task/);
 assert.match(prompt, /ZERO tools/);
 assert.doesNotMatch(prompt, /must-not-leak/);
 
 const bridgeOk = {
   ok: true,
-  mode: 'review',
+  mode: 'conversation',
   exit_code: 0,
   git_evidence: { head_unchanged: true },
   filesystem_evidence: {
@@ -100,7 +100,7 @@ globalThis.fetch = async (url, init = {}) => {
   bridgeCalls += 1;
   assert.equal(url, 'http://172.18.0.2:8788/v1/run');
   const sent = JSON.parse(init.body);
-  assert.equal(sent.mode, 'review');
+  assert.equal(sent.mode, 'conversation');
   assert.match(sent.prompt, /ZERO tools/);
   assert.match(sent.prompt, /conversation_provider_invoked/);
   assert.doesNotMatch(sent.prompt, /Freie generative Antworten/);
@@ -126,7 +126,7 @@ try {
   assert.equal(body.ok, true);
   assert.equal(body.answer, bridgeOk.tool_audit.result);
   assert.equal(body.conversation_brain.ok, true);
-  assert.equal(body.conversation_brain.provider, 'CLAUDE_BRIDGE_REVIEW');
+  assert.equal(body.conversation_brain.provider, 'CLAUDE_BRIDGE_CONVERSATION');
   assert.equal(body.conversation_brain.external_effect, false);
   assert.equal(body.conversation_brain.fallback_used, false);
   assert.equal(bridgeCalls, 1);
