@@ -17,7 +17,7 @@ const prompt = buildJarvisConversationPromptV1({
   },
   runtime_summary: 'Private runtime active.'
 });
-assert.match(prompt, /RESPONSE DRAFTING TASK FOR THE PRIVATE JARVIS APPLICATION/);
+assert.match(prompt, /SOFTWARE RESPONSE-DRAFTING TASK/);
 assert.match(prompt, /ZERO tools/);
 assert.doesNotMatch(prompt, /must-not-leak/);
 
