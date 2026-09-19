@@ -70,7 +70,9 @@ try {
   assert.equal(projects.items.length, 4);
   const website = projects.items.find((item) => item.project_id === 'riosystems-public-website-v1');
   assert.ok(website, 'AURENTARA Public Website V1 workspace project must be projected');
-  assert.equal(website.runtime_registration, 'PENDING_UNTIL_PREFLIGHT');
+  assert.equal(website.runtime_registration, 'REGISTERED_AUTHORITATIVE_RUNTIME');
+  assert.equal(website.project_detail_openable, true);
+  assert.equal(website.project_open_contract, 'GENERIC_PROJECT_DETAIL');
   assert.equal(website.production_deploy, false);
   assert.ok(projects.items.every((item) => item.production_deploy === false));
 
