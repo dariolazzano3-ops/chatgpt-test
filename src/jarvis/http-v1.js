@@ -24,6 +24,11 @@ import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering
 import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalRevokeRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
+import {
+  normalizeJarvisWatchRequestV1,
+  projectJarvisWatchResponseV1,
+  jarvisWatchGatewayManifestV1
+} from './watch-gateway-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -277,6 +282,84 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       production_deploy: false,
       billing_enabled: false,
       hamyren_data_flow: false
+    });
+  }
+
+  if (url.pathname === '/jarvis/api/watch/capabilities' && request.method === 'GET') {
+    return json({
+      ok: true,
+      ...jarvisWatchGatewayManifestV1(),
+      authenticated: true,
+      principal_id: session.principal_id,
+      memory_namespace: session.memory_namespace
+    });
+  }
+
+  if (url.pathname === '/jarvis/api/watch/ask' && request.method === 'POST') {
+    const watchBody = await bodyJson(request);
+    const watchRequest = normalizeJarvisWatchRequestV1(watchBody);
+    if (!watchRequest.ok) {
+      return json({
+        ok: false,
+        schema: 'aurentara.jarvis.apple-watch-response.v1',
+        error: watchRequest.error,
+        external_effect: false,
+        production_deploy: false,
+        hamyren_data_flow: false
+      }, 400);
+    }
+
+    const headers = new Headers(request.headers);
+    headers.set('content-type', 'application/json');
+    headers.delete('content-length');
+
+    const chatRequest = new Request(new URL('/jarvis/api/chat', request.url).toString(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        message: watchRequest.message,
+        ...(watchRequest.correlation_id ? { correlation_id: watchRequest.correlation_id } : {})
+      })
+    });
+
+    const chatResponse = await handleJarvisHttpV1(chatRequest, env, ctx, options);
+    if (!chatResponse) {
+      return json({
+        ok: false,
+        schema: 'aurentara.jarvis.apple-watch-response.v1',
+        error: 'JARVIS_WATCH_RUNTIME_ROUTE_UNAVAILABLE',
+        external_effect: false,
+        production_deploy: false,
+        hamyren_data_flow: false
+      }, 503);
+    }
+
+    let chat;
+    try {
+      chat = await chatResponse.json();
+    } catch {
+      return json({
+        ok: false,
+        schema: 'aurentara.jarvis.apple-watch-response.v1',
+        error: 'JARVIS_WATCH_RUNTIME_RESPONSE_INVALID',
+        external_effect: false,
+        production_deploy: false,
+        hamyren_data_flow: false
+      }, 502);
+    }
+
+    const projected = projectJarvisWatchResponseV1(chat, watchRequest);
+    if (chat.ok !== true) {
+      return json({
+        ...projected,
+        ok: false,
+        error: chat.error || 'JARVIS_WATCH_RUNTIME_FAILED'
+      }, chatResponse.status || 409);
+    }
+
+    return json(projected, 200, {
+      'x-jarvis-watch-gateway': 'v1',
+      'x-jarvis-watch-same-runtime': 'true'
     });
   }
 
