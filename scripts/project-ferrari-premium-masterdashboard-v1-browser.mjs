@@ -90,13 +90,18 @@ try{
   for(const project of nonOpenableRows){
     assert.equal(renderedOpenableScopes.has(project.scope_key),false,'non-openable Premium project must not render project-detail open action: '+project.scope_key);
   }
-  const aurentaraWorkspace=page.locator('.pm-list .project-workspace-open[data-scope="aurentara-systems-internal:riosystems-public-website-v1"]');
-  assert.equal(await aurentaraWorkspace.count(),1,'AURENTARA repository-only project must preserve exactly one dedicated workspace action');
-  assert.equal(
-    await aurentaraWorkspace.getAttribute('href'),
-    '/operator/workspace/'+encodeURIComponent('aurentara-systems-internal:riosystems-public-website-v1'),
-    'AURENTARA dedicated workspace route must preserve canonical scope identity'
-  );
+  const aurentaraScope='aurentara-systems-internal:riosystems-public-website-v1';
+  const aurentaraProject=(projectsPayload.items||[]).find(p=>p.scope_key===aurentaraScope);
+  assert.ok(aurentaraProject,'AURENTARA must be present in the authoritative runtime-backed portfolio');
+  assert.equal(aurentaraProject.runtime_registration,'REGISTERED_AUTHORITATIVE_RUNTIME','AURENTARA must be registered before project read');
+  assert.equal(aurentaraProject.project_detail_openable,true,'AURENTARA must use the generic project-detail lifecycle');
+  assert.equal(aurentaraProject.project_open_contract,'GENERIC_PROJECT_DETAIL','AURENTARA primary open contract must be generic project detail');
+  const aurentaraOpener=page.locator('.pm-list .pm-open[data-scope="'+aurentaraScope+'"]');
+  assert.equal(await aurentaraOpener.count(),1,'AURENTARA must render exactly one generic project-detail action');
+  const aurentaraWorkspace=page.locator('.pm-list .project-workspace-open[data-scope="'+aurentaraScope+'"]');
+  assert.equal(await aurentaraWorkspace.count(),0,'AURENTARA dedicated workspace must not remain a competing primary portfolio action');
+  const aurentaraCompatibility=await page.request.get(origin+'/operator/workspace/'+encodeURIComponent(aurentaraScope));
+  assert.equal(aurentaraCompatibility.status(),200,'AURENTARA dedicated workspace route must remain available as compatibility surface');
   const gelatoProject=(projectsPayload.items||[]).find(p=>p.scope_key==='gelato-donatello:gelato-donatello-website-v1');
   assert.ok(gelatoProject,'Gelato Donatello must be present in deterministic local browser dogfood');
   assert.equal(gelatoProject.project_detail_openable,true,'Gelato Donatello must be marked project-detail-openable');
