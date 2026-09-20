@@ -8,8 +8,9 @@ const CORR = '55555555-6666-4777-8888-999999999999';
 function fakeBridge(counter) {
   return {
     bound: true,
-    submit() {
+    submit(payload) {
       counter.count += 1;
+      counter.last = payload;
       return {
         result: Promise.resolve({
           state: 'COMPLETE',
@@ -31,8 +32,9 @@ function fakeBridge(counter) {
   };
 }
 
-const targetCalls = { count: 0 };
-const defaultCalls = { count: 0 };
+const targetCalls = { count: 0, last: null };
+const defaultCalls = { count: 0, last: null };
+const AURENTARA_GUIDANCE = 'AURENTARA PROJECT MISSION EXECUTION RULE: Do not use Agent, Task, specialist, or subagent delegation. Work directly with the allowed Read, Glob, Grep, Edit, and Write tools only. Keep the task bounded to the requested next step.';
 const targetBridge = fakeBridge(targetCalls);
 const defaultBridge = fakeBridge(defaultCalls);
 const target = {
@@ -54,8 +56,8 @@ function options(store) {
     project_mission_targets: { AURENTARA: target },
     engineering_mission_bridge_resolver: async ({ program }) =>
       program === target.program
-        ? { matched: true, bridge: targetBridge, target_id: target.target_id, reason: null }
-        : { matched: false, bridge: null, target_id: null, reason: null }
+        ? { matched: true, bridge: targetBridge, target_id: target.target_id, reason: null, execution_guidance: AURENTARA_GUIDANCE }
+        : { matched: false, bridge: null, target_id: null, reason: null, execution_guidance: null }
   };
 }
 
@@ -175,6 +177,9 @@ let approvalId = null;
   assert.equal(b.claude_bridge_resolution?.target_id, 'AURENTARA');
   assert.equal(targetCalls.count, 1, 'target Bridge must execute exactly once');
   assert.equal(defaultCalls.count, 0, 'Project Mission must never fall back to default JARVIS Bridge');
+  assert.ok(targetCalls.last?.task?.startsWith(AURENTARA_GUIDANCE), 'AURENTARA execution guidance must be prepended server-side');
+  assert.match(targetCalls.last?.task || '', /Do not use Agent, Task, specialist, or subagent delegation/);
+  assert.match(targetCalls.last?.task || '', /Goal: Verifiziere Truth und bereite den nächsten bounded Lifecycle-Schritt vor\./);
 }
 
 // 6. Duplicate resume remains idempotent and does not execute a second time.
