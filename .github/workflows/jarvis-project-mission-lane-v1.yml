@@ -8,6 +8,7 @@ on:
       - 'src/jarvis/engineering-mission-resume-v1.js'
       - 'src/jarvis/remote-operator-server-v1.js'
       - 'src/jarvis/command-center-ui/jarvis-command-center.jsx'
+      - 'src/jarvis/command-center-ui/bundle.built.js'
       - 'scripts/jarvis-project-mission-lane-v1-smoke.mjs'
       - '.github/workflows/jarvis-project-mission-lane-v1.yml'
   workflow_dispatch:
