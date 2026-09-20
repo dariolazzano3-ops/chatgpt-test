@@ -1,0 +1,62 @@
+name: JARVIS Project Mission Lane V1
+
+on:
+  push:
+    branches: [factory/jarvis-project-mission-lane-v1]
+    paths:
+      - 'src/jarvis/http-v1.js'
+      - 'src/jarvis/engineering-mission-resume-v1.js'
+      - 'src/jarvis/remote-operator-server-v1.js'
+      - 'src/jarvis/command-center-ui/jarvis-command-center.jsx'
+      - 'src/jarvis/command-center-ui/bundle.built.js'
+      - 'scripts/jarvis-project-mission-lane-v1-smoke.mjs'
+      - '.github/workflows/jarvis-project-mission-lane-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax
+        run: |
+          node --check src/jarvis/http-v1.js
+          node --check src/jarvis/engineering-mission-resume-v1.js
+          node --check src/jarvis/remote-operator-server-v1.js
+          node --check scripts/jarvis-project-mission-lane-v1-smoke.mjs
+      - name: Project Mission lane acceptance
+        run: node scripts/jarvis-project-mission-lane-v1-smoke.mjs
+      - name: Build accepted Command Center bundle
+        run: node scripts/jarvis-command-center-ui-build-v1.mjs
+      - name: Commit generated bundle on feature branch only
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src/jarvis/command-center-ui/bundle.built.js; then
+            echo "Bundle already current"
+            exit 0
+          fi
+          test "$GITHUB_REF_NAME" = "factory/jarvis-project-mission-lane-v1"
+          test "$(git diff --name-only)" = "src/jarvis/command-center-ui/bundle.built.js"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/jarvis/command-center-ui/bundle.built.js
+          git commit -m "build(jarvis): refresh Project Mission Command Center bundle"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Existing Command Center regressions
+        run: |
+          node scripts/jarvis-command-center-wave6-smoke.mjs
+          node scripts/jarvis-command-center-orange-ui-v1-smoke.mjs
+      - name: Upload generated Command Center bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-project-mission-command-center-bundle
+          path: src/jarvis/command-center-ui/bundle.built.js
+          if-no-files-found: error

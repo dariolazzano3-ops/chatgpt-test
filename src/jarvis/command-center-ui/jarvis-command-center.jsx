@@ -638,35 +638,46 @@ function VoiceBars({ voice }) {
   );
 }
 
-function CommandBar({ onSend, onMission, voice, onMic, inputRef, suggestions, compact }) {
+function CommandBar({ onSend, onMission, onProjectMission, voice, onMic, inputRef, suggestions, compact }) {
   const [v, setV] = useState("");
   const [eng, setEng] = useState(false);
+  const [project, setProject] = useState(false);
   const busy = voice === "thinking" || voice === "analyzing";
   const send = () => {
     if (!v.trim() || busy) return;
-    if (eng && onMission) onMission(v); else onSend(v);
+    if (project && onProjectMission) onProjectMission(v);
+    else if (eng && onMission) onMission(v);
+    else onSend(v);
     setV("");
   };
   return (
     <div className={`cmdwrap${compact ? " compact" : ""}`}>
-      {onMission && (
+      {(onMission || onProjectMission) && (
         <div className="eng-toggle">
-          <button type="button" className={`eng-b${eng ? " on" : ""}`} onClick={() => setEng((x) => !x)}
-            aria-pressed={eng} title="Engineering Mission starten — explizite Implementierungs-Mission statt Chat">
-            <Wrench size={13} /> Engineering Mission {eng ? "an" : "starten"}
-          </button>
+          {onMission && (
+            <button type="button" className={`eng-b${eng ? " on" : ""}`} onClick={() => { setEng((x) => !x); setProject(false); }}
+              aria-pressed={eng} title="JARVIS Engineering Mission starten">
+              <Wrench size={13} /> Engineering Mission {eng ? "an" : "starten"}
+            </button>
+          )}
+          {onProjectMission && (
+            <button type="button" className={`eng-b${project ? " on" : ""}`} onClick={() => { setProject((x) => !x); setEng(false); }}
+              aria-pressed={project} title="AURENTARA Project Mission starten — serverseitig allowlisted">
+              <FolderKanban size={13} /> AURENTARA Mission {project ? "an" : "starten"}
+            </button>
+          )}
         </div>
       )}
       <div className="cmd">
         <span className="cmd-k" aria-hidden="true">›</span>
         <input ref={inputRef} value={v} onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-          placeholder={eng ? "Titel | Ziel der Engineering Mission …" : "Sag JARVIS, was zu tun ist …"}
-          aria-label={eng ? "Engineering Mission an JARVIS" : "Befehl an JARVIS"} />
+          placeholder={project ? "Titel | Ziel der AURENTARA Mission …" : eng ? "Titel | Ziel der Engineering Mission …" : "Sag JARVIS, was zu tun ist …"}
+          aria-label={project ? "AURENTARA Project Mission an JARVIS" : eng ? "Engineering Mission an JARVIS" : "Befehl an JARVIS"} />
         <button className={`ibtn${voice === "listening" ? " on" : ""}`} onClick={onMic} title="Spracheingabe (Vorschau, noch nicht verbunden)" aria-label="Spracheingabe"><Mic size={16} /></button>
-        <button className="ibtn send" disabled={!v.trim() || busy} onClick={send} title={eng ? "Engineering Mission senden" : "Senden"} aria-label="Senden"><ArrowUp size={17} /></button>
+        <button className="ibtn send" disabled={!v.trim() || busy} onClick={send} title={project ? "AURENTARA Mission senden" : eng ? "Engineering Mission senden" : "Senden"} aria-label="Senden"><ArrowUp size={17} /></button>
       </div>
-      {suggestions && !eng && (
+      {suggestions && !eng && !project && (
         <div className="sugg">
           {suggestions.map((x) => <button key={x} onClick={() => onSend(x)} disabled={busy}>{x}</button>)}
         </div>
@@ -1272,7 +1283,7 @@ function PipePanel({ s, go }) {
   );
 }
 
-function HomeView({ s, go, command, engineeringMission, inputRef, onMic }) {
+function HomeView({ s, go, command, engineeringMission, projectMission, inputRef, onMic }) {
   const active = s.runs.filter(isActive).length;
   const pending = s.approvals.filter(isPending).length;
   return (
@@ -1294,7 +1305,7 @@ function HomeView({ s, go, command, engineeringMission, inputRef, onMic }) {
         {s.utterance ? <Spoken text={s.utterance} id={s.utterId} /> : null}
         <VoiceBars voice={s.voice} />
         <div className="caption">{VOICE_CAPTION[s.voice]}</div>
-        <CommandBar onSend={command} onMission={engineeringMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={SUGG} />
+        <CommandBar onSend={command} onMission={engineeringMission} onProjectMission={projectMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={SUGG} />
       </div>
       <RunsPanel s={s} go={go} />
       <SystemPanel go={go} />
@@ -1333,7 +1344,7 @@ function MiniStepper({ run }) {
   );
 }
 
-function ChatView({ s, go, command, engineeringMission, inputRef, onMic }) {
+function ChatView({ s, go, command, engineeringMission, projectMission, inputRef, onMic }) {
   const end = useRef(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [s.messages.length, s.voice]);
   const busy = s.voice === "thinking" || s.voice === "analyzing";
@@ -1365,7 +1376,7 @@ function ChatView({ s, go, command, engineeringMission, inputRef, onMic }) {
             )}
             <div ref={end} />
           </div>
-          <CommandBar compact onSend={command} onMission={engineeringMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={["Systemstatus", "Freigaben prüfen", "Lunara-Webhook reparieren"]} />
+          <CommandBar compact onSend={command} onMission={engineeringMission} onProjectMission={projectMission} voice={s.voice} onMic={onMic} inputRef={inputRef} suggestions={["Systemstatus", "Freigaben prüfen", "Lunara-Webhook reparieren"]} />
         </section>
         <aside className="ctx">
           <Panel title="Kontext">
@@ -1941,6 +1952,76 @@ export default function JarvisCommandCenter() {
     inFlight.current = false;
   }, []);
 
+  // AURENTARA Project Mission: same approval/evidence lifecycle as an
+  // Engineering Mission, but the executable repo/branch/Bridge target is
+  // selected only by the remote server's allowlist. The browser supplies
+  // target_id=AURENTARA and never a repo path, branch path, or Bridge project.
+  const projectMission = useCallback(async (raw) => {
+    const text = String(raw || "").trim();
+    if (!text) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
+
+    const sep = text.indexOf("|");
+    const title = (sep > -1 ? text.slice(0, sep) : text).trim().slice(0, 200) || text.slice(0, 80);
+    const goal = (sep > -1 ? text.slice(sep + 1) : text).trim() || text;
+    const corr = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    d({ type: "MSG", msg: { id: uid(), role: "user", text: `◈ AURENTARA Mission: ${title}`, t: nowHM() } });
+    d({ type: "VOICE", voice: "thinking" });
+    d({ type: "ADD_RUN", run: {
+      id: corr, local: true, real: false, title: title.slice(0, 80), project: "aurentara",
+      worker: "Claude Code", state: "running", progress: 0, stage: 0,
+      note: "AURENTARA Project Mission wird übergeben …", started: nowHM(), live: false,
+    } });
+
+    let body = null, httpOk = false;
+    try {
+      const r = await fetch(`${RT_API_BASE()}/project-mission`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ target_id: "AURENTARA", title, goal, correlation_id: corr }),
+      });
+      httpOk = r.ok;
+      body = await r.json().catch(() => null);
+    } catch { body = null; }
+
+    d({ type: "VOICE", voice: "idle" });
+    if (!body) {
+      d({ type: "RUN", id: corr, patch: { state: "failed", note: "Runtime nicht erreichbar" } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die JARVIS-Runtime ist nicht erreichbar. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      inFlight.current = false;
+      return;
+    }
+
+    const runState = body.run_state === "COMPLETE" ? "success"
+      : body.run_state === "WAITING_APPROVAL" ? "waiting"
+      : body.run_state === "BLOCKED" ? "blocked"
+      : body.run_state === "FAILED" ? "failed"
+      : httpOk ? "running" : "failed";
+    d({ type: "RUN", id: corr, patch: {
+      state: runState,
+      project: "aurentara",
+      note: body.blocked ? `Blockiert: ${body.gate_status || body.wave_state || body.error || "Policy"}`
+        : body.approval_required ? `Wartet auf Freigabe · ${body.target_branch || "AURENTARA"}`
+        : body.wave_state ? `AURENTARA · ${body.wave_state}` : (body.gate_status || "Übergeben"),
+      approval_state: body.approval_required ? "PENDING" : null,
+    } });
+
+    const reply = body.error === "JARVIS_PROJECT_MISSION_TARGET_NOT_CONFIGURED"
+      ? "AURENTARA Project Mission ist noch nicht an eine serverseitig erlaubte Runtime gebunden. Es wurde nichts ausgeführt."
+      : body.approval_required
+        ? `AURENTARA Mission angelegt · Zielbranch ${body.target_branch || "serverseitig"} · wartet auf deine Freigabe.`
+        : body.claude_bridge_bound
+          ? `AURENTARA Mission an Claude Code übergeben (${body.wave_state || body.run_state}).`
+          : "AURENTARA-Ziel erkannt, aber die Ziel-Bridge ist nicht gebunden. Es wurde nichts ausgeführt.";
+    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: reply, t: nowHM(), runId: corr } });
+
+    _rtLoad();
+    inFlight.current = false;
+  }, []);
+
   // Operator decision on a projected approval -> POST <base>/api/approvals/decide.
   // Records a decision; never executes, never sets external_effect.
   const decidingRef = useRef(new Set());
@@ -2008,7 +2089,7 @@ export default function JarvisCommandCenter() {
     _rtLoad();
   }, []);
 
-  const props = { s, d, go, command, engineeringMission, inputRef, onMic, decideApproval, resumeMission };
+  const props = { s, d, go, command, engineeringMission, projectMission, inputRef, onMic, decideApproval, resumeMission };
   const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView }[s.view];
 
   return (
