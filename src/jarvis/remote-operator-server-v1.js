@@ -75,6 +75,8 @@ const REQUIRED_ACCESS_ENV_KEYS = ['JARVIS_ACCESS_AUD', 'JARVIS_ACCESS_TEAM_DOMAI
 
 export const JARVIS_PROJECT_MISSION_AURENTARA_ID = 'AURENTARA';
 export const JARVIS_PROJECT_MISSION_AURENTARA_PROGRAM = 'AURENTARA_PROJECT_MISSION_V1';
+export const JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE =
+  'AURENTARA PROJECT MISSION EXECUTION RULE: Do not use Agent, Task, specialist, or subagent delegation. Work directly with the allowed Read, Glob, Grep, Edit, and Write tools only. Keep the task bounded to the requested next step.';
 const PROJECT_MISSION_BLOCKED_BRANCHES = new Set(['main', 'master', 'factory-control']);
 
 export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = process.env, options = {}) {
@@ -337,8 +339,16 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
         const target = Object.values(projectMissionResult.ok ? projectMissionResult.targets : {})
           .find((item) => item?.program === clean(program, 80));
         return target
-          ? { matched: true, bridge: target.bridge || null, target_id: target.target_id, reason: target.bridge_bound ? null : 'TARGET_BRIDGE_NOT_BOUND' }
-          : { matched: false, bridge: null, target_id: null, reason: null };
+          ? {
+              matched: true,
+              bridge: target.bridge || null,
+              target_id: target.target_id,
+              reason: target.bridge_bound ? null : 'TARGET_BRIDGE_NOT_BOUND',
+              execution_guidance: target.target_id === JARVIS_PROJECT_MISSION_AURENTARA_ID
+                ? JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE
+                : null
+            }
+          : { matched: false, bridge: null, target_id: null, reason: null, execution_guidance: null };
       },
       canonical_owner_email: canonicalOwnerEmail || undefined
     },
