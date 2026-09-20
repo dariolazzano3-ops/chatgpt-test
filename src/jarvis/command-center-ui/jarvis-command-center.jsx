@@ -244,6 +244,12 @@ function useWidth(ref) {
   return w;
 }
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error("VOICE_FILE_READ_FAILED"));
+  reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+  reader.readAsDataURL(blob);
+});
 
 /* ── RUNTIME TRUTH — System Status only ───────────────────────────────────
    The System Status section is the ONLY part wired to a real backend.
@@ -674,7 +680,9 @@ function CommandBar({ onSend, onMission, onProjectMission, voice, onMic, inputRe
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
           placeholder={project ? "Titel | Ziel der AURENTARA Mission …" : eng ? "Titel | Ziel der Engineering Mission …" : "Sag JARVIS, was zu tun ist …"}
           aria-label={project ? "AURENTARA Project Mission an JARVIS" : eng ? "Engineering Mission an JARVIS" : "Befehl an JARVIS"} />
-        <button className={`ibtn${voice === "listening" ? " on" : ""}`} onClick={onMic} title="Spracheingabe (Vorschau, noch nicht verbunden)" aria-label="Spracheingabe"><Mic size={16} /></button>
+        <button className={`ibtn${voice === "listening" ? " on" : ""}`} onClick={onMic}
+          title={voice === "listening" ? "Aufnahme stoppen und an JARVIS senden" : "Mit JARVIS sprechen"}
+          aria-label={voice === "listening" ? "Aufnahme stoppen und senden" : "Mit JARVIS sprechen"}><Mic size={16} /></button>
         <button className="ibtn send" disabled={!v.trim() || busy} onClick={send} title={project ? "AURENTARA Mission senden" : eng ? "Engineering Mission senden" : "Senden"} aria-label="Senden"><ArrowUp size={17} /></button>
       </div>
       {suggestions && !eng && !project && (
@@ -1780,6 +1788,10 @@ export default function JarvisCommandCenter() {
   const timers = useRef([]);
   const runSeq = useRef(143), apSeq = useRef(32), utterSeq = useRef(1);
   const inputRef = useRef(null);
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const voiceChunksRef = useRef([]);
+  const voiceTimerRef = useRef(null);
   const later = (ms, fn) => { timers.current.push(setTimeout(fn, ms)); };
 
   useEffect(() => {
@@ -1788,7 +1800,14 @@ export default function JarvisCommandCenter() {
     };
     window.addEventListener("keydown", onKey);
     const timerList = timers.current;
-    return () => { timerList.forEach(clearTimeout); window.removeEventListener("keydown", onKey); };
+    return () => {
+      timerList.forEach(clearTimeout);
+      if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+      try { recorderRef.current?.stop?.(); } catch {}
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      try { window.speechSynthesis?.cancel(); } catch {}
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [s.view]);
@@ -1800,12 +1819,30 @@ export default function JarvisCommandCenter() {
   }, [rt]);
 
   const go = useCallback((view, patch) => d({ type: "NAV", view, patch }), []);
-  const onMic = () => {
-    const v = sRef.current.voice;
-    if (v === "thinking" || v === "analyzing") return;
-    d({ type: "VOICE", voice: v === "listening" ? "idle" : "listening" });
-    if (v !== "listening") inputRef.current?.focus();
-  };
+
+  const speakJarvis = useCallback((text) => {
+    const answer = String(text || "").trim();
+    if (!answer || typeof window === "undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
+      d({ type: "VOICE", voice: "idle" });
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(answer);
+      utterance.lang = "de-DE";
+      utterance.rate = 0.98;
+      utterance.pitch = 0.92;
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const german = voices.find((voice) => String(voice.lang || "").toLowerCase().startsWith("de"));
+      if (german) utterance.voice = german;
+      utterance.onstart = () => d({ type: "VOICE", voice: "speaking" });
+      utterance.onend = () => d({ type: "VOICE", voice: "idle" });
+      utterance.onerror = () => d({ type: "VOICE", voice: "idle" });
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      d({ type: "VOICE", voice: "idle" });
+    }
+  }, []);
 
   // Wave 6: real submission to the existing safe JARVIS runtime (POST <base>/api/chat
   // -> intent -> action gate -> connector execution / prepare-only). No second
@@ -1847,9 +1884,8 @@ export default function JarvisCommandCenter() {
       body = null;
     }
 
-    d({ type: "VOICE", voice: "idle" });
-
     if (!body) {
+      d({ type: "VOICE", voice: "idle" });
       d({ type: "RUN", id: corr, patch: { state: "failed", note: "Runtime nicht erreichbar" } });
       d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die JARVIS-Runtime ist nicht erreichbar. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
       inFlight.current = false;
@@ -1857,6 +1893,7 @@ export default function JarvisCommandCenter() {
     }
 
     if (status === 503) {
+      d({ type: "VOICE", voice: "idle" });
       d({ type: "RUN", id: corr, patch: { state: "blocked", note: "Runtime-Speicher nicht gebunden" } });
       d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.message || "JARVIS Memory ist in dieser Umgebung noch nicht gebunden. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
       inFlight.current = false;
@@ -1874,13 +1911,106 @@ export default function JarvisCommandCenter() {
         : body.action ? `Aktion: ${body.action}` : (body.gate_status || "Übergeben"),
       approval_state: body.approval_required ? "PENDING" : null,
     } });
-    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.answer || (httpOk ? "Verarbeitet." : "Konnte nicht ausgeführt werden."), t: nowHM(), runId: corr } });
+    const answer = body.answer || (httpOk ? "Verarbeitet." : "Konnte nicht ausgeführt werden.");
+    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: answer, t: nowHM(), runId: corr } });
+    speakJarvis(answer);
 
     // Pull the persisted projection so the optimistic run/activity/approval get
     // replaced by real runtime truth.
     _rtLoad();
     inFlight.current = false;
-  }, []);
+  }, [speakJarvis]);
+
+  const onMic = useCallback(async () => {
+    const active = recorderRef.current;
+    if (active && active.state !== "inactive") {
+      try { active.stop(); } catch {}
+      return;
+    }
+    if (inFlight.current || ["thinking", "analyzing"].includes(sRef.current.voice)) return;
+    if (sRef.current.voice === "speaking") {
+      try { window.speechSynthesis?.cancel(); } catch {}
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      d({ type: "VOICE", voice: "idle" });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Dein Browser stellt keine Mikrofonaufnahme für JARVIS bereit.", t: nowHM() } });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+      });
+      streamRef.current = stream;
+      const candidates = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm", "audio/ogg"];
+      const mimeType = candidates.find((type) => MediaRecorder.isTypeSupported?.(type)) || "";
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      voiceChunksRef.current = [];
+
+      const release = () => {
+        if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+        voiceTimerRef.current = null;
+        streamRef.current?.getTracks?.().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+      };
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) voiceChunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        release();
+        d({ type: "VOICE", voice: "idle" });
+        d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die Mikrofonaufnahme ist fehlgeschlagen.", t: nowHM() } });
+      };
+      recorder.onstop = async () => {
+        const chunks = voiceChunksRef.current.splice(0);
+        const type = recorder.mimeType || mimeType || "audio/webm";
+        release();
+        const blob = new Blob(chunks, { type });
+        if (blob.size < 500) {
+          d({ type: "VOICE", voice: "idle" });
+          return;
+        }
+        d({ type: "VOICE", voice: "thinking" });
+        try {
+          const audioBase64 = await blobToBase64(blob);
+          const response = await fetch(`${RT_API_BASE()}/voice/transcribe`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ audio_base64: audioBase64, mime_type: type, language: "de" })
+          });
+          const body = await response.json().catch(() => null);
+          if (!response.ok || !body?.text) throw new Error(body?.error || "JARVIS_VOICE_TRANSCRIPTION_FAILED");
+          await command(body.text);
+        } catch (error) {
+          d({ type: "VOICE", voice: "idle" });
+          const detail = String(error?.message || "");
+          const text = detail.includes("NOT_CONFIGURED")
+            ? "Die Spracheingabe ist noch nicht mit dem Transkriptionsdienst verbunden."
+            : "Ich konnte deine Sprache gerade nicht transkribieren. Versuch es bitte noch einmal.";
+          d({ type: "MSG", msg: { id: uid(), role: "jarvis", text, t: nowHM() } });
+        }
+      };
+
+      recorder.start(250);
+      d({ type: "VOICE", voice: "listening" });
+      voiceTimerRef.current = setTimeout(() => {
+        if (recorder.state !== "inactive") {
+          try { recorder.stop(); } catch {}
+        }
+      }, 20000);
+    } catch {
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      d({ type: "VOICE", voice: "idle" });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Ich bekomme keinen Zugriff auf dein Mikrofon. Bitte erlaube den Mikrofonzugriff für JARVIS.", t: nowHM() } });
+    }
+  }, [command]);
 
   // Explicit Engineering Mission dispatch (Part 1/2 of the V1 usability-gap
   // closure): POST <base>/api/engineering-mission — a dedicated route, never

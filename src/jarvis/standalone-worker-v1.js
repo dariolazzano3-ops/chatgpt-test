@@ -1,5 +1,6 @@
 import { handleJarvisHttpV1 } from './http-v1.js';
 import { createJarvisClaudeConversationProviderV1 } from './conversation-provider-claude-bridge-v1.js';
+import { createJarvisOpenAiVoiceTranscriberV1 } from './voice-transcription-openai-v1.js';
 
 const INTERNAL_BASE = '/jarvis';
 
@@ -57,6 +58,8 @@ export async function handleJarvisStandaloneWorkerV1(request, env = {}, ctx = {}
 
   const conversationProvider = options.conversation_provider
     || createJarvisClaudeConversationProviderV1(env);
+  const voiceTranscriber = options.voice_transcriber
+    || createJarvisOpenAiVoiceTranscriberV1(env);
 
   const response = await handleJarvisHttpV1(
     internalizeRequest(request),
@@ -65,6 +68,7 @@ export async function handleJarvisStandaloneWorkerV1(request, env = {}, ctx = {}
     {
       ...options,
       conversation_provider: conversationProvider.configured === true ? conversationProvider : null,
+      voice_transcriber: voiceTranscriber.configured === true ? voiceTranscriber : null,
       ui_base_path: ''
     }
   );

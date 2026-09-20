@@ -68,6 +68,7 @@ function html(body, status = 200, extraHeaders = {}) {
 // (the bundle is delivered inline).
 function commandCenterHtml(body, status = 200, extraHeaders = {}) {
   return html(body, status, {
+    'permissions-policy': 'camera=(), microphone=(self), geolocation=(), payment=()',
     'content-security-policy':
       "default-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     ...extraHeaders
@@ -477,6 +478,53 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       external_effect: false,
       executed: false,
       action_gate_bypassed: false,
+      production_deploy: false,
+      hamyren_data_flow: false
+    });
+  }
+
+  if (url.pathname === '/jarvis/api/voice/transcribe' && request.method === 'POST') {
+    const transcriber = options.voice_transcriber || null;
+    if (!transcriber || transcriber.configured !== true) {
+      return json({
+        ok: false,
+        error: 'JARVIS_VOICE_TRANSCRIBER_NOT_CONFIGURED',
+        message: 'Die Spracheingabe ist serverseitig noch nicht konfiguriert.',
+        external_effect: false,
+        production_deploy: false
+      }, 503);
+    }
+
+    const body = await bodyJson(request);
+    const audioBase64 = clean(body.audio_base64, 6000000);
+    const mimeType = clean(body.mime_type, 120);
+    if (!audioBase64 || !mimeType) {
+      return json({ ok: false, error: 'JARVIS_VOICE_AUDIO_REQUIRED' }, 400);
+    }
+
+    const result = await transcriber.transcribe({
+      audio_base64: audioBase64,
+      mime_type: mimeType,
+      language: clean(body.language, 12) || 'de'
+    });
+    if (!result?.ok) {
+      const badInput = ['JARVIS_VOICE_AUDIO_REQUIRED', 'JARVIS_VOICE_AUDIO_INVALID', 'JARVIS_VOICE_AUDIO_TOO_LARGE', 'JARVIS_VOICE_MIME_UNSUPPORTED'].includes(result?.error);
+      return json({
+        ok: false,
+        error: result?.error || 'JARVIS_VOICE_TRANSCRIPTION_FAILED',
+        external_effect: false,
+        production_deploy: false
+      }, badInput ? 400 : 502);
+    }
+
+    return json({
+      ok: true,
+      schema: 'aurentara.jarvis.voice-transcription.v1',
+      text: result.text,
+      provider: result.provider,
+      model: result.model,
+      paid_inference_calls: result.paid_inference_calls || 0,
+      external_effect: false,
       production_deploy: false,
       hamyren_data_flow: false
     });
