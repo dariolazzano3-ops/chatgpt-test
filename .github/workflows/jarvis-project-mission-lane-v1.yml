@@ -2,7 +2,9 @@ name: JARVIS Project Mission Lane V1
 
 on:
   push:
-    branches: [factory/jarvis-project-mission-lane-v1]
+    branches:
+      - factory/jarvis-project-mission-lane-v1
+      - factory/jarvis-project-mission-no-specialist-v1
     paths:
       - 'src/jarvis/http-v1.js'
       - 'src/jarvis/engineering-mission-resume-v1.js'
