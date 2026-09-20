@@ -202,15 +202,20 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
     if (bridgeResolution?.matched === true) resolvedBridge = bridgeResolution.bridge || null;
   }
   const claudeBridgeBound = Boolean(resolvedBridge && resolvedBridge.bound === true);
+  const executionGuidance = clean(bridgeResolution?.execution_guidance, 2000);
 
   if (authorizedGate.execution_authorized === true) {
     if (claudeBridgeBound) {
+      const task = [
+        executionGuidance,
+        `Engineering Mission (RESUME) [${intent.program}] ${intent.title}\n\nGoal: ${intent.goal}`
+      ].filter(Boolean).join('\n\n');
       const handle = resolvedBridge.submit({
         correlation_id: requestId,
         request_id: requestId,
         owner_ref: ownerRef,
         workspace: deps.workspace || JARVIS_ENGINEERING_MISSION_WORKSPACE,
-        task: `Engineering Mission (RESUME) [${intent.program}] ${intent.title}\n\nGoal: ${intent.goal}`,
+        task,
         timeout_ms: deps.claude_timeout_ms
       });
       bridgeExecution = await handle.result;
