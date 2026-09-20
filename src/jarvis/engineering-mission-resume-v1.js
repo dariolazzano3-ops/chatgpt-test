@@ -186,11 +186,26 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
 
   let bridgeExecution = null;
   let waveState = 'NOT_STARTED';
-  const claudeBridgeBound = Boolean(deps.claude_bridge && deps.claude_bridge.bound === true);
+  let resolvedBridge = deps.claude_bridge || null;
+  let bridgeResolution = null;
+  if (typeof deps.claude_bridge_resolver === 'function') {
+    try {
+      bridgeResolution = await deps.claude_bridge_resolver({
+        program: intent.program,
+        request_id: requestId,
+        owner_id: ownerId,
+        owner_ref: ownerRef
+      });
+    } catch {
+      bridgeResolution = { matched: true, bridge: null, reason: 'BRIDGE_RESOLVER_FAILED' };
+    }
+    if (bridgeResolution?.matched === true) resolvedBridge = bridgeResolution.bridge || null;
+  }
+  const claudeBridgeBound = Boolean(resolvedBridge && resolvedBridge.bound === true);
 
   if (authorizedGate.execution_authorized === true) {
     if (claudeBridgeBound) {
-      const handle = deps.claude_bridge.submit({
+      const handle = resolvedBridge.submit({
         correlation_id: requestId,
         request_id: requestId,
         owner_ref: ownerRef,
@@ -281,6 +296,11 @@ export async function handleJarvisEngineeringMissionResumeRuntimeV1(request = {}
     action_gate: gate,
     wave_state: waveState,
     claude_bridge_bound: claudeBridgeBound,
+    claude_bridge_resolution: bridgeResolution ? {
+      matched: bridgeResolution.matched === true,
+      target_id: clean(bridgeResolution.target_id, 80) || null,
+      reason: clean(bridgeResolution.reason, 200) || null
+    } : null,
     claude_execution: bridgeExecution ? {
       state: bridgeExecution.state,
       exit_code: bridgeExecution.exit_code,
@@ -307,6 +327,8 @@ export function jarvisEngineeringMissionResumeManifestV1() {
     action_gate_reevaluated_every_call: true,
     duplicate_execution_guard: 'AUDIT_DERIVED_CLAUDE_EXECUTION_STATE',
     fails_closed: true,
+    target_aware_bridge_resolver_supported: true,
+    matched_target_never_falls_back_to_default_bridge: true,
     worker_self_acceptance_counts_as_independent: false,
     production_deploy: false,
     hamyren_data_flow: false
