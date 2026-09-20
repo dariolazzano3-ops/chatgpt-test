@@ -280,6 +280,26 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     });
   }
 
+  if (url.pathname === '/jarvis/api/project-mission/targets' && request.method === 'GET') {
+    const targets = Object.values(options.project_mission_targets || {}).map((target) => ({
+      target_id: clean(target?.target_id, 80),
+      label: clean(target?.label, 120),
+      program: clean(target?.program, 80),
+      target_branch: clean(target?.target_branch, 240),
+      bridge_bound: target?.bridge_bound === true
+    })).filter((target) => target.target_id);
+    return json({
+      ok: true,
+      schema: 'aurentara.jarvis.project-mission-targets.v1',
+      targets,
+      target_count: targets.length,
+      client_supplied_repo_paths_allowed: false,
+      client_supplied_bridge_projects_allowed: false,
+      production_deploy: false,
+      hamyren_data_flow: false
+    });
+  }
+
   if (url.pathname === '/jarvis/api/runtime-truth' && request.method === 'GET') {
     // Injected probes (tests) take precedence; otherwise build genuine probes
     // from env. Every one fails closed to UNKNOWN when the source is absent.
@@ -467,6 +487,97 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     }, runtime.ok ? 200 : 409);
   }
 
+  if (url.pathname === '/jarvis/api/project-mission' && request.method === 'POST') {
+    if (!store) {
+      return json({
+        ok: false,
+        error: 'JARVIS_DURABLE_MEMORY_NOT_READY',
+        message: 'JARVIS Memory ist in dieser Staging-Runtime noch nicht gebunden.',
+        production_deploy: false
+      }, 503);
+    }
+
+    const body = await bodyJson(request);
+    const targetId = clean(body.target_id, 80).toUpperCase();
+    const target = options.project_mission_targets?.[targetId] || null;
+    if (!target) {
+      return json({
+        ok: false,
+        error: 'JARVIS_PROJECT_MISSION_TARGET_NOT_CONFIGURED',
+        target_id: targetId || null,
+        executed: false,
+        external_effect: false,
+        production_deploy: false
+      }, 409);
+    }
+
+    const clientCorrelation = clean(body.correlation_id || body.request_id, 80);
+    const correlationId = UUID_RE.test(clientCorrelation) ? clientCorrelation.toLowerCase() : crypto.randomUUID();
+    const now = new Date().toISOString();
+    const mission = await handleJarvisEngineeringMissionRuntimeV1({
+      owner_id: session.owner_id,
+      owner_ref: session.owner_ref,
+      request_id: correlationId,
+      correlation_id: correlationId,
+      title: body.title,
+      goal: body.goal,
+      program: target.program,
+      wave_index: null,
+      now
+    }, {
+      memory_store: store,
+      claude_bridge: target.bridge || null,
+      claude_timeout_ms: options.claude_timeout_ms
+    });
+
+    if (!mission.audit_persisted) {
+      return json({ ok: false, error: mission.error || 'JARVIS_PROJECT_MISSION_REJECTED', executed: false, external_effect: false }, 400);
+    }
+
+    const gate = mission.action_gate || {};
+    const approvalRequired = gate.approval_required === true;
+    const blocked = gate.ok === false || mission.wave_state === 'BLOCKED';
+    const claudeExecution = mission.claude_execution || null;
+    const claudeCompleted = claudeExecution?.state === 'COMPLETE';
+    const claudeFailedTerminal = claudeExecution && !claudeCompleted
+      && ['FAILED', 'TIMEOUT', 'CANCELLED', 'BLOCKED', 'UNAVAILABLE'].includes(claudeExecution.state);
+
+    return json({
+      ok: mission.ok,
+      schema: 'aurentara.jarvis.project-mission-response.v1',
+      request_id: correlationId,
+      correlation_id: correlationId,
+      target_id: target.target_id,
+      target_label: target.label,
+      target_branch: target.target_branch,
+      title: mission.intent?.title || null,
+      goal: mission.intent?.goal || null,
+      program: mission.intent?.program || null,
+      wave_state: mission.wave_state || null,
+      intent: mission.intent?.intent_type || null,
+      action: mission.intent?.action || null,
+      gate_status: gate.status || (blocked ? 'BLOCKED' : null),
+      approval_required: approvalRequired,
+      blocked,
+      run_state: blocked ? 'BLOCKED'
+        : claudeCompleted ? 'COMPLETE'
+        : claudeFailedTerminal ? 'FAILED'
+        : mission.wave_state === 'RUNNING' ? 'RUNNING'
+        : approvalRequired ? 'WAITING_APPROVAL'
+        : 'RUNNING',
+      claude_bridge_bound: mission.claude_bridge_bound === true,
+      claude_execution: claudeExecution,
+      audit_persisted: mission.audit_persisted === true,
+      external_effect: claudeExecution?.external_effect === true,
+      independent_acceptance: false,
+      client_supplied_repo_paths_allowed: false,
+      client_supplied_bridge_projects_allowed: false,
+      action_gate_bypassed: false,
+      production_deploy: false,
+      hamyren_data_flow: false
+    }, mission.ok ? 200 : 409);
+  }
+
   if (url.pathname === '/jarvis/api/engineering-mission' && request.method === 'POST') {
     // Dedicated, explicit dispatch path (Part 1 of the V1 usability-gap
     // mission). Never reuses the free-text intent resolver, never
@@ -576,6 +687,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     }, {
       memory_store: store,
       claude_bridge: options.claude_bridge || null,
+      claude_bridge_resolver: options.engineering_mission_bridge_resolver,
       claude_timeout_ms: options.claude_timeout_ms
     });
 
@@ -589,6 +701,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       executed: resume.executed === true,
       wave_state: resume.wave_state || null,
       claude_bridge_bound: resume.claude_bridge_bound === true,
+      claude_bridge_resolution: resume.claude_bridge_resolution || null,
       claude_execution: resume.claude_execution || null,
       duplicate_execution_guard: resume.duplicate_execution_guard || null,
       last_execution_state: resume.last_execution_state || null,
@@ -765,6 +878,12 @@ export function jarvisHttpManifestV1() {
     command_center_approval_decide_bypasses_gate: false,
     command_center_approval_decide_external_effect: false,
     command_center_engineering_mission_route: '/jarvis/api/engineering-mission',
+    command_center_project_mission_route: '/jarvis/api/project-mission',
+    command_center_project_mission_targets_route: '/jarvis/api/project-mission/targets',
+    command_center_project_mission_target_source: 'SERVER_SIDE_ALLOWLIST_ONLY',
+    command_center_project_mission_client_repo_path_forbidden: true,
+    command_center_project_mission_client_bridge_project_forbidden: true,
+    command_center_project_mission_resume_target_aware: true,
     command_center_engineering_mission_intent: 'IMPLEMENTATION_MISSION_REQUEST',
     command_center_engineering_mission_action: 'IMPLEMENTATION_MISSION',
     command_center_engineering_mission_bypasses_keyword_intent_resolver: true,
