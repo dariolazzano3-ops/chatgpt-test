@@ -4,7 +4,7 @@
   "host": "jarvis-private-core.pages.dev",
   "branch": "private-staging",
   "environment": "private-staging",
-  "source_sha": "2c5c80217c379d82f5ab157aabe3254dd2e96646",
+  "source_sha": "0e96c2ae0c30abc0f87270c30f7c471aad19400a",
   "confirmation": "DEPLOY_JARVIS_PRIVATE_PAGES_PREVIEW",
   "cloudflare_access_active": true,
   "access_audience_dedicated": true,
