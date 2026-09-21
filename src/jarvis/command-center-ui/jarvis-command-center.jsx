@@ -1360,7 +1360,7 @@ function ChatView({ s, go, command, engineeringMission, projectMission, inputRef
   const ctxRun = s.runs.find(isActive) || s.runs[0];
   return (
     <>
-      <PageHead title="Chat" sub="Sprich mit JARVIS. Jeder Auftrag wird ein nachvollziehbarer Run." />
+      <PageHead title="Chat" sub="Unterhalte dich mit JARVIS. Missionen und Aktionen bleiben separat nachvollziehbar." />
       <div className="chat-grid">
         <section className="pnl chat-pnl">
           <div className="thread">
@@ -1858,16 +1858,15 @@ export default function JarvisCommandCenter() {
     if (inFlight.current) return;
     if (text === lastSubmit.current.text && nowMs - lastSubmit.current.at < 3000) return;
     lastSubmit.current = { text, at: nowMs };
+    const history = sRef.current.messages.slice(-12).map((item) => ({
+      role: item.role === "jarvis" ? "jarvis" : "user",
+      text: item.text
+    }));
     inFlight.current = true;
 
     const corr = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     d({ type: "MSG", msg: { id: uid(), role: "user", text, t: nowHM() } });
     d({ type: "VOICE", voice: "thinking" });
-    d({ type: "ADD_RUN", run: {
-      id: corr, local: true, real: false, title: text.slice(0, 80), project: "jarvis",
-      worker: "JARVIS Runtime", state: "running", progress: 0, stage: 0,
-      note: "An JARVIS-Runtime übergeben …", started: nowHM(), live: false,
-    } });
 
     let body = null, httpOk = false, status = 0;
     try {
@@ -1875,7 +1874,7 @@ export default function JarvisCommandCenter() {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ message: text, correlation_id: corr }),
+        body: JSON.stringify({ message: text, correlation_id: corr, history }),
       });
       status = r.status;
       httpOk = r.ok;
@@ -1886,38 +1885,21 @@ export default function JarvisCommandCenter() {
 
     if (!body) {
       d({ type: "VOICE", voice: "idle" });
-      d({ type: "RUN", id: corr, patch: { state: "failed", note: "Runtime nicht erreichbar" } });
-      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Die JARVIS-Runtime ist nicht erreichbar. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: "Ich erreiche meine Runtime gerade nicht.", t: nowHM() } });
       inFlight.current = false;
       return;
     }
 
     if (status === 503) {
       d({ type: "VOICE", voice: "idle" });
-      d({ type: "RUN", id: corr, patch: { state: "blocked", note: "Runtime-Speicher nicht gebunden" } });
-      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.message || "JARVIS Memory ist in dieser Umgebung noch nicht gebunden. Es wurde nichts ausgeführt.", t: nowHM(), runId: corr } });
+      d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: body.message || "Mein persönlicher Kontext ist gerade nicht verfügbar.", t: nowHM() } });
       inFlight.current = false;
       return;
     }
 
-    const runState = body.run_state === "COMPLETE" ? "success"
-      : body.run_state === "WAITING_APPROVAL" ? "waiting"
-      : body.run_state === "BLOCKED" ? "blocked"
-      : httpOk ? "running" : "failed";
-    d({ type: "RUN", id: corr, patch: {
-      state: runState,
-      note: body.blocked ? `Blockiert: ${body.gate_status || body.error || "Policy"}`
-        : body.approval_required ? "Wartet auf Freigabe"
-        : body.action ? `Aktion: ${body.action}` : (body.gate_status || "Übergeben"),
-      approval_state: body.approval_required ? "PENDING" : null,
-    } });
-    const answer = body.answer || (httpOk ? "Verarbeitet." : "Konnte nicht ausgeführt werden.");
-    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: answer, t: nowHM(), runId: corr } });
+    const answer = body.answer || (httpOk ? "Verstanden." : "Das hat gerade nicht funktioniert.");
+    d({ type: "MSG", msg: { id: uid(), role: "jarvis", text: answer, t: nowHM() } });
     speakJarvis(answer);
-
-    // Pull the persisted projection so the optimistic run/activity/approval get
-    // replaced by real runtime truth.
-    _rtLoad();
     inFlight.current = false;
   }, [speakJarvis]);
 

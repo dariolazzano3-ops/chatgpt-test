@@ -19,6 +19,8 @@ function decodeBase64(value) {
 export function createJarvisOpenAiVoiceTranscriberV1(env = {}, options = {}) {
   const apiKey = String(options.api_key || env.OPENAI_API_KEY || '');
   const model = clean(options.model || env.JARVIS_VOICE_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe', 120);
+  const prompt = clean(options.prompt || env.JARVIS_VOICE_TRANSCRIBE_PROMPT ||
+    'Natürliche deutsche Sprache an JARVIS. Eigennamen und Begriffe: JARVIS, Dario, YSRIO, AURENTARA, HAMYREN, RIOSYSTEMS, LUNARA, Gelato Donatello, Claude, Cloudflare, Supabase.', 800);
   const fetchImpl = options.fetch_impl || globalThis.fetch;
   const configured = Boolean(apiKey && typeof fetchImpl === 'function');
   return {
@@ -40,6 +42,7 @@ export function createJarvisOpenAiVoiceTranscriberV1(env = {}, options = {}) {
       form.append('file', new Blob([bytes], { type: mimeType }), `jarvis-voice.${MIME_EXT[mimeType]}`);
       form.append('model', model);
       form.append('language', clean(input.language, 12) || 'de');
+      if (prompt) form.append('prompt', prompt);
       let response;
       try {
         response = await fetchImpl('https://api.openai.com/v1/audio/transcriptions', {

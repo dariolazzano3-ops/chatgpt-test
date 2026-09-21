@@ -32,6 +32,13 @@ import {
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function conversationFallbackV1(message, presentationText) {
+  const value = clean(message, 4000);
+  if (/\b(hörst du mich|kannst du mich hören|bist du da)\b/i.test(value)) return 'Ja, ich höre dich.';
+  if (/^(jarvis[, ]*)?(hallo|hey|hi|guten morgen|guten tag|guten abend)\b/i.test(value)) return 'Ja. Ich bin da.';
+  return clean(presentationText, 12000) || 'Ich bin da.';
+}
 let localMemoryStore = null;
 
 function json(body, status = 200, extraHeaders = {}) {
@@ -542,6 +549,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
 
     const body = await bodyJson(request);
     const message = clean(body.message, 4000);
+    const history = Array.isArray(body.history) ? body.history : [];
     if (!message) return json({ ok: false, error: 'JARVIS_MESSAGE_REQUIRED' }, 400);
 
     // Wave 6: the Command Center supplies a correlation id so its optimistic run
@@ -588,16 +596,12 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const blocked = gate.ok === false || runtime.core?.status === 'BLOCKED';
 
     let conversationBrain = null;
-    const readOnlyConversationActions = new Set(['READ_PERSONAL_CONTEXT', 'READ_PERSONAL_MEMORY', 'READ_CALENDAR']);
     const conversationProvider = options.conversation_provider || null;
-    const conversationEligible = Boolean(
-      conversationProvider?.configured === true &&
-      runtime.ok === true &&
-      blocked === false &&
-      approvalRequired === false &&
-      runtime.core?.intent?.asks_for_action === false &&
-      readOnlyConversationActions.has(runtime.core?.intent?.action)
-    );
+    // Conversation-first: the ordinary chat surface always gets a natural
+    // JARVIS reply when the provider is configured. The runtime still performs
+    // its safety/audit pass, but action execution remains behind the dedicated
+    // mission/approval paths.
+    const conversationEligible = conversationProvider?.configured === true;
 
     if (conversationEligible) {
       try {
@@ -608,15 +612,19 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
               runtime_ok: runtime.ok === true,
               conversation_provider_invoked: true,
               action: runtime.core?.intent?.action || null,
+              blocked,
+              approval_required: approvalRequired,
+              gate_status: gate.status || null,
               memory_loaded: runtime.core?.memory_retrieval?.count || 0,
               connector_status: runtime.connector_execution?.status || null,
-              external_effect: false
+              external_effect: runtime.connector_execution?.external_effect === true
             });
         conversationBrain = await conversationProvider.generate({
           message,
           intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
           action: runtime.core?.intent?.action || null,
           context: runtime.core?.context || {},
+          history,
           runtime_summary: conversationRuntimeSummary
         });
       } catch {
@@ -626,7 +634,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
 
     const finalAnswer = conversationBrain?.ok === true && conversationBrain.external_effect === false
       ? conversationBrain.answer
-      : presentation.text;
+      : conversationFallbackV1(message, presentation.text);
     const claudeExecution = runtime.claude_execution || null;
     const claudeCompleted = claudeExecution?.state === 'COMPLETE';
     const claudeFailedTerminal = claudeExecution && !claudeCompleted
