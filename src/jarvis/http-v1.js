@@ -21,6 +21,8 @@ import { evaluateJarvisApprovalDecisionV1 } from './command-center-approval-runt
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering-mission-acceptance-v1.js';
+import { classifyJarvisChatWorkRequestV1 } from './chat-work-router-v1.js';
+import { dispatchJarvisOwnerChatJobV1, runJarvisOwnerChatJobV1 } from './owner-chat-job-v1.js';
 import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalRevokeRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
@@ -559,6 +561,76 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const correlationId = UUID_RE.test(clientCorrelation) ? clientCorrelation.toLowerCase() : crypto.randomUUID();
 
     const now = new Date().toISOString();
+
+    // Deterministic, regex-based, never LLM-based (chat-work-router-v1.js) —
+    // decided BEFORE anything else runs, so a genuine bounded engineering
+    // imperative typed into ordinary chat no longer silently falls through
+    // to the READ_PERSONAL_CONTEXT no-op (see that module's header). Checked
+    // for every /jarvis/api/chat call, but only ACTIONABLE_WORK changes this
+    // handler's behaviour below — CONVERSATION and APPROVAL_REQUIRED_ACTION
+    // both fall straight through to the existing, unmodified runtime path,
+    // which never auto-executes a write without a separately persisted
+    // operator approval either way.
+    const chatWork = classifyJarvisChatWorkRequestV1(message);
+
+    if (chatWork.classification === 'ACTIONABLE_WORK') {
+      const dispatch = await dispatchJarvisOwnerChatJobV1({
+        owner_id: session.owner_id,
+        owner_ref: session.owner_ref,
+        message,
+        request_id: correlationId,
+        now
+      }, { memory_store: store });
+
+      if (dispatch.ok) {
+        // Background dispatch: the owner gets the acknowledgement below
+        // immediately; the actual bridge dispatch + independent verification
+        // + bounded repair runs after this response is sent. ctx.waitUntil is
+        // the genuine Cloudflare Worker mechanism for this (pages-worker-v1.js
+        // -> standalone-worker-v1.js -> here, all pass the real per-request
+        // ctx through unmodified). Outside a Worker runtime (e.g. this file's
+        // own test harness) ctx.waitUntil is simply absent — the already-
+        // started async job keeps running on its own regardless; tests await
+        // completion themselves by polling the durable audit trail.
+        const jobPromise = runJarvisOwnerChatJobV1(dispatch.job, {
+          memory_store: store,
+          claude_bridge: options.claude_bridge || null,
+          claude_timeout_ms: options.claude_timeout_ms,
+          max_repair_attempts: options.owner_chat_job_max_repair_attempts
+        }).catch(() => {});
+        if (typeof ctx?.waitUntil === 'function') ctx.waitUntil(jobPromise);
+
+        return json({
+          ok: true,
+          schema: 'aurentara.jarvis.private-chat-response.v1',
+          request_id: dispatch.request_id,
+          correlation_id: dispatch.request_id,
+          answer: dispatch.ack,
+          tone: 'natural',
+          conversation_brain: null,
+          chat_work_classification: chatWork.classification,
+          intent: 'IMPLEMENTATION_MISSION_REQUEST',
+          action: 'IMPLEMENTATION_MISSION',
+          gate_status: 'APPROVED_BY_OWNER_CHAT_IMPERATIVE',
+          approval_required: false,
+          blocked: false,
+          run_state: 'RUNNING',
+          connector_status: null,
+          claude_execution: null,
+          memory_loaded: 0,
+          audit_persisted: true,
+          external_effect: false,
+          independent_acceptance: false,
+          owner_chat_job: { request_id: dispatch.request_id, program: dispatch.program, title: dispatch.title, status: 'RUNNING' },
+          production_deploy: false,
+          hamyren_data_flow: false
+        }, 200);
+      }
+      // Falls closed to the ordinary conversation path below if the job
+      // could not even be durably queued (e.g. memory store unavailable) —
+      // never silently drops the owner's message.
+    }
+
     const timezone = clean(env.JARVIS_TIMEZONE, 120) || 'Europe/Berlin';
     const window = inferJarvisCalendarWindowV1(message, { now, timezone });
     const connectors = await connectorsFor(session, oauth, options);
@@ -653,6 +725,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         fallback_used: conversationBrain.ok !== true,
         error: conversationBrain.ok === true ? null : (conversationBrain.error || 'JARVIS_CONVERSATION_PROVIDER_FAILED')
       } : null,
+      chat_work_classification: chatWork.classification,
       intent: runtime.core?.intent?.intent_type || runtime.core?.intent?.type || null,
       action: runtime.core?.intent?.action || null,
       gate_status: gate.status || (blocked ? 'BLOCKED' : null),

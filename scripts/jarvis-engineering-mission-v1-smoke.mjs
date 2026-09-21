@@ -4,6 +4,7 @@ import { handleJarvisHttpV1 } from '../src/jarvis/http-v1.js';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
 import { createJarvisClaudeCodeBridgeV1, createLocalFixtureExecutorV1 } from '../src/jarvis/claude-code-bridge-v1.js';
 import { resolveJarvisIntentV1 } from '../src/jarvis/intent-v1.js';
+import { classifyJarvisChatWorkRequestV1 } from '../src/jarvis/chat-work-router-v1.js';
 import { jarvisEngineeringMissionManifestV1 } from '../src/jarvis/engineering-mission-v1.js';
 import { computeJarvisV2ProgressV1, JARVIS_V2_WAVE_WEIGHTS } from '../src/jarvis/v2-progress-v1.js';
 
@@ -53,17 +54,32 @@ function truth(store) {
   assert.equal(b.approval_required, false);
 }
 
-// ── 2. Generic chat CANNOT silently masquerade as an engineering mission ──
+// ── 2. The fuzzy free-text keyword resolver (intent-v1.js) itself must still
+//      NEVER resolve to the explicit engineering-mission action — that
+//      invariant is unchanged. A genuinely bounded internal engineering
+//      imperative typed into chat CAN now legitimately reach
+//      IMPLEMENTATION_MISSION, but only through the dedicated, deterministic
+//      chat-work-router-v1.js classifier (owner-chat-job-v1.js), and only
+//      with a full, explicit, auditable self-approval trail — never
+//      silently, and never via intent-v1.js's fuzzy table drifting into it.
+//      See scripts/jarvis-owner-chat-job-v1-smoke.mjs for the dedicated,
+//      end-to-end coverage of that new dispatch path. ──
 {
   const bigPrompt = 'Implement JARVIS_MASTERARCHITECTURE_V2 Wave 0: establish remote truth, create the target branch, begin genuine Claude implementation work end to end across the whole system.';
   const resolved = resolveJarvisIntentV1({ message: bigPrompt });
-  assert.notEqual(resolved.action, 'IMPLEMENTATION_MISSION', 'free text must never resolve to the explicit engineering-mission action');
+  assert.notEqual(resolved.action, 'IMPLEMENTATION_MISSION', 'the fuzzy free-text keyword resolver must never itself resolve to the explicit engineering-mission action');
   assert.notEqual(resolved.intent_type, 'IMPLEMENTATION_MISSION_REQUEST');
 
+  // A question about the same topic (no action verb) must stay CONVERSATION
+  // end to end — chat-work-router-v1.js only ever fires on an explicit
+  // imperative, never on a mere mention of engineering-shaped nouns.
+  const questionPrompt = 'Was ist eigentlich der aktuelle Stand von JARVIS_MASTERARCHITECTURE_V2 Wave 0?';
+  assert.equal(classifyJarvisChatWorkRequestV1(questionPrompt).classification, 'CONVERSATION');
   const store = createMemoryJarvisStoreV1();
-  const r = await postChat(store, bigPrompt, '20202020-2222-4222-8222-222222222222');
-  const b = await r.json();
-  assert.notEqual(b.action, 'IMPLEMENTATION_MISSION', 'the chat route itself must never produce the engineering-mission action');
+  const rq = await postChat(store, questionPrompt, '20202020-2222-4222-8222-222222222222');
+  const bq = await rq.json();
+  assert.notEqual(bq.action, 'IMPLEMENTATION_MISSION', 'a non-imperative question must never produce the engineering-mission action');
+  assert.equal(bq.chat_work_classification, 'CONVERSATION');
 }
 
 // ── 3. Engineering mission route is explicit: dedicated request shape, dedicated action ──
