@@ -220,7 +220,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     return { ok: false, error: 'JARVIS_OWNER_CHAT_JOB_MEMORY_STORE_REQUIRED', request_id: requestId };
   }
 
-  const maxAttempts = Math.min(
+  const maxAttempts = clean(originalGoal, 4000).toLowerCase().includes('read-only') ? 0 : Math.min(
     JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING,
     Number.isInteger(deps.max_repair_attempts) && deps.max_repair_attempts >= 0
       ? deps.max_repair_attempts
@@ -285,9 +285,32 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     }
 
     const verificationState = evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows, attemptRequestId);
-    const systemVerified = verificationState.mission_found === true
+    const verification = mission.claude_execution?.evidence?.verification || null;
+    const readOnlyGoal = clean(originalGoal, 4000).toLowerCase().includes('read-only');
+    const fs = verification?.filesystem_evidence || null;
+    const git = verification?.git_evidence || null;
+    const audit = verification?.tool_audit || null;
+    const uses = Array.isArray(audit?.tool_uses) ? audit.tool_uses : [];
+    const mutatingToolUsed = uses.some((entry) => /^(edit|write|notebookedit)$/i.test(clean(entry?.tool || entry, 80)));
+    const unsafeAudit = mutatingToolUsed
+      || (Array.isArray(audit?.forbidden_tool_uses) && audit.forbidden_tool_uses.length > 0)
+      || (Array.isArray(audit?.outside_workspace_targets) && audit.outside_workspace_targets.length > 0)
+      || (Array.isArray(audit?.sensitive_targets) && audit.sensitive_targets.length > 0)
+      || (Array.isArray(audit?.permission_denials) && audit.permission_denials.length > 0);
+    const readOnlyVerified = readOnlyGoal
+      && mission.claude_execution?.state === 'COMPLETE'
+      && mission.claude_execution?.exit_code === 0
+      && mission.claude_execution?.external_effect !== true
+      && fs?.complete === true && fs?.unchanged === true
+      && git?.head_unchanged === true
+      && audit?.complete === true && audit?.is_error !== true
+      && !unsafeAudit;
+    const systemVerified = (verificationState.mission_found === true
       && verificationState.dispatched === true
-      && verificationState.verification_sufficient === true;
+      && verificationState.verification_sufficient === true) || readOnlyVerified;
+    const verificationError = systemVerified ? null
+      : readOnlyGoal ? 'READ_ONLY_SYSTEM_VERIFICATION_INSUFFICIENT'
+      : (verificationState.verification_insufficient_reason || 'VERIFICATION_INSUFFICIENT');
 
     attemptChain.push({
       request_id: attemptRequestId,
@@ -296,7 +319,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       claude_state: mission.claude_execution?.state || null,
       system_verified: systemVerified,
       operator_accepted: verificationState.already_accepted === true,
-      verification_error: systemVerified ? null : (verificationState.verification_insufficient_reason || 'VERIFICATION_INSUFFICIENT')
+      verification_error: verificationError
     });
 
     if (systemVerified) {
@@ -306,7 +329,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       break;
     }
 
-    finalReason = verificationState.verification_insufficient_reason || 'VERIFICATION_INSUFFICIENT';
+    finalReason = verificationError;
     if (attemptNumber >= maxAttempts) {
       finalStatus = 'FAILED';
       break;
