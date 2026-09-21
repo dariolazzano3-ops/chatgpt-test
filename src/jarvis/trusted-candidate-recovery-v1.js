@@ -4,6 +4,8 @@
    checks all agree. It NEVER grants Independent Acceptance. */
 
 import { execFileSync } from 'node:child_process';
+import { JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE } from './repo-bound-contract-v1.js';
+export { JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE } from './repo-bound-contract-v1.js';
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { getJarvisWaveRegistryEntryV1 } from './wave-registry-v1.js';
 import { computeJarvisWorkingTreeWaveEvidenceV1 } from './working-tree-wave-evidence-v1.js';
@@ -14,7 +16,6 @@ import {
   JARVIS_ENGINEERING_MISSION_DOMAIN
 } from './engineering-mission-v1.js';
 
-export const JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE = 'TRUSTED_CANDIDATE_RECOVERED';
 const clean = (v, max = 4000) => String(v ?? '').trim().slice(0, max);
 const at = (row) => Date.parse(row?.occurred_at || row?.timestamp || 0) || 0;
 const sameSet = (a = [], b = []) => {

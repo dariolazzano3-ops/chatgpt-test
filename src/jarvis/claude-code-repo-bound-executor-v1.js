@@ -48,6 +48,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createChildProcessExecutorV1 } from './claude-code-bridge-v1.js';
+import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './repo-bound-contract-v1.js';
+export { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './repo-bound-contract-v1.js';
 import {
   currentBranchOrNullV1,
   beginJarvisRepoBoundVerificationV1,
@@ -57,7 +59,6 @@ import {
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const DEFAULT_MAX_BUDGET_USD = 2;
 
-export const JARVIS_REPO_BOUND_PROTECTED_BRANCHES = Object.freeze(['main', 'master']);
 // Deliberately excludes Bash, WebFetch, WebSearch, NotebookEdit — see file header.
 export const JARVIS_REPO_BOUND_DEFAULT_ALLOWED_TOOLS = 'Read,Write,Edit,Glob,Grep';
 

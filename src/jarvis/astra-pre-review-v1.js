@@ -26,11 +26,14 @@
 
 const clean = (value, max = 8000) => String(value ?? '').trim().slice(0, max);
 const PROTECTED_BRANCHES = ['main', 'master'];
+const DEPLOY_INTENT = /\bdeploy(s|ed|ing|ment)?\b/i;
+const PRIVATE_DEPLOY_QUALIFIER = /\b(private|internal|internally|staging|preview)\b/i;
+const PUBLIC_DEPLOY_QUALIFIER = /\b(public|publicly|production|prod)\b/i;
+const PUBLIC_ACCESS_DISABLED = /\bpublic\s+access\s+(disabled|off|false|blocked|denied)\b/i;
 
 // Mirrors the V2 safety constitution (contract §10) — a request whose own
 // text asks for one of these is rejected before it ever reaches a worker.
 const FORBIDDEN_INTENT_PATTERNS = [
-  { pattern: /\bdeploy(s|ed|ing|ment)?\b/i, reason: 'NO_DEPLOY' },
   { pattern: /\bmerg(e|ed|ing)\b/i, reason: 'NO_MERGE' },
   { pattern: /\b(main|master)\s*branch\b|\bto\s+(main|master)\b/i, reason: 'NO_MAIN_MASTER' },
   { pattern: /\bproduction\b/i, reason: 'NO_PRODUCTION_ACTIVATION' },
@@ -60,6 +63,16 @@ export function reviewJarvisAstraPreV1({
   }
   if (PROTECTED_BRANCHES.includes(String(target_branch).toLowerCase())) {
     return { ok: false, decision: 'REJECT', reason: 'ASTRA_PRE_PROTECTED_BRANCH_REFUSED' };
+  }
+
+  const combinedText = `${titleText}\n${requestText}`;
+  if (DEPLOY_INTENT.test(combinedText)) {
+    if (PUBLIC_DEPLOY_QUALIFIER.test(combinedText) && !PUBLIC_ACCESS_DISABLED.test(combinedText)) {
+      return { ok: false, decision: 'REJECT', reason: 'ASTRA_PRE_FORBIDDEN_INTENT:NO_PUBLIC_OR_PRODUCTION_DEPLOY' };
+    }
+    if (!PRIVATE_DEPLOY_QUALIFIER.test(combinedText)) {
+      return { ok: false, decision: 'REJECT', reason: 'ASTRA_PRE_DEPLOY_TARGET_MUST_BE_EXPLICITLY_PRIVATE' };
+    }
   }
 
   for (const { pattern, reason } of FORBIDDEN_INTENT_PATTERNS) {

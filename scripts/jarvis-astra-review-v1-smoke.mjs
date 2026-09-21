@@ -61,9 +61,23 @@ await check('PRE: approves a normal, in-bounds request and frames it correctly',
   assert.deepEqual(result.safety_boundary.protected_branches_refused, ['main', 'master']);
 });
 
-await check('PRE: rejects requests naming a forbidden intent (deploy/merge/main/production/DNS/billing/HAMYREN/force-push/public release)', () => {
+await check('PRE: allows explicitly private deploy intent but rejects public/unqualified deploy and other forbidden intents', () => {
+  const privateDeploy = reviewJarvisAstraPreV1({
+    title: 'Private staging deploy',
+    request_text: 'Deploy the verified private preview and keep public access disabled.',
+    program: PROGRAM, repo_dir: '/tmp/x', target_branch: 'factory/x'
+  });
+  assert.equal(privateDeploy.decision, 'APPROVE');
+
+  const unqualifiedDeploy = reviewJarvisAstraPreV1({
+    title: 'Deploy',
+    request_text: 'Deploy this now.',
+    program: PROGRAM, repo_dir: '/tmp/x', target_branch: 'factory/x'
+  });
+  assert.equal(unqualifiedDeploy.reason, 'ASTRA_PRE_DEPLOY_TARGET_MUST_BE_EXPLICITLY_PRIVATE');
+
   const cases = [
-    ['deploy this to production', 'NO_DEPLOY'],
+    ['deploy this to production', 'NO_PUBLIC_OR_PRODUCTION_DEPLOY'],
     ['merge this branch', 'NO_MERGE'],
     ['push this to main branch', 'NO_MAIN_MASTER'],
     ['activate production mode', 'NO_PRODUCTION_ACTIVATION'],

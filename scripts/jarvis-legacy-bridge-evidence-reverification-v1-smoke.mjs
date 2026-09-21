@@ -432,7 +432,12 @@ await check('integration: a legacy-shaped completed mission is accepted ONLY whe
     // With the trusted dependency, pointing at the real, still-matching repo: accepted.
     const withDep = await handleJarvisEngineeringMissionAcceptanceRuntimeV1(
       { owner_id: OWNER_ID, owner_ref: OWNER_REF, request_id: requestId },
-      { memory_store: store, repo_dir: repo, target_branch: BRANCH }
+      {
+        memory_store: store,
+        repo_dir: repo,
+        target_branch: BRANCH,
+        legacy_bridge_evidence_reverify: reverifyLegacyBridgeHttpEvidenceV1
+      }
     );
     assert.equal(withDep.ok, true, JSON.stringify(withDep));
     assert.equal(withDep.accepted, true);

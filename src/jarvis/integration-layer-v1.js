@@ -1,3 +1,5 @@
+import { evaluateYsrioExecutionRiskV1 } from './execution-risk-policy-v1.js';
+
 const clean = (value, max = 240) => String(value ?? '').trim().slice(0, max);
 
 export const JARVIS_INTEGRATION_EFFECT = Object.freeze({
@@ -16,6 +18,7 @@ export const JARVIS_INTEGRATION_PROVIDERS = Object.freeze([
   'TASKS',
   'REMINDERS',
   'CLOUDFLARE',
+  'RUNTIME',
   'SUPABASE',
   'GMAIL'
 ]);
@@ -23,6 +26,7 @@ export const JARVIS_INTEGRATION_PROVIDERS = Object.freeze([
 const DEFAULT_CAPABILITIES = Object.freeze([
   { id: 'github.remote_truth.read', provider: 'GITHUB', effect: 'READ', risk: 'LOW', scope: 'PROJECT_REMOTE_TRUTH' },
   { id: 'github.branch.prepare', provider: 'GITHUB', effect: 'PREPARE', risk: 'LOW', scope: 'PROJECT_CODE' },
+  { id: 'github.feature_branch.write', provider: 'GITHUB', effect: 'SAFE_INTERNAL_WRITE', risk: 'MEDIUM', scope: 'PROJECT_BRANCH' },
   { id: 'github.remote_write', provider: 'GITHUB', effect: 'APPROVAL_REQUIRED', risk: 'HIGH', scope: 'PROJECT_REMOTE' },
   { id: 'github.merge', provider: 'GITHUB', effect: 'APPROVAL_REQUIRED', risk: 'HIGH', scope: 'CANONICAL' },
 
@@ -39,8 +43,13 @@ const DEFAULT_CAPABILITIES = Object.freeze([
   { id: 'reminders.write', provider: 'REMINDERS', effect: 'APPROVAL_REQUIRED', risk: 'LOW', scope: 'PERSONAL_EXTERNAL' },
 
   { id: 'cloudflare.read', provider: 'CLOUDFLARE', effect: 'READ', risk: 'LOW', scope: 'PROJECT_INFRA' },
+  { id: 'cloudflare.private_deploy', provider: 'CLOUDFLARE', effect: 'SAFE_INTERNAL_WRITE', risk: 'MEDIUM', scope: 'PRIVATE_DEPLOYMENT' },
   { id: 'cloudflare.deploy', provider: 'CLOUDFLARE', effect: 'APPROVAL_REQUIRED', risk: 'HIGH', scope: 'DEPLOYMENT' },
   { id: 'cloudflare.dns.write', provider: 'CLOUDFLARE', effect: 'APPROVAL_REQUIRED', risk: 'CRITICAL', scope: 'DNS' },
+
+  { id: 'runtime.private_service_reload', provider: 'RUNTIME', effect: 'SAFE_INTERNAL_WRITE', risk: 'MEDIUM', scope: 'PRIVATE_RUNTIME' },
+  { id: 'runtime.private_verify', provider: 'RUNTIME', effect: 'READ', risk: 'LOW', scope: 'PRIVATE_RUNTIME' },
+  { id: 'runtime.private_rollback', provider: 'RUNTIME', effect: 'SAFE_INTERNAL_WRITE', risk: 'MEDIUM', scope: 'PRIVATE_RUNTIME' },
 
   { id: 'supabase.read', provider: 'SUPABASE', effect: 'READ', risk: 'LOW', scope: 'PROJECT_DATA' },
   { id: 'supabase.bounded_write', provider: 'SUPABASE', effect: 'APPROVAL_REQUIRED', risk: 'HIGH', scope: 'PROJECT_DATA' },
@@ -126,14 +135,36 @@ export function evaluateJarvisIntegrationActionV1(input = {}) {
   }
 
   if (capability.effect === JARVIS_INTEGRATION_EFFECT.SAFE_INTERNAL_WRITE) {
-    const bounded = input.bounded_workspace === true
-      && clean(input.workspace, 400).startsWith('/workspace/projects/')
-      && input.protected_branch !== true
-      && input.production === false;
+    const effectByScope = {
+      BOUNDED_WORKSPACE: 'CODE_WRITE',
+      PROJECT_BRANCH: 'GIT_WRITE',
+      PRIVATE_DEPLOYMENT: 'PRIVATE_DEPLOY',
+      PRIVATE_RUNTIME: capability.id.endsWith('rollback') ? 'ROLLBACK' : 'SERVICE_RELOAD'
+    };
+    const effect = effectByScope[capability.scope] || 'CODE_WRITE';
+    const boundedWorkspaceOk = capability.scope !== 'BOUNDED_WORKSPACE'
+      || (input.bounded_workspace === true && clean(input.workspace, 400).startsWith('/workspace/projects/'));
 
-    return bounded
-      ? { ok: true, status: 'AUTHORIZED', capability, execution_authorized: true, approval_required: false }
-      : { ok: true, status: 'PREPARE_ONLY', capability, execution_authorized: false, approval_required: true };
+    if (!boundedWorkspaceOk) {
+      return { ok: true, status: 'PREPARE_ONLY', capability, execution_authorized: false, approval_required: true };
+    }
+
+    const decision = evaluateYsrioExecutionRiskV1({
+      ...input,
+      effect,
+      environment: input.environment || (capability.scope === 'BOUNDED_WORKSPACE' ? 'internal' : undefined),
+      visibility: input.visibility || 'PRIVATE',
+      public_access: input.public_access === true,
+      production: input.production === true,
+      private_access_verified: input.private_access_verified !== false
+    });
+
+    return {
+      ...decision,
+      capability,
+      execution_authorized: decision.execution_authorized === true,
+      approval_required: decision.approval_required === true
+    };
   }
 
   if (capability.effect === JARVIS_INTEGRATION_EFFECT.APPROVAL_REQUIRED) {
@@ -183,7 +214,9 @@ export function jarvisIntegrationManifestV1() {
     providers: registry.providers,
     remote_truth_provider: 'GITHUB',
     coding_specialist: 'CLAUDE_CODE',
-    default_remote_write: 'OFF',
+    default_remote_write: 'PRIVATE_FEATURE_BRANCH_RISK_GATED',
+    private_internal_execution_policy: 'YSRIO_PRIVATE_INTERNAL_AUTONOMY_V1',
+    private_deploy_default: 'AUTONOMOUS_WHEN_PRIVACY_AND_ROLLBACK_VERIFIED',
     registry_proves_runtime_liveness: false,
     production_actions_enabled: false,
     billing_actions_enabled: false,

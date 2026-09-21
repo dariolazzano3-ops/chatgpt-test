@@ -8,7 +8,9 @@ import {
 const manifest = jarvisIntegrationManifestV1();
 assert.equal(manifest.remote_truth_provider, 'GITHUB');
 assert.equal(manifest.coding_specialist, 'CLAUDE_CODE');
-assert.equal(manifest.default_remote_write, 'OFF');
+assert.equal(manifest.default_remote_write, 'PRIVATE_FEATURE_BRANCH_RISK_GATED');
+assert.equal(manifest.private_internal_execution_policy, 'YSRIO_PRIVATE_INTERNAL_AUTONOMY_V1');
+assert.equal(manifest.private_deploy_default, 'AUTONOMOUS_WHEN_PRIVACY_AND_ROLLBACK_VERIFIED');
 assert.equal(manifest.production_actions_enabled, false);
 assert.equal(manifest.billing_actions_enabled, false);
 assert.equal(manifest.hamyren_private_data_flow, false);
@@ -99,5 +101,61 @@ const hamyren = evaluateJarvisIntegrationActionV1({
 });
 assert.equal(hamyren.ok, false);
 assert.equal(hamyren.error, 'JARVIS_HAMYREN_PRIVATE_FLOW_BLOCKED');
+
+const featureBranchWrite = evaluateJarvisIntegrationActionV1({
+  registry,
+  capability: 'github.feature_branch.write',
+  environment: 'internal',
+  visibility: 'INTERNAL',
+  public_access: false,
+  production: false,
+  private_access_verified: true,
+  branch: 'factory/private-policy-v1'
+});
+assert.equal(featureBranchWrite.status, 'AUTHORIZED');
+assert.equal(featureBranchWrite.approval_required, false);
+
+const privateDeploy = evaluateJarvisIntegrationActionV1({
+  registry,
+  capability: 'cloudflare.private_deploy',
+  environment: 'private-staging',
+  visibility: 'PRIVATE',
+  public_access: false,
+  production: false,
+  private_access_verified: true,
+  existing_target: true,
+  rollback_available: true,
+  estimated_cost_eur: 0
+});
+assert.equal(privateDeploy.status, 'AUTHORIZED');
+assert.equal(privateDeploy.execution_authorized, true);
+assert.equal(privateDeploy.approval_required, false);
+
+const privateDeployMadePublic = evaluateJarvisIntegrationActionV1({
+  registry,
+  capability: 'cloudflare.private_deploy',
+  environment: 'private-staging',
+  visibility: 'PRIVATE',
+  public_access: true,
+  production: false,
+  private_access_verified: true,
+  existing_target: true,
+  rollback_available: true,
+  estimated_cost_eur: 0
+});
+assert.equal(privateDeployMadePublic.status, 'AWAITING_APPROVAL');
+assert.equal(privateDeployMadePublic.execution_authorized, false);
+
+const privateReload = evaluateJarvisIntegrationActionV1({
+  registry,
+  capability: 'runtime.private_service_reload',
+  environment: 'internal',
+  visibility: 'INTERNAL',
+  public_access: false,
+  production: false,
+  private_access_verified: true
+});
+assert.equal(privateReload.status, 'AUTHORIZED');
+assert.equal(privateReload.approval_required, false);
 
 console.log('JARVIS Integration Layer V1 smoke: PASS');

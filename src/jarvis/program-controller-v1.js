@@ -49,6 +49,7 @@ import { handleJarvisEngineeringMissionAcceptanceRuntimeV1, evaluateJarvisEngine
 import { proposeJarvisWaveTaskV1 } from './wave-task-planner-v1.js';
 import { isKnownJarvisProgramV1, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
 import { computeJarvisWorkingTreeWaveEvidenceV1 } from './working-tree-wave-evidence-v1.js';
+import { reverifyLegacyBridgeHttpEvidenceV1 } from './legacy-bridge-evidence-reverification-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -328,14 +329,24 @@ export async function handleJarvisProgramTickRuntimeV1(request = {}, deps = {}) 
       } else {
         const accept = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
           owner_id: ownerId, owner_ref: ownerRef, request_id: action.request_id, now
-        }, { memory_store: deps.memory_store });
+        }, {
+          memory_store: deps.memory_store,
+          repo_dir: repoDir,
+          target_branch: targetBranch,
+          legacy_bridge_evidence_reverify: reverifyLegacyBridgeHttpEvidenceV1
+        });
         performed = { action: 'VERIFY_AND_ACCEPT', detail: { ...accept, trusted_wave_evidence: trustedWaveEvidence } };
         if (!accept?.ok || accept?.accepted !== true) { tickOk = false; tickStatus = accept?.status || 409; }
       }
     } else {
       const accept = await handleJarvisEngineeringMissionAcceptanceRuntimeV1({
         owner_id: ownerId, owner_ref: ownerRef, request_id: action.request_id, now
-      }, { memory_store: deps.memory_store });
+      }, {
+        memory_store: deps.memory_store,
+        repo_dir: repoDir,
+        target_branch: targetBranch,
+        legacy_bridge_evidence_reverify: reverifyLegacyBridgeHttpEvidenceV1
+      });
       performed = { action: 'VERIFY_AND_ACCEPT', detail: accept };
     }
   } else if (action.action === 'ANALYZE_FOR_REPAIR') {

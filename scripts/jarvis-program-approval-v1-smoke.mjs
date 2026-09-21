@@ -33,17 +33,17 @@ async function readAudit(store) { return store.readAudit({ owner_id: OWNER_ID, o
   const store = createMemoryJarvisStoreV1();
   const r = await handleJarvisProgramApprovalGrantRuntimeV1({
     owner_id: OWNER_ID, owner_ref: OWNER_REF, program: PROGRAM, repo_dir: REPO_DIR, target_branch: BRANCH,
-    scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE', 'MERGE', 'DEPLOY', 'MAIN_MASTER_MUTATION'],
+    scope: ['CLAUDE_REPO_BOUND_EXECUTION', 'ACCEPTANCE', 'PRIVATE_DEPLOY', 'MERGE', 'PUBLIC_DEPLOY', 'MAIN_MASTER_MUTATION'],
     confirm_scope: true
   }, { memory_store: store });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.granted_scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
-  assert.deepEqual(r.rejected_scope.sort(), ['DEPLOY', 'MAIN_MASTER_MUTATION', 'MERGE'].sort());
+  assert.deepEqual(r.granted_scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION', 'PRIVATE_DEPLOY'].sort());
+  assert.deepEqual(r.rejected_scope.sort(), ['MAIN_MASTER_MUTATION', 'MERGE', 'PUBLIC_DEPLOY'].sort());
 
   const audit = await readAudit(store);
   const state = evaluateJarvisProgramApprovalStateV1(audit, PROGRAM);
   assert.equal(state.granted, true);
-  assert.deepEqual(state.scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION'].sort());
+  assert.deepEqual(state.scope.sort(), ['ACCEPTANCE', 'CLAUDE_REPO_BOUND_EXECUTION', 'PRIVATE_DEPLOY'].sort());
   assert.equal(state.repo_dir, REPO_DIR);
   assert.equal(state.target_branch, BRANCH);
 }
@@ -175,7 +175,9 @@ for (const denied of JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) {
   assert.equal(man.scope_deny_list_checked_before_allow_list, true);
   assert.ok(man.never_covered.includes('MAIN_MASTER_MUTATION'));
   assert.ok(man.never_covered.includes('MERGE'));
-  assert.ok(man.never_covered.includes('DEPLOY'));
+  assert.ok(man.never_covered.includes('PUBLIC_DEPLOY'));
+  assert.ok(man.never_covered.includes('PRODUCTION_DEPLOY'));
+  assert.ok(man.coverable.includes('PRIVATE_DEPLOY'));
   assert.ok(man.never_covered.includes('FORCE_PUSH'));
   assert.ok(man.never_covered.includes('HAMYREN_DATA_FLOW'));
   assert.equal(man.production_deploy, false);

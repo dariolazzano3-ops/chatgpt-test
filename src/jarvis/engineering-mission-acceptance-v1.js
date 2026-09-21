@@ -38,9 +38,11 @@ import {
   JARVIS_ENGINEERING_MISSION_INTENT,
   JARVIS_ENGINEERING_MISSION_DOMAIN
 } from './engineering-mission-v1.js';
-import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './claude-code-repo-bound-executor-v1.js';
-import { isLegacyBridgeHttpEvidenceV1, reverifyLegacyBridgeHttpEvidenceV1 } from './legacy-bridge-evidence-reverification-v1.js';
-import { JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE } from './trusted-candidate-recovery-v1.js';
+import {
+  JARVIS_REPO_BOUND_PROTECTED_BRANCHES,
+  JARVIS_TRUSTED_CANDIDATE_RECOVERY_STATE,
+  isLegacyBridgeHttpEvidenceV1
+} from './repo-bound-contract-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -185,8 +187,14 @@ export async function handleJarvisEngineeringMissionAcceptanceRuntimeV1(request 
   // request body) supplies real repo_dir/target_branch — e.g. Program
   // Controller passing its own already-validated scope, never a value an
   // HTTP caller of this route could supply itself.
-  if (!verificationSufficient && isLegacyBridgeHttpEvidenceV1(state.verification) && deps.repo_dir && deps.target_branch) {
-    const reverify = reverifyLegacyBridgeHttpEvidenceV1({
+  if (
+    !verificationSufficient
+    && isLegacyBridgeHttpEvidenceV1(state.verification)
+    && deps.repo_dir
+    && deps.target_branch
+    && typeof deps.legacy_bridge_evidence_reverify === 'function'
+  ) {
+    const reverify = deps.legacy_bridge_evidence_reverify({
       verification: state.verification, repo_dir: deps.repo_dir, target_branch: deps.target_branch
     });
     if (reverify.sufficient) {

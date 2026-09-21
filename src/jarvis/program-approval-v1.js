@@ -24,7 +24,7 @@
      - scope is a fixed, enumerable allowlist AND an explicit denylist
        (JARVIS_PROGRAM_APPROVAL_NEVER_COVERED) that is checked FIRST and
        cannot be overridden by anything the grant call sends — main/master,
-       merge, deploy, production, DNS, Cloudflare mutation, billing,
+       merge, public/production deploy, DNS mutation, billing,
        secrets, public release, destructive DB, HAMYREN, force push are
        structurally never coverable, regardless of what scope a grant call
        requests;
@@ -58,6 +58,11 @@ export const JARVIS_PROGRAM_APPROVAL_COVERABLE = Object.freeze([
   'INDEPENDENT_VERIFICATION',
   'REPAIR_RETRY',
   'ACCEPTANCE',
+  'FEATURE_BRANCH_GIT_WRITE',
+  'PRIVATE_DEPLOY',
+  'PRIVATE_SERVICE_RELOAD',
+  'PRIVATE_LIVE_VERIFY',
+  'PRIVATE_ROLLBACK',
   'PROGRESS_ADVANCEMENT',
   'NEXT_WAVE_CONTINUATION'
 ]);
@@ -67,10 +72,10 @@ export const JARVIS_PROGRAM_APPROVAL_COVERABLE = Object.freeze([
 export const JARVIS_PROGRAM_APPROVAL_NEVER_COVERED = Object.freeze([
   'MAIN_MASTER_MUTATION',
   'MERGE',
-  'DEPLOY',
+  'PUBLIC_DEPLOY',
+  'PRODUCTION_DEPLOY',
   'PRODUCTION_ACTIVATION',
   'DNS_MUTATION',
-  'CLOUDFLARE_MUTATION',
   'BILLING',
   'SECRET_ACCESS',
   'PUBLIC_RELEASE',

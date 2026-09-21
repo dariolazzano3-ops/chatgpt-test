@@ -3,7 +3,7 @@ name: JARVIS Private Pages Deploy V1
 on:
   push:
     branches:
-      - 'factory/jarvis-personal-assistant-v1'
+      - 'factory/**'
     paths:
       - '.github/jarvis-pages-private-deploy-request.json'
 
@@ -34,14 +34,22 @@ jobs:
             request.project === 'jarvis-private-core' &&
             request.host === 'jarvis-private-core.pages.dev' &&
             request.branch === 'private-staging' &&
+            request.environment === 'private-staging' &&
             /^[0-9a-f]{40}$/.test(request.source_sha || '') &&
             request.confirmation === 'DEPLOY_JARVIS_PRIVATE_PAGES_PREVIEW' &&
             request.cloudflare_access_active === true &&
             request.access_audience_dedicated === true &&
+            request.existing_target === true &&
+            request.rollback_available === true &&
+            request.estimated_cost_eur === 0 &&
             request.production_deploy === false &&
             request.public_access === false &&
             request.external_writes === false &&
             request.dns_changed === false &&
+            request.billing_changed === false &&
+            request.secret_access === false &&
+            request.secrets_changed === false &&
+            request.destructive_action === false &&
             request.ysrio_used === false &&
             request.workers_dev_used === false;
           if (!ok) process.exit(1);
@@ -50,6 +58,7 @@ jobs:
           )"
 
           test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          node scripts/private-deploy-policy-gate-v1.mjs "$REQUEST"
           echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
 
   validate-exact-source:
@@ -121,6 +130,32 @@ jobs:
           node-version: 24
       - run: npm install
       - run: node scripts/jarvis-pages-build-v1.mjs
+      - name: Verify a successful rollback candidate exists
+        run: |
+          set -euo pipefail
+          npx wrangler pages deployment list \
+            --project-name jarvis-private-core \
+            --environment preview \
+            --json > /tmp/jarvis-pages-before.json
+          node - < /tmp/jarvis-pages-before.json <<'NODE'
+          let raw = '';
+          process.stdin.setEncoding('utf8');
+          process.stdin.on('data', (chunk) => raw += chunk);
+          process.stdin.on('end', () => {
+            const list = JSON.parse(raw);
+            const previous = list.find((d) =>
+              d?.project_name === 'jarvis-private-core' &&
+              d?.environment === 'preview' &&
+              d?.latest_stage?.status === 'success'
+            );
+            if (!previous) process.exit(1);
+            console.log(JSON.stringify({
+              rollback_available: true,
+              rollback_candidate_id: previous.id || null,
+              secret_values_exposed: false
+            }));
+          });
+          NODE
       - name: Deploy exact-head to protected preview only
         run: |
           set -euo pipefail

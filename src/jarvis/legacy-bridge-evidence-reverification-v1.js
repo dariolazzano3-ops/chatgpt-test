@@ -66,11 +66,18 @@ import {
   currentBranchOrNullV1,
   syntaxCheckFilesV1
 } from './repo-bound-verification-v1.js';
-import { JARVIS_REPO_BOUND_PROTECTED_BRANCHES } from './claude-code-repo-bound-executor-v1.js';
+import {
+  JARVIS_REPO_BOUND_PROTECTED_BRANCHES,
+  JARVIS_LEGACY_BRIDGE_HTTP_VERIFICATION_SCHEMA,
+  isLegacyBridgeHttpEvidenceV1
+} from './repo-bound-contract-v1.js';
+export {
+  JARVIS_LEGACY_BRIDGE_HTTP_VERIFICATION_SCHEMA,
+  isLegacyBridgeHttpEvidenceV1
+} from './repo-bound-contract-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const JARVIS_AUDIT_STRING_MAX_CHARS = 1200; // audit-v1.js redacts/truncates every persisted string to this bound
-export const JARVIS_LEGACY_BRIDGE_HTTP_VERIFICATION_SCHEMA = 'aurentara.jarvis.bridge-http-verification.v1';
 
 /** Real, right-now `git diff` of exactly these paths (working tree vs
  *  HEAD) — never the worker's or Bridge's own claim about what changed.
@@ -83,14 +90,6 @@ function currentWorkingTreeDiffV1(repoDir, files) {
   } catch {
     return null;
   }
-}
-
-/** True only for the exact legacy shape this module exists to bridge —
- *  never for the canonical shape (that path is never touched by this
- *  file) and never for anything else. */
-export function isLegacyBridgeHttpEvidenceV1(verification) {
-  return Boolean(verification) && typeof verification === 'object'
-    && verification.schema === JARVIS_LEGACY_BRIDGE_HTTP_VERIFICATION_SCHEMA;
 }
 
 /** Best-effort array extraction — the SAME shape-tolerance
