@@ -1,4 +1,5 @@
 import { deriveRemoteGitStatus } from '../source-of-truth.js';
+import { deriveJarvisAnatomyStateV1, deriveJarvisAutonomyStateV1 } from './anatomy-state-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const clone = (value) => structuredClone(value ?? null);
@@ -374,6 +375,21 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
       hamyren_data_flow: false
     }
   };
+
+  // Wave: JARVIS Anatomy View. Pure re-projection of the already-normalized
+  // systems/runs/evidence/memory domains above onto the nine body zones —
+  // never a second, independently-fetched source of truth.
+  snapshot.anatomy = deriveJarvisAnatomyStateV1({
+    systems: snapshot.systems,
+    runs: snapshot.runs,
+    evidence: snapshot.evidence,
+    memory: snapshot.memory
+  }, { now });
+  snapshot.autonomy = deriveJarvisAutonomyStateV1({
+    runs: snapshot.runs,
+    activity: snapshot.activity,
+    evidence: snapshot.evidence
+  }, { now });
 
   const validation = validateJarvisCommandCenterTruthSnapshotV1(snapshot);
   return { ...snapshot, validation };

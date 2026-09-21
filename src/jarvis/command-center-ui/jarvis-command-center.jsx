@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useReducer, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Home, MessageSquare, ListChecks, FolderKanban, Brain, ShieldCheck, Cpu, ScrollText,
   Mic, ArrowUp, Search, Play, Pause, Check, X, Clock, GitBranch, AlertTriangle,
-  ChevronRight, ChevronDown, Zap, Lock, Radio, FileText, Wrench,
+  ChevronRight, ChevronDown, Zap, Lock, Radio, FileText, Wrench, Activity,
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -275,7 +276,7 @@ const _RT_EMPTY = {
   loaded: false, ok: false, canonical: false, data: {}, source: null,
   runs: { real: false, items: [] }, activity: { real: false, items: [] },
   approvals: { real: false, items: [], pending: 0 }, evidence: { real: false, items: [] },
-  commandChain: null, v2: null,
+  commandChain: null, v2: null, anatomy: null, autonomy: null,
 };
 const _RT = { state: _RT_EMPTY, subs: new Set(), started: false, iv: null };
 function _rtPublish(next) { _RT.state = next; _RT.subs.forEach((fn) => { try { fn(next); } catch {} }); }
@@ -308,6 +309,11 @@ async function _rtLoad() {
       // V2 progress HUD: verified only, never inferred. real=false unless the
       // v2_progress domain came back REAL/DERIVED (see command-center-runtime-truth-v1.js).
       v2: { real: _domainReal(dom("v2_progress")), data: (dom("v2_progress").data) || null },
+      // Anatomy View (Phase 3): the server already derives fail-closed per-module
+      // status (see anatomy-state-v1.js) — passed through as-is, never re-derived
+      // or guessed at client-side.
+      anatomy: (b && b.anatomy && typeof b.anatomy === "object") ? b.anatomy : null,
+      autonomy: (b && b.autonomy && typeof b.autonomy === "object") ? b.autonomy : null,
     });
   } catch {
     _rtPublish({ ..._RT_EMPTY, loaded: true });
@@ -700,7 +706,11 @@ const NAV = [
   ["projects", "Projekte", FolderKanban], ["memory", "Memory", Brain], ["approvals", "Freigaben", ShieldCheck],
   ["system", "System", Cpu], ["logs", "Logs", ScrollText],
 ];
-const TITLES = { home: "Command Center", chat: "Chat", tasks: "Tasks", projects: "Projekte", memory: "Memory", approvals: "Freigaben", system: "System", logs: "Logs" };
+// Desktop sidebar only — the mobile bottom nav (MobileNav) stays on the
+// original six-ish primary NAV destinations above so it never gets bloated.
+// Anatomy is reachable on mobile via a shortcut from Home/System instead.
+const SIDEBAR_NAV = [...NAV, ["anatomy", "Anatomie", Activity]];
+const TITLES = { home: "Command Center", chat: "Chat", tasks: "Tasks", projects: "Projekte", memory: "Memory", approvals: "Freigaben", system: "System", logs: "Logs", anatomy: "Anatomie" };
 
 function Sidebar({ s, go }) {
   const badges = { tasks: s.runs.filter(isActive).length, approvals: s.approvals.filter(isPending).length };
@@ -718,7 +728,7 @@ function Sidebar({ s, go }) {
         </div>
       </div>
       <nav className="nav" aria-label="Hauptnavigation">
-        {NAV.map(([id, label, Icon]) => (
+        {SIDEBAR_NAV.map(([id, label, Icon]) => (
           <button key={id} className={`nav-i${s.view === id ? " on" : ""}`} onClick={() => go(id)} aria-current={s.view === id ? "page" : undefined}>
             <Icon size={16} strokeWidth={1.6} />
             <span>{label}</span>
@@ -1204,6 +1214,7 @@ function QuickPanel({ go, command, inputRef, pending }) {
   const items = [
     [Zap, "Neuer Auftrag", () => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }],
     [Radio, "Status abfragen", () => command("Systemstatus")],
+    [Activity, "Anatomie", () => go("anatomy")],
     [ShieldCheck, "Freigaben", () => go("approvals"), pending],
     [ListChecks, "Runs", () => go("tasks")],
     [FolderKanban, "Projekte", () => go("projects")],
@@ -1645,13 +1656,16 @@ function Sparkline({ seed, c, flat }) {
   );
 }
 
-function SystemView({ s }) {
+function SystemView({ s, go }) {
   const run = s.runs.find(isActive);
   const rt = useRuntimeTruth();
   return (
     <>
       <PageHead title="System" sub="Der technische Zustand von JARVIS: Dienste, Heartbeats, Limits, Sicherheit."
-        right={<LiveTag label={!rt.loaded ? "Prüft …" : rt.canonical ? "System Status live" : "Runtime nicht verbunden"} color={rt.canonical ? "#ffab40" : "#a3968a"} pulse={false} />} />
+        right={<>
+          <button className="tab anatomy-link" onClick={() => go("anatomy")}><Activity size={13} strokeWidth={1.8} />Anatomie</button>
+          <LiveTag label={!rt.loaded ? "Prüft …" : rt.canonical ? "System Status live" : "Runtime nicht verbunden"} color={rt.canonical ? "#ffab40" : "#a3968a"} pulse={false} />
+        </>} />
       <Panel title="Pipeline" right={run && <span className="rid">{run.id}: {STAGE_NOTE[run.stage]}</span>}>
         <div className="chain">
           {PIPE.map((p, i) => {
@@ -1777,6 +1791,282 @@ function LogsView({ s, d }) {
           );
         })}
       </section>
+    </>
+  );
+}
+
+/* ANATOMY — reads GET <apiBase>/runtime-truth `anatomy` (see anatomy-state-v1.js
+   on the server). Every field rendered here — status, source, timestamps,
+   reason, evidence_ref — is exactly what the server proved; nothing is
+   computed, guessed, or defaulted to a "good-looking" value on the client.
+   Fail-closed the same way the rest of the shell does: no anatomy payload ->
+   every zone renders as Nicht verbunden. */
+const ANATOMY_STATUS_META = {
+  HEALTHY: { label: "Gesund", color: "#ffd08a" },
+  DEGRADED: { label: "Eingeschränkt", color: "#ff9a3d" },
+  FAILED: { label: "Fehler", color: "#ff4f4f" },
+  UNKNOWN: { label: "Unbekannt", color: "#8d8277" },
+  NOT_CONNECTED: { label: "Nicht verbunden", color: "#6d6359" },
+};
+function anatomyMeta(status) {
+  return ANATOMY_STATUS_META[status] || ANATOMY_STATUS_META.NOT_CONNECTED;
+}
+function anatomyModule(anatomy, key) {
+  return (anatomy && anatomy[key] && typeof anatomy[key] === "object") ? anatomy[key] : null;
+}
+function fmtIso(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}. ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+}
+
+/* key, short body-zone label, English capability tag, column bucket for the
+   desktop 3-way layout (left card stack / right card stack / bottom row),
+   SVG node position(s), and a short fixed direction for its neural stub. */
+const ANATOMY_ZONES = [
+  { key: "brain", label: "Gehirn", tag: "Reasoning", col: "left", nodes: [[150, 40]], stub: [-30, -22] },
+  { key: "ears", label: "Ohren", tag: "Voice In", col: "left", nodes: [[120, 64], [180, 64]], stub: [-34, 4] },
+  { key: "left_hand", label: "Linke Hand", tag: "Browser/Desktop", col: "left", nodes: [[54, 266]], stub: [-30, 0] },
+  { key: "eyes", label: "Augen", tag: "Perception", col: "right", nodes: [[140, 56], [160, 56]], stub: [30, -14] },
+  { key: "mouth", label: "Mund", tag: "Output", col: "right", nodes: [[150, 80]], stub: [30, 14] },
+  { key: "right_hand", label: "Rechte Hand", tag: "Claude Code", col: "right", nodes: [[246, 266]], stub: [30, 0] },
+  { key: "core", label: "Core", tag: "JARVIS Core", col: "bottom", nodes: [[150, 176]], stub: [-26, 22], big: true },
+  { key: "nervous_system", label: "Nervensystem", tag: "Bridge", col: "bottom", nodes: [[150, 240]], stub: [28, 10] },
+  { key: "infrastructure", label: "Infrastruktur", tag: "Fundament", col: "bottom", nodes: [[150, 588]], stub: [0, 26] },
+];
+
+function AnatomyNode({ zone, status, active, onSelect }) {
+  const c = anatomyMeta(status).color;
+  const r = zone.big ? 13 : zone.nodes.length > 1 ? 3.4 : zone.key === "nervous_system" || zone.key === "infrastructure" ? 6 : 7;
+  const select = () => onSelect(zone.key);
+  const onKeyDown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(); } };
+  return (
+    <g
+      className={`an-node${active ? " active" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`${zone.label} — ${anatomyMeta(status).label}`}
+      aria-pressed={active}
+      onClick={select}
+      onKeyDown={onKeyDown}
+    >
+      {zone.nodes.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={r} fill={c} className="an-dot" style={{ "--c": c }} />
+      ))}
+      {(() => {
+        const [x0, y0] = zone.nodes[0];
+        const [dx, dy] = zone.stub;
+        return <line x1={x0} y1={y0} x2={x0 + dx} y2={y0 + dy} className="an-stub" style={{ "--c": c }} />;
+      })()}
+      <circle
+        cx={zone.nodes[0][0] + zone.stub[0]}
+        cy={zone.nodes[0][1] + zone.stub[1]}
+        r="1.6"
+        className="an-stub-end"
+        style={{ "--c": c }}
+      />
+    </g>
+  );
+}
+
+function AnatomyFigure({ anatomy, selected, onSelect }) {
+  return (
+    <svg viewBox="0 0 300 620" className="an-figure" role="group" aria-label="JARVIS Anatomie — Körperfigur">
+      <ellipse cx="150" cy="210" rx="128" ry="248" className="an-ring r1" />
+      <ellipse cx="150" cy="210" rx="98" ry="196" className="an-ring r2" />
+      <g className="an-lines" aria-hidden="true">
+        <circle cx="150" cy="60" r="34" />
+        <line x1="150" y1="94" x2="150" y2="108" />
+        <path d="M 90 132 C 70 160, 66 230, 78 300 L 120 300 C 118 260, 122 200, 150 200 C 178 200, 182 260, 180 300 L 222 300 C 234 230, 230 160, 210 132 C 190 118, 110 118, 90 132 Z" />
+        <path d="M 90 132 C 64 150, 50 190, 54 230 C 56 248, 54 258, 54 266" />
+        <path d="M 210 132 C 236 150, 250 190, 246 230 C 244 248, 246 258, 246 266" />
+        <line x1="150" y1="108" x2="150" y2="300" className="an-spine" />
+        <path d="M 128 300 C 118 360, 112 460, 112 540 C 112 555, 110 565, 108 574" />
+        <path d="M 172 300 C 182 360, 188 460, 188 540 C 188 555, 190 565, 192 574" />
+        <line x1="88" y1="580" x2="212" y2="580" className="an-base" />
+        <line x1="104" y1="580" x2="104" y2="594" className="an-base" />
+        <line x1="150" y1="580" x2="150" y2="594" className="an-base" />
+        <line x1="196" y1="580" x2="196" y2="594" className="an-base" />
+      </g>
+      {ANATOMY_ZONES.map((zone) => (
+        <AnatomyNode
+          key={zone.key}
+          zone={zone}
+          status={anatomyModule(anatomy, zone.key)?.status || "NOT_CONNECTED"}
+          active={selected === zone.key}
+          onSelect={onSelect}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AnatomyCard({ zone, mod, active, onSelect }) {
+  const status = mod?.status || "NOT_CONNECTED";
+  const meta = anatomyMeta(status);
+  return (
+    <button className={`an-card${active ? " on" : ""}`} onClick={() => onSelect(zone.key)} aria-pressed={active}>
+      <div className="an-card-h">
+        <span className="an-card-n">{zone.label}</span>
+        <Dot color={meta.color} pulse={status === "HEALTHY"} />
+      </div>
+      <div className="an-card-tag">{zone.tag}</div>
+      <div className="an-card-s" style={{ color: meta.color }}>{meta.label}</div>
+    </button>
+  );
+}
+
+function AnatomyDetailSheet({ zone, mod, onClose }) {
+  if (!zone) return null;
+  const status = mod?.status || "NOT_CONNECTED";
+  const meta = anatomyMeta(status);
+  // Portalled to #jcc-portal-root (a direct child of .jcc, sibling of
+  // MobileNav): .shell sets its own z-index:2 stacking context, which would
+  // otherwise trap this sheet's z-index below the fixed mobile bottom nav
+  // (z-index:20) no matter how high we set it here. Portalling to
+  // document.body instead would escape that trap too, but would also drop
+  // out of .jcc's scoped CSS custom properties (--ink, --amber, --dim, …)
+  // and the `.jcc button{…}` resets, breaking the sheet's styling.
+  const node = (
+    <div className="an-sheet-wrap">
+      <button className="an-sheet-backdrop" aria-label="Details schließen" onClick={onClose} />
+      <section className="an-sheet" role="dialog" aria-label={`${zone.label} Details`}>
+        <div className="an-sheet-grab" aria-hidden="true" />
+        <header className="an-sheet-h">
+          <div>
+            <div className="an-sheet-tag">{zone.tag}</div>
+            <h3>{mod?.label || zone.label}</h3>
+          </div>
+          <button className="an-sheet-x" onClick={onClose} aria-label="Schließen"><X size={16} /></button>
+        </header>
+        <div className="an-sheet-status" style={{ color: meta.color }}><Dot color={meta.color} pulse={status === "HEALTHY"} />{meta.label}</div>
+        <dl className="an-sheet-kv">
+          <div><dt>Capability</dt><dd>{mod?.capability || "—"}</dd></div>
+          <div><dt>Quelle</dt><dd className="mono">{mod?.source || "—"}</dd></div>
+          <div><dt>Beobachtet</dt><dd className="mono">{fmtIso(mod?.observed_at)}</dd></div>
+          <div><dt>Zuletzt erfolgreich</dt><dd className="mono">{fmtIso(mod?.last_success)}</dd></div>
+          <div><dt>Aktivität</dt><dd>{mod?.detail?.last_run ? `${mod.detail.last_run.status || "—"} · ${mod.detail.last_run.id || "—"}` : "—"}</dd></div>
+          <div><dt>Grund</dt><dd>{mod?.reason || "—"}</dd></div>
+          <div><dt>Fehler</dt><dd>{mod?.error || "—"}</dd></div>
+          <div><dt>Eingeschränkt</dt><dd>{mod?.degraded_reason || "—"}</dd></div>
+          <div><dt>Evidence</dt><dd className="mono">{mod?.evidence_ref || "—"}</dd></div>
+        </dl>
+      </section>
+    </div>
+  );
+  const portalRoot = typeof document !== "undefined" ? document.getElementById("jcc-portal-root") : null;
+  return portalRoot ? createPortal(node, portalRoot) : node;
+}
+
+const AUTONOMY_STAGE_META = {
+  IDLE: { label: "Idle", color: "#8d8277" },
+  WORK_DETECTED: { label: "Arbeit erkannt", color: "#ffd08a" },
+  JOB_CREATED: { label: "Job erstellt", color: "#ffd08a" },
+  EXECUTING: { label: "Ausführung", color: "#ffab40" },
+  VERIFYING: { label: "Prüfung", color: "#ffab40" },
+  REPAIRING: { label: "Reparatur", color: "#ff9a3d" },
+  COMPLETE: { label: "Abgeschlossen", color: "#a8d8a0" },
+  BLOCKED: { label: "Blockiert", color: "#ffc24a" },
+  FAILED: { label: "Fehlgeschlagen", color: "#ff4f4f" },
+  UNKNOWN: { label: "Unbekannt", color: "#8d8277" },
+};
+const AUTONOMY_FLOW = [
+  ["WORK_DETECTED", "Erkannt"],
+  ["JOB_CREATED", "Job"],
+  ["EXECUTING", "Ausführen"],
+  ["VERIFYING", "Prüfen"],
+  ["REPAIRING", "Reparieren"],
+  ["COMPLETE", "Fertig"],
+];
+
+function AutonomyLoop({ autonomy }) {
+  const stage = autonomy?.stage || "UNKNOWN";
+  const meta = AUTONOMY_STAGE_META[stage] || AUTONOMY_STAGE_META.UNKNOWN;
+  const run = autonomy?.current_run || null;
+  const activity = autonomy?.last_activity || null;
+  return (
+    <section className="pnl au-panel" aria-label="JARVIS Autonomie Status">
+      <div className="au-head">
+        <div>
+          <div className="eyebrow">AUTONOMIE</div>
+          <h3>Was macht JARVIS gerade?</h3>
+        </div>
+        <div className="au-current" style={{ color: meta.color }}><Dot color={meta.color} pulse={stage === "EXECUTING" || stage === "VERIFYING" || stage === "REPAIRING"} />{meta.label}</div>
+      </div>
+      <div className="au-flow" aria-label="Autonomer Arbeitsloop">
+        {AUTONOMY_FLOW.map(([key, label]) => (
+          <div key={key} className={`au-step${stage === key ? " on" : ""}`} aria-current={stage === key ? "step" : undefined}>
+            <span className="au-step-dot" style={{ "--au": stage === key ? meta.color : "#4b4138" }} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="au-meta">
+        <div><span>Run</span><b className="mono">{run?.id || "—"}</b></div>
+        <div><span>Aktivität</span><b>{activity?.event || run?.status || "—"}</b></div>
+        <div><span>Beobachtet</span><b className="mono">{fmtIso(autonomy?.observed_at)}</b></div>
+        <div><span>Evidence</span><b className="mono">{autonomy?.evidence_ref || "—"}</b></div>
+      </div>
+      {run?.title && <div className="au-title">{run.title}</div>}
+      {autonomy?.reason && <div className="au-reason">Grund: {autonomy.reason}</div>}
+    </section>
+  );
+}
+
+function AnatomyView() {
+  const rt = useRuntimeTruth();
+  const [selected, setSelected] = useState(null);
+  const anatomy = rt.anatomy;
+  const zone = selected ? ANATOMY_ZONES.find((z) => z.key === selected) : null;
+  const mod = zone ? anatomyModule(anatomy, zone.key) : null;
+
+  const provenCount = anatomy ? ANATOMY_ZONES.filter((z) => {
+    const s = anatomyModule(anatomy, z.key)?.status;
+    return s && s !== "UNKNOWN" && s !== "NOT_CONNECTED";
+  }).length : 0;
+  const healthyCount = anatomy ? ANATOMY_ZONES.filter((z) => anatomyModule(anatomy, z.key)?.status === "HEALTHY").length : 0;
+
+  const left = ANATOMY_ZONES.filter((z) => z.col === "left");
+  const right = ANATOMY_ZONES.filter((z) => z.col === "right");
+  const bottom = ANATOMY_ZONES.filter((z) => z.col === "bottom");
+
+  const select = (key) => setSelected((cur) => (cur === key ? null : key));
+
+  return (
+    <>
+      <PageHead title="Anatomie" sub="Körperzonen und autonomer Arbeitsloop — ausschließlich aus Runtime Truth."
+        right={<LiveTag label={!rt.loaded ? "Prüft …" : anatomy ? "Anatomie live" : "Nicht verbunden"} color={anatomy ? "#ffab40" : "#a3968a"} pulse={false} />} />
+      <AutonomyLoop autonomy={rt.autonomy} />
+      <div className="an-strip">
+        <span className="an-strip-on">ANATOMIE</span>
+        <span className="an-strip-sep">·</span>
+        <span>SYSTEM: JARVIS</span>
+        <span className="an-strip-sep">·</span>
+        <span>MODUL: {zone ? zone.label : "—"}</span>
+        <span className="an-strip-sep">·</span>
+        <span>LIVE: {!rt.loaded ? "Prüft …" : anatomy ? "Payload da" : "Kein Payload"}</span>
+        <span className="an-strip-sep">·</span>
+        <span>DETAILS: {zone ? "Geöffnet" : "—"}</span>
+      </div>
+      <section className="pnl an-stage">
+        <div className="an-col an-col-l">
+          {left.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
+        </div>
+        <div className="an-figure-wrap">
+          <AnatomyFigure anatomy={anatomy} selected={selected} onSelect={select} />
+        </div>
+        <div className="an-col an-col-r">
+          {right.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
+        </div>
+        <div className="an-row-b">
+          {bottom.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
+        </div>
+      </section>
+      <div className="an-summary dim">
+        {!rt.loaded ? "Anatomie wird geladen …" : anatomy ? `${provenCount}/${ANATOMY_ZONES.length} Zonen mit echtem Signal · ${healthyCount} gesund` : "Anatomie-Quelle nicht verbunden"}
+      </div>
+      <AnatomyDetailSheet zone={zone} mod={mod} onClose={() => setSelected(null)} />
     </>
   );
 }
@@ -2202,7 +2492,7 @@ export default function JarvisCommandCenter() {
   }, []);
 
   const props = { s, d, go, command, engineeringMission, projectMission, inputRef, onMic, decideApproval, resumeMission };
-  const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView }[s.view];
+  const V = { home: HomeView, chat: ChatView, tasks: TasksView, projects: ProjectsView, memory: MemoryView, approvals: ApprovalsView, system: SystemView, logs: LogsView, anatomy: AnatomyView }[s.view];
 
   return (
     <div className="jcc">
@@ -2233,6 +2523,10 @@ export default function JarvisCommandCenter() {
         </main>
       </div>
       <MobileNav s={s} go={go} />
+      {/* Portal target for overlays that must paint above the fixed mobile
+          bottom nav (z-index:20) — .shell's own z-index:2 stacking context
+          would otherwise trap a deeply-nested overlay's z-index below it. */}
+      <div id="jcc-portal-root" />
     </div>
   );
 }
@@ -2631,6 +2925,78 @@ const CSS = `
 .ev li{display:flex;gap:8px;align-items:center;font-size:12.5px;color:#d9ccb9}
 .ev li svg{color:#a8d8a0}
 
+/* AUTONOMY STATUS */
+.au-panel{margin-bottom:18px;padding:16px 18px}
+.au-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.au-head h3{font-family:var(--fd);font-size:17px;font-weight:400;letter-spacing:.08em;margin-top:4px}
+.au-current{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.au-flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:16px}
+.au-step{position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding:8px 9px;border:1px solid rgba(255,170,70,.08);border-radius:10px;background:rgba(0,0,0,.14);font-family:var(--fm);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.au-step.on{border-color:var(--line2);color:var(--hi);background:rgba(255,150,50,.07)}
+.au-step-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--au);box-shadow:0 0 8px color-mix(in srgb,var(--au) 45%,transparent)}
+.au-meta{display:grid;grid-template-columns:1.3fr 1fr .8fr 1.2fr;gap:10px 18px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.au-meta div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.au-meta span{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.au-meta b{font-size:11.5px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.au-title{margin-top:10px;font-size:12.5px;color:#dfcfba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.au-reason{margin-top:8px;font-family:var(--fm);font-size:10.5px;color:#ffb268}
+@media (max-width:980px){.au-flow{grid-template-columns:repeat(3,1fr)}.au-meta{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.au-head{align-items:flex-start}.au-flow{grid-template-columns:1fr 1fr}.au-meta{grid-template-columns:1fr}.au-current{font-size:11px}}
+
+/* ANATOMY */
+.an-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--fm);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:-6px 0 16px}
+.an-strip-on{color:var(--hi)}
+.an-strip-sep{color:var(--faint)}
+.an-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,360px) minmax(0,1fr);grid-template-areas:"l fig r" "b b b";gap:18px 24px;align-items:center}
+.an-col{grid-area:l;display:flex;flex-direction:column;gap:12px;justify-content:center}
+.an-col-r{grid-area:r}
+.an-figure-wrap{grid-area:fig;display:flex;justify-content:center}
+.an-figure{width:100%;max-width:340px;height:auto;overflow:visible}
+.an-row-b{grid-area:b;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-top:6px;border-top:1px solid var(--line)}
+.an-lines{fill:none;stroke:rgba(255,180,90,.4);stroke-width:1.4;stroke-linecap:round}
+.an-spine{stroke:rgba(255,180,90,.22);stroke-width:1}
+.an-base{stroke:rgba(255,180,90,.3);stroke-width:1.4}
+.an-ring{fill:none;stroke:rgba(255,168,72,.12);stroke-width:1;transform-origin:150px 210px;animation:an-spin 70s linear infinite}
+.an-ring.r2{stroke:rgba(255,168,72,.08);animation-duration:100s;animation-direction:reverse}
+@keyframes an-spin{to{transform:rotate(360deg)}}
+.an-node{cursor:pointer;outline:none}
+.an-dot{filter:drop-shadow(0 0 6px var(--c));transition:r .15s ease}
+.an-node:hover .an-dot,.an-node.active .an-dot,.an-node:focus-visible .an-dot{filter:drop-shadow(0 0 12px var(--c))}
+.an-node.active .an-dot{stroke:var(--c);stroke-width:1.5;stroke-opacity:.5}
+.an-stub{stroke:var(--c);stroke-opacity:.4;stroke-width:1}
+.an-stub-end{fill:var(--c);opacity:.55}
+.an-card{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(20,15,10,.4);text-align:left;transition:border-color .15s ease,background .15s ease}
+.an-card:hover{border-color:var(--line2)}
+.an-card.on{border-color:var(--line2);background:rgba(255,150,50,.08)}
+.an-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.an-card-n{font-size:13px;font-weight:600;color:var(--ink)}
+.an-card-tag{font-family:var(--fm);font-size:10px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+.an-card-s{font-size:11.5px;font-weight:600}
+.an-summary{font-size:12px;margin-top:14px;text-align:center}
+.an-sheet-wrap{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.an-sheet-backdrop{position:absolute;inset:0;background:rgba(4,3,2,.6);backdrop-filter:blur(3px);border:0;cursor:default}
+.an-sheet{position:relative;width:100%;max-width:560px;margin:0 auto;border:1px solid var(--line2);border-bottom:0;border-radius:22px 22px 0 0;background:linear-gradient(180deg,rgba(20,15,11,.98),rgba(8,6,5,.98));box-shadow:0 -30px 80px -20px rgba(0,0,0,.9);padding:10px 22px 26px;animation:an-sheet-up .28s ease}
+@keyframes an-sheet-up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+.an-sheet-grab{width:36px;height:4px;border-radius:2px;background:var(--faint);margin:4px auto 14px}
+.an-sheet-h{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.an-sheet-tag{font-family:var(--fm);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.an-sheet-h h3{font-family:var(--fd);font-size:16px;font-weight:400;letter-spacing:.06em}
+.an-sheet-x{padding:6px;border-radius:8px;color:var(--dim)}
+.an-sheet-x:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.an-sheet-status{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:12px 0 16px}
+.an-sheet-kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+.an-sheet-kv div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.an-sheet-kv dt{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.an-sheet-kv dd{font-size:12.5px;color:var(--ink);overflow-wrap:anywhere}
+.anatomy-link{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--muted)}
+.anatomy-link:hover{border-color:var(--line2);color:var(--hi)}
+@media (max-width:980px){
+  .an-stage{grid-template-columns:1fr;grid-template-areas:"fig" "l" "r" "b"}
+  .an-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .an-row-b{grid-template-columns:1fr 1fr 1fr}
+  .an-sheet-kv{grid-template-columns:1fr}
+}
+
 /* responsive */
 @media (max-width:1320px){
   .home-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"hero hero" "core core" "act runs" "sys quick" "pipe pipe"}
@@ -2698,6 +3064,8 @@ const CSS = `
   .ev{padding:2px 14px 14px 14px}
   .foot{flex-wrap:wrap;justify-content:center}
   .foot-m{letter-spacing:.3em;order:3;width:100%}
+  .an-col{grid-template-columns:1fr}
+  .an-row-b{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){
   .jcc *,.jcc *::before,.jcc *::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition:none !important}
