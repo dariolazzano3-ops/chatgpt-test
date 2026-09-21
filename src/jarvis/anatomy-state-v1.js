@@ -478,6 +478,12 @@ export function deriveJarvisAutonomyStateV1(domains = {}, options = {}) {
   const evidence = executionEvidence
     || (clean(run.evidence_ref, 300) ? evidenceItems.find((item) => clean(item?.evidence_id, 300) === clean(run.evidence_ref, 300)) || null : null);
   const lastSuccessRun = runs.find((item) => clean(item.status, 80).toUpperCase() === 'COMPLETE') || null;
+  const approvalItems = Array.isArray(domains?.approvals?.data?.items) ? domains.approvals.data.items : [];
+  const runApprovals = approvalItems
+    .filter((item) => clean(item?.run_id, 200) === clean(run.id, 200))
+    .slice()
+    .sort((a, b) => Date.parse(b.requested_at || 0) - Date.parse(a.requested_at || 0));
+  const approval = runApprovals[0] || null;
   const displayTitle = /APPROVAL_DECISION/i.test(title) ? clean(activity?.summary, 600) || title : title;
 
   return {
@@ -507,6 +513,9 @@ export function deriveJarvisAutonomyStateV1(domains = {}, options = {}) {
       ? isoOrNull(evidence?.observed_at) || isoOrNull(activity?.at) || autonomyRunTimestamp(lastSuccessRun)
       : autonomyRunTimestamp(lastSuccessRun),
     evidence_ref: clean(evidence?.evidence_id, 300) || clean(run.evidence_ref, 300) || null,
+    verification_result: evidence?.worker_verified === true && clean(evidence?.status, 80).toUpperCase() === 'COMPLETED' ? 'PROVEN' : null,
+    human_approval_required: runApprovals.length > 0,
+    human_approval_state: approval ? clean(approval.state, 80).toUpperCase() || null : null,
     reason,
     operator_acceptance_fabricated: false,
     stages: JARVIS_AUTONOMY_STAGES

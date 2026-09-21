@@ -48,8 +48,9 @@ const HEALTHY_TRUTH = {
     ...EMPTY_TRUTH.anatomy,
     core: { status: 'HEALTHY', label: 'JARVIS Core', capability: 'Central JARVIS runtime core', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: '2026-09-21T11:59:30.000Z', reason: null, evidence_ref: 'jarvis-command-center-live-probes-v1', detail: { jarvis: 'ONLINE' } },
     brain: { status: 'UNKNOWN', label: 'Brain — Reasoning / Operator Logic', capability: 'Astra reasoning & policy control', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: null, reason: null, evidence_ref: null, detail: { astra: 'UNKNOWN' } },
-    nervous_system: { status: 'FAILED', label: 'Nervous System — Bridge', capability: 'Bridge integrations & connectors', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: null, reason: 'BRIDGE_OFFLINE', evidence_ref: 'jarvis-command-center-live-probes-v1', detail: { bridge: 'OFFLINE' } },
-    right_hand: { status: 'DEGRADED', label: 'Right Hand — Claude Code / Engineering Execution', capability: 'Claude Code engineering execution', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: '2026-09-21T11:00:00.000Z', reason: 'CLAUDE_BUSY', evidence_ref: 'evidence:req-1', detail: { last_run: { id: 'b5acafe1-d006-42c6-aa05-98ac62c0ae57', status: 'COMPLETE' } } },
+    nervous_system: { status: 'UNKNOWN', label: 'Nervous System — Bridge', capability: 'Bridge integrations & connectors', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: null, reason: null, evidence_ref: 'jarvis-command-center-live-probes-v1', detail: { bridge: 'UNKNOWN' } },
+    right_hand: { status: 'UNKNOWN', label: 'Right Hand — Claude Code / Engineering Execution', capability: 'Claude Code engineering execution', source: 'jarvis-command-center-live-probes-v1', observed_at: '2026-09-21T11:59:30.000Z', last_success: '2026-09-21T11:00:00.000Z', reason: 'LIVE_EXECUTION_STATUS_UNPROVEN', evidence_ref: 'claude-code:b5acafe1-d006-42c6-aa05-98ac62c0ae57', detail: { last_run: { id: 'b5acafe1-d006-42c6-aa05-98ac62c0ae57', status: 'COMPLETE' } } },
+    infrastructure: { status: 'DEGRADED', label: 'Infrastructure — Runtime Foundation', capability: 'VPS / service / runtime / git / storage / network foundation', source: 'systems:JARVIS', observed_at: '2026-09-21T11:59:30.000Z', last_success: null, reason: 'PARTIAL_INFRASTRUCTURE_PROVENANCE', evidence_ref: 'jarvis-command-center-live-probes-v1', detail: { git: 'UNKNOWN', memory_connected: false, jarvis: 'ONLINE' } },
   },
   autonomy: {
     schema: 'aurentara.jarvis.autonomy-view.v1', generated_at: '2026-09-21T12:00:00.000Z',
@@ -57,6 +58,7 @@ const HEALTHY_TRUTH = {
     current_run: { id: 'b5acafe1-d006-42c6-aa05-98ac62c0ae57', title: 'Owner E2E', worker: 'Claude Code', status: 'COMPLETE', program: 'JARVIS_OWNER_CHAT' },
     last_activity: { event: 'IMPLEMENTATION_MISSION', status: 'COMPLETED', at: '2026-09-21T11:59:30.000Z', summary: 'ENGINEERING · IMPLEMENTATION_MISSION' },
     last_success: '2026-09-21T11:59:30.000Z', evidence_ref: 'claude-code:b5acafe1-d006-42c6-aa05-98ac62c0ae57',
+    verification_result: 'PROVEN', human_approval_required: true, human_approval_state: 'GRANTED',
     reason: null, operator_acceptance_fabricated: false,
     stages: ['IDLE','WORK_DETECTED','JOB_CREATED','EXECUTING','VERIFYING','REPAIRING','COMPLETE','BLOCKED','FAILED']
   },
@@ -122,17 +124,15 @@ async function acceptViewport(name, width, height) {
   await page.waitForSelector('.an-stage', { timeout: 8000 }).catch(() => problems.push(`[${name}] .an-stage did not render`));
   await page.waitForTimeout(300);
 
-  // local strip present
-  const stripText = await page.textContent('.an-strip').catch(() => '');
-  for (const marker of ['ANATOMIE', 'SYSTEM', 'MODUL', 'LIVE', 'DETAILS']) {
-    if (!stripText.includes(marker)) problems.push(`[${name}] anatomy strip missing "${marker}"`);
-  }
+  // V2 header remains explicitly bound to Runtime Truth.
+  const truthLabel = await page.textContent('.an-v2-truth').catch(() => '');
+  if (!truthLabel.includes('RUNTIME TRUTH')) problems.push(`[${name}] Runtime Truth label missing: ${truthLabel}`);
 
   // autonomy panel is visible and fail-closed when no run source is connected
   const autonomyText = await page.textContent('.au-panel').catch(() => '');
   if (!autonomyText.includes('Was macht JARVIS gerade?')) problems.push(`[${name}] autonomy panel missing`);
   if (!autonomyText.includes('Unbekannt')) problems.push(`[${name}] empty autonomy state must be Unbekannt: ${autonomyText}`);
-  for (const step of ['Erkannt', 'Job', 'Ausführen', 'Prüfen', 'Reparieren', 'Fertig']) {
+  for (const step of ['Erkennen', 'Planen', 'Ausführen', 'Prüfen', 'Reparieren', 'Fertig']) {
     if (!autonomyText.includes(step)) problems.push(`[${name}] autonomy flow missing ${step}`);
   }
 
@@ -140,15 +140,16 @@ async function acceptViewport(name, width, height) {
   const nodeCount = await page.locator('.an-node').count();
   if (nodeCount !== 9) problems.push(`[${name}] expected 9 anatomy nodes, found ${nodeCount}`);
 
-  // fail-closed: every card reads "Nicht verbunden" when anatomy is all NOT_CONNECTED
+  // fail-closed: every card reads NICHT VERBUNDEN when anatomy is all NOT_CONNECTED.
   const cardStates = await page.$$eval('.an-card .an-card-s', (els) => els.map((e) => e.textContent.trim()));
-  if (!cardStates.length || !cardStates.every((t) => t === 'Nicht verbunden')) {
+  if (!cardStates.length || !cardStates.every((t) => t === 'NICHT VERBUNDEN')) {
     problems.push(`[${name}] anatomy cards not fail-closed: ${JSON.stringify(cardStates)}`);
   }
 
-  // bottom summary must reflect real 0/9, never a fabricated 100%/8-of-8
-  const summary = await page.textContent('.an-summary');
-  if (!/0\/9 Zonen mit echtem Signal · 0 gesund/.test(summary)) problems.push(`[${name}] anatomy summary not honest for empty truth: ${summary}`);
+  // summary bar must reflect real 0/9, never a fabricated completeness percentage.
+  const summary = await page.textContent('.an-summarybar');
+  if (!summary.includes('0 / 9')) problems.push(`[${name}] anatomy summary not honest for empty truth: ${summary}`);
+  if (/100\s*%|8\s*\/\s*8/.test(summary)) problems.push(`[${name}] fabricated completeness visible: ${summary}`);
 
   await page.screenshot({ path: path.join(OUT, `anatomy-${name}-empty.png`), fullPage: false });
 
@@ -157,7 +158,7 @@ async function acceptViewport(name, width, height) {
   await page.waitForSelector('.an-sheet', { timeout: 4000 }).catch(() => problems.push(`[${name}] detail sheet did not open`));
   await page.waitForTimeout(200);
   const sheetText = await page.textContent('.an-sheet').catch(() => '');
-  if (!sheetText.includes('Nicht verbunden')) problems.push(`[${name}] detail sheet did not show fail-closed status`);
+  if (!sheetText.includes('NICHT VERBUNDEN')) problems.push(`[${name}] detail sheet did not show fail-closed status`);
   await page.screenshot({ path: path.join(OUT, `anatomy-${name}-sheet.png`), fullPage: false });
   await page.locator('.an-sheet-x').click();
   await page.waitForTimeout(150);
@@ -171,17 +172,19 @@ async function acceptViewport(name, width, height) {
   await page.waitForSelector('.an-stage', { timeout: 8000 });
   await page.waitForTimeout(300);
   const mixedStates = await page.$$eval('.an-card .an-card-s', (els) => els.map((e) => e.textContent.trim()));
-  if (!mixedStates.includes('Gesund')) problems.push(`[${name}] HEALTHY state did not render: ${JSON.stringify(mixedStates)}`);
-  if (!mixedStates.includes('Fehler')) problems.push(`[${name}] FAILED state did not render: ${JSON.stringify(mixedStates)}`);
-  if (!mixedStates.includes('Eingeschränkt')) problems.push(`[${name}] DEGRADED state did not render: ${JSON.stringify(mixedStates)}`);
-  if (!mixedStates.includes('Unbekannt')) problems.push(`[${name}] UNKNOWN state did not render: ${JSON.stringify(mixedStates)}`);
-  const mixedSummary = await page.textContent('.an-summary');
-  if (!/3\/9 Zonen mit echtem Signal · 1 gesund/.test(mixedSummary)) problems.push(`[${name}] mixed anatomy summary not honest: ${mixedSummary}`);
+  for (const expected of ['GESUND', 'EINGESCHRÄNKT', 'UNBEKANNT', 'NICHT VERBUNDEN', 'LETZTER ERFOLG']) {
+    if (!mixedStates.includes(expected)) problems.push(`[${name}] V2 state ${expected} did not render: ${JSON.stringify(mixedStates)}`);
+  }
+  if (mixedStates.filter((x) => x === 'GESUND').length !== 1) problems.push(`[${name}] false-green risk: expected exactly one GESUND zone: ${JSON.stringify(mixedStates)}`);
+  const mixedSummary = await page.textContent('.an-summarybar');
+  if (!mixedSummary.includes('3 / 9') || !mixedSummary.includes('1 gesund')) problems.push(`[${name}] mixed anatomy summary not honest: ${mixedSummary}`);
 
   const liveAutonomyText = await page.textContent('.au-panel').catch(() => '');
   if (!liveAutonomyText.includes('Abgeschlossen')) problems.push(`[${name}] COMPLETE autonomy state did not render: ${liveAutonomyText}`);
   if (!liveAutonomyText.includes('b5acafe1-d006-42c6-aa05-98ac62c0ae57')) problems.push(`[${name}] real Owner E2E run id missing from autonomy panel`);
   if (!liveAutonomyText.includes('claude-code:b5acafe1-d006-42c6-aa05-98ac62c0ae57')) problems.push(`[${name}] real Claude evidence missing from autonomy panel`);
+  if (!liveAutonomyText.includes('BELEGT')) problems.push(`[${name}] proven verification missing from autonomy panel`);
+  if (!liveAutonomyText.includes('JA · FREIGEGEBEN')) problems.push(`[${name}] approval truth missing from autonomy panel`);
   const activeFlowText = await page.locator('.au-step.on').allTextContents();
   if (activeFlowText.length !== 1 || !activeFlowText[0].includes('Fertig')) problems.push(`[${name}] autonomy flow active stage is not exactly COMPLETE/Fertig: ${JSON.stringify(activeFlowText)}`);
 
@@ -191,6 +194,8 @@ async function acceptViewport(name, width, height) {
   const rightHandSheet = await page.textContent('.an-sheet').catch(() => '');
   if (!rightHandSheet.includes('Aktivität')) problems.push(`[${name}] right-hand detail missing activity field`);
   if (!rightHandSheet.includes('b5acafe1-d006-42c6-aa05-98ac62c0ae57')) problems.push(`[${name}] right-hand detail missing real run id`);
+  if (!rightHandSheet.includes('LETZTER ERFOLG')) problems.push(`[${name}] historical Claude success not expressed truthfully`);
+  if (!rightHandSheet.includes('Aktuellen Live-Status verifizieren')) problems.push(`[${name}] right-hand next dependency missing`);
   await page.locator('.an-sheet-x').click();
 
   await page.screenshot({ path: path.join(OUT, `anatomy-${name}-mixed.png`), fullPage: false });

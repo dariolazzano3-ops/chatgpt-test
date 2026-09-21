@@ -4,6 +4,7 @@ import {
   Home, MessageSquare, ListChecks, FolderKanban, Brain, ShieldCheck, Cpu, ScrollText,
   Mic, ArrowUp, Search, Play, Pause, Check, X, Clock, GitBranch, AlertTriangle,
   ChevronRight, ChevronDown, Zap, Lock, Radio, FileText, Wrench, Activity,
+  Eye, Ear, Hand, HeartPulse, Database, Network,
 } from "lucide-react";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1825,20 +1826,45 @@ function fmtIso(value) {
    desktop 3-way layout (left card stack / right card stack / bottom row),
    SVG node position(s), and a short fixed direction for its neural stub. */
 const ANATOMY_ZONES = [
-  { key: "brain", label: "Gehirn", tag: "Reasoning", col: "left", nodes: [[150, 40]], stub: [-30, -22] },
-  { key: "ears", label: "Ohren", tag: "Voice In", col: "left", nodes: [[120, 64], [180, 64]], stub: [-34, 4] },
-  { key: "left_hand", label: "Linke Hand", tag: "Browser/Desktop", col: "left", nodes: [[54, 266]], stub: [-30, 0] },
-  { key: "eyes", label: "Augen", tag: "Perception", col: "right", nodes: [[140, 56], [160, 56]], stub: [30, -14] },
-  { key: "mouth", label: "Mund", tag: "Output", col: "right", nodes: [[150, 80]], stub: [30, 14] },
-  { key: "right_hand", label: "Rechte Hand", tag: "Claude Code", col: "right", nodes: [[246, 266]], stub: [30, 0] },
-  { key: "core", label: "Core", tag: "JARVIS Core", col: "bottom", nodes: [[150, 176]], stub: [-26, 22], big: true },
-  { key: "nervous_system", label: "Nervensystem", tag: "Bridge", col: "bottom", nodes: [[150, 240]], stub: [28, 10] },
-  { key: "infrastructure", label: "Infrastruktur", tag: "Fundament", col: "bottom", nodes: [[150, 588]], stub: [0, 26] },
+  { key: "brain", label: "Gehirn", tag: "Reasoning", col: "left", icon: Brain, nodes: [[150, 48]], stub: [-44, -18], role: "Planung · Ziele · Entscheidungslogik" },
+  { key: "ears", label: "Ohren", tag: "Voice / Input", col: "left", icon: Ear, nodes: [[121, 72], [179, 72]], stub: [-48, 8], role: "Listening · Dateneingang · Kontext" },
+  { key: "left_hand", label: "Linke Hand", tag: "Browser / Desktop", col: "left", icon: Hand, nodes: [[52, 302]], stub: [-42, 0], role: "Web · Dateien · Operator-Interaktion" },
+  { key: "infrastructure", label: "Infrastruktur", tag: "Fundament", col: "left", icon: Database, nodes: [[112, 544], [188, 544]], stub: [-42, 18], role: "VPS · Runtime · Services · Hosting" },
+  { key: "eyes", label: "Augen", tag: "Perception", col: "right", icon: Eye, nodes: [[140, 62], [160, 62]], stub: [46, -16], role: "Monitoring · Input-Erkennung · Umfeld" },
+  { key: "mouth", label: "Mund", tag: "Output", col: "right", icon: Mic, nodes: [[150, 88]], stub: [48, 14], role: "Antwort · Voice · natürliche Interaktion" },
+  { key: "core", label: "Core", tag: "JARVIS Core", col: "right", icon: HeartPulse, nodes: [[150, 184]], stub: [48, 10], big: true, role: "Orchestrierung · Status · Safety · Lifecycle" },
+  { key: "right_hand", label: "Rechte Hand", tag: "Claude Code", col: "right", icon: Hand, nodes: [[248, 302]], stub: [42, 0], role: "Code · Engineering · Projektänderungen" },
+  { key: "nervous_system", label: "Nervensystem", tag: "Bridge / APIs", col: "right", icon: Network, nodes: [[150, 246]], stub: [54, 18], role: "APIs · Bridge · Integrationen · Datenfluss" },
 ];
 
-function AnatomyNode({ zone, status, active, onSelect }) {
-  const c = anatomyMeta(status).color;
-  const r = zone.big ? 13 : zone.nodes.length > 1 ? 3.4 : zone.key === "nervous_system" || zone.key === "infrastructure" ? 6 : 7;
+function anatomyDisplayState(zone, mod) {
+  const status = mod?.status || "NOT_CONNECTED";
+  if (status === "HEALTHY") return { label: "GESUND", color: "#31e66f", tone: "healthy" };
+  if (status === "DEGRADED") return { label: "EINGESCHRÄNKT", color: "#ffae32", tone: "partial" };
+  if (status === "FAILED") return { label: "FEHLER", color: "#ff5d4f", tone: "failed" };
+  if (status === "UNKNOWN" && mod?.last_success) return { label: "LETZTER ERFOLG", color: "#ffae32", tone: "proven" };
+  if (status === "UNKNOWN") return { label: "UNBEKANNT", color: "#9aa0a6", tone: "unknown" };
+  return { label: "NICHT VERBUNDEN", color: "#8e949a", tone: "offline" };
+}
+
+function anatomyExplanation(zone, mod) {
+  const status = mod?.status || "NOT_CONNECTED";
+  if (zone.key === "core" && status === "HEALTHY") return "Runtime alive · Heartbeat aktuell · Orchestrierung aktiv.";
+  if (zone.key === "right_hand" && mod?.last_success) return "Letzter erfolgreicher Lauf belegt, aktuelle Verfügbarkeit unbewiesen.";
+  if (zone.key === "infrastructure" && status === "DEGRADED") return "VPS / Runtime / Service teilweise belegt.";
+  if (zone.key === "brain") return "Planung, Ziele und Entscheidungslogik noch nicht live belegt.";
+  if (zone.key === "eyes") return "Monitoring und Umfelderkennung noch nicht angebunden.";
+  if (zone.key === "ears") return "Listening und Dateneingang noch nicht angebunden.";
+  if (zone.key === "mouth") return "Voice / Antwortausgabe noch nicht angebunden.";
+  if (zone.key === "left_hand") return "Web, Dateien und Operator-Interaktion noch nicht verbunden.";
+  if (zone.key === "nervous_system") return "Integrationen und Datenfluss noch nicht vollständig belegt.";
+  return mod?.reason || zone.role;
+}
+
+function AnatomyNode({ zone, mod, active, onSelect }) {
+  const display = anatomyDisplayState(zone, mod);
+  const c = display.color;
+  const r = zone.big ? 12 : zone.nodes.length > 1 ? 4.2 : zone.key === "nervous_system" ? 6 : 7;
   const select = () => onSelect(zone.key);
   const onKeyDown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(); } };
   return (
@@ -1846,25 +1872,29 @@ function AnatomyNode({ zone, status, active, onSelect }) {
       className={`an-node${active ? " active" : ""}`}
       role="button"
       tabIndex={0}
-      aria-label={`${zone.label} — ${anatomyMeta(status).label}`}
+      aria-label={`${zone.label} — ${display.label}`}
       aria-pressed={active}
       onClick={select}
       onKeyDown={onKeyDown}
+      style={{ "--c": c }}
     >
       {zone.nodes.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={r} fill={c} className="an-dot" style={{ "--c": c }} />
+        <g key={i}>
+          <circle cx={x} cy={y} r={r + 5} className="an-node-halo" />
+          <circle cx={x} cy={y} r={r} fill={c} className="an-dot" />
+          <circle cx={x} cy={y} r={Math.max(2, r - 3)} className="an-node-core" />
+        </g>
       ))}
       {(() => {
         const [x0, y0] = zone.nodes[0];
         const [dx, dy] = zone.stub;
-        return <line x1={x0} y1={y0} x2={x0 + dx} y2={y0 + dy} className="an-stub" style={{ "--c": c }} />;
+        return <line x1={x0} y1={y0} x2={x0 + dx} y2={y0 + dy} className="an-stub" />;
       })()}
       <circle
         cx={zone.nodes[0][0] + zone.stub[0]}
         cy={zone.nodes[0][1] + zone.stub[1]}
-        r="1.6"
+        r="2"
         className="an-stub-end"
-        style={{ "--c": c }}
       />
     </g>
   );
@@ -1872,28 +1902,100 @@ function AnatomyNode({ zone, status, active, onSelect }) {
 
 function AnatomyFigure({ anatomy, selected, onSelect }) {
   return (
-    <svg viewBox="0 0 300 620" className="an-figure" role="group" aria-label="JARVIS Anatomie — Körperfigur">
-      <ellipse cx="150" cy="210" rx="128" ry="248" className="an-ring r1" />
-      <ellipse cx="150" cy="210" rx="98" ry="196" className="an-ring r2" />
-      <g className="an-lines" aria-hidden="true">
-        <circle cx="150" cy="60" r="34" />
-        <line x1="150" y1="94" x2="150" y2="108" />
-        <path d="M 90 132 C 70 160, 66 230, 78 300 L 120 300 C 118 260, 122 200, 150 200 C 178 200, 182 260, 180 300 L 222 300 C 234 230, 230 160, 210 132 C 190 118, 110 118, 90 132 Z" />
-        <path d="M 90 132 C 64 150, 50 190, 54 230 C 56 248, 54 258, 54 266" />
-        <path d="M 210 132 C 236 150, 250 190, 246 230 C 244 248, 246 258, 246 266" />
-        <line x1="150" y1="108" x2="150" y2="300" className="an-spine" />
-        <path d="M 128 300 C 118 360, 112 460, 112 540 C 112 555, 110 565, 108 574" />
-        <path d="M 172 300 C 182 360, 188 460, 188 540 C 188 555, 190 565, 192 574" />
-        <line x1="88" y1="580" x2="212" y2="580" className="an-base" />
-        <line x1="104" y1="580" x2="104" y2="594" className="an-base" />
-        <line x1="150" y1="580" x2="150" y2="594" className="an-base" />
-        <line x1="196" y1="580" x2="196" y2="594" className="an-base" />
+    <svg viewBox="0 0 300 620" className="an-figure" role="group" aria-label="JARVIS Anatomie — holografischer Körper">
+      <defs>
+        <radialGradient id="an-body-glow" cx="50%" cy="38%" r="58%">
+          <stop offset="0%" stopColor="#ffb24c" stopOpacity=".20" />
+          <stop offset="48%" stopColor="#ff962c" stopOpacity=".07" />
+          <stop offset="100%" stopColor="#ff962c" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="an-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffe0a0" />
+          <stop offset="45%" stopColor="#ffae3a" />
+          <stop offset="100%" stopColor="#8e4c12" />
+        </linearGradient>
+        <filter id="an-glow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3.6" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      <g className="an-orbit" aria-hidden="true">
+        <ellipse cx="150" cy="278" rx="142" ry="278" className="an-ring r1" />
+        <ellipse cx="150" cy="278" rx="118" ry="232" className="an-ring r2" />
+        <ellipse cx="150" cy="585" rx="108" ry="20" className="an-floor f1" />
+        <ellipse cx="150" cy="585" rx="82" ry="14" className="an-floor f2" />
+        <circle cx="150" cy="184" r="92" className="an-tech-ring" />
+        <circle cx="150" cy="184" r="116" className="an-tech-ring faint" />
       </g>
+
+      <ellipse cx="150" cy="300" rx="120" ry="276" fill="url(#an-body-glow)" opacity=".72" />
+
+      <g className="an-body-outline" aria-hidden="true">
+        <circle cx="150" cy="60" r="31" />
+        <path d="M132 91 C128 106 120 111 102 118 C88 123 76 136 72 151 L55 222 C52 239 49 264 50 302" />
+        <path d="M168 91 C172 106 180 111 198 118 C212 123 224 136 228 151 L245 222 C248 239 251 264 250 302" />
+        <path d="M103 118 C108 149 112 176 112 208 C112 241 105 264 107 296 C109 322 118 340 121 367" />
+        <path d="M197 118 C192 149 188 176 188 208 C188 241 195 264 193 296 C191 322 182 340 179 367" />
+        <path d="M121 367 C118 412 113 459 112 526 C111 548 109 566 105 577" />
+        <path d="M179 367 C182 412 187 459 188 526 C189 548 191 566 195 577" />
+        <path d="M105 577 C100 582 96 586 90 590 C101 594 118 594 128 590" />
+        <path d="M195 577 C200 582 204 586 210 590 C199 594 182 594 172 590" />
+        <path d="M50 302 C47 317 44 329 40 341 C48 342 55 339 59 333 C63 339 68 340 72 335 C77 339 82 336 83 330" />
+        <path d="M250 302 C253 317 256 329 260 341 C252 342 245 339 241 333 C237 339 232 340 228 335 C223 339 218 336 217 330" />
+        <path d="M122 124 C132 130 141 132 150 132 C159 132 168 130 178 124" />
+        <path d="M118 188 C128 200 139 205 150 205 C161 205 172 200 182 188" />
+        <path d="M120 296 C131 305 140 308 150 308 C160 308 169 305 180 296" />
+      </g>
+
+      <g className="an-skeleton" aria-hidden="true">
+        <line x1="150" y1="92" x2="150" y2="366" className="an-spine" />
+        <path d="M92 142 Q150 118 208 142" />
+        <path d="M95 154 Q150 132 205 154" />
+        <path d="M98 167 Q150 146 202 167" />
+        <path d="M101 180 Q150 160 199 180" />
+        <path d="M106 194 Q150 176 194 194" />
+        <path d="M111 208 Q150 193 189 208" />
+        <path d="M120 282 Q150 298 180 282" />
+        <path d="M123 300 Q150 314 177 300" />
+        <path d="M72 151 L52 302 M228 151 L248 302" />
+        <path d="M122 366 L112 526 M178 366 L188 526" />
+      </g>
+
+      <g className="an-neural" aria-hidden="true">
+        <path d="M150 32 L150 590" />
+        <path d="M150 122 L112 154 L82 214 L52 302" />
+        <path d="M150 122 L188 154 L218 214 L248 302" />
+        <path d="M150 205 L126 248 L117 315 L112 410 L112 526" />
+        <path d="M150 205 L174 248 L183 315 L188 410 L188 526" />
+        <path d="M135 132 L121 168 L110 215 L82 260" />
+        <path d="M165 132 L179 168 L190 215 L218 260" />
+        <path d="M130 228 L150 246 L170 228" />
+        <path d="M128 330 L150 348 L172 330" />
+        <path d="M116 430 L150 446 L184 430" />
+        <path d="M118 486 L150 506 L182 486" />
+      </g>
+
+      <g className="an-head-detail" aria-hidden="true">
+        <ellipse cx="150" cy="58" rx="20" ry="25" />
+        <path d="M134 56 Q150 44 166 56 M134 64 Q150 76 166 64" />
+        <path d="M142 72 Q150 77 158 72" />
+        <circle cx="140" cy="61" r="3" />
+        <circle cx="160" cy="61" r="3" />
+        <circle cx="150" cy="48" r="18" className="an-brain-ring" />
+      </g>
+
+      <g className="an-core-art" aria-hidden="true">
+        <path d="M150 198 C136 189 129 179 131 169 C133 158 146 156 150 165 C154 156 167 158 169 169 C171 179 164 189 150 198 Z" />
+        <circle cx="150" cy="184" r="26" />
+        <circle cx="150" cy="184" r="39" />
+      </g>
+
       {ANATOMY_ZONES.map((zone) => (
         <AnatomyNode
           key={zone.key}
           zone={zone}
-          status={anatomyModule(anatomy, zone.key)?.status || "NOT_CONNECTED"}
+          mod={anatomyModule(anatomy, zone.key)}
           active={selected === zone.key}
           onSelect={onSelect}
         />
@@ -1904,15 +2006,34 @@ function AnatomyFigure({ anatomy, selected, onSelect }) {
 
 function AnatomyCard({ zone, mod, active, onSelect }) {
   const status = mod?.status || "NOT_CONNECTED";
-  const meta = anatomyMeta(status);
+  const display = anatomyDisplayState(zone, mod);
+  const Icon = zone.icon || Activity;
+  const lastRun = mod?.detail?.last_run || null;
   return (
-    <button className={`an-card${active ? " on" : ""}`} onClick={() => onSelect(zone.key)} aria-pressed={active}>
-      <div className="an-card-h">
-        <span className="an-card-n">{zone.label}</span>
-        <Dot color={meta.color} pulse={status === "HEALTHY"} />
+    <button
+      className={`an-card an-card-${display.tone}${active ? " on" : ""}`}
+      onClick={() => onSelect(zone.key)}
+      aria-pressed={active}
+      style={{ "--zone": display.color }}
+    >
+      <div className="an-card-icon"><Icon size={23} strokeWidth={1.7} /></div>
+      <div className="an-card-main">
+        <div className="an-card-h">
+          <div>
+            <span className="an-card-n">{zone.label}</span>
+            <div className="an-card-tag">{zone.tag}</div>
+          </div>
+          <ChevronRight size={15} className="an-card-chevron" />
+        </div>
+        <div className="an-card-s" style={{ color: display.color }}>
+          <span className="an-card-status-dot" />
+          {display.label}
+        </div>
+        <p className="an-card-desc">{anatomyExplanation(zone, mod)}</p>
+        {zone.key === "right_hand" && lastRun?.id && (
+          <div className="an-card-evidence mono">Run: {String(lastRun.id).slice(0, 28)}…</div>
+        )}
       </div>
-      <div className="an-card-tag">{zone.tag}</div>
-      <div className="an-card-s" style={{ color: meta.color }}>{meta.label}</div>
     </button>
   );
 }
@@ -1920,7 +2041,7 @@ function AnatomyCard({ zone, mod, active, onSelect }) {
 function AnatomyDetailSheet({ zone, mod, onClose }) {
   if (!zone) return null;
   const status = mod?.status || "NOT_CONNECTED";
-  const meta = anatomyMeta(status);
+  const meta = anatomyDisplayState(zone, mod);
   // Portalled to #jcc-portal-root (a direct child of .jcc, sibling of
   // MobileNav): .shell sets its own z-index:2 stacking context, which would
   // otherwise trap this sheet's z-index below the fixed mobile bottom nav
@@ -1941,7 +2062,9 @@ function AnatomyDetailSheet({ zone, mod, onClose }) {
           <button className="an-sheet-x" onClick={onClose} aria-label="Schließen"><X size={16} /></button>
         </header>
         <div className="an-sheet-status" style={{ color: meta.color }}><Dot color={meta.color} pulse={status === "HEALTHY"} />{meta.label}</div>
+        <p className="an-sheet-explain">{anatomyExplanation(zone, mod)}</p>
         <dl className="an-sheet-kv">
+          <div><dt>Systemrolle</dt><dd>{zone.role}</dd></div>
           <div><dt>Capability</dt><dd>{mod?.capability || "—"}</dd></div>
           <div><dt>Quelle</dt><dd className="mono">{mod?.source || "—"}</dd></div>
           <div><dt>Beobachtet</dt><dd className="mono">{fmtIso(mod?.observed_at)}</dd></div>
@@ -1951,6 +2074,7 @@ function AnatomyDetailSheet({ zone, mod, onClose }) {
           <div><dt>Fehler</dt><dd>{mod?.error || "—"}</dd></div>
           <div><dt>Eingeschränkt</dt><dd>{mod?.degraded_reason || "—"}</dd></div>
           <div><dt>Evidence</dt><dd className="mono">{mod?.evidence_ref || "—"}</dd></div>
+          <div><dt>Nächster Beleg</dt><dd>{status === "NOT_CONNECTED" ? "Genuine Runtime-Quelle anbinden" : status === "UNKNOWN" ? "Aktuellen Live-Status verifizieren" : "—"}</dd></div>
         </dl>
       </section>
     </div>
@@ -1972,8 +2096,8 @@ const AUTONOMY_STAGE_META = {
   UNKNOWN: { label: "Unbekannt", color: "#8d8277" },
 };
 const AUTONOMY_FLOW = [
-  ["WORK_DETECTED", "Erkannt"],
-  ["JOB_CREATED", "Job"],
+  ["WORK_DETECTED", "Erkennen"],
+  ["JOB_CREATED", "Planen"],
   ["EXECUTING", "Ausführen"],
   ["VERIFYING", "Prüfen"],
   ["REPAIRING", "Reparieren"],
@@ -1985,30 +2109,44 @@ function AutonomyLoop({ autonomy }) {
   const meta = AUTONOMY_STAGE_META[stage] || AUTONOMY_STAGE_META.UNKNOWN;
   const run = autonomy?.current_run || null;
   const activity = autonomy?.last_activity || null;
+  const activeIndex = AUTONOMY_FLOW.findIndex(([key]) => key === stage);
+  const verification = autonomy?.verification_result === "PROVEN" ? "BELEGT" : "—";
+  const approval = autonomy?.human_approval_required
+    ? "JA · " + (autonomy?.human_approval_state === "GRANTED" ? "FREIGEGEBEN" : (autonomy?.human_approval_state || "OFFEN"))
+    : "NEIN";
   return (
-    <section className="pnl au-panel" aria-label="JARVIS Autonomie Status">
+    <section className="pnl au-panel au-panel-v2" aria-label="JARVIS Autonomie Status">
       <div className="au-head">
         <div>
           <div className="eyebrow">AUTONOMIE</div>
           <h3>Was macht JARVIS gerade?</h3>
+          <p className="au-sub">{stage === "IDLE" ? "Kein aktiver Auftrag." : "Letzter belegter autonomer Arbeitslauf aus Runtime Truth."}</p>
         </div>
         <div className="au-current" style={{ color: meta.color }}><Dot color={meta.color} pulse={stage === "EXECUTING" || stage === "VERIFYING" || stage === "REPAIRING"} />{meta.label}</div>
       </div>
       <div className="au-flow" aria-label="Autonomer Arbeitsloop">
-        {AUTONOMY_FLOW.map(([key, label]) => (
-          <div key={key} className={`au-step${stage === key ? " on" : ""}`} aria-current={stage === key ? "step" : undefined}>
-            <span className="au-step-dot" style={{ "--au": stage === key ? meta.color : "#4b4138" }} />
-            <span>{label}</span>
-          </div>
-        ))}
+        {AUTONOMY_FLOW.map(([key, label], index) => {
+          const completed = activeIndex >= 0 && index <= activeIndex && stage === "COMPLETE";
+          const active = stage === key;
+          return (
+            <React.Fragment key={key}>
+              <div className={"au-step" + (active ? " on" : "") + (completed ? " done" : "")} aria-current={active ? "step" : undefined}>
+                <span className="au-step-num">{index + 1}</span>
+                <span>{label}</span>
+              </div>
+              {index < AUTONOMY_FLOW.length - 1 && <span className="au-arrow">→</span>}
+            </React.Fragment>
+          );
+        })}
       </div>
-      <div className="au-meta">
+      <div className="au-meta au-meta-v2">
         <div><span>Run</span><b className="mono">{run?.id || "—"}</b></div>
         <div><span>Aktivität</span><b>{activity?.event || run?.status || "—"}</b></div>
-        <div><span>Beobachtet</span><b className="mono">{fmtIso(autonomy?.observed_at)}</b></div>
+        <div><span>Verifikation</span><b className={verification === "BELEGT" ? "au-ok" : ""}>{verification}</b></div>
+        <div><span>Freigabe</span><b>{approval}</b></div>
         <div><span>Evidence</span><b className="mono">{autonomy?.evidence_ref || "—"}</b></div>
+        <div><span>Zeitstempel</span><b className="mono">{fmtIso(autonomy?.observed_at)}</b></div>
       </div>
-      {run?.title && <div className="au-title">{run.title}</div>}
       {autonomy?.reason && <div className="au-reason">Grund: {autonomy.reason}</div>}
     </section>
   );
@@ -2022,52 +2160,49 @@ function AnatomyView() {
   const mod = zone ? anatomyModule(anatomy, zone.key) : null;
 
   const provenCount = anatomy ? ANATOMY_ZONES.filter((z) => {
-    const s = anatomyModule(anatomy, z.key)?.status;
-    return s && s !== "UNKNOWN" && s !== "NOT_CONNECTED";
+    const m = anatomyModule(anatomy, z.key);
+    const s = m?.status;
+    return (s && s !== "UNKNOWN" && s !== "NOT_CONNECTED") || Boolean(m?.last_success);
   }).length : 0;
   const healthyCount = anatomy ? ANATOMY_ZONES.filter((z) => anatomyModule(anatomy, z.key)?.status === "HEALTHY").length : 0;
 
   const left = ANATOMY_ZONES.filter((z) => z.col === "left");
   const right = ANATOMY_ZONES.filter((z) => z.col === "right");
-  const bottom = ANATOMY_ZONES.filter((z) => z.col === "bottom");
-
   const select = (key) => setSelected((cur) => (cur === key ? null : key));
 
   return (
-    <>
-      <PageHead title="Anatomie" sub="Körperzonen und autonomer Arbeitsloop — ausschließlich aus Runtime Truth."
-        right={<LiveTag label={!rt.loaded ? "Prüft …" : anatomy ? "Anatomie live" : "Nicht verbunden"} color={anatomy ? "#ffab40" : "#a3968a"} pulse={false} />} />
-      <AutonomyLoop autonomy={rt.autonomy} />
-      <div className="an-strip">
-        <span className="an-strip-on">ANATOMIE</span>
-        <span className="an-strip-sep">·</span>
-        <span>SYSTEM: JARVIS</span>
-        <span className="an-strip-sep">·</span>
-        <span>MODUL: {zone ? zone.label : "—"}</span>
-        <span className="an-strip-sep">·</span>
-        <span>LIVE: {!rt.loaded ? "Prüft …" : anatomy ? "Payload da" : "Kein Payload"}</span>
-        <span className="an-strip-sep">·</span>
-        <span>DETAILS: {zone ? "Geöffnet" : "—"}</span>
+    <div className="an-v2">
+      <div className="an-v2-head">
+        <PageHead title="Anatomie" sub="Körperzonen und autonomer Arbeitsloop — ausschließlich aus Runtime Truth."
+          right={<LiveTag label={!rt.loaded ? "Prüft …" : anatomy ? "Anatomie live" : "Nicht verbunden"} color={anatomy ? "#ffab40" : "#a3968a"} pulse={false} />} />
+        <div className="an-v2-truth"><span className="an-v2-truth-dot" />RUNTIME TRUTH · LIVE-DATEN</div>
       </div>
-      <section className="pnl an-stage">
+
+      <AutonomyLoop autonomy={rt.autonomy} />
+
+      <section className="an-stage an-stage-v2">
         <div className="an-col an-col-l">
           {left.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
         </div>
         <div className="an-figure-wrap">
+          <div className="an-figure-caption">JARVIS SYSTEM MAP</div>
           <AnatomyFigure anatomy={anatomy} selected={selected} onSelect={select} />
+          <div className="an-figure-wordmark">J A R V I S <span>ALWAYS ON · TRUTH FIRST</span></div>
         </div>
         <div className="an-col an-col-r">
           {right.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
         </div>
-        <div className="an-row-b">
-          {bottom.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
-        </div>
       </section>
-      <div className="an-summary dim">
-        {!rt.loaded ? "Anatomie wird geladen …" : anatomy ? `${provenCount}/${ANATOMY_ZONES.length} Zonen mit echtem Signal · ${healthyCount} gesund` : "Anatomie-Quelle nicht verbunden"}
+
+      <div className="an-summarybar" aria-label="Anatomy Runtime Summary">
+        <div className="an-stat"><Activity size={24} /><span><small>Core</small><b>{anatomyModule(anatomy, "core")?.status === "HEALTHY" ? "GESUND" : "NICHT BELEGT"}</b></span></div>
+        <div className="an-stat"><Cpu size={24} /><span><small>Zonen mit Signal</small><b>{provenCount} / {ANATOMY_ZONES.length}</b><em>{healthyCount} gesund</em></span></div>
+        <div className="an-stat"><Check size={24} /><span><small>Autonomie</small><b>{AUTONOMY_STAGE_META[rt.autonomy?.stage || "UNKNOWN"]?.label || "Unbekannt"}</b></span></div>
+        <div className="an-stat"><ShieldCheck size={24} /><span><small>Zugriff</small><b>PRIVAT</b></span></div>
       </div>
+
       <AnatomyDetailSheet zone={zone} mod={mod} onClose={() => setSelected(null)} />
-    </>
+    </div>
   );
 }
 
@@ -2997,6 +3132,142 @@ const CSS = `
   .an-sheet-kv{grid-template-columns:1fr}
 }
 
+/* ANATOMY VISUAL CLOSURE V2 */
+.an-v2{position:relative;isolation:isolate}
+.an-v2:before{content:"";position:absolute;inset:72px -24px 0;z-index:-2;pointer-events:none;background:
+  radial-gradient(circle at 50% 34%,rgba(255,151,43,.10),transparent 30%),
+  radial-gradient(circle at 50% 58%,rgba(255,151,43,.045),transparent 48%)}
+.an-v2:after{content:"";position:absolute;inset:90px -18px 0;z-index:-1;pointer-events:none;opacity:.24;background-image:
+  radial-gradient(circle,rgba(255,191,104,.55) 0 1px,transparent 1.2px);
+  background-size:44px 44px;mask-image:linear-gradient(to bottom,transparent,black 18%,black 82%,transparent)}
+.an-v2-head{position:relative}
+.an-v2-truth{position:absolute;right:0;bottom:6px;display:flex;align-items:center;gap:7px;font-family:var(--fm);font-size:9px;letter-spacing:.15em;color:#b48c56}
+.an-v2-truth-dot{width:6px;height:6px;border-radius:50%;background:#ffab40;box-shadow:0 0 10px #ff8f1f}
+
+.au-panel-v2{position:relative;overflow:hidden;margin-bottom:14px;padding:13px 16px 12px;border-color:rgba(255,168,72,.32);background:
+  linear-gradient(180deg,rgba(24,16,8,.82),rgba(9,7,5,.72));box-shadow:inset 0 0 50px rgba(255,137,20,.025),0 12px 35px -25px #000}
+.au-panel-v2:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;background:linear-gradient(#ffcf7a,#ff8a16);box-shadow:0 0 14px #ff8a16}
+.au-head h3{font-size:16px;letter-spacing:.06em}
+.au-sub{margin-top:3px;font-size:10.5px;color:var(--dim)}
+.au-flow{display:flex;align-items:center;gap:5px;margin-top:11px}
+.au-step{flex:1;justify-content:flex-start;gap:7px;padding:7px 8px;border-color:rgba(255,173,80,.12);background:rgba(0,0,0,.20)}
+.au-step.on{border-color:#d78a2f;background:linear-gradient(90deg,rgba(255,153,38,.13),rgba(255,118,12,.04));box-shadow:inset 0 0 20px rgba(255,132,16,.06)}
+.au-step.done{border-color:rgba(255,174,72,.26);color:#e8d6ba}
+.au-step-num{display:grid;place-items:center;width:20px;height:20px;flex:0 0 20px;border:1px solid rgba(255,180,90,.24);border-radius:50%;font-size:9px;color:#d5c2a6;background:rgba(255,255,255,.025)}
+.au-step.on .au-step-num{color:#211408;background:#ffd27e;border-color:#ffd27e;box-shadow:0 0 15px rgba(255,159,36,.45)}
+.au-arrow{font-family:var(--fm);font-size:16px;color:#b86e24;flex:0 0 auto}
+.au-meta-v2{grid-template-columns:1.05fr .9fr .62fr .85fr 1.35fr .75fr;gap:10px 14px;margin-top:11px;padding-top:10px}
+.au-meta-v2 b{font-size:10.5px}
+.au-ok{color:#47e878 !important}
+.au-current{font-family:var(--fm);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+
+.an-stage-v2{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(235px,1fr) minmax(300px,400px) minmax(235px,1fr);
+  grid-template-areas:"l fig r";gap:12px 20px;align-items:center;min-height:555px;padding:16px 18px 12px;border:1px solid rgba(255,164,61,.28);
+  border-radius:18px;background:
+  radial-gradient(circle at 50% 46%,rgba(255,152,39,.105),transparent 31%),
+  linear-gradient(180deg,rgba(12,9,6,.80),rgba(5,4,3,.92))}
+.an-stage-v2:before{content:"";position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(90deg,transparent 49.8%,rgba(255,173,76,.06) 50%,transparent 50.2%),
+  repeating-radial-gradient(circle at 50% 46%,transparent 0 79px,rgba(255,159,48,.035) 80px,transparent 81px 121px)}
+.an-stage-v2:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.20;background-image:
+  radial-gradient(circle,rgba(255,184,89,.7) 0 1px,transparent 1.2px);background-size:31px 31px;mask-image:radial-gradient(circle at 50% 50%,black,transparent 72%)}
+
+.an-col{position:relative;z-index:3;display:flex;flex-direction:column;gap:9px}
+.an-col-l{grid-area:l}.an-col-r{grid-area:r}
+.an-figure-wrap{position:relative;z-index:2;grid-area:fig;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
+.an-figure-caption{margin-bottom:-2px;font-family:var(--fm);font-size:8.5px;letter-spacing:.25em;color:#7a5b38}
+.an-figure{width:100%;max-width:365px;max-height:530px;filter:drop-shadow(0 0 18px rgba(255,137,20,.11))}
+.an-figure-wordmark{margin-top:-18px;text-align:center;font-family:var(--fd);font-size:12px;letter-spacing:.45em;color:#f2dfc2;text-shadow:0 0 12px rgba(255,173,76,.20)}
+.an-figure-wordmark span{display:block;margin-top:4px;font-family:var(--fm);font-size:7px;letter-spacing:.28em;color:#8a704e}
+
+.an-body-outline{fill:none;stroke:url(#an-gold);stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round;opacity:.78;filter:url(#an-glow)}
+.an-skeleton{fill:none;stroke:#d89134;stroke-width:.6;stroke-opacity:.40;stroke-linecap:round}
+.an-neural{fill:none;stroke:#ff9c28;stroke-width:.65;stroke-opacity:.56;stroke-linecap:round;stroke-dasharray:1.5 3;filter:url(#an-glow)}
+.an-head-detail{fill:none;stroke:#ffc66f;stroke-width:.75;stroke-opacity:.72}
+.an-brain-ring{stroke-dasharray:2 2;opacity:.5}
+.an-core-art{fill:none;stroke:#ffb13d;stroke-width:1.1;stroke-opacity:.9;filter:url(#an-glow)}
+.an-core-art path{fill:rgba(255,119,18,.11)}
+.an-tech-ring{fill:none;stroke:#e48827;stroke-width:.55;stroke-opacity:.14;stroke-dasharray:2 5}
+.an-tech-ring.faint{stroke-opacity:.07;stroke-dasharray:1 8}
+.an-floor{fill:none;stroke:#ff9f2d;stroke-width:1;stroke-opacity:.30;filter:url(#an-glow)}
+.an-floor.f2{stroke-opacity:.18}
+.an-ring{fill:none;stroke:rgba(255,168,72,.10);stroke-width:.7;transform-origin:150px 278px;animation:an-spin 80s linear infinite;stroke-dasharray:2 7}
+.an-ring.r2{stroke:rgba(255,168,72,.065);animation-duration:110s;animation-direction:reverse}
+.an-spine{stroke:#ffb657!important;stroke-opacity:.7!important;stroke-width:1!important;filter:url(#an-glow)}
+.an-node{cursor:pointer;outline:none}
+.an-node-halo{fill:var(--c);opacity:.08;filter:url(#an-glow);transition:opacity .18s ease,r .18s ease}
+.an-dot{filter:drop-shadow(0 0 7px var(--c));stroke:#ffe7bc;stroke-width:.65;stroke-opacity:.6}
+.an-node-core{fill:#fff0c8;opacity:.78;pointer-events:none}
+.an-node:hover .an-node-halo,.an-node.active .an-node-halo,.an-node:focus-visible .an-node-halo{opacity:.22}
+.an-node.active .an-dot{stroke-width:1.5;stroke-opacity:1}
+.an-stub{stroke:var(--c);stroke-opacity:.62;stroke-width:.8;filter:drop-shadow(0 0 3px var(--c))}
+.an-stub-end{fill:var(--c);opacity:.8;filter:drop-shadow(0 0 4px var(--c))}
+
+.an-card{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;min-height:92px;padding:10px 11px;
+  border:1px solid rgba(255,169,67,.25);border-radius:13px;background:linear-gradient(135deg,rgba(19,14,9,.88),rgba(7,6,5,.78));
+  text-align:left;overflow:visible;transition:border-color .15s ease,background .15s ease,transform .15s ease,box-shadow .15s ease}
+.an-card:hover,.an-card.on{border-color:color-mix(in srgb,var(--zone) 58%,#8b5b2d);background:linear-gradient(135deg,rgba(28,18,9,.93),rgba(9,7,5,.90));
+  box-shadow:inset 0 0 26px color-mix(in srgb,var(--zone) 7%,transparent),0 0 18px color-mix(in srgb,var(--zone) 5%,transparent)}
+.an-card.on{transform:translateY(-1px)}
+.an-card-icon{display:grid;place-items:center;width:34px;height:34px;margin-top:1px;color:#ffc86f;border:1px solid rgba(255,176,76,.18);border-radius:10px;
+  background:radial-gradient(circle,rgba(255,171,64,.11),transparent 70%);filter:drop-shadow(0 0 5px rgba(255,161,48,.28))}
+.an-card-main{min-width:0}
+.an-card-h{align-items:flex-start}
+.an-card-n{display:block;font-family:var(--fd);font-size:11.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#f0e3d0}
+.an-card-tag{margin-top:1px;font-size:8px;letter-spacing:.13em;color:#9d8c77}
+.an-card-chevron{color:#9d8c77;flex:0 0 auto}
+.an-card-s{display:flex;align-items:center;gap:6px;margin-top:5px;font-family:var(--fm);font-size:8.5px;font-weight:600;letter-spacing:.10em}
+.an-card-status-dot{width:7px;height:7px;border-radius:50%;background:var(--zone);box-shadow:0 0 8px color-mix(in srgb,var(--zone) 65%,transparent)}
+.an-card-desc{margin-top:4px;font-size:9.5px;line-height:1.35;color:#b9aa96}
+.an-card-evidence{margin-top:4px;font-size:7.5px;color:#846d53;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-col-l .an-card:after,.an-col-r .an-card:before{content:"";position:absolute;top:50%;width:26px;height:1px;background:linear-gradient(90deg,var(--zone),rgba(255,169,68,.18));opacity:.50}
+.an-col-l .an-card:after{right:-27px}.an-col-r .an-card:before{left:-27px;transform:scaleX(-1)}
+
+.an-summarybar{display:grid;grid-template-columns:repeat(4,1fr);margin-top:12px;border:1px solid rgba(255,165,60,.26);border-radius:14px;overflow:hidden;background:rgba(8,6,4,.80)}
+.an-stat{display:flex;align-items:center;gap:11px;min-width:0;padding:11px 13px;color:#ffbd5f;border-right:1px solid rgba(255,168,72,.13)}
+.an-stat:last-child{border-right:0}.an-stat span{display:flex;min-width:0;flex-direction:column;gap:1px}.an-stat small{font-family:var(--fm);font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:#8e7a62}
+.an-stat b{font-size:11.5px;font-weight:500;color:#e9dcc9}.an-stat em{font-style:normal;font-size:8px;color:#45dc72}
+.an-sheet-explain{margin:-6px 0 14px;color:#c5b39c;font-size:12px;line-height:1.45}
+
+@media (max-width:1120px){
+  .an-stage-v2{grid-template-columns:minmax(205px,1fr) minmax(260px,330px) minmax(205px,1fr);gap:10px 14px}
+  .an-card{grid-template-columns:30px minmax(0,1fr);padding:9px;min-height:88px}.an-card-icon{width:28px;height:28px}
+  .an-card-desc{font-size:8.8px}.an-figure{max-width:320px}
+  .au-meta-v2{grid-template-columns:1fr 1fr 1fr}
+}
+@media (max-width:980px){
+  .an-v2-head .an-v2-truth{display:none}
+  .an-stage-v2{grid-template-columns:1fr;grid-template-areas:"fig" "l" "r";min-height:0;padding:14px}
+  .an-figure{max-width:420px;max-height:none}.an-figure-wrap{padding-bottom:10px}
+  .an-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .an-col-l .an-card:after,.an-col-r .an-card:before{display:none}
+  .an-summarybar{grid-template-columns:1fr 1fr}
+  .an-stat:nth-child(2){border-right:0}.an-stat:nth-child(-n+2){border-bottom:1px solid rgba(255,168,72,.13)}
+  .au-flow{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.au-flow::-webkit-scrollbar{display:none}
+  .au-step{flex:0 0 118px}.au-arrow{flex:0 0 auto}
+}
+@media (max-width:560px){
+  .an-v2 .ph{margin-bottom:10px}.an-v2 .ph-t{font-size:22px;letter-spacing:.30em}.an-v2 .ph-s{font-size:10.5px;max-width:280px}
+  .au-panel-v2{padding:13px 12px}.au-head{gap:8px}.au-head h3{font-size:15px}.au-sub{display:none}
+  .au-current{font-size:8.5px}.au-flow{margin-left:-2px;margin-right:-2px}.au-step{flex-basis:105px;padding:6px 7px;font-size:8.5px}
+  .au-meta-v2{grid-template-columns:1fr 1fr;gap:9px 12px}.au-meta-v2 b{font-size:9.5px}
+
+  /* Mobile is composed around the body, not a shrunken desktop / card dump. */
+  .an-stage-v2{display:block;position:relative;height:860px;min-height:860px;margin-left:-2px;margin-right:-2px;padding:10px 7px 12px;border-radius:16px;overflow:hidden}
+  .an-figure-wrap{position:absolute;inset:22px 12% 22px;z-index:2;padding:0;justify-content:center;pointer-events:none}
+  .an-figure-caption{font-size:7px;margin-bottom:0}.an-figure{width:100%;max-width:290px;max-height:770px}
+  .an-figure-wordmark{font-size:9px;margin-top:-24px}.an-figure-wordmark span{font-size:5.8px}
+  .an-col{position:absolute;top:82px;bottom:58px;width:43.5%;z-index:4;display:flex;flex-direction:column;justify-content:space-between;gap:7px}
+  .an-col-l{left:7px}.an-col-r{right:7px}
+  .an-col-l .an-card:after,.an-col-r .an-card:before{display:block;width:18px;opacity:.65}
+  .an-col-l .an-card:after{right:-19px}.an-col-r .an-card:before{left:-19px}
+  .an-card{grid-template-columns:25px minmax(0,1fr);gap:6px;min-height:112px;padding:8px 7px;border-radius:11px;background:linear-gradient(135deg,rgba(16,11,7,.94),rgba(5,4,3,.88));backdrop-filter:blur(2px)}
+  .an-card-icon{width:25px;height:25px;border-radius:8px}.an-card-icon svg{width:18px;height:18px}
+  .an-card-n{font-size:9.2px}.an-card-tag{font-size:6.5px;letter-spacing:.09em}.an-card-s{font-size:7.2px;letter-spacing:.06em;gap:4px}
+  .an-card-status-dot{width:6px;height:6px}.an-card-desc{font-size:8.3px;line-height:1.27;margin-top:4px}
+  .an-card-evidence{font-size:6.4px}.an-card-chevron{width:11px;height:11px}
+  .an-summarybar{margin-top:9px}.an-stat{padding:10px 9px;gap:8px}.an-stat svg{width:20px}.an-stat b{font-size:10px}
+}
 /* responsive */
 @media (max-width:1320px){
   .home-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"hero hero" "core core" "act runs" "sys quick" "pipe pipe"}

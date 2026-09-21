@@ -388,7 +388,8 @@ export async function createJarvisCommandCenterTruthSnapshotV1(bindings = {}, op
   snapshot.autonomy = deriveJarvisAutonomyStateV1({
     runs: snapshot.runs,
     activity: snapshot.activity,
-    evidence: snapshot.evidence
+    evidence: snapshot.evidence,
+    approvals: snapshot.approvals
   }, { now });
 
   const validation = validateJarvisCommandCenterTruthSnapshotV1(snapshot);
