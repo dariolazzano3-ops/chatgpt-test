@@ -44,3 +44,17 @@ Fail immediately if:
 - connectors are hard-coded to viewport pixels rather than element geometry;
 - fewer semantic objects exist than the contract requires;
 - a PASS is based only on internal geometry scores without actual browser screenshots.
+
+## Repo commands
+Initialize a new locked contract from reference images:
+`node scripts/reference-to-ui-init-v1.mjs --feature <id> --mobile <path> --desktop <path> --out <contract.json>`
+
+Validate a contract and all declared source hashes:
+`node scripts/reference-to-ui-contract-validate-v1.mjs <contract.json>`
+
+JARVIS Anatomy additionally runs:
+- `node scripts/jarvis-reference-contract-v1-smoke.mjs`
+- `python3 scripts/jarvis-reference-asset-audit-v1.py`
+- `node scripts/jarvis-anatomy-view-v1-browser-acceptance.mjs`
+
+A generated screenshot is evidence, not acceptance by itself. Browser structure/interaction and human visual review are separate gates.
