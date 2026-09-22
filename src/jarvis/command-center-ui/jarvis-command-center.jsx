@@ -1948,6 +1948,37 @@ function AnatomyFigure({ anatomy, selected, onSelect }) {
         <path d="M120 296 C131 305 140 308 150 308 C160 308 169 305 180 296" />
       </g>
 
+      <g className="an-musculature" aria-hidden="true">
+        <path d="M134 93 C123 106 110 112 96 121 C83 130 78 143 76 160" />
+        <path d="M166 93 C177 106 190 112 204 121 C217 130 222 143 224 160" />
+        <path d="M104 123 C119 138 132 145 150 146 C168 145 181 138 196 123" />
+        <path d="M105 147 C120 154 133 158 150 159 C167 158 180 154 195 147" />
+        <path d="M108 166 C121 175 135 179 150 180 C165 179 179 175 192 166" />
+        <path d="M111 189 C123 198 137 202 150 203 C163 202 177 198 189 189" />
+        <path d="M116 214 C127 221 138 225 150 226 C162 225 173 221 184 214" />
+        <path d="M118 239 C128 246 139 250 150 251 C161 250 172 246 182 239" />
+        <path d="M119 266 C130 272 140 276 150 277 C160 276 170 272 181 266" />
+        <path d="M119 294 C130 302 140 306 150 307 C160 306 170 302 181 294" />
+        <path d="M113 318 C124 328 136 333 150 334 C164 333 176 328 187 318" />
+        <path d="M121 346 C132 353 141 356 150 357 C159 356 168 353 179 346" />
+        <path d="M102 122 C92 151 88 180 84 210 C80 240 72 269 58 298" />
+        <path d="M198 122 C208 151 212 180 216 210 C220 240 228 269 242 298" />
+        <path d="M84 160 C72 182 67 207 64 233 C61 257 57 279 52 302" />
+        <path d="M216 160 C228 182 233 207 236 233 C239 257 243 279 248 302" />
+        <path d="M123 367 C132 382 140 388 150 389 C160 388 168 382 177 367" />
+        <path d="M123 382 C119 415 118 451 116 486 C115 507 114 528 112 548" />
+        <path d="M177 382 C181 415 182 451 184 486 C185 507 186 528 188 548" />
+        <path d="M112 391 C104 418 102 452 101 484 C101 516 103 547 105 575" />
+        <path d="M188 391 C196 418 198 452 199 484 C199 516 197 547 195 575" />
+        <path d="M116 430 C126 436 138 439 150 440 C162 439 174 436 184 430" />
+        <path d="M114 478 C126 485 138 489 150 490 C162 489 174 485 186 478" />
+        <path d="M112 526 C124 533 137 537 150 538 C163 537 176 533 188 526" />
+        <path d="M132 102 Q150 114 168 102" />
+        <path d="M130 116 Q150 126 170 116" />
+        <path d="M139 94 C143 104 146 112 150 122 C154 112 157 104 161 94" />
+        <path d="M136 211 C139 230 143 250 150 270 C157 250 161 230 164 211" />
+      </g>
+
       <g className="an-skeleton" aria-hidden="true">
         <line x1="150" y1="92" x2="150" y2="366" className="an-spine" />
         <path d="M92 142 Q150 118 208 142" />
@@ -1976,6 +2007,40 @@ function AnatomyFigure({ anatomy, selected, onSelect }) {
         <path d="M118 486 L150 506 L182 486" />
       </g>
 
+      <g className="an-neural-secondary" aria-hidden="true">
+        <path d="M150 92 L128 116 L108 145 L93 182 L78 224 L62 270 L52 302" />
+        <path d="M150 92 L172 116 L192 145 L207 182 L222 224 L238 270 L248 302" />
+        <path d="M150 132 L134 160 L126 190 L120 220 L117 250 L116 284" />
+        <path d="M150 132 L166 160 L174 190 L180 220 L183 250 L184 284" />
+        <path d="M150 184 L136 206 L128 232 L126 262 L128 292 L136 318" />
+        <path d="M150 184 L164 206 L172 232 L174 262 L172 292 L164 318" />
+        <path d="M150 246 L142 278 L140 312 L143 346 L150 378" />
+        <path d="M150 246 L158 278 L160 312 L157 346 L150 378" />
+        <path d="M150 344 L132 376 L123 414 L118 458 L114 502 L112 544" />
+        <path d="M150 344 L168 376 L177 414 L182 458 L186 502 L188 544" />
+        <path d="M118 154 L103 176 L92 201 L82 226 L72 252" />
+        <path d="M182 154 L197 176 L208 201 L218 226 L228 252" />
+        <path d="M126 402 L139 416 L150 421 L161 416 L174 402" />
+        <path d="M122 455 L136 468 L150 473 L164 468 L178 455" />
+        <path d="M117 510 L134 520 L150 524 L166 520 L183 510" />
+        <circle cx="150" cy="122" r="4" />
+        <circle cx="150" cy="246" r="4" />
+        <circle cx="150" cy="344" r="4" />
+        <circle cx="112" cy="410" r="3" />
+        <circle cx="188" cy="410" r="3" />
+        <circle cx="112" cy="486" r="3" />
+        <circle cx="188" cy="486" r="3" />
+      </g>
+
+      <g className="an-joints" aria-hidden="true">
+        <circle cx="92" cy="142" r="7" /><circle cx="208" cy="142" r="7" />
+        <circle cx="72" cy="226" r="6" /><circle cx="228" cy="226" r="6" />
+        <circle cx="52" cy="302" r="7" /><circle cx="248" cy="302" r="7" />
+        <circle cx="121" cy="367" r="7" /><circle cx="179" cy="367" r="7" />
+        <circle cx="112" cy="454" r="6" /><circle cx="188" cy="454" r="6" />
+        <circle cx="112" cy="544" r="7" /><circle cx="188" cy="544" r="7" />
+      </g>
+
       <g className="an-head-detail" aria-hidden="true">
         <ellipse cx="150" cy="58" rx="20" ry="25" />
         <path d="M134 56 Q150 44 166 56 M134 64 Q150 76 166 64" />
@@ -1983,12 +2048,19 @@ function AnatomyFigure({ anatomy, selected, onSelect }) {
         <circle cx="140" cy="61" r="3" />
         <circle cx="160" cy="61" r="3" />
         <circle cx="150" cy="48" r="18" className="an-brain-ring" />
+        <circle cx="150" cy="48" r="24" className="an-brain-ring outer" />
+        <path d="M140 45 Q145 38 150 44 Q155 37 161 45" />
+        <path d="M138 51 Q144 57 150 51 Q156 58 162 51" />
+        <path d="M133 60 Q128 68 133 76 M167 60 Q172 68 167 76" />
       </g>
 
       <g className="an-core-art" aria-hidden="true">
         <path d="M150 198 C136 189 129 179 131 169 C133 158 146 156 150 165 C154 156 167 158 169 169 C171 179 164 189 150 198 Z" />
-        <circle cx="150" cy="184" r="26" />
+        <circle cx="150" cy="184" r="20" />
+        <circle cx="150" cy="184" r="29" />
         <circle cx="150" cy="184" r="39" />
+        <circle cx="150" cy="184" r="50" className="an-core-outer" />
+        <path d="M150 150 L150 218 M116 184 L184 184" className="an-core-axis" />
       </g>
 
       {ANATOMY_ZONES.map((zone) => (
@@ -2154,6 +2226,7 @@ function AutonomyLoop({ autonomy }) {
 
 function AnatomyView() {
   const rt = useRuntimeTruth();
+  const now = useNow();
   const [selected, setSelected] = useState(null);
   const anatomy = rt.anatomy;
   const zone = selected ? ANATOMY_ZONES.find((z) => z.key === selected) : null;
@@ -2172,9 +2245,21 @@ function AnatomyView() {
 
   return (
     <div className="an-v2">
-      <div className="an-v2-head">
-        <PageHead title="Anatomie" sub="Körperzonen und autonomer Arbeitsloop — ausschließlich aus Runtime Truth."
-          right={<LiveTag label={!rt.loaded ? "Prüft …" : anatomy ? "Anatomie live" : "Nicht verbunden"} color={anatomy ? "#ffab40" : "#a3968a"} pulse={false} />} />
+      <div className="an-v2-head an-ref-head">
+        <div className="an-ref-head-copy">
+          <div className="eyebrow">JARVIS · ANATOMIE</div>
+          <h1>ANATOMIE</h1>
+          <p>Körperzonen und autonomer Arbeitsloop — ausschließlich aus Runtime Truth.</p>
+        </div>
+        <div className="an-ref-head-time">
+          <LiveTag
+            label={anatomyModule(anatomy, "core")?.status === "HEALTHY" ? "JARVIS AKTIV" : (!rt.loaded ? "PRÜFT …" : "RUNTIME TRUTH")}
+            color={anatomyModule(anatomy, "core")?.status === "HEALTHY" ? "#47e878" : "#ffab40"}
+            pulse={false}
+          />
+          <div className="an-ref-date">{fmtDate(now)}</div>
+          <div className="an-ref-clock">{p2(now.getHours())}:{p2(now.getMinutes())}</div>
+        </div>
         <div className="an-v2-truth"><span className="an-v2-truth-dot" />RUNTIME TRUTH · LIVE-DATEN</div>
       </div>
 
@@ -3141,6 +3226,12 @@ const CSS = `
   radial-gradient(circle,rgba(255,191,104,.55) 0 1px,transparent 1.2px);
   background-size:44px 44px;mask-image:linear-gradient(to bottom,transparent,black 18%,black 82%,transparent)}
 .an-v2-head{position:relative}
+.an-ref-head{display:flex;align-items:center;justify-content:space-between;min-height:108px;margin-bottom:10px;padding:15px 20px;border:1px solid rgba(255,164,61,.34);border-radius:17px;background:linear-gradient(135deg,rgba(18,12,7,.88),rgba(6,5,4,.90));box-shadow:inset 0 0 42px rgba(255,145,24,.025)}
+.an-ref-head-copy .eyebrow{margin-bottom:5px;color:#c98b43}.an-ref-head-copy h1{font-family:var(--fd);font-size:27px;font-weight:300;letter-spacing:.28em;color:#fff1dc;line-height:1}
+.an-ref-head-copy p{max-width:520px;margin-top:9px;font-size:11px;line-height:1.35;color:#a99680}
+.an-ref-head-time{display:grid;justify-items:end;gap:2px;padding-right:4px}.an-ref-head-time .tag{margin-bottom:2px}
+.an-ref-date{font-family:var(--fm);font-size:9px;letter-spacing:.13em;color:#c2aa8c;text-transform:uppercase}
+.an-ref-clock{font-size:44px;font-weight:300;letter-spacing:.04em;line-height:1;color:#fff2de;text-shadow:0 0 24px rgba(255,155,40,.28);font-variant-numeric:tabular-nums}
 .an-v2-truth{position:absolute;right:0;bottom:6px;display:flex;align-items:center;gap:7px;font-family:var(--fm);font-size:9px;letter-spacing:.15em;color:#b48c56}
 .an-v2-truth-dot{width:6px;height:6px;border-radius:50%;background:#ffab40;box-shadow:0 0 10px #ff8f1f}
 
@@ -3161,8 +3252,8 @@ const CSS = `
 .au-ok{color:#47e878 !important}
 .au-current{font-family:var(--fm);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
 
-.an-stage-v2{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(235px,1fr) minmax(300px,400px) minmax(235px,1fr);
-  grid-template-areas:"l fig r";gap:12px 20px;align-items:center;min-height:555px;padding:16px 18px 12px;border:1px solid rgba(255,164,61,.28);
+.an-stage-v2{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(250px,300px) minmax(430px,520px) minmax(250px,300px);
+  grid-template-areas:"l fig r";justify-content:center;gap:10px 24px;align-items:center;min-height:600px;padding:14px 18px 10px;border:1px solid rgba(255,164,61,.34);
   border-radius:18px;background:
   radial-gradient(circle at 50% 46%,rgba(255,152,39,.105),transparent 31%),
   linear-gradient(180deg,rgba(12,9,6,.80),rgba(5,4,3,.92))}
@@ -3176,17 +3267,23 @@ const CSS = `
 .an-col-l{grid-area:l}.an-col-r{grid-area:r}
 .an-figure-wrap{position:relative;z-index:2;grid-area:fig;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
 .an-figure-caption{margin-bottom:-2px;font-family:var(--fm);font-size:8.5px;letter-spacing:.25em;color:#7a5b38}
-.an-figure{width:100%;max-width:365px;max-height:530px;filter:drop-shadow(0 0 18px rgba(255,137,20,.11))}
+.an-figure{width:100%;max-width:500px;max-height:570px;filter:drop-shadow(0 0 24px rgba(255,137,20,.20))}
 .an-figure-wordmark{margin-top:-18px;text-align:center;font-family:var(--fd);font-size:12px;letter-spacing:.45em;color:#f2dfc2;text-shadow:0 0 12px rgba(255,173,76,.20)}
 .an-figure-wordmark span{display:block;margin-top:4px;font-family:var(--fm);font-size:7px;letter-spacing:.28em;color:#8a704e}
 
-.an-body-outline{fill:none;stroke:url(#an-gold);stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round;opacity:.78;filter:url(#an-glow)}
-.an-skeleton{fill:none;stroke:#d89134;stroke-width:.6;stroke-opacity:.40;stroke-linecap:round}
-.an-neural{fill:none;stroke:#ff9c28;stroke-width:.65;stroke-opacity:.56;stroke-linecap:round;stroke-dasharray:1.5 3;filter:url(#an-glow)}
-.an-head-detail{fill:none;stroke:#ffc66f;stroke-width:.75;stroke-opacity:.72}
+.an-body-outline{fill:none;stroke:url(#an-gold);stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:.88;filter:url(#an-glow)}
+.an-musculature{fill:none;stroke:#ffb455;stroke-width:.55;stroke-opacity:.30;stroke-linecap:round;stroke-linejoin:round}
+.an-skeleton{fill:none;stroke:#e49a42;stroke-width:.62;stroke-opacity:.46;stroke-linecap:round}
+.an-neural{fill:none;stroke:#ff9c28;stroke-width:.68;stroke-opacity:.68;stroke-linecap:round;stroke-dasharray:1.5 3;filter:url(#an-glow)}
+.an-neural-secondary{fill:none;stroke:#ffb34e;stroke-width:.44;stroke-opacity:.42;stroke-linecap:round;stroke-dasharray:1 3;filter:url(#an-glow)}
+.an-neural-secondary circle{fill:#ffb85e;stroke:none;opacity:.62;filter:url(#an-glow)}
+.an-joints{fill:rgba(255,151,31,.035);stroke:#ffad45;stroke-width:.6;stroke-opacity:.40}
+.an-head-detail{fill:none;stroke:#ffd083;stroke-width:.78;stroke-opacity:.80}
 .an-brain-ring{stroke-dasharray:2 2;opacity:.5}
-.an-core-art{fill:none;stroke:#ffb13d;stroke-width:1.1;stroke-opacity:.9;filter:url(#an-glow)}
+.an-core-art{fill:none;stroke:#ffb13d;stroke-width:1.15;stroke-opacity:.96;filter:url(#an-glow)}
 .an-core-art path{fill:rgba(255,119,18,.11)}
+.an-core-outer{stroke-dasharray:2 4;stroke-opacity:.40}
+.an-core-axis{fill:none!important;stroke-width:.55;stroke-opacity:.48}
 .an-tech-ring{fill:none;stroke:#e48827;stroke-width:.55;stroke-opacity:.14;stroke-dasharray:2 5}
 .an-tech-ring.faint{stroke-opacity:.07;stroke-dasharray:1 8}
 .an-floor{fill:none;stroke:#ff9f2d;stroke-width:1;stroke-opacity:.30;filter:url(#an-glow)}
@@ -3203,7 +3300,7 @@ const CSS = `
 .an-stub{stroke:var(--c);stroke-opacity:.62;stroke-width:.8;filter:drop-shadow(0 0 3px var(--c))}
 .an-stub-end{fill:var(--c);opacity:.8;filter:drop-shadow(0 0 4px var(--c))}
 
-.an-card{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;min-height:92px;padding:10px 11px;
+.an-card{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;min-height:104px;padding:11px 12px;
   border:1px solid rgba(255,169,67,.25);border-radius:13px;background:linear-gradient(135deg,rgba(19,14,9,.88),rgba(7,6,5,.78));
   text-align:left;overflow:visible;transition:border-color .15s ease,background .15s ease,transform .15s ease,box-shadow .15s ease}
 .an-card:hover,.an-card.on{border-color:color-mix(in srgb,var(--zone) 58%,#8b5b2d);background:linear-gradient(135deg,rgba(28,18,9,.93),rgba(9,7,5,.90));
@@ -3220,8 +3317,8 @@ const CSS = `
 .an-card-status-dot{width:7px;height:7px;border-radius:50%;background:var(--zone);box-shadow:0 0 8px color-mix(in srgb,var(--zone) 65%,transparent)}
 .an-card-desc{margin-top:4px;font-size:9.5px;line-height:1.35;color:#b9aa96}
 .an-card-evidence{margin-top:4px;font-size:7.5px;color:#846d53;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.an-col-l .an-card:after,.an-col-r .an-card:before{content:"";position:absolute;top:50%;width:26px;height:1px;background:linear-gradient(90deg,var(--zone),rgba(255,169,68,.18));opacity:.50}
-.an-col-l .an-card:after{right:-27px}.an-col-r .an-card:before{left:-27px;transform:scaleX(-1)}
+.an-col-l .an-card:after,.an-col-r .an-card:before{content:"";position:absolute;top:50%;width:36px;height:1px;background:linear-gradient(90deg,var(--zone),rgba(255,169,68,.18));opacity:.72;box-shadow:0 0 6px color-mix(in srgb,var(--zone) 20%,transparent)}
+.an-col-l .an-card:after{right:-37px}.an-col-r .an-card:before{left:-37px;transform:scaleX(-1)}
 
 .an-summarybar{display:grid;grid-template-columns:repeat(4,1fr);margin-top:12px;border:1px solid rgba(255,165,60,.26);border-radius:14px;overflow:hidden;background:rgba(8,6,4,.80)}
 .an-stat{display:flex;align-items:center;gap:11px;min-width:0;padding:11px 13px;color:#ffbd5f;border-right:1px solid rgba(255,168,72,.13)}
@@ -3230,9 +3327,9 @@ const CSS = `
 .an-sheet-explain{margin:-6px 0 14px;color:#c5b39c;font-size:12px;line-height:1.45}
 
 @media (max-width:1120px){
-  .an-stage-v2{grid-template-columns:minmax(205px,1fr) minmax(260px,330px) minmax(205px,1fr);gap:10px 14px}
+  .an-stage-v2{grid-template-columns:minmax(205px,280px) minmax(330px,390px) minmax(205px,280px);gap:10px 16px}
   .an-card{grid-template-columns:30px minmax(0,1fr);padding:9px;min-height:88px}.an-card-icon{width:28px;height:28px}
-  .an-card-desc{font-size:8.8px}.an-figure{max-width:320px}
+  .an-card-desc{font-size:8.8px}.an-figure{max-width:390px}
   .au-meta-v2{grid-template-columns:1fr 1fr 1fr}
 }
 @media (max-width:980px){
@@ -3247,26 +3344,31 @@ const CSS = `
   .au-step{flex:0 0 118px}.au-arrow{flex:0 0 auto}
 }
 @media (max-width:560px){
-  .an-v2 .ph{margin-bottom:10px}.an-v2 .ph-t{font-size:22px;letter-spacing:.30em}.an-v2 .ph-s{font-size:10.5px;max-width:280px}
-  .au-panel-v2{padding:13px 12px}.au-head{gap:8px}.au-head h3{font-size:15px}.au-sub{display:none}
-  .au-current{font-size:8.5px}.au-flow{margin-left:-2px;margin-right:-2px}.au-step{flex-basis:105px;padding:6px 7px;font-size:8.5px}
-  .au-meta-v2{grid-template-columns:1fr 1fr;gap:9px 12px}.au-meta-v2 b{font-size:9.5px}
+  .an-ref-head{min-height:88px;margin-bottom:7px;padding:10px 12px;border-radius:14px}
+  .an-ref-head-copy .eyebrow{font-size:6.5px;margin-bottom:4px}.an-ref-head-copy h1{font-size:20px;letter-spacing:.24em}.an-ref-head-copy p{max-width:205px;margin-top:6px;font-size:8px;line-height:1.25}
+  .an-ref-head-time{gap:1px}.an-ref-head-time .tag{font-size:6.5px}.an-ref-date{font-size:6.2px;letter-spacing:.08em}.an-ref-clock{font-size:31px}
+  .an-v2-truth{display:none!important}
 
-  /* Mobile is composed around the body, not a shrunken desktop / card dump. */
-  .an-stage-v2{display:block;position:relative;height:860px;min-height:860px;margin-left:-2px;margin-right:-2px;padding:10px 7px 12px;border-radius:16px;overflow:hidden}
-  .an-figure-wrap{position:absolute;inset:22px 12% 22px;z-index:2;padding:0;justify-content:center;pointer-events:none}
-  .an-figure-caption{font-size:7px;margin-bottom:0}.an-figure{width:100%;max-width:290px;max-height:770px}
-  .an-figure-wordmark{font-size:9px;margin-top:-24px}.an-figure-wordmark span{font-size:5.8px}
-  .an-col{position:absolute;top:82px;bottom:58px;width:43.5%;z-index:4;display:flex;flex-direction:column;justify-content:space-between;gap:7px}
-  .an-col-l{left:7px}.an-col-r{right:7px}
-  .an-col-l .an-card:after,.an-col-r .an-card:before{display:block;width:18px;opacity:.65}
-  .an-col-l .an-card:after{right:-19px}.an-col-r .an-card:before{left:-19px}
-  .an-card{grid-template-columns:25px minmax(0,1fr);gap:6px;min-height:112px;padding:8px 7px;border-radius:11px;background:linear-gradient(135deg,rgba(16,11,7,.94),rgba(5,4,3,.88));backdrop-filter:blur(2px)}
-  .an-card-icon{width:25px;height:25px;border-radius:8px}.an-card-icon svg{width:18px;height:18px}
-  .an-card-n{font-size:9.2px}.an-card-tag{font-size:6.5px;letter-spacing:.09em}.an-card-s{font-size:7.2px;letter-spacing:.06em;gap:4px}
-  .an-card-status-dot{width:6px;height:6px}.an-card-desc{font-size:8.3px;line-height:1.27;margin-top:4px}
-  .an-card-evidence{font-size:6.4px}.an-card-chevron{width:11px;height:11px}
-  .an-summarybar{margin-top:9px}.an-stat{padding:10px 9px;gap:8px}.an-stat svg{width:20px}.an-stat b{font-size:10px}
+  .au-panel-v2{margin-bottom:7px;padding:8px 9px 7px;border-radius:14px}.au-head{gap:6px}.au-head h3{font-size:12px;letter-spacing:.04em}.au-head .eyebrow{font-size:6.5px}.au-sub{display:none}
+  .au-current{font-size:6.8px}.au-flow{overflow:visible;margin:7px 0 0;gap:2px;padding:0}.au-step{flex:1 1 0;min-width:0;padding:4px 2px;font-size:5.8px;gap:2px;justify-content:center}.au-step-num{width:14px;height:14px;flex-basis:14px;font-size:6px}.au-arrow{font-size:8px}
+  .au-meta-v2{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:6px;padding-top:6px}.au-meta-v2 span{font-size:5.2px;letter-spacing:.03em}.au-meta-v2 b{font-size:5.8px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.au-reason{display:none}
+
+  /* Reference closure: body-centered composition fits the primary 390x844 viewport. */
+  .an-stage-v2{display:block;position:relative;height:442px;min-height:442px;margin-left:-2px;margin-right:-2px;padding:5px;border-radius:14px;overflow:hidden}
+  .an-figure-wrap{position:absolute;inset:-42px 15% -40px;z-index:2;padding:0;justify-content:center;pointer-events:none}
+  .an-figure-caption{font-size:5.6px;margin-bottom:-2px}.an-figure{width:250px;max-width:250px;max-height:none;transform:scaleY(.84);transform-origin:center}
+  .an-figure-wordmark{font-size:7px;margin-top:-64px}.an-figure-wordmark span{font-size:4.6px}
+  .an-col{position:absolute;top:8px;bottom:8px;width:31%;z-index:4;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+  .an-col-l{left:5px}.an-col-r{right:5px}
+  .an-col-l .an-card:after,.an-col-r .an-card:before{display:block;width:28px;opacity:.78}
+  .an-col-l .an-card:after{right:-29px}.an-col-r .an-card:before{left:-29px}
+  .an-card{display:block;min-height:66px;padding:5px 5px 4px;border-radius:9px;background:linear-gradient(135deg,rgba(16,11,7,.95),rgba(5,4,3,.88));backdrop-filter:blur(2px)}
+  .an-card-icon{float:left;width:18px;height:18px;margin:0 4px 1px 0;border-radius:6px}.an-card-icon svg{width:13px;height:13px}
+  .an-card-main{display:block}.an-card-h{display:block}.an-card-chevron{position:absolute;right:3px;top:5px;width:8px;height:8px}
+  .an-card-n{font-size:7.2px;padding-right:7px}.an-card-tag{font-size:5.1px;letter-spacing:.06em}.an-card-s{font-size:5.5px;letter-spacing:.02em;gap:2px;margin-top:2px}
+  .an-card-status-dot{width:4px;height:4px}.an-card-desc{clear:both;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:6.2px;line-height:1.18;margin-top:3px}
+  .an-card-evidence{font-size:4.8px;margin-top:2px}
+  .an-summarybar{grid-template-columns:repeat(4,1fr);margin-top:6px;border-radius:11px}.an-stat{padding:6px 5px;gap:4px}.an-stat:nth-child(n){border-bottom:0}.an-stat svg{width:14px;height:14px}.an-stat small{font-size:5px}.an-stat b{font-size:7px}.an-stat em{font-size:5px}
 }
 /* responsive */
 @media (max-width:1320px){

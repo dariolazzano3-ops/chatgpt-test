@@ -1,0 +1,158 @@
+{
+  "schema": "jarvis.anatomy.reference-layout.v1",
+  "source": "owner-supplied-reference",
+  "reference_viewport": {
+    "width": 711,
+    "height": 1536
+  },
+  "normalized": {
+    "outer_margin_x": 0.0338,
+    "header": {
+      "x": 0.0338,
+      "y": 0.0833,
+      "w": 0.9339,
+      "h": 0.0794
+    },
+    "autonomy": {
+      "x": 0.0338,
+      "y": 0.168,
+      "w": 0.9339,
+      "h": 0.1393
+    },
+    "anatomy_stage": {
+      "x": 0.0338,
+      "y": 0.319,
+      "w": 0.9339,
+      "h": 0.513
+    },
+    "body_visual": {
+      "x": 0.18,
+      "y": 0.319,
+      "w": 0.6765,
+      "h": 0.5065
+    },
+    "body_silhouette": {
+      "x": 0.232,
+      "y": 0.319,
+      "w": 0.471,
+      "h": 0.495
+    },
+    "body_center": {
+      "x": 0.5,
+      "y": 0.5725
+    },
+    "left_cards": {
+      "x": 0.0338,
+      "w": 0.304,
+      "count": 4
+    },
+    "right_cards": {
+      "x": 0.678,
+      "w": 0.29,
+      "count": 5
+    },
+    "summary": {
+      "x": 0.028,
+      "y": 0.8327,
+      "w": 0.943,
+      "h": 0.0527
+    },
+    "bottom_nav": {
+      "x": 0.0338,
+      "y": 0.899,
+      "w": 0.9339,
+      "h": 0.0684
+    }
+  },
+  "visual_contract": {
+    "hero": "anatomy",
+    "body_visual_width_ratio_target": [
+      0.42,
+      0.49
+    ],
+    "body_visual_height_ratio_target": [
+      0.47,
+      0.54
+    ],
+    "body_silhouette_width_ratio_target": [
+      0.3,
+      0.38
+    ],
+    "stage_height_ratio_target": [
+      0.49,
+      0.56
+    ],
+    "card_column_width_ratio_target": [
+      0.27,
+      0.32
+    ],
+    "max_dead_space_ratio": 0.08,
+    "card_logic": "four-left-five-right-framing-body",
+    "connections": "card-to-body-anchor",
+    "palette": {
+      "background": "near-black",
+      "primary": "warm-amber-gold",
+      "healthy": "green-only-when-proven"
+    },
+    "anatomy_detail_minimums": {
+      "body_paths": 24,
+      "neural_paths": 24,
+      "skeleton_paths": 12,
+      "core_shapes": 5,
+      "head_shapes": 8,
+      "interactive_nodes": 9
+    }
+  },
+  "desktop_target": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "anatomy_stage_height_px": [
+      500,
+      610
+    ],
+    "body_visual_width_px": [
+      420,
+      600
+    ],
+    "body_visual_height_px": [
+      470,
+      590
+    ],
+    "card_width_px": [
+      230,
+      330
+    ],
+    "hero_center_x_ratio": [
+      0.47,
+      0.53
+    ]
+  },
+  "mobile_target": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "anatomy_stage_height_px": [
+      420,
+      480
+    ],
+    "body_visual_width_px": [
+      245,
+      285
+    ],
+    "body_visual_height_px": [
+      410,
+      460
+    ],
+    "card_width_px": [
+      110,
+      128
+    ],
+    "hero_center_x_ratio": [
+      0.47,
+      0.53
+    ]
+  }
+}
