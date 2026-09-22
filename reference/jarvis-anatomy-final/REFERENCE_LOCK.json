@@ -1,0 +1,23 @@
+{
+  "schema": "jarvis.anatomy.reference-lock.v1",
+  "policy": "EXACT_VISUAL_SOURCE_OF_TRUTH",
+  "mobile": {
+    "file": "reference-mobile.jpeg",
+    "width": 711,
+    "height": 1536,
+    "sha256": "c79ed32794595a8485f787d54232566e4377bcafb09218eb3a1537f8a759be42"
+  },
+  "desktop": {
+    "file": "reference-desktop.png",
+    "width": 1672,
+    "height": 941,
+    "sha256": "26a10c75ead45bc634c1a421b3401308e65f1222e358cd820b777a379c3fa7be"
+  },
+  "rules": [
+    "Builder must read both image files directly.",
+    "No visual reconstruction from prose alone.",
+    "Reference pixels outrank prior implementation styling.",
+    "Runtime Truth and interaction behavior must remain real and functional.",
+    "Acceptance requires screenshot comparison against these exact hashes."
+  ]
+}
