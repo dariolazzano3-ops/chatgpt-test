@@ -1,16 +1,17 @@
 {
-  "schema": "jarvis.anatomy.reference-derivation.v1",
+  "schema": "jarvis.anatomy.reference-derivation.v2",
   "desktop": {
     "source": "reference/jarvis-anatomy-final/reference-desktop.png",
     "source_sha256": "26a10c75ead45bc634c1a421b3401308e65f1222e358cd820b777a379c3fa7be",
     "crop_xyxy": [675,165,1005,925],
-    "output": "anatomy-body-desktop.png"
+    "output": "anatomy-body-desktop-alpha.png"
   },
   "mobile": {
     "source": "reference/jarvis-anatomy-final/reference-mobile.jpeg",
     "source_sha256": "c79ed32794595a8485f787d54232566e4377bcafb09218eb3a1537f8a759be42",
     "crop_xyxy": [205,470,506,1335],
-    "output": "anatomy-body-mobile.png"
+    "output": "anatomy-body-mobile-alpha.png"
   },
-  "rule": "crop-only; no redraw, generation, recolor, retouch, or synthetic anatomy pixels"
+  "alpha_policy": "near-black screenshot background removed; reference RGB energy preserved by alpha un-premultiplication inside a body envelope",
+  "rule": "reference-derived body only; surrounding cards/text/status pixels are not part of the art asset"
 }

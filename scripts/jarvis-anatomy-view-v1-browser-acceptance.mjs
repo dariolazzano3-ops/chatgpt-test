@@ -136,9 +136,26 @@ async function acceptViewport(name, width, height) {
     if (!autonomyText.includes(step)) problems.push(`[${name}] autonomy flow missing ${step}`);
   }
 
-  // figure + all 9 zone nodes present
-  const nodeCount = await page.locator('.an-node').count();
+  // figure + all 9 semantic zones + real responsive wiring present.
+  const expectedZones = ['brain','eyes','ears','mouth','core','left_hand','right_hand','infrastructure','nervous_system'];
+  const nodeCount = await page.locator('.an-node[data-zone]').count();
   if (nodeCount !== 9) problems.push(`[${name}] expected 9 anatomy nodes, found ${nodeCount}`);
+  const cardCount = await page.locator('.an-card[data-zone]').count();
+  if (cardCount !== 9) problems.push(`[${name}] expected 9 anatomy cards, found ${cardCount}`);
+  await page.waitForTimeout(180); // ResizeObserver connector pass
+  const wireCount = await page.locator('.an-wire[data-zone]').count();
+  if (wireCount !== 9) problems.push(`[${name}] expected 9 responsive anatomy connectors, found ${wireCount}`);
+  const plateCount = await page.locator('.an-figure-photo-plate').count();
+  if (plateCount !== 0) problems.push(`[${name}] forbidden rectangular reference backplate is present`);
+  const bodyImageCount = await page.locator('.an-figure-img').count();
+  if (bodyImageCount !== 2) problems.push(`[${name}] expected desktop+mobile isolated body images, found ${bodyImageCount}`);
+  const cardZones = (await page.locator('.an-card[data-zone]').evaluateAll((els) => els.map((e) => e.dataset.zone))).sort();
+  const nodeZones = (await page.locator('.an-node[data-zone]').evaluateAll((els) => els.map((e) => e.dataset.zone))).sort();
+  const wireZones = (await page.locator('.an-wire[data-zone]').evaluateAll((els) => els.map((e) => e.dataset.zone))).sort();
+  const expectedSorted = [...expectedZones].sort();
+  if (JSON.stringify(cardZones) !== JSON.stringify(expectedSorted)) problems.push(`[${name}] card semantic zone map mismatch: ${JSON.stringify(cardZones)}`);
+  if (JSON.stringify(nodeZones) !== JSON.stringify(expectedSorted)) problems.push(`[${name}] node semantic zone map mismatch: ${JSON.stringify(nodeZones)}`);
+  if (JSON.stringify(wireZones) !== JSON.stringify(expectedSorted)) problems.push(`[${name}] connector semantic zone map mismatch: ${JSON.stringify(wireZones)}`);
 
   // fail-closed: every card reads NICHT VERBUNDEN when anatomy is all NOT_CONNECTED.
   const cardStates = await page.$$eval('.an-card .an-card-s', (els) => els.map((e) => e.textContent.trim()));
@@ -187,6 +204,22 @@ async function acceptViewport(name, width, height) {
   if (!liveAutonomyText.includes('JA · FREIGEGEBEN')) problems.push(`[${name}] approval truth missing from autonomy panel`);
   const activeFlowText = await page.locator('.au-step.on').allTextContents();
   if (activeFlowText.length !== 1 || !activeFlowText[0].includes('Fertig')) problems.push(`[${name}] autonomy flow active stage is not exactly COMPLETE/Fertig: ${JSON.stringify(activeFlowText)}`);
+
+  // Semantic interaction contract: one zone id drives card + body anchor + connector + detail sheet.
+  for (const key of expectedZones) {
+    const card = page.locator(`.an-card[data-zone="${key}"]`).first();
+    if (!(await card.count())) { problems.push(`[${name}] missing semantic card ${key}`); continue; }
+    await card.click({ force: true });
+    await page.waitForTimeout(60);
+    if (!(await card.evaluate((e) => e.classList.contains('on')))) problems.push(`[${name}] ${key} card did not enter selected state`);
+    const node = page.locator(`.an-node[data-zone="${key}"]`).first();
+    if (!(await node.count()) || !(await node.evaluate((e) => e.classList.contains('active')))) problems.push(`[${name}] ${key} body anchor did not mirror selected state`);
+    const wire = page.locator(`.an-wire[data-zone="${key}"]`).first();
+    if (!(await wire.count()) || !(await wire.evaluate((e) => e.classList.contains('an-wire-on')))) problems.push(`[${name}] ${key} connector did not mirror selected state`);
+    if (!(await page.locator('.an-sheet').count())) problems.push(`[${name}] ${key} detail sheet did not open`);
+    const close = page.locator('.an-sheet-x').first();
+    if (await close.count()) { await close.click({ force: true }); await page.waitForTimeout(35); }
+  }
 
   // Right Hand detail must expose activity/evidence without inventing acceptance.
   await page.locator('.an-card').filter({ hasText: 'Rechte Hand' }).first().click();

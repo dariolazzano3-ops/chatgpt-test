@@ -1874,6 +1874,7 @@ function AnatomyNode({ zone, mod, active, onSelect }) {
   return (
     <g
       className={`an-node${active ? " active" : ""}`}
+      data-zone={zone.key}
       role="button"
       tabIndex={0}
       aria-label={`${zone.label} — ${display.label}`}
@@ -1904,23 +1905,25 @@ function AnatomyNode({ zone, mod, active, onSelect }) {
   );
 }
 
-/* The body figure itself is no longer drawn — it is the locked reference
-   photo (reference/jarvis-anatomy-final/{reference-desktop.png,reference-mobile.jpeg},
-   see REFERENCE_LOCK.json) shown as a backplate, picked by breakpoint in CSS
-   via --an-ref-desktop/--an-ref-mobile. Only the 9 interactive zone markers —
-   which carry live Runtime Truth status colors and must never show the
-   reference screenshot's baked-in (stale) status colors — are still drawn,
-   as an SVG overlay on top of the photo using the same 300x620 coordinate
-   space the figure was originally authored against. */
-function AnatomyFigure({ anatomy, selected, onSelect }) {
+/* The body figure is the transparent, reference-derived body-only cutout
+   (assets/anatomy-body-{desktop,mobile}-alpha.png — see REFERENCE_DERIVATION.json).
+   It is rendered as a real <img>, not a rectangular CSS backplate, so nothing
+   but the body silhouette itself is visible. The 9 interactive zone markers —
+   which carry live Runtime Truth status colors and must never show any
+   baked-in status color — are drawn as an SVG overlay on top of the image
+   using the same 300x620 coordinate space the figure was originally authored
+   against; that same coordinate space is what AnatomyConnectors uses to
+   derive each node's anchor point relative to the figure's actual DOM box. */
+function AnatomyFigure({ anatomy, selected, onSelect, figureRef }) {
   return (
     <div
+      ref={figureRef}
       className="an-figure an-figure-photo"
       role="group"
       aria-label="JARVIS Anatomie — Referenzabbild mit interaktiven Körperzonen"
-      style={{ "--an-ref-desktop": `url(${ANATOMY_REF_DESKTOP})`, "--an-ref-mobile": `url(${ANATOMY_REF_MOBILE})` }}
     >
-      <div className="an-figure-photo-plate" aria-hidden="true" />
+      <img className="an-figure-img an-figure-img-desktop" src={ANATOMY_REF_DESKTOP} alt="" draggable="false" aria-hidden="true" />
+      <img className="an-figure-img an-figure-img-mobile" src={ANATOMY_REF_MOBILE} alt="" draggable="false" aria-hidden="true" />
       <svg viewBox="0 0 300 620" className="an-figure-overlay" aria-hidden="true">
         <defs>
           <filter id="an-glow" x="-100%" y="-100%" width="300%" height="300%">
@@ -1942,13 +1945,15 @@ function AnatomyFigure({ anatomy, selected, onSelect }) {
   );
 }
 
-function AnatomyCard({ zone, mod, active, onSelect }) {
+function AnatomyCard({ zone, mod, active, onSelect, cardRef }) {
   const status = mod?.status || "NOT_CONNECTED";
   const display = anatomyDisplayState(zone, mod);
   const Icon = zone.icon || Activity;
   const lastRun = mod?.detail?.last_run || null;
   return (
     <button
+      ref={cardRef}
+      data-zone={zone.key}
       className={`an-card an-card-${display.tone}${active ? " on" : ""}`}
       onClick={() => onSelect(zone.key)}
       aria-pressed={active}
@@ -1973,6 +1978,66 @@ function AnatomyCard({ zone, mod, active, onSelect }) {
         )}
       </div>
     </button>
+  );
+}
+
+/* Real visual wiring between each DOM card and its body anchor. Anchor points
+   come from the zone's authored node coordinates (300x620 space) mapped
+   proportionally onto the figure's actual rendered DOM box — never hard-coded
+   viewport pixels — so the wiring stays correct across breakpoints, including
+   the mobile composition where the figure is absolutely positioned and scaled. */
+function AnatomyConnectors({ zones, anatomy, stageRef, figureRef, cardRefs, selected }) {
+  const [lines, setLines] = useState([]);
+  const recompute = useCallback(() => {
+    const stageEl = stageRef.current;
+    const figureEl = figureRef.current;
+    if (!stageEl || !figureEl) { setLines([]); return; }
+    const stageRect = stageEl.getBoundingClientRect();
+    const figRect = figureEl.getBoundingClientRect();
+    const next = [];
+    for (const zone of zones) {
+      const cardEl = cardRefs.current[zone.key];
+      if (!cardEl) continue;
+      const cardRect = cardEl.getBoundingClientRect();
+      const [nx, ny] = zone.nodes[0];
+      const x2 = figRect.left + (nx / 300) * figRect.width - stageRect.left;
+      const y2 = figRect.top + (ny / 620) * figRect.height - stageRect.top;
+      const fromRight = zone.col === "left";
+      const x1 = (fromRight ? cardRect.right : cardRect.left) - stageRect.left;
+      const y1 = cardRect.top + cardRect.height / 2 - stageRect.top;
+      next.push({ key: zone.key, x1, y1, x2, y2 });
+    }
+    setLines(next);
+  }, [zones, stageRef, figureRef, cardRefs]);
+
+  useEffect(() => {
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    const els = [stageRef.current, figureRef.current, ...Object.values(cardRefs.current)].filter(Boolean);
+    els.forEach((el) => ro.observe(el));
+    window.addEventListener("resize", recompute);
+    return () => { ro.disconnect(); window.removeEventListener("resize", recompute); };
+  }, [recompute]);
+
+  useEffect(() => { recompute(); }, [selected, recompute]);
+
+  return (
+    <svg className="an-wires" aria-hidden="true">
+      {lines.map((line) => {
+        const zone = zones.find((z) => z.key === line.key);
+        const meta = anatomyDisplayState(zone, anatomyModule(anatomy, zone.key));
+        const on = selected === line.key;
+        return (
+          <line
+            key={line.key}
+            x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
+            className={`an-wire${on ? " an-wire-on" : ""}`}
+            data-zone={line.key}
+            style={{ "--c": meta.color }}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
@@ -2097,6 +2162,9 @@ function AnatomyView() {
   const anatomy = rt.anatomy;
   const zone = selected ? ANATOMY_ZONES.find((z) => z.key === selected) : null;
   const mod = zone ? anatomyModule(anatomy, zone.key) : null;
+  const stageRef = useRef(null);
+  const figureRef = useRef(null);
+  const cardRefs = useRef({});
 
   const provenCount = anatomy ? ANATOMY_ZONES.filter((z) => {
     const m = anatomyModule(anatomy, z.key);
@@ -2131,17 +2199,36 @@ function AnatomyView() {
 
       <AutonomyLoop autonomy={rt.autonomy} />
 
-      <section className="an-stage an-stage-v2">
+      <section className="an-stage an-stage-v2" ref={stageRef}>
+        <AnatomyConnectors zones={ANATOMY_ZONES} anatomy={anatomy} stageRef={stageRef} figureRef={figureRef} cardRefs={cardRefs} selected={selected} />
         <div className="an-col an-col-l">
-          {left.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
+          {left.map((z) => (
+            <AnatomyCard
+              key={z.key}
+              zone={z}
+              mod={anatomyModule(anatomy, z.key)}
+              active={selected === z.key}
+              onSelect={select}
+              cardRef={(el) => { cardRefs.current[z.key] = el; }}
+            />
+          ))}
         </div>
         <div className="an-figure-wrap">
           <div className="an-figure-caption">JARVIS SYSTEM MAP</div>
-          <AnatomyFigure anatomy={anatomy} selected={selected} onSelect={select} />
+          <AnatomyFigure anatomy={anatomy} selected={selected} onSelect={select} figureRef={figureRef} />
           <div className="an-figure-wordmark">J A R V I S <span>ALWAYS ON · TRUTH FIRST</span></div>
         </div>
         <div className="an-col an-col-r">
-          {right.map((z) => <AnatomyCard key={z.key} zone={z} mod={anatomyModule(anatomy, z.key)} active={selected === z.key} onSelect={select} />)}
+          {right.map((z) => (
+            <AnatomyCard
+              key={z.key}
+              zone={z}
+              mod={anatomyModule(anatomy, z.key)}
+              active={selected === z.key}
+              onSelect={select}
+              cardRef={(el) => { cardRefs.current[z.key] = el; }}
+            />
+          ))}
         </div>
       </section>
 
@@ -3133,17 +3220,16 @@ const CSS = `
 .an-figure-wordmark{margin-top:-18px;text-align:center;font-family:var(--fd);font-size:12px;letter-spacing:.45em;color:#f2dfc2;text-shadow:0 0 12px rgba(255,173,76,.20)}
 .an-figure-wordmark span{display:block;margin-top:4px;font-family:var(--fm);font-size:7px;letter-spacing:.28em;color:#8a704e}
 
-.an-figure-photo{position:relative;isolation:isolate;aspect-ratio:300/620}
-.an-figure-photo-plate{position:absolute;inset:0;background-image:var(--an-ref-desktop);background-repeat:no-repeat;
-  background-size:contain;background-position:center center;
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 4%,#000 96%,transparent 100%);
-  mask-image:linear-gradient(to bottom,transparent 0,#000 4%,#000 96%,transparent 100%)}
-.an-figure-overlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-/* Switches to the portrait mobile reference exactly where .an-stage-v2 stacks
-   (see the max-width:980px rule above), matching reference-mobile.jpeg's
-   stacked composition instead of the widescreen reference-desktop.png crop. */
+.an-figure-photo{position:relative;isolation:isolate;aspect-ratio:330/760}
+.an-figure-img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center center;pointer-events:none;user-select:none}
+.an-figure-img-mobile{display:none}
+.an-figure-overlay{position:absolute;inset:0;z-index:2;width:100%;height:100%;overflow:visible;pointer-events:none}
+/* Switches to the portrait mobile cutout (and its own crop aspect ratio)
+   exactly where .an-stage-v2 stacks (see the max-width:980px rule above). */
 @media (max-width:980px){
-  .an-figure-photo-plate{background-image:var(--an-ref-mobile);background-size:contain;background-position:center center}
+  .an-figure-photo{aspect-ratio:301/865}
+  .an-figure-img-desktop{display:none}
+  .an-figure-img-mobile{display:block}
 }
 .an-node{cursor:pointer;outline:none;pointer-events:auto}
 .an-node-halo{fill:var(--c);opacity:.08;filter:url(#an-glow);transition:opacity .18s ease,r .18s ease}
@@ -3171,8 +3257,10 @@ const CSS = `
 .an-card-status-dot{width:7px;height:7px;border-radius:50%;background:var(--zone);box-shadow:0 0 8px color-mix(in srgb,var(--zone) 65%,transparent)}
 .an-card-desc{margin-top:4px;font-size:9.5px;line-height:1.35;color:#b9aa96}
 .an-card-evidence{margin-top:4px;font-size:7.5px;color:#846d53;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.an-col-l .an-card:after,.an-col-r .an-card:before{content:"";position:absolute;top:50%;width:36px;height:1px;background:linear-gradient(90deg,var(--zone),rgba(255,169,68,.18));opacity:.72;box-shadow:0 0 6px color-mix(in srgb,var(--zone) 20%,transparent)}
-.an-col-l .an-card:after{right:-37px}.an-col-r .an-card:before{left:-37px;transform:scaleX(-1)}
+
+.an-wires{position:absolute;inset:0;z-index:1;width:100%;height:100%;overflow:visible;pointer-events:none}
+.an-wire{stroke:rgba(255,169,68,.30);stroke-width:1;fill:none;vector-effect:non-scaling-stroke;transition:stroke .18s ease,stroke-width .18s ease,filter .18s ease}
+.an-wire-on{stroke:var(--c);stroke-width:1.6;filter:drop-shadow(0 0 6px var(--c))}
 
 .an-summarybar{display:grid;grid-template-columns:repeat(4,1fr);margin-top:12px;border:1px solid rgba(255,165,60,.26);border-radius:14px;overflow:hidden;background:rgba(8,6,4,.80)}
 .an-stat{display:flex;align-items:center;gap:11px;min-width:0;padding:11px 13px;color:#ffbd5f;border-right:1px solid rgba(255,168,72,.13)}
@@ -3191,7 +3279,6 @@ const CSS = `
   .an-stage-v2{grid-template-columns:1fr;grid-template-areas:"fig" "l" "r";min-height:0;padding:14px}
   .an-figure{max-width:420px;max-height:none}.an-figure-wrap{padding-bottom:10px}
   .an-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .an-col-l .an-card:after,.an-col-r .an-card:before{display:none}
   .an-summarybar{grid-template-columns:1fr 1fr}
   .an-stat:nth-child(2){border-right:0}.an-stat:nth-child(-n+2){border-bottom:1px solid rgba(255,168,72,.13)}
   .au-flow{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.au-flow::-webkit-scrollbar{display:none}
@@ -3214,8 +3301,6 @@ const CSS = `
   .an-figure-wordmark{font-size:7px;margin-top:-64px}.an-figure-wordmark span{font-size:4.6px}
   .an-col{position:absolute;top:8px;bottom:8px;width:31%;z-index:4;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
   .an-col-l{left:5px}.an-col-r{right:5px}
-  .an-col-l .an-card:after,.an-col-r .an-card:before{display:block;width:28px;opacity:.78}
-  .an-col-l .an-card:after{right:-29px}.an-col-r .an-card:before{left:-29px}
   .an-card{display:block;min-height:66px;padding:5px 5px 4px;border-radius:9px;background:linear-gradient(135deg,rgba(16,11,7,.95),rgba(5,4,3,.88));backdrop-filter:blur(2px)}
   .an-card-icon{float:left;width:18px;height:18px;margin:0 4px 1px 0;border-radius:6px}.an-card-icon svg{width:13px;height:13px}
   .an-card-main{display:block}.an-card-h{display:block}.an-card-chevron{position:absolute;right:3px;top:5px;width:8px;height:8px}
