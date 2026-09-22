@@ -120,7 +120,8 @@ function bridgeRawFieldsV1(body) {
     project: clean(body?.project, 200) || null,
     git_evidence: body?.git_evidence ?? null,
     filesystem_evidence: body?.filesystem_evidence ?? null,
-    tool_audit: body?.tool_audit ?? null
+    tool_audit: body?.tool_audit ?? null,
+    native_session: body?.native_session ?? null
   };
 }
 
@@ -172,8 +173,10 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
     return { ...canonical, ...bridgeRawFieldsV1(body) };
   }
 
-  return async ({ task, signal }) => {
+  return async ({ task, signal, correlation_id, request_id }) => {
     const prompt = clean(task, MAX_PROMPT_CHARS);
+    const correlationId = clean(correlation_id, 80).toLowerCase();
+    const requestId = clean(request_id, 200);
     const snapshot = repoDir ? beginJarvisRepoBoundVerificationV1(repoDir) : null;
 
     let response;
@@ -186,7 +189,14 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
           // included in any thrown Error's message.
           authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ prompt, project, mode: 'implement' }),
+        body: JSON.stringify({
+          prompt,
+          project,
+          mode: 'implement',
+          correlation_id: correlationId || undefined,
+          request_id: requestId || undefined,
+          native_session: true
+        }),
         signal
       });
     } catch (error) {

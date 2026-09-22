@@ -61,7 +61,8 @@ function jsonRes(res, status, body) {
   res.end(text);
 }
 
-const baseCall = { task: 'implement the thing', workspace: '/workspace/projects/chatgpt-test', correlation_id: crypto.randomUUID(), owner_ref: 'jarvis:operator:op@example.invalid' };
+const baseCorrelationId = crypto.randomUUID();
+const baseCall = { task: 'implement the thing', workspace: '/workspace/projects/chatgpt-test', correlation_id: baseCorrelationId, request_id: baseCorrelationId, owner_ref: 'jarvis:operator:op@example.invalid' };
 
 // ── 1. successful Bridge execution ──
 await check('1. successful Bridge execution normalizes into the executor contract', async () => {
@@ -70,10 +71,15 @@ await check('1. successful Bridge execution normalizes into the executor contrac
     assert.equal(body.project, 'chatgpt-test');
     assert.equal(body.mode, 'implement');
     assert.equal(body.prompt, baseCall.task);
+    assert.equal(body.correlation_id, baseCall.correlation_id);
+    assert.equal(body.request_id, baseCall.request_id);
+    assert.equal(body.native_session, true);
     jsonRes(res, 200, {
       ok: true, service: 'jarvis-claude-bridge', version: 4, mode: 'implement', project: 'chatgpt-test',
       exit_code: 0, git_evidence: { files_changed: ['a.js'] }, filesystem_evidence: { changed: 1 },
-      tool_audit: [{ tool: 'Write', path: 'a.js' }], stderr: ''
+      tool_audit: [{ tool: 'Write', path: 'a.js' }],
+      native_session: { enabled: true, requested_session_id: baseCall.correlation_id, observed_session_id: baseCall.correlation_id, binding_verified: true },
+      stderr: ''
     });
   });
   try {
@@ -85,6 +91,8 @@ await check('1. successful Bridge execution normalizes into the executor contrac
     assert.deepEqual(result.verification.git_evidence, { files_changed: ['a.js'] });
     assert.deepEqual(result.verification.filesystem_evidence, { changed: 1 });
     assert.deepEqual(result.verification.tool_audit, [{ tool: 'Write', path: 'a.js' }]);
+    assert.equal(result.verification.native_session?.binding_verified, true);
+    assert.equal(result.verification.native_session?.observed_session_id, baseCall.correlation_id);
   } finally {
     await fixture.close();
   }
