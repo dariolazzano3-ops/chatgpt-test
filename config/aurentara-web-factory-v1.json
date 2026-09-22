@@ -1,0 +1,76 @@
+{
+  "id": "aurentara-web-factory-v1",
+  "version": 1,
+  "status": "canonical-draft",
+  "principles": [
+    "time-first",
+    "reuse-first",
+    "reference-first",
+    "build-only-missing-delta"
+  ],
+  "backbone": {
+    "project_factory_v3": true,
+    "preview_reuse": true,
+    "production_requires_explicit_approval": true,
+    "visual_qa_script": "scripts/visual-qa.mjs",
+    "playwright": true
+  },
+  "workflow": [
+    "truth_scan",
+    "reference_dna",
+    "reuse_scan",
+    "lane_selection",
+    "asset_plan",
+    "compose_first_pass",
+    "motion_layer",
+    "visual_qa",
+    "visual_closure_loop",
+    "preview",
+    "acceptance"
+  ],
+  "timeboxes_seconds": {
+    "truth_scan_target": 90,
+    "blocked_tool_path_drop_after": 90,
+    "first_pass_target_min": 600,
+    "first_pass_target_max": 1200
+  },
+  "reuse_order": [
+    "existing_project",
+    "existing_repository_primitive",
+    "installed_library",
+    "proven_external_component_or_template",
+    "small_adaptation",
+    "custom_missing_delta"
+  ],
+  "visual_closure": {
+    "max_high_impact_diffs_per_iteration": 3,
+    "priorities": [
+      "silhouette",
+      "scale",
+      "hierarchy",
+      "typography",
+      "media-placement",
+      "density",
+      "responsive-behavior",
+      "motion",
+      "micro-polish"
+    ]
+  },
+  "candidate_tools": {
+    "framer": "candidate-not-assumed-wired",
+    "shadcn_or_21st_style_components": "candidate",
+    "gsap_scrolltrigger": "candidate",
+    "rive": "candidate",
+    "three_d": "only-when-reference-requires"
+  },
+  "acceptance": {
+    "real_dom_required": true,
+    "reference_image_as_ui_forbidden": true,
+    "desktop_required": true,
+    "mobile_required": true,
+    "major_overflow_forbidden": true,
+    "functional_verification_required": true,
+    "reference_visual_closure_required": true,
+    "preview_evidence_required": true
+  }
+}
