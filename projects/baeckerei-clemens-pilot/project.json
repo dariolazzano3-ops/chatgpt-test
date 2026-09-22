@@ -1,0 +1,70 @@
+{
+  "project": {
+    "name": "Bäckerei Clemens · Pilot",
+    "slug": "baeckerei-clemens-pilot"
+  },
+  "mode": "aurentara-web-factory-v1-pilot",
+  "synthetic_business": true,
+  "production_deploy": false,
+  "reference_pack": "REFERENCE_PACK_001_TIKTOK_PREMIUM_MOTION",
+  "design_dna": {
+    "direction": "premium editorial bakery, cinematic, tactile, oversized typography, motion-led but readable",
+    "palette": [
+      "#17130f",
+      "#efe7da",
+      "#f8f4ed",
+      "#9d4f2e"
+    ],
+    "layout": [
+      "oversized type",
+      "asymmetric hero",
+      "sticky story",
+      "full-bleed craft image",
+      "editorial product grid"
+    ],
+    "motion": [
+      "hero reveal",
+      "scroll parallax",
+      "section entrance",
+      "continuous ticker"
+    ],
+    "mobile": "recompose to one column, preserve scale and media impact"
+  },
+  "reuse_plan": {
+    "existing": [
+      "Project Factory project shape",
+      "Playwright visual QA"
+    ],
+    "external": [
+      "GSAP 3.13 via jsDelivr",
+      "Pexels imagery"
+    ],
+    "custom_delta": [
+      "project-specific layout",
+      "copy",
+      "visual tokens"
+    ]
+  },
+  "assets": [
+    {
+      "type": "image",
+      "provider": "Pexels",
+      "creator": "Travel with Lenses",
+      "url": "https://images.pexels.com/photos/30890572/pexels-photo-30890572.jpeg"
+    },
+    {
+      "type": "image",
+      "provider": "Pexels",
+      "creator": "Travel with Lenses",
+      "url": "https://images.pexels.com/photos/30918887/pexels-photo-30918887.jpeg"
+    }
+  ],
+  "acceptance": [
+    "real DOM",
+    "desktop intentional",
+    "mobile intentional",
+    "no screenshot-as-UI",
+    "no production deploy",
+    "visual QA required"
+  ]
+}
