@@ -6,6 +6,7 @@ import {
   ChevronRight, ChevronDown, Zap, Lock, Radio, FileText, Wrench, Activity,
   Eye, Ear, Hand, HeartPulse, Database, Network,
 } from "lucide-react";
+import { ANATOMY_REF_DESKTOP, ANATOMY_REF_MOBILE } from "./assets/anatomy-reference.js";
 
 /* ════════════════════════════════════════════════════════════════════════
    JARVIS COMMAND CENTER — V1 (private preview)
@@ -1903,179 +1904,41 @@ function AnatomyNode({ zone, mod, active, onSelect }) {
   );
 }
 
+/* The body figure itself is no longer drawn — it is the locked reference
+   photo (reference/jarvis-anatomy-final/{reference-desktop.png,reference-mobile.jpeg},
+   see REFERENCE_LOCK.json) shown as a backplate, picked by breakpoint in CSS
+   via --an-ref-desktop/--an-ref-mobile. Only the 9 interactive zone markers —
+   which carry live Runtime Truth status colors and must never show the
+   reference screenshot's baked-in (stale) status colors — are still drawn,
+   as an SVG overlay on top of the photo using the same 300x620 coordinate
+   space the figure was originally authored against. */
 function AnatomyFigure({ anatomy, selected, onSelect }) {
   return (
-    <svg viewBox="0 0 300 620" className="an-figure" role="group" aria-label="JARVIS Anatomie — holografischer Körper">
-      <defs>
-        <radialGradient id="an-body-glow" cx="50%" cy="38%" r="58%">
-          <stop offset="0%" stopColor="#ffb24c" stopOpacity=".20" />
-          <stop offset="48%" stopColor="#ff962c" stopOpacity=".07" />
-          <stop offset="100%" stopColor="#ff962c" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="an-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffe0a0" />
-          <stop offset="45%" stopColor="#ffae3a" />
-          <stop offset="100%" stopColor="#8e4c12" />
-        </linearGradient>
-        <filter id="an-glow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="3.6" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-
-      <g className="an-orbit" aria-hidden="true">
-        <ellipse cx="150" cy="278" rx="142" ry="278" className="an-ring r1" />
-        <ellipse cx="150" cy="278" rx="118" ry="232" className="an-ring r2" />
-        <ellipse cx="150" cy="585" rx="108" ry="20" className="an-floor f1" />
-        <ellipse cx="150" cy="585" rx="82" ry="14" className="an-floor f2" />
-        <circle cx="150" cy="184" r="92" className="an-tech-ring" />
-        <circle cx="150" cy="184" r="116" className="an-tech-ring faint" />
-      </g>
-
-      <ellipse cx="150" cy="300" rx="120" ry="276" fill="url(#an-body-glow)" opacity=".72" />
-
-      <g className="an-body-outline" aria-hidden="true">
-        <circle cx="150" cy="60" r="31" />
-        <path d="M132 91 C128 106 120 111 102 118 C88 123 76 136 72 151 L55 222 C52 239 49 264 50 302" />
-        <path d="M168 91 C172 106 180 111 198 118 C212 123 224 136 228 151 L245 222 C248 239 251 264 250 302" />
-        <path d="M103 118 C108 149 112 176 112 208 C112 241 105 264 107 296 C109 322 118 340 121 367" />
-        <path d="M197 118 C192 149 188 176 188 208 C188 241 195 264 193 296 C191 322 182 340 179 367" />
-        <path d="M121 367 C118 412 113 459 112 526 C111 548 109 566 105 577" />
-        <path d="M179 367 C182 412 187 459 188 526 C189 548 191 566 195 577" />
-        <path d="M105 577 C100 582 96 586 90 590 C101 594 118 594 128 590" />
-        <path d="M195 577 C200 582 204 586 210 590 C199 594 182 594 172 590" />
-        <path d="M50 302 C47 317 44 329 40 341 C48 342 55 339 59 333 C63 339 68 340 72 335 C77 339 82 336 83 330" />
-        <path d="M250 302 C253 317 256 329 260 341 C252 342 245 339 241 333 C237 339 232 340 228 335 C223 339 218 336 217 330" />
-        <path d="M122 124 C132 130 141 132 150 132 C159 132 168 130 178 124" />
-        <path d="M118 188 C128 200 139 205 150 205 C161 205 172 200 182 188" />
-        <path d="M120 296 C131 305 140 308 150 308 C160 308 169 305 180 296" />
-      </g>
-
-      <g className="an-musculature" aria-hidden="true">
-        <path d="M134 93 C123 106 110 112 96 121 C83 130 78 143 76 160" />
-        <path d="M166 93 C177 106 190 112 204 121 C217 130 222 143 224 160" />
-        <path d="M104 123 C119 138 132 145 150 146 C168 145 181 138 196 123" />
-        <path d="M105 147 C120 154 133 158 150 159 C167 158 180 154 195 147" />
-        <path d="M108 166 C121 175 135 179 150 180 C165 179 179 175 192 166" />
-        <path d="M111 189 C123 198 137 202 150 203 C163 202 177 198 189 189" />
-        <path d="M116 214 C127 221 138 225 150 226 C162 225 173 221 184 214" />
-        <path d="M118 239 C128 246 139 250 150 251 C161 250 172 246 182 239" />
-        <path d="M119 266 C130 272 140 276 150 277 C160 276 170 272 181 266" />
-        <path d="M119 294 C130 302 140 306 150 307 C160 306 170 302 181 294" />
-        <path d="M113 318 C124 328 136 333 150 334 C164 333 176 328 187 318" />
-        <path d="M121 346 C132 353 141 356 150 357 C159 356 168 353 179 346" />
-        <path d="M102 122 C92 151 88 180 84 210 C80 240 72 269 58 298" />
-        <path d="M198 122 C208 151 212 180 216 210 C220 240 228 269 242 298" />
-        <path d="M84 160 C72 182 67 207 64 233 C61 257 57 279 52 302" />
-        <path d="M216 160 C228 182 233 207 236 233 C239 257 243 279 248 302" />
-        <path d="M123 367 C132 382 140 388 150 389 C160 388 168 382 177 367" />
-        <path d="M123 382 C119 415 118 451 116 486 C115 507 114 528 112 548" />
-        <path d="M177 382 C181 415 182 451 184 486 C185 507 186 528 188 548" />
-        <path d="M112 391 C104 418 102 452 101 484 C101 516 103 547 105 575" />
-        <path d="M188 391 C196 418 198 452 199 484 C199 516 197 547 195 575" />
-        <path d="M116 430 C126 436 138 439 150 440 C162 439 174 436 184 430" />
-        <path d="M114 478 C126 485 138 489 150 490 C162 489 174 485 186 478" />
-        <path d="M112 526 C124 533 137 537 150 538 C163 537 176 533 188 526" />
-        <path d="M132 102 Q150 114 168 102" />
-        <path d="M130 116 Q150 126 170 116" />
-        <path d="M139 94 C143 104 146 112 150 122 C154 112 157 104 161 94" />
-        <path d="M136 211 C139 230 143 250 150 270 C157 250 161 230 164 211" />
-      </g>
-
-      <g className="an-skeleton" aria-hidden="true">
-        <line x1="150" y1="92" x2="150" y2="366" className="an-spine" />
-        <path d="M92 142 Q150 118 208 142" />
-        <path d="M95 154 Q150 132 205 154" />
-        <path d="M98 167 Q150 146 202 167" />
-        <path d="M101 180 Q150 160 199 180" />
-        <path d="M106 194 Q150 176 194 194" />
-        <path d="M111 208 Q150 193 189 208" />
-        <path d="M120 282 Q150 298 180 282" />
-        <path d="M123 300 Q150 314 177 300" />
-        <path d="M72 151 L52 302 M228 151 L248 302" />
-        <path d="M122 366 L112 526 M178 366 L188 526" />
-      </g>
-
-      <g className="an-neural" aria-hidden="true">
-        <path d="M150 32 L150 590" />
-        <path d="M150 122 L112 154 L82 214 L52 302" />
-        <path d="M150 122 L188 154 L218 214 L248 302" />
-        <path d="M150 205 L126 248 L117 315 L112 410 L112 526" />
-        <path d="M150 205 L174 248 L183 315 L188 410 L188 526" />
-        <path d="M135 132 L121 168 L110 215 L82 260" />
-        <path d="M165 132 L179 168 L190 215 L218 260" />
-        <path d="M130 228 L150 246 L170 228" />
-        <path d="M128 330 L150 348 L172 330" />
-        <path d="M116 430 L150 446 L184 430" />
-        <path d="M118 486 L150 506 L182 486" />
-      </g>
-
-      <g className="an-neural-secondary" aria-hidden="true">
-        <path d="M150 92 L128 116 L108 145 L93 182 L78 224 L62 270 L52 302" />
-        <path d="M150 92 L172 116 L192 145 L207 182 L222 224 L238 270 L248 302" />
-        <path d="M150 132 L134 160 L126 190 L120 220 L117 250 L116 284" />
-        <path d="M150 132 L166 160 L174 190 L180 220 L183 250 L184 284" />
-        <path d="M150 184 L136 206 L128 232 L126 262 L128 292 L136 318" />
-        <path d="M150 184 L164 206 L172 232 L174 262 L172 292 L164 318" />
-        <path d="M150 246 L142 278 L140 312 L143 346 L150 378" />
-        <path d="M150 246 L158 278 L160 312 L157 346 L150 378" />
-        <path d="M150 344 L132 376 L123 414 L118 458 L114 502 L112 544" />
-        <path d="M150 344 L168 376 L177 414 L182 458 L186 502 L188 544" />
-        <path d="M118 154 L103 176 L92 201 L82 226 L72 252" />
-        <path d="M182 154 L197 176 L208 201 L218 226 L228 252" />
-        <path d="M126 402 L139 416 L150 421 L161 416 L174 402" />
-        <path d="M122 455 L136 468 L150 473 L164 468 L178 455" />
-        <path d="M117 510 L134 520 L150 524 L166 520 L183 510" />
-        <circle cx="150" cy="122" r="4" />
-        <circle cx="150" cy="246" r="4" />
-        <circle cx="150" cy="344" r="4" />
-        <circle cx="112" cy="410" r="3" />
-        <circle cx="188" cy="410" r="3" />
-        <circle cx="112" cy="486" r="3" />
-        <circle cx="188" cy="486" r="3" />
-      </g>
-
-      <g className="an-joints" aria-hidden="true">
-        <circle cx="92" cy="142" r="7" /><circle cx="208" cy="142" r="7" />
-        <circle cx="72" cy="226" r="6" /><circle cx="228" cy="226" r="6" />
-        <circle cx="52" cy="302" r="7" /><circle cx="248" cy="302" r="7" />
-        <circle cx="121" cy="367" r="7" /><circle cx="179" cy="367" r="7" />
-        <circle cx="112" cy="454" r="6" /><circle cx="188" cy="454" r="6" />
-        <circle cx="112" cy="544" r="7" /><circle cx="188" cy="544" r="7" />
-      </g>
-
-      <g className="an-head-detail" aria-hidden="true">
-        <ellipse cx="150" cy="58" rx="20" ry="25" />
-        <path d="M134 56 Q150 44 166 56 M134 64 Q150 76 166 64" />
-        <path d="M142 72 Q150 77 158 72" />
-        <circle cx="140" cy="61" r="3" />
-        <circle cx="160" cy="61" r="3" />
-        <circle cx="150" cy="48" r="18" className="an-brain-ring" />
-        <circle cx="150" cy="48" r="24" className="an-brain-ring outer" />
-        <path d="M140 45 Q145 38 150 44 Q155 37 161 45" />
-        <path d="M138 51 Q144 57 150 51 Q156 58 162 51" />
-        <path d="M133 60 Q128 68 133 76 M167 60 Q172 68 167 76" />
-      </g>
-
-      <g className="an-core-art" aria-hidden="true">
-        <path d="M150 198 C136 189 129 179 131 169 C133 158 146 156 150 165 C154 156 167 158 169 169 C171 179 164 189 150 198 Z" />
-        <circle cx="150" cy="184" r="20" />
-        <circle cx="150" cy="184" r="29" />
-        <circle cx="150" cy="184" r="39" />
-        <circle cx="150" cy="184" r="50" className="an-core-outer" />
-        <path d="M150 150 L150 218 M116 184 L184 184" className="an-core-axis" />
-      </g>
-
-      {ANATOMY_ZONES.map((zone) => (
-        <AnatomyNode
-          key={zone.key}
-          zone={zone}
-          mod={anatomyModule(anatomy, zone.key)}
-          active={selected === zone.key}
-          onSelect={onSelect}
-        />
-      ))}
-    </svg>
+    <div
+      className="an-figure an-figure-photo"
+      role="group"
+      aria-label="JARVIS Anatomie — Referenzabbild mit interaktiven Körperzonen"
+      style={{ "--an-ref-desktop": `url(${ANATOMY_REF_DESKTOP})`, "--an-ref-mobile": `url(${ANATOMY_REF_MOBILE})` }}
+    >
+      <div className="an-figure-photo-plate" aria-hidden="true" />
+      <svg viewBox="0 0 300 620" className="an-figure-overlay" aria-hidden="true">
+        <defs>
+          <filter id="an-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3.6" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        {ANATOMY_ZONES.map((zone) => (
+          <AnatomyNode
+            key={zone.key}
+            zone={zone}
+            mod={anatomyModule(anatomy, zone.key)}
+            active={selected === zone.key}
+            onSelect={onSelect}
+          />
+        ))}
+      </svg>
+    </div>
   );
 }
 
@@ -3177,11 +3040,7 @@ const CSS = `
 .an-figure{width:100%;max-width:340px;height:auto;overflow:visible}
 .an-row-b{grid-area:b;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-top:6px;border-top:1px solid var(--line)}
 .an-lines{fill:none;stroke:rgba(255,180,90,.4);stroke-width:1.4;stroke-linecap:round}
-.an-spine{stroke:rgba(255,180,90,.22);stroke-width:1}
 .an-base{stroke:rgba(255,180,90,.3);stroke-width:1.4}
-.an-ring{fill:none;stroke:rgba(255,168,72,.12);stroke-width:1;transform-origin:150px 210px;animation:an-spin 70s linear infinite}
-.an-ring.r2{stroke:rgba(255,168,72,.08);animation-duration:100s;animation-direction:reverse}
-@keyframes an-spin{to{transform:rotate(360deg)}}
 .an-node{cursor:pointer;outline:none}
 .an-dot{filter:drop-shadow(0 0 6px var(--c));transition:r .15s ease}
 .an-node:hover .an-dot,.an-node.active .an-dot,.an-node:focus-visible .an-dot{filter:drop-shadow(0 0 12px var(--c))}
@@ -3274,26 +3133,18 @@ const CSS = `
 .an-figure-wordmark{margin-top:-18px;text-align:center;font-family:var(--fd);font-size:12px;letter-spacing:.45em;color:#f2dfc2;text-shadow:0 0 12px rgba(255,173,76,.20)}
 .an-figure-wordmark span{display:block;margin-top:4px;font-family:var(--fm);font-size:7px;letter-spacing:.28em;color:#8a704e}
 
-.an-body-outline{fill:none;stroke:url(#an-gold);stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:.88;filter:url(#an-glow)}
-.an-musculature{fill:none;stroke:#ffb455;stroke-width:.55;stroke-opacity:.30;stroke-linecap:round;stroke-linejoin:round}
-.an-skeleton{fill:none;stroke:#e49a42;stroke-width:.62;stroke-opacity:.46;stroke-linecap:round}
-.an-neural{fill:none;stroke:#ff9c28;stroke-width:.68;stroke-opacity:.68;stroke-linecap:round;stroke-dasharray:1.5 3;filter:url(#an-glow)}
-.an-neural-secondary{fill:none;stroke:#ffb34e;stroke-width:.44;stroke-opacity:.42;stroke-linecap:round;stroke-dasharray:1 3;filter:url(#an-glow)}
-.an-neural-secondary circle{fill:#ffb85e;stroke:none;opacity:.62;filter:url(#an-glow)}
-.an-joints{fill:rgba(255,151,31,.035);stroke:#ffad45;stroke-width:.6;stroke-opacity:.40}
-.an-head-detail{fill:none;stroke:#ffd083;stroke-width:.78;stroke-opacity:.80}
-.an-brain-ring{stroke-dasharray:2 2;opacity:.5}
-.an-core-art{fill:none;stroke:#ffb13d;stroke-width:1.15;stroke-opacity:.96;filter:url(#an-glow)}
-.an-core-art path{fill:rgba(255,119,18,.11)}
-.an-core-outer{stroke-dasharray:2 4;stroke-opacity:.40}
-.an-core-axis{fill:none!important;stroke-width:.55;stroke-opacity:.48}
-.an-tech-ring{fill:none;stroke:#e48827;stroke-width:.55;stroke-opacity:.14;stroke-dasharray:2 5}
-.an-tech-ring.faint{stroke-opacity:.07;stroke-dasharray:1 8}
-.an-floor{fill:none;stroke:#ff9f2d;stroke-width:1;stroke-opacity:.30;filter:url(#an-glow)}
-.an-floor.f2{stroke-opacity:.18}
-.an-ring{fill:none;stroke:rgba(255,168,72,.10);stroke-width:.7;transform-origin:150px 278px;animation:an-spin 80s linear infinite;stroke-dasharray:2 7}
-.an-ring.r2{stroke:rgba(255,168,72,.065);animation-duration:110s;animation-direction:reverse}
-.an-spine{stroke:#ffb657!important;stroke-opacity:.7!important;stroke-width:1!important;filter:url(#an-glow)}
+.an-figure-photo{position:relative;isolation:isolate;aspect-ratio:300/620}
+.an-figure-photo-plate{position:absolute;inset:0;background-image:var(--an-ref-desktop);background-repeat:no-repeat;
+  background-size:contain;background-position:center center;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 4%,#000 96%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 4%,#000 96%,transparent 100%)}
+.an-figure-overlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+/* Switches to the portrait mobile reference exactly where .an-stage-v2 stacks
+   (see the max-width:980px rule above), matching reference-mobile.jpeg's
+   stacked composition instead of the widescreen reference-desktop.png crop. */
+@media (max-width:980px){
+  .an-figure-photo-plate{background-image:var(--an-ref-mobile);background-size:contain;background-position:center center}
+}
 .an-node{cursor:pointer;outline:none;pointer-events:auto}
 .an-node-halo{fill:var(--c);opacity:.08;filter:url(#an-glow);transition:opacity .18s ease,r .18s ease}
 .an-dot{filter:drop-shadow(0 0 7px var(--c));stroke:#ffe7bc;stroke-width:.65;stroke-opacity:.6}

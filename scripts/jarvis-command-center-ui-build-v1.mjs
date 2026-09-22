@@ -58,6 +58,10 @@ const result = await build({
   write: false,
   define: { "process.env.NODE_ENV": '"production"' },
   logLevel: "warning",
+  // Anatomy view's body figure is a locked reference photo (see
+  // reference/jarvis-anatomy-final/REFERENCE_LOCK.json), inlined as a data:
+  // URL so it ships inside the single self-contained bundle like everything else.
+  loader: { ".png": "dataurl", ".jpeg": "dataurl" },
 });
 
 let code = result.outputFiles[0].text;
