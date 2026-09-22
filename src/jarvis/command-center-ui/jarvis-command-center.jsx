@@ -3194,7 +3194,7 @@ const CSS = `
 .an-ring{fill:none;stroke:rgba(255,168,72,.10);stroke-width:.7;transform-origin:150px 278px;animation:an-spin 80s linear infinite;stroke-dasharray:2 7}
 .an-ring.r2{stroke:rgba(255,168,72,.065);animation-duration:110s;animation-direction:reverse}
 .an-spine{stroke:#ffb657!important;stroke-opacity:.7!important;stroke-width:1!important;filter:url(#an-glow)}
-.an-node{cursor:pointer;outline:none}
+.an-node{cursor:pointer;outline:none;pointer-events:auto}
 .an-node-halo{fill:var(--c);opacity:.08;filter:url(#an-glow);transition:opacity .18s ease,r .18s ease}
 .an-dot{filter:drop-shadow(0 0 7px var(--c));stroke:#ffe7bc;stroke-width:.65;stroke-opacity:.6}
 .an-node-core{fill:#fff0c8;opacity:.78;pointer-events:none}
