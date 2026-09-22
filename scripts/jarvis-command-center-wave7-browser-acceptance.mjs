@@ -178,7 +178,7 @@ async function acceptViewport(name, width, height) {
   await page.screenshot({ path: path.join(OUT, `wave7-${name}-real.png`), fullPage: false });
 
   // 9. navigation across every view without a crash
-  for (const label of ['Chat', 'Tasks', 'Projekte', 'Memory', 'Freigaben', 'System', 'Logs', 'Home']) {
+  for (const label of ['Anatomie', 'Chat', 'Tasks', 'Projekte', 'Memory', 'Freigaben', 'System', 'Logs', 'Home']) {
     const ok = await nav(page, label);
     if (!ok) problems.push(`[${name}] nav target not reachable: ${label}`);
     await page.waitForTimeout(140);

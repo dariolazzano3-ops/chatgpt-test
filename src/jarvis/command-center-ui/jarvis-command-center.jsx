@@ -707,10 +707,13 @@ const NAV = [
   ["projects", "Projekte", FolderKanban], ["memory", "Memory", Brain], ["approvals", "Freigaben", ShieldCheck],
   ["system", "System", Cpu], ["logs", "Logs", ScrollText],
 ];
-// Desktop sidebar only — the mobile bottom nav (MobileNav) stays on the
-// original six-ish primary NAV destinations above so it never gets bloated.
-// Anatomy is reachable on mobile via a shortcut from Home/System instead.
+// Anatomy is first-class on desktop and mobile; lower-priority mobile destinations remain horizontally scrollable.
 const SIDEBAR_NAV = [...NAV, ["anatomy", "Anatomie", Activity]];
+const MOBILE_NAV = [
+  ["home", "Home", Home], ["anatomy", "Anatomie", Activity], ["chat", "Chat", MessageSquare],
+  ["tasks", "Tasks", ListChecks], ["projects", "Projekte", FolderKanban], ["memory", "Memory", Brain],
+  ["approvals", "Freigaben", ShieldCheck], ["system", "System", Cpu], ["logs", "Logs", ScrollText],
+];
 const TITLES = { home: "Command Center", chat: "Chat", tasks: "Tasks", projects: "Projekte", memory: "Memory", approvals: "Freigaben", system: "System", logs: "Logs", anatomy: "Anatomie" };
 
 function Sidebar({ s, go }) {
@@ -768,7 +771,7 @@ function MobileNav({ s, go }) {
   const pend = s.approvals.filter(isPending).length;
   return (
     <nav className="mnav" aria-label="Navigation">
-      {NAV.map(([id, label, Icon]) => (
+      {MOBILE_NAV.map(([id, label, Icon]) => (
         <button key={id} className={s.view === id ? "on" : ""} onClick={() => go(id)} aria-current={s.view === id ? "page" : undefined}>
           <Icon size={18} strokeWidth={1.6} /><span>{label}</span>
           {id === "approvals" && pend > 0 && <em className="b" />}
