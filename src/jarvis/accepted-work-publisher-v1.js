@@ -133,8 +133,8 @@ export async function queueOwnerChatPrivateDeployV1({
     const metadataStage = path.join(stage, 'pending.json');
     fs.writeFileSync(metadataStage, JSON.stringify(metadata, null, 2) + '\n', { mode: 0o660 });
 
-    fs.renameSync(bundle, inboxPath);
     fs.renameSync(metadataStage, metadataPath);
+    fs.renameSync(bundle, inboxPath);
 
     const resultPath = path.join(resultsDir, `${requestId}.json`);
     const timeoutMs = Math.max(1000, Math.min(240000, Number(testOptions.timeout_ms) || 180000));
@@ -161,6 +161,9 @@ export async function queueOwnerChatPrivateDeployV1({
     }
     return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RESULT_TIMEOUT', queued: true, inbox: inboxPath, manifest };
   } catch (error) {
+    try {
+      if (!fs.existsSync(inboxPath) && fs.existsSync(metadataPath)) fs.rmSync(metadataPath, { force: true });
+    } catch {}
     return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_FAILED', detail: clean(error?.message, 500) };
   } finally {
     fs.rmSync(stage, { recursive: true, force: true });
