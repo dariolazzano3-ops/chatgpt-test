@@ -11,11 +11,12 @@
 const NODES = Object.freeze([
   {
     node: 'HERMES',
-    role: 'Orchestrierung / Intake',
-    // Intent resolution + action planning run locally in src/jarvis/service-v1.js.
+    role: 'Orchestrierung / Agent Runtime',
+    // Base state stays LOCAL_ONLY. jarvisCommandCenterWorkerChainV1 upgrades
+    // this node only after an authenticated Hermes Core live probe succeeds.
     bound: 'LOCAL_ONLY',
     evidence: 'src/jarvis/intent-v1.js + src/jarvis/planner-v1.js',
-    reason: 'Local intake/routing only; no external Hermes process is probed.'
+    reason: 'Local intake/routing only until an authenticated Hermes Core probe succeeds.'
   },
   {
     node: 'ASTRA',
@@ -67,11 +68,20 @@ export function jarvisCommandCenterWorkerChainV1(options = {}) {
   // A genuine bridge is bound only when an executor was injected AND
   // command-center-worker-binding was told about it. Config/registry presence
   // is never enough.
+  const hermesCoreBound = options.hermes_core_bound === true;
   const claudeBridgeBound = options.claude_bridge && options.claude_bridge.bound === true;
   const gitRemoteTruthBound = options.git_remote_truth_bound === true;
   const codexBound = options.codex_bridge && options.codex_bridge.bound === true;
 
   const nodes = NODES.map((n) => {
+    if (n.node === 'HERMES' && hermesCoreBound) {
+      return {
+        ...n,
+        bound: true,
+        reason: null,
+        evidence: 'src/jarvis/hermes-core-http-client-v1.js authenticated Hermes Core API probe'
+      };
+    }
     if (n.node === 'CLAUDE_CODE' && claudeBridgeBound) {
       return { ...n, bound: true, reason: null, evidence: 'src/jarvis/claude-code-bridge-v1.js executor injected' };
     }
@@ -89,6 +99,7 @@ export function jarvisCommandCenterWorkerChainV1(options = {}) {
     primary_worker: 'CLAUDE_CODE',
     fallback_worker: 'CODEX',
     fallback_active: false,
+    hermes_core_bound: Boolean(hermesCoreBound),
     claude_execution_bridge_bound: Boolean(claudeBridgeBound),
     claude_execution_bridge_contract: 'aurentara.jarvis.claude-code-bridge.v1',
     codex_binding_present: Boolean(codexBound),

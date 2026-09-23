@@ -44,7 +44,7 @@ export const JARVIS_SYSTEM_STATUS = Object.freeze({
 
 export const JARVIS_COMMAND_CENTER_DATA_SOURCE_MAP_V1 = Object.freeze([
   Object.freeze({ domain: 'JARVIS', classification: 'DERIVED', source: 'src/jarvis/http-v1.js + src/jarvis/runtime-v1.js', binding_state: 'PARTIAL', note: 'Session, memory and connector facts exist. core_online is currently a static true and is not accepted as liveness proof.' }),
-  Object.freeze({ domain: 'HERMES', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'No inspected live health reader proves Hermes process/container state.' }),
+  Object.freeze({ domain: 'HERMES', classification: 'REAL', source: 'src/jarvis/hermes-core-http-client-v1.js', binding_state: 'ADAPTER_REQUIRED', note: 'Authenticated Hermes Core API live probe becomes CONNECTED only when JARVIS_HERMES_API_URL + JARVIS_HERMES_API_KEY are configured and the real endpoint responds.' }),
   Object.freeze({ domain: 'ASTRA', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'No inspected runtime availability source is bound to the Command Center.' }),
   Object.freeze({ domain: 'CLAUDE', classification: 'STATIC', source: 'src/jarvis/integration-layer-v1.js', binding_state: 'POLICY_ONLY', note: 'Capability registry proves policy, not Claude Code availability or busy state.' }),
   Object.freeze({ domain: 'CODEX', classification: 'UNKNOWN', source: null, binding_state: 'NOT_CONNECTED', note: 'No inspected Codex fallback runtime status source is bound.' }),

@@ -26,6 +26,7 @@ import { dispatchJarvisOwnerChatJobV1, runJarvisOwnerChatJobV1 } from './owner-c
 import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalRevokeRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
+import { createJarvisHermesCoreClientFromEnvV1 } from './hermes-core-http-client-v1.js';
 import {
   normalizeJarvisWatchRequestV1,
   projectJarvisWatchResponseV1,
@@ -192,6 +193,10 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   const session = resolved.session;
   const store = resolveJarvisMemoryStoreV1(env, options);
   const oauth = oauthService(env, options);
+  const hermesCore = options.hermes_core_client || createJarvisHermesCoreClientFromEnvV1(env, {
+    fetch_impl: options.fetch_impl,
+    clock: options.now ? () => options.now : undefined
+  });
 
   if (url.pathname === '/jarvis/connect/google' && request.method === 'GET') {
     if (!oauth) return html('<!doctype html><meta charset="utf-8"><title>JARVIS Google</title><body style="background:#05090e;color:#eaf7ff;font-family:system-ui;padding:3rem"><h1>Google Calendar</h1><p>OAuth credentials are not configured yet.</p><p><a href="/jarvis" style="color:#8bd2ff">Back to JARVIS</a></p></body>', 503);
@@ -393,6 +398,49 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     });
   }
 
+  if (url.pathname === '/jarvis/api/hermes/status' && request.method === 'GET') {
+    if (!hermesCore?.configured) {
+      return json({
+        ok: false,
+        private: true,
+        connected: false,
+        error: 'JARVIS_HERMES_CORE_NOT_CONFIGURED',
+        external_effect: false
+      }, 503);
+    }
+    try {
+      const [health, capabilities, toolsets] = await Promise.all([
+        hermesCore.health(),
+        hermesCore.capabilities(),
+        hermesCore.toolsets()
+      ]);
+      const delegationAvailable = toolsets.data.some((row) =>
+        row?.enabled === true && Array.isArray(row?.tools) && row.tools.includes('delegate_task'));
+      return json({
+        ok: true,
+        private: true,
+        connected: true,
+        status: 'ONLINE',
+        platform: 'hermes-agent',
+        version: clean(health?.version, 80) || null,
+        run_submission: capabilities?.features?.run_submission === true,
+        delegation_tool_available: delegationAvailable,
+        authenticated: capabilities?.auth?.required === true,
+        external_effect: false,
+        production_deploy: false,
+        hamyren_data_flow: false
+      });
+    } catch (error) {
+      return json({
+        ok: false,
+        private: true,
+        connected: false,
+        error: clean(error?.code || 'JARVIS_HERMES_CORE_UNAVAILABLE', 120),
+        external_effect: false
+      }, 503);
+    }
+  }
+
   if (url.pathname === '/jarvis/api/runtime-truth' && request.method === 'GET') {
     // Injected probes (tests) take precedence; otherwise build genuine probes
     // from env. Every one fails closed to UNKNOWN when the source is absent.
@@ -410,7 +458,15 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       fetch_impl: options.fetch_impl,
       clock: options.now ? () => options.now : undefined
     });
-    const probes = { ...envHealthProbes, ...(gitProbe ? { git: gitProbe } : {}), ...injectedProbes };
+    const hermesProbe = hermesCore?.configured === true && typeof hermesCore.liveProbe === 'function'
+      ? hermesCore.liveProbe
+      : null;
+    const probes = {
+      ...envHealthProbes,
+      ...(hermesProbe ? { hermes: hermesProbe } : {}),
+      ...(gitProbe ? { git: gitProbe } : {}),
+      ...injectedProbes
+    };
 
     // Wave 4/5: real Runs / Activity / Approvals / Evidence projected from the
     // owner-scoped persisted JARVIS audit log. Absent store.readAudit -> no
@@ -433,6 +489,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       production_deploy: false,
       hamyren_data_flow: false,
       command_chain: jarvisCommandCenterWorkerChainV1({
+        hermes_core_bound: snapshot?.systems?.data?.HERMES === 'ONLINE',
         claude_bridge: options.claude_bridge || null,
         codex_bridge: options.codex_bridge || null,
         git_remote_truth_bound: Boolean(gitProbe && gitProbe.configured)
