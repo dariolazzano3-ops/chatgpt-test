@@ -99,16 +99,24 @@ const resultsDir = path.join(queueRoot, 'results');
 const inbox = path.join(inboxDir, 'pending.tgz');
 fs.mkdirSync(inboxDir, { recursive: true });
 fs.mkdirSync(resultsDir, { recursive: true });
+const runtimeRepo = path.join(root, 'runtime');
+execFileSync('git', ['clone', '--quiet', repo, runtimeRepo]);
+git(runtimeRepo, ['switch', '-c', 'factory/jarvis-capability-expansion-v3']);
+const runtimeHead = git(runtimeRepo, ['rev-parse', 'HEAD']);
 const deployRequestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 setTimeout(() => {
   if (!fs.existsSync(inbox)) return;
   const manifest = JSON.parse(execFileSync('tar', ['-xOzf', inbox, 'manifest.json'], { encoding: 'utf8' }));
-  assert.equal(manifest.schema, 'jarvis-maintenance-bundle.v2');
-  assert.equal(manifest.expected_tree, published.source_tree);
-  assert.equal(manifest.source_commit, published.commit);
-  assert.equal(manifest.production_deploy, false);
-  assert.equal(manifest.public_access, false);
+  assert.equal(manifest.schema, 'jarvis-maintenance-bundle.v1');
+  assert.equal(manifest.target_branch, 'factory/jarvis-capability-expansion-v3');
+  assert.equal(manifest.expected_head, runtimeHead);
+  assert.equal(manifest.files[0].path, 'src/jarvis/change.js');
+  const metadata = JSON.parse(fs.readFileSync(path.join(inboxDir, 'pending.json'), 'utf8'));
+  assert.equal(metadata.request_id, deployRequestId);
+  assert.equal(metadata.source_commit, published.commit);
+  assert.equal(metadata.source_tree, published.source_tree);
+  assert.equal(metadata.runtime_expected_head, runtimeHead);
   fs.writeFileSync(path.join(resultsDir, `${deployRequestId}.json`), JSON.stringify({
     request_id: deployRequestId,
     source_commit: published.commit,
@@ -128,10 +136,14 @@ const queuedDeploy = await queueOwnerChatPrivateDeployV1({
   baseTree: published.source_tree,
   sourceCommit: published.commit,
   sourceTree: published.source_tree,
-  checks: ['scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs']
+  checks: ['scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs'],
+  runtimeRepo,
+  runtimeBranch: 'factory/jarvis-capability-expansion-v3'
 }, {
   allowed_inbox: inbox,
   results_dir: resultsDir,
+  allowed_runtime_repo: runtimeRepo,
+  runtime_branch: 'factory/jarvis-capability-expansion-v3',
   timeout_ms: 3000,
   poll_ms: 25
 });
@@ -144,13 +156,17 @@ const deployPublisher = createJarvisAcceptedWorkPublisherV1({
   owner_chat_push_enabled: true,
   owner_chat_push_remote: 'github',
   owner_chat_private_deploy_enabled: true,
-  owner_chat_private_deploy_inbox: '/var/lib/jarvis-maintenance/inbox/pending.tgz'
+  owner_chat_private_deploy_inbox: '/opt/jarvis/owner-deploy-queue/pending.tgz',
+  owner_chat_private_deploy_runtime_repo: '/opt/jarvis/chatgpt-test',
+  owner_chat_private_deploy_runtime_branch: 'factory/jarvis-capability-expansion-v3'
 }, {
   memory_store: store,
   queue_private_deploy: async (input) => {
     injectedDeployCalls += 1;
     assert.equal(input.sourceCommit, published.commit);
     assert.equal(input.sourceTree, published.source_tree);
+    assert.equal(input.runtimeRepo, '/opt/jarvis/chatgpt-test');
+    assert.equal(input.runtimeBranch, 'factory/jarvis-capability-expansion-v3');
     return { ok: true, queued: true, deployed: true };
   }
 });
@@ -291,8 +307,11 @@ assert.equal(remoteManifest.owner_chat_auto_finalize_default, true);
 assert.equal(remoteManifest.owner_chat_auto_commit_after_system_verification, true);
 assert.equal(remoteManifest.owner_chat_auto_push_remote, 'github');
 assert.equal(remoteManifest.owner_chat_force_push, false);
-assert.equal(remoteManifest.owner_chat_private_deploy_queue, '/var/lib/jarvis-maintenance/inbox/pending.tgz');
-assert.equal(remoteManifest.owner_chat_private_deploy_requires_root_consumer, true);
+assert.equal(remoteManifest.owner_chat_private_deploy_queue, '/opt/jarvis/owner-deploy-queue/pending.tgz');
+assert.equal(remoteManifest.owner_chat_private_deploy_runtime_repo, '/opt/jarvis/chatgpt-test');
+assert.equal(remoteManifest.owner_chat_private_deploy_runtime_branch, 'factory/jarvis-capability-expansion-v3');
+assert.equal(remoteManifest.owner_chat_private_deploy_reuses_existing_maintenance_gate, true);
+assert.equal(remoteManifest.owner_chat_private_deploy_requires_new_root_consumer, false);
 assert.equal(remoteManifest.owner_chat_private_deploy_production, false);
 assert.equal(remoteManifest.production_deploy, false);
 assert.equal(remoteManifest.public_access, false);
