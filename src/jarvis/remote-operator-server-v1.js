@@ -483,7 +483,9 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const ownerChatTrustedPublisher = ownerChatAutoFinalize
     ? createJarvisAcceptedWorkPublisherV1({
         owner_chat_push_enabled: true,
-        owner_chat_push_remote: 'github'
+        owner_chat_push_remote: 'github',
+        owner_chat_private_deploy_enabled: true,
+        owner_chat_private_deploy_inbox: '/var/lib/jarvis-maintenance/inbox/pending.tgz'
       }, { memory_store: resolvedStore })
     : null;
   const trustedCandidateRecoverer = runnerConfig.program === JARVIS_V3_PROGRAM_ID && runnerConfig.publisher_enabled
@@ -562,6 +564,9 @@ export function jarvisRemoteOperatorManifestV1() {
     owner_chat_auto_push_remote: 'github',
     owner_chat_auto_push_factory_branches_only: true,
     owner_chat_force_push: false,
+    owner_chat_private_deploy_queue: '/var/lib/jarvis-maintenance/inbox/pending.tgz',
+    owner_chat_private_deploy_requires_root_consumer: true,
+    owner_chat_private_deploy_production: false,
     project_mission_target_source: 'SERVER_SIDE_ENV_ONLY',
     project_mission_aurentara_env: 'JARVIS_PROJECT_MISSION_AURENTARA_ENABLED',
     project_mission_aurentara_repo_env: 'JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR',

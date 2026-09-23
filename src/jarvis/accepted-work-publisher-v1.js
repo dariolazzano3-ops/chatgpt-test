@@ -8,8 +8,13 @@
    owner-chat runtime has SYSTEM-verified canonical repo-bound evidence, this
    publisher may commit exactly those verified dirty files and, when explicitly
    configured by the private runtime, push that non-protected factory branch to
-   the canonical GitHub remote. It never merges and never deploys. */
+   the canonical GitHub remote and queue a private maintenance install. It never
+   merges, never performs a production/public deploy, and never escalates itself
+   to root. */
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { computeJarvisWorkingTreeWaveEvidenceV1 } from './working-tree-wave-evidence-v1.js';
 
@@ -28,12 +33,129 @@ function dirtyFiles(repo) {
   if (lines.some((line) => line.includes(' -> '))) return null;
   return lines.map((line) => clean(line.slice(3), 500)).filter(Boolean);
 }
+function deployPathAllowed(rel) {
+  const value = clean(rel, 500);
+  if (!value || value.startsWith('/') || value.split('/').some((part) => part === '..' || part === '')) return false;
+  return ['src/jarvis/', 'scripts/', 'docs/jarvis/', 'supabase/migrations/'].some((prefix) => value.startsWith(prefix));
+}
+function sha256File(file) {
+  return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+export async function queueOwnerChatPrivateDeployV1({
+  repo, inbox, branch, requestId, files, baseCommit, baseTree, sourceCommit, sourceTree, checks
+}, testOptions = {}) {
+  const allowedInbox = path.resolve(testOptions.allowed_inbox || '/var/lib/jarvis-maintenance/inbox/pending.tgz');
+  const resultsDir = path.resolve(testOptions.results_dir || '/var/lib/jarvis-maintenance/results');
+  const inboxPath = path.resolve(inbox);
+  if (inboxPath !== allowedInbox) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_INBOX_NOT_ALLOWED' };
+  }
+  const inboxDir = path.dirname(inboxPath);
+  if (!fs.existsSync(inboxDir)) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_INBOX_UNAVAILABLE' };
+  if (fs.existsSync(inboxPath)) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_BUSY' };
+  if (!/^[0-9a-f]{40}$/i.test(baseCommit) || !/^[0-9a-f]{40}$/i.test(sourceCommit)) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_COMMIT_INVALID' };
+  }
+  if (!/^[0-9a-f]{40}$/i.test(baseTree) || !/^[0-9a-f]{40}$/i.test(sourceTree)) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_TREE_INVALID' };
+  }
+  if (!branch.startsWith('factory/')) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_BRANCH_NOT_ALLOWED' };
+  const deployFiles = sortedUnique(files);
+  if (!deployFiles.length || deployFiles.some((rel) => !deployPathAllowed(rel))) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_FILE_SCOPE_NOT_ALLOWED' };
+  }
+  if (deployFiles.some((rel) => !fs.existsSync(path.join(repo, rel)))) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_DELETION_NOT_SUPPORTED' };
+  }
+
+  const stage = fs.mkdtempSync(path.join(inboxDir, '.owner-chat-deploy-stage-'));
+  try {
+    const payloadRoot = path.join(stage, 'payload');
+    const entries = [];
+    for (const rel of deployFiles) {
+      const src = path.join(repo, rel);
+      const dst = path.join(payloadRoot, rel);
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(src, dst);
+      entries.push({ path: rel, sha256: sha256File(dst) });
+    }
+    const manifest = {
+      schema: 'jarvis-maintenance-bundle.v2',
+      target_branch: branch,
+      expected_head: baseCommit,
+      expected_tree: baseTree,
+      source_commit: sourceCommit,
+      source_tree: sourceTree,
+      request_id: requestId,
+      commit_message: `chore(jarvis): deploy owner job ${requestId.slice(0, 8)}`,
+      files: entries,
+      checks: sortedUnique(checks),
+      production_deploy: false,
+      public_access: false,
+      dns_changed: false,
+      billing_changed: false,
+      secrets_changed: false
+    };
+    fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
+    const bundle = path.join(stage, 'bundle.tgz');
+    execFileSync('tar', ['-czf', bundle, '-C', stage, 'manifest.json', 'payload'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 120000
+    });
+    fs.chmodSync(bundle, 0o600);
+    fs.renameSync(bundle, inboxPath);
+
+    const resultPath = path.join(resultsDir, `${requestId}.json`);
+    const timeoutMs = Math.max(1000, Math.min(180000, Number(testOptions.timeout_ms) || 90000));
+    const pollMs = Math.max(50, Math.min(2000, Number(testOptions.poll_ms) || 500));
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (fs.existsSync(resultPath)) {
+        let result;
+        try { result = JSON.parse(fs.readFileSync(resultPath, 'utf8')); }
+        catch { return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RESULT_INVALID_JSON' }; }
+        if (
+          clean(result?.request_id, 80) !== requestId
+          || clean(result?.source_commit, 40) !== sourceCommit
+          || clean(result?.source_tree, 40) !== sourceTree
+        ) {
+          return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RESULT_SCOPE_MISMATCH' };
+        }
+        if (result?.status !== 'DEPLOYED') {
+          return {
+            ok: false,
+            error: clean(result?.error || 'OWNER_CHAT_PRIVATE_DEPLOY_FAILED', 200),
+            result
+          };
+        }
+        return { ok: true, queued: true, deployed: true, inbox: inboxPath, manifest, result };
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+    }
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RESULT_TIMEOUT', queued: true, inbox: inboxPath, manifest };
+  } catch (error) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_FAILED', detail: clean(error?.message, 500) };
+  } finally {
+    fs.rmSync(stage, { recursive: true, force: true });
+  }
+}
 
 export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
   const store = deps.memory_store;
   const now = deps.now || (() => new Date().toISOString());
   const ownerChatPushEnabled = config.owner_chat_push_enabled === true;
   const ownerChatPushRemote = clean(config.owner_chat_push_remote || 'github', 80);
+  const ownerChatPrivateDeployEnabled = config.owner_chat_private_deploy_enabled === true;
+  const ownerChatPrivateDeployInbox = clean(config.owner_chat_private_deploy_inbox || '', 500);
+  const privateDeployQueue = deps.queue_private_deploy || queueOwnerChatPrivateDeployV1;
+  const ownerChatPrivateDeployChecks = Array.isArray(config.owner_chat_private_deploy_checks)
+    ? config.owner_chat_private_deploy_checks.map((item) => clean(item, 500)).filter(Boolean)
+    : [
+        'scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs',
+        'scripts/jarvis-owner-chat-job-v1-smoke.mjs',
+        'scripts/jarvis-remote-operator-server-v1-smoke.mjs',
+        'scripts/jarvis-command-center-autonomy-v1-smoke.mjs'
+      ];
 
   return {
     async publish(request = {}) {
@@ -104,7 +226,16 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
 
       const commitMessage = `chore(jarvis): finalize owner job ${requestId}`;
       let commit = null;
+      let baseCommit = null;
+      let baseTree = null;
+      let sourceTree = null;
       let committedNow = false;
+      try {
+        baseCommit = git(repo, ['rev-parse', 'HEAD']);
+        baseTree = git(repo, ['rev-parse', 'HEAD^{tree}']);
+      } catch {
+        return { ok: false, error: 'OWNER_CHAT_PUBLISHER_BASE_COMMIT_UNAVAILABLE' };
+      }
 
       let actualDirty;
       try { actualDirty = dirtyFiles(repo); } catch { return { ok: false, error: 'OWNER_CHAT_PUBLISHER_STATUS_UNAVAILABLE' }; }
@@ -125,10 +256,18 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         let lastMessage = '';
         try { lastMessage = git(repo, ['log', '-1', '--format=%B']); } catch {}
         if (!lastMessage.includes(requestId)) return { ok: false, error: 'OWNER_CHAT_PUBLISHER_CLEAN_TREE_WITHOUT_MATCHING_COMMIT' };
+        try {
+          baseCommit = git(repo, ['rev-parse', 'HEAD^']);
+          baseTree = git(repo, ['rev-parse', `${baseCommit}^{tree}`]);
+        } catch {
+          return { ok: false, error: 'OWNER_CHAT_PUBLISHER_BASE_COMMIT_UNAVAILABLE' };
+        }
       }
 
       try { commit = git(repo, ['rev-parse', 'HEAD']); } catch { return { ok: false, error: 'OWNER_CHAT_PUBLISHER_COMMIT_TRUTH_UNAVAILABLE' }; }
       if (git(repo, ['status', '--porcelain'])) return { ok: false, error: 'OWNER_CHAT_PUBLISHER_TREE_NOT_CLEAN_AFTER_COMMIT', commit };
+      try { sourceTree = git(repo, ['rev-parse', `${commit}^{tree}`]); }
+      catch { return { ok: false, error: 'OWNER_CHAT_PUBLISHER_SOURCE_TREE_UNAVAILABLE', commit }; }
 
       let pushed = false;
       let pushError = null;
@@ -143,6 +282,24 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         }
       }
 
+      let deployQueue = null;
+      let deployError = null;
+      if (ownerChatPrivateDeployEnabled && !pushError) {
+        deployQueue = await privateDeployQueue({
+          repo,
+          inbox: ownerChatPrivateDeployInbox,
+          branch,
+          requestId,
+          files: verifiedFiles,
+          baseCommit,
+          baseTree,
+          sourceCommit: commit,
+          sourceTree,
+          checks: ownerChatPrivateDeployChecks
+        });
+        if (!deployQueue?.ok) deployError = clean(deployQueue?.error || 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_FAILED', 200);
+      }
+
       const event = createJarvisAuditEventV1({
         timestamp: now(),
         owner_ref: ownerRef,
@@ -152,7 +309,7 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         permissions: [],
         action: 'OWNER_CHAT_JOB_PUBLICATION',
         result: {
-          status: pushError ? 'FAILED' : 'COMPLETED',
+          status: (pushError || deployError) ? 'FAILED' : 'COMPLETED',
           verified: true,
           external_effect: pushed,
           request_id: requestId,
@@ -163,8 +320,10 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           push: pushed,
           push_remote: ownerChatPushEnabled ? ownerChatPushRemote : null,
           merge: false,
-          deploy: false,
-          error: pushError ? 'OWNER_CHAT_PUBLISHER_PUSH_FAILED' : null
+          deploy: deployQueue?.queued === true,
+          deploy_state: deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : (ownerChatPrivateDeployEnabled ? 'QUEUE_FAILED' : 'NOT_REQUESTED'),
+          deploy_inbox: deployQueue?.queued === true ? ownerChatPrivateDeployInbox : null,
+          error: pushError ? 'OWNER_CHAT_PUBLISHER_PUSH_FAILED' : deployError
         },
         approval: { required: false, explicit: false, actor_type: 'SYSTEM', gate_status: 'SYSTEM_VERIFIED_INTERNAL_FINALIZATION' },
         cost: { estimated_eur: 0, actual_eur: 0 },
@@ -174,17 +333,30 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
       catch { return { ok: false, error: 'OWNER_CHAT_PUBLISHER_AUDIT_PERSIST_FAILED', commit, push: pushed }; }
 
       if (pushError) return { ok: false, error: 'OWNER_CHAT_PUBLISHER_PUSH_FAILED', detail: pushError, commit, push: false, retryable: true };
+      if (deployError) return {
+        ok: false,
+        error: deployError,
+        detail: deployQueue?.detail || null,
+        commit,
+        push: pushed,
+        deploy: false,
+        retryable: true
+      };
       return {
         ok: true,
         status: 200,
         published: true,
         owner_chat_job: true,
         commit,
+        base_commit: baseCommit,
+        base_tree: baseTree,
+        source_tree: sourceTree,
         files_changed: verifiedFiles,
         push: pushed,
         push_remote: pushed ? ownerChatPushRemote : null,
         merge: false,
-        deploy: false
+        deploy: deployQueue?.queued === true,
+        deploy_state: deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : 'NOT_REQUESTED'
       };
     }
   };
@@ -200,6 +372,9 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_push_requires_private_runtime_configuration: true,
     owner_chat_push_protected_branches_refused: true,
     owner_chat_force_push_supported: false,
+    owner_chat_private_deploy_queue_supported: true,
+    owner_chat_private_deploy_requires_root_maintenance_consumer: true,
+    owner_chat_private_deploy_production: false,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,

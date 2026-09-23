@@ -5,7 +5,10 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
-import { createJarvisAcceptedWorkPublisherV1 } from '../src/jarvis/accepted-work-publisher-v1.js';
+import {
+  createJarvisAcceptedWorkPublisherV1,
+  queueOwnerChatPrivateDeployV1
+} from '../src/jarvis/accepted-work-publisher-v1.js';
 import {
   dispatchJarvisOwnerChatJobV1,
   runJarvisOwnerChatJobV1,
@@ -39,20 +42,20 @@ git(repo, ['commit', '-m', 'baseline']);
 git(repo, ['switch', '-c', BRANCH]);
 git(repo, ['remote', 'add', 'github', bare]);
 
-fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
-fs.writeFileSync(path.join(repo, 'src', 'change.js'), 'export const changed = true;\n');
+fs.mkdirSync(path.join(repo, 'src', 'jarvis'), { recursive: true });
+fs.writeFileSync(path.join(repo, 'src', 'jarvis', 'change.js'), 'export const changed = true;\n');
 
 const verification = {
   schema: 'aurentara.jarvis.repo-bound-verification.v1',
   repo_dir: repo,
   branch: BRANCH,
   branch_drift: false,
-  files_changed: ['src/change.js'],
+  files_changed: ['src/jarvis/change.js'],
   pre_existing_dirty_files: [],
   syntax_check: {
     passed: true,
     checked: 1,
-    results: [{ file: 'src/change.js', passed: true }]
+    results: [{ file: 'src/jarvis/change.js', passed: true }]
   },
   at: '2026-09-23T15:00:00.000Z'
 };
@@ -86,6 +89,83 @@ assert.equal(git(repo, ['status', '--porcelain']), '');
 assert.equal(git(repo, ['rev-parse', 'HEAD']), published.commit);
 assert.equal(git(bare, ['rev-parse', `refs/heads/${BRANCH}`]), published.commit);
 assert.match(git(repo, ['log', '-1', '--format=%B']), new RegExp(requestId));
+assert.match(published.base_commit, /^[0-9a-f]{40}$/);
+assert.match(published.base_tree, /^[0-9a-f]{40}$/);
+assert.match(published.source_tree, /^[0-9a-f]{40}$/);
+
+const queueRoot = path.join(root, 'queue');
+const inboxDir = path.join(queueRoot, 'inbox');
+const resultsDir = path.join(queueRoot, 'results');
+const inbox = path.join(inboxDir, 'pending.tgz');
+fs.mkdirSync(inboxDir, { recursive: true });
+fs.mkdirSync(resultsDir, { recursive: true });
+const deployRequestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+setTimeout(() => {
+  if (!fs.existsSync(inbox)) return;
+  const manifest = JSON.parse(execFileSync('tar', ['-xOzf', inbox, 'manifest.json'], { encoding: 'utf8' }));
+  assert.equal(manifest.schema, 'jarvis-maintenance-bundle.v2');
+  assert.equal(manifest.expected_tree, published.source_tree);
+  assert.equal(manifest.source_commit, published.commit);
+  assert.equal(manifest.production_deploy, false);
+  assert.equal(manifest.public_access, false);
+  fs.writeFileSync(path.join(resultsDir, `${deployRequestId}.json`), JSON.stringify({
+    request_id: deployRequestId,
+    source_commit: published.commit,
+    source_tree: published.source_tree,
+    status: 'DEPLOYED',
+    live_tree: published.source_tree
+  }));
+}, 75);
+
+const queuedDeploy = await queueOwnerChatPrivateDeployV1({
+  repo,
+  inbox,
+  branch: BRANCH,
+  requestId: deployRequestId,
+  files: ['src/jarvis/change.js'],
+  baseCommit: published.commit,
+  baseTree: published.source_tree,
+  sourceCommit: published.commit,
+  sourceTree: published.source_tree,
+  checks: ['scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs']
+}, {
+  allowed_inbox: inbox,
+  results_dir: resultsDir,
+  timeout_ms: 3000,
+  poll_ms: 25
+});
+assert.equal(queuedDeploy.ok, true);
+assert.equal(queuedDeploy.deployed, true);
+assert.equal(queuedDeploy.result.status, 'DEPLOYED');
+
+let injectedDeployCalls = 0;
+const deployPublisher = createJarvisAcceptedWorkPublisherV1({
+  owner_chat_push_enabled: true,
+  owner_chat_push_remote: 'github',
+  owner_chat_private_deploy_enabled: true,
+  owner_chat_private_deploy_inbox: '/var/lib/jarvis-maintenance/inbox/pending.tgz'
+}, {
+  memory_store: store,
+  queue_private_deploy: async (input) => {
+    injectedDeployCalls += 1;
+    assert.equal(input.sourceCommit, published.commit);
+    assert.equal(input.sourceTree, published.source_tree);
+    return { ok: true, queued: true, deployed: true };
+  }
+});
+const deployedPublication = await deployPublisher.publishVerifiedOwnerChatJob({
+  owner_id: OWNER_ID,
+  owner_ref: OWNER_REF,
+  request_id: requestId,
+  title: 'Auto-finalization deploy smoke',
+  repo_dir: repo,
+  target_branch: BRANCH,
+  verification
+});
+assert.equal(deployedPublication.ok, true);
+assert.equal(deployedPublication.deploy, true);
+assert.equal(injectedDeployCalls, 1);
 
 const retry = await publisher.publishVerifiedOwnerChatJob({
   owner_id: OWNER_ID,
@@ -211,6 +291,9 @@ assert.equal(remoteManifest.owner_chat_auto_finalize_default, true);
 assert.equal(remoteManifest.owner_chat_auto_commit_after_system_verification, true);
 assert.equal(remoteManifest.owner_chat_auto_push_remote, 'github');
 assert.equal(remoteManifest.owner_chat_force_push, false);
+assert.equal(remoteManifest.owner_chat_private_deploy_queue, '/var/lib/jarvis-maintenance/inbox/pending.tgz');
+assert.equal(remoteManifest.owner_chat_private_deploy_requires_root_consumer, true);
+assert.equal(remoteManifest.owner_chat_private_deploy_production, false);
 assert.equal(remoteManifest.production_deploy, false);
 assert.equal(remoteManifest.public_access, false);
 
