@@ -42,24 +42,48 @@ function sha256File(file) {
   return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 export async function queueOwnerChatPrivateDeployV1({
-  repo, inbox, branch, requestId, files, baseCommit, baseTree, sourceCommit, sourceTree, checks
+  repo, inbox, branch, requestId, files, sourceCommit, sourceTree, checks, runtimeRepo, runtimeBranch
 }, testOptions = {}) {
-  const allowedInbox = path.resolve(testOptions.allowed_inbox || '/var/lib/jarvis-maintenance/inbox/pending.tgz');
-  const resultsDir = path.resolve(testOptions.results_dir || '/var/lib/jarvis-maintenance/results');
+  const allowedInbox = path.resolve(testOptions.allowed_inbox || '/opt/jarvis/owner-deploy-queue/pending.tgz');
+  const resultsDir = path.resolve(testOptions.results_dir || '/opt/jarvis/owner-deploy-queue/results');
+  const allowedRuntimeRepo = path.resolve(testOptions.allowed_runtime_repo || '/opt/jarvis/chatgpt-test');
+  const expectedRuntimeBranch = clean(testOptions.runtime_branch || 'factory/jarvis-capability-expansion-v3', 200);
   const inboxPath = path.resolve(inbox);
-  if (inboxPath !== allowedInbox) {
-    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_INBOX_NOT_ALLOWED' };
-  }
+  const runtimeRepoPath = path.resolve(runtimeRepo || '');
+  const runtimeBranchName = clean(runtimeBranch, 200);
+
+  if (inboxPath !== allowedInbox) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_INBOX_NOT_ALLOWED' };
+  if (runtimeRepoPath !== allowedRuntimeRepo) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_REPO_NOT_ALLOWED' };
+  if (runtimeBranchName !== expectedRuntimeBranch) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_BRANCH_NOT_ALLOWED' };
+
   const inboxDir = path.dirname(inboxPath);
-  if (!fs.existsSync(inboxDir)) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_INBOX_UNAVAILABLE' };
-  if (fs.existsSync(inboxPath)) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_BUSY' };
-  if (!/^[0-9a-f]{40}$/i.test(baseCommit) || !/^[0-9a-f]{40}$/i.test(sourceCommit)) {
-    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_COMMIT_INVALID' };
+  const metadataPath = path.join(inboxDir, 'pending.json');
+  if (!fs.existsSync(inboxDir) || !fs.existsSync(resultsDir)) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_UNAVAILABLE' };
   }
-  if (!/^[0-9a-f]{40}$/i.test(baseTree) || !/^[0-9a-f]{40}$/i.test(sourceTree)) {
-    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_TREE_INVALID' };
+  if (fs.existsSync(inboxPath) || fs.existsSync(metadataPath)) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_BUSY' };
+  }
+  if (!/^[0-9a-f]{40}$/i.test(sourceCommit) || !/^[0-9a-f]{40}$/i.test(sourceTree)) {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_SOURCE_TRUTH_INVALID' };
   }
   if (!branch.startsWith('factory/')) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_BRANCH_NOT_ALLOWED' };
+
+  let runtimeHead;
+  try {
+    const currentRuntimeBranch = git(runtimeRepoPath, ['branch', '--show-current']);
+    if (currentRuntimeBranch !== runtimeBranchName) {
+      return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_BRANCH_MISMATCH', runtime_branch: currentRuntimeBranch };
+    }
+    if (git(runtimeRepoPath, ['status', '--porcelain'])) {
+      return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_NOT_CLEAN' };
+    }
+    runtimeHead = git(runtimeRepoPath, ['rev-parse', 'HEAD']);
+  } catch {
+    return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_TRUTH_UNAVAILABLE' };
+  }
+  if (!/^[0-9a-f]{40}$/i.test(runtimeHead)) return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RUNTIME_HEAD_INVALID' };
+
   const deployFiles = sortedUnique(files);
   if (!deployFiles.length || deployFiles.some((rel) => !deployPathAllowed(rel))) {
     return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_FILE_SCOPE_NOT_ALLOWED' };
@@ -79,34 +103,41 @@ export async function queueOwnerChatPrivateDeployV1({
       fs.copyFileSync(src, dst);
       entries.push({ path: rel, sha256: sha256File(dst) });
     }
+
     const manifest = {
-      schema: 'jarvis-maintenance-bundle.v2',
-      target_branch: branch,
-      expected_head: baseCommit,
-      expected_tree: baseTree,
-      source_commit: sourceCommit,
-      source_tree: sourceTree,
-      request_id: requestId,
+      schema: 'jarvis-maintenance-bundle.v1',
+      target_branch: runtimeBranchName,
+      expected_head: runtimeHead,
       commit_message: `chore(jarvis): deploy owner job ${requestId.slice(0, 8)}`,
       files: entries,
-      checks: sortedUnique(checks),
-      production_deploy: false,
-      public_access: false,
-      dns_changed: false,
-      billing_changed: false,
-      secrets_changed: false
+      checks: sortedUnique(checks)
     };
     fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
+
     const bundle = path.join(stage, 'bundle.tgz');
     execFileSync('tar', ['-czf', bundle, '-C', stage, 'manifest.json', 'payload'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 120000
     });
-    fs.chmodSync(bundle, 0o600);
+    fs.chmodSync(bundle, 0o660);
+
+    const metadata = {
+      schema: 'aurentara.jarvis.owner-private-deploy-request.v1',
+      request_id: requestId,
+      source_commit: sourceCommit,
+      source_tree: sourceTree,
+      source_branch: branch,
+      runtime_expected_head: runtimeHead,
+      runtime_branch: runtimeBranchName
+    };
+    const metadataStage = path.join(stage, 'pending.json');
+    fs.writeFileSync(metadataStage, JSON.stringify(metadata, null, 2) + '\n', { mode: 0o660 });
+
     fs.renameSync(bundle, inboxPath);
+    fs.renameSync(metadataStage, metadataPath);
 
     const resultPath = path.join(resultsDir, `${requestId}.json`);
-    const timeoutMs = Math.max(1000, Math.min(180000, Number(testOptions.timeout_ms) || 90000));
+    const timeoutMs = Math.max(1000, Math.min(240000, Number(testOptions.timeout_ms) || 180000));
     const pollMs = Math.max(50, Math.min(2000, Number(testOptions.poll_ms) || 500));
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
@@ -122,11 +153,7 @@ export async function queueOwnerChatPrivateDeployV1({
           return { ok: false, error: 'OWNER_CHAT_PRIVATE_DEPLOY_RESULT_SCOPE_MISMATCH' };
         }
         if (result?.status !== 'DEPLOYED') {
-          return {
-            ok: false,
-            error: clean(result?.error || 'OWNER_CHAT_PRIVATE_DEPLOY_FAILED', 200),
-            result
-          };
+          return { ok: false, error: clean(result?.error || 'OWNER_CHAT_PRIVATE_DEPLOY_FAILED', 200), result };
         }
         return { ok: true, queued: true, deployed: true, inbox: inboxPath, manifest, result };
       }
@@ -147,6 +174,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
   const ownerChatPushRemote = clean(config.owner_chat_push_remote || 'github', 80);
   const ownerChatPrivateDeployEnabled = config.owner_chat_private_deploy_enabled === true;
   const ownerChatPrivateDeployInbox = clean(config.owner_chat_private_deploy_inbox || '', 500);
+  const ownerChatPrivateDeployRuntimeRepo = clean(config.owner_chat_private_deploy_runtime_repo || '/opt/jarvis/chatgpt-test', 400);
+  const ownerChatPrivateDeployRuntimeBranch = clean(config.owner_chat_private_deploy_runtime_branch || 'factory/jarvis-capability-expansion-v3', 200);
   const privateDeployQueue = deps.queue_private_deploy || queueOwnerChatPrivateDeployV1;
   const ownerChatPrivateDeployChecks = Array.isArray(config.owner_chat_private_deploy_checks)
     ? config.owner_chat_private_deploy_checks.map((item) => clean(item, 500)).filter(Boolean)
@@ -295,7 +324,9 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           baseTree,
           sourceCommit: commit,
           sourceTree,
-          checks: ownerChatPrivateDeployChecks
+          checks: ownerChatPrivateDeployChecks,
+          runtimeRepo: ownerChatPrivateDeployRuntimeRepo,
+          runtimeBranch: ownerChatPrivateDeployRuntimeBranch
         });
         if (!deployQueue?.ok) deployError = clean(deployQueue?.error || 'OWNER_CHAT_PRIVATE_DEPLOY_QUEUE_FAILED', 200);
       }
@@ -375,7 +406,8 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_push_protected_branches_refused: true,
     owner_chat_force_push_supported: false,
     owner_chat_private_deploy_queue_supported: true,
-    owner_chat_private_deploy_requires_root_maintenance_consumer: true,
+    owner_chat_private_deploy_reuses_existing_maintenance_gate: true,
+    owner_chat_private_deploy_requires_new_root_consumer: false,
     owner_chat_private_deploy_production: false,
     can_merge: false,
     can_deploy: false,
