@@ -665,7 +665,8 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
             : null,
           claude_bridge: options.claude_bridge || null,
           claude_timeout_ms: options.claude_timeout_ms,
-          max_repair_attempts: options.owner_chat_job_max_repair_attempts
+          max_repair_attempts: options.owner_chat_job_max_repair_attempts,
+          trusted_publisher: options.owner_chat_trusted_publisher || null
         }).catch(() => {});
         if (typeof ctx?.waitUntil === 'function') ctx.waitUntil(jobPromise);
 

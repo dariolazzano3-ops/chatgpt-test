@@ -479,6 +479,13 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const trustedPublisher = runnerConfig.publisher_enabled
     ? createJarvisAcceptedWorkPublisherV1({}, { memory_store: resolvedStore })
     : null;
+  const ownerChatAutoFinalize = !['false', '0', 'off', 'no'].includes(clean(env.JARVIS_OWNER_CHAT_AUTO_FINALIZE, 20).toLowerCase());
+  const ownerChatTrustedPublisher = ownerChatAutoFinalize
+    ? createJarvisAcceptedWorkPublisherV1({
+        owner_chat_push_enabled: true,
+        owner_chat_push_remote: 'github'
+      }, { memory_store: resolvedStore })
+    : null;
   const trustedCandidateRecoverer = runnerConfig.program === JARVIS_V3_PROGRAM_ID && runnerConfig.publisher_enabled
     ? createJarvisTrustedCandidateRecovererV1({}, { memory_store: resolvedStore })
     : null;
@@ -494,6 +501,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     require_recovery: true
   }, { controller: options.program_controller, memory_store: resolvedStore, publisher: trustedPublisher, trusted_candidate_recoverer: trustedCandidateRecoverer });
   options.program_runner = programRunner;
+  options.owner_chat_trusted_publisher = ownerChatTrustedPublisher;
 
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);
   await new Promise((resolve, reject) => {
@@ -548,6 +556,12 @@ export function jarvisRemoteOperatorManifestV1() {
     program_runner_program_env: 'JARVIS_PROGRAM_RUNNER_PROGRAM',
     trusted_publisher_env: 'JARVIS_ACCEPTED_WORK_PUBLISHER_ENABLED',
     trusted_publisher_local_commit_only: true,
+    owner_chat_auto_finalize_default: true,
+    owner_chat_auto_finalize_kill_switch_env: 'JARVIS_OWNER_CHAT_AUTO_FINALIZE',
+    owner_chat_auto_commit_after_system_verification: true,
+    owner_chat_auto_push_remote: 'github',
+    owner_chat_auto_push_factory_branches_only: true,
+    owner_chat_force_push: false,
     project_mission_target_source: 'SERVER_SIDE_ENV_ONLY',
     project_mission_aurentara_env: 'JARVIS_PROJECT_MISSION_AURENTARA_ENABLED',
     project_mission_aurentara_repo_env: 'JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR',

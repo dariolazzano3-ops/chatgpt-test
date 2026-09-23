@@ -234,6 +234,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   let finalStatus = 'FAILED';
   let finalReason = null;
   let finalEvidenceId = null;
+  let finalVerification = null;
+  let finalization = null;
   let intelligencePlan = null;
   let intelligenceFailed = false;
 
@@ -361,6 +363,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       finalStatus = 'COMPLETE';
       finalReason = null;
       finalEvidenceId = verificationState.evidence_id || mission.claude_execution?.evidence?.evidence_id || null;
+      finalVerification = verification;
       break;
     }
 
@@ -371,6 +374,35 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     }
     attemptGoal = `${baseExecutionGoal}\n\n[Reparaturversuch ${attemptNumber + 1}/${maxAttempts}] Der vorherige Versuch hat die unabhängige Verifikation nicht bestanden (Grund: ${finalReason}). Behebe dies und schließe das ursprüngliche Ziel oben ab.`;
     attemptNumber += 1;
+  }
+
+  const readOnlyJob = clean(originalGoal, 4000).toLowerCase().includes('read-only');
+  if (
+    finalStatus === 'COMPLETE'
+    && !readOnlyJob
+    && deps.trusted_publisher
+    && typeof deps.trusted_publisher.publishVerifiedOwnerChatJob === 'function'
+  ) {
+    try {
+      finalization = await deps.trusted_publisher.publishVerifiedOwnerChatJob({
+        owner_id: ownerId,
+        owner_ref: ownerRef,
+        request_id: requestId,
+        title,
+        repo_dir: clean(finalVerification?.repo_dir, 400),
+        target_branch: clean(finalVerification?.branch, 200),
+        verification: finalVerification
+      });
+    } catch (error) {
+      finalization = {
+        ok: false,
+        error: clean(error?.code || error?.message || 'OWNER_CHAT_TRUSTED_PUBLICATION_FAILED', 200)
+      };
+    }
+    if (!finalization?.ok) {
+      finalStatus = 'FAILED';
+      finalReason = clean(finalization?.error || 'OWNER_CHAT_TRUSTED_PUBLICATION_FAILED', 200);
+    }
   }
 
   const intelligenceRoute = intelligencePlan ? {
@@ -417,6 +449,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       repair_attempts: attemptNumber,
       attempt_chain: attemptChain,
       intelligence_route: intelligenceRoute,
+      finalization,
       notification: buildNotificationText(finalStatus, title, finalReason, attemptNumber)
     },
     approval: { required: false, explicit: false, actor_type: 'SYSTEM', gate_status: 'OWNER_CHAT_JOB_NOTIFICATION' },
@@ -437,6 +470,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     repair_attempts: attemptNumber,
     attempt_chain: attemptChain,
     intelligence_route: intelligenceRoute,
+    finalization,
     acceptance_ref: null,
     evidence_id: finalEvidenceId,
     notification: buildNotificationText(finalStatus, title, finalReason, attemptNumber),
@@ -453,6 +487,9 @@ export function jarvisOwnerChatJobManifestV1() {
     reuses_engineering_mission_acceptance_evidence_rule: true,
     automatic_operator_acceptance: false,
     automatic_verification_actor_type: 'SYSTEM',
+    trusted_publication_after_system_verification_supported: true,
+    trusted_publication_is_optional_dependency: true,
+    trusted_publication_skipped_for_read_only_jobs: true,
     reuses_action_gate: true,
     action_gate_bypassed: false,
     self_approval_shape_matches_command_center_approval: true,
