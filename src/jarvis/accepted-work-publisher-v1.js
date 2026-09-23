@@ -320,8 +320,10 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           push: pushed,
           push_remote: ownerChatPushEnabled ? ownerChatPushRemote : null,
           merge: false,
-          deploy: deployQueue?.queued === true,
-          deploy_state: deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : (ownerChatPrivateDeployEnabled ? 'QUEUE_FAILED' : 'NOT_REQUESTED'),
+          deploy: deployQueue?.deployed === true,
+          deploy_state: deployQueue?.deployed === true
+            ? 'DEPLOYED_PRIVATE_RUNTIME'
+            : (deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : (ownerChatPrivateDeployEnabled ? 'QUEUE_FAILED' : 'NOT_REQUESTED')),
           deploy_inbox: deployQueue?.queued === true ? ownerChatPrivateDeployInbox : null,
           error: pushError ? 'OWNER_CHAT_PUBLISHER_PUSH_FAILED' : deployError
         },
@@ -355,8 +357,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         push: pushed,
         push_remote: pushed ? ownerChatPushRemote : null,
         merge: false,
-        deploy: deployQueue?.queued === true,
-        deploy_state: deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : 'NOT_REQUESTED'
+        deploy: deployQueue?.deployed === true,
+        deploy_state: deployQueue?.deployed === true ? 'DEPLOYED_PRIVATE_RUNTIME' : 'NOT_REQUESTED'
       };
     }
   };
