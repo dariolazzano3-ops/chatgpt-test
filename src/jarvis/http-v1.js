@@ -27,6 +27,8 @@ import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalR
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
 import { createJarvisSystemHealthProbesFromEnvV1 } from './system-health-probes-v1.js';
 import { createJarvisHermesCoreClientFromEnvV1 } from './hermes-core-http-client-v1.js';
+import { createJarvisOpenAiBrainClientFromEnvV1 } from './openai-brain-client-v1.js';
+import { createJarvisIntelligenceRouterFromEnvV1 } from './intelligence-router-v1.js';
 import {
   normalizeJarvisWatchRequestV1,
   projectJarvisWatchResponseV1,
@@ -196,6 +198,13 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
   const hermesCore = options.hermes_core_client || createJarvisHermesCoreClientFromEnvV1(env, {
     fetch_impl: options.fetch_impl,
     clock: options.now ? () => options.now : undefined
+  });
+  const openAiBrain = options.openai_brain_client || createJarvisOpenAiBrainClientFromEnvV1(env, {
+    fetch_impl: options.fetch_impl
+  });
+  const intelligenceRouter = options.intelligence_router || createJarvisIntelligenceRouterFromEnvV1(env, {
+    hermes_client: hermesCore,
+    openai_client: openAiBrain
   });
 
   if (url.pathname === '/jarvis/connect/google' && request.method === 'GET') {
@@ -651,6 +660,9 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         // completion themselves by polling the durable audit trail.
         const jobPromise = runJarvisOwnerChatJobV1(dispatch.job, {
           memory_store: store,
+          intelligence_router: (hermesCore?.configured === true || intelligenceRouter?.api_fallback_enabled === true)
+            ? intelligenceRouter
+            : null,
           claude_bridge: options.claude_bridge || null,
           claude_timeout_ms: options.claude_timeout_ms,
           max_repair_attempts: options.owner_chat_job_max_repair_attempts

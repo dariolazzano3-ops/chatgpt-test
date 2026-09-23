@@ -130,6 +130,37 @@ export function createJarvisHermesCoreClientV1(config = {}) {
     return body;
   }
 
+  async function chatCompletion(input = {}) {
+    const messages = Array.isArray(input.messages)
+      ? input.messages.slice(0, 32).map((row) => ({
+          role: ['system', 'user', 'assistant'].includes(row?.role) ? row.role : 'user',
+          content: clean(row?.content, 65536)
+        })).filter((row) => row.content)
+      : [];
+    if (!messages.length) throw makeError('HERMES_CHAT_MESSAGES_REQUIRED');
+
+    const body = await request('/v1/chat/completions', {
+      method: 'POST',
+      expected: [200],
+      idempotency_key: clean(input.idempotency_key, 255) || undefined,
+      body: {
+        model: clean(input.model, 120) || 'jarvis-orchestrator',
+        messages,
+        stream: false
+      }
+    });
+    const text = clean(body?.choices?.[0]?.message?.content, 65536);
+    if (!text) throw makeError('HERMES_CHAT_EMPTY_RESPONSE');
+    return {
+      ok: true,
+      provider: 'HERMES_OPENAI_CODEX',
+      model: clean(body?.model, 120) || 'jarvis-orchestrator',
+      text,
+      usage: body?.usage || {},
+      external_effect: false
+    };
+  }
+
   async function startRun(input = {}) {
     const text = clean(input.input, 65536);
     if (!text) throw makeError('HERMES_RUN_INPUT_REQUIRED');
@@ -180,6 +211,7 @@ export function createJarvisHermesCoreClientV1(config = {}) {
     health,
     capabilities,
     toolsets,
+    chatCompletion,
     startRun,
     getRun,
     liveProbe
