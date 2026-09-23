@@ -485,7 +485,9 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
         owner_chat_push_enabled: true,
         owner_chat_push_remote: 'github',
         owner_chat_private_deploy_enabled: true,
-        owner_chat_private_deploy_inbox: '/var/lib/jarvis-maintenance/inbox/pending.tgz'
+        owner_chat_private_deploy_inbox: '/opt/jarvis/owner-deploy-queue/pending.tgz',
+        owner_chat_private_deploy_runtime_repo: '/opt/jarvis/chatgpt-test',
+        owner_chat_private_deploy_runtime_branch: 'factory/jarvis-capability-expansion-v3'
       }, { memory_store: resolvedStore })
     : null;
   const trustedCandidateRecoverer = runnerConfig.program === JARVIS_V3_PROGRAM_ID && runnerConfig.publisher_enabled
@@ -564,8 +566,11 @@ export function jarvisRemoteOperatorManifestV1() {
     owner_chat_auto_push_remote: 'github',
     owner_chat_auto_push_factory_branches_only: true,
     owner_chat_force_push: false,
-    owner_chat_private_deploy_queue: '/var/lib/jarvis-maintenance/inbox/pending.tgz',
-    owner_chat_private_deploy_requires_root_consumer: true,
+    owner_chat_private_deploy_queue: '/opt/jarvis/owner-deploy-queue/pending.tgz',
+    owner_chat_private_deploy_runtime_repo: '/opt/jarvis/chatgpt-test',
+    owner_chat_private_deploy_runtime_branch: 'factory/jarvis-capability-expansion-v3',
+    owner_chat_private_deploy_reuses_existing_maintenance_gate: true,
+    owner_chat_private_deploy_requires_new_root_consumer: false,
     owner_chat_private_deploy_production: false,
     project_mission_target_source: 'SERVER_SIDE_ENV_ONLY',
     project_mission_aurentara_env: 'JARVIS_PROJECT_MISSION_AURENTARA_ENABLED',
