@@ -183,12 +183,15 @@ ln -sfn "$RUNTIME" "$LEGACY_PATH"
 install -d -o jarvis -g jarvis -m 0750 /home/jarvis/.local/bin
 install -o jarvis -g jarvis -m 0750 "$SRC/scripts/jarvis-owner-private-deploy-watch-v1.sh" "$WATCHER"
 
-CRON_NEW="$TMP/crontab"
+CRON_NEW=/tmp/jarvis-owner-finalize-v3-crontab.$
 cat "$CRON_BAK" >"$CRON_NEW"
 grep -v 'jarvis-owner-private-deploy-watch-v1.sh' "$CRON_NEW" >"$CRON_NEW.clean" || true
 mv "$CRON_NEW.clean" "$CRON_NEW"
 printf '%s\n' '* * * * * /home/jarvis/.local/bin/jarvis-owner-private-deploy-watch-v1.sh >>/home/jarvis/.jarvis-owner-deploy-watch.log 2>&1' >>"$CRON_NEW"
+chown jarvis:jarvis "$CRON_NEW"
+chmod 0600 "$CRON_NEW"
 runuser -u jarvis -- crontab "$CRON_NEW"
+rm -f "$CRON_NEW"
 
 runuser -u jarvis -- sudo -n /usr/local/sbin/jarvis-maintenance status >/dev/null
 echo EXISTING_MAINTENANCE_GATE_REUSED=PASS
