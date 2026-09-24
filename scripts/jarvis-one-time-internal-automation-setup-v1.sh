@@ -25,13 +25,13 @@ esac
 install -o root -g root -m 0755 "$SRC/scripts/jarvis-owner-auto-finalization-bootstrap-v3.sh" "$FINALIZER"
 
 TMP="$(mktemp /etc/sudoers.d/.jarvis-internal-automation-v1.XXXXXX)"
-cat >"$TMP" <<'EOF'
+cat >"$TMP" <<EOF
 # JARVIS private/internal maintenance only.
 # No shell, no arbitrary systemctl, no editor, no production/public/DNS/billing actions.
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance install
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance restart
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance status
-jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-owner-finalize-v3 /tmp/jarvis-owner-finalize-v3-src *
+jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-owner-finalize-v3 /tmp/jarvis-owner-finalize-v3-src $EXPECTED_HEAD
 EOF
 chmod 0440 "$TMP"
 /usr/sbin/visudo -cf "$TMP" >/dev/null
@@ -40,7 +40,6 @@ chmod 0440 "$SUDOERS"
 /usr/sbin/visudo -cf /etc/sudoers >/dev/null
 
 runuser -u jarvis -- sudo -n /usr/local/sbin/jarvis-maintenance status >/dev/null
-runuser -u jarvis -- sudo -n "$FINALIZER" "$SRC" "$EXPECTED_HEAD" --help >/dev/null 2>&1 || true
 echo JARVIS_NARROW_NOPASSWD=PASS
 
 exec "$FINALIZER" "$SRC" "$EXPECTED_HEAD"
