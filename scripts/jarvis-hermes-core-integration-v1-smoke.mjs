@@ -52,6 +52,8 @@ assert.equal(status.platform, 'hermes-agent');
 assert.equal(status.version, '9.9.9-test');
 assert.equal(status.run_submission, true);
 assert.equal(status.delegation_tool_available, true);
+assert.equal(status.memory_tool_available, true);
+assert.equal(status.owner_memory_scope_header, 'X-Hermes-Session-Key');
 assert.equal(status.authenticated, true);
 assert.equal(status.external_effect, false);
 assert.equal('api_key' in status, false);
