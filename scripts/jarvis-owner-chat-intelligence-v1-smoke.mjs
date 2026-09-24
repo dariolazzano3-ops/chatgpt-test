@@ -10,7 +10,44 @@ const OWNER_REF = 'jarvis:operator:intelligence-smoke@example.invalid';
 const originalGoal = 'Read-only: inspect the internal parser bug and report the verified root cause.';
 let capturedTask = null;
 
-const store = createMemoryJarvisStoreV1();
+const store = createMemoryJarvisStoreV1([
+  {
+    owner_id: OWNER_ID,
+    owner_ref: OWNER_REF,
+    entry: {
+      schema: 'aurentara.jarvis.memory-entry.v1',
+      namespace: 'jarvis.personal',
+      memory_id: 'jarvis:projects:parser',
+      owner_ref: OWNER_REF,
+      category: 'PROJECTS',
+      subject: 'Internal parser project',
+      value: { language: 'Node.js', priority: 'verify before changing' },
+      source_system: 'jarvis',
+      confidence: 1,
+      status: 'CONFIRMED',
+      sensitivity: 'INTERNAL',
+      updated_at: '2026-09-23T11:00:00.000Z'
+    }
+  },
+  {
+    owner_id: OWNER_ID,
+    owner_ref: OWNER_REF,
+    entry: {
+      schema: 'aurentara.jarvis.memory-entry.v1',
+      namespace: 'jarvis.personal',
+      memory_id: 'jarvis:personal:sensitive',
+      owner_ref: OWNER_REF,
+      category: 'PERSONAL_FACTS',
+      subject: 'Sensitive private note',
+      value: 'must-not-enter-hermes-context',
+      source_system: 'jarvis',
+      confidence: 1,
+      status: 'CONFIRMED',
+      sensitivity: 'SENSITIVE',
+      updated_at: '2026-09-23T11:00:00.000Z'
+    }
+  }
+]);
 const dispatch = await dispatchJarvisOwnerChatJobV1({
   owner_id: OWNER_ID,
   owner_ref: OWNER_REF,
@@ -20,8 +57,12 @@ const dispatch = await dispatchJarvisOwnerChatJobV1({
 assert.equal(dispatch.ok, true);
 
 const intelligence = {
-  plan: async ({ goal }) => {
+  plan: async ({ goal, hermes_session_key, memory_context }) => {
     assert.equal(goal, originalGoal);
+    assert.equal(hermes_session_key, 'jarvis-owner-' + OWNER_ID);
+    assert.ok(memory_context.includes('Internal parser project'));
+    assert.ok(memory_context.includes('verify before changing'));
+    assert.equal(memory_context.includes('must-not-enter-hermes-context'), false);
     return {
       ok: true,
       provider: 'OPENAI_API',
@@ -32,7 +73,9 @@ const intelligence = {
       api_cost_usd: 0.002,
       max_job_cost_usd: 0.25,
       primary_failure_reason: 'HERMES_USAGE_LIMIT',
-      original_goal_authoritative: true
+      original_goal_authoritative: true,
+      hermes_session_scoped: true,
+      memory_context_supplied: true
     };
   }
 };
@@ -87,6 +130,9 @@ assert.equal(result.intelligence_route.model, 'gpt-6-sol');
 assert.equal(result.intelligence_route.api_fallback_used, true);
 assert.equal(result.intelligence_route.api_cost_usd, 0.002);
 assert.equal(result.intelligence_route.primary_failure_reason, 'HERMES_USAGE_LIMIT');
+assert.equal(result.intelligence_route.memory_context_items, 1);
+assert.equal(result.intelligence_route.hermes_session_scoped, true);
+assert.equal(result.intelligence_route.memory_context_supplied, true);
 
 const rows = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 100 });
 const notification = rows.find((row) =>
