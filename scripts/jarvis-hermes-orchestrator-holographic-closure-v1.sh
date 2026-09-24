@@ -68,24 +68,37 @@ echo "HERMES_BIND_MOUNT=PASS"
 
 HUID="$(sudo docker exec "$CID" id -u hermes)"
 HGID="$(sudo docker exec "$CID" id -g hermes)"
+[[ "$HUID" =~ ^[0-9]+$ && "$HGID" =~ ^[0-9]+$ ]] || fail "INVALID_CONTAINER_HERMES_UID_GID" 18
 echo "CONTAINER_HERMES_UID=$HUID"
 echo "CONTAINER_HERMES_GID=$HGID"
 
 sudo docker exec "$CID" test -d "$PROFILE_HOME" \
-  || fail "ORCHESTRATOR_PROFILE_HOME_MISSING" 18
+  || fail "ORCHESTRATOR_PROFILE_HOME_MISSING" 19
 sudo docker exec "$CID" test -f "$PROFILE_HOME/config.yaml" \
-  || fail "ORCHESTRATOR_PROFILE_CONFIG_MISSING" 19
+  || fail "ORCHESTRATOR_PROFILE_CONFIG_MISSING" 20
 
 echo "=== WRITEABILITY PREFLIGHT ==="
 if ! sudo docker exec -u "$HUID:$HGID" "$CID" sh -lc "test -r '$PROFILE_HOME/config.yaml' && test -w '$PROFILE_HOME/config.yaml' && test -w '$PROFILE_HOME'"; then
   echo "PROFILE_ACCESS_AS_CONTAINER_HERMES=FAIL"
-  stat -c 'HOST_PATH=%n OWNER=%U:%G UID=%u GID=%g MODE=%a' "$HOST_HERMES_HOME" "$HOST_HERMES_HOME/profiles/$PROFILE" "$HOST_HERMES_HOME/profiles/$PROFILE/config.yaml" 2>/dev/null || true
-  sudo docker exec "$CID" stat -c 'CONTAINER_PATH=%n OWNER=%U:%G UID=%u GID=%g MODE=%a' /opt/data "$PROFILE_HOME" "$PROFILE_HOME/config.yaml" 2>/dev/null || true
-  fail "CONTAINER_HERMES_CANNOT_WRITE_PROFILE_CONFIG" 20
+  echo "OWNERSHIP_REPAIR_SCOPE=$HOST_HERMES_HOME"
+  echo "OWNERSHIP_REPAIR_TARGET=$HUID:$HGID"
+
+  # The official Hermes Docker runtime writes the bind-mounted /opt/data as its
+  # hermes UID/GID. Earlier host-side diagnostics temporarily changed this tree
+  # to the host jarvis UID, which can make the live gateway unable to persist.
+  sudo chown -R "$HUID:$HGID" "$HOST_HERMES_HOME"
+
+  if ! sudo docker exec -u "$HUID:$HGID" "$CID" sh -lc "test -r '$PROFILE_HOME/config.yaml' && test -w '$PROFILE_HOME/config.yaml' && test -w '$PROFILE_HOME'"; then
+    sudo stat -c 'HOST_PATH=%n UID=%u GID=%g MODE=%a' "$HOST_HERMES_HOME" "$HOST_HERMES_HOME/profiles/$PROFILE" "$HOST_HERMES_HOME/profiles/$PROFILE/config.yaml" 2>/dev/null || true
+    sudo docker exec "$CID" stat -c 'CONTAINER_PATH=%n UID=%u GID=%g MODE=%a' /opt/data "$PROFILE_HOME" "$PROFILE_HOME/config.yaml" 2>/dev/null || true
+    fail "CONTAINER_HERMES_STILL_CANNOT_WRITE_AFTER_OWNERSHIP_REPAIR" 21
+  fi
+
+  echo "OWNERSHIP_REPAIRED_TO_CONTAINER_HERMES=PASS"
 fi
 echo "PROFILE_ACCESS_AS_CONTAINER_HERMES=PASS"
 
-CURRENT_PROVIDER="$(sudo docker exec -u "$HUID:$HGID" "$CID" /opt/hermes/.venv/bin/hermes -p "$PROFILE" config get memory.provider 2>/dev/null | tr -d '\r' | tail -1 | xargs)"
+CURRENT_PROVIDER="$(sudo docker exec -u "$HUID:$HGID" "$CID" /opt/hermes/.venv/bin/hermes -p "$PROFILE" config get memory.provider 2>/dev/null | tr -d '\r' | tail -1 | xargs || true)"
 echo "CURRENT_MEMORY_PROVIDER=${CURRENT_PROVIDER:-unset}"
 
 if [[ "$CURRENT_PROVIDER" != "holographic" ]]; then
@@ -98,7 +111,7 @@ if [[ "$CURRENT_PROVIDER" != "holographic" ]]; then
   CHANGED=1
 
   WRITTEN_PROVIDER="$(sudo docker exec -u "$HUID:$HGID" "$CID" /opt/hermes/.venv/bin/hermes -p "$PROFILE" config get memory.provider 2>/dev/null | tr -d '\r' | tail -1 | xargs)"
-  [[ "$WRITTEN_PROVIDER" == "holographic" ]] || fail "PROFILE_PROVIDER_WRITE_MISMATCH" 21
+  [[ "$WRITTEN_PROVIDER" == "holographic" ]] || fail "PROFILE_PROVIDER_WRITE_MISMATCH" 22
   echo "PROFILE_MEMORY_PROVIDER_WRITTEN=holographic"
 else
   echo "PROFILE_MEMORY_PROVIDER_ALREADY=holographic"
@@ -109,7 +122,7 @@ sudo docker exec -u "$HUID:$HGID" "$CID" /opt/hermes/.venv/bin/hermes -p "$PROFI
 echo "PROFILE_GATEWAY_RESTART=ISSUED"
 
 IP="$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' "$CID" | awk 'NF{print; exit}')"
-[[ -n "$IP" ]] || fail "HERMES_CONTAINER_IP_MISSING" 22
+[[ -n "$IP" ]] || fail "HERMES_CONTAINER_IP_MISSING" 23
 
 HEALTH=0
 for _ in $(seq 1 20); do
@@ -119,11 +132,11 @@ for _ in $(seq 1 20); do
   fi
   sleep 1
 done
-[[ "$HEALTH" == "1" ]] || fail "ORCHESTRATOR_HEALTHCHECK_FAILED" 23
+[[ "$HEALTH" == "1" ]] || fail "ORCHESTRATOR_HEALTHCHECK_FAILED" 24
 echo "ORCHESTRATOR_HEALTH=PASS"
 
 LIVE_PROVIDER="$(sudo docker exec -u "$HUID:$HGID" "$CID" /opt/hermes/.venv/bin/hermes -p "$PROFILE" config get memory.provider 2>/dev/null | tr -d '\r' | tail -1 | xargs)"
-[[ "$LIVE_PROVIDER" == "holographic" ]] || fail "LIVE_PROVIDER_MISMATCH" 24
+[[ "$LIVE_PROVIDER" == "holographic" ]] || fail "LIVE_PROVIDER_MISMATCH" 25
 echo "LIVE_MEMORY_PROVIDER=holographic"
 
 echo "=== PROFILE-SCOPED HOLOGRAPHIC E2E ==="
@@ -179,14 +192,14 @@ print("PROFILE_MEMORY_PREFETCH_NEW_SESSION=PASS")
 PY
 
 test "$(systemctl is-active jarvis-remote-operator.service 2>/dev/null || true)" = "active" \
-  || fail "JARVIS_REMOTE_OPERATOR_NOT_ACTIVE_AFTER_RESTART" 25
+  || fail "JARVIS_REMOTE_OPERATOR_NOT_ACTIVE_AFTER_RESTART" 26
 echo "JARVIS_REMOTE_OPERATOR_POST=ACTIVE"
 
 ps -eo pid,user,group,args --no-headers \
   | grep -F "/opt/hermes/.venv/bin/hermes -p $PROFILE gateway run --replace" \
   | grep -v grep \
   | head -1 >/dev/null \
-  || fail "ORCHESTRATOR_GATEWAY_PROCESS_MISSING_AFTER_RESTART" 26
+  || fail "ORCHESTRATOR_GATEWAY_PROCESS_MISSING_AFTER_RESTART" 27
 echo "ORCHESTRATOR_GATEWAY_PROCESS=RUNNING"
 
 SUCCESS=1
