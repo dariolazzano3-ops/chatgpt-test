@@ -39,7 +39,7 @@ trap rollback EXIT
 [[ -z "$(git -C "$SRC" status --porcelain)" ]] || fail "SOURCE_DIRTY" 15
 [[ -f "$SRC/scripts/jarvis-hermes-orchestrator-holographic-closure-v1.sh" ]] || fail "MEMORY_CLOSURE_SCRIPT_MISSING" 16
 [[ -f "$SRC/scripts/jarvis-astra-codex-review-v1-deploy.sh" ]] || fail "ASTRA_DEPLOY_SCRIPT_MISSING" 17
-[[ -f "$ENV" ]] || fail "REMOTE_OPERATOR_ENV_MISSING" 18
+sudo test -f "$ENV" || fail "REMOTE_OPERATOR_ENV_MISSING" 18
 
 sudo -v
 
@@ -54,13 +54,14 @@ echo "ASTRA_CODE_DEPLOY=PASS"
 echo "=== 3/5 PRE-ACTIVATION TRUTH ==="
 sudo systemctl is-active --quiet "$SERVICE" || fail "REMOTE_OPERATOR_NOT_ACTIVE_BEFORE_FLAG" 19
 for rel in src/jarvis/intelligence-router-v1.js src/jarvis/owner-chat-job-v1.js src/jarvis/http-v1.js; do
-  [[ -f "$RUNTIME/$rel" ]] || fail "LIVE_RUNTIME_FILE_MISSING:$rel" 20
-  [[ "$(sha256sum "$SRC/$rel" | awk '{print $1}')" == "$(sha256sum "$RUNTIME/$rel" | awk '{print $1}')" ]] \
-    || fail "LIVE_RUNTIME_FILE_MISMATCH:$rel" 21
+  sudo test -f "$RUNTIME/$rel" || fail "LIVE_RUNTIME_FILE_MISSING:$rel" 20
+  SOURCE_SHA="$(sha256sum "$SRC/$rel" | awk '{print $1}')"
+  RUNTIME_SHA="$(sudo sha256sum "$RUNTIME/$rel" | awk '{print $1}')"
+  [[ "$SOURCE_SHA" == "$RUNTIME_SHA" ]] || fail "LIVE_RUNTIME_FILE_MISMATCH:$rel" 21
 done
-grep -Fq "astra_post_review_live_supported: true" "$RUNTIME/src/jarvis/intelligence-router-v1.js" \
+sudo grep -Fq "astra_post_review_live_supported: true" "$RUNTIME/src/jarvis/intelligence-router-v1.js" \
   || fail "ASTRA_REVIEW_CODE_MARKER_MISSING" 22
-grep -Fq "JARVIS_ASTRA_POST_REVIEW_ENABLED" "$RUNTIME/src/jarvis/http-v1.js" \
+sudo grep -Fq "JARVIS_ASTRA_POST_REVIEW_ENABLED" "$RUNTIME/src/jarvis/http-v1.js" \
   || fail "ASTRA_HTTP_FLAG_CODE_MARKER_MISSING" 23
 echo "PRE_ACTIVATION_TRUTH=PASS"
 
@@ -105,7 +106,7 @@ done
 
 PID="$(sudo systemctl show "$SERVICE" -p MainPID --value)"
 [[ "$PID" =~ ^[0-9]+$ && "$PID" -gt 1 ]] || fail "REMOTE_OPERATOR_PID_INVALID" 25
-sudo tr '\0' '\n' <"/proc/$PID/environ" 2>/dev/null | grep -qx 'JARVIS_ASTRA_POST_REVIEW_ENABLED=true' \
+sudo sh -c "tr '\\0' '\\n' </proc/$PID/environ" 2>/dev/null | grep -qx 'JARVIS_ASTRA_POST_REVIEW_ENABLED=true' \
   || fail "ASTRA_FLAG_NOT_VISIBLE_IN_LIVE_PROCESS" 26
 
 echo "ASTRA_POST_REVIEW_FLAG=LIVE"
