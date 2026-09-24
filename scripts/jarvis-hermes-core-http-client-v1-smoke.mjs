@@ -22,14 +22,24 @@ const fetchImpl = async (url, init = {}) => {
     return response(200, {
       object: 'hermes.api_server.capabilities',
       platform: 'hermes-agent',
-      features: { run_submission: true }
+      features: { run_submission: true, session_key_header: 'X-Hermes-Session-Key' }
     });
   }
   if (url.endsWith('/v1/toolsets')) {
     return response(200, {
       object: 'list',
       platform: 'api_server',
-      data: [{ name: 'hermes-api-server', enabled: true, tools: ['delegate_task'] }]
+      data: [
+        { name: 'memory', enabled: true, tools: ['memory'] },
+        { name: 'session_search', enabled: true, tools: ['session_search'] }
+      ]
+    });
+  }
+  if (url.endsWith('/v1/chat/completions') && init.method === 'POST') {
+    return response(200, {
+      model: 'jarvis-orchestrator',
+      choices: [{ message: { content: '{"complexity":"LIGHT","rationale":"memory scoped","execution_brief":"do the bounded thing"}' } }],
+      usage: {}
     });
   }
   if (url.endsWith('/v1/runs') && init.method === 'POST') {
@@ -60,12 +70,20 @@ const client = createJarvisHermesCoreClientV1({
 assert.equal(client.configured, true);
 assert.equal((await client.health()).platform, 'hermes-agent');
 assert.equal((await client.capabilities()).features.run_submission, true);
-assert.equal((await client.toolsets()).data[0].tools.includes('delegate_task'), true);
+assert.equal((await client.toolsets()).data.some((row) => row.tools.includes('memory')), true);
+
+const chat = await client.chatCompletion({
+  session_key: 'jarvis:owner:00000000-0000-4000-8000-000000000001',
+  idempotency_key: 'jarvis-memory-scope-1',
+  messages: [{ role: 'user', content: 'remember this safely' }]
+});
+assert.equal(chat.ok, true);
 
 const started = await client.startRun({
   input: 'harmless test',
   session_id: 'jarvis-smoke',
-  idempotency_key: 'jarvis-smoke-1'
+  idempotency_key: 'jarvis-smoke-1',
+  session_key: 'jarvis:owner:00000000-0000-4000-8000-000000000001'
 });
 assert.equal(started.run_id, 'run_abcdef123456');
 
@@ -86,6 +104,9 @@ const healthCall = calls.find((x) => x.url.endsWith('/health'));
 assert.equal(healthCall.init.headers.authorization, undefined);
 for (const call of calls.filter((x) => !x.url.endsWith('/health'))) {
   assert.equal(call.init.headers.authorization, 'Bearer ' + KEY);
+}
+for (const call of calls.filter((x) => x.url.endsWith('/v1/chat/completions') || x.url.endsWith('/v1/runs'))) {
+  assert.equal(call.init.headers['x-hermes-session-key'], 'jarvis:owner:00000000-0000-4000-8000-000000000001');
 }
 assert.equal(JSON.stringify(calls).includes(KEY), true);
 
