@@ -310,11 +310,17 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
       };
     }
 
-    if (!cfg.api_fallback_enabled) {
+    const memoryBoundaryFailure = [
+      'HERMES_OWNER_SCOPE_REQUIRED',
+      'HERMES_TOOLSETS_UNAVAILABLE',
+      'HERMES_MEMORY_TOOLS_NOT_READY',
+      'HERMES_MEMORY_TOOL_BOUNDARY_UNSAFE'
+    ].includes(primary.reason);
+    if (memoryBoundaryFailure || !cfg.api_fallback_enabled) {
       return {
         ok: false,
         schema: 'aurentara.jarvis.intelligence-plan.v1',
-        error: 'JARVIS_AI_API_FALLBACK_DISABLED',
+        error: memoryBoundaryFailure ? 'JARVIS_HERMES_MEMORY_NOT_READY' : 'JARVIS_AI_API_FALLBACK_DISABLED',
         primary_attempted: true,
         primary_failure_reason: primary.reason,
         api_fallback_used: false,
