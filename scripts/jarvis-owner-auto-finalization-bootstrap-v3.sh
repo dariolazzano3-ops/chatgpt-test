@@ -58,6 +58,8 @@ if [[ -f "$DROPIN" ]]; then cp -p "$DROPIN" "$DROPIN_BAK"; DROPIN_EXISTED=1; els
 if [[ -f /opt/jarvis/.config/gh/hosts.yml ]]; then cp -p /opt/jarvis/.config/gh/hosts.yml "$GH_HOSTS_BAK"; GH_HOSTS_EXISTED=1; else : >"$GH_HOSTS_BAK"; fi
 if [[ -f /opt/jarvis/.gitconfig ]]; then cp -p /opt/jarvis/.gitconfig "$GITCONFIG_BAK"; GITCONFIG_EXISTED=1; else : >"$GITCONFIG_BAK"; fi
 if runuser -u jarvis -- crontab -l >"$CRON_BAK" 2>/dev/null; then CRON_EXISTED=1; else : >"$CRON_BAK"; fi
+chown jarvis:jarvis "$CRON_BAK"
+chmod 0600 "$CRON_BAK"
 if [[ -f "$WATCHER" ]]; then cp -p "$WATCHER" "$WATCHER_BAK"; WATCHER_EXISTED=1; else : >"$WATCHER_BAK"; fi
 
 rollback() {
@@ -183,7 +185,7 @@ ln -sfn "$RUNTIME" "$LEGACY_PATH"
 install -d -o jarvis -g jarvis -m 0750 /home/jarvis/.local/bin
 install -o jarvis -g jarvis -m 0750 "$SRC/scripts/jarvis-owner-private-deploy-watch-v1.sh" "$WATCHER"
 
-CRON_NEW=/tmp/jarvis-owner-finalize-v3-crontab.$
+CRON_NEW="$(mktemp /tmp/jarvis-owner-finalize-v3-crontab.XXXXXX)"
 cat "$CRON_BAK" >"$CRON_NEW"
 grep -v 'jarvis-owner-private-deploy-watch-v1.sh' "$CRON_NEW" >"$CRON_NEW.clean" || true
 mv "$CRON_NEW.clean" "$CRON_NEW"
