@@ -7,8 +7,9 @@ EXPECTED_HEAD="${2:-}"
 FEATURE_BRANCH=factory/jarvis-owner-chat-auto-finalize-v1
 RUNTIME_BRANCH=factory/jarvis-capability-expansion-v3
 TARGET=/home/jarvis/claude-worker/workspace/chatgpt-test-owner-runtime-v1
-RUNTIME=/opt/jarvis/chatgpt-test-owner-auto-finalize-v1
-LEGACY_PATH=/opt/jarvis/chatgpt-test
+STAGED_RUNTIME=/opt/jarvis/chatgpt-test-owner-auto-finalize-v1
+RUNTIME=/opt/jarvis/chatgpt-test
+LEGACY_PATH="$RUNTIME"
 MOUNT=/opt/jarvis/owner-chat-repo
 PROJECT=chatgpt-test-owner-runtime-v1
 QUEUE=/opt/jarvis/owner-deploy-queue
@@ -29,7 +30,7 @@ REPO_URL=https://github.com/dariolazzano3-ops/chatgpt-test.git
 [[ -f /home/jarvis/.config/gh/hosts.yml ]] || { echo JARVIS_GITHUB_AUTH_MISSING; exit 17; }
 [[ -x /usr/local/sbin/jarvis-maintenance ]] || { echo MAINTENANCE_GATE_MISSING; exit 18; }
 [[ ! -e "$TARGET" ]] || { echo TARGET_ALREADY_EXISTS; exit 19; }
-[[ ! -e "$RUNTIME" ]] || { echo RUNTIME_ALREADY_EXISTS; exit 20; }
+[[ ! -e "$STAGED_RUNTIME" ]] || { echo STAGED_RUNTIME_ALREADY_EXISTS; exit 20; }
 
 SOURCE_TREE="$(runuser -u jarvis -- git -C "$SRC" rev-parse HEAD^{tree})"
 [[ "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]] || { echo SOURCE_TREE_INVALID; exit 21; }
@@ -49,7 +50,8 @@ WATCHER_EXISTED=0
 LEGACY_MOVED=0
 LEGACY_ARCHIVE=""
 TARGET_CREATED=0
-RUNTIME_CREATED=0
+STAGED_RUNTIME_CREATED=0
+RUNTIME_INSTALLED=0
 QUEUE_CREATED=0
 LIVE_SWITCHED=0
 
@@ -70,7 +72,9 @@ rollback() {
   cp -p "$ENV_BAK" "$ENV" || true
   if [[ "$DROPIN_EXISTED" == 1 ]]; then cp -p "$DROPIN_BAK" "$DROPIN" || true; else rm -f "$DROPIN" || true; fi
 
-  if [[ -L "$LEGACY_PATH" ]]; then rm -f "$LEGACY_PATH" || true; fi
+  if [[ "$RUNTIME_INSTALLED" == 1 && -e "$RUNTIME" ]]; then
+    rm -rf "$RUNTIME" || true
+  fi
   if [[ "$LEGACY_MOVED" == 1 && -n "$LEGACY_ARCHIVE" && -e "$LEGACY_ARCHIVE" ]]; then
     mv "$LEGACY_ARCHIVE" "$LEGACY_PATH" || true
   fi
@@ -102,7 +106,7 @@ rollback() {
   systemctl restart "$SERVICE" || true
 
   [[ "$TARGET_CREATED" == 1 ]] && rm -rf "$TARGET" || true
-  [[ "$RUNTIME_CREATED" == 1 ]] && rm -rf "$RUNTIME" || true
+  [[ "$STAGED_RUNTIME_CREATED" == 1 ]] && rm -rf "$STAGED_RUNTIME" || true
   [[ "$QUEUE_CREATED" == 1 ]] && rm -rf "$QUEUE" || true
 
   rm -rf "$TMP"
@@ -131,13 +135,13 @@ chown -R 11000:11000 "$TARGET"
 chmod -R g+rwX "$TARGET"
 find "$TARGET" -type d -exec chmod g+s {} +
 
-git clone --quiet --no-hardlinks "$SRC" "$RUNTIME"
-RUNTIME_CREATED=1
-git -c safe.directory="$RUNTIME" -C "$RUNTIME" branch -M "$RUNTIME_BRANCH"
-git -c safe.directory="$RUNTIME" -C "$RUNTIME" remote remove origin
-[[ "$(git -c safe.directory="$RUNTIME" -C "$RUNTIME" rev-parse HEAD)" == "$EXPECTED_HEAD" ]]
-[[ "$(git -c safe.directory="$RUNTIME" -C "$RUNTIME" branch --show-current)" == "$RUNTIME_BRANCH" ]]
-chown -R jarvis-operator:jarvis-operator "$RUNTIME"
+git clone --quiet --no-hardlinks "$SRC" "$STAGED_RUNTIME"
+STAGED_RUNTIME_CREATED=1
+git -c safe.directory="$STAGED_RUNTIME" -C "$STAGED_RUNTIME" branch -M "$RUNTIME_BRANCH"
+git -c safe.directory="$STAGED_RUNTIME" -C "$STAGED_RUNTIME" remote remove origin
+[[ "$(git -c safe.directory="$STAGED_RUNTIME" -C "$STAGED_RUNTIME" rev-parse HEAD)" == "$EXPECTED_HEAD" ]]
+[[ "$(git -c safe.directory="$STAGED_RUNTIME" -C "$STAGED_RUNTIME" branch --show-current)" == "$RUNTIME_BRANCH" ]]
+chown -R jarvis-operator:jarvis-operator "$STAGED_RUNTIME"
 
 install -d -o jarvis-operator -g jarvis-worker -m 2770 "$MOUNT"
 [[ -z "$(find "$MOUNT" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]] || { echo OWNER_MOUNT_NOT_EMPTY; false; }
@@ -169,18 +173,22 @@ echo GITHUB_WRITE_AUTH=PASS
 echo "=== 4/8 PRIVATE RUNTIME PREFLIGHT ==="
 PRE_JS='import("./src/jarvis/remote-operator-server-v1.js").then(async m=>{const r=await m.startJarvisRemoteOperatorV1(process.env); console.log("PREFLIGHT_RUNTIME_OK="+String(r.ok)); if(!r.ok){console.log("PREFLIGHT_RUNTIME_ERROR="+String(r.error||"UNKNOWN"));process.exit(1);} if(r.server) await new Promise(x=>r.server.close(x));process.exit(0);}).catch(e=>{console.error("PREFLIGHT_RUNTIME_EXCEPTION="+String(e&&e.message||e));process.exit(1);});'
 PRE_UNIT="jarvis-owner-finalize-v3-preflight-$$"
-/usr/bin/systemd-run --quiet --wait --pipe --collect   --unit="$PRE_UNIT"   --uid=jarvis-operator   -p ProtectHome=yes   -p ProtectSystem=strict   -p PrivateTmp=yes   -p NoNewPrivileges=yes   -p "BindPaths=$TARGET:$MOUNT:rbind"   -p "ReadWritePaths=$RUNTIME"   -p "ReadWritePaths=$MOUNT"   -p "ReadWritePaths=$QUEUE"   -p "ReadOnlyPaths=/etc/jarvis"   -p "EnvironmentFile=$ENV"   -p "WorkingDirectory=$RUNTIME"   -- /usr/bin/env     HOME=/opt/jarvis     XDG_CONFIG_HOME=/opt/jarvis/.config     JARVIS_REMOTE_PORT=8790     JARVIS_CLAUDE_REPO_DIR="$MOUNT"     JARVIS_BRIDGE_PROJECT="$PROJECT"     JARVIS_PROGRAM_RUNNER_ENABLED=off     JARVIS_PROGRAM_RUNNER_AUTO_START=off     JARVIS_OWNER_CHAT_AUTO_FINALIZE=on     JARVIS_PROJECT_MISSION_AURENTARA_ENABLED=off     GIT_CONFIG_COUNT=1     GIT_CONFIG_KEY_0=safe.directory     GIT_CONFIG_VALUE_0="$MOUNT"     /usr/bin/node -e "$PRE_JS"
+/usr/bin/systemd-run --quiet --wait --pipe --collect   --unit="$PRE_UNIT"   --uid=jarvis-operator   -p ProtectHome=yes   -p ProtectSystem=strict   -p PrivateTmp=yes   -p NoNewPrivileges=yes   -p "BindPaths=$TARGET:$MOUNT:rbind"   -p "ReadWritePaths=$STAGED_RUNTIME"   -p "ReadWritePaths=$MOUNT"   -p "ReadWritePaths=$QUEUE"   -p "ReadOnlyPaths=/etc/jarvis"   -p "EnvironmentFile=$ENV"   -p "WorkingDirectory=$STAGED_RUNTIME"   -- /usr/bin/env     HOME=/opt/jarvis     XDG_CONFIG_HOME=/opt/jarvis/.config     JARVIS_REMOTE_PORT=8790     JARVIS_CLAUDE_REPO_DIR="$MOUNT"     JARVIS_BRIDGE_PROJECT="$PROJECT"     JARVIS_PROGRAM_RUNNER_ENABLED=off     JARVIS_PROGRAM_RUNNER_AUTO_START=off     JARVIS_OWNER_CHAT_AUTO_FINALIZE=on     JARVIS_PROJECT_MISSION_AURENTARA_ENABLED=off     GIT_CONFIG_COUNT=1     GIT_CONFIG_KEY_0=safe.directory     GIT_CONFIG_VALUE_0="$MOUNT"     /usr/bin/node -e "$PRE_JS"
 echo PRIVATE_RUNTIME_PREFLIGHT=PASS
 
 echo "=== 5/8 REUSE EXISTING MAINTENANCE GATE ==="
-if [[ -L "$LEGACY_PATH" ]]; then
-  echo LEGACY_RUNTIME_ALREADY_SYMLINKED
-elif [[ -e "$LEGACY_PATH" ]]; then
+if [[ -e "$LEGACY_PATH" || -L "$LEGACY_PATH" ]]; then
   LEGACY_ARCHIVE="/opt/jarvis/chatgpt-test-pre-owner-v3-$(date +%Y%m%d%H%M%S)"
   mv "$LEGACY_PATH" "$LEGACY_ARCHIVE"
   LEGACY_MOVED=1
 fi
-ln -sfn "$RUNTIME" "$LEGACY_PATH"
+mv "$STAGED_RUNTIME" "$RUNTIME"
+STAGED_RUNTIME_CREATED=0
+RUNTIME_INSTALLED=1
+[[ ! -L "$RUNTIME" ]]
+[[ -d "$RUNTIME/.git" ]]
+[[ "$(runuser -u jarvis-operator -- git -C "$RUNTIME" branch --show-current)" == "$RUNTIME_BRANCH" ]]
+[[ "$(runuser -u jarvis-operator -- git -C "$RUNTIME" rev-parse HEAD)" == "$EXPECTED_HEAD" ]]
 
 install -d -o jarvis -g jarvis -m 0750 /home/jarvis/.local/bin
 install -o jarvis -g jarvis -m 0750 "$SRC/scripts/jarvis-owner-private-deploy-watch-v1.sh" "$WATCHER"
