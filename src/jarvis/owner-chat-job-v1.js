@@ -441,6 +441,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     lane: clean(intelligencePlan.lane, 40) || null,
     model: clean(intelligencePlan.model, 120) || null,
     api_fallback_used: intelligencePlan.api_fallback_used === true,
+    hermes_session_scoped: intelligencePlan.hermes_session_scoped === true,
+    memory_context_supplied: intelligencePlan.memory_context_supplied === true,
     api_cost_usd: Number.isFinite(Number(intelligencePlan.api_cost_usd))
       ? Number(intelligencePlan.api_cost_usd)
       : 0,
