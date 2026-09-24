@@ -423,8 +423,17 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         hermesCore.capabilities(),
         hermesCore.toolsets()
       ]);
-      const delegationAvailable = toolsets.data.some((row) =>
-        row?.enabled === true && Array.isArray(row?.tools) && row.tools.includes('delegate_task'));
+      const enabledTools = [...new Set(toolsets.data
+        .filter((row) => row?.enabled === true)
+        .flatMap((row) => Array.isArray(row?.tools) ? row.tools : [])
+        .map((tool) => clean(tool, 120))
+        .filter(Boolean))];
+      const delegationAvailable = enabledTools.includes('delegate_task');
+      const memoryToolAvailable = enabledTools.includes('memory');
+      const sessionSearchAvailable = enabledTools.includes('session_search');
+      const hermesMemoryReady = memoryToolAvailable
+        && sessionSearchAvailable
+        && enabledTools.every((tool) => ['memory', 'session_search'].includes(tool));
       return json({
         ok: true,
         private: true,
@@ -433,7 +442,12 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         platform: 'hermes-agent',
         version: clean(health?.version, 80) || null,
         run_submission: capabilities?.features?.run_submission === true,
+        session_key_header: clean(capabilities?.features?.session_key_header || capabilities?.session_key_header, 120) || null,
         delegation_tool_available: delegationAvailable,
+        memory_tool_available: memoryToolAvailable,
+        session_search_available: sessionSearchAvailable,
+        hermes_memory_ready: hermesMemoryReady,
+        memory_tool_boundary: hermesMemoryReady ? 'MEMORY_ONLY' : 'NOT_READY',
         authenticated: capabilities?.auth?.required === true,
         external_effect: false,
         production_deploy: false,
