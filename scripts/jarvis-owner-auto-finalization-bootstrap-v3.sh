@@ -260,9 +260,10 @@ echo LIVE_OWNER_RUNTIME=PASS
 echo "=== 7/8 REAL PRIVATE MAINTENANCE SMOKE ==="
 SMOKE_ID="bootstrap-live-smoke-$(date +%Y%m%d%H%M%S)"
 SMOKE_STAGE="$(mktemp -d "$TMP/smoke.XXXXXX")"
-mkdir -p "$SMOKE_STAGE/payload/docs/jarvis"
-printf '%s\n' "JARVIS owner private deploy gate live smoke" >"$SMOKE_STAGE/payload/docs/jarvis/owner-private-deploy-live-smoke.txt"
-SMOKE_SHA="$(sha256sum "$SMOKE_STAGE/payload/docs/jarvis/owner-private-deploy-live-smoke.txt" | awk '{print $1}')"
+mkdir -p "$SMOKE_STAGE/payload/scripts"
+cp "$RUNTIME/scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs" "$SMOKE_STAGE/payload/scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs"
+printf '\n// owner private deploy gate live smoke %s\n' "$SMOKE_ID" >>"$SMOKE_STAGE/payload/scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs"
+SMOKE_SHA="$(sha256sum "$SMOKE_STAGE/payload/scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs" | awk '{print $1}')"
 RUNTIME_HEAD_BEFORE="$(runuser -u jarvis-operator -- git -C "$RUNTIME" rev-parse HEAD)"
 cat >"$SMOKE_STAGE/manifest.json" <<EOF
 {
@@ -271,7 +272,7 @@ cat >"$SMOKE_STAGE/manifest.json" <<EOF
   "expected_head": "$RUNTIME_HEAD_BEFORE",
   "files": [
     {
-      "path": "docs/jarvis/owner-private-deploy-live-smoke.txt",
+      "path": "scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs",
       "sha256": "$SMOKE_SHA"
     }
   ],
