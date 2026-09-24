@@ -11,6 +11,22 @@ const originalGoal = 'Read-only: inspect the internal parser bug and report the 
 let capturedTask = null;
 
 const store = createMemoryJarvisStoreV1();
+await store.upsertMemory({
+  owner_id: OWNER_ID,
+  owner_ref: OWNER_REF,
+  entry: {
+    namespace: 'jarvis.personal',
+    owner_ref: OWNER_REF,
+    category: 'PROJECTS',
+    subject: 'internal parser',
+    value: 'Parser work belongs to the private JARVIS repo and must stay read-only for this inspection.',
+    status: 'CONFIRMED',
+    confidence: 1,
+    sensitivity: 'INTERNAL',
+    source_system: 'jarvis',
+    created_at: '2026-09-23T11:00:00.000Z'
+  }
+});
 const dispatch = await dispatchJarvisOwnerChatJobV1({
   owner_id: OWNER_ID,
   owner_ref: OWNER_REF,
@@ -20,8 +36,11 @@ const dispatch = await dispatchJarvisOwnerChatJobV1({
 assert.equal(dispatch.ok, true);
 
 const intelligence = {
-  plan: async ({ goal }) => {
+  plan: async ({ goal, owner_id, memory_items }) => {
     assert.equal(goal, originalGoal);
+    assert.equal(owner_id, OWNER_ID);
+    assert.equal(Array.isArray(memory_items), true);
+    assert.equal(memory_items.some((item) => item.subject === 'internal parser'), true);
     return {
       ok: true,
       provider: 'OPENAI_API',
