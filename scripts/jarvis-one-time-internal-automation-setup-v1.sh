@@ -7,6 +7,7 @@ EXPECTED_HEAD="${2:-}"
 BRANCH=factory/jarvis-owner-chat-auto-finalize-v1
 SUDOERS=/etc/sudoers.d/jarvis-internal-automation-v1
 MAINT=/usr/local/sbin/jarvis-maintenance
+FINALIZER=/usr/local/sbin/jarvis-owner-finalize-v3
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || { echo ROOT_REQUIRED; exit 10; }
 [[ -d "$SRC/.git" ]] || { echo SOURCE_REPO_REQUIRED; exit 11; }
@@ -21,6 +22,8 @@ case "$MODE" in
   *2|*3|*6|*7) echo MAINTENANCE_HELPER_WRITABLE_BY_NONROOT; exit 17 ;;
 esac
 
+install -o root -g root -m 0755 "$SRC/scripts/jarvis-owner-auto-finalization-bootstrap-v3.sh" "$FINALIZER"
+
 TMP="$(mktemp /etc/sudoers.d/.jarvis-internal-automation-v1.XXXXXX)"
 cat >"$TMP" <<'EOF'
 # JARVIS private/internal maintenance only.
@@ -28,6 +31,7 @@ cat >"$TMP" <<'EOF'
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance install
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance restart
 jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-maintenance status
+jarvis ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-owner-finalize-v3 /tmp/jarvis-owner-finalize-v3-src *
 EOF
 chmod 0440 "$TMP"
 /usr/sbin/visudo -cf "$TMP" >/dev/null
@@ -36,6 +40,7 @@ chmod 0440 "$SUDOERS"
 /usr/sbin/visudo -cf /etc/sudoers >/dev/null
 
 runuser -u jarvis -- sudo -n /usr/local/sbin/jarvis-maintenance status >/dev/null
+runuser -u jarvis -- sudo -n "$FINALIZER" "$SRC" "$EXPECTED_HEAD" --help >/dev/null 2>&1 || true
 echo JARVIS_NARROW_NOPASSWD=PASS
 
-bash "$SRC/scripts/jarvis-owner-auto-finalization-bootstrap-v3.sh" "$SRC" "$EXPECTED_HEAD"
+exec "$FINALIZER" "$SRC" "$EXPECTED_HEAD"
