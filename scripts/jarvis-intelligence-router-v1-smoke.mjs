@@ -7,6 +7,16 @@ import {
 
 assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 
+const OWNER_ID = '00000000-0000-4000-8000-000000000001';
+const memoryToolsets = async () => ({
+  object: 'list',
+  platform: 'api_server',
+  data: [
+    { name: 'memory', enabled: true, tools: ['memory'] },
+    { name: 'session_search', enabled: true, tools: ['session_search'] }
+  ]
+});
+
 {
   const calls = [];
   const fetchImpl = async (_url, init) => {
@@ -41,9 +51,13 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 
 {
   let apiCalls = 0;
+  let hermesInput = null;
   const hermes = {
     configured: true,
-    chatCompletion: async () => ({
+    toolsets: memoryToolsets,
+    chatCompletion: async (input) => {
+      hermesInput = input;
+      return ({
       ok: true,
       model: 'jarvis-orchestrator',
       text: JSON.stringify({
@@ -51,7 +65,8 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
         rationale: 'moderate multi-file task',
         execution_brief: 'Inspect the two modules, patch the bug, run focused tests.'
       })
-    })
+    });
+    }
   };
   const openai = {
     configured: true,
@@ -63,19 +78,29 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     api_fallback_enabled: true,
     max_job_cost_usd: 0.25
   });
-  const plan = await router.plan({ goal: 'Fix internal module bug.', request_id: 'r1' });
+  const plan = await router.plan({
+    goal: 'Fix internal module bug.',
+    request_id: 'r1',
+    owner_id: OWNER_ID,
+    memory_items: [{ category: 'PROJECTS', subject: 'JARVIS', value: 'Hermes is the durable memory layer', status: 'CONFIRMED', confidence: 1 }]
+  });
   assert.equal(plan.ok, true);
   assert.equal(plan.provider, 'HERMES_OPENAI_CODEX');
   assert.equal(plan.lane, 'STANDARD');
   assert.equal(plan.api_fallback_used, false);
   assert.equal(plan.api_cost_usd, 0);
   assert.equal(apiCalls, 0);
+  assert.equal(hermesInput.session_key, 'jarvis:owner:' + OWNER_ID);
+  assert.equal(hermesInput.messages.some((m) => String(m.content).includes('Hermes is the durable memory layer')), true);
+  assert.equal(plan.hermes_memory_scope_bound, true);
+  assert.deepEqual(plan.hermes_memory_tools, ['memory', 'session_search']);
 }
 
 {
   const models = [];
   const hermes = {
     configured: true,
+    toolsets: memoryToolsets,
     chatCompletion: async () => ({
       ok: true,
       model: 'jarvis-orchestrator',
@@ -109,7 +134,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     standard_model: 'gpt-6-sol',
     heavy_model: 'gpt-6-astra'
   });
-  const plan = await router.plan({ goal: 'Refactor the internal architecture across several subsystems.', request_id: 'r2' });
+  const plan = await router.plan({ goal: 'Refactor the internal architecture across several subsystems.', request_id: 'r2', owner_id: OWNER_ID });
   assert.equal(plan.ok, true);
   assert.equal(plan.provider, 'OPENAI_API');
   assert.equal(plan.primary_failure_reason, 'HERMES_USAGE_LIMIT');
@@ -130,7 +155,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     openai_client: null,
     api_fallback_enabled: false
   });
-  const plan = await router.plan({ goal: 'Fix X.', request_id: 'r3' });
+  const plan = await router.plan({ goal: 'Fix X.', request_id: 'r3', owner_id: OWNER_ID });
   assert.equal(plan.ok, false);
   assert.equal(plan.error, 'JARVIS_AI_API_FALLBACK_DISABLED');
   assert.equal(plan.primary_failure_reason, 'HERMES_USAGE_LIMIT');
@@ -152,10 +177,33 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     api_fallback_enabled: true,
     max_job_cost_usd: 0.000001
   });
-  const plan = await router.plan({ goal: 'Architect a large subsystem.', request_id: 'r4' });
+  const plan = await router.plan({ goal: 'Architect a large subsystem.', request_id: 'r4', owner_id: OWNER_ID });
   assert.equal(plan.ok, false);
   assert.equal(plan.error, 'JARVIS_AI_BUDGET_BLOCKED');
   assert.equal(apiCalls, 0);
+}
+
+
+{
+  let called = false;
+  const hermes = {
+    configured: true,
+    toolsets: async () => ({
+      object: 'list',
+      platform: 'api_server',
+      data: [{ name: 'hermes-api-server', enabled: true, tools: ['memory', 'session_search', 'terminal'] }]
+    }),
+    chatCompletion: async () => { called = true; return { text: '{}' }; }
+  };
+  const router = createJarvisIntelligenceRouterV1({
+    hermes_client: hermes,
+    openai_client: null,
+    api_fallback_enabled: false
+  });
+  const plan = await router.plan({ goal: 'Use memory only.', request_id: 'r5', owner_id: OWNER_ID });
+  assert.equal(plan.ok, false);
+  assert.equal(plan.primary_failure_reason, 'HERMES_MEMORY_TOOL_BOUNDARY_UNSAFE');
+  assert.equal(called, false);
 }
 
 console.log('JARVIS_INTELLIGENCE_ROUTER_V1_SMOKE_PASS');
