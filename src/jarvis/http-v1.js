@@ -425,6 +425,8 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       ]);
       const delegationAvailable = toolsets.data.some((row) =>
         row?.enabled === true && Array.isArray(row?.tools) && row.tools.includes('delegate_task'));
+      const memoryAvailable = toolsets.data.some((row) =>
+        row?.enabled === true && Array.isArray(row?.tools) && row.tools.includes('memory'));
       return json({
         ok: true,
         private: true,
@@ -434,6 +436,8 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         version: clean(health?.version, 80) || null,
         run_submission: capabilities?.features?.run_submission === true,
         delegation_tool_available: delegationAvailable,
+        memory_tool_available: memoryAvailable,
+        owner_memory_scope_header: 'X-Hermes-Session-Key',
         authenticated: capabilities?.auth?.required === true,
         external_effect: false,
         production_deploy: false,
