@@ -41,9 +41,12 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 
 {
   let apiCalls = 0;
+  let hermesInput = null;
   const hermes = {
     configured: true,
-    chatCompletion: async () => ({
+    chatCompletion: async (input) => {
+      hermesInput = input;
+      return ({
       ok: true,
       model: 'jarvis-orchestrator',
       text: JSON.stringify({
@@ -51,7 +54,8 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
         rationale: 'moderate multi-file task',
         execution_brief: 'Inspect the two modules, patch the bug, run focused tests.'
       })
-    })
+    });
+    }
   };
   const openai = {
     configured: true,
@@ -63,12 +67,22 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     api_fallback_enabled: true,
     max_job_cost_usd: 0.25
   });
-  const plan = await router.plan({ goal: 'Fix internal module bug.', request_id: 'r1' });
+  const plan = await router.plan({
+    goal: 'Fix internal module bug.',
+    request_id: 'r1',
+    hermes_session_key: 'jarvis-owner-11111111-1111-4111-8111-111111111111',
+    memory_context: '- [PROJECTS] Parser project: {"stack":"Node.js"}'
+  });
   assert.equal(plan.ok, true);
   assert.equal(plan.provider, 'HERMES_OPENAI_CODEX');
   assert.equal(plan.lane, 'STANDARD');
   assert.equal(plan.api_fallback_used, false);
   assert.equal(plan.api_cost_usd, 0);
+  assert.equal(plan.hermes_session_scoped, true);
+  assert.equal(plan.memory_context_supplied, true);
+  assert.equal(hermesInput.session_key, 'jarvis-owner-11111111-1111-4111-8111-111111111111');
+  assert.ok(hermesInput.messages.some((row) => row.content.includes('JARVIS_RELEVANT_LONG_TERM_MEMORY')));
+  assert.ok(hermesInput.messages.some((row) => row.content.includes('Parser project')));
   assert.equal(apiCalls, 0);
 }
 
