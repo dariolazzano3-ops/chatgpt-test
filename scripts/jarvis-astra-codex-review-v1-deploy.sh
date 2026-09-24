@@ -31,16 +31,17 @@ STAGE="$(mktemp -d /tmp/jarvis-astra-codex-review-v1.XXXXXX)"
 trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/payload/src/jarvis" "$STAGE/payload/scripts"
 
+# Only files that genuinely differ from the current runtime belong in the
+# maintenance payload. Existing regression tests stay in the CHECKS list
+# below and are executed in-place after patching, but identical files must
+# not be declared as runtime diffs because the maintenance gate compares the
+# manifest file set with the actual git diff set exactly.
 FILES=(
   src/jarvis/intelligence-router-v1.js
   src/jarvis/owner-chat-job-v1.js
   src/jarvis/http-v1.js
-  scripts/jarvis-intelligence-router-v1-smoke.mjs
-  scripts/jarvis-owner-chat-intelligence-v1-smoke.mjs
   scripts/jarvis-astra-codex-post-review-v1-smoke.mjs
   scripts/jarvis-astra-http-flag-v1-smoke.mjs
-  scripts/jarvis-owner-chat-job-v1-smoke.mjs
-  scripts/jarvis-hermes-core-integration-v1-smoke.mjs
 )
 for rel in "${FILES[@]}"; do
   [[ -f "$SRC/$rel" ]] || { echo "SOURCE_FILE_MISSING=$rel"; exit 20; }
