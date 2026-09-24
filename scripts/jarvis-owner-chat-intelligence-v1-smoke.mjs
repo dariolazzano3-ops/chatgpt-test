@@ -16,6 +16,7 @@ await store.upsertMemory({
   owner_ref: OWNER_REF,
   entry: {
     namespace: 'jarvis.personal',
+    memory_id: 'jarvis:projects:internal-parser',
     owner_ref: OWNER_REF,
     category: 'PROJECTS',
     subject: 'internal parser',
