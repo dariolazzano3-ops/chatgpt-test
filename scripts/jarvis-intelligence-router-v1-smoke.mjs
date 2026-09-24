@@ -148,6 +148,7 @@ const memoryToolsets = async () => ({
 {
   const hermes = {
     configured: true,
+    toolsets: memoryToolsets,
     chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' })
   };
   const router = createJarvisIntelligenceRouterV1({
@@ -165,6 +166,7 @@ const memoryToolsets = async () => ({
   let apiCalls = 0;
   const hermes = {
     configured: true,
+    toolsets: memoryToolsets,
     chatCompletion: async () => ({ text: 'HTTP 429 usage limit reached' })
   };
   const openai = {
