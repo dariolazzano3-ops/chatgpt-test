@@ -236,6 +236,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   let finalReason = null;
   let finalEvidenceId = null;
   let finalVerification = null;
+  let finalAstraPostReview = null;
+  let astraReviewApiCostUsd = 0;
   let finalization = null;
   let intelligencePlan = null;
   let intelligenceFailed = false;
@@ -389,10 +391,86 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     });
 
     if (systemVerified) {
+      finalVerification = verification;
+
+      if (deps.astra_post_review_enabled === true) {
+        if (!deps.intelligence_router || typeof deps.intelligence_router.review !== 'function') {
+          finalStatus = 'FAILED';
+          finalReason = 'ASTRA_POST_REVIEW_NOT_BOUND';
+          const attemptRecord = attemptChain[attemptChain.length - 1];
+          if (attemptRecord) attemptRecord.astra_post_review = { ok: false, error: finalReason };
+          break;
+        }
+
+        try {
+          finalAstraPostReview = await deps.intelligence_router.review({
+            goal: originalGoal,
+            execution_brief: intelligencePlan?.execution_brief || '',
+            verification,
+            system_verified: true,
+            request_id: attemptRequestId,
+            hermes_session_key: 'jarvis-owner-' + ownerId,
+            memory_context: hermesMemoryContext
+          });
+        } catch (error) {
+          finalAstraPostReview = {
+            ok: false,
+            error: clean(error?.code || 'ASTRA_POST_REVIEW_FAILED', 160)
+          };
+        }
+
+        astraReviewApiCostUsd += Number.isFinite(Number(finalAstraPostReview?.api_cost_usd))
+          ? Number(finalAstraPostReview.api_cost_usd)
+          : 0;
+
+        const attemptRecord = attemptChain[attemptChain.length - 1];
+        if (attemptRecord) {
+          attemptRecord.astra_post_review = {
+            ok: finalAstraPostReview?.ok === true,
+            provider: clean(finalAstraPostReview?.provider, 80) || null,
+            model: clean(finalAstraPostReview?.model, 120) || null,
+            decision: clean(finalAstraPostReview?.decision, 20) || null,
+            rationale: clean(finalAstraPostReview?.rationale, 500) || null,
+            api_fallback_used: finalAstraPostReview?.api_fallback_used === true,
+            error: clean(finalAstraPostReview?.error, 160) || null
+          };
+        }
+
+        if (!finalAstraPostReview?.ok) {
+          finalStatus = 'FAILED';
+          finalReason = clean(finalAstraPostReview?.error || 'ASTRA_POST_REVIEW_FAILED', 200);
+          break;
+        }
+
+        if (finalAstraPostReview.decision === 'BLOCK') {
+          finalStatus = 'FAILED';
+          finalReason = 'ASTRA_POST_REVIEW_BLOCK:' + clean(finalAstraPostReview.rationale || 'BLOCKED', 160);
+          break;
+        }
+
+        if (finalAstraPostReview.decision === 'REPAIR') {
+          finalReason = 'ASTRA_POST_REVIEW_REPAIR:' + clean(finalAstraPostReview.rationale || 'REPAIR_REQUIRED', 160);
+          if (attemptNumber >= maxAttempts) {
+            finalStatus = 'FAILED';
+            break;
+          }
+          const repairBrief = clean(finalAstraPostReview.repair_brief, 5000)
+            || 'Re-check the original owner goal against the verified implementation and repair the semantic mismatch without broadening scope.';
+          attemptGoal = `${baseExecutionGoal}\n\n[ASTRA POST REVIEW REPAIR ${attemptNumber + 1}/${maxAttempts}]\n${repairBrief}\n\nThe original owner goal remains authoritative. Do not broaden permissions, scope, or external effects.`;
+          attemptNumber += 1;
+          continue;
+        }
+
+        if (finalAstraPostReview.decision !== 'PASS') {
+          finalStatus = 'FAILED';
+          finalReason = 'ASTRA_POST_REVIEW_INVALID_DECISION';
+          break;
+        }
+      }
+
       finalStatus = 'COMPLETE';
       finalReason = null;
       finalEvidenceId = verificationState.evidence_id || mission.claude_execution?.evidence?.evidence_id || null;
-      finalVerification = verification;
       break;
     }
 
@@ -436,6 +514,11 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
   const intelligenceRoute = intelligencePlan ? {
     memory_context_items: hermesMemoryItems,
+    astra_post_review_enabled: deps.astra_post_review_enabled === true,
+    astra_post_review_api_cost_usd: astraReviewApiCostUsd,
+    astra_post_review_decision: clean(finalAstraPostReview?.decision, 20) || null,
+    astra_post_review_provider: clean(finalAstraPostReview?.provider, 80) || null,
+    astra_post_review_model: clean(finalAstraPostReview?.model, 120) || null,
     ok: intelligencePlan.ok === true,
     provider: clean(intelligencePlan.provider, 80) || null,
     lane: clean(intelligencePlan.lane, 40) || null,
@@ -481,12 +564,18 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       repair_attempts: attemptNumber,
       attempt_chain: attemptChain,
       intelligence_route: intelligenceRoute,
+      astra_post_review: finalAstraPostReview,
       finalization,
       notification: buildNotificationText(finalStatus, title, finalReason, attemptNumber)
     },
     approval: { required: false, explicit: false, actor_type: 'SYSTEM', gate_status: 'OWNER_CHAT_JOB_NOTIFICATION' },
-    cost: intelligenceRoute?.api_cost_usd > 0
-      ? { estimated_eur: null, actual_eur: null, actual_usd: intelligenceRoute.api_cost_usd, currency: 'USD' }
+    cost: ((intelligenceRoute?.api_cost_usd || 0) + astraReviewApiCostUsd) > 0
+      ? {
+          estimated_eur: null,
+          actual_eur: null,
+          actual_usd: (intelligenceRoute?.api_cost_usd || 0) + astraReviewApiCostUsd,
+          currency: 'USD'
+        }
       : { estimated_eur: 0, actual_eur: 0 },
     memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
   });
@@ -502,6 +591,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     repair_attempts: attemptNumber,
     attempt_chain: attemptChain,
     intelligence_route: intelligenceRoute,
+    astra_post_review: finalAstraPostReview,
     finalization,
     acceptance_ref: null,
     evidence_id: finalEvidenceId,
@@ -531,6 +621,9 @@ export function jarvisOwnerChatJobManifestV1() {
     repair_uses_fresh_request_id_per_attempt: true,
     notification_grouped_under_original_request_id: true,
     fails_closed_without_claude_bridge: true,
+    astra_post_review_optional_gate_supported: true,
+    astra_post_review_repair_reuses_existing_bounded_attempt_loop: true,
+    astra_post_review_cannot_override_failed_system_verification: true,
     worker_safe: true,
     production_deploy: false,
     hamyren_data_flow: false
