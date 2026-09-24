@@ -84,6 +84,7 @@
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
+import { retrieveJarvisMemoryV1 } from './memory-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -238,12 +239,40 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   let finalization = null;
   let intelligencePlan = null;
   let intelligenceFailed = false;
+  let hermesMemoryContext = '';
+  let hermesMemoryItems = 0;
+
+  if (typeof deps.memory_store.loadMemory === 'function') {
+    try {
+      const allMemory = await deps.memory_store.loadMemory({ owner_id: ownerId, owner_ref: ownerRef, limit: 200 });
+      const recalled = retrieveJarvisMemoryV1(allMemory, originalGoal, {
+        owner_ref: ownerRef,
+        allow_sensitive: false,
+        max_items: 8
+      });
+      const memoryLines = (recalled.items || []).map((entry) => {
+        const category = clean(entry.category, 80);
+        const subject = clean(entry.subject, 240);
+        let value = '';
+        try { value = clean(JSON.stringify(entry.value ?? null), 700); }
+        catch { value = clean(String(entry.value ?? ''), 700); }
+        return '- [' + category + '] ' + subject + ': ' + value;
+      });
+      hermesMemoryItems = memoryLines.length;
+      hermesMemoryContext = clean(memoryLines.join('\n'), 6000);
+    } catch {
+      hermesMemoryContext = '';
+      hermesMemoryItems = 0;
+    }
+  }
 
   if (deps.intelligence_router && typeof deps.intelligence_router.plan === 'function') {
     try {
       intelligencePlan = await deps.intelligence_router.plan({
         goal: originalGoal,
-        request_id: requestId
+        request_id: requestId,
+        hermes_session_key: 'jarvis-owner-' + ownerId,
+        memory_context: hermesMemoryContext
       });
     } catch (error) {
       intelligencePlan = {
@@ -406,6 +435,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   }
 
   const intelligenceRoute = intelligencePlan ? {
+    memory_context_items: hermesMemoryItems,
     ok: intelligencePlan.ok === true,
     provider: clean(intelligencePlan.provider, 80) || null,
     lane: clean(intelligencePlan.lane, 40) || null,
