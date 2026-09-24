@@ -29,7 +29,14 @@ const fetchImpl = async (url, init = {}) => {
     return response(200, {
       object: 'list',
       platform: 'api_server',
-      data: [{ name: 'hermes-api-server', enabled: true, tools: ['delegate_task'] }]
+      data: [{ name: 'hermes-api-server', enabled: true, tools: ['delegate_task', 'memory'] }]
+    });
+  }
+  if (url.endsWith('/v1/chat/completions') && init.method === 'POST') {
+    return response(200, {
+      model: 'jarvis-orchestrator',
+      choices: [{ message: { content: '{"complexity":"STANDARD","execution_brief":"Use remembered owner context."}' } }],
+      usage: {}
     });
   }
   if (url.endsWith('/v1/runs') && init.method === 'POST') {
@@ -62,6 +69,13 @@ assert.equal((await client.health()).platform, 'hermes-agent');
 assert.equal((await client.capabilities()).features.run_submission, true);
 assert.equal((await client.toolsets()).data[0].tools.includes('delegate_task'), true);
 
+const chat = await client.chatCompletion({
+  session_key: 'jarvis-owner-11111111-1111-4111-8111-111111111111',
+  idempotency_key: 'jarvis-memory-smoke-1',
+  messages: [{ role: 'user', content: 'Use my remembered project context.' }]
+});
+assert.equal(chat.ok, true);
+
 const started = await client.startRun({
   input: 'harmless test',
   session_id: 'jarvis-smoke',
@@ -84,6 +98,8 @@ assert.deepEqual(probe, {
 
 const healthCall = calls.find((x) => x.url.endsWith('/health'));
 assert.equal(healthCall.init.headers.authorization, undefined);
+const chatCall = calls.find((x) => x.url.endsWith('/v1/chat/completions'));
+assert.equal(chatCall.init.headers['x-hermes-session-key'], 'jarvis-owner-11111111-1111-4111-8111-111111111111');
 for (const call of calls.filter((x) => !x.url.endsWith('/health'))) {
   assert.equal(call.init.headers.authorization, 'Bearer ' + KEY);
 }
