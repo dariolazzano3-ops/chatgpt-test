@@ -84,6 +84,7 @@
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
+import { retrieveJarvisMemoryV1 } from './memory-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -240,10 +241,26 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   let intelligenceFailed = false;
 
   if (deps.intelligence_router && typeof deps.intelligence_router.plan === 'function') {
+    let memoryItems = [];
+    if (typeof deps.memory_store.loadMemory === 'function') {
+      try {
+        const memoryRows = await deps.memory_store.loadMemory({ owner_id: ownerId, owner_ref: ownerRef, limit: 200 });
+        const retrieved = retrieveJarvisMemoryV1(memoryRows, originalGoal, {
+          owner_ref: ownerRef,
+          max_items: 12
+        });
+        if (retrieved?.ok && Array.isArray(retrieved.items)) memoryItems = retrieved.items;
+      } catch {
+        memoryItems = [];
+      }
+    }
     try {
       intelligencePlan = await deps.intelligence_router.plan({
         goal: originalGoal,
-        request_id: requestId
+        request_id: requestId,
+        owner_id: ownerId,
+        owner_ref: ownerRef,
+        memory_items: memoryItems
       });
     } catch (error) {
       intelligencePlan = {
