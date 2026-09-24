@@ -100,4 +100,5 @@ if [[ "$STATUS" == DEPLOYED ]]; then
   exit 0
 fi
 echo "OWNER_DEPLOY_WATCH_FAILED request_id=$REQUEST_ID rc=$RC" >&2
+printf '%s\n' "$OUT" | grep -E '^(MAINTENANCE_|RUNTIME_|SERVICE_|fatal:|error:|Error:|FAILED|FAIL)' | tail -80 >&2 || true
 exit 1
