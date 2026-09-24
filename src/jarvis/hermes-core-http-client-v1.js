@@ -86,7 +86,8 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       accept: 'application/json',
       ...(options.auth === false ? {} : { authorization: 'Bearer ' + apiKey }),
       ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
-      ...(options.idempotency_key ? { 'idempotency-key': options.idempotency_key } : {})
+      ...(options.idempotency_key ? { 'idempotency-key': options.idempotency_key } : {}),
+      ...(options.session_key ? { 'x-hermes-session-key': clean(options.session_key, 240) } : {})
     };
     let response;
     try {
@@ -143,6 +144,7 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       method: 'POST',
       expected: [200],
       idempotency_key: clean(input.idempotency_key, 255) || undefined,
+      session_key: clean(input.session_key, 240) || undefined,
       body: {
         model: clean(input.model, 120) || 'jarvis-orchestrator',
         messages,
@@ -170,6 +172,7 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       method: 'POST',
       expected: [202],
       idempotency_key: idempotencyKey || undefined,
+      session_key: clean(input.session_key, 240) || undefined,
       body: { input: text, ...(sessionId ? { session_id: sessionId } : {}) }
     });
     if (!RUN_ID_RE.test(clean(body?.run_id, 120)) || body?.status !== 'started') {
