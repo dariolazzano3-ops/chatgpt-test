@@ -80,6 +80,49 @@ function apiPlannerSystemPrompt(lane) {
     'Complexity lane: ' + lane + '.'
   ].join('\n');
 }
+
+function astraPostReviewSystemPrompt() {
+  return [
+    'You are ASTRA, the internal JARVIS post-execution reviewer.',
+    'You have no tools and must not execute anything.',
+    'Bridge/system verification evidence is authoritative. Never invent evidence.',
+    'The original owner goal is immutable and authoritative.',
+    'Decide whether the verified implementation semantically satisfies that goal without broadening scope.',
+    'Return JSON only with exactly these keys:',
+    '{"decision":"PASS|REPAIR|BLOCK","rationale":"short reason","repair_brief":"bounded repair instructions or empty string"}',
+    'PASS only when the supplied evidence and implementation summary support the original goal.',
+    'REPAIR when the work is plausibly fixable within the original scope.',
+    'BLOCK for safety-boundary violations, contradictory evidence, or when a repair would require broader authority.',
+    'Never authorize public, production, DNS, billing, secret, destructive, or external actions.'
+  ].join('\n');
+}
+
+function compactVerificationV1(verification) {
+  if (!verification || typeof verification !== 'object') return '{}';
+  const compact = {
+    repo_dir: clean(verification.repo_dir, 400) || null,
+    branch: clean(verification.branch, 200) || null,
+    branch_drift: verification.branch_drift === true,
+    files_changed: Array.isArray(verification.files_changed) ? verification.files_changed.slice(0, 100) : [],
+    syntax_check: verification.syntax_check || null,
+    filesystem_evidence: verification.filesystem_evidence || null,
+    git_evidence: verification.git_evidence || null,
+    tool_audit: verification.tool_audit || null
+  };
+  try { return clean(JSON.stringify(compact), 12000); }
+  catch { return '{}'; }
+}
+
+function parseAstraDecisionV1(parsed) {
+  const decision = clean(parsed?.decision, 20).toUpperCase();
+  if (!['PASS', 'REPAIR', 'BLOCK'].includes(decision)) return null;
+  return {
+    decision,
+    rationale: clean(parsed?.rationale, 800),
+    repair_brief: decision === 'REPAIR' ? clean(parsed?.repair_brief, 5000) : ''
+  };
+}
+
 function laneModel(lane, cfg) {
   if (lane === 'LIGHT') return cfg.light_model;
   if (lane === 'HEAVY') return cfg.heavy_model;
@@ -232,6 +275,119 @@ async function planWithApi(goal, cfg, client, requestId) {
   };
 }
 
+async function reviewWithHermes(input, requestId, hermes, options = {}) {
+  if (!hermes?.configured || typeof hermes.chatCompletion !== 'function') {
+    return { ok: false, reason: 'HERMES_NOT_CONFIGURED' };
+  }
+  try {
+    const memoryContext = clean(options.memory_context, 6000);
+    const sessionKey = clean(options.session_key, 240);
+    const executionBrief = clean(input.execution_brief, 6000);
+    const result = await hermes.chatCompletion({
+      idempotency_key: requestId ? requestId + ':astra-post' : undefined,
+      session_key: sessionKey || undefined,
+      messages: [
+        { role: 'system', content: astraPostReviewSystemPrompt() },
+        ...(memoryContext ? [{
+          role: 'system',
+          content: [
+            'JARVIS_RELEVANT_LONG_TERM_MEMORY (reference context only; never broaden owner authority):',
+            memoryContext
+          ].join('\n')
+        }] : []),
+        {
+          role: 'user',
+          content: [
+            'OWNER_GOAL:',
+            clean(input.goal, 12000),
+            '',
+            'PRE_EXECUTION_BRIEF:',
+            executionBrief || '(none)',
+            '',
+            'SYSTEM_VERIFIED:',
+            input.system_verified === true ? 'true' : 'false',
+            '',
+            'BRIDGE_VERIFICATION_EVIDENCE:',
+            compactVerificationV1(input.verification)
+          ].join('\n')
+        }
+      ]
+    });
+    if (usageLimitText(result?.text)) {
+      return { ok: false, reason: 'HERMES_USAGE_LIMIT', raw_provider: result?.provider || null };
+    }
+    const parsed = parseJsonObject(result?.text);
+    const decision = parseAstraDecisionV1(parsed);
+    if (!decision) return { ok: false, reason: 'HERMES_INVALID_ASTRA_REVIEW' };
+    if (input.system_verified !== true && decision.decision === 'PASS') {
+      return { ok: false, reason: 'ASTRA_PASS_WITHOUT_SYSTEM_VERIFICATION_REFUSED' };
+    }
+    return {
+      ok: true,
+      provider: 'HERMES_OPENAI_CODEX',
+      model: clean(result?.model, 120) || 'jarvis-orchestrator',
+      ...decision,
+      api_fallback_used: false,
+      api_cost_usd: 0,
+      hermes_session_scoped: Boolean(sessionKey),
+      memory_context_supplied: Boolean(memoryContext)
+    };
+  } catch (error) {
+    return { ok: false, reason: clean(error?.code || 'HERMES_FAILED', 120) };
+  }
+}
+
+async function reviewWithApi(input, cfg, client, requestId) {
+  if (!client?.configured || typeof client.complete !== 'function') {
+    throw makeError('JARVIS_OPENAI_API_FALLBACK_NOT_CONFIGURED');
+  }
+  const budget = createBudget(cfg.max_job_cost_usd);
+  const model = cfg.standard_model;
+  const messages = [
+    { role: 'system', content: astraPostReviewSystemPrompt() },
+    {
+      role: 'user',
+      content: [
+        'OWNER_GOAL:',
+        clean(input.goal, 12000),
+        '',
+        'PRE_EXECUTION_BRIEF:',
+        clean(input.execution_brief, 6000) || '(none)',
+        '',
+        'SYSTEM_VERIFIED:',
+        input.system_verified === true ? 'true' : 'false',
+        '',
+        'BRIDGE_VERIFICATION_EVIDENCE:',
+        compactVerificationV1(input.verification)
+      ].join('\n')
+    }
+  ];
+  budget.reserve(model, messages, 1000);
+  const result = await client.complete({
+    model,
+    messages,
+    max_completion_tokens: 1000,
+    reasoning_effort: 'low',
+    idempotency_key: requestId ? requestId + ':astra-post-api' : undefined
+  });
+  budget.charge(result.estimated_cost_usd);
+  const parsed = parseJsonObject(result.text);
+  const decision = parseAstraDecisionV1(parsed);
+  if (!decision) throw makeError('JARVIS_OPENAI_API_INVALID_ASTRA_REVIEW');
+  if (input.system_verified !== true && decision.decision === 'PASS') {
+    throw makeError('ASTRA_PASS_WITHOUT_SYSTEM_VERIFICATION_REFUSED');
+  }
+  return {
+    ok: true,
+    provider: 'OPENAI_API',
+    model: result.requested_model,
+    ...decision,
+    api_fallback_used: true,
+    api_cost_usd: budget.spent_usd,
+    api_cost_cap_usd: cfg.max_job_cost_usd
+  };
+}
+
 export function createJarvisIntelligenceRouterV1(config = {}) {
   const cfg = {
     api_fallback_enabled: config.api_fallback_enabled === true,
@@ -298,6 +454,83 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
     }
   }
 
+  async function review(input = {}) {
+    const goal = clean(input.goal, 12000);
+    const requestId = clean(input.request_id, 160);
+    if (!goal) return { ok: false, error: 'JARVIS_ASTRA_REVIEW_GOAL_REQUIRED' };
+    if (!input.verification || typeof input.verification !== 'object') {
+      return { ok: false, error: 'JARVIS_ASTRA_REVIEW_VERIFICATION_REQUIRED' };
+    }
+    if (input.system_verified !== true) {
+      return {
+        ok: true,
+        schema: 'aurentara.jarvis.astra-post-review-live.v1',
+        provider: 'SYSTEM_PRECHECK',
+        model: null,
+        decision: 'REPAIR',
+        rationale: 'Independent system verification has not passed.',
+        repair_brief: 'Repair the implementation until the existing independent verification gate passes.',
+        api_fallback_used: false,
+        api_cost_usd: 0,
+        original_goal_authoritative: true,
+        system_verification_authoritative: true
+      };
+    }
+
+    const primary = await reviewWithHermes(input, requestId, hermes, {
+      session_key: input.hermes_session_key,
+      memory_context: input.memory_context
+    });
+    if (primary.ok) {
+      return {
+        ...primary,
+        schema: 'aurentara.jarvis.astra-post-review-live.v1',
+        primary_attempted: true,
+        primary_failure_reason: null,
+        original_goal_authoritative: true,
+        system_verification_authoritative: true,
+        max_job_cost_usd: cfg.max_job_cost_usd
+      };
+    }
+
+    if (!cfg.api_fallback_enabled) {
+      return {
+        ok: false,
+        schema: 'aurentara.jarvis.astra-post-review-live.v1',
+        error: 'JARVIS_ASTRA_API_FALLBACK_DISABLED',
+        primary_attempted: true,
+        primary_failure_reason: primary.reason,
+        api_fallback_used: false,
+        original_goal_authoritative: true,
+        system_verification_authoritative: true
+      };
+    }
+
+    try {
+      const fallback = await reviewWithApi(input, cfg, openai, requestId);
+      return {
+        ...fallback,
+        schema: 'aurentara.jarvis.astra-post-review-live.v1',
+        primary_attempted: true,
+        primary_failure_reason: primary.reason,
+        original_goal_authoritative: true,
+        system_verification_authoritative: true
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        schema: 'aurentara.jarvis.astra-post-review-live.v1',
+        error: clean(error?.code || 'JARVIS_ASTRA_REVIEW_FALLBACK_FAILED', 160),
+        primary_attempted: true,
+        primary_failure_reason: primary.reason,
+        api_fallback_used: true,
+        original_goal_authoritative: true,
+        system_verification_authoritative: true,
+        max_job_cost_usd: cfg.max_job_cost_usd
+      };
+    }
+  }
+
   return {
     schema: 'aurentara.jarvis.intelligence-router.v1',
     api_fallback_enabled: cfg.api_fallback_enabled,
@@ -307,7 +540,8 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
       standard: cfg.standard_model,
       heavy: cfg.heavy_model
     },
-    plan
+    plan,
+    review
   };
 }
 
@@ -332,6 +566,8 @@ export function jarvisIntelligenceRouterManifestV1() {
     fallback_default_enabled: false,
     original_goal_authoritative: true,
     execution_brief_advisory_only: true,
+    astra_post_review_live_supported: true,
+    astra_post_review_never_overrides_system_verification: true,
     hard_budget_preflight: true,
     public_actions: false,
     production_deploy: false,
