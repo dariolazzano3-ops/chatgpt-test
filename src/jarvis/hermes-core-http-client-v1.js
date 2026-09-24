@@ -6,6 +6,16 @@ const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const RUN_ID_RE = /^run_[0-9a-f]+$/i;
 const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_RESPONSE_CHARS = 2_000_000;
+const MAX_SESSION_KEY_CHARS = 256;
+
+function validSessionKey(value) {
+  const key = clean(value, MAX_SESSION_KEY_CHARS + 1);
+  return key.length > 0
+    && key.length <= MAX_SESSION_KEY_CHARS
+    && !/[\r\n\x00]/.test(key)
+    ? key
+    : '';
+}
 
 function isPrivateIpv4(host) {
   const m = String(host || '').match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -86,7 +96,8 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       accept: 'application/json',
       ...(options.auth === false ? {} : { authorization: 'Bearer ' + apiKey }),
       ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
-      ...(options.idempotency_key ? { 'idempotency-key': options.idempotency_key } : {})
+      ...(options.idempotency_key ? { 'idempotency-key': options.idempotency_key } : {}),
+      ...(validSessionKey(options.session_key) ? { 'x-hermes-session-key': validSessionKey(options.session_key) } : {})
     };
     let response;
     try {
@@ -143,6 +154,7 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       method: 'POST',
       expected: [200],
       idempotency_key: clean(input.idempotency_key, 255) || undefined,
+      session_key: validSessionKey(input.session_key) || undefined,
       body: {
         model: clean(input.model, 120) || 'jarvis-orchestrator',
         messages,
@@ -170,6 +182,7 @@ export function createJarvisHermesCoreClientV1(config = {}) {
       method: 'POST',
       expected: [202],
       idempotency_key: idempotencyKey || undefined,
+      session_key: validSessionKey(input.session_key) || undefined,
       body: { input: text, ...(sessionId ? { session_id: sessionId } : {}) }
     });
     if (!RUN_ID_RE.test(clean(body?.run_id, 120)) || body?.status !== 'started') {
