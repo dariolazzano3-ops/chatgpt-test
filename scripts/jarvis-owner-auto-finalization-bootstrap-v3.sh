@@ -22,16 +22,16 @@ REPO_URL=https://github.com/dariolazzano3-ops/chatgpt-test.git
 [[ ${EUID:-$(id -u)} -eq 0 ]] || { echo ROOT_REQUIRED; exit 10; }
 [[ -d "$SRC/.git" ]] || { echo SOURCE_REPO_REQUIRED; exit 11; }
 [[ "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]] || { echo EXPECTED_HEAD_INVALID; exit 12; }
-[[ "$(git -c safe.directory="$SRC" -C "$SRC" rev-parse HEAD)" == "$EXPECTED_HEAD" ]] || { echo SOURCE_HEAD_MISMATCH; exit 13; }
-[[ "$(git -c safe.directory="$SRC" -C "$SRC" branch --show-current)" == "$FEATURE_BRANCH" ]] || { echo SOURCE_BRANCH_MISMATCH; exit 14; }
-[[ -z "$(git -c safe.directory="$SRC" -C "$SRC" status --porcelain)" ]] || { echo SOURCE_DIRTY; exit 15; }
+[[ "$(runuser -u jarvis -- git -C "$SRC" rev-parse HEAD)" == "$EXPECTED_HEAD" ]] || { echo SOURCE_HEAD_MISMATCH; exit 13; }
+[[ "$(runuser -u jarvis -- git -C "$SRC" branch --show-current)" == "$FEATURE_BRANCH" ]] || { echo SOURCE_BRANCH_MISMATCH; exit 14; }
+[[ -z "$(runuser -u jarvis -- git -C "$SRC" status --porcelain)" ]] || { echo SOURCE_DIRTY; exit 15; }
 [[ -f "$ENV" ]] || { echo ENV_MISSING; exit 16; }
 [[ -f /home/jarvis/.config/gh/hosts.yml ]] || { echo JARVIS_GITHUB_AUTH_MISSING; exit 17; }
 [[ -x /usr/local/sbin/jarvis-maintenance ]] || { echo MAINTENANCE_GATE_MISSING; exit 18; }
 [[ ! -e "$TARGET" ]] || { echo TARGET_ALREADY_EXISTS; exit 19; }
 [[ ! -e "$RUNTIME" ]] || { echo RUNTIME_ALREADY_EXISTS; exit 20; }
 
-SOURCE_TREE="$(git -c safe.directory="$SRC" -C "$SRC" rev-parse HEAD^{tree})"
+SOURCE_TREE="$(runuser -u jarvis -- git -C "$SRC" rev-parse HEAD^{tree})"
 [[ "$SOURCE_TREE" =~ ^[0-9a-f]{40}$ ]] || { echo SOURCE_TREE_INVALID; exit 21; }
 
 ENV_BAK="$(mktemp /etc/jarvis/.owner-finalize-v3-env.XXXXXX)"
