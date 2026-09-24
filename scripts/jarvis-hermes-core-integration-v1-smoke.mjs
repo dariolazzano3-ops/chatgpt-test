@@ -15,12 +15,15 @@ const hermes = {
     object: 'hermes.api_server.capabilities',
     platform: 'hermes-agent',
     auth: { type: 'bearer', required: true },
-    features: { run_submission: true }
+    features: { run_submission: true, session_key_header: 'X-Hermes-Session-Key' }
   }),
   toolsets: async () => ({
     object: 'list',
     platform: 'api_server',
-    data: [{ name: 'hermes-api-server', enabled: true, tools: ['delegate_task', 'memory'] }]
+    data: [
+      { name: 'memory', enabled: true, tools: ['memory'] },
+      { name: 'session_search', enabled: true, tools: ['session_search'] }
+    ]
   }),
   liveProbe: async () => ({
     live: true,
@@ -51,7 +54,11 @@ assert.equal(status.status, 'ONLINE');
 assert.equal(status.platform, 'hermes-agent');
 assert.equal(status.version, '9.9.9-test');
 assert.equal(status.run_submission, true);
-assert.equal(status.delegation_tool_available, true);
+assert.equal(status.delegation_tool_available, false);
+assert.equal(status.memory_tool_available, true);
+assert.equal(status.session_search_available, true);
+assert.equal(status.hermes_memory_ready, true);
+assert.equal(status.memory_tool_boundary, 'MEMORY_ONLY');
 assert.equal(status.authenticated, true);
 assert.equal(status.external_effect, false);
 assert.equal('api_key' in status, false);
