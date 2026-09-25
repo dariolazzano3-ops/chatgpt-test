@@ -35,7 +35,16 @@ const started = await startJarvisOwnerControlSocketV1({
   owner_email: 'owner@example.test',
   env: { TEST: '1' },
   socket_path: socketPath,
-  worker_handler: workerHandler
+  worker_handler: workerHandler,
+  audit_reader: async (requestId) => [{
+    request_id: requestId,
+    result: {
+      job_status: 'FAILED',
+      job_failure_reason: 'usage_limit_reached',
+      secret_token: 'must-not-leak'
+    },
+    authorization: 'must-not-leak'
+  }]
 });
 assert.equal(started.ok, true);
 assert.equal(started.enabled, true);
@@ -86,6 +95,12 @@ assert.deepEqual(chat.body.body, {
   message: 'Inspect AURENTARA only.',
   correlation_id: '11111111-1111-4111-8111-111111111111'
 });
+
+const job = await request('GET', '/v1/job?request_id=11111111-1111-4111-8111-111111111111');
+assert.equal(job.status, 200);
+assert.equal(job.body.rows[0].result.job_failure_reason, 'usage_limit_reached');
+assert.equal('secret_token' in job.body.rows[0].result, false);
+assert.equal('authorization' in job.body.rows[0], false);
 
 const denied = await request('POST', '/v1/arbitrary', { message: 'x' });
 assert.equal(denied.status, 404);
