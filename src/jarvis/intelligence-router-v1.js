@@ -111,10 +111,21 @@ function compactVerificationV1(verification) {
   );
   const head = clean(verification.head || gitPre.head, 80) || null;
   const headAfter = clean(verification.head_after || gitPost.head, 80) || null;
+  const trustedRepoMetadata = verification.trusted_review_repository_metadata || {};
   const compact = {
     repo_dir: clean(verification.repo_dir, 400) || null,
     branch: clean(verification.branch, 200) || null,
     head,
+    trusted_review_repository_metadata: {
+      current_branch: clean(trustedRepoMetadata.current_branch, 200) || null,
+      current_head: clean(trustedRepoMetadata.current_head, 80) || null,
+      branches: Array.isArray(trustedRepoMetadata.branches)
+        ? trustedRepoMetadata.branches.slice(0, 24).map((line) => clean(line, 220)).filter(Boolean)
+        : [],
+      relevant_commits: Array.isArray(trustedRepoMetadata.relevant_commits)
+        ? trustedRepoMetadata.relevant_commits.slice(0, 18).map((line) => clean(line, 260)).filter(Boolean)
+        : []
+    },
     branch_after: clean(verification.branch_after, 200) || clean(gitPost.branch, 200) || null,
     head_after: headAfter,
     branch_drift: verification.branch_drift === true,
@@ -609,6 +620,7 @@ export function jarvisIntelligenceRouterManifestV1() {
     astra_post_review_live_supported: true,
     astra_post_review_never_overrides_system_verification: true,
     astra_receives_trusted_branch_head_and_read_only_integrity_summary: true,
+    astra_receives_trusted_branch_refs_and_relevant_commits: true,
     hard_budget_preflight: true,
     aggregate_job_budget_shared_across_plan_review_repairs: true,
     public_actions: false,
