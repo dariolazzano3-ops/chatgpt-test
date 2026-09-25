@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
   ensureJarvisOwnerWorkspaceGitIndexAccessV1,
+  computeJarvisOwnerWorkspaceFilesystemSnapshotV1,
   jarvisOwnerWorkspaceGitIndexAccessManifestV1
 } from '../src/jarvis/owner-workspace-git-index-access-v1.js';
 
@@ -49,6 +50,9 @@ try {
   const head = git(['rev-parse', 'HEAD']);
   fs.writeFileSync(path.join(tmp, 'README.md'), 'candidate change\n');
   const candidateDiff = git(['diff', '--no-ext-diff', '--unified=3', 'HEAD', '--']);
+  const candidateSnapshot = computeJarvisOwnerWorkspaceFilesystemSnapshotV1(tmp);
+  assert.equal(candidateSnapshot.complete, true);
+  assert.match(candidateSnapshot.sha256, /^[0-9a-f]{64}$/);
   const candidate = {
     schema: 'aurentara.jarvis.owner-failed-candidate-provenance.v1',
     source_request_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -56,7 +60,8 @@ try {
     head,
     files: ['README.md'],
     diff: candidateDiff,
-    post_status: ['M README.md']
+    post_status: ['M README.md'],
+    filesystem_post_sha256: candidateSnapshot.sha256
   };
   const recovered = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
     repo_dir: tmp,
@@ -70,6 +75,22 @@ try {
   assert.equal(git(['status', '--porcelain']), '');
   assert.equal(fs.readFileSync(path.join(tmp, 'README.md'), 'utf8'), 'fixture\n');
 
+  fs.writeFileSync(path.join(tmp, 'README.md'), 'candidate change\n');
+  const truncated = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid,
+    recover_failed_candidate: {
+      ...candidate,
+      diff: candidate.diff.slice(0, Math.max(1, candidate.diff.length - 7))
+    }
+  });
+  assert.equal(truncated.ok, true, 'truncated persisted diff may recover only via full filesystem hash');
+  assert.equal(truncated.failed_candidate_recovered, true);
+  assert.equal(truncated.diff_matched_exactly, false);
+  assert.equal(truncated.filesystem_hash_matched, true);
+  assert.equal(git(['status', '--porcelain']), '');
+  assert.equal(fs.readFileSync(path.join(tmp, 'README.md'), 'utf8'), 'fixture\n');
+
   fs.writeFileSync(path.join(tmp, 'README.md'), 'different unproven change\n');
   const beforeMismatch = fs.readFileSync(path.join(tmp, 'README.md'), 'utf8');
   const mismatch = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
@@ -78,9 +99,21 @@ try {
     recover_failed_candidate: { ...candidate, diff: candidate.diff + '\nnot-the-current-diff' }
   });
   assert.equal(mismatch.ok, false);
-  assert.equal(mismatch.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH');
+  assert.equal(mismatch.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESYSTEM_MISMATCH');
   assert.equal(fs.readFileSync(path.join(tmp, 'README.md'), 'utf8'), beforeMismatch,
     'mismatched provenance must not alter workspace content');
+
+  const noHashMismatch = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid,
+    recover_failed_candidate: {
+      ...candidate,
+      diff: candidate.diff.slice(0, Math.max(1, candidate.diff.length - 5)),
+      filesystem_post_sha256: null
+    }
+  });
+  assert.equal(noHashMismatch.ok, false);
+  assert.equal(noHashMismatch.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH');
   execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', 'README.md'], { cwd: tmp });
 
   fs.writeFileSync(path.join(tmp, '.git', 'index.lock'), 'active lock');
@@ -95,7 +128,8 @@ try {
   const man = jarvisOwnerWorkspaceGitIndexAccessManifestV1();
   assert.equal(man.arbitrary_working_tree_content_changes, false);
   assert.equal(man.failed_candidate_restore_supported, true);
-  assert.equal(man.failed_candidate_restore_requires_exact_branch_head_files_and_diff, true);
+  assert.equal(man.failed_candidate_restore_requires_exact_branch_head_files_and_diff_or_full_filesystem_hash, true);
+  assert.equal(man.failed_candidate_filesystem_hash_uses_bridge_compatible_snapshot, true);
   assert.equal(man.failed_candidate_restore_refuses_staged_or_untracked_state, true);
   assert.equal(man.refuses_index_lock, true);
   assert.equal(man.fail_closed, true);
