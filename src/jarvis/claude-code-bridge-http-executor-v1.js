@@ -272,18 +272,17 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
       };
     }
 
-    if (body.ok !== true) {
-      const safeReadOnlyEvidenceFallback = safeReadOnlyGitIndexEvidenceFallbackV1(body, executionMode);
-      if (!safeReadOnlyEvidenceFallback) {
-        // A completed-but-failed Bridge run: still real, bridge-computed
-        // evidence — preserved, never discarded, even on failure.
-        return {
-          exit_code: Number.isInteger(body.exit_code) && body.exit_code !== 0 ? body.exit_code : 1,
-          stdout: '',
-          stderr: clean(body.stderr, 4000) || 'BRIDGE_EXECUTION_FAILED',
-          verification: buildVerificationV1(body, snapshot)
-        };
-      }
+    const safeReadOnlyEvidenceFallback = body.ok !== true
+      && safeReadOnlyGitIndexEvidenceFallbackV1(body, executionMode);
+    if (body.ok !== true && !safeReadOnlyEvidenceFallback) {
+      // A completed-but-failed Bridge run: still real, bridge-computed
+      // evidence — preserved, never discarded, even on failure.
+      return {
+        exit_code: Number.isInteger(body.exit_code) && body.exit_code !== 0 ? body.exit_code : 1,
+        stdout: '',
+        stderr: clean(body.stderr, 4000) || 'BRIDGE_EXECUTION_FAILED',
+        verification: buildVerificationV1(body, snapshot)
+      };
     }
 
     const verification = buildVerificationV1(body, snapshot);
@@ -297,9 +296,11 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
       // self-reported evidence alone. Without repo_dir, it falls back to
       // treating Bridge's own git/filesystem evidence as non-empty —
       // unchanged prior behavior for a caller with no filesystem access.
-      external_effect: snapshot
-        ? (verification.files_changed.length > 0 && !verification.branch_drift)
-        : (isNonEmptyEvidence(body.git_evidence) || isNonEmptyEvidence(body.filesystem_evidence)),
+      external_effect: safeReadOnlyEvidenceFallback
+        ? false
+        : snapshot
+          ? (verification.files_changed.length > 0 && !verification.branch_drift)
+          : (isNonEmptyEvidence(body.git_evidence) || isNonEmptyEvidence(body.filesystem_evidence)),
       verification
     };
   };
