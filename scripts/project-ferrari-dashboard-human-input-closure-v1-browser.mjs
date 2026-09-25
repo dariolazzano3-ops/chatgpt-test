@@ -32,7 +32,7 @@ const closureScript=extractTag('aurentara-dashboard-human-input-closure-v1-ui','
 
 const pageHtml=`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>:root{--line:#ddd;--soft:#eee;--muted:#666}.card{padding:16px;border:1px solid #ddd;border-radius:14px}.btn{min-height:40px}.field{display:grid;gap:6px}.badge{display:inline-flex;padding:4px 8px;border-radius:999px}.attention{background:#fff4d9}.ready{background:#eaf8ee}.main{max-width:1100px;margin:auto;padding:12px}.source-tools{display:flex;gap:8px;flex-wrap:wrap}select,input,textarea{font:inherit;max-width:100%;box-sizing:border-box}</style>
-${storageStyle}${closureStyle}</head><body><main class="main"><section id="project-detail"></section></main>
+${storageStyle}${closureStyle}</head><body><main class="main"><section id="project-detail" class="pm-workspace" data-scope="${project.scope_key}" data-j12-action="CONFIRM_CONTACT_DETAILS"></section></main>
 <script>
 window.esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.setError=e=>{window.__humanError=String(e?.message||e||'')};
@@ -92,6 +92,20 @@ async function runViewport(name,viewport){
   assert.match(await root.innerText(),/OPEN INPUTS: 7/);
   assert.equal(await root.locator('[data-human-question]').count(),7,name);
   assert.equal(await root.locator('[data-human-question="BUSINESS_MODEL"]').count(),0,name);
+  const sprint=root.locator('[data-human-decision-sprint]');
+  assert.equal(await sprint.isVisible(),true,name);
+  assert.equal(await sprint.getAttribute('data-human-priority'),'CONTACT_DETAILS',name);
+  assert.match(await sprint.innerText(),/NEXT BEST ACTION · J12/);
+  assert.match(await sprint.innerText(),/Nächste Entscheidung/i);
+  const nextButton=sprint.getByRole('button',{name:'Jetzt entscheiden'});
+  if(viewport.width<=760){
+    const nextBox=await nextButton.boundingBox();
+    assert.ok(nextBox&&nextBox.height>=45,name+' mobile next-decision touch target');
+  }
+  await nextButton.click();
+  assert.equal(await root.locator('[data-human-question="CONTACT_DETAILS"]').getAttribute('data-human-current'),'true',name);
+  const focusedQuestion=await page.evaluate(()=>document.activeElement?.closest?.('[data-human-question]')?.dataset?.humanQuestion||null);
+  assert.equal(focusedQuestion,'CONTACT_DETAILS',name);
 
   const contact=root.locator('[data-human-question="CONTACT_DETAILS"]');
   assert.equal(await contact.getByText('06806 9394980',{exact:false}).first().isVisible(),true);
@@ -117,6 +131,11 @@ async function runViewport(name,viewport){
   assert.equal(lastDecision.controls.email.confirmed,true);
   assert.match(await root.innerText(),/RESOLVED: 1/);
   assert.equal(await root.locator('[data-human-question="CONTACT_DETAILS"]').count(),0);
+  await page.waitForFunction(()=>document.querySelector('[data-human-decision-sprint]')?.getAttribute('data-human-priority')==='OPENING_HOURS');
+  assert.equal(await root.locator('[data-human-decision-sprint]').getAttribute('data-human-priority'),'OPENING_HOURS',name);
+  assert.equal(await root.locator('[data-human-question="OPENING_HOURS"]').getAttribute('data-human-current'),'true',name);
+  const focusedAfterSave=await page.evaluate(()=>document.activeElement?.closest?.('[data-human-question]')?.dataset?.humanQuestion||null);
+  assert.equal(focusedAfterSave,'OPENING_HOURS',name);
 
   const finalApproval=root.locator('[data-human-question="FINAL_HUMAN_QUALITY_APPROVAL"]');
   assert.equal(await finalApproval.locator('input[data-human-preview]').count(),1);
@@ -127,7 +146,7 @@ async function runViewport(name,viewport){
   assert.equal((await page.locator('body').innerText()).includes('[object Object]'),false);
   assert.deepEqual(pageErrors,[]);
   await browser.close();
-  return {name,open_inputs_rendered:7,candidate_choice:'PASS',save_and_resolved:'PASS',human_preview_guard_visible:'PASS',horizontal_overflow:'PASS'};
+  return {name,open_inputs_rendered:7,j12_decision_sprint:'PASS',save_advances_to_next:'PASS',candidate_choice:'PASS',save_and_resolved:'PASS',human_preview_guard_visible:'PASS',horizontal_overflow:'PASS'};
 }
 
 const desktop=await runViewport('desktop',{width:1440,height:1000});
