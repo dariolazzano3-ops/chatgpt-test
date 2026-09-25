@@ -529,8 +529,12 @@ function makeFixtureRepoV1(branch) {
   return dir;
 }
 
-await check('review with repo_dir injects trusted current branch and HEAD without granting write authority', async () => {
+await check('review with repo_dir injects trusted current branch, branch refs, and relevant commit history without granting write authority', async () => {
   const repo = makeFixtureRepoV1('factory/review-metadata-fixture');
+  git(repo, ['branch', 'factory/alternate-review-fixture']);
+  fs.writeFileSync(path.join(repo, 'AURENTARA_EVIDENCE.md'), 'launch gate evidence\n');
+  git(repo, ['add', 'AURENTARA_EVIDENCE.md']);
+  git(repo, ['commit', '-q', '-m', 'AURENTARA launch gate evidence']);
   const initialHead = git(repo, ['rev-parse', 'HEAD']);
   const correlationId = crypto.randomUUID();
   try {
@@ -539,6 +543,11 @@ await check('review with repo_dir injects trusted current branch and HEAD withou
       assert.match(body.prompt, /TRUSTED SERVER REPOSITORY METADATA - READ ONLY/);
       assert.match(body.prompt, /Current branch: factory\/review-metadata-fixture/);
       assert.ok(body.prompt.includes('Current HEAD commit: ' + initialHead));
+      assert.match(body.prompt, /Local branch refs \(short SHA, date\):/);
+      assert.match(body.prompt, /factory\/alternate-review-fixture/);
+      assert.match(body.prompt, /Relevant commit history across local refs:/);
+      assert.match(body.prompt, /AURENTARA launch gate evidence/);
+      assert.match(body.prompt, /does not authorize git, shell, writes, network access, or external actions/);
       jsonRes(res, 200, {
         ok: true,
         mode: 'review',
@@ -678,6 +687,10 @@ await check('manifests declare no local-CLI fallback and server-side-only token 
   assert.equal(executorManifest.shares_verification_computation_with_local_cli_executor, true);
   assert.equal(executorManifest.review_git_index_permission_fallback_requires_unchanged_full_snapshot, true);
   assert.equal(executorManifest.review_trusted_branch_head_context_injected, true);
+  assert.equal(executorManifest.review_trusted_branch_refs_context_injected, true);
+  assert.equal(executorManifest.review_trusted_relevant_commit_context_injected, true);
+  assert.equal(executorManifest.review_trusted_metadata_prompt_budget_max_chars, 2800);
+  assert.equal(executorManifest.owner_prompt_preserved_before_metadata_truncation, true);
 
   const bindingManifest = jarvisBridgeHttpRuntimeBindingManifestV1();
   assert.equal(bindingManifest.local_cli_fallback, false);
