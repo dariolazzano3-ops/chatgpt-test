@@ -5,6 +5,7 @@ import { handleJarvisStandaloneWorkerV1 } from './standalone-worker-v1.js';
 
 export const JARVIS_OWNER_CONTROL_DEFAULT_SOCKET = '/opt/jarvis/owner-deploy-queue/owner-control.sock';
 export const JARVIS_OWNER_CONTROL_MAX_BODY_BYTES = 16 * 1024;
+export const JARVIS_OWNER_CONTROL_MAX_PAID_FALLBACK_USD = 0.25;
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -96,7 +97,12 @@ export function jarvisOwnerControlSocketManifestV1() {
     billing_actions: false,
     secrets_returned: false,
     audit_read_owner_scoped: true,
-    audit_read_secret_key_redaction: true
+    audit_read_secret_key_redaction: true,
+    paid_fallback_request_scoped: true,
+    paid_fallback_requires_explicit_owner_socket_flag: true,
+    paid_fallback_max_job_cost_usd: JARVIS_OWNER_CONTROL_MAX_PAID_FALLBACK_USD,
+    paid_fallback_public_web_path_enabled: false,
+    paid_fallback_mutates_process_env: false
   };
 }
 
@@ -132,6 +138,7 @@ export function createJarvisOwnerControlSocketServerV1({
       let targetPath = '';
       let method = req.method || 'GET';
       let body;
+      let requestEnv = env;
 
       if (method === 'GET' && url.pathname === '/v1/status') {
         targetPath = '/api/status';
@@ -162,6 +169,30 @@ export function createJarvisOwnerControlSocketServerV1({
           jsonNode(res, 400, { ok: false, error: 'JARVIS_OWNER_CONTROL_MESSAGE_REQUIRED' });
           return;
         }
+
+        const paidFallbackApproved = incoming.paid_fallback_approved === true;
+        const requestedCap = Number(incoming.max_job_cost_usd);
+        if (!paidFallbackApproved && incoming.max_job_cost_usd !== undefined) {
+          jsonNode(res, 400, { ok: false, error: 'JARVIS_OWNER_CONTROL_PAID_FALLBACK_APPROVAL_REQUIRED' });
+          return;
+        }
+        if (paidFallbackApproved) {
+          if (!Number.isFinite(requestedCap) || requestedCap <= 0 || requestedCap > JARVIS_OWNER_CONTROL_MAX_PAID_FALLBACK_USD) {
+            jsonNode(res, 400, {
+              ok: false,
+              error: 'JARVIS_OWNER_CONTROL_PAID_FALLBACK_CAP_INVALID',
+              max_job_cost_usd: JARVIS_OWNER_CONTROL_MAX_PAID_FALLBACK_USD
+            });
+            return;
+          }
+          requestEnv = {
+            ...env,
+            JARVIS_AI_API_FALLBACK_ENABLED: 'true',
+            JARVIS_AI_API_FALLBACK_APPROVED: 'true',
+            JARVIS_AI_MAX_JOB_COST_USD: String(requestedCap)
+          };
+        }
+
         const correlationId = clean(incoming.correlation_id || incoming.request_id, 80);
         body = JSON.stringify({
           message,
@@ -177,7 +208,7 @@ export function createJarvisOwnerControlSocketServerV1({
         headers: body ? { 'content-type': 'application/json' } : undefined,
         body
       });
-      const response = await worker_handler(request, env, {}, localRuntimeOptions);
+      const response = await worker_handler(request, requestEnv, {}, localRuntimeOptions);
       if (!response) {
         jsonNode(res, 500, { ok: false, error: 'JARVIS_OWNER_CONTROL_RUNTIME_NO_RESPONSE' });
         return;
