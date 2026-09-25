@@ -68,11 +68,41 @@ export function classifyJarvisClaudeExecutionFailureV1(execution = {}) {
   }
   if (state === 'TIMEOUT' || /\btimeout\b|timed out/.test(detail)) return 'CLAUDE_TIMEOUT';
   if (/rate[_ -]?limit|\b429\b/.test(detail)) return 'CLAUDE_RATE_LIMIT';
+
+  // Bridge HTTP failures are classified from a strict allowlist only. Raw
+  // response bodies/stderr remain non-persistent.
+  if (/bridge_http_401/.test(detail)) return 'BRIDGE_AUTH_FAILED';
+  if (/bridge_http_403/.test(detail)) return 'BRIDGE_FORBIDDEN';
+  if (/bridge_http_404/.test(detail)) return 'BRIDGE_ENDPOINT_NOT_FOUND';
+  if (/bridge_http_409/.test(detail) && /implement_requires_git_repository/.test(detail)) {
+    return 'BRIDGE_WORKSPACE_NOT_GIT_REPOSITORY';
+  }
+  if (/bridge_http_409/.test(detail) && /implement_requires_clean_or_safe_repair_workspace/.test(detail)) {
+    return 'BRIDGE_WORKSPACE_DIRTY';
+  }
+  if (/bridge_http_409/.test(detail) && /pre_snapshot_incomplete/.test(detail)) {
+    return 'BRIDGE_PRE_SNAPSHOT_INCOMPLETE';
+  }
+  if (/bridge_http_409/.test(detail)) return 'BRIDGE_WORKSPACE_CONFLICT';
+  if (/bridge_http_400/.test(detail) && /project does not exist/.test(detail)) {
+    return 'BRIDGE_PROJECT_NOT_FOUND';
+  }
+  if (/bridge_http_400/.test(detail) && /invalid project path/.test(detail)) {
+    return 'BRIDGE_PROJECT_PATH_INVALID';
+  }
+  if (/bridge_http_400/.test(detail) && /native session requires jarvis correlation_id/.test(detail)) {
+    return 'BRIDGE_NATIVE_SESSION_ID_INVALID';
+  }
+  if (/bridge_http_400/.test(detail) && /invalid prompt/.test(detail)) {
+    return 'BRIDGE_PROMPT_INVALID';
+  }
+  if (/bridge_http_400/.test(detail)) return 'BRIDGE_BAD_REQUEST';
+  if (/bridge_http_5\d\d/.test(detail)) return 'BRIDGE_UPSTREAM_ERROR';
+
   if (/unauthori[sz]ed|\b401\b|authentication failed|invalid[^\n]{0,40}token/.test(detail)) {
     return 'CLAUDE_AUTH_FAILED';
   }
   if (/forbidden|\b403\b/.test(detail)) return 'CLAUDE_FORBIDDEN';
-  if (/bridge_http_5\d\d/.test(detail)) return 'BRIDGE_UPSTREAM_ERROR';
   if (/bridge_http_4\d\d/.test(detail)) return 'BRIDGE_REQUEST_FAILED';
   if (/bridge_(response_malformed|response_not_json|response_too_large)/.test(detail)) {
     return 'BRIDGE_RESPONSE_INVALID';
