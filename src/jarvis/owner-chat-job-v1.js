@@ -331,6 +331,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       await deps.memory_store.appendAudit({ owner_id: ownerId, owner_ref: ownerRef, event: repairApproval });
     }
 
+    const readOnlyGoal = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
+
     const mission = await handleJarvisEngineeringMissionRuntimeV1({
       owner_id: ownerId,
       owner_ref: ownerRef,
@@ -339,6 +341,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
       correlation_id: attemptRequestId,
       wave_index: null,
+      execution_mode: readOnlyGoal ? 'review' : 'implement',
       now
     }, {
       memory_store: deps.memory_store,
@@ -373,7 +376,6 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
     const verificationState = evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows, attemptRequestId);
     const verification = mission.claude_execution?.evidence?.verification || null;
-    const readOnlyGoal = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
     const fs = verification?.filesystem_evidence || null;
     const git = verification?.git_evidence || null;
     const audit = verification?.tool_audit || null;
