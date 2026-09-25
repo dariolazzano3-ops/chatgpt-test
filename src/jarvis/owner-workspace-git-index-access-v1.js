@@ -50,7 +50,10 @@ const SNAPSHOT_MAX_ENTRIES = 100000;
 const SNAPSHOT_MAX_BYTES = 512 * 1024 * 1024;
 
 function modeTextV1(stat) {
-  return '0o' + modeBits(stat).toString(8);
+  // Python stat.S_IMODE() used by the Bridge includes suid/sgid/sticky bits.
+  // Preserve all permission bits here so a setgid owner workspace hashes
+  // identically to the Bridge snapshot.
+  return '0o' + (stat.mode & 0o7777).toString(8);
 }
 
 function stableJsonV1(value) {
