@@ -57,6 +57,7 @@ import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-htt
 import { createJarvisSessionV1 } from './session-v1.js';
 import { createJarvisProgramRunnerV1, clampJarvisProgramRunnerIntervalMsV1 } from './program-runner-v1.js';
 import { createJarvisAcceptedWorkPublisherV1 } from './accepted-work-publisher-v1.js';
+import { startJarvisOwnerControlSocketV1, JARVIS_OWNER_CONTROL_DEFAULT_SOCKET } from './owner-control-socket-v1.js';
 import { createJarvisTrustedCandidateRecovererV1 } from './trusted-candidate-recovery-v1.js';
 import { isKnownJarvisProgramV1, JARVIS_V2_PROGRAM_ID, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
 
@@ -507,17 +508,44 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   options.program_runner = programRunner;
   options.owner_chat_trusted_publisher = ownerChatTrustedPublisher;
 
+  const ownerControl = overrides.owner_control_result
+    || await startJarvisOwnerControlSocketV1({
+      runtime_options: options,
+      owner_email: clean(env.JARVIS_OPERATOR_EMAIL, 320),
+      env,
+      socket_path: clean(env.JARVIS_OWNER_CONTROL_SOCKET_PATH, 500) || JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
+      worker_handler: overrides.owner_control_worker_handler
+    });
+  if (!ownerControl.ok) {
+    return {
+      ok: false,
+      error: ownerControl.error || 'JARVIS_OWNER_CONTROL_SOCKET_START_FAILED',
+      message: ownerControl.reason || 'The local owner-control Unix socket failed closed during startup.'
+    };
+  }
+
   const server = overrides.server || createJarvisRemoteOperatorServerV1(options, host, port);
-  await new Promise((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(port, host, resolve);
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(port, host, resolve);
+    });
+  } catch (error) {
+    if (ownerControl.server) {
+      try { await new Promise((resolve) => ownerControl.server.close(resolve)); } catch {}
+    }
+    throw error;
+  }
 
   if (runnerConfig.auto_start) await programRunner.start({ confirm_run: true });
 
   return {
     ok: true,
     server,
+    owner_control_server: ownerControl.server || null,
+    owner_control_enabled: ownerControl.enabled === true,
+    owner_control_socket: ownerControl.enabled === true ? ownerControl.socket_path : null,
+    owner_control_reason: ownerControl.enabled === true ? null : (ownerControl.reason || null),
     host,
     port,
     url: `http://${host}:${port}`,
@@ -571,6 +599,12 @@ export function jarvisRemoteOperatorManifestV1() {
     owner_chat_private_deploy_runtime_branch: 'factory/jarvis-capability-expansion-v3',
     owner_chat_private_deploy_reuses_existing_maintenance_gate: true,
     owner_chat_private_deploy_requires_new_root_consumer: false,
+    owner_control_unix_socket_supported: true,
+    owner_control_default_socket: JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
+    owner_control_public_tcp_listener: false,
+    owner_control_identity_source: 'SERVER_SIDE_OPERATOR_EMAIL_ONLY',
+    owner_control_client_identity_override: false,
+    owner_control_cloudflare_access_path_modified: false,
     owner_chat_private_deploy_production: false,
     project_mission_target_source: 'SERVER_SIDE_ENV_ONLY',
     project_mission_aurentara_env: 'JARVIS_PROJECT_MISSION_AURENTARA_ENABLED',
