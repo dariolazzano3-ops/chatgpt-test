@@ -586,6 +586,12 @@ await check('review with repo_dir injects trusted current branch, branch refs, a
       assert.equal(result.verification.head_after, initialHead);
       assert.equal(result.verification.head_drift, false);
       assert.equal(result.verification.branch_drift, false);
+      const trusted = result.verification.trusted_review_repository_metadata;
+      assert.ok(trusted, 'trusted repository metadata must be attached to verification');
+      assert.equal(trusted.current_branch, 'factory/review-metadata-fixture');
+      assert.equal(trusted.current_head, initialHead);
+      assert.ok(trusted.branches.some((line) => line.includes('factory/alternate-review-fixture')));
+      assert.ok(trusted.relevant_commits.some((line) => line.includes('AURENTARA launch gate evidence')));
     } finally {
       await fixture.close();
     }
@@ -689,6 +695,7 @@ await check('manifests declare no local-CLI fallback and server-side-only token 
   assert.equal(executorManifest.review_trusted_branch_head_context_injected, true);
   assert.equal(executorManifest.review_trusted_branch_refs_context_injected, true);
   assert.equal(executorManifest.review_trusted_relevant_commit_context_injected, true);
+  assert.equal(executorManifest.review_trusted_repository_metadata_attached_to_verification, true);
   assert.equal(executorManifest.review_trusted_metadata_prompt_budget_max_chars, 2800);
   assert.equal(executorManifest.owner_prompt_preserved_before_metadata_truncation, true);
 
