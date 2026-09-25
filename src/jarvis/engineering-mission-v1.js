@@ -122,6 +122,7 @@ export function resolveJarvisEngineeringMissionIntentV1(input = {}) {
   const title = clean(input.title, 200);
   const goal = clean(input.goal, 4000);
   const program = clean(input.program, 80).toUpperCase();
+  const executionMode = clean(input.execution_mode || 'implement', 20).toLowerCase();
   const correlationId = clean(input.correlation_id || input.request_id, 80).toLowerCase();
   const waveIndexRaw = input.wave_index;
   const waveIndex = waveIndexRaw === undefined || waveIndexRaw === null || waveIndexRaw === ''
@@ -131,6 +132,7 @@ export function resolveJarvisEngineeringMissionIntentV1(input = {}) {
   if (!title) return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_TITLE_REQUIRED' };
   if (!goal) return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_GOAL_REQUIRED' };
   if (!program || !PROGRAM_RE.test(program)) return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_PROGRAM_INVALID' };
+  if (!['implement', 'review'].includes(executionMode)) return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_EXECUTION_MODE_INVALID' };
   if (!UUID_RE.test(correlationId)) return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_CORRELATION_ID_REQUIRED' };
   if (waveIndex !== null && (!Number.isInteger(waveIndex) || waveIndex < 0 || waveIndex > 12)) {
     return { ok: false, error: 'JARVIS_ENGINEERING_MISSION_WAVE_INDEX_OUT_OF_RANGE' };
@@ -147,6 +149,7 @@ export function resolveJarvisEngineeringMissionIntentV1(input = {}) {
     title,
     goal,
     program,
+    execution_mode: executionMode,
     correlation_id: correlationId,
     wave_index: waveIndex,
     raw_message: `[ENGINEERING MISSION] ${program} · ${title} — ${goal}`
@@ -205,6 +208,7 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
           request_id: requestId,
           owner_ref: ownerRef,
           workspace: deps.workspace || JARVIS_ENGINEERING_MISSION_WORKSPACE,
+          execution_mode: intent.execution_mode,
           task: `Engineering Mission [${intent.program}] ${intent.title}\n\nGoal: ${intent.goal}`,
           timeout_ms: deps.claude_timeout_ms
         });
@@ -250,6 +254,7 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
       independent_acceptance: false,
       acceptance_ref: null,
       claude_execution_state: bridgeExecution?.state || null,
+      claude_execution_mode: intent.execution_mode,
       claude_failure_reason: claudeFailureReason,
       claude_exit_code: Number.isInteger(bridgeExecution?.exit_code) ? bridgeExecution.exit_code : null,
       evidence_id: bridgeExecution?.evidence?.evidence_id || null,
@@ -294,6 +299,7 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
     claude_bridge_bound: claudeBridgeBound,
     claude_execution: bridgeExecution ? {
       state: bridgeExecution.state,
+      execution_mode: intent.execution_mode,
       exit_code: bridgeExecution.exit_code,
       failure_reason: claudeFailureReason,
       external_effect: bridgeExecution.external_effect === true,
@@ -331,6 +337,8 @@ export function jarvisEngineeringMissionManifestV1() {
     worker: 'CLAUDE_CODE',
     worker_self_acceptance_counts_as_independent: false,
     default_claude_bridge_bound: false,
+    execution_modes: ['implement', 'review'],
+    review_mode_read_only: true,
     fails_closed_without_claude_bridge: true,
     fabricates_worker_availability: false,
     wave_states: ['NOT_STARTED', 'RUNNING', 'BLOCKED', 'FAILED', 'COMPLETE'],
