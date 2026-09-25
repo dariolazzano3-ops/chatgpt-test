@@ -22,7 +22,7 @@ try {
   const indexPath = path.join(tmp, '.git', 'index');
   const gid = process.getgid();
   fs.chmodSync(indexPath, 0o600);
-  git(['config', '--unset-all', 'core.sharedRepository']);
+  try { git(['config', '--unset-all', 'core.sharedRepository']); } catch {}
 
   const before = fs.statSync(indexPath);
   assert.equal(before.mode & 0o040, 0, 'fixture must start without group-read');
