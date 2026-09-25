@@ -17,7 +17,9 @@ assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, protected_branch: true
 assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, production: true }).error, 'CLAUDE_BRIDGE_PRODUCTION_BLOCKED');
 assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, allow_external_writes: true }).error, 'CLAUDE_BRIDGE_EXTERNAL_WRITE_NOT_PERMITTED');
 assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, correlation_id: 'nope' }).error, 'CLAUDE_BRIDGE_CORRELATION_ID_REQUIRED');
-assert.equal(validateJarvisClaudeCodeRequestV1(base).ok, true);
+assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, execution_mode: 'destroy' }).error, 'CLAUDE_BRIDGE_EXECUTION_MODE_INVALID');
+assert.equal(validateJarvisClaudeCodeRequestV1(base).request.execution_mode, 'implement');
+assert.equal(validateJarvisClaudeCodeRequestV1({ ...base, execution_mode: 'review' }).request.execution_mode, 'review');
 
 // ── no executor -> bridge unbound, every submit fails closed to UNAVAILABLE ──
 {
@@ -34,6 +36,8 @@ assert.equal(validateJarvisClaudeCodeRequestV1(base).ok, true);
   assert.equal(contract.worker_output_self_accepts, false);
   assert.equal(contract.independent_acceptance_from_bridge, false);
   assert.equal(contract.external_writes, false);
+  assert.deepEqual(contract.execution_modes, ['implement', 'review']);
+  assert.equal(contract.review_mode_read_only, true);
 }
 
 // ── success fixture ──
@@ -54,6 +58,27 @@ assert.equal(validateJarvisClaudeCodeRequestV1(base).ok, true);
   assert.equal(r.evidence.independent_acceptance, false);
   // worker success is NOT independent acceptance
   assert.equal(bridge.isIndependentlyAccepted(r), false);
+}
+
+// ── review mode is carried to the executor without creating a second worker path ──
+{
+  let observedMode = null;
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async (input) => {
+      observedMode = input.execution_mode;
+      return { exit_code: 0, stdout: 'review complete', stderr: '', external_effect: false };
+    }
+  });
+  const r = await bridge.submit({
+    ...base,
+    correlation_id: '12121212-2222-4333-8444-555555555555',
+    request_id: '12121212-2222-4333-8444-555555555555',
+    execution_mode: 'review',
+    task: 'inspect only'
+  }).result;
+  assert.equal(r.state, 'COMPLETE');
+  assert.equal(r.execution_mode, 'review');
+  assert.equal(observedMode, 'review');
 }
 
 // ── worker failure (non-zero exit) ──
