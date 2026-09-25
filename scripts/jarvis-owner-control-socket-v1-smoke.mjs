@@ -20,7 +20,10 @@ const workerHandler = async (request, env, ctx, options) => {
     pathname: new URL(request.url).pathname,
     method: request.method,
     auth,
-    body
+    body,
+    paid_fallback_enabled: env.JARVIS_AI_API_FALLBACK_ENABLED || null,
+    paid_fallback_approved: env.JARVIS_AI_API_FALLBACK_APPROVED || null,
+    max_job_cost_usd: env.JARVIS_AI_MAX_JOB_COST_USD || null
   });
   return Response.json({
     ok: true,
@@ -96,6 +99,36 @@ assert.deepEqual(chat.body.body, {
   correlation_id: '11111111-1111-4111-8111-111111111111'
 });
 
+assert.equal(calls.at(-1).paid_fallback_enabled, null);
+assert.equal(calls.at(-1).paid_fallback_approved, null);
+assert.equal(calls.at(-1).max_job_cost_usd, null);
+
+const paidChat = await request('POST', '/v1/chat', {
+  message: 'Inspect AURENTARA with approved paid fallback.',
+  correlation_id: '22222222-2222-4222-8222-222222222222',
+  paid_fallback_approved: true,
+  max_job_cost_usd: 0.25
+});
+assert.equal(paidChat.status, 200);
+assert.equal(calls.at(-1).paid_fallback_enabled, 'true');
+assert.equal(calls.at(-1).paid_fallback_approved, 'true');
+assert.equal(calls.at(-1).max_job_cost_usd, '0.25');
+
+const overCap = await request('POST', '/v1/chat', {
+  message: 'Must fail before runtime dispatch.',
+  paid_fallback_approved: true,
+  max_job_cost_usd: 0.26
+});
+assert.equal(overCap.status, 400);
+assert.equal(overCap.body.error, 'JARVIS_OWNER_CONTROL_PAID_FALLBACK_CAP_INVALID');
+
+const capWithoutApproval = await request('POST', '/v1/chat', {
+  message: 'Must also fail before runtime dispatch.',
+  max_job_cost_usd: 0.10
+});
+assert.equal(capWithoutApproval.status, 400);
+assert.equal(capWithoutApproval.body.error, 'JARVIS_OWNER_CONTROL_PAID_FALLBACK_APPROVAL_REQUIRED');
+
 const job = await request('GET', '/v1/job?request_id=11111111-1111-4111-8111-111111111111');
 assert.equal(job.status, 200);
 assert.equal(job.body.rows[0].result.job_failure_reason, 'usage_limit_reached');
@@ -104,7 +137,7 @@ assert.equal('authorization' in job.body.rows[0], false);
 
 const denied = await request('POST', '/v1/arbitrary', { message: 'x' });
 assert.equal(denied.status, 404);
-assert.equal(calls.length, 3);
+assert.equal(calls.length, 4);
 
 const stat = await fs.lstat(socketPath);
 assert.equal(stat.isSocket(), true);
@@ -115,6 +148,10 @@ const manifest = jarvisOwnerControlSocketManifestV1();
 assert.equal(manifest.public_tcp_listener, false);
 assert.equal(manifest.client_identity_override, false);
 assert.equal(manifest.secrets_returned, false);
+assert.equal(manifest.paid_fallback_request_scoped, true);
+assert.equal(manifest.paid_fallback_max_job_cost_usd, 0.25);
+assert.equal(manifest.paid_fallback_public_web_path_enabled, false);
+assert.equal(manifest.paid_fallback_mutates_process_env, false);
 
 await new Promise((resolve) => started.server.close(resolve));
 await fs.rm(tmp, { recursive: true, force: true });
