@@ -207,6 +207,59 @@ await check('D2b. remote runtime wires the narrow owner git-index preflight and 
   }
 });
 
+await check('D2c. remote runtime forwards exact failed-candidate provenance into owner workspace recovery', async () => {
+  const repo = initFixtureGitRepoV1('jarvis-preflight-recovery-fixture');
+  const built = await buildJarvisRemoteOperatorOptionsV1(
+    {
+      JARVIS_CLAUDE_REPO_DIR: repo,
+      JARVIS_CLAUDE_WORKER_GID: String(process.getgid())
+    },
+    {
+      claude_bridge_result: { bridge: null, bound: false, requested: false, reason: 'SMOKE' },
+      project_mission_result: { ok: true, targets: {} },
+      program_location: {
+        ok: true,
+        repo_dir: repo,
+        target_branch: 'jarvis-preflight-recovery-fixture'
+      }
+    }
+  );
+
+  fs.writeFileSync(path.join(repo, 'fixture.txt'), 'fixture\nfailed candidate\n');
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo }).toString('utf8').trim();
+  const diff = execFileSync('git', ['diff', '--no-ext-diff', '--unified=3', 'HEAD', '--'], { cwd: repo }).toString('utf8').trim();
+  const postStatus = execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { cwd: repo })
+    .toString('utf8').split('\n').map((line) => line.trim()).filter(Boolean);
+
+  const candidate = {
+    schema: 'aurentara.jarvis.owner-failed-candidate-provenance.v1',
+    source_request_id: '11111111-1111-4111-8111-111111111111',
+    goal: 'fixture failed owner goal',
+    branch: 'jarvis-preflight-recovery-fixture',
+    head,
+    files: ['fixture.txt'],
+    diff,
+    post_status: postStatus,
+    syntax_check_passed: true,
+    pre_existing_dirty_files: []
+  };
+
+  const recovered = await built.options.owner_chat_workspace_preflight({
+    request_id: '22222222-2222-4222-8222-222222222222',
+    attempt: 0,
+    recover_failed_candidate: candidate
+  });
+  assert.equal(recovered.ok, true);
+  assert.equal(recovered.failed_candidate_recovered, true);
+  assert.equal(recovered.failed_candidate_source_request_id, candidate.source_request_id);
+  assert.deepEqual(recovered.failed_candidate_files, ['fixture.txt']);
+  assert.equal(
+    execFileSync('git', ['status', '--porcelain'], { cwd: repo }).toString('utf8').trim(),
+    ''
+  );
+  assert.equal(fs.readFileSync(path.join(repo, 'fixture.txt'), 'utf8'), 'fixture\n');
+});
+
 await check('D3. V3 auto-start fails closed without Trusted Publisher and unknown programs are refused', async () => {
   const baseEnv = { ...REAL_ACCESS_ENV, ...REAL_SUPABASE_ENV, JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir };
   const noPublisher = await startJarvisRemoteOperatorV1({
