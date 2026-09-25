@@ -126,6 +126,11 @@ function postChat(store, message, correlation_id, claude_bridge) {
           files_changed: ['src/example/module.js'],
           pre_existing_dirty_files: [],
           syntax_check: { passed: true, checked: 1, results: [{ file: 'src/example/module.js', passed: true }] },
+          tool_audit: {
+            complete: true,
+            compliant: true,
+            result: 'MARKER-E2E-OK verified result: the internal module bugfix is complete and independently verified.'
+          },
           at: now
         }
       }
@@ -140,6 +145,17 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(result.acceptance_ref, null, 'automatic completion never creates or implies operator acceptance');
   assert.ok(result.evidence_id, 'bridge-computed evidence id is carried through');
   assert.match(result.notification, /Erledigt/);
+  assert.equal(result.verified_result_memory.persisted, true);
+  assert.match(result.verified_result_memory.memory_id, /^jarvis:owner-job-result:/);
+
+  const persistedMemory = await store.loadMemory({ owner_id: OWNER_ID, owner_ref: OWNER_REF });
+  const resultMemory = persistedMemory.find((entry) => entry.memory_id === result.verified_result_memory.memory_id);
+  assert.ok(resultMemory, 'verified COMPLETE owner job is promoted into durable memory');
+  assert.equal(resultMemory.category, 'PROJECTS');
+  assert.equal(resultMemory.status, 'CONFIRMED');
+  assert.equal(resultMemory.sensitivity, 'INTERNAL');
+  assert.equal(resultMemory.value.request_id, dispatch.request_id);
+  assert.match(resultMemory.value.result_summary, /MARKER-E2E-OK verified result/);
 
   const finalAudit = await store.readAudit({ owner_id: OWNER_ID, owner_ref: OWNER_REF, limit: 50 });
   const missionRow = finalAudit.find((row) => row.request_id === dispatch.request_id && row.action === 'IMPLEMENTATION_MISSION' && row.result?.claude_execution_state);
@@ -159,6 +175,8 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(notificationRow.result.independent_verification, true);
   assert.equal(notificationRow.result.verification_actor_type, 'SYSTEM');
   assert.equal(notificationRow.result.acceptance_ref, null);
+  assert.equal(notificationRow.result.verified_result_memory.persisted, true);
+  assert.equal(notificationRow.memory_updates.accepted, 1);
 
   // Every row sharing this job's durable identity (request_id) groups into
   // ONE real Command Center run, with no extra wiring or projection changes.
@@ -211,6 +229,8 @@ function postChat(store, message, correlation_id, claude_bridge) {
 
   const missionRows = finalAudit.filter((row) => row.action === 'IMPLEMENTATION_MISSION' && row.result?.claude_execution_state);
   assert.equal(missionRows.length, 3, 'three genuine, separately dispatched mission attempts were persisted');
+  const failedMemories = await store.loadMemory({ owner_id: OWNER_ID, owner_ref: OWNER_REF });
+  assert.equal(failedMemories.length, 0, 'FAILED owner jobs never enter verified result memory');
 }
 
 
@@ -314,6 +334,8 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(man.worker_self_acceptance_counts_as_independent, false);
   assert.equal(man.fails_closed_without_claude_bridge, true);
   assert.equal(man.worker_safe, true);
+  assert.equal(man.verified_complete_result_memory_persisted_when_store_supports_upsert, true);
+  assert.equal(man.failed_jobs_never_promoted_to_verified_result_memory, true);
 }
 
 console.log('JARVIS Owner Chat Job V1 (chat-work-router -> ack -> background dispatch -> verification -> bounded repair -> notification) smoke: PASS');
