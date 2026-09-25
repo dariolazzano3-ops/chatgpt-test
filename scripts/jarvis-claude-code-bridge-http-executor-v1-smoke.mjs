@@ -529,14 +529,66 @@ function makeFixtureRepoV1(branch) {
   return dir;
 }
 
+await check('review with repo_dir injects trusted current branch and HEAD without granting write authority', async () => {
+  const repo = makeFixtureRepoV1('factory/review-metadata-fixture');
+  const initialHead = git(repo, ['rev-parse', 'HEAD']);
+  const correlationId = crypto.randomUUID();
+  try {
+    const fixture = await startFixtureBridgeV1((req, res, body) => {
+      assert.equal(body.mode, 'review');
+      assert.match(body.prompt, /TRUSTED SERVER REPOSITORY METADATA - READ ONLY/);
+      assert.match(body.prompt, /Current branch: factory\/review-metadata-fixture/);
+      assert.ok(body.prompt.includes('Current HEAD commit: ' + initialHead));
+      jsonRes(res, 200, {
+        ok: true,
+        mode: 'review',
+        project: 'chatgpt-test',
+        exit_code: 0,
+        stderr: '',
+        git_evidence: {},
+        filesystem_evidence: {},
+        tool_audit: { complete: true, compliant: true },
+        native_session: {
+          enabled: true,
+          requested_session_id: correlationId,
+          observed_session_id: correlationId,
+          binding_verified: true
+        }
+      });
+    });
+    try {
+      const executor = createJarvisBridgeHttpExecutorV1({
+        bridge_url: fixture.url,
+        bridge_token: FIXTURE_TOKEN,
+        project: 'chatgpt-test',
+        repo_dir: repo
+      });
+      const result = await executor({
+        ...baseCall,
+        correlation_id: correlationId,
+        request_id: correlationId,
+        execution_mode: 'review',
+        task: 'inspect repository evidence only'
+      });
+      assert.equal(result.exit_code, 0);
+      assert.equal(result.external_effect, false);
+      assert.equal(result.verification.branch, 'factory/review-metadata-fixture');
+      assert.equal(result.verification.head, initialHead);
+      assert.equal(result.verification.head_after, initialHead);
+      assert.equal(result.verification.head_drift, false);
+      assert.equal(result.verification.branch_drift, false);
+    } finally {
+      await fixture.close();
+    }
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 await check('with repo_dir configured, a real file change is independently verified and satisfies Independent Acceptance (evaluateJarvisRepoBoundVerificationV1)', async () => {
   const repo = makeFixtureRepoV1('factory/bridge-verification-smoke');
   try {
-    const initialHead = git(repo, ['rev-parse', 'HEAD']);
-    const fixture = await startFixtureBridgeV1((req, res, body) => {
-      assert.match(body.prompt, /TRUSTED SERVER REPOSITORY METADATA - READ ONLY/);
-      assert.match(body.prompt, /Current branch: factory\/bridge-verification-smoke/);
-      assert.ok(body.prompt.includes('Current HEAD commit: ' + initialHead));
+    const fixture = await startFixtureBridgeV1((req, res) => {
       // Simulate Claude having genuinely edited a real, valid file inside
       // the shared repo before Bridge responds.
       fs.writeFileSync(path.join(repo, 'healthz.js'), 'module.exports = () => ({ ok: true });\n');
@@ -553,9 +605,6 @@ await check('with repo_dir configured, a real file change is independently verif
 
       assert.equal(result.verification.schema, 'aurentara.jarvis.repo-bound-verification.v1');
       assert.equal(result.verification.branch, 'factory/bridge-verification-smoke');
-      assert.equal(result.verification.head, initialHead);
-      assert.equal(result.verification.head_after, initialHead);
-      assert.equal(result.verification.head_drift, false);
       assert.equal(result.verification.branch_drift, false);
       assert.deepEqual(result.verification.files_changed, ['healthz.js']);
       assert.equal(result.verification.syntax_check.passed, true);
