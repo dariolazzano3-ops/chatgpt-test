@@ -307,7 +307,7 @@ try {
     }
   });
 } finally {
-  await new Promise((resolve) => started.server.close(resolve));
+  await started.close();
   for (const [key, value] of Object.entries(previousProcessAccessEnv)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -408,7 +408,7 @@ await check('P. Program Controller receives canonical owner_id/owner_ref end-to-
     assert.equal(calls[0].owner_id, CANONICAL_HISTORICAL_OWNER_ID, 'Program Controller must receive the canonical owner_id, never a client-supplied one');
     assert.equal(calls[0].owner_ref, CANONICAL_HISTORICAL_OWNER_REF, 'Program Controller must receive the canonical owner_ref, never a client-supplied one');
   } finally {
-    await new Promise((resolve) => started.server.close(resolve));
+    await started.close();
   }
 });
 
