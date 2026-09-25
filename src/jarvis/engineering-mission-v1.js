@@ -203,13 +203,28 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
 
     if (authorizedGate.execution_authorized === true) {
       if (claudeBridgeBound) {
+        const reviewGuard = intent.execution_mode === 'review'
+          ? [
+              'STRICT JARVIS REVIEW MODE.',
+              'Use only Read, Glob, and Grep.',
+              'Do not use Agent or Task. Do not delegate to specialists, subagents, or background agents.',
+              'Do not use Edit, Write, Bash, shell, git, network, package-manager, MCP, skills, deployment, secrets, billing, DNS, PR, merge, commit, or push actions.',
+              'Do not modify the workspace. Complete the review directly and return only evidence-grounded findings.'
+            ].join('\n')
+          : '';
+        const bridgeTask = [
+          reviewGuard,
+          `Engineering Mission [${intent.program}] ${intent.title}`,
+          '',
+          `Goal: ${intent.goal}`
+        ].filter((part) => part !== '').join('\n\n');
         const handle = deps.claude_bridge.submit({
           correlation_id: requestId,
           request_id: requestId,
           owner_ref: ownerRef,
           workspace: deps.workspace || JARVIS_ENGINEERING_MISSION_WORKSPACE,
           execution_mode: intent.execution_mode,
-          task: `Engineering Mission [${intent.program}] ${intent.title}\n\nGoal: ${intent.goal}`,
+          task: bridgeTask,
           timeout_ms: deps.claude_timeout_ms
         });
         bridgeExecution = await handle.result;
@@ -339,6 +354,8 @@ export function jarvisEngineeringMissionManifestV1() {
     default_claude_bridge_bound: false,
     execution_modes: ['implement', 'review'],
     review_mode_read_only: true,
+    review_mode_direct_tools_only: ['Read', 'Glob', 'Grep'],
+    review_mode_agent_delegation_forbidden: true,
     fails_closed_without_claude_bridge: true,
     fabricates_worker_availability: false,
     wave_states: ['NOT_STARTED', 'RUNNING', 'BLOCKED', 'FAILED', 'COMPLETE'],
