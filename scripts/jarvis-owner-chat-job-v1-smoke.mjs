@@ -295,6 +295,109 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(observedExecutionMode, 'review', 'natural-language read-only owner jobs must use Bridge review mode');
 }
 
+/* ── 6c. Read-only Astra REPAIR is allowed exactly once, stays in review
+        mode, uses a fresh request id, and can then complete. ── */
+{
+  const store = createMemoryJarvisStoreV1();
+  const message = 'READ-ONLY. Prüfe MARKER-READONLY-ASTRA vollständig. Verändere nichts.';
+  const now = '2026-09-21T10:08:00.000Z';
+  const dispatch = await dispatchJarvisOwnerChatJobV1(
+    { owner_id: OWNER_ID, owner_ref: OWNER_REF, message, now },
+    { memory_store: store }
+  );
+
+  let bridgeCalls = 0;
+  const observedModes = [];
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async (input) => {
+      bridgeCalls += 1;
+      observedModes.push(input.execution_mode);
+      return {
+        exit_code: 0,
+        stdout: 'read-only review ' + bridgeCalls,
+        stderr: '',
+        external_effect: false,
+        verification: {
+          schema: 'aurentara.jarvis.repo-bound-verification.v1',
+          repo_dir: '/workspace/projects/jarvis-engineering-mission',
+          branch: 'feature/readonly-astra-repair',
+          head: '1111111111111111111111111111111111111111',
+          branch_drift: false,
+          files_changed: [],
+          pre_existing_dirty_files: [],
+          syntax_check: { passed: true, checked: 0, results: [] },
+          filesystem_evidence: { complete: true, unchanged: true },
+          git_evidence: { head_unchanged: true, pre: { head: '1111111111111111111111111111111111111111' } },
+          tool_audit: {
+            complete: true,
+            compliant: true,
+            result: bridgeCalls === 1
+              ? 'Initial read-only evidence summary.'
+              : 'Repaired read-only summary with branch, commit, test and acceptance-gate evidence.'
+          },
+          at: now
+        }
+      };
+    }
+  });
+
+  let reviewCalls = 0;
+  const intelligenceRouter = {
+    plan: async () => ({
+      ok: true,
+      provider: 'TEST',
+      lane: 'STANDARD',
+      model: 'test-model',
+      execution_brief: 'Inspect read-only evidence.',
+      api_fallback_used: false,
+      api_cost_usd: 0,
+      original_goal_authoritative: true
+    }),
+    review: async () => {
+      reviewCalls += 1;
+      return reviewCalls === 1
+        ? {
+            ok: true,
+            provider: 'TEST',
+            model: 'test-model',
+            decision: 'REPAIR',
+            rationale: 'Branch/commit/test evidence is incomplete.',
+            repair_brief: 'Verify branch, commit, tests and acceptance gates read-only, then return exactly one blocker.',
+            api_fallback_used: false,
+            api_cost_usd: 0
+          }
+        : {
+            ok: true,
+            provider: 'TEST',
+            model: 'test-model',
+            decision: 'PASS',
+            rationale: 'Evidence categories are now complete.',
+            repair_brief: '',
+            api_fallback_used: false,
+            api_cost_usd: 0
+          };
+    }
+  };
+
+  const result = await runJarvisOwnerChatJobV1(dispatch.job, {
+    memory_store: store,
+    claude_bridge: bridge,
+    intelligence_router: intelligenceRouter,
+    astra_post_review_enabled: true,
+    max_repair_attempts: 2
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.status, 'COMPLETE');
+  assert.equal(result.repair_attempts, 1, 'read-only Astra REPAIR gets exactly one bounded retry');
+  assert.equal(result.attempt_chain.length, 2);
+  assert.equal(new Set(result.attempt_chain.map((row) => row.request_id)).size, 2);
+  assert.deepEqual(observedModes, ['review', 'review'], 'repair never escapes read-only review mode');
+  assert.equal(reviewCalls, 2);
+  assert.equal(result.astra_post_review.decision, 'PASS');
+  assert.equal(result.verified_result_memory.persisted, true);
+}
+
 /* ── 7. Fails closed, never fabricated: no Claude bridge bound at all -> job
         FAILED immediately, zero repair attempts wasted on a worker that was
         never going to run. ── */
@@ -336,6 +439,8 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(man.worker_safe, true);
   assert.equal(man.verified_complete_result_memory_persisted_when_store_supports_upsert, true);
   assert.equal(man.failed_jobs_never_promoted_to_verified_result_memory, true);
+  assert.equal(man.read_only_max_repair_attempts, 1);
+  assert.equal(man.read_only_repairs_stay_in_review_mode, true);
 }
 
 console.log('JARVIS Owner Chat Job V1 (chat-work-router -> ack -> background dispatch -> verification -> bounded repair -> notification) smoke: PASS');
