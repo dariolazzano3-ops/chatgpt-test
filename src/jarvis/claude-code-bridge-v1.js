@@ -62,6 +62,7 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
   const ownerRef = clean(input.owner_ref, 320);
   const task = clean(input.task, 8000);
   const workspace = clean(input.workspace, 400);
+  const executionMode = clean(input.execution_mode || 'implement', 20).toLowerCase();
   // Only clamp/materialize a timeout here when the RAW request explicitly
   // gave one. Leaving it `null` otherwise (never defaulting to
   // DEFAULT_TIMEOUT_MS here) is what lets submit()'s own
@@ -78,6 +79,7 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
   if (!UUID_RE.test(correlationId)) return { ok: false, error: 'CLAUDE_BRIDGE_CORRELATION_ID_REQUIRED' };
   if (!ownerRef) return { ok: false, error: 'CLAUDE_BRIDGE_OWNER_REF_REQUIRED' };
   if (!task) return { ok: false, error: 'CLAUDE_BRIDGE_TASK_REQUIRED' };
+  if (!['implement', 'review'].includes(executionMode)) return { ok: false, error: 'CLAUDE_BRIDGE_EXECUTION_MODE_INVALID' };
   if (!workspace.startsWith('/workspace/projects/')) return { ok: false, error: 'CLAUDE_BRIDGE_WORKSPACE_OUT_OF_BOUNDS' };
   if (input.protected_branch === true) return { ok: false, error: 'CLAUDE_BRIDGE_PROTECTED_BRANCH_BLOCKED' };
   if (input.production === true) return { ok: false, error: 'CLAUDE_BRIDGE_PRODUCTION_BLOCKED' };
@@ -91,6 +93,7 @@ export function validateJarvisClaudeCodeRequestV1(input = {}) {
       owner_ref: ownerRef,
       task,
       workspace,
+      execution_mode: executionMode,
       timeout_ms: explicitTimeoutMs,
       bounded: true,
       protected_branch: false,
@@ -225,6 +228,7 @@ export function createJarvisClaudeCodeBridgeV1(config = {}) {
             correlation_id: request.correlation_id,
             request_id: request.request_id,
             owner_ref: request.owner_ref,
+            execution_mode: request.execution_mode,
             env_allowlist: envAllowlist,
             timeout_ms: timeoutMs,
             signal: controller.signal
@@ -265,6 +269,7 @@ export function createJarvisClaudeCodeBridgeV1(config = {}) {
           request_id: request.request_id,
           owner_ref: request.owner_ref,
           workspace: request.workspace,
+          execution_mode: request.execution_mode,
           started_at: startedAt,
           finished_at: finishedAt,
           duration_ms: evidence.duration_ms,
@@ -311,6 +316,8 @@ export function jarvisClaudeCodeBridgeContractV1(bridge) {
     protected_branch_execution: false,
     production_execution: false,
     external_writes: false,
+    execution_modes: ['implement', 'review'],
+    review_mode_read_only: true,
     worker_output_self_accepts: false,
     independent_acceptance_from_bridge: false,
     correlation_id_continuity: true,
