@@ -389,6 +389,8 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     failed_candidate_recovered: failedCandidateRecovery?.recovered === true,
     failed_candidate_source_request_id: failedCandidateRecovery?.source_request_id || null,
     failed_candidate_files: failedCandidateRecovery?.files || [],
+    failed_candidate_diff_matched_exactly: failedCandidateRecovery?.diff_matched_exactly ?? null,
+    failed_candidate_filesystem_hash_matched: failedCandidateRecovery?.filesystem_hash_matched ?? null,
     working_tree_content_changed: failedCandidateRecovery?.recovered === true
   };
 }
