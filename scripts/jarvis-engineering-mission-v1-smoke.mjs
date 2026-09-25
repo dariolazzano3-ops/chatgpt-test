@@ -285,6 +285,60 @@ function truth(store) {
   assert.match(captured.task, /trusted server repository metadata/i);
 }
 
+// ── 8c. Owner implementation mode is direct-tools-only at the task level ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const corr = '79797979-7979-4797-8797-797979797979';
+  let captured = null;
+  const bridge = {
+    bound: true,
+    submit(input) {
+      captured = input;
+      return {
+        result: Promise.resolve({
+          state: 'COMPLETE',
+          exit_code: 0,
+          external_effect: false,
+          evidence: {
+            evidence_id: 'claude-code:' + corr,
+            verification: {
+              schema: 'aurentara.jarvis.repo-bound-verification.v1',
+              branch: 'factory/owner-implementation-fixture',
+              branch_drift: false,
+              files_changed: ['src/fixture.js'],
+              pre_existing_dirty_files: [],
+              syntax_check: { passed: true, checked: 1, results: [{ file: 'src/fixture.js', passed: true }] }
+            }
+          }
+        })
+      };
+    }
+  };
+
+  await postMission(store, {
+    title: 'Owner implementation fixture',
+    goal: 'Implement the smallest bounded fix.',
+    program: 'JARVIS_OWNER_CHAT',
+    correlation_id: corr,
+    execution_mode: 'implement'
+  }, bridge);
+  await decide(store, corr + ':approval', corr, 'approve');
+  await postMission(store, {
+    title: 'Owner implementation fixture',
+    goal: 'Implement the smallest bounded fix.',
+    program: 'JARVIS_OWNER_CHAT',
+    correlation_id: corr,
+    execution_mode: 'implement'
+  }, bridge);
+
+  assert.equal(captured.execution_mode, 'implement');
+  assert.match(captured.task, /STRICT JARVIS OWNER IMPLEMENTATION MODE/);
+  assert.match(captured.task, /Use only Read, Glob, Grep, Edit, and Write/);
+  assert.match(captured.task, /Do not use Agent or Task/);
+  assert.match(captured.task, /Do not delegate.*Explore/i);
+  assert.match(captured.task, /Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code/i);
+}
+
 // ── 9. No worker self-report can mark a wave complete: a genuinely COMPLETE bridge run (wave_state COMPLETE) still contributes 0% until an independent acceptance ref exists ──
 {
   const store = createMemoryJarvisStoreV1();
@@ -349,6 +403,9 @@ function truth(store) {
   assert.equal(man.fabricates_worker_availability, false);
   assert.deepEqual(man.review_mode_direct_tools_only, ['Read', 'Glob', 'Grep']);
   assert.equal(man.review_mode_agent_delegation_forbidden, true);
+  assert.deepEqual(man.owner_implementation_mode_direct_tools_only, ['Read', 'Glob', 'Grep', 'Edit', 'Write']);
+  assert.equal(man.owner_implementation_mode_agent_delegation_forbidden, true);
+  assert.equal(man.owner_implementation_mode_unrelated_infra_inspection_forbidden, true);
   assert.equal(man.review_named_evidence_categories_must_be_checked, true);
   assert.equal(man.review_tests_are_inspected_not_executed, true);
 
