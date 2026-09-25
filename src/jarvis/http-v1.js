@@ -670,6 +670,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
           claude_bridge: options.claude_bridge || null,
           claude_timeout_ms: options.claude_timeout_ms,
           max_repair_attempts: options.owner_chat_job_max_repair_attempts,
+          workspace_preflight: options.owner_chat_workspace_preflight || null,
           astra_post_review_enabled: ['true', '1', 'on', 'yes'].includes(clean(env.JARVIS_ASTRA_POST_REVIEW_ENABLED, 20).toLowerCase()),
           trusted_publisher: options.owner_chat_trusted_publisher || null
         }).catch(() => {});
