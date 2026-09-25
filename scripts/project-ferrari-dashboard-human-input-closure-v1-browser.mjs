@@ -37,6 +37,7 @@ ${storageStyle}${closureStyle}</head><body><main class="main"><section id="proje
 window.esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.setError=e=>{window.__humanError=String(e?.message||e||'')};
 window.renderProjectDetail=function(){};
+window.__aurentaraJ12CurrentAction={scope:"gelato-donatello:gelato-donatello-website-v1",action:'CONFIRM_CONTACT_DETAILS',target:'approvals',priority:20,automatic_execution:false};
 window.open=()=>null;
 </script>
 ${storageScript}${closureScript}
