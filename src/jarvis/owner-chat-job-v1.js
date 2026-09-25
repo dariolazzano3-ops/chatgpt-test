@@ -395,15 +395,18 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     const systemVerified = (verificationState.mission_found === true
       && verificationState.dispatched === true
       && verificationState.verification_sufficient === true) || readOnlyVerified;
+    const claudeFailureReason = clean(mission.claude_execution?.failure_reason, 160) || null;
     const verificationError = systemVerified ? null
-      : readOnlyGoal ? 'READ_ONLY_SYSTEM_VERIFICATION_INSUFFICIENT'
-      : (verificationState.verification_insufficient_reason || 'VERIFICATION_INSUFFICIENT');
+      : claudeFailureReason
+        || (readOnlyGoal ? 'READ_ONLY_SYSTEM_VERIFICATION_INSUFFICIENT'
+          : (verificationState.verification_insufficient_reason || 'VERIFICATION_INSUFFICIENT'));
 
     attemptChain.push({
       request_id: attemptRequestId,
       attempt: attemptNumber,
       wave_state: mission.wave_state,
       claude_state: mission.claude_execution?.state || null,
+      claude_failure_reason: clean(mission.claude_execution?.failure_reason, 160) || null,
       system_verified: systemVerified,
       operator_accepted: verificationState.already_accepted === true,
       verification_error: verificationError
