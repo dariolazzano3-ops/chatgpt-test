@@ -173,11 +173,7 @@ export function buildJarvisOwnerChatSelfApprovalAuditEventV1({ ownerRef, request
       decided_run_id: requestId
     },
     cost: { estimated_eur: 0, actual_eur: 0 },
-    memory_updates: {
-      accepted: verifiedResultMemory.persisted === true ? 1 : 0,
-      proposed: 0,
-      rejected: verifiedResultMemory.error ? 1 : 0
-    }
+    memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
   });
   event.request_id = requestId;
   return event;
@@ -676,7 +672,11 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
           currency: 'USD'
         }
       : { estimated_eur: 0, actual_eur: 0 },
-    memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
+    memory_updates: {
+      accepted: verifiedResultMemory.persisted === true ? 1 : 0,
+      proposed: 0,
+      rejected: verifiedResultMemory.error ? 1 : 0
+    }
   });
   notificationEvent.request_id = requestId;
   await deps.memory_store.appendAudit({ owner_id: ownerId, owner_ref: ownerRef, event: notificationEvent });
