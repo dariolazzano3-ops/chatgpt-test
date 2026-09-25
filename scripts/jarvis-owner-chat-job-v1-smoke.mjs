@@ -7,7 +7,8 @@ import {
   dispatchJarvisOwnerChatJobV1,
   runJarvisOwnerChatJobV1,
   deriveJarvisOwnerChatJobTitleV1,
-  jarvisOwnerChatJobManifestV1
+  jarvisOwnerChatJobManifestV1,
+  isJarvisOwnerChatReadOnlyGoalV1
 } from '../src/jarvis/owner-chat-job-v1.js';
 import { createJarvisCommandCenterReadBindingsV1 } from '../src/jarvis/command-center-read-bindings-v1.js';
 
@@ -33,6 +34,9 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(classifyJarvisChatWorkRequestV1('Lösche die Kundendaten aus der Produktionsdatenbank.').classification, 'APPROVAL_REQUIRED_ACTION');
   // Risk wins even when an actionable verb+noun also matches.
   assert.equal(classifyJarvisChatWorkRequestV1('Implementiere ein Deployment auf den Production-Server.').classification, 'APPROVAL_REQUIRED_ACTION');
+  assert.equal(isJarvisOwnerChatReadOnlyGoalV1('Prüfe den Stand. Verändere nichts.'), true);
+  assert.equal(isJarvisOwnerChatReadOnlyGoalV1('Inspect the repo, do not modify anything.'), true);
+  assert.equal(isJarvisOwnerChatReadOnlyGoalV1('Implementiere den Fix.'), false);
 }
 
 /* ── 2. CONVERSATION regression at the HTTP layer: never creates a job ── */
@@ -207,6 +211,62 @@ function postChat(store, message, correlation_id, claude_bridge) {
 
   const missionRows = finalAudit.filter((row) => row.action === 'IMPLEMENTATION_MISSION' && row.result?.claude_execution_state);
   assert.equal(missionRows.length, 3, 'three genuine, separately dispatched mission attempts were persisted');
+}
+
+
+/* ── 6b. Natural-language read-only job: "Verändere nichts" must accept
+        unchanged filesystem/git evidence and must never waste repair attempts. ── */
+{
+  const store = createMemoryJarvisStoreV1();
+  const message = 'Prüfe MARKER-READONLY den Repository-Stand. Verändere nichts.';
+  const now = '2026-09-21T10:07:00.000Z';
+
+  const dispatch = await dispatchJarvisOwnerChatJobV1(
+    { owner_id: OWNER_ID, owner_ref: OWNER_REF, message, now },
+    { memory_store: store }
+  );
+  assert.equal(dispatch.ok, true);
+
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: createLocalFixtureExecutorV1({
+      'MARKER-READONLY': {
+        exit_code: 0,
+        stdout: 'read-only inspection complete',
+        verification: {
+          schema: 'aurentara.jarvis.repo-bound-verification.v1',
+          repo_dir: '/workspace/projects/jarvis-engineering-mission',
+          branch: 'feature/owner-chat-readonly-smoke',
+          branch_drift: false,
+          files_changed: [],
+          pre_existing_dirty_files: [],
+          syntax_check: { passed: true, checked: 0, results: [] },
+          filesystem_evidence: { complete: true, unchanged: true },
+          git_evidence: { head_unchanged: true },
+          tool_audit: {
+            complete: true,
+            is_error: false,
+            tool_uses: [],
+            forbidden_tool_uses: [],
+            outside_workspace_targets: [],
+            sensitive_targets: [],
+            permission_denials: []
+          },
+          at: now
+        }
+      }
+    })
+  });
+
+  const result = await runJarvisOwnerChatJobV1(dispatch.job, {
+    memory_store: store,
+    claude_bridge: bridge,
+    max_repair_attempts: 2
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.status, 'COMPLETE');
+  assert.equal(result.repair_attempts, 0);
+  assert.equal(result.attempt_chain.length, 1);
+  assert.equal(result.attempt_chain[0].system_verified, true);
 }
 
 /* ── 7. Fails closed, never fabricated: no Claude bridge bound at all -> job
