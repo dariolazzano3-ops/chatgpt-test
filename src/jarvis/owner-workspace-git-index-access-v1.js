@@ -22,8 +22,12 @@ import {
   chownSync,
   existsSync,
   lstatSync,
-  realpathSync
+  realpathSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync
 } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
@@ -39,6 +43,118 @@ function git(repoDir, args) {
 
 function modeBits(stat) {
   return stat.mode & 0o777;
+}
+
+
+const SNAPSHOT_MAX_ENTRIES = 100000;
+const SNAPSHOT_MAX_BYTES = 512 * 1024 * 1024;
+
+function modeTextV1(stat) {
+  return '0o' + modeBits(stat).toString(8);
+}
+
+function stableJsonV1(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map((item) => stableJsonV1(item)).join(',') + ']';
+  return '{' + Object.keys(value).sort().map((key) => JSON.stringify(key) + ':' + stableJsonV1(value[key])).join(',') + '}';
+}
+
+export function computeJarvisOwnerWorkspaceFilesystemSnapshotV1(repoDir) {
+  const root = realpathSync(repoDir);
+  const entries = {};
+  let totalBytes = 0;
+  let complete = true;
+  const reasons = [];
+
+  function addReason(reason) {
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
+
+  function record(rel, payload) {
+    if (Object.keys(entries).length >= SNAPSHOT_MAX_ENTRIES) {
+      complete = false;
+      addReason('ENTRY_LIMIT');
+      return false;
+    }
+    entries[rel] = payload;
+    return true;
+  }
+
+  function walk(absDir, relDir = '') {
+    let names;
+    try { names = readdirSync(absDir).sort(); }
+    catch {
+      complete = false;
+      addReason('READDIR_FAILED:' + (relDir || '.'));
+      return;
+    }
+
+    for (const name of names) {
+      const rel = relDir ? relDir + '/' + name : name;
+      if (rel === '.git' || rel.startsWith('.git/')) continue;
+      const abs = path.join(absDir, name);
+
+      let stat;
+      try { stat = lstatSync(abs); }
+      catch {
+        complete = false;
+        addReason('LSTAT_FAILED:' + rel);
+        continue;
+      }
+
+      const mode = modeTextV1(stat);
+      if (stat.isSymbolicLink()) {
+        let target;
+        try { target = readlinkSync(abs); }
+        catch {
+          complete = false;
+          addReason('READLINK_FAILED:' + rel);
+          continue;
+        }
+        if (!record(rel, { type: 'symlink', target, mode })) return;
+        continue;
+      }
+
+      if (stat.isDirectory()) {
+        if (!record(rel, { type: 'dir', mode })) return;
+        walk(abs, rel);
+        if (Object.keys(entries).length >= SNAPSHOT_MAX_ENTRIES) return;
+        continue;
+      }
+
+      if (stat.isFile()) {
+        let digest = null;
+        if (totalBytes + stat.size > SNAPSHOT_MAX_BYTES) {
+          complete = false;
+          addReason('BYTE_LIMIT');
+        } else {
+          try {
+            digest = createHash('sha256').update(readFileSync(abs)).digest('hex');
+            totalBytes += stat.size;
+          } catch {
+            complete = false;
+            addReason('HASH_FAILED:' + rel);
+          }
+        }
+        if (!record(rel, { type: 'file', size: stat.size, sha256: digest, mode })) return;
+        continue;
+      }
+
+      if (!record(rel, { type: 'special', mode })) return;
+    }
+  }
+
+  walk(root);
+
+  const serialized = stableJsonV1(entries);
+  return {
+    complete,
+    reasons: [...reasons].sort(),
+    entry_count: Object.keys(entries).length,
+    bytes_hashed: totalBytes,
+    sha256: createHash('sha256').update(serialized).digest('hex'),
+    scope: 'working-tree including hidden + ignored files; .git excluded'
+  };
 }
 
 function sortedUniqueV1(items = []) {
@@ -96,8 +212,27 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
   if (!sameStringArrayV1(changedFiles, expectedFiles) || (expectedStatus.length && !sameStringArrayV1(status, expectedStatus))) {
     return { ok: false, error: 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESET_MISMATCH' };
   }
-  if (clean(diff, 100000) !== expectedDiff) {
-    return { ok: false, error: 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH' };
+  const diffMatchesExactly = clean(diff, 100000) === expectedDiff;
+  let filesystemHashMatched = false;
+  if (!diffMatchesExactly) {
+    const expectedFilesystemSha = clean(candidate.filesystem_post_sha256, 80).toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(expectedFilesystemSha)) {
+      return { ok: false, error: 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH' };
+    }
+    let snapshot;
+    try { snapshot = computeJarvisOwnerWorkspaceFilesystemSnapshotV1(repoDir); }
+    catch {
+      return { ok: false, error: 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESYSTEM_VERIFY_UNAVAILABLE' };
+    }
+    if (snapshot.complete !== true || snapshot.sha256 !== expectedFilesystemSha) {
+      return {
+        ok: false,
+        error: 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESYSTEM_MISMATCH',
+        filesystem_complete: snapshot.complete === true,
+        filesystem_sha256: snapshot.sha256 || null
+      };
+    }
+    filesystemHashMatched = true;
   }
 
   try {
@@ -125,7 +260,9 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
     ok: true,
     recovered: true,
     source_request_id: sourceRequestId,
-    files: expectedFiles
+    files: expectedFiles,
+    diff_matched_exactly: diffMatchesExactly,
+    filesystem_hash_matched: filesystemHashMatched
   };
 }
 
@@ -264,7 +401,8 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     refuses_index_lock: true,
     arbitrary_working_tree_content_changes: false,
     failed_candidate_restore_supported: true,
-    failed_candidate_restore_requires_exact_branch_head_files_and_diff: true,
+    failed_candidate_restore_requires_exact_branch_head_files_and_diff_or_full_filesystem_hash: true,
+    failed_candidate_filesystem_hash_uses_bridge_compatible_snapshot: true,
     failed_candidate_restore_refuses_staged_or_untracked_state: true,
     git_index_group_read_repair: true,
     shared_repository_group_enabled: true,
