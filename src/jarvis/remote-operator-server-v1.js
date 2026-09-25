@@ -509,13 +509,19 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   options.owner_chat_trusted_publisher = ownerChatTrustedPublisher;
 
   const ownerControl = overrides.owner_control_result
-    || await startJarvisOwnerControlSocketV1({
-      runtime_options: options,
-      owner_email: clean(env.JARVIS_OPERATOR_EMAIL, 320),
-      env,
-      socket_path: clean(env.JARVIS_OWNER_CONTROL_SOCKET_PATH, 500) || JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
-      worker_handler: overrides.owner_control_worker_handler
-    });
+    || (overrides.server
+      ? {
+          ok: true,
+          enabled: false,
+          reason: 'JARVIS_OWNER_CONTROL_TEST_SERVER_OVERRIDE'
+        }
+      : await startJarvisOwnerControlSocketV1({
+          runtime_options: options,
+          owner_email: clean(env.JARVIS_OPERATOR_EMAIL, 320),
+          env,
+          socket_path: clean(env.JARVIS_OWNER_CONTROL_SOCKET_PATH, 500) || JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
+          worker_handler: overrides.owner_control_worker_handler
+        }));
   if (!ownerControl.ok) {
     return {
       ok: false,
