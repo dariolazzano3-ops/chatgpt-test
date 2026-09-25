@@ -549,7 +549,7 @@ export function createJarvisIntelligenceRouterFromEnvV1(env = {}, deps = {}) {
   return createJarvisIntelligenceRouterV1({
     hermes_client: deps.hermes_client,
     openai_client: deps.openai_client,
-    api_fallback_enabled: bool(env.JARVIS_AI_API_FALLBACK_ENABLED),
+    api_fallback_enabled: bool(env.JARVIS_AI_API_FALLBACK_ENABLED) && bool(env.JARVIS_AI_API_FALLBACK_APPROVED),
     max_job_cost_usd: env.JARVIS_AI_MAX_JOB_COST_USD,
     light_model: env.JARVIS_AI_LIGHT_MODEL,
     standard_model: env.JARVIS_AI_STANDARD_MODEL,
@@ -564,6 +564,8 @@ export function jarvisIntelligenceRouterManifestV1() {
     fallback: 'OPENAI_API',
     lanes: [...LANES],
     fallback_default_enabled: false,
+    fallback_requires_explicit_paid_approval: true,
+    fallback_paid_approval_env: 'JARVIS_AI_API_FALLBACK_APPROVED',
     original_goal_authoritative: true,
     execution_brief_advisory_only: true,
     astra_post_review_live_supported: true,
