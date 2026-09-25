@@ -126,16 +126,10 @@ function postChat(store, message, correlation_id, claude_bridge) {
           files_changed: ['src/example/module.js'],
           pre_existing_dirty_files: [],
           syntax_check: { passed: true, checked: 1, results: [{ file: 'src/example/module.js', passed: true }] },
-        at: now
+          at: now
+        }
       }
-    }
-  });
-  let observedExecutionMode = null;
-  const bridge = createJarvisClaudeCodeBridgeV1({
-    executor: async (input) => {
-      observedExecutionMode = input.execution_mode;
-      return readOnlyFixture(input);
-    }
+    })
   });
 
   const result = await runJarvisOwnerChatJobV1(dispatch.job, { memory_store: store, claude_bridge: bridge });
@@ -238,28 +232,34 @@ function postChat(store, message, correlation_id, claude_bridge) {
       exit_code: 0,
       stdout: 'read-only inspection complete',
       verification: {
-          schema: 'aurentara.jarvis.repo-bound-verification.v1',
-          repo_dir: '/workspace/projects/jarvis-engineering-mission',
-          branch: 'feature/owner-chat-readonly-smoke',
-          branch_drift: false,
-          files_changed: [],
-          pre_existing_dirty_files: [],
-          syntax_check: { passed: true, checked: 0, results: [] },
-          filesystem_evidence: { complete: true, unchanged: true },
-          git_evidence: { head_unchanged: true },
-          tool_audit: {
-            complete: true,
-            is_error: false,
-            tool_uses: [],
-            forbidden_tool_uses: [],
-            outside_workspace_targets: [],
-            sensitive_targets: [],
-            permission_denials: []
-          },
-          at: now
-        }
+        schema: 'aurentara.jarvis.repo-bound-verification.v1',
+        repo_dir: '/workspace/projects/jarvis-engineering-mission',
+        branch: 'feature/owner-chat-readonly-smoke',
+        branch_drift: false,
+        files_changed: [],
+        pre_existing_dirty_files: [],
+        syntax_check: { passed: true, checked: 0, results: [] },
+        filesystem_evidence: { complete: true, unchanged: true },
+        git_evidence: { head_unchanged: true },
+        tool_audit: {
+          complete: true,
+          is_error: false,
+          tool_uses: [],
+          forbidden_tool_uses: [],
+          outside_workspace_targets: [],
+          sensitive_targets: [],
+          permission_denials: []
+        },
+        at: now
       }
-    })
+    }
+  });
+  let observedExecutionMode = null;
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async (input) => {
+      observedExecutionMode = input.execution_mode;
+      return readOnlyFixture(input);
+    }
   });
 
   const result = await runJarvisOwnerChatJobV1(dispatch.job, {
