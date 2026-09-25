@@ -37,7 +37,6 @@ ${storageStyle}${closureStyle}</head><body><main class="main"><section id="proje
 window.esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.setError=e=>{window.__humanError=String(e?.message||e||'')};
 window.renderProjectDetail=function(){};
-window.__aurentaraJ12CurrentAction={scope:"gelato-donatello:gelato-donatello-website-v1",action:'CONFIRM_CONTACT_DETAILS',target:'approvals',priority:20,automatic_execution:false};
 window.open=()=>null;
 </script>
 ${storageScript}${closureScript}
@@ -96,6 +95,11 @@ async function runViewport(name,viewport){
   const sprint=root.locator('[data-human-decision-sprint]');
   assert.equal(await sprint.isVisible(),true,name);
   assert.equal(await sprint.getAttribute('data-human-priority'),'CONTACT_DETAILS',name);
+  await page.evaluate((scope)=>{
+    window.__aurentaraJ12CurrentAction={scope,action:'CONFIRM_CONTACT_DETAILS',target:'approvals',priority:20,automatic_execution:false};
+    document.dispatchEvent(new CustomEvent('aurentara:j12-next-best-action',{detail:window.__aurentaraJ12CurrentAction}));
+  },project.scope_key);
+  await page.waitForFunction(()=>document.querySelector('[data-human-decision-sprint]')?.textContent?.includes('NEXT BEST ACTION · J12'));
   assert.match(await sprint.innerText(),/NEXT BEST ACTION · J12/);
   assert.match(await sprint.innerText(),/Nächste Entscheidung/i);
   const nextButton=sprint.getByRole('button',{name:'Jetzt entscheiden'});
