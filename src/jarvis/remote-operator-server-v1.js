@@ -552,6 +552,16 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     owner_control_enabled: ownerControl.enabled === true,
     owner_control_socket: ownerControl.enabled === true ? ownerControl.socket_path : null,
     owner_control_reason: ownerControl.enabled === true ? null : (ownerControl.reason || null),
+    close: async () => {
+      const closeOne = (candidate) => {
+        if (!candidate || candidate.listening !== true) return Promise.resolve();
+        return new Promise((resolve) => candidate.close(resolve));
+      };
+      await Promise.all([
+        closeOne(ownerControl.server || null),
+        closeOne(server)
+      ]);
+    },
     host,
     port,
     url: `http://${host}:${port}`,
