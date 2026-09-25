@@ -233,6 +233,131 @@ await check('8. bridge ok=false is a failed execution, evidence still preserved'
   }
 });
 
+// ── 8b/8c. review-only git-index permission fallback is narrow and side-effect free ──
+await check('8b. safe review may recover from exact git-index permission gap only with complete unchanged evidence', async () => {
+  const correlationId = crypto.randomUUID();
+  const gitError = 'fatal: .git/index: index file open failed: Permission denied';
+  const body = {
+    ok: false,
+    mode: 'review',
+    project: 'chatgpt-test',
+    exit_code: 0,
+    stderr: '',
+    git_evidence: {
+      pre: { head: 'abc123', branch: 'factory/review-fixture', error: gitError },
+      post: { head: 'abc123', branch: 'factory/review-fixture', error: gitError },
+      head_unchanged: true,
+      changes: {
+        error: 'git change evidence incomplete',
+        diff: '',
+        diff_stat: '',
+        tracked_name_status: [],
+        untracked_files: [],
+        ignored_files_present: []
+      }
+    },
+    filesystem_evidence: {
+      complete: true,
+      unchanged: true,
+      added: [],
+      changed: [],
+      removed: [],
+      added_count: 0,
+      changed_count: 0,
+      removed_count: 0
+    },
+    tool_audit: {
+      complete: true,
+      compliant: true,
+      tool_uses: [{ name: 'Read' }],
+      forbidden_tool_uses: [],
+      unknown_specialists: [],
+      specialist_fanout_ok: true
+    },
+    native_session: {
+      enabled: true,
+      requested_session_id: correlationId,
+      observed_session_id: correlationId,
+      binding_verified: true
+    }
+  };
+  const fixture = await startFixtureBridgeV1((req, res) => jsonRes(res, 200, body));
+  try {
+    const executor = createJarvisBridgeHttpExecutorV1({
+      bridge_url: fixture.url,
+      bridge_token: FIXTURE_TOKEN,
+      project: 'chatgpt-test'
+    });
+    const result = await executor({
+      ...baseCall,
+      correlation_id: correlationId,
+      request_id: correlationId,
+      execution_mode: 'review',
+      task: 'inspect only'
+    });
+    assert.equal(result.exit_code, 0);
+    assert.equal(result.external_effect, false);
+    assert.deepEqual(result.verification.git_evidence, body.git_evidence);
+    assert.deepEqual(result.verification.filesystem_evidence, body.filesystem_evidence);
+    assert.equal(result.verification.tool_audit.compliant, true);
+  } finally {
+    await fixture.close();
+  }
+});
+
+await check('8c. the same review fallback fails closed on any filesystem delta', async () => {
+  const correlationId = crypto.randomUUID();
+  const gitError = 'fatal: .git/index: index file open failed: Permission denied';
+  const fixture = await startFixtureBridgeV1((req, res) => jsonRes(res, 200, {
+    ok: false,
+    mode: 'review',
+    project: 'chatgpt-test',
+    exit_code: 0,
+    stderr: '',
+    git_evidence: {
+      pre: { head: 'abc123', branch: 'factory/review-fixture', error: gitError },
+      post: { head: 'abc123', branch: 'factory/review-fixture', error: gitError },
+      head_unchanged: true,
+      changes: { error: 'git change evidence incomplete' }
+    },
+    filesystem_evidence: {
+      complete: true,
+      unchanged: false,
+      added: [],
+      changed: ['tampered.txt'],
+      removed: [],
+      added_count: 0,
+      changed_count: 1,
+      removed_count: 0
+    },
+    tool_audit: { complete: true, compliant: true },
+    native_session: {
+      enabled: true,
+      requested_session_id: correlationId,
+      observed_session_id: correlationId,
+      binding_verified: true
+    }
+  }));
+  try {
+    const executor = createJarvisBridgeHttpExecutorV1({
+      bridge_url: fixture.url,
+      bridge_token: FIXTURE_TOKEN,
+      project: 'chatgpt-test'
+    });
+    const result = await executor({
+      ...baseCall,
+      correlation_id: correlationId,
+      request_id: correlationId,
+      execution_mode: 'review',
+      task: 'inspect only'
+    });
+    assert.equal(result.exit_code, 1);
+    assert.match(result.stderr, /BRIDGE_EXECUTION_FAILED/);
+  } finally {
+    await fixture.close();
+  }
+});
+
 // ── 9, 10, 11. git_evidence / filesystem_evidence / tool_audit preserved even through a bounded round trip ──
 await check('9-11. git_evidence, filesystem_evidence, and tool_audit all survive the adapter unmodified', async () => {
   const evidence = {
@@ -495,6 +620,7 @@ await check('manifests declare no local-CLI fallback and server-side-only token 
   assert.equal(executorManifest.canonical_verification_schema, 'aurentara.jarvis.repo-bound-verification.v1');
   assert.equal(executorManifest.syntax_check_mandatory_when_repo_dir_configured, true);
   assert.equal(executorManifest.shares_verification_computation_with_local_cli_executor, true);
+  assert.equal(executorManifest.review_git_index_permission_fallback_requires_unchanged_full_snapshot, true);
 
   const bindingManifest = jarvisBridgeHttpRuntimeBindingManifestV1();
   assert.equal(bindingManifest.local_cli_fallback, false);
