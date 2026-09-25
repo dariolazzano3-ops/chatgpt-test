@@ -231,12 +231,12 @@ async function classifyWithApi(goal, cfg, client, budget, requestId) {
     router_cost_usd: result.estimated_cost_usd
   };
 }
-async function planWithApi(goal, cfg, client, requestId) {
+async function planWithApi(goal, cfg, client, budget, requestId) {
   if (!client?.configured || typeof client.complete !== 'function') {
     throw makeError('JARVIS_OPENAI_API_FALLBACK_NOT_CONFIGURED');
   }
 
-  const budget = createBudget(cfg.max_job_cost_usd);
+  const spentBefore = budget.spent_usd;
   const classification = await classifyWithApi(goal, cfg, client, budget, requestId);
   const model = laneModel(classification.lane, cfg);
   const maxOutput = laneMaxOutput(classification.lane);
@@ -267,7 +267,8 @@ async function planWithApi(goal, cfg, client, requestId) {
     rationale: classification.rationale,
     execution_brief: brief,
     api_fallback_used: true,
-    api_cost_usd: budget.spent_usd,
+    api_cost_usd: budget.spent_usd - spentBefore,
+    api_job_cost_usd: budget.spent_usd,
     api_cost_cap_usd: cfg.max_job_cost_usd,
     router_model: classification.router_model,
     router_cost_usd: classification.router_cost_usd,
@@ -337,11 +338,11 @@ async function reviewWithHermes(input, requestId, hermes, options = {}) {
   }
 }
 
-async function reviewWithApi(input, cfg, client, requestId) {
+async function reviewWithApi(input, cfg, client, budget, requestId) {
   if (!client?.configured || typeof client.complete !== 'function') {
     throw makeError('JARVIS_OPENAI_API_FALLBACK_NOT_CONFIGURED');
   }
-  const budget = createBudget(cfg.max_job_cost_usd);
+  const spentBefore = budget.spent_usd;
   const model = cfg.standard_model;
   const messages = [
     { role: 'system', content: astraPostReviewSystemPrompt() },
@@ -383,7 +384,8 @@ async function reviewWithApi(input, cfg, client, requestId) {
     model: result.requested_model,
     ...decision,
     api_fallback_used: true,
-    api_cost_usd: budget.spent_usd,
+    api_cost_usd: budget.spent_usd - spentBefore,
+    api_job_cost_usd: budget.spent_usd,
     api_cost_cap_usd: cfg.max_job_cost_usd
   };
 }
@@ -398,6 +400,17 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
   };
   const hermes = config.hermes_client || null;
   const openai = config.openai_client || null;
+  const apiJobBudgets = new Map();
+
+  function apiBudgetFor(input = {}, requestId = '') {
+    const key = clean(input.budget_request_id || requestId, 160) || '__anonymous_job__';
+    let budget = apiJobBudgets.get(key);
+    if (!budget) {
+      budget = createBudget(cfg.max_job_cost_usd);
+      apiJobBudgets.set(key, budget);
+    }
+    return budget;
+  }
 
   async function plan(input = {}) {
     const goal = clean(input.goal, 12000);
@@ -432,7 +445,7 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
     }
 
     try {
-      const fallback = await planWithApi(goal, cfg, openai, requestId);
+      const fallback = await planWithApi(goal, cfg, openai, apiBudgetFor(input, requestId), requestId);
       return {
         ...fallback,
         schema: 'aurentara.jarvis.intelligence-plan.v1',
@@ -507,7 +520,7 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
     }
 
     try {
-      const fallback = await reviewWithApi(input, cfg, openai, requestId);
+      const fallback = await reviewWithApi(input, cfg, openai, apiBudgetFor(input, requestId), requestId);
       return {
         ...fallback,
         schema: 'aurentara.jarvis.astra-post-review-live.v1',
@@ -571,6 +584,7 @@ export function jarvisIntelligenceRouterManifestV1() {
     astra_post_review_live_supported: true,
     astra_post_review_never_overrides_system_verification: true,
     hard_budget_preflight: true,
+    aggregate_job_budget_shared_across_plan_review_repairs: true,
     public_actions: false,
     production_deploy: false,
     hamyren_data_flow: false
