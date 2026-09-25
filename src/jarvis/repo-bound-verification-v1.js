@@ -50,6 +50,63 @@ export function currentHeadOrNullV1(repoDir) {
 }
 
 
+function boundedGitLinesV1(repoDir, args, maxLines = 20, maxLineChars = 220) {
+  try {
+    return git(repoDir, args)
+      .split('\n')
+      .map((line) => clean(line, maxLineChars))
+      .filter(Boolean)
+      .slice(0, maxLines);
+  } catch {
+    return [];
+  }
+}
+
+/** Trusted read-only repository context for review-mode workers. This is
+ * computed by the host process using git read commands only; Claude never
+ * receives git/shell authority. Output is intentionally bounded so owner
+ * instructions remain authoritative and cannot be truncated by metadata. */
+export function trustedRepoReviewMetadataV1(repoDir) {
+  const branches = boundedGitLinesV1(repoDir, [
+    'for-each-ref',
+    '--sort=-committerdate',
+    '--count=24',
+    '--format=%(refname:short)%09%(objectname:short)%09%(committerdate:short)',
+    'refs/heads',
+    'refs/remotes'
+  ], 24, 220);
+
+  const recentCommits = boundedGitLinesV1(repoDir, [
+    'log',
+    '--all',
+    '-n',
+    '18',
+    '--date=short',
+    '--pretty=format:%h%x09%ad%x09%d%x09%s'
+  ], 18, 260);
+
+  const relevantCommits = boundedGitLinesV1(repoDir, [
+    'log',
+    '--all',
+    '--extended-regexp',
+    '--regexp-ignore-case',
+    '--grep=(AURENTARA|HAMYREN|Ferrari|customer|launch|legal|privacy|production|runtime|gate)',
+    '-n',
+    '18',
+    '--date=short',
+    '--pretty=format:%h%x09%ad%x09%d%x09%s'
+  ], 18, 260);
+
+  return {
+    current_branch: currentBranchOrNullV1(repoDir),
+    current_head: currentHeadOrNullV1(repoDir),
+    branches,
+    recent_commits: recentCommits,
+    relevant_commits: relevantCommits
+  };
+}
+
+
 /** One entry per dirty path, using git's porcelain short-status format.
  *  `--untracked-files=all` is required, not optional: without it, git
  *  collapses an entirely untracked directory into one summary line for the
@@ -165,6 +222,9 @@ export function jarvisRepoBoundVerificationManifestV1() {
     shared_by_local_cli_and_bridge_http_executors: true,
     content_diffed_not_just_path_diffed: true,
     branch_and_head_captured_pre_post: true,
+    trusted_review_branch_refs_supported: true,
+    trusted_review_commit_summary_supported: true,
+    trusted_review_metadata_read_only: true,
     syntax_check_mandatory: true,
     production_deploy: false,
     hamyren_data_flow: false
