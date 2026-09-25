@@ -200,11 +200,17 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
    *  malformed/missing Bridge body can never clobber `branch`,
    *  `files_changed`, or `syntax_check`. Falls back to Bridge-only
    *  evidence when repoDir isn't configured. */
-  function buildVerificationV1(body, snapshot) {
+  function buildVerificationV1(body, snapshot, trustedReviewMetadata = null) {
     const bridgeOnly = bridgeOnlyVerificationV1(body);
     if (!snapshot) return bridgeOnly;
     const canonical = finishJarvisRepoBoundVerificationV1(snapshot);
-    return { ...canonical, ...bridgeRawFieldsV1(body) };
+    return {
+      ...canonical,
+      ...bridgeRawFieldsV1(body),
+      ...(trustedReviewMetadata ? {
+        trusted_review_repository_metadata: trustedReviewMetadata
+      } : {})
+    };
   }
 
   return async ({ task, signal, correlation_id, request_id, execution_mode }) => {
@@ -302,11 +308,11 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
         exit_code: Number.isInteger(body.exit_code) && body.exit_code !== 0 ? body.exit_code : 1,
         stdout: '',
         stderr: clean(body.stderr, 4000) || 'BRIDGE_EXECUTION_FAILED',
-        verification: buildVerificationV1(body, snapshot)
+        verification: buildVerificationV1(body, snapshot, trustedReviewMetadata)
       };
     }
 
-    const verification = buildVerificationV1(body, snapshot);
+    const verification = buildVerificationV1(body, snapshot, trustedReviewMetadata);
     return {
       exit_code: Number.isInteger(body.exit_code) ? body.exit_code : 0,
       stdout: clean(JSON.stringify({ service: body.service, mode: body.mode, project: body.project }), 4000),
@@ -349,6 +355,7 @@ export function jarvisBridgeHttpExecutorManifestV1() {
     review_trusted_branch_head_context_injected: true,
     review_trusted_branch_refs_context_injected: true,
     review_trusted_relevant_commit_context_injected: true,
+    review_trusted_repository_metadata_attached_to_verification: true,
     review_trusted_metadata_prompt_budget_max_chars: 2800,
     owner_prompt_preserved_before_metadata_truncation: true,
     can_commit: false,
