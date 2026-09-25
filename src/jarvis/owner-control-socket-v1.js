@@ -190,10 +190,23 @@ export async function startJarvisOwnerControlSocketV1({
 
   const uid = typeof process.getuid === 'function' ? process.getuid() : null;
   const mode = parentStat.mode & 0o777;
-  if (!parentStat.isDirectory()
-      || (uid !== null && parentStat.uid !== uid)
-      || (mode & 0o007) !== 0
-      || (mode & 0o030) !== 0o030) {
+  if (!parentStat.isDirectory()) {
+    return {
+      ok: false,
+      enabled: false,
+      error: 'JARVIS_OWNER_CONTROL_PARENT_NOT_DIRECTORY',
+      socket_path
+    };
+  }
+  if (uid !== null && parentStat.uid !== uid) {
+    return {
+      ok: true,
+      enabled: false,
+      reason: 'JARVIS_OWNER_CONTROL_RUNTIME_UID_NOT_PARENT_OWNER',
+      socket_path
+    };
+  }
+  if ((mode & 0o007) !== 0 || (mode & 0o030) !== 0o030) {
     return {
       ok: false,
       enabled: false,
