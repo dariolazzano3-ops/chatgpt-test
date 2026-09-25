@@ -280,6 +280,9 @@ function truth(store) {
   assert.match(captured.task, /Use only Read, Glob, and Grep/);
   assert.match(captured.task, /Do not use Agent or Task/);
   assert.match(captured.task, /Do not modify the workspace/);
+  assert.match(captured.task, /verify every named category/i);
+  assert.match(captured.task, /inspect relevant existing test\/smoke files and recorded test outcomes/i);
+  assert.match(captured.task, /trusted server repository metadata/i);
 }
 
 // ── 9. No worker self-report can mark a wave complete: a genuinely COMPLETE bridge run (wave_state COMPLETE) still contributes 0% until an independent acceptance ref exists ──
@@ -346,6 +349,8 @@ function truth(store) {
   assert.equal(man.fabricates_worker_availability, false);
   assert.deepEqual(man.review_mode_direct_tools_only, ['Read', 'Glob', 'Grep']);
   assert.equal(man.review_mode_agent_delegation_forbidden, true);
+  assert.equal(man.review_named_evidence_categories_must_be_checked, true);
+  assert.equal(man.review_tests_are_inspected_not_executed, true);
 
   const FORBIDDEN = [/wrangler\s+deploy/i, /\bgit\s+push\b/i, /\bgit\s+merge\b/i, /hamyren/i];
   for (const file of ['src/jarvis/engineering-mission-v1.js', 'src/jarvis/v2-progress-v1.js']) {
