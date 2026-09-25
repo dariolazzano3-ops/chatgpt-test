@@ -323,9 +323,10 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
   const workerGidRaw = Number(env.JARVIS_CLAUDE_WORKER_GID || 11000);
   const ownerChatWorkspacePreflight = overrides.owner_chat_workspace_preflight
     || (programLocation.ok
-      ? async () => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+      ? async (input = {}) => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
           repo_dir: programLocation.repo_dir,
-          worker_gid: Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000
+          worker_gid: Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000,
+          recover_failed_candidate: input?.recover_failed_candidate || null
         })
       : null);
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
