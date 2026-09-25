@@ -115,6 +115,7 @@ export const JARVIS_OWNER_CHAT_NOTIFICATION_INTENT = 'OWNER_CHAT_JOB_NOTIFICATIO
 // deps.max_repair_attempts — bounded repair must stay bounded no matter what.
 export const JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING = 5;
 export const JARVIS_OWNER_CHAT_JOB_DEFAULT_MAX_REPAIR_ATTEMPTS = 2;
+export const JARVIS_OWNER_CHAT_JOB_READ_ONLY_MAX_REPAIR_ATTEMPTS = 1;
 
 /** Pure. A short, stable job title derived only from the owner's own message
  *  — never truncated silently past what resolveJarvisEngineeringMissionIntentV1
@@ -239,12 +240,15 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     return { ok: false, error: 'JARVIS_OWNER_CHAT_JOB_MEMORY_STORE_REQUIRED', request_id: requestId };
   }
 
-  const maxAttempts = isJarvisOwnerChatReadOnlyGoalV1(originalGoal) ? 0 : Math.min(
+  const configuredMaxAttempts = Math.min(
     JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING,
     Number.isInteger(deps.max_repair_attempts) && deps.max_repair_attempts >= 0
       ? deps.max_repair_attempts
       : JARVIS_OWNER_CHAT_JOB_DEFAULT_MAX_REPAIR_ATTEMPTS
   );
+  const maxAttempts = isJarvisOwnerChatReadOnlyGoalV1(originalGoal)
+    ? Math.min(JARVIS_OWNER_CHAT_JOB_READ_ONLY_MAX_REPAIR_ATTEMPTS, configuredMaxAttempts)
+    : configuredMaxAttempts;
 
   const attemptChain = [];
   let attemptRequestId = requestId;
@@ -718,6 +722,8 @@ export function jarvisOwnerChatJobManifestV1() {
     self_approval_shape_matches_command_center_approval: true,
     worker_self_acceptance_counts_as_independent: false,
     max_repair_attempts_default: JARVIS_OWNER_CHAT_JOB_DEFAULT_MAX_REPAIR_ATTEMPTS,
+    read_only_max_repair_attempts: JARVIS_OWNER_CHAT_JOB_READ_ONLY_MAX_REPAIR_ATTEMPTS,
+    read_only_repairs_stay_in_review_mode: true,
     max_repair_attempts_ceiling: JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING,
     repair_uses_fresh_request_id_per_attempt: true,
     notification_grouped_under_original_request_id: true,
