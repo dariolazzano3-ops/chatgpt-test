@@ -84,7 +84,7 @@
 import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v1.js';
 import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering-mission-acceptance-v1.js';
-import { retrieveJarvisMemoryV1 } from './memory-v1.js';
+import { normalizeJarvisMemoryEntryV1, retrieveJarvisMemoryV1 } from './memory-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 
@@ -173,7 +173,11 @@ export function buildJarvisOwnerChatSelfApprovalAuditEventV1({ ownerRef, request
       decided_run_id: requestId
     },
     cost: { estimated_eur: 0, actual_eur: 0 },
-    memory_updates: { accepted: 0, proposed: 0, rejected: 0 }
+    memory_updates: {
+      accepted: verifiedResultMemory.persisted === true ? 1 : 0,
+      proposed: 0,
+      rejected: verifiedResultMemory.error ? 1 : 0
+    }
   });
   event.request_id = requestId;
   return event;
@@ -537,6 +541,75 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     }
   }
 
+  let verifiedResultMemory = {
+    attempted: false,
+    persisted: false,
+    memory_id: null,
+    error: null
+  };
+  if (
+    finalStatus === 'COMPLETE'
+    && finalVerification
+    && typeof deps.memory_store.upsertMemory === 'function'
+  ) {
+    const verifiedSummary = clean(finalVerification?.tool_audit?.result, 3500);
+    if (verifiedSummary) {
+      verifiedResultMemory.attempted = true;
+      const completedAt = new Date().toISOString();
+      const normalizedMemory = normalizeJarvisMemoryEntryV1({
+        memory_id: 'jarvis:owner-job-result:' + requestId,
+        owner_ref: ownerRef,
+        category: 'PROJECTS',
+        subject: 'Verified owner job result: ' + clean(title, 180),
+        value: {
+          request_id: requestId,
+          program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
+          title: clean(title, 300),
+          goal: clean(originalGoal, 1200),
+          result_summary: verifiedSummary,
+          evidence_id: clean(finalEvidenceId, 240) || null,
+          branch: clean(finalVerification?.branch, 200) || null,
+          head: clean(finalVerification?.head, 80) || clean(finalVerification?.git_evidence?.pre?.head, 80) || null,
+          astra_decision: clean(finalAstraPostReview?.decision, 20) || null
+        },
+        source: {
+          type: 'VERIFIED_OWNER_CHAT_JOB',
+          request_id: requestId,
+          evidence_id: clean(finalEvidenceId, 240) || null
+        },
+        source_system: 'jarvis.owner_chat',
+        confidence: 1,
+        created_at: completedAt,
+        updated_at: completedAt,
+        valid_from: completedAt,
+        status: 'CONFIRMED',
+        sensitivity: 'INTERNAL',
+        provenance: {
+          system: 'jarvis.owner_chat',
+          verification_actor_type: 'SYSTEM',
+          independent_verification: true,
+          astra_post_review: clean(finalAstraPostReview?.decision, 20) || null
+        }
+      }, { owner_ref: ownerRef, now: completedAt });
+
+      if (!normalizedMemory.ok) {
+        verifiedResultMemory.error = clean(normalizedMemory.error || 'OWNER_CHAT_RESULT_MEMORY_NORMALIZE_FAILED', 160);
+      } else {
+        try {
+          await deps.memory_store.upsertMemory({
+            owner_id: ownerId,
+            owner_ref: ownerRef,
+            entry: normalizedMemory.entry
+          });
+          verifiedResultMemory.persisted = true;
+          verifiedResultMemory.memory_id = normalizedMemory.entry.memory_id;
+        } catch (error) {
+          verifiedResultMemory.error = clean(error?.code || error?.message || 'OWNER_CHAT_RESULT_MEMORY_PERSIST_FAILED', 160);
+        }
+      }
+    }
+  }
+
   const intelligenceRoute = intelligencePlan ? {
     memory_context_items: hermesMemoryItems,
     astra_post_review_enabled: deps.astra_post_review_enabled === true,
@@ -591,6 +664,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       intelligence_route: intelligenceRoute,
       astra_post_review: finalAstraPostReview,
       finalization,
+      verified_result_memory: verifiedResultMemory,
       notification: buildNotificationText(finalStatus, title, finalReason, attemptNumber)
     },
     approval: { required: false, explicit: false, actor_type: 'SYSTEM', gate_status: 'OWNER_CHAT_JOB_NOTIFICATION' },
@@ -618,6 +692,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     intelligence_route: intelligenceRoute,
     astra_post_review: finalAstraPostReview,
     finalization,
+    verified_result_memory: verifiedResultMemory,
     acceptance_ref: null,
     evidence_id: finalEvidenceId,
     notification: buildNotificationText(finalStatus, title, finalReason, attemptNumber),
@@ -646,6 +721,8 @@ export function jarvisOwnerChatJobManifestV1() {
     max_repair_attempts_ceiling: JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING,
     repair_uses_fresh_request_id_per_attempt: true,
     notification_grouped_under_original_request_id: true,
+    verified_complete_result_memory_persisted_when_store_supports_upsert: true,
+    failed_jobs_never_promoted_to_verified_result_memory: true,
     fails_closed_without_claude_bridge: true,
     astra_post_review_optional_gate_supported: true,
     astra_post_review_repair_reuses_existing_bounded_attempt_loop: true,
