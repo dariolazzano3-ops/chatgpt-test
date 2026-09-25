@@ -171,7 +171,7 @@ await check('D2b. remote runtime wires the narrow owner git-index preflight and 
   const originalMode = fs.statSync(indexPath).mode & 0o777;
   try {
     fs.chmodSync(indexPath, 0o600);
-    execFileSync('git', ['config', '--unset-all', 'core.sharedRepository'], { cwd: fixtureRepoDir, stdio: 'ignore' });
+    try { execFileSync('git', ['config', '--unset-all', 'core.sharedRepository'], { cwd: fixtureRepoDir, stdio: 'ignore' }); } catch {}
 
     const built = await buildJarvisRemoteOperatorOptionsV1(
       {
