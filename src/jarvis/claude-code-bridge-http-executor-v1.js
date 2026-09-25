@@ -56,7 +56,8 @@
 
 import {
   beginJarvisRepoBoundVerificationV1,
-  finishJarvisRepoBoundVerificationV1
+  finishJarvisRepoBoundVerificationV1,
+  trustedRepoReviewMetadataV1
 } from './repo-bound-verification-v1.js';
 
 const MAX_RESPONSE_BYTES = 2_000_000; // matches claude-code-bridge-v1.js's own clampOutput ceiling
@@ -215,17 +216,25 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
       throw new Error('BRIDGE_HTTP_EXECUTOR_EXECUTION_MODE_INVALID');
     }
     const snapshot = repoDir ? beginJarvisRepoBoundVerificationV1(repoDir) : null;
-    const trustedRepoMetadata = executionMode === 'review' && snapshot
-      ? [
+    const trustedReviewMetadata = executionMode === 'review' && repoDir
+      ? trustedRepoReviewMetadataV1(repoDir)
+      : null;
+    const metadataBudget = Math.max(0, Math.min(2800, MAX_PROMPT_CHARS - prompt.length - 2));
+    const trustedRepoMetadata = executionMode === 'review' && snapshot && metadataBudget >= 300
+      ? clean([
           '[TRUSTED SERVER REPOSITORY METADATA - READ ONLY]',
           'Current branch: ' + (clean(snapshot.branch, 200) || '(unavailable)'),
           'Current HEAD commit: ' + (clean(snapshot.head, 80) || '(unavailable)'),
           'Porcelain status readable by host verifier: ' + (snapshot.porcelain_status_readable_before === true ? 'yes' : 'no'),
-          'This metadata is collected by the trusted host verifier before Claude runs. It does not authorize writes and does not by itself claim the working tree is clean.'
-        ].join('\n')
+          'Local branch refs (short SHA, date):',
+          ...((trustedReviewMetadata?.branches || []).slice(0, 16).map((line) => '- ' + clean(line, 220))),
+          'Relevant commit history across local refs:',
+          ...((trustedReviewMetadata?.relevant_commits || []).slice(0, 14).map((line) => '- ' + clean(line, 260))),
+          'This metadata is collected by the trusted host verifier with read-only git commands before Claude runs. It does not authorize git, shell, writes, network access, or external actions.'
+        ].join('\n'), metadataBudget)
       : '';
     const bridgePrompt = trustedRepoMetadata
-      ? clean([trustedRepoMetadata, '', prompt].join('\n'), MAX_PROMPT_CHARS)
+      ? [trustedRepoMetadata, '', prompt].join('\n')
       : prompt;
 
     let response;
@@ -338,6 +347,10 @@ export function jarvisBridgeHttpExecutorManifestV1() {
     review_mode_read_only: true,
     review_git_index_permission_fallback_requires_unchanged_full_snapshot: true,
     review_trusted_branch_head_context_injected: true,
+    review_trusted_branch_refs_context_injected: true,
+    review_trusted_relevant_commit_context_injected: true,
+    review_trusted_metadata_prompt_budget_max_chars: 2800,
+    owner_prompt_preserved_before_metadata_truncation: true,
     can_commit: false,
     can_push: false,
     can_merge: false,
