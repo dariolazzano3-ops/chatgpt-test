@@ -57,6 +57,7 @@ import { createJarvisBridgeHttpRuntimeBindingV1 } from './claude-code-bridge-htt
 import { createJarvisSessionV1 } from './session-v1.js';
 import { createJarvisProgramRunnerV1, clampJarvisProgramRunnerIntervalMsV1 } from './program-runner-v1.js';
 import { createJarvisAcceptedWorkPublisherV1 } from './accepted-work-publisher-v1.js';
+import { ensureJarvisOwnerWorkspaceGitIndexAccessV1 } from './owner-workspace-git-index-access-v1.js';
 import { startJarvisOwnerControlSocketV1, JARVIS_OWNER_CONTROL_DEFAULT_SOCKET } from './owner-control-socket-v1.js';
 import { createJarvisTrustedCandidateRecovererV1 } from './trusted-candidate-recovery-v1.js';
 import { isKnownJarvisProgramV1, JARVIS_V2_PROGRAM_ID, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
@@ -319,6 +320,14 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
+  const workerGidRaw = Number(env.JARVIS_CLAUDE_WORKER_GID || 11000);
+  const ownerChatWorkspacePreflight = overrides.owner_chat_workspace_preflight
+    || (programLocation.ok
+      ? async () => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+          repo_dir: programLocation.repo_dir,
+          worker_gid: Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000
+        })
+      : null);
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
   // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
   // ever called for the real entrypoint; a test may also pass one directly.
@@ -335,6 +344,7 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       program_controller: programController,
       program_repo_dir: programLocation.ok ? programLocation.repo_dir : null,
       program_target_branch: programLocation.ok ? programLocation.target_branch : null,
+      owner_chat_workspace_preflight: ownerChatWorkspacePreflight,
       project_mission_targets: projectMissionResult.ok ? projectMissionResult.targets : {},
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
         const target = Object.values(projectMissionResult.ok ? projectMissionResult.targets : {})
