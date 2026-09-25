@@ -8,7 +8,8 @@ import {
   runJarvisOwnerChatJobV1,
   deriveJarvisOwnerChatJobTitleV1,
   jarvisOwnerChatJobManifestV1,
-  isJarvisOwnerChatReadOnlyGoalV1
+  isJarvisOwnerChatReadOnlyGoalV1,
+  findJarvisOwnerChatRecoverableFailedCandidateV1
 } from '../src/jarvis/owner-chat-job-v1.js';
 import { createJarvisCommandCenterReadBindingsV1 } from '../src/jarvis/command-center-read-bindings-v1.js';
 
@@ -398,6 +399,65 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(result.verified_result_memory.persisted, true);
 }
 
+/* ── 6c2. A prior FAILED owner job can nominate only its exact,
+        unaccepted, unpublished clean-base candidate for new-job recovery. ── */
+{
+  const priorId = '91919191-9191-4919-8919-919191919191';
+  const currentId = '92929292-9292-4929-8929-929292929292';
+  const goal = 'Implementiere exakt denselben kleinen Fix.';
+  const head = '1'.repeat(40);
+  const diff = 'diff --git a/src/edit-planner.js b/src/edit-planner.js\n--- a/src/edit-planner.js\n+++ b/src/edit-planner.js\n@@ -1 +1 @@\n-old\n+new';
+  const rows = [
+    {
+      request_id: priorId,
+      timestamp: '2026-09-21T10:08:10.000Z',
+      intent: { intent_type: 'IMPLEMENTATION_MISSION_REQUEST' },
+      action: 'IMPLEMENTATION_MISSION',
+      result: {
+        verification: {
+          branch: 'factory/owner-candidate',
+          head,
+          files_changed: ['src/edit-planner.js'],
+          pre_existing_dirty_files: [],
+          syntax_check: { passed: true, checked: 1 },
+          filesystem_evidence: { post: { sha256: 'a'.repeat(64) } },
+          git_evidence: {
+            pre: { head, status: [] },
+            post: { status: ['M src/edit-planner.js'] },
+            changes: { diff }
+          }
+        }
+      }
+    },
+    {
+      request_id: priorId,
+      timestamp: '2026-09-21T10:08:20.000Z',
+      intent: { intent_type: 'OWNER_CHAT_JOB_NOTIFICATION' },
+      action: 'IMPLEMENTATION_MISSION',
+      result: { status: 'FAILED', goal }
+    }
+  ];
+
+  const candidate = findJarvisOwnerChatRecoverableFailedCandidateV1(rows, goal, currentId);
+  assert.ok(candidate);
+  assert.equal(candidate.source_request_id, priorId);
+  assert.equal(candidate.branch, 'factory/owner-candidate');
+  assert.equal(candidate.head, head);
+  assert.deepEqual(candidate.files, ['src/edit-planner.js']);
+  assert.equal(candidate.diff, diff);
+  assert.deepEqual(candidate.pre_existing_dirty_files, []);
+
+  assert.equal(findJarvisOwnerChatRecoverableFailedCandidateV1(rows, 'anderes Ziel', currentId), null,
+    'a different owner goal must never inherit a prior candidate');
+  const publishedRows = [...rows, {
+    request_id: '93939393-9393-4939-8939-939393939393',
+    action: 'OWNER_CHAT_JOB_PUBLICATION',
+    result: { request_id: priorId, status: 'COMPLETED' }
+  }];
+  assert.equal(findJarvisOwnerChatRecoverableFailedCandidateV1(publishedRows, goal, currentId), null,
+    'published work must never be treated as failed-candidate cleanup material');
+}
+
 /* ── 6d. Implementation workspace preflight runs before Claude and
         fails closed without consuming a Bridge attempt. Read-only jobs skip
         this dependency entirely. ── */
@@ -537,6 +597,9 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(man.implementation_workspace_preflight_dependency_supported, true);
   assert.equal(man.workspace_preflight_skipped_for_read_only_jobs, true);
   assert.equal(man.workspace_preflight_failure_blocks_before_claude_dispatch, true);
+  assert.equal(man.failed_candidate_recovery_requires_exact_same_owner_goal, true);
+  assert.equal(man.failed_candidate_recovery_requires_clean_original_candidate_base, true);
+  assert.equal(man.failed_candidate_recovery_never_accepts_or_publishes_candidate, true);
 }
 
 console.log('JARVIS Owner Chat Job V1 (chat-work-router -> ack -> background dispatch -> verification -> bounded repair -> notification) smoke: PASS');
