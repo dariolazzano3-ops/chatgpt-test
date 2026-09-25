@@ -42,6 +42,14 @@ export function currentBranchOrNullV1(repoDir) {
   try { return git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']).trim(); } catch { return null; }
 }
 
+export function currentHeadOrNullV1(repoDir) {
+  try {
+    const value = git(repoDir, ['rev-parse', 'HEAD']).trim();
+    return /^[0-9a-f]{40}$/i.test(value) ? value.toLowerCase() : null;
+  } catch { return null; }
+}
+
+
 /** One entry per dirty path, using git's porcelain short-status format.
  *  `--untracked-files=all` is required, not optional: without it, git
  *  collapses an entirely untracked directory into one summary line for the
@@ -87,9 +95,18 @@ export function syntaxCheckFilesV1(repoDir, files) {
  *  the returned object to finishJarvisRepoBoundVerificationV1. */
 export function beginJarvisRepoBoundVerificationV1(repoDir) {
   const branch = currentBranchOrNullV1(repoDir);
-  const beforePaths = porcelainPathsV1(repoDir) || [];
+  const head = currentHeadOrNullV1(repoDir);
+  const beforePathsRaw = porcelainPathsV1(repoDir);
+  const beforePaths = beforePathsRaw || [];
   const beforeContent = new Map(beforePaths.map((p) => [p, snapshotFileV1(repoDir, p)]));
-  return { repoDir, branch, beforePaths, beforeContent };
+  return {
+    repoDir,
+    branch,
+    head,
+    porcelain_status_readable_before: beforePathsRaw !== null,
+    beforePaths,
+    beforeContent
+  };
 }
 
 /** Computes the canonical `aurentara.jarvis.repo-bound-verification.v1`
@@ -98,9 +115,18 @@ export function beginJarvisRepoBoundVerificationV1(repoDir) {
  *  unreadable post-run branch) withholds nothing here — the caller
  *  decides what a drifted external_effect should be, exactly as
  *  claude-code-repo-bound-executor-v1.js already does. */
-export function finishJarvisRepoBoundVerificationV1({ repoDir, branch, beforePaths, beforeContent }) {
+export function finishJarvisRepoBoundVerificationV1({
+  repoDir,
+  branch,
+  head,
+  porcelain_status_readable_before = true,
+  beforePaths,
+  beforeContent
+}) {
   const branchAfter = currentBranchOrNullV1(repoDir);
+  const headAfter = currentHeadOrNullV1(repoDir);
   const branchDrift = branchAfter === null || branchAfter !== branch;
+  const headDrift = headAfter === null || headAfter !== head;
   const afterPaths = porcelainPathsV1(repoDir);
   const candidatePaths = afterPaths === null ? [] : [...new Set([...beforePaths, ...afterPaths])];
   const filesChanged = candidatePaths.filter((p) => {
@@ -118,7 +144,13 @@ export function finishJarvisRepoBoundVerificationV1({ repoDir, branch, beforePat
     schema: 'aurentara.jarvis.repo-bound-verification.v1',
     repo_dir: repoDir,
     branch,
+    head,
+    branch_after: branchAfter,
+    head_after: headAfter,
     branch_drift: branchDrift,
+    head_drift: headDrift,
+    porcelain_status_readable_before: porcelain_status_readable_before === true,
+    porcelain_status_readable_after: afterPaths !== null,
     files_changed: filesChanged,
     pre_existing_dirty_files: beforePaths,
     syntax_check: syntaxCheck,
@@ -132,6 +164,7 @@ export function jarvisRepoBoundVerificationManifestV1() {
     computed_by: 'TRUSTED_LOCAL_PROCESS_NEVER_WORKER_OR_BRIDGE_SELF_REPORT',
     shared_by_local_cli_and_bridge_http_executors: true,
     content_diffed_not_just_path_diffed: true,
+    branch_and_head_captured_pre_post: true,
     syntax_check_mandatory: true,
     production_deploy: false,
     hamyren_data_flow: false
