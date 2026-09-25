@@ -291,6 +291,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       intelligencePlan = await deps.intelligence_router.plan({
         goal: originalGoal,
         request_id: requestId,
+        budget_request_id: requestId,
         hermes_session_key: 'jarvis-owner-' + ownerId,
         memory_context: hermesMemoryContext
       });
@@ -427,6 +428,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
             verification,
             system_verified: true,
             request_id: attemptRequestId,
+            budget_request_id: requestId,
             hermes_session_key: 'jarvis-owner-' + ownerId,
             memory_context: hermesMemoryContext
           });
