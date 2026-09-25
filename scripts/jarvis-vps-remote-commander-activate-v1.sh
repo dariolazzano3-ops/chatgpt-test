@@ -24,10 +24,7 @@ sudo -v
 OWNER="$(stat -c '%U:%G' "$STATE")"
 MODE="$(stat -c '%a' "$STATE")"
 [[ "$OWNER" == "jarvis:jarvis" ]] || fail "PAIRING_STATE_OWNER_MISMATCH:$OWNER" 15
-case "$MODE" in
-  600|640|644) ;;
-  *) fail "PAIRING_STATE_MODE_UNEXPECTED:$MODE" 16 ;;
-esac
+[[ "$MODE" == "600" ]] || fail "PAIRING_STATE_MUST_BE_0600:$MODE" 16
 
 sudo systemctl enable --now "$SERVICE"
 
