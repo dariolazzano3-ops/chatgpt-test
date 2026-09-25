@@ -54,6 +54,36 @@ const BRIDGE_STATE_TO_WAVE = Object.freeze({
   UNAVAILABLE: 'BLOCKED'
 });
 
+export function classifyJarvisClaudeExecutionFailureV1(execution = {}) {
+  const state = clean(execution?.state, 40).toUpperCase();
+  if (!state || state === 'COMPLETE') return null;
+
+  const detail = clean(
+    [execution?.stderr, execution?.error_detail].filter(Boolean).join('\n'),
+    4000
+  ).toLowerCase();
+
+  if (/usage_limit_reached|session limit|usage limit|hit your [^\n]{0,80}limit/.test(detail)) {
+    return 'CLAUDE_USAGE_LIMIT';
+  }
+  if (state === 'TIMEOUT' || /\btimeout\b|timed out/.test(detail)) return 'CLAUDE_TIMEOUT';
+  if (/rate[_ -]?limit|\b429\b/.test(detail)) return 'CLAUDE_RATE_LIMIT';
+  if (/unauthori[sz]ed|\b401\b|authentication failed|invalid[^\n]{0,40}token/.test(detail)) {
+    return 'CLAUDE_AUTH_FAILED';
+  }
+  if (/forbidden|\b403\b/.test(detail)) return 'CLAUDE_FORBIDDEN';
+  if (/bridge_http_5\d\d/.test(detail)) return 'BRIDGE_UPSTREAM_ERROR';
+  if (/bridge_http_4\d\d/.test(detail)) return 'BRIDGE_REQUEST_FAILED';
+  if (/bridge_(response_malformed|response_not_json|response_too_large)/.test(detail)) {
+    return 'BRIDGE_RESPONSE_INVALID';
+  }
+  if (/bridge_execution_failed/.test(detail)) return 'BRIDGE_EXECUTION_FAILED';
+  if (state === 'CANCELLED') return 'CLAUDE_CANCELLED';
+  if (state === 'BLOCKED') return 'CLAUDE_BLOCKED';
+  if (state === 'UNAVAILABLE') return 'CLAUDE_UNAVAILABLE';
+  return 'CLAUDE_EXECUTION_FAILED';
+}
+
 /** Explicit, unambiguous resolver. Unlike resolveJarvisIntentV1 (intent-v1.js)
  *  this NEVER classifies free text — the caller states the mission fields
  *  directly and this only validates + normalises them. Fail-closed on
@@ -158,6 +188,10 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
     }
   }
 
+  const claudeFailureReason = bridgeExecution
+    ? classifyJarvisClaudeExecutionFailureV1(bridgeExecution)
+    : null;
+
   const actionResult = {
     ok: !bridgeExecution || bridgeExecution.state !== 'FAILED',
     schema: 'aurentara.jarvis.action-result.v1',
@@ -186,6 +220,8 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
       independent_acceptance: false,
       acceptance_ref: null,
       claude_execution_state: bridgeExecution?.state || null,
+      claude_failure_reason: claudeFailureReason,
+      claude_exit_code: Number.isInteger(bridgeExecution?.exit_code) ? bridgeExecution.exit_code : null,
       evidence_id: bridgeExecution?.evidence?.evidence_id || null,
       program: intent.program,
       wave_index: intent.wave_index,
@@ -229,6 +265,7 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
     claude_execution: bridgeExecution ? {
       state: bridgeExecution.state,
       exit_code: bridgeExecution.exit_code,
+      failure_reason: claudeFailureReason,
       external_effect: bridgeExecution.external_effect === true,
       independent_acceptance: false,
       evidence: bridgeExecution.evidence || null
