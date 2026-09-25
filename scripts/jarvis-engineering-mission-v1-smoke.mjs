@@ -163,6 +163,39 @@ function truth(store) {
   assert.equal(b.run_state, 'BLOCKED');
 }
 
+// ── 7b. Failed Claude execution exposes only a classified safe reason, never raw provider stderr ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async () => ({
+      exit_code: 1,
+      stdout: '',
+      stderr: "You've hit your session limit · usage_limit_reached"
+    })
+  });
+  const corr = '71717171-7777-4777-8777-777777777771';
+  await postMission(store, {
+    title: 'Read-only provider failure probe',
+    goal: 'Inspect only.',
+    program: PROGRAM,
+    correlation_id: corr,
+    wave_index: 1
+  }, bridge);
+  await decide(store, `${corr}:approval`, corr, 'approve');
+  const response = await postMission(store, {
+    title: 'Read-only provider failure probe',
+    goal: 'Inspect only.',
+    program: PROGRAM,
+    correlation_id: corr,
+    wave_index: 1
+  }, bridge);
+  const body = await response.json();
+  assert.equal(body.claude_execution.state, 'FAILED');
+  assert.equal(body.claude_execution.failure_reason, 'CLAUDE_USAGE_LIMIT');
+  assert.equal(body.run_state, 'FAILED');
+  assert.doesNotMatch(JSON.stringify(body), /You've hit your session limit/i);
+}
+
 // ── 8. V2 progress = 0 when no V2 program evidence exists at all ──
 {
   const store = createMemoryJarvisStoreV1();
