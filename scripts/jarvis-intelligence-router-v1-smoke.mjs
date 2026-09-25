@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createJarvisIntelligenceRouterV1 } from '../src/jarvis/intelligence-router-v1.js';
+import { createJarvisIntelligenceRouterV1, createJarvisIntelligenceRouterFromEnvV1, jarvisIntelligenceRouterManifestV1 } from '../src/jarvis/intelligence-router-v1.js';
 import {
   createJarvisOpenAiBrainClientV1,
   estimateJarvisOpenAiCostV1
@@ -170,6 +170,26 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.equal(plan.ok, false);
   assert.equal(plan.error, 'JARVIS_AI_BUDGET_BLOCKED');
   assert.equal(apiCalls, 0);
+}
+
+{
+  const hermes = { configured: true, chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' }) };
+  const openai = { configured: true, complete: async () => { throw new Error('must not call without paid approval'); } };
+  const blocked = createJarvisIntelligenceRouterFromEnvV1(
+    { JARVIS_AI_API_FALLBACK_ENABLED: 'true' },
+    { hermes_client: hermes, openai_client: openai }
+  );
+  assert.equal(blocked.api_fallback_enabled, false, 'technical enable alone must not authorize paid fallback');
+
+  const approved = createJarvisIntelligenceRouterFromEnvV1(
+    { JARVIS_AI_API_FALLBACK_ENABLED: 'true', JARVIS_AI_API_FALLBACK_APPROVED: 'true' },
+    { hermes_client: hermes, openai_client: openai }
+  );
+  assert.equal(approved.api_fallback_enabled, true, 'paid fallback requires a second explicit approval flag');
+
+  const manifest = jarvisIntelligenceRouterManifestV1();
+  assert.equal(manifest.fallback_requires_explicit_paid_approval, true);
+  assert.equal(manifest.fallback_paid_approval_env, 'JARVIS_AI_API_FALLBACK_APPROVED');
 }
 
 console.log('JARVIS_INTELLIGENCE_ROUTER_V1_SMOKE_PASS');
