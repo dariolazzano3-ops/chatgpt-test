@@ -87,6 +87,24 @@ import { evaluateJarvisEngineeringMissionAcceptanceStateV1 } from './engineering
 import { retrieveJarvisMemoryV1 } from './memory-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
+
+export function isJarvisOwnerChatReadOnlyGoalV1(goal) {
+  const text = clean(goal, 4000).toLowerCase();
+  if (!text) return false;
+  return [
+    'read-only',
+    'read only',
+    'readonly',
+    'verändere nichts',
+    'nichts verändern',
+    'keine änderungen',
+    'ohne änderungen',
+    'do not modify',
+    'do not change',
+    'no changes',
+    'without changes'
+  ].some((marker) => text.includes(marker));
+}
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const JARVIS_OWNER_CHAT_JOB_PROGRAM = 'JARVIS_OWNER_CHAT';
@@ -221,7 +239,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     return { ok: false, error: 'JARVIS_OWNER_CHAT_JOB_MEMORY_STORE_REQUIRED', request_id: requestId };
   }
 
-  const maxAttempts = clean(originalGoal, 4000).toLowerCase().includes('read-only') ? 0 : Math.min(
+  const maxAttempts = isJarvisOwnerChatReadOnlyGoalV1(originalGoal) ? 0 : Math.min(
     JARVIS_OWNER_CHAT_JOB_MAX_REPAIR_ATTEMPTS_CEILING,
     Number.isInteger(deps.max_repair_attempts) && deps.max_repair_attempts >= 0
       ? deps.max_repair_attempts
@@ -354,7 +372,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
     const verificationState = evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows, attemptRequestId);
     const verification = mission.claude_execution?.evidence?.verification || null;
-    const readOnlyGoal = clean(originalGoal, 4000).toLowerCase().includes('read-only');
+    const readOnlyGoal = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
     const fs = verification?.filesystem_evidence || null;
     const git = verification?.git_evidence || null;
     const audit = verification?.tool_audit || null;
@@ -483,7 +501,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     attemptNumber += 1;
   }
 
-  const readOnlyJob = clean(originalGoal, 4000).toLowerCase().includes('read-only');
+  const readOnlyJob = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
   if (
     finalStatus === 'COMPLETE'
     && !readOnlyJob
@@ -612,6 +630,7 @@ export function jarvisOwnerChatJobManifestV1() {
     trusted_publication_after_system_verification_supported: true,
     trusted_publication_is_optional_dependency: true,
     trusted_publication_skipped_for_read_only_jobs: true,
+    natural_language_read_only_detection: true,
     reuses_action_gate: true,
     action_gate_bypassed: false,
     self_approval_shape_matches_command_center_approval: true,
