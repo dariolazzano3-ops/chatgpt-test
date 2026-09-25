@@ -230,6 +230,79 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 }
 
 {
+  let observedMessages = null;
+  const hermes = {
+    configured: true,
+    chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' })
+  };
+  const openai = {
+    configured: true,
+    complete: async ({ model, messages }) => {
+      observedMessages = messages;
+      return {
+        requested_model: model,
+        text: JSON.stringify({ decision: 'PASS', rationale: 'trusted evidence is sufficient', repair_brief: '' }),
+        estimated_cost_usd: 0.001
+      };
+    }
+  };
+  const router = createJarvisIntelligenceRouterV1({
+    hermes_client: hermes,
+    openai_client: openai,
+    api_fallback_enabled: true,
+    max_job_cost_usd: 0.25
+  });
+  const head = 'a'.repeat(40);
+  const gitError = 'fatal: .git/index: index file open failed: Permission denied';
+  const review = await router.review({
+    goal: 'Read-only inspect branches, commits, tests, evidence and acceptance gates.',
+    execution_brief: 'Inspect every named evidence category.',
+    system_verified: true,
+    request_id: 'r6-review',
+    budget_request_id: 'job-r6',
+    verification: {
+      branch: 'factory/review-fixture',
+      head,
+      branch_after: 'factory/review-fixture',
+      head_after: head,
+      branch_drift: false,
+      head_drift: false,
+      files_changed: [],
+      syntax_check: { passed: true, checked: 0, results: [] },
+      filesystem_evidence: {
+        complete: true,
+        unchanged: true,
+        added: [],
+        changed: [],
+        removed: [],
+        added_count: 0,
+        changed_count: 0,
+        removed_count: 0
+      },
+      git_evidence: {
+        pre: { branch: 'factory/review-fixture', head, error: gitError },
+        post: { branch: 'factory/review-fixture', head, error: gitError },
+        head_unchanged: true,
+        changes: { error: 'git change evidence incomplete' }
+      },
+      tool_audit: {
+        complete: true,
+        compliant: true,
+        result: 'Relevant test and acceptance evidence inspected read-only.'
+      }
+    }
+  });
+  assert.equal(review.ok, true);
+  assert.equal(review.decision, 'PASS');
+  assert.ok(Array.isArray(observedMessages));
+  assert.match(observedMessages[0].content, /SYSTEM_VERIFIED is true/);
+  assert.match(observedMessages[1].content, /"current_branch_verified":true/);
+  assert.match(observedMessages[1].content, /"current_head_verified":true/);
+  assert.match(observedMessages[1].content, /"raw_bridge_git_index_permission_limited":true/);
+  assert.ok(observedMessages[1].content.includes('"head":"' + head + '"'));
+}
+
+{
   const hermes = { configured: true, chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' }) };
   const openai = { configured: true, complete: async () => { throw new Error('must not call without paid approval'); } };
   const blocked = createJarvisIntelligenceRouterFromEnvV1(
@@ -248,6 +321,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.equal(manifest.fallback_requires_explicit_paid_approval, true);
   assert.equal(manifest.fallback_paid_approval_env, 'JARVIS_AI_API_FALLBACK_APPROVED');
   assert.equal(manifest.aggregate_job_budget_shared_across_plan_review_repairs, true);
+  assert.equal(manifest.astra_receives_trusted_branch_head_and_read_only_integrity_summary, true);
 }
 
 console.log('JARVIS_INTELLIGENCE_ROUTER_V1_SMOKE_PASS');
