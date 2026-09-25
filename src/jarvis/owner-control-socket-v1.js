@@ -112,11 +112,11 @@ export function createJarvisOwnerControlSocketServerV1({
       let body;
 
       if (method === 'GET' && url.pathname === '/v1/status') {
-        targetPath = '/jarvis/api/status';
+        targetPath = '/api/status';
       } else if (method === 'GET' && url.pathname === '/v1/runtime-truth') {
-        targetPath = '/jarvis/api/runtime-truth';
+        targetPath = '/api/runtime-truth';
       } else if (method === 'POST' && url.pathname === '/v1/chat') {
-        targetPath = '/jarvis/api/chat';
+        targetPath = '/api/chat';
         const incoming = await readBoundedJson(req, max_body_bytes);
         const message = clean(incoming.message, 4000);
         if (!message) {
