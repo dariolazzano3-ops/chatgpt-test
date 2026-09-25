@@ -209,7 +209,10 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
               'Use only Read, Glob, and Grep.',
               'Do not use Agent or Task. Do not delegate to specialists, subagents, or background agents.',
               'Do not use Edit, Write, Bash, shell, git, network, package-manager, MCP, skills, deployment, secrets, billing, DNS, PR, merge, commit, or push actions.',
-              'Do not modify the workspace. Complete the review directly and return only evidence-grounded findings.'
+              'Do not modify the workspace. Complete the review directly and return only evidence-grounded findings.',
+              'If the owner goal explicitly names evidence categories such as branches, commits, tests, evidence, or acceptance gates, verify every named category before concluding.',
+              'For tests, inspect relevant existing test/smoke files and recorded test outcomes read-only; do not execute tests. Do not claim all tests are verified unless the inspected evidence supports that claim.',
+              'Use the trusted server repository metadata in the prompt for the current branch and HEAD commit; do not try to access .git directly.'
             ].join('\n')
           : '';
         const bridgeTask = [
@@ -356,6 +359,8 @@ export function jarvisEngineeringMissionManifestV1() {
     review_mode_read_only: true,
     review_mode_direct_tools_only: ['Read', 'Glob', 'Grep'],
     review_mode_agent_delegation_forbidden: true,
+    review_named_evidence_categories_must_be_checked: true,
+    review_tests_are_inspected_not_executed: true,
     fails_closed_without_claude_bridge: true,
     fabricates_worker_availability: false,
     wave_states: ['NOT_STARTED', 'RUNNING', 'BLOCKED', 'FAILED', 'COMPLETE'],
