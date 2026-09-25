@@ -939,6 +939,7 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       title: body.title,
       goal: body.goal,
       program: body.program,
+      execution_mode: body.execution_mode,
       wave_index: body.wave_index,
       now
     }, {
