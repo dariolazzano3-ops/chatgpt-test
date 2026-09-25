@@ -337,6 +337,39 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
     const readOnlyGoal = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
 
+    if (!readOnlyGoal && typeof deps.workspace_preflight === 'function') {
+      let workspacePreflight = null;
+      try {
+        workspacePreflight = await deps.workspace_preflight({
+          request_id: attemptRequestId,
+          attempt: attemptNumber
+        });
+      } catch (error) {
+        workspacePreflight = {
+          ok: false,
+          error: clean(error?.code || error?.message || 'OWNER_WORKSPACE_PREFLIGHT_FAILED', 160)
+        };
+      }
+
+      if (workspacePreflight?.ok !== true) {
+        finalStatus = 'FAILED';
+        finalReason = clean(workspacePreflight?.error || 'OWNER_WORKSPACE_PREFLIGHT_FAILED', 200);
+        attemptChain.push({
+          request_id: attemptRequestId,
+          attempt: attemptNumber,
+          wave_state: 'BLOCKED',
+          claude_state: null,
+          system_verified: false,
+          verification_error: finalReason,
+          workspace_preflight: {
+            ok: false,
+            error: finalReason
+          }
+        });
+        break;
+      }
+    }
+
     const mission = await handleJarvisEngineeringMissionRuntimeV1({
       owner_id: ownerId,
       owner_ref: ownerRef,
@@ -730,6 +763,9 @@ export function jarvisOwnerChatJobManifestV1() {
     verified_complete_result_memory_persisted_when_store_supports_upsert: true,
     failed_jobs_never_promoted_to_verified_result_memory: true,
     fails_closed_without_claude_bridge: true,
+    implementation_workspace_preflight_dependency_supported: true,
+    workspace_preflight_skipped_for_read_only_jobs: true,
+    workspace_preflight_failure_blocks_before_claude_dispatch: true,
     astra_post_review_optional_gate_supported: true,
     astra_post_review_repair_reuses_existing_bounded_attempt_loop: true,
     astra_post_review_cannot_override_failed_system_verification: true,
