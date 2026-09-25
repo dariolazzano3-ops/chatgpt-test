@@ -24,6 +24,7 @@ import {
   verifyJarvisRemoteOperatorCanonicalOwnerConfigV1,
   resolveJarvisRemoteOperatorProgramLocationV1,
   resolveJarvisRemoteOperatorClaudeBridgeV1,
+  buildJarvisRemoteOperatorOptionsV1,
   createJarvisRemoteOperatorProgramControllerV1,
   jarvisRemoteOperatorManifestV1,
   JARVIS_REMOTE_OPERATOR_BIND_HOST,
@@ -163,6 +164,47 @@ await check('G. repo truth resolves only from a real repo on a resolvable, non-d
   assert.equal(real.ok, true);
   assert.equal(real.repo_dir, fixtureRepoDir);
   assert.equal(real.target_branch, 'jarvis-remote-smoke-fixture-branch');
+});
+
+await check('D2b. remote runtime wires the narrow owner git-index preflight and repairs group-readability before implementation', async () => {
+  const indexPath = path.join(fixtureRepoDir, '.git', 'index');
+  const originalMode = fs.statSync(indexPath).mode & 0o777;
+  try {
+    fs.chmodSync(indexPath, 0o600);
+    execFileSync('git', ['config', '--unset-all', 'core.sharedRepository'], { cwd: fixtureRepoDir, stdio: 'ignore' });
+
+    const built = await buildJarvisRemoteOperatorOptionsV1(
+      {
+        JARVIS_CLAUDE_REPO_DIR: fixtureRepoDir,
+        JARVIS_CLAUDE_WORKER_GID: String(process.getgid())
+      },
+      {
+        claude_bridge_result: { bridge: null, bound: false, requested: false, reason: 'SMOKE' },
+        project_mission_result: { ok: true, targets: {} },
+        program_location: {
+          ok: true,
+          repo_dir: fixtureRepoDir,
+          target_branch: 'jarvis-remote-smoke-fixture-branch'
+        }
+      }
+    );
+
+    assert.equal(typeof built.options.owner_chat_workspace_preflight, 'function');
+    const preflight = await built.options.owner_chat_workspace_preflight();
+    assert.equal(preflight.ok, true);
+    assert.equal(preflight.working_tree_content_changed, false);
+    assert.equal((fs.statSync(indexPath).mode & 0o040) !== 0, true);
+    assert.equal(
+      execFileSync('git', ['config', '--get', 'core.sharedRepository'], { cwd: fixtureRepoDir }).toString('utf8').trim(),
+      'group'
+    );
+    assert.equal(
+      execFileSync('git', ['status', '--porcelain'], { cwd: fixtureRepoDir }).toString('utf8').trim(),
+      ''
+    );
+  } finally {
+    fs.chmodSync(indexPath, originalMode);
+  }
 });
 
 await check('D3. V3 auto-start fails closed without Trusted Publisher and unknown programs are refused', async () => {
