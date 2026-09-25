@@ -7,6 +7,25 @@ export const JARVIS_OWNER_CONTROL_DEFAULT_SOCKET = '/opt/jarvis/owner-deploy-que
 export const JARVIS_OWNER_CONTROL_MAX_BODY_BYTES = 16 * 1024;
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SENSITIVE_KEY_RE = /(token|secret|password|authorization|cookie|api[_-]?key|service[_-]?role|credential)/i;
+
+function redactOwnerControlValue(value, depth = 0) {
+  if (depth > 8) return '[DEPTH_LIMIT]';
+  if (value === null || value === undefined) return value ?? null;
+  if (typeof value === 'string') return value.slice(0, 5000);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 100).map((item) => redactOwnerControlValue(item, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [key, item] of Object.entries(value)) {
+      if (SENSITIVE_KEY_RE.test(key)) continue;
+      out[key] = redactOwnerControlValue(item, depth + 1);
+    }
+    return out;
+  }
+  return clean(value, 1000);
+}
 
 function jsonNode(res, status, body) {
   const raw = Buffer.from(JSON.stringify(body));
@@ -69,13 +88,15 @@ export function jarvisOwnerControlSocketManifestV1() {
     cloudflare_access_path_modified: false,
     owner_identity_source: 'SERVER_SIDE_OPERATOR_EMAIL_ONLY',
     client_identity_override: false,
-    allowed_routes: ['GET /v1/status', 'GET /v1/runtime-truth', 'POST /v1/chat'],
+    allowed_routes: ['GET /v1/status', 'GET /v1/runtime-truth', 'GET /v1/job?request_id=<uuid>', 'POST /v1/chat'],
     socket_mode: '0660',
     parent_world_access_required: false,
     production_deploy: false,
     dns_actions: false,
     billing_actions: false,
-    secrets_returned: false
+    secrets_returned: false,
+    audit_read_owner_scoped: true,
+    audit_read_secret_key_redaction: true
   };
 }
 
@@ -84,6 +105,7 @@ export function createJarvisOwnerControlSocketServerV1({
   owner_email,
   env = process.env,
   worker_handler = handleJarvisStandaloneWorkerV1,
+  audit_reader = null,
   max_body_bytes = JARVIS_OWNER_CONTROL_MAX_BODY_BYTES
 } = {}) {
   const fixedOwnerEmail = safeOwnerEmail(owner_email);
@@ -115,6 +137,23 @@ export function createJarvisOwnerControlSocketServerV1({
         targetPath = '/api/status';
       } else if (method === 'GET' && url.pathname === '/v1/runtime-truth') {
         targetPath = '/api/runtime-truth';
+      } else if (method === 'GET' && url.pathname === '/v1/job') {
+        const requestId = clean(url.searchParams.get('request_id'), 80).toLowerCase();
+        if (!UUID_RE.test(requestId)) {
+          jsonNode(res, 400, { ok: false, error: 'JARVIS_OWNER_CONTROL_REQUEST_ID_INVALID' });
+          return;
+        }
+        if (typeof audit_reader !== 'function') {
+          jsonNode(res, 503, { ok: false, error: 'JARVIS_OWNER_CONTROL_AUDIT_READER_NOT_BOUND' });
+          return;
+        }
+        const rows = await audit_reader(requestId);
+        jsonNode(res, 200, {
+          ok: true,
+          request_id: requestId,
+          rows: redactOwnerControlValue(Array.isArray(rows) ? rows : [])
+        });
+        return;
       } else if (method === 'POST' && url.pathname === '/v1/chat') {
         targetPath = '/api/chat';
         const incoming = await readBoundedJson(req, max_body_bytes);
@@ -170,6 +209,7 @@ export async function startJarvisOwnerControlSocketV1({
   env = process.env,
   socket_path = JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
   worker_handler = handleJarvisStandaloneWorkerV1,
+  audit_reader = null,
   fs_api = fs
 } = {}) {
   const parent = path.dirname(socket_path);
@@ -231,7 +271,8 @@ export async function startJarvisOwnerControlSocketV1({
     runtime_options,
     owner_email,
     env,
-    worker_handler
+    worker_handler,
+    audit_reader
   });
   if (!created.ok) return { ...created, enabled: false, socket_path };
 
