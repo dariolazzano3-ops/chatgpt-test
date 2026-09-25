@@ -264,6 +264,7 @@ const injected=injectJ12OperatorNextBestAction(baseHtml);
 for(const marker of [
   'aurentara-j12-next-best-action-script',
   'NEXT BEST ACTION · J12',
+  '__aurentaraJ12CurrentAction',
   'Die einzige Primäraktion bleibt oben im Project Workspace.',
   'Weitere WebFactory Aktionen',
   'automatic_execution:false'
