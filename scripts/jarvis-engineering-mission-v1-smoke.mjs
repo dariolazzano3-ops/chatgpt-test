@@ -5,7 +5,7 @@ import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.
 import { createJarvisClaudeCodeBridgeV1, createLocalFixtureExecutorV1 } from '../src/jarvis/claude-code-bridge-v1.js';
 import { resolveJarvisIntentV1 } from '../src/jarvis/intent-v1.js';
 import { classifyJarvisChatWorkRequestV1 } from '../src/jarvis/chat-work-router-v1.js';
-import { jarvisEngineeringMissionManifestV1 } from '../src/jarvis/engineering-mission-v1.js';
+import { classifyJarvisClaudeExecutionFailureV1, jarvisEngineeringMissionManifestV1 } from '../src/jarvis/engineering-mission-v1.js';
 import { computeJarvisV2ProgressV1, JARVIS_V2_WAVE_WEIGHTS } from '../src/jarvis/v2-progress-v1.js';
 
 const authorize = async () => ({ ok: true, operator_id: 'jarvis-operator:op@example.invalid', email: 'op@example.invalid' });
@@ -161,6 +161,30 @@ function truth(store) {
   assert.equal(b.claude_execution, null, 'no dispatch is ever fabricated when no genuine bridge is bound');
   assert.equal(b.wave_state, 'BLOCKED', 'approved-but-unbound fails closed to BLOCKED, never COMPLETE');
   assert.equal(b.run_state, 'BLOCKED');
+}
+
+// ── 7a. Bridge HTTP failures resolve to bounded safe codes only ──
+{
+  assert.equal(classifyJarvisClaudeExecutionFailureV1({
+    state: 'FAILED',
+    stderr: 'BRIDGE_HTTP_401: {"ok":false,"error":"UNAUTHORIZED"}'
+  }), 'BRIDGE_AUTH_FAILED');
+  assert.equal(classifyJarvisClaudeExecutionFailureV1({
+    state: 'FAILED',
+    stderr: 'BRIDGE_HTTP_409: {"ok":false,"error":"IMPLEMENT_REQUIRES_CLEAN_OR_SAFE_REPAIR_WORKSPACE"}'
+  }), 'BRIDGE_WORKSPACE_DIRTY');
+  assert.equal(classifyJarvisClaudeExecutionFailureV1({
+    state: 'FAILED',
+    stderr: 'BRIDGE_HTTP_409: {"ok":false,"error":"IMPLEMENT_REQUIRES_GIT_REPOSITORY"}'
+  }), 'BRIDGE_WORKSPACE_NOT_GIT_REPOSITORY');
+  assert.equal(classifyJarvisClaudeExecutionFailureV1({
+    state: 'FAILED',
+    stderr: 'BRIDGE_HTTP_400: {"ok":false,"error":"project does not exist"}'
+  }), 'BRIDGE_PROJECT_NOT_FOUND');
+  assert.equal(classifyJarvisClaudeExecutionFailureV1({
+    state: 'FAILED',
+    stderr: 'BRIDGE_HTTP_400: {"ok":false,"error":"some unknown validation"}'
+  }), 'BRIDGE_BAD_REQUEST');
 }
 
 // ── 7b. Failed Claude execution exposes only a classified safe reason, never raw provider stderr ──
