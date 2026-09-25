@@ -289,6 +289,17 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
         complete: true,
         compliant: true,
         result: 'Relevant test and acceptance evidence inspected read-only.'
+      },
+      trusted_review_repository_metadata: {
+        current_branch: 'factory/review-fixture',
+        current_head: head,
+        branches: [
+          'factory/review-fixture\taaaaaaa\t2026-09-25',
+          'factory/alternate\tbbbbbbb\t2026-09-24'
+        ],
+        relevant_commits: [
+          'abc1234\t2026-09-24\t\tAURENTARA launch gate evidence'
+        ]
       }
     }
   });
@@ -300,6 +311,9 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.match(observedMessages[1].content, /"current_head_verified":true/);
   assert.match(observedMessages[1].content, /"raw_bridge_git_index_permission_limited":true/);
   assert.ok(observedMessages[1].content.includes('"head":"' + head + '"'));
+  assert.match(observedMessages[1].content, /"trusted_review_repository_metadata"/);
+  assert.match(observedMessages[1].content, /factory\/alternate/);
+  assert.match(observedMessages[1].content, /AURENTARA launch gate evidence/);
 }
 
 {
@@ -322,6 +336,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.equal(manifest.fallback_paid_approval_env, 'JARVIS_AI_API_FALLBACK_APPROVED');
   assert.equal(manifest.aggregate_job_budget_shared_across_plan_review_repairs, true);
   assert.equal(manifest.astra_receives_trusted_branch_head_and_read_only_integrity_summary, true);
+  assert.equal(manifest.astra_receives_trusted_branch_refs_and_relevant_commits, true);
 }
 
 console.log('JARVIS_INTELLIGENCE_ROUTER_V1_SMOKE_PASS');
