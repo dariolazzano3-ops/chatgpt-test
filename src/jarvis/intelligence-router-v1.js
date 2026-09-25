@@ -86,6 +86,8 @@ function astraPostReviewSystemPrompt() {
     'You are ASTRA, the internal JARVIS post-execution reviewer.',
     'You have no tools and must not execute anything.',
     'Bridge/system verification evidence is authoritative. Never invent evidence.',
+    'When SYSTEM_VERIFIED is true, technical integrity has already passed the independent system gate. Do not reject it solely because raw Bridge git-status evidence has the explicitly reported .git/index permission limitation when canonical branch/HEAD plus complete unchanged filesystem and compliant tool evidence are also supplied.',
+    'This does not waive semantic evidence requirements: every evidence category explicitly requested by the owner must still be supported by the supplied work result or verification.',
     'The original owner goal is immutable and authoritative.',
     'Decide whether the verified implementation semantically satisfies that goal without broadening scope.',
     'Return JSON only with exactly these keys:',
@@ -99,17 +101,40 @@ function astraPostReviewSystemPrompt() {
 
 function compactVerificationV1(verification) {
   if (!verification || typeof verification !== 'object') return '{}';
+  const fsEvidence = verification.filesystem_evidence || {};
+  const gitEvidence = verification.git_evidence || {};
+  const toolAudit = verification.tool_audit || {};
+  const gitPre = gitEvidence.pre || {};
+  const gitPost = gitEvidence.post || {};
+  const indexPermissionLimited = /\.git\/index: index file open failed: Permission denied/i.test(
+    [gitPre.error, gitPost.error].map((value) => clean(value, 500)).join(' ')
+  );
+  const head = clean(verification.head || gitPre.head, 80) || null;
+  const headAfter = clean(verification.head_after || gitPost.head, 80) || null;
   const compact = {
     repo_dir: clean(verification.repo_dir, 400) || null,
     branch: clean(verification.branch, 200) || null,
+    head,
+    branch_after: clean(verification.branch_after, 200) || clean(gitPost.branch, 200) || null,
+    head_after: headAfter,
     branch_drift: verification.branch_drift === true,
+    head_drift: verification.head_drift === true || (Boolean(head) && Boolean(headAfter) && head !== headAfter),
     files_changed: Array.isArray(verification.files_changed) ? verification.files_changed.slice(0, 100) : [],
     syntax_check: verification.syntax_check || null,
-    filesystem_evidence: verification.filesystem_evidence || null,
-    git_evidence: verification.git_evidence || null,
-    tool_audit: verification.tool_audit || null
+    trusted_read_only_integrity: {
+      current_branch_verified: Boolean(clean(verification.branch, 200)) && verification.branch_drift !== true,
+      current_head_verified: Boolean(head) && Boolean(headAfter) && head === headAfter,
+      complete_filesystem_snapshot: fsEvidence.complete === true,
+      filesystem_unchanged: fsEvidence.unchanged === true,
+      tool_audit_complete: toolAudit.complete === true,
+      tool_audit_compliant: toolAudit.compliant === true,
+      raw_bridge_git_index_permission_limited: indexPermissionLimited
+    },
+    filesystem_evidence: fsEvidence,
+    git_evidence: gitEvidence,
+    tool_audit: toolAudit
   };
-  try { return clean(JSON.stringify(compact), 12000); }
+  try { return clean(JSON.stringify(compact), 14000); }
   catch { return '{}'; }
 }
 
@@ -583,6 +608,7 @@ export function jarvisIntelligenceRouterManifestV1() {
     execution_brief_advisory_only: true,
     astra_post_review_live_supported: true,
     astra_post_review_never_overrides_system_verification: true,
+    astra_receives_trusted_branch_head_and_read_only_integrity_summary: true,
     hard_budget_preflight: true,
     aggregate_job_budget_shared_across_plan_review_repairs: true,
     public_actions: false,
