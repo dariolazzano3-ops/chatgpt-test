@@ -398,6 +398,99 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(result.verified_result_memory.persisted, true);
 }
 
+/* ── 6d. Implementation workspace preflight runs before Claude and
+        fails closed without consuming a Bridge attempt. Read-only jobs skip
+        this dependency entirely. ── */
+{
+  const store = createMemoryJarvisStoreV1();
+  const message = 'Implementiere MARKER-WORKSPACE-PREFLIGHT als kleine interne Änderung.';
+  const dispatch = await dispatchJarvisOwnerChatJobV1(
+    { owner_id: OWNER_ID, owner_ref: OWNER_REF, message, now: '2026-09-21T10:09:00.000Z' },
+    { memory_store: store }
+  );
+  assert.equal(dispatch.ok, true);
+
+  let bridgeCalls = 0;
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async () => {
+      bridgeCalls += 1;
+      throw new Error('bridge must not run when workspace preflight fails');
+    }
+  });
+
+  let preflightCalls = 0;
+  const result = await runJarvisOwnerChatJobV1(dispatch.job, {
+    memory_store: store,
+    claude_bridge: bridge,
+    workspace_preflight: async () => {
+      preflightCalls += 1;
+      return { ok: false, error: 'OWNER_WORKSPACE_GIT_INDEX_ACCESS_REPAIR_FAILED' };
+    },
+    max_repair_attempts: 2
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 'FAILED');
+  assert.equal(result.reason, 'OWNER_WORKSPACE_GIT_INDEX_ACCESS_REPAIR_FAILED');
+  assert.equal(result.repair_attempts, 0);
+  assert.equal(result.attempt_chain.length, 1);
+  assert.equal(result.attempt_chain[0].wave_state, 'BLOCKED');
+  assert.equal(result.attempt_chain[0].workspace_preflight.ok, false);
+  assert.equal(preflightCalls, 1);
+  assert.equal(bridgeCalls, 0, 'failed preflight must block before Claude dispatch');
+}
+
+{
+  const store = createMemoryJarvisStoreV1();
+  const message = 'READ-ONLY. Prüfe MARKER-PREFLIGHT-SKIP. Verändere nichts.';
+  const dispatch = await dispatchJarvisOwnerChatJobV1(
+    { owner_id: OWNER_ID, owner_ref: OWNER_REF, message, now: '2026-09-21T10:09:30.000Z' },
+    { memory_store: store }
+  );
+
+  let preflightCalls = 0;
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: createLocalFixtureExecutorV1({
+      'MARKER-PREFLIGHT-SKIP': {
+        exit_code: 0,
+        stdout: 'read only pass',
+        verification: {
+          schema: 'aurentara.jarvis.repo-bound-verification.v1',
+          repo_dir: '/workspace/projects/jarvis-engineering-mission',
+          branch: 'feature/preflight-skip',
+          branch_drift: false,
+          files_changed: [],
+          pre_existing_dirty_files: [],
+          syntax_check: { passed: true, checked: 0, results: [] },
+          filesystem_evidence: { complete: true, unchanged: true },
+          git_evidence: { head_unchanged: true },
+          tool_audit: {
+            complete: true,
+            is_error: false,
+            tool_uses: [],
+            forbidden_tool_uses: [],
+            outside_workspace_targets: [],
+            sensitive_targets: [],
+            permission_denials: []
+          }
+        }
+      }
+    })
+  });
+
+  const result = await runJarvisOwnerChatJobV1(dispatch.job, {
+    memory_store: store,
+    claude_bridge: bridge,
+    workspace_preflight: async () => {
+      preflightCalls += 1;
+      return { ok: false, error: 'MUST_NOT_RUN_FOR_READ_ONLY' };
+    }
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(preflightCalls, 0, 'read-only owner jobs must not mutate git metadata');
+}
+
 /* ── 7. Fails closed, never fabricated: no Claude bridge bound at all -> job
         FAILED immediately, zero repair attempts wasted on a worker that was
         never going to run. ── */
@@ -441,6 +534,9 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(man.failed_jobs_never_promoted_to_verified_result_memory, true);
   assert.equal(man.read_only_max_repair_attempts, 1);
   assert.equal(man.read_only_repairs_stay_in_review_mode, true);
+  assert.equal(man.implementation_workspace_preflight_dependency_supported, true);
+  assert.equal(man.workspace_preflight_skipped_for_read_only_jobs, true);
+  assert.equal(man.workspace_preflight_failure_blocks_before_claude_dispatch, true);
 }
 
 console.log('JARVIS Owner Chat Job V1 (chat-work-router -> ack -> background dispatch -> verification -> bounded repair -> notification) smoke: PASS');
