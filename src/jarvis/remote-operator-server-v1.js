@@ -520,7 +520,19 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
           owner_email: clean(env.JARVIS_OPERATOR_EMAIL, 320),
           env,
           socket_path: clean(env.JARVIS_OWNER_CONTROL_SOCKET_PATH, 500) || JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
-          worker_handler: overrides.owner_control_worker_handler
+          worker_handler: overrides.owner_control_worker_handler,
+          audit_reader: typeof resolvedStore?.readAudit === 'function'
+            ? async (requestId) => {
+                const rows = await resolvedStore.readAudit({
+                  owner_id: runnerSession.owner_id,
+                  owner_ref: runnerSession.owner_ref,
+                  limit: 500
+                });
+                return (Array.isArray(rows) ? rows : []).filter(
+                  (row) => clean(row?.request_id, 80).toLowerCase() === clean(requestId, 80).toLowerCase()
+                );
+              }
+            : null
         }));
   if (!ownerControl.ok) {
     return {
