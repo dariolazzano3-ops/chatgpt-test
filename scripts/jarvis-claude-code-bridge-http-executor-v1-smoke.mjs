@@ -98,6 +98,55 @@ await check('1. successful Bridge execution normalizes into the executor contrac
   }
 });
 
+// ── 1b. review execution mode is sent to the existing Bridge V4 endpoint ──
+await check('1b. review mode is carried to Bridge without a second execution path', async () => {
+  const correlationId = crypto.randomUUID();
+  const fixture = await startFixtureBridgeV1((req, res, body) => {
+    assert.equal(req.headers.authorization, `Bearer ${FIXTURE_TOKEN}`);
+    assert.equal(body.project, 'chatgpt-test');
+    assert.equal(body.mode, 'review');
+    assert.equal(body.correlation_id, correlationId);
+    assert.equal(body.native_session, true);
+    jsonRes(res, 200, {
+      ok: true,
+      service: 'jarvis-claude-bridge',
+      version: 4,
+      mode: 'review',
+      project: 'chatgpt-test',
+      exit_code: 0,
+      git_evidence: {},
+      filesystem_evidence: {},
+      tool_audit: { complete: true, tool_uses: [] },
+      native_session: {
+        enabled: true,
+        requested_session_id: correlationId,
+        observed_session_id: correlationId,
+        binding_verified: true
+      },
+      stderr: ''
+    });
+  });
+  try {
+    const executor = createJarvisBridgeHttpExecutorV1({
+      bridge_url: fixture.url,
+      bridge_token: FIXTURE_TOKEN,
+      project: 'chatgpt-test'
+    });
+    const result = await executor({
+      ...baseCall,
+      correlation_id: correlationId,
+      request_id: correlationId,
+      execution_mode: 'review',
+      task: 'inspect only'
+    });
+    assert.equal(result.exit_code, 0);
+    assert.equal(result.external_effect, false);
+    assert.equal(result.verification.mode, 'review');
+  } finally {
+    await fixture.close();
+  }
+});
+
 // ── 2. Bridge unreachable ──
 await check('2. Bridge unreachable fails closed, never throws past the executor as a crash', async () => {
   const executor = createJarvisBridgeHttpExecutorV1({ bridge_url: 'http://127.0.0.1:1', bridge_token: FIXTURE_TOKEN, project: 'chatgpt-test' });
