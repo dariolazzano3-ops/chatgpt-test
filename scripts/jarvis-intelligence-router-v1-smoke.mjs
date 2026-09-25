@@ -173,6 +173,63 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 }
 
 {
+  let apiCalls = 0;
+  const hermes = {
+    configured: true,
+    chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' })
+  };
+  const openai = {
+    configured: true,
+    complete: async ({ model }) => {
+      apiCalls += 1;
+      if (apiCalls === 1) {
+        return {
+          requested_model: model,
+          text: JSON.stringify({ complexity: 'HEAVY', rationale: 'shared-budget test' }),
+          estimated_cost_usd: 0.00001
+        };
+      }
+      if (apiCalls === 2) {
+        return {
+          requested_model: model,
+          text: JSON.stringify({ execution_brief: 'Use the remaining approved job budget carefully.' }),
+          estimated_cost_usd: 0.249
+        };
+      }
+      throw new Error('shared job budget must block before a third paid call');
+    }
+  };
+  const router = createJarvisIntelligenceRouterV1({
+    hermes_client: hermes,
+    openai_client: openai,
+    api_fallback_enabled: true,
+    max_job_cost_usd: 0.25,
+    light_model: 'gpt-6-luna',
+    standard_model: 'gpt-6-sol',
+    heavy_model: 'gpt-6-astra'
+  });
+  const plan = await router.plan({
+    goal: 'Inspect the system without changing it.',
+    request_id: 'r5-plan',
+    budget_request_id: 'job-r5'
+  });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.api_job_cost_usd, 0.24901);
+
+  const review = await router.review({
+    goal: 'Inspect the system without changing it.',
+    execution_brief: plan.execution_brief,
+    verification: { state: 'PASS', external_effect: false },
+    system_verified: true,
+    request_id: 'r5-review',
+    budget_request_id: 'job-r5'
+  });
+  assert.equal(review.ok, false);
+  assert.equal(review.error, 'JARVIS_AI_BUDGET_BLOCKED');
+  assert.equal(apiCalls, 2, 'aggregate job budget must prevent another paid call');
+}
+
+{
   const hermes = { configured: true, chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' }) };
   const openai = { configured: true, complete: async () => { throw new Error('must not call without paid approval'); } };
   const blocked = createJarvisIntelligenceRouterFromEnvV1(
@@ -190,6 +247,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   const manifest = jarvisIntelligenceRouterManifestV1();
   assert.equal(manifest.fallback_requires_explicit_paid_approval, true);
   assert.equal(manifest.fallback_paid_approval_env, 'JARVIS_AI_API_FALLBACK_APPROVED');
+  assert.equal(manifest.aggregate_job_budget_shared_across_plan_review_repairs, true);
 }
 
 console.log('JARVIS_INTELLIGENCE_ROUTER_V1_SMOKE_PASS');
