@@ -215,8 +215,19 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
               'Use the trusted server repository metadata in the prompt for the current branch and HEAD commit; do not try to access .git directly.'
             ].join('\n')
           : '';
+        const ownerImplementationGuard = intent.execution_mode === 'implement' && intent.program === 'JARVIS_OWNER_CHAT'
+          ? [
+              'STRICT JARVIS OWNER IMPLEMENTATION MODE.',
+              'Use only Read, Glob, Grep, Edit, and Write.',
+              'Do not use Agent or Task. Do not delegate to specialists, subagents, Explore, or background agents.',
+              'Stay on the owner goal. Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code unless the owner goal directly requires it.',
+              'Make the smallest complete repository change. The trusted host verifier, not this session, handles git state, syntax evidence, acceptance, publication, and deployment.',
+              'Do not use Bash, shell, git, network, package-manager, MCP, skills, deployment, secrets, billing, DNS, PR, merge, commit, or push actions.'
+            ].join('\n')
+          : '';
         const bridgeTask = [
           reviewGuard,
+          ownerImplementationGuard,
           `Engineering Mission [${intent.program}] ${intent.title}`,
           '',
           `Goal: ${intent.goal}`
@@ -359,6 +370,9 @@ export function jarvisEngineeringMissionManifestV1() {
     review_mode_read_only: true,
     review_mode_direct_tools_only: ['Read', 'Glob', 'Grep'],
     review_mode_agent_delegation_forbidden: true,
+    owner_implementation_mode_direct_tools_only: ['Read', 'Glob', 'Grep', 'Edit', 'Write'],
+    owner_implementation_mode_agent_delegation_forbidden: true,
+    owner_implementation_mode_unrelated_infra_inspection_forbidden: true,
     review_named_evidence_categories_must_be_checked: true,
     review_tests_are_inspected_not_executed: true,
     fails_closed_without_claude_bridge: true,
