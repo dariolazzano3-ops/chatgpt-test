@@ -231,6 +231,57 @@ function truth(store) {
   assert.equal(tb.v2_progress.source.classification, 'DERIVED');
 }
 
+// ── 8b. Review mode receives an explicit direct-tools-only guard before dispatch ──
+{
+  const store = createMemoryJarvisStoreV1();
+  const corr = '78787878-7878-4787-8787-787878787878';
+  let captured = null;
+  const bridge = {
+    bound: true,
+    submit(input) {
+      captured = input;
+      return {
+        result: Promise.resolve({
+          state: 'COMPLETE',
+          exit_code: 0,
+          external_effect: false,
+          evidence: {
+            evidence_id: 'claude-code:' + corr,
+            verification: {
+              schema: 'aurentara.jarvis.repo-bound-verification.v1',
+              branch_drift: false,
+              files_changed: [],
+              syntax_check: { passed: true, checked: 0, results: [] }
+            }
+          }
+        })
+      };
+    }
+  };
+
+  await postMission(store, {
+    title: 'Read-only inspection',
+    goal: 'Inspect evidence only.',
+    program: PROGRAM,
+    correlation_id: corr,
+    execution_mode: 'review'
+  }, bridge);
+  await decide(store, corr + ':approval', corr, 'approve');
+  await postMission(store, {
+    title: 'Read-only inspection',
+    goal: 'Inspect evidence only.',
+    program: PROGRAM,
+    correlation_id: corr,
+    execution_mode: 'review'
+  }, bridge);
+
+  assert.equal(captured.execution_mode, 'review');
+  assert.match(captured.task, /STRICT JARVIS REVIEW MODE/);
+  assert.match(captured.task, /Use only Read, Glob, and Grep/);
+  assert.match(captured.task, /Do not use Agent or Task/);
+  assert.match(captured.task, /Do not modify the workspace/);
+}
+
 // ── 9. No worker self-report can mark a wave complete: a genuinely COMPLETE bridge run (wave_state COMPLETE) still contributes 0% until an independent acceptance ref exists ──
 {
   const store = createMemoryJarvisStoreV1();
@@ -293,6 +344,8 @@ function truth(store) {
   assert.equal(man.worker_self_acceptance_counts_as_independent, false);
   assert.equal(man.default_claude_bridge_bound, false);
   assert.equal(man.fabricates_worker_availability, false);
+  assert.deepEqual(man.review_mode_direct_tools_only, ['Read', 'Glob', 'Grep']);
+  assert.equal(man.review_mode_agent_delegation_forbidden, true);
 
   const FORBIDDEN = [/wrangler\s+deploy/i, /\bgit\s+push\b/i, /\bgit\s+merge\b/i, /hamyren/i];
   for (const file of ['src/jarvis/engineering-mission-v1.js', 'src/jarvis/v2-progress-v1.js']) {
