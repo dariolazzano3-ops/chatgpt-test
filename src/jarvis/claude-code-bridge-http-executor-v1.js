@@ -136,6 +136,39 @@ function bridgeOnlyVerificationV1(body) {
     at: new Date().toISOString()
   };
 }
+function safeReadOnlyGitIndexEvidenceFallbackV1(body, executionMode) {
+  if (executionMode !== 'review' || !body || typeof body !== 'object') return false;
+  const audit = body.tool_audit || {};
+  const fs = body.filesystem_evidence || {};
+  const git = body.git_evidence || {};
+  const pre = git.pre || {};
+  const post = git.post || {};
+  const changes = git.changes || {};
+  const native = body.native_session || {};
+  const permissionPattern = /\.git\/index: index file open failed: Permission denied/i;
+  const zeroDelta = Number(fs.added_count || 0) === 0
+    && Number(fs.changed_count || 0) === 0
+    && Number(fs.removed_count || 0) === 0
+    && Array.isArray(fs.added) && fs.added.length === 0
+    && Array.isArray(fs.changed) && fs.changed.length === 0
+    && Array.isArray(fs.removed) && fs.removed.length === 0;
+  return body.exit_code === 0
+    && audit.complete === true
+    && audit.compliant === true
+    && fs.complete === true
+    && fs.unchanged === true
+    && zeroDelta
+    && git.head_unchanged === true
+    && Boolean(pre.head)
+    && pre.head === post.head
+    && Boolean(pre.branch)
+    && pre.branch === post.branch
+    && permissionPattern.test(String(pre.error || ''))
+    && permissionPattern.test(String(post.error || ''))
+    && changes.error === 'git change evidence incomplete'
+    && (native.enabled !== true || native.binding_verified === true);
+}
+
 
 /** Builds a Node-only executor for claude-code-bridge-v1.js bound to a real,
  *  already-running Bridge HTTP service. `bridge_token` is held only in this
@@ -240,14 +273,17 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
     }
 
     if (body.ok !== true) {
-      // A completed-but-failed Bridge run: still real, bridge-computed
-      // evidence — preserved, never discarded, even on failure.
-      return {
-        exit_code: Number.isInteger(body.exit_code) && body.exit_code !== 0 ? body.exit_code : 1,
-        stdout: '',
-        stderr: clean(body.stderr, 4000) || 'BRIDGE_EXECUTION_FAILED',
-        verification: buildVerificationV1(body, snapshot)
-      };
+      const safeReadOnlyEvidenceFallback = safeReadOnlyGitIndexEvidenceFallbackV1(body, executionMode);
+      if (!safeReadOnlyEvidenceFallback) {
+        // A completed-but-failed Bridge run: still real, bridge-computed
+        // evidence — preserved, never discarded, even on failure.
+        return {
+          exit_code: Number.isInteger(body.exit_code) && body.exit_code !== 0 ? body.exit_code : 1,
+          stdout: '',
+          stderr: clean(body.stderr, 4000) || 'BRIDGE_EXECUTION_FAILED',
+          verification: buildVerificationV1(body, snapshot)
+        };
+      }
     }
 
     const verification = buildVerificationV1(body, snapshot);
@@ -287,6 +323,7 @@ export function jarvisBridgeHttpExecutorManifestV1() {
     local_cli_fallback: false,
     execution_modes: ['implement', 'review'],
     review_mode_read_only: true,
+    review_git_index_permission_fallback_requires_unchanged_full_snapshot: true,
     can_commit: false,
     can_push: false,
     can_merge: false,
