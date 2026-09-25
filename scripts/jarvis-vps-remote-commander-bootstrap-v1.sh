@@ -46,7 +46,7 @@ EOF
 
 (
   cd "$TMP"
-  npm install --omit=dev --no-audit --no-fund --ignore-scripts >/dev/null
+  npm install --omit=dev --no-audit --no-fund >/dev/null
 )
 
 [[ -f "$TMP/node_modules/@wonderwhy-er/desktop-commander/dist/index.js" ]] || fail "PACKAGE_ENTRY_MISSING" 14
