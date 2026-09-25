@@ -215,6 +215,18 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
       throw new Error('BRIDGE_HTTP_EXECUTOR_EXECUTION_MODE_INVALID');
     }
     const snapshot = repoDir ? beginJarvisRepoBoundVerificationV1(repoDir) : null;
+    const trustedRepoMetadata = executionMode === 'review' && snapshot
+      ? [
+          '[TRUSTED SERVER REPOSITORY METADATA - READ ONLY]',
+          'Current branch: ' + (clean(snapshot.branch, 200) || '(unavailable)'),
+          'Current HEAD commit: ' + (clean(snapshot.head, 80) || '(unavailable)'),
+          'Porcelain status readable by host verifier: ' + (snapshot.porcelain_status_readable_before === true ? 'yes' : 'no'),
+          'This metadata is collected by the trusted host verifier before Claude runs. It does not authorize writes and does not by itself claim the working tree is clean.'
+        ].join('\n')
+      : '';
+    const bridgePrompt = trustedRepoMetadata
+      ? clean([trustedRepoMetadata, '', prompt].join('\n'), MAX_PROMPT_CHARS)
+      : prompt;
 
     let response;
     try {
@@ -227,7 +239,7 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
           authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          prompt,
+          prompt: bridgePrompt,
           project,
           mode: executionMode,
           correlation_id: correlationId || undefined,
@@ -325,6 +337,7 @@ export function jarvisBridgeHttpExecutorManifestV1() {
     execution_modes: ['implement', 'review'],
     review_mode_read_only: true,
     review_git_index_permission_fallback_requires_unchanged_full_snapshot: true,
+    review_trusted_branch_head_context_injected: true,
     can_commit: false,
     can_push: false,
     can_merge: false,
