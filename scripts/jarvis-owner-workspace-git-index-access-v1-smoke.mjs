@@ -86,8 +86,8 @@ try {
   });
   assert.equal(truncated.ok, true, 'truncated persisted diff may recover only via full filesystem hash');
   assert.equal(truncated.failed_candidate_recovered, true);
-  assert.equal(truncated.diff_matched_exactly, false);
-  assert.equal(truncated.filesystem_hash_matched, true);
+  assert.equal(truncated.failed_candidate_diff_matched_exactly, false);
+  assert.equal(truncated.failed_candidate_filesystem_hash_matched, true);
   assert.equal(git(['status', '--porcelain']), '');
   assert.equal(fs.readFileSync(path.join(tmp, 'README.md'), 'utf8'), 'fixture\n');
 
