@@ -126,10 +126,16 @@ function postChat(store, message, correlation_id, claude_bridge) {
           files_changed: ['src/example/module.js'],
           pre_existing_dirty_files: [],
           syntax_check: { passed: true, checked: 1, results: [{ file: 'src/example/module.js', passed: true }] },
-          at: now
-        }
+        at: now
       }
-    })
+    }
+  });
+  let observedExecutionMode = null;
+  const bridge = createJarvisClaudeCodeBridgeV1({
+    executor: async (input) => {
+      observedExecutionMode = input.execution_mode;
+      return readOnlyFixture(input);
+    }
   });
 
   const result = await runJarvisOwnerChatJobV1(dispatch.job, { memory_store: store, claude_bridge: bridge });
@@ -227,12 +233,11 @@ function postChat(store, message, correlation_id, claude_bridge) {
   );
   assert.equal(dispatch.ok, true);
 
-  const bridge = createJarvisClaudeCodeBridgeV1({
-    executor: createLocalFixtureExecutorV1({
-      'MARKER-READONLY': {
-        exit_code: 0,
-        stdout: 'read-only inspection complete',
-        verification: {
+  const readOnlyFixture = createLocalFixtureExecutorV1({
+    'MARKER-READONLY': {
+      exit_code: 0,
+      stdout: 'read-only inspection complete',
+      verification: {
           schema: 'aurentara.jarvis.repo-bound-verification.v1',
           repo_dir: '/workspace/projects/jarvis-engineering-mission',
           branch: 'feature/owner-chat-readonly-smoke',
@@ -267,6 +272,7 @@ function postChat(store, message, correlation_id, claude_bridge) {
   assert.equal(result.repair_attempts, 0);
   assert.equal(result.attempt_chain.length, 1);
   assert.equal(result.attempt_chain[0].system_verified, true);
+  assert.equal(observedExecutionMode, 'review', 'natural-language read-only owner jobs must use Bridge review mode');
 }
 
 /* ── 7. Fails closed, never fabricated: no Claude bridge bound at all -> job
