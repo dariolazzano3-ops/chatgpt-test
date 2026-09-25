@@ -95,10 +95,14 @@ async function runViewport(name,viewport){
   const sprint=root.locator('[data-human-decision-sprint]');
   assert.equal(await sprint.isVisible(),true,name);
   assert.equal(await sprint.getAttribute('data-human-priority'),'CONTACT_DETAILS',name);
-  await page.evaluate((scope)=>{
-    window.__aurentaraJ12CurrentAction={scope,action:'CONFIRM_CONTACT_DETAILS',target:'approvals',priority:20,automatic_execution:false};
-    document.dispatchEvent(new CustomEvent('aurentara:j12-next-best-action',{detail:window.__aurentaraJ12CurrentAction}));
+  const handoffReady=await page.evaluate(()=>typeof window.__aurentaraHumanInputClosureApplyJ12==='function');
+  assert.equal(handoffReady,true,name+' explicit J12 handoff hook missing');
+  const applied=await page.evaluate((scope)=>{
+    const detail={scope,action:'CONFIRM_CONTACT_DETAILS',target:'approvals',priority:20,automatic_execution:false};
+    window.__aurentaraJ12CurrentAction=detail;
+    return window.__aurentaraHumanInputClosureApplyJ12(detail);
   },project.scope_key);
+  assert.equal(applied,true,name+' explicit J12 handoff not applied');
   await page.waitForFunction(()=>document.querySelector('[data-human-decision-sprint]')?.textContent?.includes('NEXT BEST ACTION · J12'));
   assert.match(await sprint.innerText(),/NEXT BEST ACTION · J12/);
   assert.match(await sprint.innerText(),/Nächste Entscheidung/i);
