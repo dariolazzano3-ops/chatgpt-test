@@ -173,10 +173,14 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
     return { ...canonical, ...bridgeRawFieldsV1(body) };
   }
 
-  return async ({ task, signal, correlation_id, request_id }) => {
+  return async ({ task, signal, correlation_id, request_id, execution_mode }) => {
     const prompt = clean(task, MAX_PROMPT_CHARS);
     const correlationId = clean(correlation_id, 80).toLowerCase();
     const requestId = clean(request_id, 200);
+    const executionMode = clean(execution_mode || 'implement', 20).toLowerCase();
+    if (!['implement', 'review'].includes(executionMode)) {
+      throw new Error('BRIDGE_HTTP_EXECUTOR_EXECUTION_MODE_INVALID');
+    }
     const snapshot = repoDir ? beginJarvisRepoBoundVerificationV1(repoDir) : null;
 
     let response;
@@ -192,7 +196,7 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
         body: JSON.stringify({
           prompt,
           project,
-          mode: 'implement',
+          mode: executionMode,
           correlation_id: correlationId || undefined,
           request_id: requestId || undefined,
           native_session: true
@@ -281,6 +285,8 @@ export function jarvisBridgeHttpExecutorManifestV1() {
     bounded_request: true,
     bounded_response: true,
     local_cli_fallback: false,
+    execution_modes: ['implement', 'review'],
+    review_mode_read_only: true,
     can_commit: false,
     can_push: false,
     can_merge: false,
