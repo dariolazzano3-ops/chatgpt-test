@@ -1,0 +1,62 @@
+name: JARVIS Owner Chat Auto Finalize V1
+
+on:
+  push:
+    branches:
+      - 'factory/jarvis-owner-chat-auto-finalize-v1'
+    paths:
+      - 'src/jarvis/owner-chat-job-v1.js'
+      - 'src/jarvis/accepted-work-publisher-v1.js'
+      - 'src/jarvis/chat-work-router-v1.js'
+      - 'src/jarvis/claude-code-bridge-v1.js'
+      - 'src/jarvis/remote-operator-server-v1.js'
+      - 'src/jarvis/http-v1.js'
+      - 'scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs'
+      - 'scripts/jarvis-owner-chat-job-v1-smoke.mjs'
+      - 'scripts/jarvis-remote-operator-server-v1-smoke.mjs'
+      - 'scripts/jarvis-command-center-autonomy-v1-smoke.mjs'
+      - '.github/workflows/jarvis-owner-chat-auto-finalize-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-chat-auto-finalize-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax
+        run: |
+          node --check src/jarvis/owner-chat-job-v1.js
+          node --check src/jarvis/accepted-work-publisher-v1.js
+          node --check src/jarvis/chat-work-router-v1.js
+          node --check src/jarvis/claude-code-bridge-v1.js
+          node --check src/jarvis/remote-operator-server-v1.js
+          node --check src/jarvis/http-v1.js
+          node --check scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs
+          node --check scripts/jarvis-owner-chat-job-v1-smoke.mjs
+          node --check scripts/jarvis-remote-operator-server-v1-smoke.mjs
+          node --check scripts/jarvis-command-center-autonomy-v1-smoke.mjs
+
+      - name: Owner chat auto-finalization acceptance
+        run: node scripts/jarvis-owner-chat-auto-finalization-v1-smoke.mjs
+
+      - name: Owner chat job dispatch regression
+        run: node scripts/jarvis-owner-chat-job-v1-smoke.mjs
+
+      - name: Remote operator server regression
+        run: node scripts/jarvis-remote-operator-server-v1-smoke.mjs
+
+      - name: Command Center autonomy regression
+        run: node scripts/jarvis-command-center-autonomy-v1-smoke.mjs
