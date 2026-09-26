@@ -17,7 +17,8 @@ try {
   git(['config', 'user.email', 'smoke@example.invalid']);
   git(['config', 'user.name', 'JARVIS Smoke']);
   fs.writeFileSync(path.join(tmp, 'README.md'), 'fixture\n');
-  git(['add', 'README.md']);
+  fs.writeFileSync(path.join(tmp, 'OTHER.txt'), 'other fixture\n');
+  git(['add', 'README.md', 'OTHER.txt']);
   git(['commit', '-q', '-m', 'fixture']);
 
   const indexPath = path.join(tmp, '.git', 'index');
@@ -116,6 +117,42 @@ try {
   assert.equal(noHashMismatch.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH');
   execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', 'README.md'], { cwd: tmp });
 
+  // Unrelated ordinary unstaged modifications may be quarantined only after
+  // exact failed-candidate recovery proves a FILESET mismatch. The patch is
+  // persisted inside .git and hash-verified before the working tree is reset.
+  fs.writeFileSync(path.join(tmp, 'OTHER.txt'), 'unrelated preserved work\n');
+  const unrelatedBefore = fs.readFileSync(path.join(tmp, 'OTHER.txt'), 'utf8');
+  const withoutQuarantine = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid,
+    recover_failed_candidate: candidate
+  });
+  assert.equal(withoutQuarantine.ok, false);
+  assert.equal(withoutQuarantine.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESET_MISMATCH');
+  assert.equal(fs.readFileSync(path.join(tmp, 'OTHER.txt'), 'utf8'), unrelatedBefore);
+
+  const quarantined = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid,
+    recover_failed_candidate: candidate,
+    quarantine_unrelated_dirty: true
+  });
+  assert.equal(quarantined.ok, true);
+  assert.equal(quarantined.unrelated_dirty_quarantined, true);
+  assert.deepEqual(quarantined.quarantine_files, ['OTHER.txt']);
+  assert.match(quarantined.quarantine_patch_sha256, /^[0-9a-f]{64}$/);
+  assert.match(quarantined.quarantine_patch_ref, /^\.git\/jarvis-owner-quarantine\/.+\.patch$/);
+  const quarantinePatchPath = path.join(tmp, quarantined.quarantine_patch_ref);
+  assert.equal(fs.existsSync(quarantinePatchPath), true);
+  const quarantinePatch = fs.readFileSync(quarantinePatchPath, 'utf8');
+  assert.match(quarantinePatch, /unrelated preserved work/);
+  assert.equal(
+    (await import('node:crypto')).createHash('sha256').update(quarantinePatch).digest('hex'),
+    quarantined.quarantine_patch_sha256
+  );
+  assert.equal(git(['status', '--porcelain']), '');
+  assert.equal(fs.readFileSync(path.join(tmp, 'OTHER.txt'), 'utf8'), 'other fixture\n');
+
   fs.writeFileSync(path.join(tmp, '.git', 'index.lock'), 'active lock');
   const locked = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
     repo_dir: tmp,
@@ -131,6 +168,10 @@ try {
   assert.equal(man.failed_candidate_restore_requires_exact_branch_head_files_and_diff_or_full_filesystem_hash, true);
   assert.equal(man.failed_candidate_filesystem_hash_uses_bridge_compatible_snapshot, true);
   assert.equal(man.failed_candidate_restore_refuses_staged_or_untracked_state, true);
+  assert.equal(man.unrelated_dirty_quarantine_supported, true);
+  assert.equal(man.unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch, true);
+  assert.equal(man.unrelated_dirty_quarantine_preserves_exact_patch_before_restore, true);
+  assert.equal(man.unrelated_dirty_quarantine_refuses_staged_untracked_delete_rename_conflict, true);
   assert.equal(man.refuses_index_lock, true);
   assert.equal(man.fail_closed, true);
   assert.equal(man.default_worker_gid, 11000);
