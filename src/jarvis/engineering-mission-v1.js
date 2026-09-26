@@ -220,8 +220,8 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
               'STRICT JARVIS OWNER IMPLEMENTATION MODE.',
               'Use only Read, Glob, Grep, Edit, and Write.',
               'Do not use Agent or Task. Do not delegate to specialists, subagents, Explore, or background agents.',
-              'Stay on the owner goal. Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code unless the owner goal directly requires it.',
-              'Make the smallest complete repository change. The trusted host verifier, not this session, handles git state, syntax evidence, acceptance, publication, and deployment.',
+              'Stay on the owner goal. Treat orchestration metadata as environment context, not as a task to audit. Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code unless the owner goal directly requires it.',
+              'If a concrete repository gap exists, use Edit or Write to make the smallest complete real workspace change. If no concrete gap exists, report that plainly and do not fabricate a change.',
               'Do not use Bash, shell, git, network, package-manager, MCP, skills, deployment, secrets, billing, DNS, PR, merge, commit, or push actions.'
             ].join('\n')
           : '';
