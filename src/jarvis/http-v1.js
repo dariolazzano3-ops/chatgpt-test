@@ -22,6 +22,7 @@ import { handleJarvisEngineeringMissionRuntimeV1 } from './engineering-mission-v
 import { handleJarvisEngineeringMissionResumeRuntimeV1 } from './engineering-mission-resume-v1.js';
 import { handleJarvisEngineeringMissionAcceptanceRuntimeV1 } from './engineering-mission-acceptance-v1.js';
 import { classifyJarvisChatWorkRequestV1 } from './chat-work-router-v1.js';
+import { resolveJarvisAutomaticProjectRouteV1 } from './project-route-v1.js';
 import { dispatchJarvisOwnerChatJobV1, runJarvisOwnerChatJobV1 } from './owner-chat-job-v1.js';
 import { handleJarvisProgramApprovalGrantRuntimeV1, handleJarvisProgramApprovalRevokeRuntimeV1 } from './program-approval-v1.js';
 import { createJarvisGitRemoteTruthProbeFromEnvV1 } from './git-remote-truth-v1.js';
@@ -644,11 +645,15 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const chatWork = classifyJarvisChatWorkRequestV1(message);
 
     if (chatWork.classification === 'ACTIONABLE_WORK') {
+      const projectRoute = resolveJarvisAutomaticProjectRouteV1(message, options.project_mission_targets || {});
+      const projectTarget = projectRoute.matched === true ? projectRoute.target : null;
       const dispatch = await dispatchJarvisOwnerChatJobV1({
         owner_id: session.owner_id,
         owner_ref: session.owner_ref,
         message,
         request_id: correlationId,
+        program: projectTarget?.program,
+        project_target_id: projectTarget?.target_id,
         now
       }, { memory_store: store });
 
@@ -667,10 +672,11 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
           intelligence_router: (hermesCore?.configured === true || intelligenceRouter?.api_fallback_enabled === true)
             ? intelligenceRouter
             : null,
-          claude_bridge: options.claude_bridge || null,
+          claude_bridge: projectTarget?.bridge || options.claude_bridge || null,
           claude_timeout_ms: options.claude_timeout_ms,
           max_repair_attempts: options.owner_chat_job_max_repair_attempts,
-          workspace_preflight: options.owner_chat_workspace_preflight || null,
+          workspace_preflight: projectTarget?.workspace_preflight || options.owner_chat_workspace_preflight || null,
+          execution_guidance: projectTarget?.execution_guidance || null,
           astra_post_review_enabled: ['true', '1', 'on', 'yes'].includes(clean(env.JARVIS_ASTRA_POST_REVIEW_ENABLED, 20).toLowerCase()),
           trusted_publisher: options.owner_chat_trusted_publisher || null
         }).catch(() => {});
@@ -697,7 +703,16 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
           audit_persisted: true,
           external_effect: false,
           independent_acceptance: false,
-          owner_chat_job: { request_id: dispatch.request_id, program: dispatch.program, title: dispatch.title, status: 'RUNNING' },
+          owner_chat_job: { request_id: dispatch.request_id, program: dispatch.program, project_target_id: dispatch.project_target_id, title: dispatch.title, status: 'RUNNING' },
+          project_routing: {
+            matched: projectRoute.matched === true,
+            status: projectRoute.status,
+            target_id: projectRoute.target_id || null,
+            target_label: projectTarget?.label || null,
+            program: projectTarget?.program || null,
+            target_branch: projectTarget?.target_branch || null,
+            matched_by: projectRoute.matched_by || null
+          },
           production_deploy: false,
           hamyren_data_flow: false
         }, 200);

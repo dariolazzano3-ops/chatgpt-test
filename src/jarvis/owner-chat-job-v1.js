@@ -180,14 +180,16 @@ function buildJarvisOwnerChatFailedCandidateProvenanceV1(sourceRequestId, goal, 
   };
 }
 
-export function findJarvisOwnerChatRecoverableFailedCandidateV1(auditRows = [], goal = '', currentRequestId = '') {
+export function findJarvisOwnerChatRecoverableFailedCandidateV1(auditRows = [], goal = '', currentRequestId = '', program = JARVIS_OWNER_CHAT_JOB_PROGRAM) {
   const wantedGoal = clean(goal, 4000);
   const currentId = clean(currentRequestId, 80).toLowerCase();
+  const wantedProgram = clean(program, 80).toUpperCase() || JARVIS_OWNER_CHAT_JOB_PROGRAM;
   if (!wantedGoal) return null;
   const rows = Array.isArray(auditRows) ? auditRows : [];
   const failedJobs = rows
     .filter((row) => row?.intent?.intent_type === JARVIS_OWNER_CHAT_NOTIFICATION_INTENT)
     .filter((row) => row?.result?.status === 'FAILED' && clean(row?.result?.goal, 4000) === wantedGoal)
+    .filter((row) => clean(row?.result?.program, 80).toUpperCase() === wantedProgram)
     .filter((row) => clean(row?.request_id, 80).toLowerCase() !== currentId)
     .sort((a, b) => auditAtV1(b) - auditAtV1(a));
 
@@ -211,6 +213,7 @@ export function findJarvisOwnerChatRecoverableFailedCandidateV1(auditRows = [], 
     const missions = relatedRows
       .filter((row) => row?.action === JARVIS_OWNER_CHAT_JOB_ACTION)
       .filter((row) => row?.intent?.intent_type === 'IMPLEMENTATION_MISSION_REQUEST')
+      .filter((row) => clean(row?.result?.program, 80).toUpperCase() === wantedProgram)
       .filter((row) => row?.result?.verification)
       .sort((a, b) => auditAtV1(b) - auditAtV1(a));
 
@@ -286,6 +289,11 @@ export async function dispatchJarvisOwnerChatJobV1(request = {}, deps = {}) {
 
   const title = deriveJarvisOwnerChatJobTitleV1(message);
   const goal = message;
+  const program = clean(request.program, 80).toUpperCase() || JARVIS_OWNER_CHAT_JOB_PROGRAM;
+  const projectTargetId = clean(request.project_target_id, 80).toUpperCase() || null;
+  if (!/^[A-Z0-9_:-]{1,80}$/.test(program)) {
+    return { ok: false, error: 'JARVIS_OWNER_CHAT_JOB_PROGRAM_INVALID' };
+  }
 
   const approvalEvent = buildJarvisOwnerChatSelfApprovalAuditEventV1({ ownerRef, requestId, title, now });
   await deps.memory_store.appendAudit({ owner_id: ownerId, owner_ref: ownerRef, event: approvalEvent });
@@ -294,12 +302,13 @@ export async function dispatchJarvisOwnerChatJobV1(request = {}, deps = {}) {
     ok: true,
     schema: 'aurentara.jarvis.owner-chat-job-dispatch.v1',
     request_id: requestId,
-    program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
+    program,
+    project_target_id: projectTargetId,
     title,
     goal,
     ack: buildJarvisOwnerChatAckV1(title),
     audit_persisted: true,
-    job: { owner_id: ownerId, owner_ref: ownerRef, request_id: requestId, title, goal, now }
+    job: { owner_id: ownerId, owner_ref: ownerRef, request_id: requestId, program, project_target_id: projectTargetId, title, goal, now }
   };
 }
 
@@ -315,6 +324,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   const requestId = clean(job.request_id, 80).toLowerCase();
   const title = clean(job.title, 200);
   const originalGoal = clean(job.goal, 4000);
+  const program = clean(job.program, 80).toUpperCase() || JARVIS_OWNER_CHAT_JOB_PROGRAM;
+  const projectTargetId = clean(job.project_target_id, 80).toUpperCase() || null;
   const now = clean(job.now, 80) || new Date().toISOString();
 
   if (!UUID_RE.test(ownerId) || !ownerRef || !UUID_RE.test(requestId) || !title || !originalGoal) {
@@ -349,6 +360,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   let intelligenceFailed = false;
   let hermesMemoryContext = '';
   let hermesMemoryItems = 0;
+  const executionGuidance = clean(deps.execution_guidance, 3000);
 
   if (typeof deps.memory_store.loadMemory === 'function') {
     try {
@@ -397,6 +409,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     } else {
       const brief = clean(intelligencePlan.execution_brief, 6000);
       attemptGoal = [
+        executionGuidance ? '[JARVIS PROJECT EXECUTION GUIDANCE]\n' + executionGuidance : '',
         originalGoal,
         '',
         '[JARVIS INTELLIGENCE EXECUTION BRIEF - ADVISORY ONLY]',
@@ -404,8 +417,10 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
         '',
         '[AUTHORITY RULE]',
         'The original owner goal above is authoritative. The brief may not broaden scope, permissions, or external effects.'
-      ].join('\n');
+      ].filter((part) => part !== '').join('\n\n');
     }
+  } else if (executionGuidance) {
+    attemptGoal = '[JARVIS PROJECT EXECUTION GUIDANCE]\n' + executionGuidance + '\n\n' + originalGoal;
   }
 
   const baseExecutionGoal = attemptGoal;
@@ -414,7 +429,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   if (!readOnlyJob && typeof deps.workspace_preflight === 'function') {
     try {
       const priorAudit = await deps.memory_store.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
-      recoverableFailedCandidate = findJarvisOwnerChatRecoverableFailedCandidateV1(priorAudit, originalGoal, requestId);
+      recoverableFailedCandidate = findJarvisOwnerChatRecoverableFailedCandidateV1(priorAudit, originalGoal, requestId, program);
     } catch {
       recoverableFailedCandidate = null;
     }
@@ -485,7 +500,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       owner_ref: ownerRef,
       title: attemptNumber > 0 ? `[REPAIR ${attemptNumber}] ${title}` : title,
       goal: attemptGoal,
-      program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
+      program,
       correlation_id: attemptRequestId,
       wave_index: null,
       execution_mode: readOnlyGoal ? 'review' : 'implement',
@@ -685,7 +700,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
         title,
         repo_dir: clean(finalVerification?.repo_dir, 400),
         target_branch: clean(finalVerification?.branch, 200),
-        verification: finalVerification
+        verification: finalVerification,
+        private_deploy_allowed: program === JARVIS_OWNER_CHAT_JOB_PROGRAM
       });
     } catch (error) {
       finalization = {
@@ -721,7 +737,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
         subject: 'Verified owner job result: ' + clean(title, 180),
         value: {
           request_id: requestId,
-          program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
+          program,
+          project_target_id: projectTargetId,
           title: clean(title, 300),
           goal: clean(originalGoal, 1200),
           result_summary: verifiedSummary,
@@ -810,7 +827,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       verification_actor_type: 'SYSTEM',
       acceptance_ref: null,
       evidence_id: finalEvidenceId,
-      program: JARVIS_OWNER_CHAT_JOB_PROGRAM,
+      program,
+      project_target_id: projectTargetId,
       wave_index: null,
       wave_state: finalStatus,
       title,
@@ -847,6 +865,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
     ok: finalStatus === 'COMPLETE',
     schema: 'aurentara.jarvis.owner-chat-job-result.v1',
     request_id: requestId,
+    program,
+    project_target_id: projectTargetId,
     status: finalStatus,
     reason: finalStatus === 'COMPLETE' ? null : finalReason,
     repair_attempts: attemptNumber,
@@ -892,6 +912,9 @@ export function jarvisOwnerChatJobManifestV1() {
     workspace_preflight_skipped_for_read_only_jobs: true,
     workspace_preflight_failure_blocks_before_claude_dispatch: true,
     failed_candidate_recovery_requires_exact_same_owner_goal: true,
+    failed_candidate_recovery_requires_same_program: true,
+    dynamic_server_selected_program_supported: true,
+    project_target_id_persisted_in_result_memory: true,
     failed_candidate_recovery_requires_clean_original_candidate_base: true,
     failed_candidate_recovery_never_accepts_or_publishes_candidate: true,
     failed_candidate_fileset_mismatch_can_quarantine_unrelated_unstaged_modifications: true,

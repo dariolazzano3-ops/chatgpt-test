@@ -414,6 +414,7 @@ function postChat(store, message, correlation_id, claude_bridge) {
       intent: { intent_type: 'IMPLEMENTATION_MISSION_REQUEST' },
       action: 'IMPLEMENTATION_MISSION',
       result: {
+        program: 'JARVIS_OWNER_CHAT',
         verification: {
           branch: 'factory/owner-candidate',
           head,
@@ -434,7 +435,7 @@ function postChat(store, message, correlation_id, claude_bridge) {
       timestamp: '2026-09-21T10:08:20.000Z',
       intent: { intent_type: 'OWNER_CHAT_JOB_NOTIFICATION' },
       action: 'IMPLEMENTATION_MISSION',
-      result: { status: 'FAILED', goal }
+      result: { status: 'FAILED', goal, program: 'JARVIS_OWNER_CHAT' }
     }
   ];
 

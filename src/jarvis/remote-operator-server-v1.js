@@ -132,10 +132,13 @@ export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = p
       [JARVIS_PROJECT_MISSION_AURENTARA_ID]: {
         target_id: JARVIS_PROJECT_MISSION_AURENTARA_ID,
         label: 'AURENTARA',
+        route_aliases: ['AURENTARA SYSTEMS'],
         program: JARVIS_PROJECT_MISSION_AURENTARA_PROGRAM,
         target_branch: location.target_branch,
+        repo_dir: location.repo_dir,
         bridge_project: bridgeProject,
         bridge_bound: true,
+        execution_guidance: JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE,
         bridge: binding.bridge
       }
     }
@@ -321,15 +324,32 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
   const workerGidRaw = Number(env.JARVIS_CLAUDE_WORKER_GID || 11000);
+  const workerGid = Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000;
   const ownerChatWorkspacePreflight = overrides.owner_chat_workspace_preflight
     || (programLocation.ok
       ? async (input = {}) => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
           repo_dir: programLocation.repo_dir,
-          worker_gid: Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000,
+          worker_gid: workerGid,
           recover_failed_candidate: input?.recover_failed_candidate || null,
           quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
         })
       : null);
+  const projectMissionTargets = Object.fromEntries(
+    Object.entries(projectMissionResult.ok ? projectMissionResult.targets : {}).map(([id, target]) => [
+      id,
+      {
+        ...target,
+        workspace_preflight: target?.repo_dir
+          ? async (input = {}) => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+              repo_dir: target.repo_dir,
+              worker_gid: workerGid,
+              recover_failed_candidate: input?.recover_failed_candidate || null,
+              quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
+            })
+          : null
+      }
+    ])
+  );
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
   // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
   // ever called for the real entrypoint; a test may also pass one directly.
@@ -347,9 +367,9 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       program_repo_dir: programLocation.ok ? programLocation.repo_dir : null,
       program_target_branch: programLocation.ok ? programLocation.target_branch : null,
       owner_chat_workspace_preflight: ownerChatWorkspacePreflight,
-      project_mission_targets: projectMissionResult.ok ? projectMissionResult.targets : {},
+      project_mission_targets: projectMissionTargets,
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
-        const target = Object.values(projectMissionResult.ok ? projectMissionResult.targets : {})
+        const target = Object.values(projectMissionTargets)
           .find((item) => item?.program === clean(program, 80));
         return target
           ? {

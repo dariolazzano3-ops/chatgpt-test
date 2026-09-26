@@ -316,7 +316,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
 
       let deployQueue = null;
       let deployError = null;
-      const privateDeployApplicable = verifiedFiles.every(deployPathAllowed);
+      const privateDeployAllowed = request.private_deploy_allowed !== false;
+      const privateDeployApplicable = privateDeployAllowed && verifiedFiles.every(deployPathAllowed);
       if (ownerChatPrivateDeployEnabled && privateDeployApplicable && !pushError) {
         deployQueue = await privateDeployQueue({
           repo,
@@ -361,7 +362,7 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
             : (deployQueue?.queued === true
               ? 'QUEUED_PRIVATE_RUNTIME_INSTALL'
               : (ownerChatPrivateDeployEnabled
-                ? (privateDeployApplicable ? 'QUEUE_FAILED' : 'NOT_APPLICABLE_FILE_SCOPE')
+                ? (!privateDeployAllowed ? 'NOT_REQUESTED_PROJECT_SCOPE' : (privateDeployApplicable ? 'QUEUE_FAILED' : 'NOT_APPLICABLE_FILE_SCOPE'))
                 : 'NOT_REQUESTED')),
           deploy_inbox: deployQueue?.queued === true ? ownerChatPrivateDeployInbox : null,
           error: pushError ? 'OWNER_CHAT_PUBLISHER_PUSH_FAILED' : deployError
@@ -399,7 +400,9 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         deploy: deployQueue?.deployed === true,
         deploy_state: deployQueue?.deployed === true
           ? 'DEPLOYED_PRIVATE_RUNTIME'
-          : (ownerChatPrivateDeployEnabled && !privateDeployApplicable ? 'NOT_APPLICABLE_FILE_SCOPE' : 'NOT_REQUESTED')
+          : (ownerChatPrivateDeployEnabled && !privateDeployAllowed
+            ? 'NOT_REQUESTED_PROJECT_SCOPE'
+            : (ownerChatPrivateDeployEnabled && !privateDeployApplicable ? 'NOT_APPLICABLE_FILE_SCOPE' : 'NOT_REQUESTED'))
       };
     }
   };
@@ -420,6 +423,7 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_private_deploy_requires_new_root_consumer: false,
     owner_chat_private_deploy_production: false,
     owner_chat_private_deploy_skips_non_runtime_file_scope: true,
+    owner_chat_project_scope_can_explicitly_disable_private_runtime_deploy: true,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,
