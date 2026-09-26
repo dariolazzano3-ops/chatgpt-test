@@ -316,7 +316,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
 
       let deployQueue = null;
       let deployError = null;
-      if (ownerChatPrivateDeployEnabled && !pushError) {
+      const privateDeployApplicable = verifiedFiles.every(deployPathAllowed);
+      if (ownerChatPrivateDeployEnabled && privateDeployApplicable && !pushError) {
         deployQueue = await privateDeployQueue({
           repo,
           inbox: ownerChatPrivateDeployInbox,
@@ -357,7 +358,11 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           deploy: deployQueue?.deployed === true,
           deploy_state: deployQueue?.deployed === true
             ? 'DEPLOYED_PRIVATE_RUNTIME'
-            : (deployQueue?.queued === true ? 'QUEUED_PRIVATE_RUNTIME_INSTALL' : (ownerChatPrivateDeployEnabled ? 'QUEUE_FAILED' : 'NOT_REQUESTED')),
+            : (deployQueue?.queued === true
+              ? 'QUEUED_PRIVATE_RUNTIME_INSTALL'
+              : (ownerChatPrivateDeployEnabled
+                ? (privateDeployApplicable ? 'QUEUE_FAILED' : 'NOT_APPLICABLE_FILE_SCOPE')
+                : 'NOT_REQUESTED')),
           deploy_inbox: deployQueue?.queued === true ? ownerChatPrivateDeployInbox : null,
           error: pushError ? 'OWNER_CHAT_PUBLISHER_PUSH_FAILED' : deployError
         },
@@ -392,7 +397,9 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         push_remote: pushed ? ownerChatPushRemote : null,
         merge: false,
         deploy: deployQueue?.deployed === true,
-        deploy_state: deployQueue?.deployed === true ? 'DEPLOYED_PRIVATE_RUNTIME' : 'NOT_REQUESTED'
+        deploy_state: deployQueue?.deployed === true
+          ? 'DEPLOYED_PRIVATE_RUNTIME'
+          : (ownerChatPrivateDeployEnabled && !privateDeployApplicable ? 'NOT_APPLICABLE_FILE_SCOPE' : 'NOT_REQUESTED')
       };
     }
   };
@@ -412,6 +419,7 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_private_deploy_reuses_existing_maintenance_gate: true,
     owner_chat_private_deploy_requires_new_root_consumer: false,
     owner_chat_private_deploy_production: false,
+    owner_chat_private_deploy_skips_non_runtime_file_scope: true,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,
