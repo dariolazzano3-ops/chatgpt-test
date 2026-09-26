@@ -336,7 +336,9 @@ function truth(store) {
   assert.match(captured.task, /Use only Read, Glob, Grep, Edit, and Write/);
   assert.match(captured.task, /Do not use Agent or Task/);
   assert.match(captured.task, /Do not delegate.*Explore/i);
-  assert.match(captured.task, /Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code/i);
+  assert.match(captured.task, /Treat orchestration metadata as environment context, not as a task to audit/i);
+  assert.match(captured.task, /If a concrete repository gap exists, use Edit or Write/i);
+  assert.doesNotMatch(captured.task, /trusted host verifier/i);
 }
 
 // ── 9. No worker self-report can mark a wave complete: a genuinely COMPLETE bridge run (wave_state COMPLETE) still contributes 0% until an independent acceptance ref exists ──
