@@ -145,6 +145,41 @@ function buildNotificationText(status, title, reason, attempts) {
 const auditAtV1 = (row) => Date.parse(row?.occurred_at || row?.timestamp || 0) || 0;
 const sortedUniqueV1 = (items = []) => [...new Set((Array.isArray(items) ? items : []).map((x) => clean(x, 500)).filter(Boolean))].sort();
 
+function buildJarvisOwnerChatFailedCandidateProvenanceV1(sourceRequestId, goal, verification = null) {
+  const sourceId = clean(sourceRequestId, 80).toLowerCase();
+  const wantedGoal = clean(goal, 4000);
+  const v = verification && typeof verification === 'object' ? verification : null;
+  if (!UUID_RE.test(sourceId) || !wantedGoal || !v) return null;
+
+  const files = sortedUniqueV1(v.files_changed);
+  const preDirty = sortedUniqueV1(v.pre_existing_dirty_files);
+  const branch = clean(v.branch, 200);
+  const head = clean(v.head || v?.git_evidence?.pre?.head, 80);
+  const diff = clean(v?.git_evidence?.changes?.diff, 100000);
+  if (
+    files.length === 0
+    || preDirty.length > 0
+    || v?.syntax_check?.passed !== true
+    || !branch
+    || !/^[0-9a-f]{40}$/i.test(head)
+    || !diff
+  ) return null;
+
+  return {
+    schema: 'aurentara.jarvis.owner-failed-candidate-provenance.v1',
+    source_request_id: sourceId,
+    goal: wantedGoal,
+    branch,
+    head,
+    files,
+    diff,
+    post_status: sortedUniqueV1(v?.git_evidence?.post?.status),
+    filesystem_post_sha256: clean(v?.filesystem_evidence?.post?.sha256, 80) || null,
+    syntax_check_passed: true,
+    pre_existing_dirty_files: []
+  };
+}
+
 export function findJarvisOwnerChatRecoverableFailedCandidateV1(auditRows = [], goal = '', currentRequestId = '') {
   const wantedGoal = clean(goal, 4000);
   const currentId = clean(currentRequestId, 80).toLowerCase();
@@ -159,43 +194,34 @@ export function findJarvisOwnerChatRecoverableFailedCandidateV1(auditRows = [], 
   for (const failed of failedJobs) {
     const failedId = clean(failed?.request_id, 80).toLowerCase();
     if (!UUID_RE.test(failedId)) continue;
-    const sameRequest = rows.filter((row) => clean(row?.request_id, 80).toLowerCase() === failedId);
-    if (sameRequest.some((row) => row?.result?.independent_acceptance === true)) continue;
-    if (rows.some((row) => row?.action === 'OWNER_CHAT_JOB_PUBLICATION' && clean(row?.result?.request_id, 80).toLowerCase() === failedId)) continue;
 
-    const mission = sameRequest
+    const attemptIds = sortedUniqueV1([
+      failedId,
+      ...((Array.isArray(failed?.result?.attempt_chain) ? failed.result.attempt_chain : [])
+        .map((attempt) => clean(attempt?.request_id, 80).toLowerCase())
+        .filter((id) => UUID_RE.test(id)))
+    ]);
+    const relatedRows = rows.filter((row) => attemptIds.includes(clean(row?.request_id, 80).toLowerCase()));
+    if (relatedRows.some((row) => row?.result?.independent_acceptance === true)) continue;
+    if (rows.some((row) =>
+      row?.action === 'OWNER_CHAT_JOB_PUBLICATION'
+      && attemptIds.includes(clean(row?.result?.request_id, 80).toLowerCase())
+    )) continue;
+
+    const missions = relatedRows
       .filter((row) => row?.action === JARVIS_OWNER_CHAT_JOB_ACTION)
       .filter((row) => row?.intent?.intent_type === 'IMPLEMENTATION_MISSION_REQUEST')
       .filter((row) => row?.result?.verification)
-      .sort((a, b) => auditAtV1(a) - auditAtV1(b))
-      .find((row) => {
-        const v = row.result.verification;
-        const files = sortedUniqueV1(v?.files_changed);
-        const preDirty = sortedUniqueV1(v?.pre_existing_dirty_files);
-        return files.length > 0
-          && preDirty.length === 0
-          && v?.syntax_check?.passed === true
-          && clean(v?.branch, 200)
-          && clean(v?.head || v?.git_evidence?.pre?.head, 80)
-          && clean(v?.git_evidence?.changes?.diff, 100000);
-      });
-    if (!mission) continue;
+      .sort((a, b) => auditAtV1(b) - auditAtV1(a));
 
-    const v = mission.result.verification;
-    const files = sortedUniqueV1(v.files_changed);
-    return {
-      schema: 'aurentara.jarvis.owner-failed-candidate-provenance.v1',
-      source_request_id: failedId,
-      goal: wantedGoal,
-      branch: clean(v.branch, 200),
-      head: clean(v.head || v?.git_evidence?.pre?.head, 80),
-      files,
-      diff: clean(v?.git_evidence?.changes?.diff, 100000),
-      post_status: sortedUniqueV1(v?.git_evidence?.post?.status),
-      filesystem_post_sha256: clean(v?.filesystem_evidence?.post?.sha256, 80) || null,
-      syntax_check_passed: true,
-      pre_existing_dirty_files: []
-    };
+    for (const mission of missions) {
+      const candidate = buildJarvisOwnerChatFailedCandidateProvenanceV1(
+        clean(mission?.request_id, 80).toLowerCase(),
+        wantedGoal,
+        mission?.result?.verification
+      );
+      if (candidate) return candidate;
+    }
   }
   return null;
 }
@@ -411,7 +437,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
         workspacePreflight = await deps.workspace_preflight({
           request_id: attemptRequestId,
           attempt: attemptNumber,
-          recover_failed_candidate: attemptNumber === 0 ? recoverableFailedCandidate : null
+          recover_failed_candidate: recoverableFailedCandidate
         });
       } catch (error) {
         workspacePreflight = {
@@ -436,6 +462,9 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
           }
         });
         break;
+      }
+      if (workspacePreflight?.failed_candidate_recovered === true) {
+        recoverableFailedCandidate = null;
       }
     }
 
@@ -482,6 +511,14 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
     const verificationState = evaluateJarvisEngineeringMissionAcceptanceStateV1(auditRows, attemptRequestId);
     const verification = mission.claude_execution?.evidence?.verification || null;
+    if (!readOnlyGoal) {
+      const currentAttemptCandidate = buildJarvisOwnerChatFailedCandidateProvenanceV1(
+        attemptRequestId,
+        originalGoal,
+        verification
+      );
+      if (currentAttemptCandidate) recoverableFailedCandidate = currentAttemptCandidate;
+    }
     const fs = verification?.filesystem_evidence || null;
     const git = verification?.git_evidence || null;
     const audit = verification?.tool_audit || null;
@@ -837,6 +874,7 @@ export function jarvisOwnerChatJobManifestV1() {
     failed_candidate_recovery_requires_exact_same_owner_goal: true,
     failed_candidate_recovery_requires_clean_original_candidate_base: true,
     failed_candidate_recovery_never_accepts_or_publishes_candidate: true,
+    repair_attempt_preflight_receives_prior_verified_candidate: true,
     astra_post_review_optional_gate_supported: true,
     astra_post_review_repair_reuses_existing_bounded_attempt_loop: true,
     astra_post_review_cannot_override_failed_system_verification: true,
