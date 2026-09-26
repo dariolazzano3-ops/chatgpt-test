@@ -78,7 +78,7 @@ const REQUIRED_ACCESS_ENV_KEYS = ['JARVIS_ACCESS_AUD', 'JARVIS_ACCESS_TEAM_DOMAI
 export const JARVIS_PROJECT_MISSION_AURENTARA_ID = 'AURENTARA';
 export const JARVIS_PROJECT_MISSION_AURENTARA_PROGRAM = 'AURENTARA_PROJECT_MISSION_V1';
 export const JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE =
-  'AURENTARA PROJECT MISSION EXECUTION RULE: Do not use Agent, Task, specialist, or subagent delegation. Work directly with the allowed Read, Glob, Grep, Edit, and Write tools only. Keep the task bounded to the requested next step.';
+  'AURENTARA PROJECT MISSION EXECUTION RULE: Agent is allowed only for explicitly curated JARVIS specialists from the supplied specialist registry. Specialists are read-only advisory; use zero or one by default and at most two only for a genuine cross-domain need. Do not use Task, unnamed/default/general-purpose agents, Explore, or background agents. Main Claude remains the sole Edit/Write actor. Keep the task bounded to the requested next step.';
 const PROJECT_MISSION_BLOCKED_BRANCHES = new Set(['main', 'master', 'factory-control']);
 
 export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = process.env, options = {}) {
@@ -326,7 +326,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       ? async (input = {}) => ensureJarvisOwnerWorkspaceGitIndexAccessV1({
           repo_dir: programLocation.repo_dir,
           worker_gid: Number.isInteger(workerGidRaw) && workerGidRaw >= 0 ? workerGidRaw : 11000,
-          recover_failed_candidate: input?.recover_failed_candidate || null
+          recover_failed_candidate: input?.recover_failed_candidate || null,
+          quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
         })
       : null);
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
