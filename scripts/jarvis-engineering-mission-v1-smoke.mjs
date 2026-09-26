@@ -333,9 +333,11 @@ function truth(store) {
 
   assert.equal(captured.execution_mode, 'implement');
   assert.match(captured.task, /STRICT JARVIS OWNER IMPLEMENTATION MODE/);
-  assert.match(captured.task, /Use only Read, Glob, Grep, Edit, and Write/);
-  assert.match(captured.task, /Do not use Agent or Task/);
-  assert.match(captured.task, /Do not delegate.*Explore/i);
+  assert.match(captured.task, /Use only Read, Glob, Grep, Edit, Write, and Agent/);
+  assert.match(captured.task, /Agent is allowed only for explicitly curated JARVIS specialists/i);
+  assert.match(captured.task, /use zero or one by default, and at most two only for a genuine cross-domain need/i);
+  assert.match(captured.task, /Do not use Task, unnamed\/default\/general-purpose agents, Explore, or background agents/i);
+  assert.match(captured.task, /Main Claude remains the sole Edit\/Write actor/i);
   assert.match(captured.task, /Treat orchestration metadata as environment context, not as a task to audit/i);
   assert.match(captured.task, /If a concrete repository gap exists, use Edit or Write/i);
   assert.doesNotMatch(captured.task, /trusted host verifier/i);
