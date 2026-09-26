@@ -645,7 +645,11 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
     const chatWork = classifyJarvisChatWorkRequestV1(message);
 
     if (chatWork.classification === 'ACTIONABLE_WORK') {
-      const projectRoute = resolveJarvisAutomaticProjectRouteV1(message, options.project_mission_targets || {});
+      const routingTargets = {
+        ...(options.project_mission_targets || {}),
+        ...(options.automatic_project_targets || {})
+      };
+      const projectRoute = resolveJarvisAutomaticProjectRouteV1(message, routingTargets);
       const projectTarget = projectRoute.matched === true ? projectRoute.target : null;
       const dispatch = await dispatchJarvisOwnerChatJobV1({
         owner_id: session.owner_id,

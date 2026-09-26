@@ -80,6 +80,8 @@ export const JARVIS_PROJECT_MISSION_AURENTARA_PROGRAM = 'AURENTARA_PROJECT_MISSI
 export const JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE =
   'AURENTARA PROJECT MISSION EXECUTION RULE: Agent is allowed only for explicitly curated JARVIS specialists from the supplied specialist registry. Specialists are read-only advisory; use zero or one by default and at most two only for a genuine cross-domain need. Do not use Task, unnamed/default/general-purpose agents, Explore, or background agents. Main Claude remains the sole Edit/Write actor. Keep the task bounded to the requested next step.';
 const PROJECT_MISSION_BLOCKED_BRANCHES = new Set(['main', 'master', 'factory-control']);
+const JARVIS_AUTOMATIC_AURENTARA_REPO_DEFAULT = '/opt/jarvis/aurentara-project';
+const JARVIS_AUTOMATIC_AURENTARA_BRIDGE_PROJECT_DEFAULT = 'aurentara-real-lifecycle-v1';
 
 export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = process.env, options = {}) {
   if (!isOn(env.JARVIS_PROJECT_MISSION_AURENTARA_ENABLED)) {
@@ -128,6 +130,48 @@ export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = p
   return {
     ok: true,
     requested: true,
+    targets: {
+      [JARVIS_PROJECT_MISSION_AURENTARA_ID]: {
+        target_id: JARVIS_PROJECT_MISSION_AURENTARA_ID,
+        label: 'AURENTARA',
+        route_aliases: ['AURENTARA SYSTEMS'],
+        program: JARVIS_PROJECT_MISSION_AURENTARA_PROGRAM,
+        target_branch: location.target_branch,
+        repo_dir: location.repo_dir,
+        bridge_project: bridgeProject,
+        bridge_bound: true,
+        execution_guidance: JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE,
+        bridge: binding.bridge
+      }
+    }
+  };
+}
+
+export async function resolveJarvisRemoteOperatorAutomaticProjectTargetsV1(env = process.env, options = {}) {
+  const repoDir = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR, 400)
+    || JARVIS_AUTOMATIC_AURENTARA_REPO_DEFAULT;
+  const bridgeProject = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_BRIDGE_PROJECT, 200)
+    || JARVIS_AUTOMATIC_AURENTARA_BRIDGE_PROJECT_DEFAULT;
+
+  const location = resolveJarvisRemoteOperatorProgramLocationV1({ ...env, JARVIS_CLAUDE_REPO_DIR: repoDir });
+  if (!location.ok || PROJECT_MISSION_BLOCKED_BRANCHES.has(location.target_branch)) {
+    return { ok: true, requested: true, reason: location.error || 'AUTOMATIC_PROJECT_TARGET_BRANCH_FORBIDDEN', targets: {} };
+  }
+
+  const bindingEnv = {
+    ...env,
+    JARVIS_CLAUDE_REPO_DIR: location.repo_dir,
+    JARVIS_BRIDGE_PROJECT: bridgeProject
+  };
+  const binding = await createJarvisBridgeHttpRuntimeBindingV1(bindingEnv, options.bridge_http_options || options);
+  if (!binding.bound) {
+    return { ok: true, requested: true, reason: binding.reason || 'AUTOMATIC_PROJECT_TARGET_BRIDGE_NOT_BOUND', targets: {} };
+  }
+
+  return {
+    ok: true,
+    requested: true,
+    reason: null,
     targets: {
       [JARVIS_PROJECT_MISSION_AURENTARA_ID]: {
         target_id: JARVIS_PROJECT_MISSION_AURENTARA_ID,
@@ -320,6 +364,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     || await resolveJarvisRemoteOperatorClaudeBridgeV1(env, overrides.claude_binding_options);
   const projectMissionResult = overrides.project_mission_result
     || await resolveJarvisRemoteOperatorProjectMissionTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
+  const automaticProjectResult = overrides.automatic_project_result
+    || await resolveJarvisRemoteOperatorAutomaticProjectTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
@@ -334,8 +380,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
           quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
         })
       : null);
-  const projectMissionTargets = Object.fromEntries(
-    Object.entries(projectMissionResult.ok ? projectMissionResult.targets : {}).map(([id, target]) => [
+  const bindProjectWorkspacePreflight = (targets = {}) => Object.fromEntries(
+    Object.entries(targets).map(([id, target]) => [
       id,
       {
         ...target,
@@ -350,6 +396,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       }
     ])
   );
+  const projectMissionTargets = bindProjectWorkspacePreflight(projectMissionResult.ok ? projectMissionResult.targets : {});
+  const automaticProjectTargets = bindProjectWorkspacePreflight(automaticProjectResult.ok ? automaticProjectResult.targets : {});
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
   // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
   // ever called for the real entrypoint; a test may also pass one directly.
@@ -368,6 +416,7 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       program_target_branch: programLocation.ok ? programLocation.target_branch : null,
       owner_chat_workspace_preflight: ownerChatWorkspacePreflight,
       project_mission_targets: projectMissionTargets,
+      automatic_project_targets: automaticProjectTargets,
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
         const target = Object.values(projectMissionTargets)
           .find((item) => item?.program === clean(program, 80));
@@ -387,6 +436,7 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     },
     claude_bridge_result: claudeBridgeResult,
     project_mission_result: projectMissionResult,
+    automatic_project_result: automaticProjectResult,
     program_location: programLocation
   };
 }
@@ -459,7 +509,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const canonicalOwnerCheck = overrides.canonical_owner_check || verifyJarvisRemoteOperatorCanonicalOwnerConfigV1(env);
   if (!canonicalOwnerCheck.ok) return { ok: false, error: canonicalOwnerCheck.error, message: canonicalOwnerCheck.message };
 
-  const { options, claude_bridge_result, project_mission_result, program_location } = await buildJarvisRemoteOperatorOptionsV1(env, {
+  const { options, claude_bridge_result, project_mission_result, automatic_project_result, program_location } = await buildJarvisRemoteOperatorOptionsV1(env, {
     ...overrides,
     canonical_owner_email: overrides.canonical_owner_email ?? canonicalOwnerCheck.canonical_owner_email
   });
@@ -616,6 +666,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     canonical_owner_email: options.canonical_owner_email || null,
     claude_bridge_result,
     project_mission_result,
+    automatic_project_result,
     program_runner_state: programRunner.state(),
     options
   };
@@ -667,6 +718,9 @@ export function jarvisRemoteOperatorManifestV1() {
     owner_control_cloudflare_access_path_modified: false,
     owner_chat_private_deploy_production: false,
     project_mission_target_source: 'SERVER_SIDE_ENV_ONLY',
+    automatic_project_routing_uses_private_server_mount_when_available: true,
+    automatic_project_routing_explicit_name_required: true,
+    automatic_project_routing_does_not_override_manual_project_mission_enable_flag: true,
     project_mission_aurentara_env: 'JARVIS_PROJECT_MISSION_AURENTARA_ENABLED',
     project_mission_aurentara_repo_env: 'JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR',
     project_mission_aurentara_bridge_project_env: 'JARVIS_PROJECT_MISSION_AURENTARA_BRIDGE_PROJECT',
@@ -699,6 +753,7 @@ if (isMainModule) {
     console.log(`Memory store: ${result.memory_store_kind} (durable: ${result.durable_memory_ready})`);
     console.log(`Claude Code (private Bridge HTTP): ${result.claude_bridge_result.bound ? 'BOUND' : 'NOT_BOUND'}`);
     console.log(`Project Mission targets: ${Object.keys(result.project_mission_result?.targets || {}).join(', ') || 'NONE'}`);
+    console.log(`Automatic Project targets: ${Object.keys(result.automatic_project_result?.targets || {}).join(', ') || 'NONE'}`);
     console.log(`Canonical owner namespace: ${result.canonical_owner_email || '(none — using real authenticated identity)'}`);
     console.log(`Program runner capability: ${result.program_runner_state.capability_enabled ? 'ENABLED' : 'DISABLED'} (active: ${result.program_runner_state.active})`);
     console.log('Mode: PRIVATE_REMOTE — public_access=false, production_deploy=false');

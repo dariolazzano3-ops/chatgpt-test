@@ -137,7 +137,7 @@ const response = await handleJarvisHttpV1(
       genericPreflight.count += 1;
       return { ok: false, error: 'GENERIC_PREFLIGHT_MUST_NOT_RUN' };
     },
-    project_mission_targets: { AURENTARA: target },
+    automatic_project_targets: { AURENTARA: target },
     owner_chat_trusted_publisher: {
       async publishVerifiedOwnerChatJob(request) {
         publisherCalls.count += 1;
