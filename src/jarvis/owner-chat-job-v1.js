@@ -431,14 +431,26 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
 
     const readOnlyGoal = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
 
+    let workspacePreflight = null;
     if (!readOnlyGoal && typeof deps.workspace_preflight === 'function') {
-      let workspacePreflight = null;
       try {
         workspacePreflight = await deps.workspace_preflight({
           request_id: attemptRequestId,
           attempt: attemptNumber,
           recover_failed_candidate: recoverableFailedCandidate
         });
+        if (
+          workspacePreflight?.ok !== true
+          && workspacePreflight?.error === 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESET_MISMATCH'
+          && recoverableFailedCandidate
+        ) {
+          workspacePreflight = await deps.workspace_preflight({
+            request_id: attemptRequestId,
+            attempt: attemptNumber,
+            recover_failed_candidate: recoverableFailedCandidate,
+            quarantine_unrelated_dirty: true
+          });
+        }
       } catch (error) {
         workspacePreflight = {
           ok: false,
@@ -463,7 +475,7 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
         });
         break;
       }
-      if (workspacePreflight?.failed_candidate_recovered === true) {
+      if (workspacePreflight?.failed_candidate_recovered === true || workspacePreflight?.unrelated_dirty_quarantined === true) {
         recoverableFailedCandidate = null;
       }
     }
@@ -554,7 +566,15 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       claude_failure_reason: clean(mission.claude_execution?.failure_reason, 160) || null,
       system_verified: systemVerified,
       operator_accepted: verificationState.already_accepted === true,
-      verification_error: verificationError
+      verification_error: verificationError,
+      workspace_preflight: workspacePreflight?.ok === true ? {
+        ok: true,
+        failed_candidate_recovered: workspacePreflight.failed_candidate_recovered === true,
+        unrelated_dirty_quarantined: workspacePreflight.unrelated_dirty_quarantined === true,
+        quarantine_files: workspacePreflight.quarantine_files || [],
+        quarantine_patch_sha256: workspacePreflight.quarantine_patch_sha256 || null,
+        quarantine_patch_ref: workspacePreflight.quarantine_patch_ref || null
+      } : null
     });
 
     if (systemVerified) {
@@ -874,6 +894,8 @@ export function jarvisOwnerChatJobManifestV1() {
     failed_candidate_recovery_requires_exact_same_owner_goal: true,
     failed_candidate_recovery_requires_clean_original_candidate_base: true,
     failed_candidate_recovery_never_accepts_or_publishes_candidate: true,
+    failed_candidate_fileset_mismatch_can_quarantine_unrelated_unstaged_modifications: true,
+    quarantine_retry_is_bounded_to_one_preflight_recheck: true,
     repair_attempt_preflight_receives_prior_verified_candidate: true,
     astra_post_review_optional_gate_supported: true,
     astra_post_review_repair_reuses_existing_bounded_attempt_loop: true,
