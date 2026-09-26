@@ -34,7 +34,7 @@ function fakeBridge(counter) {
 
 const targetCalls = { count: 0, last: null };
 const defaultCalls = { count: 0, last: null };
-const AURENTARA_GUIDANCE = 'AURENTARA PROJECT MISSION EXECUTION RULE: Do not use Agent, Task, specialist, or subagent delegation. Work directly with the allowed Read, Glob, Grep, Edit, and Write tools only. Keep the task bounded to the requested next step.';
+const AURENTARA_GUIDANCE = 'AURENTARA PROJECT MISSION EXECUTION RULE: Agent is allowed only for explicitly curated JARVIS specialists from the supplied specialist registry. Specialists are read-only advisory; use zero or one by default and at most two only for a genuine cross-domain need. Do not use Task, unnamed/default/general-purpose agents, Explore, or background agents. Main Claude remains the sole Edit/Write actor. Keep the task bounded to the requested next step.';
 const targetBridge = fakeBridge(targetCalls);
 const defaultBridge = fakeBridge(defaultCalls);
 const target = {
@@ -178,7 +178,10 @@ let approvalId = null;
   assert.equal(targetCalls.count, 1, 'target Bridge must execute exactly once');
   assert.equal(defaultCalls.count, 0, 'Project Mission must never fall back to default JARVIS Bridge');
   assert.ok(targetCalls.last?.task?.startsWith(AURENTARA_GUIDANCE), 'AURENTARA execution guidance must be prepended server-side');
-  assert.match(targetCalls.last?.task || '', /Do not use Agent, Task, specialist, or subagent delegation/);
+  assert.match(targetCalls.last?.task || '', /Agent is allowed only for explicitly curated JARVIS specialists/);
+  assert.match(targetCalls.last?.task || '', /at most two only for a genuine cross-domain need/);
+  assert.match(targetCalls.last?.task || '', /Main Claude remains the sole Edit\/Write actor/);
+  assert.doesNotMatch(targetCalls.last?.task || '', /Do not use Agent, Task/);
   assert.match(targetCalls.last?.task || '', /Goal: Verifiziere Truth und bereite den nächsten bounded Lifecycle-Schritt vor\./);
 }
 
