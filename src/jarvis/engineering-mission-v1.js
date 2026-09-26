@@ -218,8 +218,9 @@ export async function handleJarvisEngineeringMissionRuntimeV1(request = {}, deps
         const ownerImplementationGuard = intent.execution_mode === 'implement' && intent.program === 'JARVIS_OWNER_CHAT'
           ? [
               'STRICT JARVIS OWNER IMPLEMENTATION MODE.',
-              'Use only Read, Glob, Grep, Edit, and Write.',
-              'Do not use Agent or Task. Do not delegate to specialists, subagents, Explore, or background agents.',
+              'Use only Read, Glob, Grep, Edit, Write, and Agent.',
+              'Agent is allowed only for explicitly curated JARVIS specialists from the supplied specialist registry. Specialists are read-only advisory: use zero or one by default, and at most two only for a genuine cross-domain need.',
+              'Do not use Task, unnamed/default/general-purpose agents, Explore, or background agents. Main Claude remains the sole Edit/Write actor.',
               'Stay on the owner goal. Treat orchestration metadata as environment context, not as a task to audit. Do not inspect unrelated deployment, finalizer, privilege, maintenance, or infrastructure code unless the owner goal directly requires it.',
               'If a concrete repository gap exists, use Edit or Write to make the smallest complete real workspace change. If no concrete gap exists, report that plainly and do not fabricate a change.',
               'Do not use Bash, shell, git, network, package-manager, MCP, skills, deployment, secrets, billing, DNS, PR, merge, commit, or push actions.'
