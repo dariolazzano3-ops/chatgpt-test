@@ -417,6 +417,10 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       owner_chat_workspace_preflight: ownerChatWorkspacePreflight,
       project_mission_targets: projectMissionTargets,
       automatic_project_targets: automaticProjectTargets,
+      automatic_project_target_status: {
+        target_ids: Object.keys(automaticProjectTargets).sort(),
+        reason: clean(automaticProjectResult.reason, 160) || null
+      },
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
         const target = Object.values(projectMissionTargets)
           .find((item) => item?.program === clean(program, 80));

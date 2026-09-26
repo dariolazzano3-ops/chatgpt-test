@@ -302,6 +302,12 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       calendar_read_contract: true,
       calendar_read_bound: googleConnected || calendarReadBound(connectors),
       calendar_write_enabled: false,
+      automatic_project_target_status: {
+        target_ids: Array.isArray(options.automatic_project_target_status?.target_ids)
+          ? options.automatic_project_target_status.target_ids
+          : [],
+        reason: clean(options.automatic_project_target_status?.reason, 160) || null
+      },
       external_writes_enabled: false,
       finance_actions_enabled: false,
       production_deploy: false,
