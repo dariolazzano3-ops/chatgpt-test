@@ -36,7 +36,7 @@ import path from 'node:path';
 const clean = (value, max = 400) => String(value ?? '').trim().slice(0, max);
 
 function git(repoDir, args) {
-  return execFileSync('git', args, {
+  return execFileSync('git', ['-c', `safe.directory=${repoDir}`, ...args], {
     cwd: repoDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 15000
@@ -234,7 +234,7 @@ function quarantineUnrelatedDirtyStateV1(repoDir) {
   }
 
   try {
-    execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', ...files], {
+    execFileSync('git', ['-c', `safe.directory=${repoDir}`, 'restore', '--source=HEAD', '--worktree', '--', ...files], {
       cwd: repoDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 15000
@@ -323,7 +323,7 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
   }
 
   try {
-    execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', ...expectedFiles], {
+    execFileSync('git', ['-c', `safe.directory=${repoDir}`, 'restore', '--source=HEAD', '--worktree', '--', ...expectedFiles], {
       cwd: repoDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 15000
