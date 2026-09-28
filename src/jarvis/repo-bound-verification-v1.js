@@ -35,7 +35,11 @@ const GIT_TIMEOUT_MS = 10000;
 // (" M path") — trimming the whole string would eat that leading space and
 // shift every column, silently corrupting the first line's path.
 function git(repoDir, args) {
-  return execFileSync('git', args, { cwd: repoDir, stdio: ['ignore', 'pipe', 'pipe'], timeout: GIT_TIMEOUT_MS }).toString('utf8');
+  return execFileSync('git', ['-c', `safe.directory=${repoDir}`, ...args], {
+    cwd: repoDir,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: GIT_TIMEOUT_MS
+  }).toString('utf8');
 }
 
 export function currentBranchOrNullV1(repoDir) {
