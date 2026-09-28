@@ -11,6 +11,8 @@ import {
 const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'jarvis-owner-control-smoke-'));
 await fs.chmod(tmp, 0o770);
 const socketPath = path.join(tmp, 'owner.sock');
+const registryPath = path.join(tmp, 'project-targets.json');
+const restartRequestPath = path.join(tmp, 'restart-request.json');
 const calls = [];
 
 const workerHandler = async (request, env, ctx, options) => {
@@ -38,6 +40,8 @@ const started = await startJarvisOwnerControlSocketV1({
   owner_email: 'owner@example.test',
   env: { TEST: '1' },
   socket_path: socketPath,
+  project_registry_path: registryPath,
+  restart_request_path: restartRequestPath,
   worker_handler: workerHandler,
   audit_reader: async (requestId) => [{
     request_id: requestId,
@@ -135,6 +139,44 @@ assert.equal(job.body.rows[0].result.job_failure_reason, 'usage_limit_reached');
 assert.equal('secret_token' in job.body.rows[0].result, false);
 assert.equal('authorization' in job.body.rows[0], false);
 
+const emptyTargets = await request('GET', '/v1/project-targets');
+assert.equal(emptyTargets.status, 200);
+assert.equal(emptyTargets.body.revision, 0);
+assert.deepEqual(emptyTargets.body.targets, {});
+
+const targetApply = await request('POST', '/v1/project-targets/apply', {
+  operation: 'upsert',
+  target: {
+    target_id: 'AURENTARA',
+    label: 'AURENTARA',
+    route_aliases: ['AURENTARA SYSTEMS'],
+    program: 'AURENTARA_PROJECT_MISSION_V1',
+    repo_dir: '/opt/jarvis/aurentara-project',
+    bridge_project: 'aurentara-real-lifecycle-v1',
+    target_branch: 'factory/aurentara-real-lifecycle-v1',
+    enabled: true
+  }
+});
+assert.equal(targetApply.status, 200);
+assert.equal(targetApply.body.registry_revision, 1);
+assert.equal(targetApply.body.restart_requested, true);
+assert.equal(targetApply.body.targets.AURENTARA.enabled, true);
+assert.equal(JSON.parse(await fs.readFile(restartRequestPath, 'utf8')).reason, 'PROJECT_TARGET_REGISTRY_CHANGED');
+
+const secretRejected = await request('POST', '/v1/project-targets/apply', {
+  operation: 'upsert',
+  target: {
+    target_id: 'AURENTARA',
+    label: 'AURENTARA',
+    program: 'AURENTARA_PROJECT_MISSION_V1',
+    repo_dir: '/opt/jarvis/aurentara-project',
+    bridge_project: 'aurentara-real-lifecycle-v1',
+    token: 'forbidden'
+  }
+});
+assert.equal(secretRejected.status, 400);
+assert.equal(secretRejected.body.error, 'PROJECT_TARGET_UNKNOWN_FIELDS');
+
 const denied = await request('POST', '/v1/arbitrary', { message: 'x' });
 assert.equal(denied.status, 404);
 assert.equal(calls.length, 4);
@@ -152,6 +194,9 @@ assert.equal(manifest.paid_fallback_request_scoped, true);
 assert.equal(manifest.paid_fallback_max_job_cost_usd, 0.25);
 assert.equal(manifest.paid_fallback_public_web_path_enabled, false);
 assert.equal(manifest.paid_fallback_mutates_process_env, false);
+assert.equal(manifest.project_target_registry_secrets_allowed, false);
+assert.equal(manifest.project_target_registry_arbitrary_shell_allowed, false);
+assert.equal(manifest.project_target_restart_request_only, true);
 
 await new Promise((resolve) => started.server.close(resolve));
 await fs.rm(tmp, { recursive: true, force: true });

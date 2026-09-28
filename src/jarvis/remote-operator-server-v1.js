@@ -61,6 +61,7 @@ import { ensureJarvisOwnerWorkspaceGitIndexAccessV1 } from './owner-workspace-gi
 import { startJarvisOwnerControlSocketV1, JARVIS_OWNER_CONTROL_DEFAULT_SOCKET } from './owner-control-socket-v1.js';
 import { createJarvisTrustedCandidateRecovererV1 } from './trusted-candidate-recovery-v1.js';
 import { isKnownJarvisProgramV1, JARVIS_V2_PROGRAM_ID, JARVIS_V3_PROGRAM_ID } from './program-catalog-v1.js';
+import { loadJarvisProjectTargetRegistryV1, JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH } from './project-target-registry-v1.js';
 
 const clean = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
 const isOn = (value) => ['true', '1', 'on', 'yes'].includes(clean(value, 20).toLowerCase());
@@ -144,6 +145,74 @@ export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = p
         bridge: binding.bridge
       }
     }
+  };
+}
+
+
+export async function resolveJarvisRemoteOperatorRegistryProjectTargetsV1(env = process.env, options = {}) {
+  const registry = options.registry_result || loadJarvisProjectTargetRegistryV1(
+    clean(options.registry_path, 500) || JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH
+  );
+  if (!registry?.ok) {
+    return {
+      ok: false,
+      requested: true,
+      error: registry?.error || 'PROJECT_TARGET_REGISTRY_UNAVAILABLE',
+      targets: {},
+      disabled_target_ids: [],
+      errors: {}
+    };
+  }
+
+  const targets = {};
+  const disabledTargetIds = [];
+  const errors = {};
+  for (const [targetId, target] of Object.entries(registry.targets || {})) {
+    if (target?.enabled !== true) {
+      disabledTargetIds.push(targetId);
+      continue;
+    }
+    const location = resolveJarvisRemoteOperatorProgramLocationV1({
+      ...env,
+      JARVIS_CLAUDE_REPO_DIR: target.repo_dir
+    });
+    if (!location.ok) {
+      errors[targetId] = location.error || 'PROJECT_TARGET_REPO_UNAVAILABLE';
+      continue;
+    }
+    if (target.target_branch && target.target_branch !== location.target_branch) {
+      errors[targetId] = 'PROJECT_TARGET_BRANCH_MISMATCH';
+      continue;
+    }
+    if (PROJECT_MISSION_BLOCKED_BRANCHES.has(location.target_branch)) {
+      errors[targetId] = 'PROJECT_TARGET_CANONICAL_BRANCH_WRITE_FORBIDDEN';
+      continue;
+    }
+
+    const binding = await createJarvisBridgeHttpRuntimeBindingV1({
+      ...env,
+      JARVIS_CLAUDE_REPO_DIR: location.repo_dir,
+      JARVIS_BRIDGE_PROJECT: target.bridge_project
+    }, options.bridge_http_options || options);
+    if (!binding.bound) {
+      errors[targetId] = binding.reason || 'PROJECT_TARGET_BRIDGE_NOT_BOUND';
+      continue;
+    }
+    targets[targetId] = {
+      ...target,
+      target_branch: location.target_branch,
+      bridge_bound: true,
+      bridge: binding.bridge
+    };
+  }
+
+  return {
+    ok: true,
+    requested: true,
+    revision: registry.revision || 0,
+    targets,
+    disabled_target_ids: disabledTargetIds.sort(),
+    errors
   };
 }
 
@@ -366,6 +435,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     || await resolveJarvisRemoteOperatorProjectMissionTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
   const automaticProjectResult = overrides.automatic_project_result
     || await resolveJarvisRemoteOperatorAutomaticProjectTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
+  const registryProjectResult = overrides.registry_project_result
+    || await resolveJarvisRemoteOperatorRegistryProjectTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
@@ -399,7 +470,12 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     ])
   );
   const projectMissionTargets = bindProjectWorkspacePreflight(projectMissionResult.ok ? projectMissionResult.targets : {});
-  const automaticProjectTargets = bindProjectWorkspacePreflight(automaticProjectResult.ok ? automaticProjectResult.targets : {});
+  const automaticRawTargets = {
+    ...(automaticProjectResult.ok ? automaticProjectResult.targets : {}),
+    ...(registryProjectResult.ok ? registryProjectResult.targets : {})
+  };
+  for (const targetId of (registryProjectResult.disabled_target_ids || [])) delete automaticRawTargets[targetId];
+  const automaticProjectTargets = bindProjectWorkspacePreflight(automaticRawTargets);
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
   // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
   // ever called for the real entrypoint; a test may also pass one directly.
@@ -421,10 +497,13 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       automatic_project_targets: automaticProjectTargets,
       automatic_project_target_status: {
         target_ids: Object.keys(automaticProjectTargets).sort(),
-        reason: clean(automaticProjectResult.reason, 160) || null
+        reason: clean(automaticProjectResult.reason, 160) || null,
+        registry_revision: registryProjectResult.revision || 0,
+        registry_errors: registryProjectResult.errors || {},
+        registry_disabled_target_ids: registryProjectResult.disabled_target_ids || []
       },
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
-        const target = Object.values(projectMissionTargets)
+        const target = Object.values({ ...projectMissionTargets, ...automaticProjectTargets })
           .find((item) => item?.program === clean(program, 80));
         return target
           ? {
@@ -515,7 +594,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   const canonicalOwnerCheck = overrides.canonical_owner_check || verifyJarvisRemoteOperatorCanonicalOwnerConfigV1(env);
   if (!canonicalOwnerCheck.ok) return { ok: false, error: canonicalOwnerCheck.error, message: canonicalOwnerCheck.message };
 
-  const { options, claude_bridge_result, project_mission_result, automatic_project_result, program_location } = await buildJarvisRemoteOperatorOptionsV1(env, {
+  const { options, claude_bridge_result, project_mission_result, automatic_project_result, registry_project_result, program_location } = await buildJarvisRemoteOperatorOptionsV1(env, {
     ...overrides,
     canonical_owner_email: overrides.canonical_owner_email ?? canonicalOwnerCheck.canonical_owner_email
   });
@@ -673,6 +752,7 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
     claude_bridge_result,
     project_mission_result,
     automatic_project_result,
+    registry_project_result,
     program_runner_state: programRunner.state(),
     options
   };

@@ -2,6 +2,13 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { handleJarvisStandaloneWorkerV1 } from './standalone-worker-v1.js';
+import {
+  applyJarvisProjectTargetRegistryV1,
+  loadJarvisProjectTargetRegistryV1,
+  writeJarvisControlPlaneRestartRequestV1,
+  JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH,
+  JARVIS_CONTROL_PLANE_RESTART_DEFAULT_PATH
+} from './project-target-registry-v1.js';
 
 export const JARVIS_OWNER_CONTROL_DEFAULT_SOCKET = '/opt/jarvis/owner-deploy-queue/owner-control.sock';
 export const JARVIS_OWNER_CONTROL_MAX_BODY_BYTES = 16 * 1024;
@@ -89,7 +96,11 @@ export function jarvisOwnerControlSocketManifestV1() {
     cloudflare_access_path_modified: false,
     owner_identity_source: 'SERVER_SIDE_OPERATOR_EMAIL_ONLY',
     client_identity_override: false,
-    allowed_routes: ['GET /v1/status', 'GET /v1/runtime-truth', 'GET /v1/job?request_id=<uuid>', 'POST /v1/chat'],
+    allowed_routes: ['GET /v1/status', 'GET /v1/runtime-truth', 'GET /v1/job?request_id=<uuid>', 'GET /v1/project-targets', 'POST /v1/project-targets/apply', 'POST /v1/chat'],
+    project_target_registry_mutation: 'UNIX_SOCKET_ONLY_VALIDATED_JSON',
+    project_target_registry_secrets_allowed: false,
+    project_target_registry_arbitrary_shell_allowed: false,
+    project_target_restart_request_only: true,
     socket_mode: '0660',
     parent_world_access_required: false,
     production_deploy: false,
@@ -112,7 +123,9 @@ export function createJarvisOwnerControlSocketServerV1({
   env = process.env,
   worker_handler = handleJarvisStandaloneWorkerV1,
   audit_reader = null,
-  max_body_bytes = JARVIS_OWNER_CONTROL_MAX_BODY_BYTES
+  max_body_bytes = JARVIS_OWNER_CONTROL_MAX_BODY_BYTES,
+  project_registry_path = JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH,
+  restart_request_path = JARVIS_CONTROL_PLANE_RESTART_DEFAULT_PATH
 } = {}) {
   const fixedOwnerEmail = safeOwnerEmail(owner_email);
   if (!fixedOwnerEmail) {
@@ -159,6 +172,34 @@ export function createJarvisOwnerControlSocketServerV1({
           ok: true,
           request_id: requestId,
           rows: redactOwnerControlValue(Array.isArray(rows) ? rows : [])
+        });
+        return;
+      } else if (method === 'GET' && url.pathname === '/v1/project-targets') {
+        const registry = loadJarvisProjectTargetRegistryV1(project_registry_path);
+        if (!registry.ok) {
+          jsonNode(res, 503, registry);
+          return;
+        }
+        jsonNode(res, 200, registry);
+        return;
+      } else if (method === 'POST' && url.pathname === '/v1/project-targets/apply') {
+        const incoming = await readBoundedJson(req, max_body_bytes);
+        const applied = applyJarvisProjectTargetRegistryV1(incoming, { file_path: project_registry_path });
+        if (!applied.ok) {
+          jsonNode(res, 400, applied);
+          return;
+        }
+        const restart = writeJarvisControlPlaneRestartRequestV1('PROJECT_TARGET_REGISTRY_CHANGED', { file_path: restart_request_path });
+        if (!restart.ok) {
+          jsonNode(res, 503, { ok:false, error:restart.error, registry_revision:applied.revision });
+          return;
+        }
+        jsonNode(res, 200, {
+          ok:true,
+          registry_revision:applied.revision,
+          targets:applied.targets,
+          restart_requested:true,
+          restart_request_id:restart.request_id
         });
         return;
       } else if (method === 'POST' && url.pathname === '/v1/chat') {
@@ -241,7 +282,9 @@ export async function startJarvisOwnerControlSocketV1({
   socket_path = JARVIS_OWNER_CONTROL_DEFAULT_SOCKET,
   worker_handler = handleJarvisStandaloneWorkerV1,
   audit_reader = null,
-  fs_api = fs
+  fs_api = fs,
+  project_registry_path = JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH,
+  restart_request_path = JARVIS_CONTROL_PLANE_RESTART_DEFAULT_PATH
 } = {}) {
   const parent = path.dirname(socket_path);
   let parentStat;
@@ -303,7 +346,9 @@ export async function startJarvisOwnerControlSocketV1({
     owner_email,
     env,
     worker_handler,
-    audit_reader
+    audit_reader,
+    project_registry_path,
+    restart_request_path
   });
   if (!created.ok) return { ...created, enabled: false, socket_path };
 

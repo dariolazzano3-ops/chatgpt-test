@@ -306,7 +306,12 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         target_ids: Array.isArray(options.automatic_project_target_status?.target_ids)
           ? options.automatic_project_target_status.target_ids
           : [],
-        reason: clean(options.automatic_project_target_status?.reason, 160) || null
+        reason: clean(options.automatic_project_target_status?.reason, 160) || null,
+        registry_revision: Number(options.automatic_project_target_status?.registry_revision || 0),
+        registry_errors: options.automatic_project_target_status?.registry_errors || {},
+        registry_disabled_target_ids: Array.isArray(options.automatic_project_target_status?.registry_disabled_target_ids)
+          ? options.automatic_project_target_status.registry_disabled_target_ids
+          : []
       },
       external_writes_enabled: false,
       finance_actions_enabled: false,
