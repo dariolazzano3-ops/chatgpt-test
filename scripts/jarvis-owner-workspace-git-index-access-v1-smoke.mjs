@@ -153,6 +153,32 @@ try {
   assert.equal(git(['status', '--porcelain']), '');
   assert.equal(fs.readFileSync(path.join(tmp, 'OTHER.txt'), 'utf8'), 'other fixture\n');
 
+  // A stale failed project scope may contain both an unstaged tracked edit and
+  // a newly created untracked file. Preserve both reversibly in one Git stash
+  // before cleaning the workspace for the next project job.
+  fs.writeFileSync(path.join(tmp, 'README.md'), 'stale tracked project work\n');
+  fs.writeFileSync(path.join(tmp, 'NEW-SMOKE.mjs'), 'stale untracked project work\n');
+  const staleQuarantine = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid,
+    quarantine_unrelated_dirty: true,
+    quarantine_stale_failed_project_scope: true
+  });
+  assert.equal(staleQuarantine.ok, true);
+  assert.equal(staleQuarantine.unrelated_dirty_quarantined, true);
+  assert.equal(staleQuarantine.quarantine_mode, 'GIT_STASH_INCLUDE_UNTRACKED');
+  assert.match(staleQuarantine.quarantine_stash_commit, /^[0-9a-f]{40}$/);
+  assert.deepEqual(staleQuarantine.quarantine_files, ['NEW-SMOKE.mjs', 'README.md']);
+  assert.equal(git(['status', '--porcelain']), '');
+  const stashNames = git(['stash', 'show', '--include-untracked', '--name-only', staleQuarantine.quarantine_stash_commit]);
+  assert.match(stashNames, /README\.md/);
+  assert.match(stashNames, /NEW-SMOKE\.mjs/);
+  git(['stash', 'apply', staleQuarantine.quarantine_stash_commit]);
+  assert.equal(fs.readFileSync(path.join(tmp, 'README.md'), 'utf8'), 'stale tracked project work\n');
+  assert.equal(fs.readFileSync(path.join(tmp, 'NEW-SMOKE.mjs'), 'utf8'), 'stale untracked project work\n');
+  git(['reset', '--hard', 'HEAD']);
+  git(['clean', '-fd']);
+
   fs.writeFileSync(path.join(tmp, '.git', 'index.lock'), 'active lock');
   const locked = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
     repo_dir: tmp,
@@ -170,6 +196,10 @@ try {
   assert.equal(man.failed_candidate_restore_refuses_staged_or_untracked_state, true);
   assert.equal(man.unrelated_dirty_quarantine_supported, true);
   assert.equal(man.unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch, true);
+  assert.equal(man.stale_failed_project_scope_quarantine_supported, true);
+  assert.equal(man.stale_failed_project_scope_quarantine_requires_explicit_scoped_flag, true);
+  assert.equal(man.stale_failed_project_scope_quarantine_uses_git_stash_include_untracked, true);
+  assert.equal(man.stale_failed_project_scope_quarantine_refuses_staged_deleted_renamed_or_conflicted_state, true);
   assert.equal(man.unrelated_dirty_quarantine_preserves_exact_patch_before_restore, true);
   assert.equal(man.unrelated_dirty_quarantine_refuses_staged_untracked_delete_rename_conflict, true);
   assert.equal(man.refuses_index_lock, true);

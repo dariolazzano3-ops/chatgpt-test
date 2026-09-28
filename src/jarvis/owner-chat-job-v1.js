@@ -434,8 +434,8 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
       priorFailedSameProjectScope = Boolean(projectTargetId) && priorAudit.some((row) =>
         row?.intent?.intent_type === JARVIS_OWNER_CHAT_NOTIFICATION_INTENT
         && row?.result?.status === 'FAILED'
-        && clean(row?.result?.goal, 4000) === originalGoal
         && clean(row?.result?.program, 80).toUpperCase() === program
+        && clean(row?.result?.project_target_id, 80).toUpperCase() === projectTargetId
         && clean(row?.request_id, 80).toLowerCase() !== requestId
       );
     } catch {

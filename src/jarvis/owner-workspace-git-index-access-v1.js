@@ -353,6 +353,65 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
   };
 }
 
+function stashStaleFailedProjectStateV1(repoDir) {
+  let staged, trackedStatus, untracked;
+  try {
+    staged = git(repoDir, ['diff', '--cached', '--name-only']);
+    trackedStatus = git(repoDir, ['diff', '--name-status', 'HEAD', '--']);
+    untracked = git(repoDir, ['ls-files', '--others', '--exclude-standard']);
+  } catch {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_STATUS_UNAVAILABLE' };
+  }
+
+  if (staged) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_STAGED_REFUSED' };
+  }
+
+  const trackedRows = trackedStatus
+    ? trackedStatus.split('\n').map((line) => line.trim()).filter(Boolean)
+    : [];
+  if (trackedRows.some((line) => !/^M\t[^\t\n]+$/.test(line))) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_UNSAFE_STATE' };
+  }
+
+  const trackedFiles = trackedRows.map((line) => clean(line.slice(2), 500)).filter(Boolean);
+  const untrackedFiles = untracked ? untracked.split('\n').map((line) => clean(line, 500)).filter(Boolean) : [];
+  const files = [...new Set([...trackedFiles, ...untrackedFiles])].sort();
+  if (!files.length) return { ok: true, quarantined: false, files: [] };
+
+  let branch, head, stashCommit;
+  try {
+    branch = git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    head = git(repoDir, ['rev-parse', 'HEAD']);
+    const label = 'JARVIS stale failed project quarantine ' + head.slice(0, 12);
+    git(repoDir, ['stash', 'push', '--include-untracked', '--message', label]);
+    stashCommit = git(repoDir, ['rev-parse', 'refs/stash']);
+  } catch (error) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_FAILED', detail: clean(error?.message, 240) };
+  }
+
+  let after = [];
+  try { after = statusLinesV1(repoDir); }
+  catch { return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_VERIFY_UNAVAILABLE' }; }
+  if (after.length) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_NOT_CLEAN' };
+  }
+  if (!/^[0-9a-f]{40}$/i.test(stashCommit)) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_REF_INVALID' };
+  }
+
+  return {
+    ok: true,
+    quarantined: true,
+    mode: 'GIT_STASH_INCLUDE_UNTRACKED',
+    branch,
+    head,
+    files,
+    stash_ref: 'refs/stash',
+    stash_commit: stashCommit
+  };
+}
+
 export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
   const repoDirRaw = clean(input.repo_dir, 400);
   const workerGid = Number(input.worker_gid ?? 11000);
@@ -467,7 +526,9 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
         && failedCandidateRecovery.error === 'OWNER_WORKSPACE_DIRTY_UNPROVEN'
         && !input.recover_failed_candidate;
       if (!mayQuarantineMismatch && !mayQuarantineStaleFailedProject) return failedCandidateRecovery;
-      unrelatedDirtyQuarantine = quarantineUnrelatedDirtyStateV1(repoDir);
+      unrelatedDirtyQuarantine = mayQuarantineStaleFailedProject
+        ? stashStaleFailedProjectStateV1(repoDir)
+        : quarantineUnrelatedDirtyStateV1(repoDir);
       if (!unrelatedDirtyQuarantine.ok) return unrelatedDirtyQuarantine;
       failedCandidateRecovery = null;
     }
@@ -496,6 +557,9 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     quarantine_patch_sha256: unrelatedDirtyQuarantine?.patch_sha256 || null,
     quarantine_patch_ref: unrelatedDirtyQuarantine?.patch_ref || null,
     quarantine_metadata_ref: unrelatedDirtyQuarantine?.metadata_ref || null,
+    quarantine_mode: unrelatedDirtyQuarantine?.mode || null,
+    quarantine_stash_ref: unrelatedDirtyQuarantine?.stash_ref || null,
+    quarantine_stash_commit: unrelatedDirtyQuarantine?.stash_commit || null,
     working_tree_content_changed: failedCandidateRecovery?.recovered === true || unrelatedDirtyQuarantine?.quarantined === true
   };
 }
@@ -515,6 +579,8 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch: true,
     stale_failed_project_scope_quarantine_supported: true,
     stale_failed_project_scope_quarantine_requires_explicit_scoped_flag: true,
+    stale_failed_project_scope_quarantine_uses_git_stash_include_untracked: true,
+    stale_failed_project_scope_quarantine_refuses_staged_deleted_renamed_or_conflicted_state: true,
     unrelated_dirty_quarantine_preserves_exact_patch_before_restore: true,
     unrelated_dirty_quarantine_refuses_staged_untracked_delete_rename_conflict: true,
     git_index_group_read_repair: true,
