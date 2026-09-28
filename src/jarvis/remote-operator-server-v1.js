@@ -308,7 +308,7 @@ export function resolveJarvisRemoteOperatorProgramLocationV1(env = process.env) 
     return { ok: false, repo_dir: null, target_branch: null, error: 'JARVIS_REMOTE_OPERATOR_REPO_DIR_REQUIRED' };
   }
   try {
-    const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+    const branch = execFileSync('git', ['-c', `safe.directory=${repoDir}`, 'rev-parse', '--abbrev-ref', 'HEAD'], {
       cwd: repoDir, stdio: ['ignore', 'pipe', 'ignore']
     }).toString('utf8').trim();
     if (!branch || branch === 'HEAD') {
