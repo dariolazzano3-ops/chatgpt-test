@@ -426,12 +426,21 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
   const baseExecutionGoal = attemptGoal;
   const readOnlyJob = isJarvisOwnerChatReadOnlyGoalV1(originalGoal);
   let recoverableFailedCandidate = null;
+  let priorFailedSameProjectScope = false;
   if (!readOnlyJob && typeof deps.workspace_preflight === 'function') {
     try {
       const priorAudit = await deps.memory_store.readAudit({ owner_id: ownerId, owner_ref: ownerRef, limit: 500 });
       recoverableFailedCandidate = findJarvisOwnerChatRecoverableFailedCandidateV1(priorAudit, originalGoal, requestId, program);
+      priorFailedSameProjectScope = Boolean(projectTargetId) && priorAudit.some((row) =>
+        row?.intent?.intent_type === JARVIS_OWNER_CHAT_NOTIFICATION_INTENT
+        && row?.result?.status === 'FAILED'
+        && clean(row?.result?.goal, 4000) === originalGoal
+        && clean(row?.result?.program, 80).toUpperCase() === program
+        && clean(row?.request_id, 80).toLowerCase() !== requestId
+      );
     } catch {
       recoverableFailedCandidate = null;
+      priorFailedSameProjectScope = false;
     }
   }
 
@@ -464,6 +473,19 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
             attempt: attemptNumber,
             recover_failed_candidate: recoverableFailedCandidate,
             quarantine_unrelated_dirty: true
+          });
+        } else if (
+          workspacePreflight?.ok !== true
+          && workspacePreflight?.error === 'OWNER_WORKSPACE_DIRTY_UNPROVEN'
+          && priorFailedSameProjectScope
+          && projectTargetId
+        ) {
+          workspacePreflight = await deps.workspace_preflight({
+            request_id: attemptRequestId,
+            attempt: attemptNumber,
+            recover_failed_candidate: null,
+            quarantine_unrelated_dirty: true,
+            quarantine_stale_failed_project_scope: true
           });
         }
       } catch (error) {

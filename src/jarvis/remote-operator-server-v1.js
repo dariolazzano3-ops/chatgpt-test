@@ -377,7 +377,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
           repo_dir: programLocation.repo_dir,
           worker_gid: workerGid,
           recover_failed_candidate: input?.recover_failed_candidate || null,
-          quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
+          quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true,
+          quarantine_stale_failed_project_scope: input?.quarantine_stale_failed_project_scope === true
         })
       : null);
   const bindProjectWorkspacePreflight = (targets = {}) => Object.fromEntries(
@@ -390,7 +391,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
               repo_dir: target.repo_dir,
               worker_gid: workerGid,
               recover_failed_candidate: input?.recover_failed_candidate || null,
-              quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true
+              quarantine_unrelated_dirty: input?.quarantine_unrelated_dirty === true,
+              quarantine_stale_failed_project_scope: input?.quarantine_stale_failed_project_scope === true
             })
           : null
       }

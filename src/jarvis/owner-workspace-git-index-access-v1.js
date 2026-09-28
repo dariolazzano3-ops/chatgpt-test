@@ -462,7 +462,11 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
       const mayQuarantineMismatch = input.quarantine_unrelated_dirty === true
         && failedCandidateRecovery.error === 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESET_MISMATCH'
         && input.recover_failed_candidate?.schema === 'aurentara.jarvis.owner-failed-candidate-provenance.v1';
-      if (!mayQuarantineMismatch) return failedCandidateRecovery;
+      const mayQuarantineStaleFailedProject = input.quarantine_unrelated_dirty === true
+        && input.quarantine_stale_failed_project_scope === true
+        && failedCandidateRecovery.error === 'OWNER_WORKSPACE_DIRTY_UNPROVEN'
+        && !input.recover_failed_candidate;
+      if (!mayQuarantineMismatch && !mayQuarantineStaleFailedProject) return failedCandidateRecovery;
       unrelatedDirtyQuarantine = quarantineUnrelatedDirtyStateV1(repoDir);
       if (!unrelatedDirtyQuarantine.ok) return unrelatedDirtyQuarantine;
       failedCandidateRecovery = null;
@@ -509,6 +513,8 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     failed_candidate_restore_refuses_staged_or_untracked_state: true,
     unrelated_dirty_quarantine_supported: true,
     unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch: true,
+    stale_failed_project_scope_quarantine_supported: true,
+    stale_failed_project_scope_quarantine_requires_explicit_scoped_flag: true,
     unrelated_dirty_quarantine_preserves_exact_patch_before_restore: true,
     unrelated_dirty_quarantine_refuses_staged_untracked_delete_rename_conflict: true,
     git_index_group_read_repair: true,
