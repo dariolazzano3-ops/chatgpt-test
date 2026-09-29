@@ -179,6 +179,20 @@ assert.equal(reviewMap.REFERENCE.state,'REVIEW_REQUIRED');
 assert.equal(reviewMap.APPROVAL.state,'REVIEW_REQUIRED');
 assert.equal(reviewMap.BUILD.state,'BLOCKED');
 
+const visualAcceptedNoBuild=deriveJ11ActionMatrix({
+  project:{scope_key:'synthetic:visual-no-build'},
+  reference:{status:'APPROVED',version:'ref-v1',approved:true},
+  visual:{status:'PASS',score:0.99}
+});
+assert.equal(Object.fromEntries(visualAcceptedNoBuild.actions.map(x=>[x.id,x])).DELTA_CLOSURE.state,'BLOCKED');
+
+const visualAcceptedNoReference=deriveJ11ActionMatrix({
+  project:{scope_key:'synthetic:visual-no-reference'},
+  build:{build_id:'build-99',accepted:true},
+  visual:{status:'PASS',score:0.99}
+});
+assert.equal(Object.fromEntries(visualAcceptedNoReference.actions.map(x=>[x.id,x])).DELTA_CLOSURE.state,'BLOCKED');
+
 const noScope=createJ11WebFactoryControlPlane({});
 assert.equal(noScope.status,'BLOCKED');
 assert.ok(noScope.blockers.some(x=>x.code==='J11_PROJECT_SCOPE_REQUIRED'));
@@ -257,6 +271,7 @@ console.log(JSON.stringify({
   missing_evidence_not_verified:'PASS',
   no_fake_pass:'PASS',
   action_gating:'PASS',
+  delta_closure_visual_accepted_alone_blocked:'PASS',
   j9_reuse:'PASS',
   j10_reuse:'PASS',
   operator_tab_integration:'PASS',

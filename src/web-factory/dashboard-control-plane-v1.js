@@ -259,7 +259,7 @@ export function deriveJ11ActionMatrix(input = {}) {
     action(
       'DELTA_CLOSURE',
       'Delta Closure',
-      build.accepted && ref.approved && !visualAccepted ? 'AVAILABLE' : (visualAccepted ? 'AVAILABLE' : 'BLOCKED'),
+      build.accepted && ref.approved ? 'AVAILABLE' : 'BLOCKED',
       'implementation',
       build.accepted && ref.approved
         ? (visualAccepted ? 'Visual closure is accepted; revalidation remains available.' : 'Visual closure can run against the approved reference.')
