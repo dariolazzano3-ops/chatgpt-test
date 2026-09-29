@@ -19,7 +19,7 @@ import { createJarvisAuditEventV1 } from './audit-v1.js';
 import { computeJarvisWorkingTreeWaveEvidenceV1 } from './working-tree-wave-evidence-v1.js';
 
 const clean = (v, max = 4000) => String(v ?? '').trim().slice(0, max);
-function git(repo, args) { return execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8').trim(); }
+function git(repo, args) { return execFileSync('git', ['-c', `safe.directory=${repo}`, ...args], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }).toString('utf8').trim(); }
 function at(row) { return Date.parse(row?.occurred_at || row?.timestamp || 0) || 0; }
 function sortedUnique(values = []) { return [...new Set(values.map((v) => clean(v, 500)).filter(Boolean))].sort(); }
 function sameFiles(a = [], b = []) {
@@ -210,8 +210,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
       if (!evidence.sufficient) return { ok: false, error: 'PUBLISHER_WORKING_TREE_EVIDENCE_INSUFFICIENT', evidence };
       const files = evidence.actual_dirty_files;
       try {
-        execFileSync('git', ['add', '--', ...files], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
-        execFileSync('git', ['-c', 'user.name=JARVIS Trusted Publisher', '-c', 'user.email=jarvis@localhost', 'commit', '-m', `chore(jarvis): publish ${program} wave ${waveIndex}`, '--', ...files], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+        execFileSync('git', ['-c', `safe.directory=${repo}`, 'add', '--', ...files], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+        execFileSync('git', ['-c', `safe.directory=${repo}`, '-c', 'user.name=JARVIS Trusted Publisher', '-c', 'user.email=jarvis@localhost', 'commit', '-m', `chore(jarvis): publish ${program} wave ${waveIndex}`, '--', ...files], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
       } catch (error) { return { ok: false, error: 'PUBLISHER_LOCAL_COMMIT_FAILED', detail: clean(error?.message, 300) }; }
       let commit;
       try { commit = git(repo, ['rev-parse', 'HEAD']); } catch { return { ok: false, error: 'PUBLISHER_COMMIT_TRUTH_UNAVAILABLE' }; }
@@ -278,8 +278,8 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           return { ok: false, error: 'OWNER_CHAT_PUBLISHER_DIRTY_FILES_MISMATCH', verified_files: verifiedFiles, actual_dirty_files: actualDirty };
         }
         try {
-          execFileSync('git', ['add', '--', ...verifiedFiles], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
-          execFileSync('git', ['-c', 'user.name=JARVIS Trusted Publisher', '-c', 'user.email=jarvis@localhost', 'commit', '-m', commitMessage, '--', ...verifiedFiles], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+          execFileSync('git', ['-c', `safe.directory=${repo}`, 'add', '--', ...verifiedFiles], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+          execFileSync('git', ['-c', `safe.directory=${repo}`, '-c', 'user.name=JARVIS Trusted Publisher', '-c', 'user.email=jarvis@localhost', 'commit', '-m', commitMessage, '--', ...verifiedFiles], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
           committedNow = true;
         } catch (error) {
           return { ok: false, error: 'OWNER_CHAT_PUBLISHER_LOCAL_COMMIT_FAILED', detail: clean(error?.message, 300) };
@@ -307,7 +307,7 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         if (ownerChatPushRemote !== 'github') return { ok: false, error: 'OWNER_CHAT_PUBLISHER_PUSH_REMOTE_NOT_ALLOWED', commit };
         try {
           git(repo, ['remote', 'get-url', ownerChatPushRemote]);
-          execFileSync('git', ['push', ownerChatPushRemote, `HEAD:${branch}`], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+          execFileSync('git', ['-c', `safe.directory=${repo}`, 'push', ownerChatPushRemote, `HEAD:${branch}`], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
           pushed = true;
         } catch (error) {
           pushError = clean(error?.stderr?.toString() || error?.message, 500);
@@ -424,6 +424,7 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_private_deploy_production: false,
     owner_chat_private_deploy_skips_non_runtime_file_scope: true,
     owner_chat_project_scope_can_explicitly_disable_private_runtime_deploy: true,
+    git_safe_directory_explicit_for_mounted_project_repositories: true,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,
