@@ -37,6 +37,23 @@ function dirtyFiles(repo) {
   if (lines.some((line) => line.includes(' -> '))) return null;
   return lines.map((line) => clean(line.slice(3), 500)).filter(Boolean);
 }
+export function resolveJarvisOwnerChatPushRemoteV1(repo, preferred = 'github') {
+  const preferredName = clean(preferred, 80);
+  try {
+    git(repo, ['remote', 'get-url', preferredName]);
+    return { ok: true, remote: preferredName, fallback: false };
+  } catch {}
+  if (preferredName !== 'github') {
+    return { ok: false, error: 'OWNER_CHAT_PUBLISHER_PUSH_REMOTE_NOT_ALLOWED' };
+  }
+  let originUrl = '';
+  try { originUrl = git(repo, ['remote', 'get-url', 'origin']); }
+  catch { return { ok: false, error: 'OWNER_CHAT_PUBLISHER_PUSH_REMOTE_MISSING' }; }
+  const githubOrigin = /^(?:https:\/\/(?:[^/@]+@)?github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)/i.test(originUrl);
+  if (!githubOrigin) return { ok: false, error: 'OWNER_CHAT_PUBLISHER_ORIGIN_NOT_GITHUB' };
+  return { ok: true, remote: 'origin', fallback: true };
+}
+
 function deployPathAllowed(rel) {
   const value = clean(rel, 500);
   if (!value || value.startsWith('/') || value.split('/').some((part) => part === '..' || part === '')) return false;
@@ -307,14 +324,19 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
 
       let pushed = false;
       let pushError = null;
+      let resolvedPushRemote = null;
       if (ownerChatPushEnabled) {
-        if (ownerChatPushRemote !== 'github') return { ok: false, error: 'OWNER_CHAT_PUBLISHER_PUSH_REMOTE_NOT_ALLOWED', commit };
-        try {
-          git(repo, ['remote', 'get-url', ownerChatPushRemote]);
-          execFileSync('git', ['-c', `safe.directory=${repo}`, 'push', ownerChatPushRemote, `HEAD:${branch}`], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
-          pushed = true;
-        } catch (error) {
-          pushError = clean(error?.stderr?.toString() || error?.message, 500);
+        const remoteResolution = resolveJarvisOwnerChatPushRemoteV1(repo, ownerChatPushRemote);
+        if (!remoteResolution.ok) {
+          pushError = remoteResolution.error;
+        } else {
+          resolvedPushRemote = remoteResolution.remote;
+          try {
+            execFileSync('git', ['-c', `safe.directory=${repo}`, 'push', resolvedPushRemote, `HEAD:${branch}`], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+            pushed = true;
+          } catch (error) {
+            pushError = clean(error?.stderr?.toString() || error?.message, 500);
+          }
         }
       }
 
@@ -358,7 +380,7 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
           files_changed: verifiedFiles,
           committed_now: committedNow,
           push: pushed,
-          push_remote: ownerChatPushEnabled ? ownerChatPushRemote : null,
+          push_remote: ownerChatPushEnabled ? resolvedPushRemote : null,
           merge: false,
           deploy: deployQueue?.deployed === true,
           deploy_state: deployQueue?.deployed === true
@@ -399,7 +421,7 @@ export function createJarvisAcceptedWorkPublisherV1(config = {}, deps = {}) {
         source_tree: sourceTree,
         files_changed: verifiedFiles,
         push: pushed,
-        push_remote: pushed ? ownerChatPushRemote : null,
+        push_remote: pushed ? resolvedPushRemote : null,
         merge: false,
         deploy: deployQueue?.deployed === true,
         deploy_state: deployQueue?.deployed === true
@@ -430,6 +452,7 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_project_scope_can_explicitly_disable_private_runtime_deploy: true,
     git_safe_directory_explicit_for_mounted_project_repositories: true,
     porcelain_status_parser_preserves_leading_status_column: true,
+    owner_chat_push_origin_fallback_requires_github_url: true,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,
