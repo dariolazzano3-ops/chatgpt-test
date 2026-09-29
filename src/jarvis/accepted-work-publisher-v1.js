@@ -27,7 +27,11 @@ function sameFiles(a = [], b = []) {
   return aa.length === bb.length && aa.every((value, index) => value === bb[index]);
 }
 function dirtyFiles(repo) {
-  const raw = git(repo, ['status', '--porcelain', '--untracked-files=all']);
+  const raw = execFileSync(
+    'git',
+    ['-c', `safe.directory=${repo}`, 'status', '--porcelain', '--untracked-files=all'],
+    { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 }
+  ).toString('utf8').replace(/\r?\n$/, '');
   if (!raw) return [];
   const lines = raw.split('\n').filter(Boolean);
   if (lines.some((line) => line.includes(' -> '))) return null;
@@ -425,6 +429,7 @@ export function jarvisAcceptedWorkPublisherManifestV1() {
     owner_chat_private_deploy_skips_non_runtime_file_scope: true,
     owner_chat_project_scope_can_explicitly_disable_private_runtime_deploy: true,
     git_safe_directory_explicit_for_mounted_project_repositories: true,
+    porcelain_status_parser_preserves_leading_status_column: true,
     can_merge: false,
     can_deploy: false,
     protected_branches_refused: true,
