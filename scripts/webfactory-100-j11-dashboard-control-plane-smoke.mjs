@@ -250,6 +250,11 @@ for(const marker of [
 ]) assert.ok(directUi.includes(marker),marker);
 assert.equal(injectJ11OperatorControlPlane(directUi),directUi);
 
+const notVerifiedDisabledGuard="((x.state==='BLOCKED'||x.state==='NOT_VERIFIED')?'disabled':'')";
+assert.ok(directUi.includes(notVerifiedDisabledGuard),'J11 UI must render NOT_VERIFIED operator actions disabled, same as BLOCKED');
+const notVerifiedDispatchGuard="if(state==='BLOCKED'||state==='NOT_VERIFIED'){if(status)status.textContent=(b.querySelector('small')?.textContent||'Aktion blockiert.');return}document.dispatchEvent(new CustomEvent('aurentara:webfactory-control-action'";
+assert.ok(directUi.includes(notVerifiedDispatchGuard),'J11 UI click handler must not dispatch aurentara:webfactory-control-action for NOT_VERIFIED actions, same as BLOCKED');
+
 const premium=injectPremiumMasterdashboard(base);
 for(const marker of [
   'aurentara-premium-masterdashboard-v1-script',
@@ -276,6 +281,7 @@ console.log(JSON.stringify({
   j10_reuse:'PASS',
   operator_tab_integration:'PASS',
   technical_drawer:'PASS',
+  not_verified_disabled_and_no_dispatch:'PASS',
   automatic_execution:false,
   automatic_merge:false,
   production_deploy:false,
