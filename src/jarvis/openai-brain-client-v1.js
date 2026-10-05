@@ -40,6 +40,14 @@ function responseOutputText(body) {
   return clean(parts.join('\\n'), 65536);
 }
 
+function structuredTextFormat(idempotencyKey) {
+  const key = clean(idempotencyKey, 255);
+  if (key.endsWith(':api-plan')) return { format: { type: 'json_schema', name: 'jarvis_execution_plan', strict: true, schema: { type: 'object', properties: { execution_brief: { type: 'string' } }, required: ['execution_brief'], additionalProperties: false } } };
+  if (key.endsWith(':api-classify')) return { format: { type: 'json_schema', name: 'jarvis_complexity_classification', strict: true, schema: { type: 'object', properties: { complexity: { type: 'string', enum: ['LIGHT', 'STANDARD', 'HEAVY'] }, rationale: { type: 'string' } }, required: ['complexity', 'rationale'], additionalProperties: false } } };
+  if (key.endsWith(':astra-post')) return { format: { type: 'json_schema', name: 'jarvis_astra_post_review', strict: true, schema: { type: 'object', properties: { decision: { type: 'string', enum: ['PASS', 'REPAIR', 'BLOCK'] }, rationale: { type: 'string' }, repair_brief: { type: 'string' } }, required: ['decision', 'rationale', 'repair_brief'], additionalProperties: false } } };
+  return { format: { type: 'json_object' } };
+}
+
 export function estimateJarvisOpenAiCostV1(model, inputTokens, outputTokens) {
   const price = JARVIS_OPENAI_MODEL_PRICES_V1[model];
   if (!price) throw makeError('JARVIS_OPENAI_MODEL_NOT_ALLOWED');
@@ -79,10 +87,12 @@ export function createJarvisOpenAiBrainClientV1(config = {}) {
 
     const maxCompletionTokens = boundedPositive(input.max_completion_tokens, 800, 4000);
     const reasoningEffort = clean(input.reasoning_effort, 20);
+    const idempotencyKey = clean(input.idempotency_key, 255);
     const payload = {
       model,
       input: messages,
       max_output_tokens: maxCompletionTokens,
+      text: structuredTextFormat(idempotencyKey),
       ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {})
     };
 
