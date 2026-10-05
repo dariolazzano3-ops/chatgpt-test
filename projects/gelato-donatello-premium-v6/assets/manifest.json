@@ -1,0 +1,387 @@
+{
+  "schema": "aurentara.asset-manifest.v2",
+  "project_id": "gelato-donatello-v5-final",
+  "rule": "Owner-provided assets are physically ingested for the private V5 preview. Production/public use remains blocked until rights are finally confirmed. Missing rental-vitrine assets keep the designed placeholder.",
+  "allowed_rights_states": [
+    "owner_provided_private_preview",
+    "pending"
+  ],
+  "assets": [
+    {
+      "key": "brand-logo",
+      "path": "/assets/images/brand/logo-donatello.webp",
+      "alt": "Gelato Donatello Logo",
+      "rights": "owner_provided_private_preview",
+      "category": "brand"
+    },
+    {
+      "key": "shop-vitrine-wide",
+      "path": "/assets/images/shop/vitrine-wide.webp",
+      "alt": "Gelato Donatello Eisvitrine im Laden",
+      "rights": "owner_provided_private_preview",
+      "category": "laden"
+    },
+    {
+      "key": "shop-interior-long",
+      "path": "/assets/images/shop/interior-long.webp",
+      "alt": "Gelato Donatello Verkaufsraum",
+      "rights": "owner_provided_private_preview",
+      "category": "laden"
+    },
+    {
+      "key": "shop-interior-counter",
+      "path": "/assets/images/shop/interior-counter.webp",
+      "alt": "Gelato Donatello Theke und Verkaufsraum",
+      "rights": "owner_provided_private_preview",
+      "category": "laden"
+    },
+    {
+      "key": "shop-vitrine-close",
+      "path": "/assets/images/shop/vitrine-close.webp",
+      "alt": "Nahaufnahme der Gelato Donatello Eisvitrine",
+      "rights": "owner_provided_private_preview",
+      "category": "laden"
+    },
+    {
+      "key": "shop-chalkboard-prices",
+      "path": "/assets/images/shop/chalkboard-prices.webp",
+      "alt": "Preistafeln bei Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "source"
+    },
+    {
+      "key": "cup-fruechte",
+      "path": "/assets/images/cups/fruechte-becher.webp",
+      "alt": "Früchte-Becher von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cup-after-eight",
+      "path": "/assets/images/cups/after-eight-becher.webp",
+      "alt": "After-Eight-Becher von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cup-biene-maja",
+      "path": "/assets/images/cups/biene-maja.webp",
+      "alt": "Biene-Maja-Becher von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cup-amarena",
+      "path": "/assets/images/cups/amarena-becher.webp",
+      "alt": "Amarena-Becher von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cup-erdbeer",
+      "path": "/assets/images/cups/erdbeer-becher.webp",
+      "alt": "Erdbeer-Becher von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cup-banana-split",
+      "path": "/assets/images/cups/banana-split.webp",
+      "alt": "Banana Split von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbecher"
+    },
+    {
+      "key": "cake-eistorte-01",
+      "path": "/assets/images/cakes/eistorte-01.webp",
+      "alt": "Individuell dekorierte Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eistorten"
+    },
+    {
+      "key": "cake-eistorte-02",
+      "path": "/assets/images/cakes/eistorte-02.webp",
+      "alt": "Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eistorten"
+    },
+    {
+      "key": "cake-eistorte-03",
+      "path": "/assets/images/cakes/eistorte-03.webp",
+      "alt": "Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eistorten"
+    },
+    {
+      "key": "cake-eistorte-04",
+      "path": "/assets/images/cakes/eistorte-04.webp",
+      "alt": "Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eistorten"
+    },
+    {
+      "key": "cake-eisbombe-01",
+      "path": "/assets/images/cakes/eisbombe-01.webp",
+      "alt": "Eisbombe von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbomben"
+    },
+    {
+      "key": "cake-eisbombe-02",
+      "path": "/assets/images/cakes/eisbombe-02.webp",
+      "alt": "Eisbombe von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "eisbomben"
+    },
+    {
+      "key": "cake-spaghetti-01",
+      "path": "/assets/images/cakes/spaghetti-eistorte-01.webp",
+      "alt": "Spaghetti-Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "spaghetti-eistorten"
+    },
+    {
+      "key": "cake-spaghetti-02",
+      "path": "/assets/images/cakes/spaghetti-eistorte-02.webp",
+      "alt": "Spaghetti-Eistorte von Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "spaghetti-eistorten"
+    },
+    {
+      "key": "flavor-poster",
+      "path": "/assets/images/source/flavor-poster.webp",
+      "alt": "Sortenübersicht Gelato Donatello",
+      "rights": "owner_provided_private_preview",
+      "category": "source"
+    },
+    {
+      "key": "vitrine-mobil-1",
+      "path": "/assets/img/vitrine/mobil-1.jpg",
+      "alt": "Mobile Eisvitrine zur Miete",
+      "rights": "pending",
+      "category": "vitrine"
+    },
+    {
+      "key": "vitrine-mobil-2",
+      "path": "/assets/img/vitrine/mobil-2.jpg",
+      "alt": "Mobile Eisvitrine, Zubehör und Aufbau",
+      "rights": "pending",
+      "category": "vitrine"
+    }
+  ],
+  "flavor_assets": {
+    "path_template": "/assets/images/flavors/{slug}.webp",
+    "note": "All 41 owner-provided flavor images are physically ingested as optimized WebP files for the private preview.",
+    "slots": [
+      {
+        "slug": "after-eight",
+        "label": "After Eight",
+        "category": "regular"
+      },
+      {
+        "slug": "amarena-kirsch",
+        "label": "Amarena Kirsch",
+        "category": "regular"
+      },
+      {
+        "slug": "banane",
+        "label": "Banane",
+        "category": "regular"
+      },
+      {
+        "slug": "blauer-engel",
+        "label": "Blauer Engel",
+        "category": "regular"
+      },
+      {
+        "slug": "buttermilch-sanddorn",
+        "label": "Buttermilch-Sanddorn",
+        "category": "regular"
+      },
+      {
+        "slug": "cookies",
+        "label": "Cookies",
+        "category": "regular"
+      },
+      {
+        "slug": "dark-chocolate",
+        "label": "Dark Chocolate",
+        "category": "regular"
+      },
+      {
+        "slug": "dubai-eis",
+        "label": "Dubai Eis",
+        "category": "regular"
+      },
+      {
+        "slug": "erdbeere",
+        "label": "Erdbeere",
+        "category": "regular"
+      },
+      {
+        "slug": "haselnuss",
+        "label": "Haselnuss",
+        "category": "regular"
+      },
+      {
+        "slug": "himbeer",
+        "label": "Himbeer",
+        "category": "regular"
+      },
+      {
+        "slug": "joghurt",
+        "label": "Joghurt",
+        "category": "regular"
+      },
+      {
+        "slug": "lemon-crumble",
+        "label": "Lemon Crumble",
+        "category": "regular"
+      },
+      {
+        "slug": "malaga",
+        "label": "Malaga",
+        "category": "regular"
+      },
+      {
+        "slug": "mango",
+        "label": "Mango",
+        "category": "regular"
+      },
+      {
+        "slug": "mascarpone-pistazien",
+        "label": "Mascarpone Pistazien",
+        "category": "regular"
+      },
+      {
+        "slug": "melone",
+        "label": "Melone",
+        "category": "regular"
+      },
+      {
+        "slug": "mocca",
+        "label": "Mocca",
+        "category": "regular"
+      },
+      {
+        "slug": "mozart-praline",
+        "label": "Mozart Praline",
+        "category": "regular"
+      },
+      {
+        "slug": "nutella",
+        "label": "Nutella",
+        "category": "regular"
+      },
+      {
+        "slug": "oreo-keks",
+        "label": "Oreo Keks",
+        "category": "regular"
+      },
+      {
+        "slug": "pistazie",
+        "label": "Pistazie",
+        "category": "regular"
+      },
+      {
+        "slug": "raffaello",
+        "label": "Raffaello",
+        "category": "regular"
+      },
+      {
+        "slug": "schokolade",
+        "label": "Schokolade",
+        "category": "regular"
+      },
+      {
+        "slug": "siciliano",
+        "label": "Siciliano",
+        "category": "regular"
+      },
+      {
+        "slug": "snickers",
+        "label": "Snickers",
+        "category": "regular"
+      },
+      {
+        "slug": "stracciatella",
+        "label": "Stracciatella",
+        "category": "regular"
+      },
+      {
+        "slug": "vanille",
+        "label": "Vanille",
+        "category": "regular"
+      },
+      {
+        "slug": "yogo-twist",
+        "label": "Yogo Twist",
+        "category": "regular"
+      },
+      {
+        "slug": "zitrone",
+        "label": "Zitrone",
+        "category": "regular"
+      },
+      {
+        "slug": "acai",
+        "label": "Açaí",
+        "category": "special"
+      },
+      {
+        "slug": "amarena-crunchy",
+        "label": "Amarena Crunchy",
+        "category": "special"
+      },
+      {
+        "slug": "blond-brownie",
+        "label": "Blond Brownie",
+        "category": "special"
+      },
+      {
+        "slug": "cointreau",
+        "label": "Cointreau",
+        "category": "special"
+      },
+      {
+        "slug": "dragon-summer",
+        "label": "Dragon Summer",
+        "category": "special"
+      },
+      {
+        "slug": "guapa",
+        "label": "Guapa",
+        "category": "special"
+      },
+      {
+        "slug": "orange-minze",
+        "label": "Orange Minze",
+        "category": "special"
+      },
+      {
+        "slug": "pokemon-party",
+        "label": "Pokémon Party",
+        "category": "special"
+      },
+      {
+        "slug": "quark-orange",
+        "label": "Quark Orange",
+        "category": "special"
+      },
+      {
+        "slug": "strawberry-matcha",
+        "label": "Strawberry Matcha",
+        "category": "special"
+      },
+      {
+        "slug": "zuppa-inglese",
+        "label": "Zuppa Inglese",
+        "category": "special"
+      }
+    ],
+    "rights": "owner_provided_private_preview"
+  },
+  "ingest_instructions": "Additional owner images should be optimized to WebP, added under assets/images/, and recorded in assets/ingest-provenance.json. Production remains blocked until final rights confirmation.",
+  "production_rights_status": "PENDING_OWNER_CONFIRMATION",
+  "ingest_provenance": "/assets/ingest-provenance.json"
+}

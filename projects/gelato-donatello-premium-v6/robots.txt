@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# PRIVATE STAGING ONLY. Do not publish this robots policy to production.

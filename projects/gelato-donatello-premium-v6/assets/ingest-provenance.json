@@ -1,0 +1,720 @@
+{
+  "schema": "gelato-donatello.asset-ingest.v1",
+  "created_for": "projects/gelato-donatello-v5-final",
+  "counts": {
+    "flavors": 41,
+    "cups": 6,
+    "shop": 5,
+    "source": 1,
+    "brand": 1,
+    "cakes": 19,
+    "bombs": 2,
+    "spaghetti_cakes": 3,
+    "total": 78
+  },
+  "rule": "Every target image is derived only from the named conversation upload; ambiguous product names are not invented.",
+  "records": [
+    {
+      "source_name": "Buttermilch Sandorn(1).PNG",
+      "source_sha256": "dcaa8d2a3d64873797930f44cc38cd96832432e0c23d90d2827467f20534b22a",
+      "target": "assets/images/flavors/buttermilch-sanddorn.webp",
+      "target_sha256": "a70e7aa9f5e9a3edbe6a1e88c75c5dde38bc44a87ad234767f3858e55d5c2772",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 107710
+    },
+    {
+      "source_name": "Amarena Crunchy(1).PNG",
+      "source_sha256": "77cf04ff5a556cfe916442906480304dde8e41f85bf191575fab5d7ec872051c",
+      "target": "assets/images/flavors/amarena-crunchy.webp",
+      "target_sha256": "3539327def273a048e6b3a4b3145299b58353fef5b8dccde123865256634ec29",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 113610
+    },
+    {
+      "source_name": "Blond Brownie(2).PNG",
+      "source_sha256": "15cd35675421aea51c65d1a2b9f1fe193e65729ae9161f8bd0558df1eea2a952",
+      "target": "assets/images/flavors/blond-brownie.webp",
+      "target_sha256": "c5a0e0db9e20d242408fe6fdc5ac5a29ff62624b3704372e1a87cffca705af81",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 110696
+    },
+    {
+      "source_name": "Blauer Engel(2).PNG",
+      "source_sha256": "0c39027152ec3ee572d2904ee2346f69ca60b9af841add56b556b0024c3ee9ea",
+      "target": "assets/images/flavors/blauer-engel.webp",
+      "target_sha256": "7742661caf3485f301a15bb24ca409752e8830e419dfa66db2edcecdcd94889b",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 103728
+    },
+    {
+      "source_name": "Banane(2).PNG",
+      "source_sha256": "f589fa7245c22eeb4f6b555b47f2614396e1586fb0bb77fe56b3252cd49738ce",
+      "target": "assets/images/flavors/banane.webp",
+      "target_sha256": "754ce1d53993c2151b23381edb8d72ab3fc2f423f18e4fc93eeb0d73f78f89d9",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 73526
+    },
+    {
+      "source_name": "Cointreu(1).PNG",
+      "source_sha256": "d8230b2828fa4419a62eccd2d0925eeec382773af99bcda919c5c913c1866721",
+      "target": "assets/images/flavors/cointreau.webp",
+      "target_sha256": "b490815c4a0dddae68584551475fdb57e6a4749a6d3336a5cbb87e7c1da63aa2",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 137594
+    },
+    {
+      "source_name": "Cookies(1).PNG",
+      "source_sha256": "5f434005d41948e5c88e9a8ff61e28f868d7c84008fd6036ac49977c0658d21c",
+      "target": "assets/images/flavors/cookies.webp",
+      "target_sha256": "27bba7b0819d7ee57ce996ca258bb6483b06fcc6f7c4874a527bec108661bfc9",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 140934
+    },
+    {
+      "source_name": "Açai(1).PNG",
+      "source_sha256": "e5e8a2e4ee55aa1fd67d49cd0fc27f18e7c2be1ff89af54bec07bd82955bde12",
+      "target": "assets/images/flavors/acai.webp",
+      "target_sha256": "6f877a224a1b42ceda6d5f3b0302d3f707d56fd02041eb517e3a4eb888b283a1",
+      "width": 1160,
+      "height": 1200,
+      "bytes": 110996
+    },
+    {
+      "source_name": "After Eight(2).PNG",
+      "source_sha256": "2729df9ab26a6fa780990fb57b3a3d29f90ac26bec6dd14418b1bf731f970d18",
+      "target": "assets/images/flavors/after-eight.webp",
+      "target_sha256": "3ade18ee353b51be3c5b719a91a0a3a1cccf9f09cb18e500ca492a649f0e28cf",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 116056
+    },
+    {
+      "source_name": "Amarena Kirche(1).PNG",
+      "source_sha256": "ee09d87240720ae5ff1c7e6258a26d6d2ef5294c39ddd6ec7fa04dcc0391c89b",
+      "target": "assets/images/flavors/amarena-kirsch.webp",
+      "target_sha256": "68c07d9fad9c2010c943d41ffe0d17d470c9d63e80c551ced8f33ccf927e4bcb",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 121018
+    },
+    {
+      "source_name": "Malaga(1).PNG",
+      "source_sha256": "26cff1ac8d3bc76ea356e73e0c69d773fe927c87845fe2a4abedf59e67aa5634",
+      "target": "assets/images/flavors/malaga.webp",
+      "target_sha256": "fc701a0598556f5cdf98d9effd1376689f791cf76d5942724f2e8c4afa5d0ba4",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 107734
+    },
+    {
+      "source_name": "Guapa(1).PNG",
+      "source_sha256": "8708c3c802686c0ad1519ec84ded5a71ed43c28bf8ab92b609ac2df50b8ec627",
+      "target": "assets/images/flavors/guapa.webp",
+      "target_sha256": "386a4bd8dbfa58e0f5886172a42fcbd9afe001417ff9f4bf910d5d147f8c3a64",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 106144
+    },
+    {
+      "source_name": "Joghurt(1).PNG",
+      "source_sha256": "c34741cf28a46af9b0bd7a64f6a468818025c4ee5cb85ea7f04d03933c60354a",
+      "target": "assets/images/flavors/joghurt.webp",
+      "target_sha256": "ffe7fb0733dc28971065150f3586524c451ab1d8e49792285634fdf21cfa5eba",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 93116
+    },
+    {
+      "source_name": "Dubai(1).PNG",
+      "source_sha256": "0dd578fb03adc576a9dd49a847c692fc1ff67f120c8fec4f394a03bf3f3e8c2c",
+      "target": "assets/images/flavors/dubai-eis.webp",
+      "target_sha256": "b4f9e6c8e32d7133baaafba5df0caa92c3c745c94cd48ff5166cca0ba7424cb3",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 142740
+    },
+    {
+      "source_name": "Haselnuss(1).PNG",
+      "source_sha256": "59ae930a78fb116555815412b3514b12876b395902d692944a49c067d273c11e",
+      "target": "assets/images/flavors/haselnuss.webp",
+      "target_sha256": "ec5a3880157ddd27c365dd5432334a7e515997b14350805374bc7d1fba741260",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 122412
+    },
+    {
+      "source_name": "Dark Choclate(1).PNG",
+      "source_sha256": "6ef30b5dfe112d53d5ade736d563e99548b64990467329d816617d11bfb3fa19",
+      "target": "assets/images/flavors/dark-chocolate.webp",
+      "target_sha256": "2c11424ce725ecea2adfe16c96323c0747bed760c63760318120c002639cfd93",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 118456
+    },
+    {
+      "source_name": "Lemon Crumble(1).PNG",
+      "source_sha256": "fb02c2abdb461868d91491ddceed71a846b89d0b87ca6d8adc044f2499ae1137",
+      "target": "assets/images/flavors/lemon-crumble.webp",
+      "target_sha256": "be369bd76f026d6f852872dd38a8e74ebefca5e41e71752332fd6a2393222fd0",
+      "width": 1160,
+      "height": 1200,
+      "bytes": 86586
+    },
+    {
+      "source_name": "Erdbeere (1).PNG",
+      "source_sha256": "945f775d8666d8bccd81f46878e1e669a81373d61444086351db2241eded9fd0",
+      "target": "assets/images/flavors/erdbeere.webp",
+      "target_sha256": "ab09bf40f64a5742a948c672fc61e0ae557640b541cbe831f1079713e16c9a3e",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 106858
+    },
+    {
+      "source_name": "Dragon Summer(1).PNG",
+      "source_sha256": "1b42b5f101eb099990e5b0d0129932e9b7c69fb9cf6d98e85d74b86d3bc3e036",
+      "target": "assets/images/flavors/dragon-summer.webp",
+      "target_sha256": "365a410dda2bbb33d1bcf895cd873048155a8b16a7c652119756e14ef02f5f36",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 120302
+    },
+    {
+      "source_name": "Himbeere (1).PNG",
+      "source_sha256": "cddb872c5768e6e3aaff25d35485604a169a7a229b2897d7f75633c6595ce464",
+      "target": "assets/images/flavors/himbeer.webp",
+      "target_sha256": "d34ea3cae989e8fb8d90a9cbc0c808b93cbc403ddb936321b513fe44a143f8c8",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 104372
+    },
+    {
+      "source_name": "Matcha Strawberry(1).PNG",
+      "source_sha256": "3214dfcd76c90ca91577c4df769ba387db826089db8f4148e04a88d099082845",
+      "target": "assets/images/flavors/strawberry-matcha.webp",
+      "target_sha256": "284869f7c369af04b038cf59529dd5521a265a4a670251bf7dfe2cfc52bc7299",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 138646
+    },
+    {
+      "source_name": "Pistazien (1).PNG",
+      "source_sha256": "1d6ecaa8c83c3798643944d03e963f575482e3b072a72db98c9dec5516084e21",
+      "target": "assets/images/flavors/pistazie.webp",
+      "target_sha256": "f428e11ddb3f4fb3d9ba81be63733503a9314276d14b5d4beaaaee4d93f72333",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 136486
+    },
+    {
+      "source_name": "Mozart Praline(1).PNG",
+      "source_sha256": "b619b45c8f245929973dbb703f47172b253012edce44ef2e4b27590394a571bc",
+      "target": "assets/images/flavors/mozart-praline.webp",
+      "target_sha256": "ed51ae39fd07ed7ec0a388b36fe097b91990f462d2f470d33fec6ab24a131270",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 117038
+    },
+    {
+      "source_name": "Orange Minze(1).PNG",
+      "source_sha256": "fa272f7bf010d106b0436a270e8d0f72e0c117d43488dadc5279f488021b1732",
+      "target": "assets/images/flavors/orange-minze.webp",
+      "target_sha256": "8549e5d968430f25603fd216e25aaee8bcb88e41ae5558fc2ff51d3d467fcfd9",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 102216
+    },
+    {
+      "source_name": "Mango(1).PNG",
+      "source_sha256": "251d7bcd0fd85f8c0ab240579409b9a91c8ca99cf313e8677f6431c549b290af",
+      "target": "assets/images/flavors/mango.webp",
+      "target_sha256": "b5133b3ad2a3327f2bc465ada906efcdd83ceace8eb4d42bae3d582cac0ef437",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 98802
+    },
+    {
+      "source_name": "Melone(1).PNG",
+      "source_sha256": "e9ecc8e280c5d068d446f4ac04c27c59b89b84888a85ee20915e1786a739d9a7",
+      "target": "assets/images/flavors/melone.webp",
+      "target_sha256": "0ee477de3142df3b402876ca5328e9827ae0b8fcee1ef542dac112aaf6e92871",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 94382
+    },
+    {
+      "source_name": "Mascarpone Pistazien (1).PNG",
+      "source_sha256": "9e8be76de2dc469249e2ffb66575a110aa4549853a1945eb77e74131d7de52d1",
+      "target": "assets/images/flavors/mascarpone-pistazien.webp",
+      "target_sha256": "b7b26951b6a3c8bfaa049484eaa02ce4e18700ca5af47512db87219aff087fb5",
+      "width": 1160,
+      "height": 1200,
+      "bytes": 98450
+    },
+    {
+      "source_name": "Oreo Keks(1).PNG",
+      "source_sha256": "d66a11fc0cd4cccb7f898839ef2c30594ccf26084e6b53fc833096aa04afe721",
+      "target": "assets/images/flavors/oreo-keks.webp",
+      "target_sha256": "a3bf31b81beb79632fa768355d5d0df8fb39f20aefe92ea20e296bf7b6018bfb",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 144488
+    },
+    {
+      "source_name": "Mocca(1).PNG",
+      "source_sha256": "f005d97ae836a0c1b6ae2921f2aa85366c77fe466b9039ba505ac73ac74f803f",
+      "target": "assets/images/flavors/mocca.webp",
+      "target_sha256": "bd90f2314afca23e3f3c73a9fd8f92588f5e3603f33cb6e03c716c63960b2fcc",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 108678
+    },
+    {
+      "source_name": "Nutella(1).PNG",
+      "source_sha256": "d9a997ebdf11a20279421ecb8aa5d9a647dea2dc52373a4a5dfc217114d8ce82",
+      "target": "assets/images/flavors/nutella.webp",
+      "target_sha256": "3bdc28d2d1f5b3b6e2872c8920f98a39976b8585b8d392b5f3865c552db195cd",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 127466
+    },
+    {
+      "source_name": "Siciliano(1).PNG",
+      "source_sha256": "33e210c21934d0bc90971d7ac36def7d7ece18b71108254be3e212476148a8ad",
+      "target": "assets/images/flavors/siciliano.webp",
+      "target_sha256": "435452cd504a79ace4c3c64bb1d41ae775457b2d8a81210cfe5f8dfaefbb7e72",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 124318
+    },
+    {
+      "source_name": "Snickers(1).PNG",
+      "source_sha256": "c6791df194361ae3cafcb7b96bb3f63f7fa0d5275f243821f7fd33c9053a4f95",
+      "target": "assets/images/flavors/snickers.webp",
+      "target_sha256": "c5d1c3b34933518c9bf7c0f67d3c47f6d8f912550c50ab4ba5a6a82b338d66f8",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 127922
+    },
+    {
+      "source_name": "Quark Orange(1).PNG",
+      "source_sha256": "29cef757457a8fe38981e3f5887106bb040b8bcb35b9b0321e6bb4cd843ed8d0",
+      "target": "assets/images/flavors/quark-orange.webp",
+      "target_sha256": "5eab71658cc9ff160346f992f0b44bf1d589b1774274444d3953b932d5ade65d",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 110182
+    },
+    {
+      "source_name": "Pokemon Party(1).PNG",
+      "source_sha256": "668b56201bb52015d902216fe9b825b788cba275a1708f5e7462fb6b8515fd24",
+      "target": "assets/images/flavors/pokemon-party.webp",
+      "target_sha256": "dfd84725b350fc8038085a1048cd48eda90399d4a05333cc277c73110bf60ae3",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 141004
+    },
+    {
+      "source_name": "Schokolade(1).PNG",
+      "source_sha256": "f35fecdf6180f79785211dcf49c54b9c874aecb36a2ad8d621c10c935767e9cb",
+      "target": "assets/images/flavors/schokolade.webp",
+      "target_sha256": "4a9f58fd4fba43b55553efd735a82d1f9a9b2be6d8c6b719640c9a3da68f2e2e",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 127352
+    },
+    {
+      "source_name": "Rafaello(1).PNG",
+      "source_sha256": "00a64e27823102896f82d3ee5aefcf6ffeda788b29f9de78e5190b1fa19231b6",
+      "target": "assets/images/flavors/raffaello.webp",
+      "target_sha256": "c7f5b6b8020598cf91be00da5934e13de1beb631bc6e078980070979f30d791e",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 98828
+    },
+    {
+      "source_name": "Vanille(1).PNG",
+      "source_sha256": "f82abea74e5e45911f3daec5b6aec722dca126147c3c2e0b06d384824d0fb06f",
+      "target": "assets/images/flavors/vanille.webp",
+      "target_sha256": "4d1a28643245f3efd77e0b330500ef88e2e8e5750fa6954b09dcf8d8443da3cf",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 86360
+    },
+    {
+      "source_name": "Stracciatella(1).PNG",
+      "source_sha256": "a08b57448be3616936094b6e3863666866d877db8d1a1bce3ae01b15b5f631ba",
+      "target": "assets/images/flavors/stracciatella.webp",
+      "target_sha256": "ad8b71e0d8002129c32e14ec73ebacdcaf54ea4a4cde7999bbfc0ad0dd75ea85",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 111768
+    },
+    {
+      "source_name": "Zitrone(1).PNG",
+      "source_sha256": "f64002b033535ef5d8f9b5c3521b69ae4611dfee991db03717d79cc9531ea27e",
+      "target": "assets/images/flavors/zitrone.webp",
+      "target_sha256": "8f49bc82873d4f10ff84f8657505489a28e8989e22a82e82419d117034869263",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 82792
+    },
+    {
+      "source_name": "Yogo Twist.jpeg",
+      "source_sha256": "398c37f95339df3630300597cbeedb0af1988ec81b397fb3461bd748b7861faf",
+      "target": "assets/images/flavors/yogo-twist.webp",
+      "target_sha256": "00d1a494764c412051e1d4b20e1f3a53428eb6d33177bd3b3a597acf6a4576b1",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 104196
+    },
+    {
+      "source_name": "Zuppa Inglese.jpeg",
+      "source_sha256": "69217bffefb3be50f0a561f6a72c090b72c2afdbc99e6d0d465ca270dfeb95ad",
+      "target": "assets/images/flavors/zuppa-inglese.webp",
+      "target_sha256": "f240a35b948045817f06fab22d4a12b379dcd32603587764be43582761825ac8",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 100514
+    },
+    {
+      "source_name": "Früchte Becher.png",
+      "source_sha256": "e1bf69e459d79224c93632d6fd3d0c444e4a54fc60f35e0d22f7626f3efd50ae",
+      "target": "assets/images/cups/fruechte-becher.webp",
+      "target_sha256": "46485fbbafa9478f566f5cf64cfdb27d61196e2c2348e9037f222cad54b69ccd",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 144152
+    },
+    {
+      "source_name": "After Eight Becher.png",
+      "source_sha256": "3e6354cc85f97f6d24403df47d997c4336bcf4bf341300d4a02acb5c372d08e3",
+      "target": "assets/images/cups/after-eight-becher.webp",
+      "target_sha256": "ed866b8e1a12c89b2bfe33194cdfcc0393c75ca8be6c41c19e43f0bcfb2e73f6",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 148792
+    },
+    {
+      "source_name": "Biene Maya.png",
+      "source_sha256": "40f92f5f7ff5cfb1b02ed938b6f618f3b7eba4b860755feab7ec30cbf0ff30a3",
+      "target": "assets/images/cups/biene-maja.webp",
+      "target_sha256": "a3697ce6571ce70f77b9685438ef20958033376e1d57d4a0998af00e8f6224da",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 85918
+    },
+    {
+      "source_name": "Amarena Becher.png",
+      "source_sha256": "40b3d4e7650b40303b5270661673a5d92b1673930c9bde3dd53755c227c6acd4",
+      "target": "assets/images/cups/amarena-becher.webp",
+      "target_sha256": "fdbe6f8160dd8461bf4972cff272b8ab241d2d50f9c6b0cb6ed7bc156ae6d4bd",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 123234
+    },
+    {
+      "source_name": "Erdbeer Becher.PNG",
+      "source_sha256": "e2e0d7185cd46d7d90d2821ecf27e18974b0d2b1f4140090d20ffe6ee732e726",
+      "target": "assets/images/cups/erdbeer-becher.webp",
+      "target_sha256": "0f338e1ac2ae75cb71657f2c7482321fc98d73d6bd85048f0ee6d5d12da06c45",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 118090
+    },
+    {
+      "source_name": "Bananensplit.png",
+      "source_sha256": "d5a5c4d1dc1e9595d9892264a6af6078aeadec01a1ab8b01478c64013a39bd55",
+      "target": "assets/images/cups/banana-split.webp",
+      "target_sha256": "2a495b6b8f8ce74fde8e3904bcdb12040d5c77e8c119b9e4bf378baa119f29b8",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 126944
+    },
+    {
+      "source_name": "IMG_5409(1).jpeg",
+      "source_sha256": "4faf6e07e392cbd254e344d400aced667ff0d531b1ed82194d0012e3043304dd",
+      "target": "assets/images/shop/vitrine-wide.webp",
+      "target_sha256": "2ff3e8d5603b9e4e3134485fef5e3a872d335e3e3d7e78652b59447775335ce4",
+      "width": 1350,
+      "height": 1800,
+      "bytes": 306108
+    },
+    {
+      "source_name": "0BEA23B5-7CF1-47EB-9FD9-2EF2E9E5C851(1).png",
+      "source_sha256": "664bee2ac739ddcf70d04e11abde15b903992333b9c4d3b741e348304c5717ce",
+      "target": "assets/images/shop/interior-long.webp",
+      "target_sha256": "cf03a8154b80c2620fdce25b867509c6418c0dcca7c19c90a333b3f51508c3ea",
+      "width": 1086,
+      "height": 1448,
+      "bytes": 146508
+    },
+    {
+      "source_name": "IMG_5416(1).jpeg",
+      "source_sha256": "71926636f4837a3df1afa00c3ea448e7830cdd41d5656d5baa89bede04ecaeac",
+      "target": "assets/images/shop/chalkboard-prices.webp",
+      "target_sha256": "4ced2b00bb7635401a7eb9c153b71080e71d971c9e0dddd66f2412fba4681af9",
+      "width": 1350,
+      "height": 1800,
+      "bytes": 131892
+    },
+    {
+      "source_name": "E27C79CF-7861-4749-BA40-1D11132C6B35(1).png",
+      "source_sha256": "45397b7b309e9ac0371b48adbe6a3bac9ae434114a123a27debe0d484c822185",
+      "target": "assets/images/shop/interior-counter.webp",
+      "target_sha256": "ae6a0f59fe767e90da8e99e5af8693e55f67ba81038a1f016432dbce961187d3",
+      "width": 1086,
+      "height": 1448,
+      "bytes": 198206
+    },
+    {
+      "source_name": "IMG_5417(1).jpeg",
+      "source_sha256": "6bc459f17fe5bd5019d9f4b4401698021bc95cfef5314280170ce72fa8a5ecb0",
+      "target": "assets/images/shop/vitrine-close.webp",
+      "target_sha256": "67fc8c6204dbe4acd1a03216b31c4c5b46e4fa68f02202c004f5160bc5519aa2",
+      "width": 1350,
+      "height": 1800,
+      "bytes": 199448
+    },
+    {
+      "source_name": "B41810E4-66FD-4F7A-8542-2519BB5C7118(1).png",
+      "source_sha256": "f630aa5a6795172f5b6001dab133b46bb2f764f22e60ba6ae37adfe30f49f416",
+      "target": "assets/images/source/flavor-poster.webp",
+      "target_sha256": "fe4195aa599e538a49196f128e7fcda917d8a7addf6c8a7315b28dab6b64b481",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 64114
+    },
+    {
+      "source_name": "logo_preview.jpg",
+      "source_sha256": "2e0ad13c218fc8adde6b6d512d3c1c872ed5d5d00aa9acbb1b41ae4da0806695",
+      "target": "assets/images/brand/logo-donatello.webp",
+      "target_sha256": "7c5ef473ef426815253ed527831f7eaf74ac92ea8abe3004297f09353e7ae12f",
+      "width": 800,
+      "height": 267,
+      "bytes": 11180
+    },
+    {
+      "source_name": "Eistorte 4(1).PNG",
+      "source_sha256": "3efb7ee47f23c880486b6bb20f177c11d1df05a550a8a434987caa32e668e06e",
+      "target": "assets/images/cakes/eistorte-01.webp",
+      "target_sha256": "1edff8cdb43fe00ae19d4aabaaad18f8e2d95a9215cf62dd6da556b71dca8501",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 218630
+    },
+    {
+      "source_name": "Eistorte 10(1).PNG",
+      "source_sha256": "5ff54e0bc6db1d75e209c1473cbbb8aa5b5dfaae14c6377ebff8bf46d788b646",
+      "target": "assets/images/cakes/eistorte-02.webp",
+      "target_sha256": "814dd5f25c7561b4ddbdcbbed50fff2ca248589c42a158afc80abddcece91a12",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 140104
+    },
+    {
+      "source_name": "Eistorte 5(1).PNG",
+      "source_sha256": "6ab568d8c625f64c54ed683a8c3991166d4f8963f9ce3425225ec02342619148",
+      "target": "assets/images/cakes/eistorte-03.webp",
+      "target_sha256": "182cf0fb5dab0a45e0ff79095a55089101822ce64e3c22391d695c75027eb537",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 165318
+    },
+    {
+      "source_name": "Eistorte 8(1).PNG",
+      "source_sha256": "b60216a859773d86ba7d4fb7dcf0109108720aefed7de68a98025a431ae5bd3e",
+      "target": "assets/images/cakes/eistorte-04.webp",
+      "target_sha256": "0ef62a6b636a3bf918601681c6d4ea27f31fb3fedae0af01280e09580dae5509",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 187154
+    },
+    {
+      "source_name": "Eistorte 7(1).PNG",
+      "source_sha256": "afd6b1f0491e34c17cd81d6bbd7aa332978a69690e97689f9757d99f6ab3a5be",
+      "target": "assets/images/cakes/eistorte-05.webp",
+      "target_sha256": "0b950be7b1c3170c1af5db55428c620c65b48f098064979d843fa33a709122a6",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 159660
+    },
+    {
+      "source_name": "Eistorte 3(1).PNG",
+      "source_sha256": "28bd91157536b7e723b83b6ff3e739c907692ed961f25d875f9c09dc5521e70f",
+      "target": "assets/images/cakes/eistorte-06.webp",
+      "target_sha256": "f7955ec274354a7d65980b48e6dfc6c2676395dea0050e234f089a56a72fefc5",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 205220
+    },
+    {
+      "source_name": "Eistorte 9(1).PNG",
+      "source_sha256": "bc09ee09a8a0b8369e3e9f48ff70966a4312404202ed4f44d584737f515a2d2f",
+      "target": "assets/images/cakes/eistorte-07.webp",
+      "target_sha256": "f2f0dc27cc4f43ca59cb6b306df2b2a774ec76d5b010cc23d8e8b09fc5ee70fd",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 199728
+    },
+    {
+      "source_name": "Eistorte 6(1).PNG",
+      "source_sha256": "8da852f25d71a7dba0d60e91f7f39beae5e2041830905286791b908f583464c7",
+      "target": "assets/images/cakes/eistorte-08.webp",
+      "target_sha256": "6f21b14ff48c6cccc6b33d9cb381de61b2bf88b46ac6af32e7decd695b364960",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 148984
+    },
+    {
+      "source_name": "Eistorte.PNG",
+      "source_sha256": "e3aa484ca30a1e679eb84b33dc522493dd9e8626488f7f1188b66f8fa894bece",
+      "target": "assets/images/cakes/eistorte-09.webp",
+      "target_sha256": "d147551e78c0c67e266f337a67eb1d8077575dd490e48d04b59eafb6f4397a82",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 131106
+    },
+    {
+      "source_name": "Eistorte 93.PNG",
+      "source_sha256": "c837ac5cf3976fecd9e4edf7cf46482e8c3ef5d44402f622fb9a99ccd1121869",
+      "target": "assets/images/cakes/eistorte-10.webp",
+      "target_sha256": "9ca434f1365b778582f87f94178c0082355f22c78b67cc5d2054c45029773236",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 171162
+    },
+    {
+      "source_name": "Eistorte 77.PNG",
+      "source_sha256": "e2c921a46f3e2988f8b7d947fc7c6f26a86e2d3b4e6d68b2f523aeed4f330b87",
+      "target": "assets/images/cakes/eistorte-11.webp",
+      "target_sha256": "63e02d6bdc17b052c824e0f624660b3eb97ebd8a8aaea1d59951d40a5b87df89",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 152700
+    },
+    {
+      "source_name": "Eistorte 94.PNG",
+      "source_sha256": "aba26f4faecd38b6efd505b3977d57bbdf7b809b535e44cf3ab48249e1713bcd",
+      "target": "assets/images/cakes/eistorte-12.webp",
+      "target_sha256": "a94479f231fe312c37ce691405c4f234702a2e570f760754f85c92153a5201c8",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 151944
+    },
+    {
+      "source_name": "Eistorte 88.PNG",
+      "source_sha256": "e03b9b3adf4a5d33a921eb09e3bcaa05ac4552edf03b767e7fdd8ff5016a5e61",
+      "target": "assets/images/cakes/eistorte-13.webp",
+      "target_sha256": "77331f4c276c15221201112141ba168564f1ee7a184843069dc3c23be2359610",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 211238
+    },
+    {
+      "source_name": "Eistorte 74.PNG",
+      "source_sha256": "89a8f7d3c8b073ff73e35f41fe72992eca0c1c05078033bac797d48645cde4a4",
+      "target": "assets/images/cakes/eistorte-14.webp",
+      "target_sha256": "6c28678c384a3c12ceb486f51a3e7b4a365bec398034b7148e3edbd31a71f758",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 180652
+    },
+    {
+      "source_name": "Eistorte 103.PNG",
+      "source_sha256": "0d6d3128b4447979a5ec2a9eefe11c6dd6483d5c517647f43ade6501771105cf",
+      "target": "assets/images/cakes/eistorte-15.webp",
+      "target_sha256": "1bcf6da4c7f52e72531a36de6b9a52bac9435b9b730b25d226c86cb345ef8784",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 208478
+    },
+    {
+      "source_name": "Eistorte 19.PNG",
+      "source_sha256": "247c0d0dddd6a1f812ed52bb9be948b2bb4dfc2f52d1e96089ceac8c9d1fab85",
+      "target": "assets/images/cakes/eistorte-16.webp",
+      "target_sha256": "23b014c77e04fada1a8ff29cc99f4509f6b788561e58cf086a1b9cf535d8cc2a",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 165696
+    },
+    {
+      "source_name": "Eistorte 25.PNG",
+      "source_sha256": "b63c52e4080695f0ec5cb494c4c9bf120342b8e7f9f4499f0225a3bea18245f9",
+      "target": "assets/images/cakes/eistorte-17.webp",
+      "target_sha256": "fc262a780a2075c9067a3fc9e0de0acca6bdce33eb8423dcbe34111c55120578",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 191786
+    },
+    {
+      "source_name": "Eistorte 76.PNG",
+      "source_sha256": "0052f76f0ae865499b9987e138f2af6a7187d57664729d88970ce7ec02241ff8",
+      "target": "assets/images/cakes/eistorte-18.webp",
+      "target_sha256": "bfd10c20ffef8244914022c18ea8181819d2808e1eb1e1ab0aa737e53d8dae20",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 211374
+    },
+    {
+      "source_name": "Eistorten 66.PNG",
+      "source_sha256": "f5967ec32f1e0ec413a9084827012728a998a84ca7b9ac26d6119225ddf88998",
+      "target": "assets/images/cakes/eistorte-19.webp",
+      "target_sha256": "072036a0ee937d52535f72d53a15c054dc22a058a6682d6794fd8aa0f10e39e4",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 218430
+    },
+    {
+      "source_name": "Eisbombe(1).PNG",
+      "source_sha256": "139a48bb3705710462f1c632680df4cd163d8dd18a233c6a1da4ae9c33f29a9e",
+      "target": "assets/images/cakes/eisbombe-01.webp",
+      "target_sha256": "800be3695c166a3fa8cd0a3885a109359b84a9bd5d7f59269805ed5ae98e628d",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 209482
+    },
+    {
+      "source_name": "Eisbombe 2(1).PNG",
+      "source_sha256": "ef3b2ead4a4dff7bde11e1bc0aa7516ed2cbf46aabcc5eda72d4df6620d89892",
+      "target": "assets/images/cakes/eisbombe-02.webp",
+      "target_sha256": "8c5b70c0fba08d4736963f47353c2d186119c84629401df728dc2c78ed3eaeaa",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 195406
+    },
+    {
+      "source_name": "Spaghetti Eis Torte 90.PNG",
+      "source_sha256": "9f11dc93ccc1ac4d3b080bde85136af191ddfc9ae01d96db34c6a4bc80780bf9",
+      "target": "assets/images/cakes/spaghetti-eistorte-01.webp",
+      "target_sha256": "8c755d6a8d161bddb9f2508d8cf2732a522c609010d3c37a9535b14271811fa0",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 212590
+    },
+    {
+      "source_name": "Spaghetti Eis Torte.PNG",
+      "source_sha256": "4814c51c6895c5c4f831155af545b7ef0cdd9b0e34883b4c5b2819af4331196d",
+      "target": "assets/images/cakes/spaghetti-eistorte-02.webp",
+      "target_sha256": "23ae0cf7e201fc38d24ccfd08c90bb46ef223587ddbfb6f4d9093b78921b9927",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 270018
+    },
+    {
+      "source_name": "Spaghetti Eis Torte 8.PNG",
+      "source_sha256": "e6f5ed073b790bc1337a1d55f755abe344cffa85a9612c915b77f6b7a18ffc94",
+      "target": "assets/images/cakes/spaghetti-eistorte-03.webp",
+      "target_sha256": "49cb1d549f136768f3e8c0e574e0bd386d37d98a2990efc98c0d621bc5539f64",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 243812
+    }
+  ]
+}
