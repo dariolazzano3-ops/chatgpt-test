@@ -1,0 +1,48 @@
+{
+  "schema": "aurentara.gelato-premium-website.v5",
+  "customer_id": "gelato-donatello",
+  "project_id": "gelato-donatello-v5-final",
+  "scope_key": "gelato-donatello:gelato-donatello-v5-final",
+  "name": "Gelato Donatello Premium V5 (Final)",
+  "industry": "gelateria",
+  "country": "DE",
+  "language": "de",
+  "environment": "private-staging",
+  "website_standard": "aurentara.premium-website-standard.v1",
+  "purpose": "Eigenstaendige, finale Premium-Gelateria-Markenseite fuer Gelato Donatello gemaess AURENTARA_PROJECT_MISSION_V1 (2026-10-05 Owner-Brief), inklusive erstmals bestaetigter Kernpreise. Unabhaengig neu aufgebaut, nicht auf Basis von projects/gelato-donatello-website-v5/ oder projects/gelato-donatello-premium-v5/.",
+  "basis_note": "Dieses Projekt ist eine eigenstaendige Neuimplementierung unter projects/gelato-donatello-v5-final/. Die bestehenden Ordner projects/gelato-donatello-website-v5/ und projects/gelato-donatello-premium-v5/ wurden NICHT veraendert und NICHT als Code- oder Content-Basis kopiert; lediglich bereits etablierte Repo-Konventionen (Dateistruktur, Design-Tokens-Ansatz, CSP-sichere Komponentenmuster, Safety-/Indexing-Pattern) wurden wiederverwendet (reuse-first).",
+  "predecessor_note": "Gegenueber projects/gelato-donatello-premium-v5/ ergaenzt dieses Projekt die in diesem neuen Owner-Brief erstmals bestaetigten Kernpreise (Kugel, Sahne, Sosse, Creme, Likoer, Streusel) sowie Eistorten-, Eisbomben- und Eisvitrine-Preise, die zuvor als PENDING_OWNER_CONFIRMATION gefuehrt wurden.",
+  "design_direction": "Bilddominant, editorial, grosse Food-Flaechen, grosszuegiger Weissraum, starke Typografie, ruhige Bewegung, mobile first (390px) bis Desktop (1440px). Keine Corporate-Dashboard-Optik. Buonissimo nur als Prinzipienreferenz, keine Kopie.",
+  "expected_page_set": [
+    { "path": "/", "title": "Start" },
+    { "path": "/sortiment/", "title": "Sortiment" },
+    { "path": "/eisbecher/", "title": "Eisbecher" },
+    { "path": "/eistorten-eisbomben/", "title": "Eistorten & Eisbomben" },
+    { "path": "/eisvitrine/", "title": "Eisvitrine" },
+    { "path": "/kontakt/", "title": "Besuch / Kontakt" }
+  ],
+  "safety": {
+    "production_deploy": false,
+    "public_deploy": false,
+    "dns_changes": false,
+    "billing": false,
+    "paid_provider_calls": 0,
+    "external_writes": false,
+    "indexing": "NOINDEX",
+    "field_cwv_claimed": false,
+    "public_preview_deploy": false
+  },
+  "preview_policy": {
+    "external_publish": false,
+    "mode": "LOCAL_PRIVATE_QA_ONLY",
+    "reason": "AURENTARA_PROJECT_MISSION_V1: private/interne Umsetzung, keine oeffentliche Veroeffentlichung."
+  },
+  "known_gaps": [
+    "Keine Oeffnungszeiten bestaetigt – bewusst nicht veroeffentlicht, bis vom Inhaber bestaetigt.",
+    "Owner-Bildmaterial (Laden, Vitrine, 41 Sortenbilder, Eisbecher, Eistorten, Eisbomben, Spaghetti-Eistorten) ist angekuendigt, aber in dieser Session noch nicht physisch im Workspace eingegangen – Asset-Manifest mit stabilen Drop-in-Pfaden ist vorbereitet, gestaltete Platzhalter sind aktiv, keine Stockfotos verwendet, keine Bilder als bereits ingestiert behauptet.",
+    "Keine Ernaehrungs-, Allergen- oder Alkoholmerkmale ergaenzt, da im Brief nicht belegt.",
+    "Kein bestaetigter digitaler Anfragekanal (E-Mail/CRM) – Anfrage-Formulare fassen lokal zusammen und verweisen auf Telefon/Besuch statt eine Uebermittlung zu simulieren.",
+    "Exakte Becher-Komposition/Gesamtpreise (einzelne Eisbecher-Kombinationen) nicht benannt – nur die bestaetigten Kernpreise (Kugel/Sahne/Sosse/Creme/Likoer/Streusel) werden gezeigt, keine erfundenen Becher-Gesamtpreise.",
+    "Impressum/Datenschutz bewusst ausserhalb des beauftragten 6-Seiten-Scopes; vor jeder oeffentlichen Phase nachzuruesten."
+  ]
+}

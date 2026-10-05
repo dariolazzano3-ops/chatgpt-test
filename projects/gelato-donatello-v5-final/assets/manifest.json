@@ -1,0 +1,76 @@
+{
+  "schema": "aurentara.asset-manifest.v1",
+  "project_id": "gelato-donatello-v5-final",
+  "rule": "Jeder Eintrag beschreibt einen stabilen, root-relativen Ziel-Pfad. Legt der Inhaber eine Datei exakt unter 'path' ab, zeigt die Seite sie automatisch an - ohne Code- oder Redesign-Aenderung. Bis dahin rendert assets/js/components/asset-image.js einen bewusst gestalteten Platzhalter statt eines kaputten Bild-Icons. Keine generischen Stockbilder. In dieser Session sind keine Owner-Bilder physisch im Workspace eingegangen - alle Eintraege stehen auf 'pending'.",
+  "allowed_rights_states": ["owned", "licensed", "public_domain", "generated", "pending"],
+  "assets": [
+    { "key": "laden-aussen", "path": "/assets/img/laden/aussen-1.jpg", "alt": "Gelato Donatello Ladenfassade in Koellerbach, gegenueber der Burg Bucherbach", "rights": "pending", "category": "laden" },
+    { "key": "laden-innen", "path": "/assets/img/laden/innen-1.jpg", "alt": "Gelato Donatello Verkaufsraum / Innenraum", "rights": "pending", "category": "laden" },
+    { "key": "laden-vitrine-theke", "path": "/assets/img/laden/vitrine-theke-1.jpg", "alt": "Eisvitrine in der Verkaufstheke", "rights": "pending", "category": "laden" },
+
+    { "key": "vitrine-mobil-1", "path": "/assets/img/vitrine/mobil-1.jpg", "alt": "Mobile Eisvitrine zur Miete", "rights": "pending", "category": "vitrine" },
+    { "key": "vitrine-mobil-2", "path": "/assets/img/vitrine/mobil-2.jpg", "alt": "Mobile Eisvitrine, Zubehoer und Aufbau", "rights": "pending", "category": "vitrine" },
+
+    { "key": "eisbecher-1", "path": "/assets/img/eisbecher/eisbecher-1.jpg", "alt": "Eisbecher von Gelato Donatello", "rights": "pending", "category": "eisbecher" },
+    { "key": "eisbecher-2", "path": "/assets/img/eisbecher/eisbecher-2.jpg", "alt": "Eisbecher von Gelato Donatello", "rights": "pending", "category": "eisbecher" },
+    { "key": "eisbecher-3", "path": "/assets/img/eisbecher/eisbecher-3.jpg", "alt": "Eisbecher von Gelato Donatello", "rights": "pending", "category": "eisbecher" },
+
+    { "key": "eistorte-1", "path": "/assets/img/eistorten/eistorte-1.jpg", "alt": "Individuell dekorierte Eistorte von Gelato Donatello", "rights": "pending", "category": "eistorten" },
+    { "key": "eistorte-2", "path": "/assets/img/eistorten/eistorte-2.jpg", "alt": "Individuell dekorierte Eistorte von Gelato Donatello", "rights": "pending", "category": "eistorten" },
+
+    { "key": "eisbombe-1", "path": "/assets/img/eisbomben/eisbombe-1.jpg", "alt": "Eisbombe von Gelato Donatello", "rights": "pending", "category": "eisbomben" },
+    { "key": "eisbombe-2", "path": "/assets/img/eisbomben/eisbombe-2.jpg", "alt": "Eisbombe von Gelato Donatello", "rights": "pending", "category": "eisbomben" },
+
+    { "key": "spaghetti-eistorte-1", "path": "/assets/img/spaghetti-eistorten/spaghetti-eistorte-1.jpg", "alt": "Spaghetti-Eistorte von Gelato Donatello", "rights": "pending", "category": "spaghetti-eistorten" },
+
+    { "key": "sorten-hero", "path": "/assets/img/sorten/sorten-hero-1.jpg", "alt": "Auswahl frisch zubereiteter Eissorten von Gelato Donatello", "rights": "pending", "category": "sorten" }
+  ],
+  "flavor_assets": {
+    "path_template": "/assets/img/sorten/{slug}.jpg",
+    "note": "Ein stabiler Bildpfad pro bestaetigter Sorte (siehe assets/js/data/flavors.js). assets/js/components/asset-image.js loest den Pfad automatisch auf; ohne Datei bleibt der gestaltete Platzhalter sichtbar.",
+    "slots": [
+      { "slug": "after-eight", "label": "After Eight", "category": "regular" },
+      { "slug": "amarena-kirsch", "label": "Amarena Kirsch", "category": "regular" },
+      { "slug": "banane", "label": "Banane", "category": "regular" },
+      { "slug": "blauer-engel", "label": "Blauer Engel", "category": "regular" },
+      { "slug": "buttermilch-sanddorn", "label": "Buttermilch-Sanddorn", "category": "regular" },
+      { "slug": "cookies", "label": "Cookies", "category": "regular" },
+      { "slug": "dark-chocolate", "label": "Dark Chocolate", "category": "regular" },
+      { "slug": "dubai-eis", "label": "Dubai Eis", "category": "regular" },
+      { "slug": "erdbeere", "label": "Erdbeere", "category": "regular" },
+      { "slug": "haselnuss", "label": "Haselnuss", "category": "regular" },
+      { "slug": "himbeer", "label": "Himbeer", "category": "regular" },
+      { "slug": "joghurt", "label": "Joghurt", "category": "regular" },
+      { "slug": "lemon-crumble", "label": "Lemon Crumble", "category": "regular" },
+      { "slug": "malaga", "label": "Malaga", "category": "regular" },
+      { "slug": "mango", "label": "Mango", "category": "regular" },
+      { "slug": "mascarpone-pistazien", "label": "Mascarpone Pistazien", "category": "regular" },
+      { "slug": "melone", "label": "Melone", "category": "regular" },
+      { "slug": "mocca", "label": "Mocca", "category": "regular" },
+      { "slug": "mozart-praline", "label": "Mozart Praline", "category": "regular" },
+      { "slug": "nutella", "label": "Nutella", "category": "regular" },
+      { "slug": "oreo-keks", "label": "Oreo Keks", "category": "regular" },
+      { "slug": "pistazie", "label": "Pistazie", "category": "regular" },
+      { "slug": "raffaello", "label": "Raffaello", "category": "regular" },
+      { "slug": "schokolade", "label": "Schokolade", "category": "regular" },
+      { "slug": "siciliano", "label": "Siciliano", "category": "regular" },
+      { "slug": "snickers", "label": "Snickers", "category": "regular" },
+      { "slug": "stracciatella", "label": "Stracciatella", "category": "regular" },
+      { "slug": "vanille", "label": "Vanille", "category": "regular" },
+      { "slug": "yogo-twist", "label": "Yogo Twist", "category": "regular" },
+      { "slug": "zitrone", "label": "Zitrone", "category": "regular" },
+      { "slug": "acai", "label": "Açaí", "category": "special" },
+      { "slug": "amarena-crunchy", "label": "Amarena Crunchy", "category": "special" },
+      { "slug": "blond-brownie", "label": "Blond Brownie", "category": "special" },
+      { "slug": "cointreau", "label": "Cointreau", "category": "special" },
+      { "slug": "dragon-summer", "label": "Dragon Summer", "category": "special" },
+      { "slug": "guapa", "label": "Guapa", "category": "special" },
+      { "slug": "orange-minze", "label": "Orange Minze", "category": "special" },
+      { "slug": "pokemon-party", "label": "Pokémon Party", "category": "special" },
+      { "slug": "quark-orange", "label": "Quark Orange", "category": "special" },
+      { "slug": "strawberry-matcha", "label": "Strawberry Matcha", "category": "special" },
+      { "slug": "zuppa-inglese", "label": "Zuppa Inglese", "category": "special" }
+    ]
+  },
+  "ingest_instructions": "Bilddatei exakt unter dem genannten Pfad ablegen, dann 'rights' hier von 'pending' auf 'owned' oder 'licensed' aktualisieren, sobald die Bildrechte bestaetigt sind. Keine oeffentlichen Donatello-Bilder oder generischen Stockfotos uebernehmen, ohne denselben Rechte-Nachweis wie Owner-Material zu durchlaufen."
+}

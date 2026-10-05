@@ -1,0 +1,46 @@
+:root {
+  /* Farben: warme, editoriale Gelateria-Palette (kein Corporate-Blau) */
+  --color-cream: #fbf4ec;
+  --color-cream-deep: #f1e4d3;
+  --color-ink: #2b2420;
+  --color-ink-soft: #5b4f45;
+  --color-berry: #9c3b4a;
+  --color-berry-dark: #7a2c39;
+  --color-pistachio: #7a8a5a;
+  --color-gold: #c79a4b;
+  --color-border: #e3d3bd;
+  --color-surface: #ffffff;
+
+  /* Typografie */
+  --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --font-body: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --fs-display-lg: clamp(2.6rem, 5.5vw + 1rem, 5rem);
+  --fs-display-md: clamp(1.9rem, 3vw + 1rem, 3.1rem);
+  --fs-display-sm: clamp(1.4rem, 1.6vw + 1rem, 1.9rem);
+  --fs-body: 1.05rem;
+  --fs-small: 0.9rem;
+  --lh-tight: 1.1;
+  --lh-normal: 1.6;
+
+  /* Abstand & Layout */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.75rem;
+  --space-lg: 3rem;
+  --space-xl: 5.5rem;
+  --radius-sm: 6px;
+  --radius-md: 14px;
+  --shadow-soft: 0 18px 40px -22px rgba(43, 36, 32, 0.35);
+  --container-max: 1180px;
+  --touch-target-min: 44px;
+
+  /* Bewegung */
+  --motion-duration: 420ms;
+  --motion-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0ms;
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schema": "aurentara.gelato-confirmed-project-inputs.v5",
+  "project_ref": {
+    "customer_id": "gelato-donatello",
+    "project_id": "gelato-donatello-v5-final",
+    "scope_key": "gelato-donatello:gelato-donatello-v5-final"
+  },
+  "provenance": {
+    "source": "AURENTARA_PROJECT_MISSION_V1_OWNER_BRIEF",
+    "captured_at": "2026-10-05",
+    "rule": "Nur Fakten, die im Owner-Mission-Brief explizit benannt wurden, werden als OPERATOR_CONFIRMED gefuehrt. Alles andere bleibt PENDING_OWNER_CONFIRMATION und wird im Frontend nicht als Fakt dargestellt."
+  },
+  "facts": [
+    {
+      "field_path": "business.name",
+      "value": "Gelato Donatello",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.history",
+      "value": "Familiengefuehrt seit 1965, inzwischen in zweiter Generation.",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.location_since",
+      "value": "Seit 2016 in Koellerbach, gegenueber der Burg Bucherbach.",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.production",
+      "value": "Eigenes Eislabor, taeglich frisch hergestellt.",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.address",
+      "value": { "street": "Hauptstrasse 4", "postal_code": "66346", "city": "Koellerbach", "country": "DE" },
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.phone",
+      "value": "06806 9394980",
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "business.opening_hours",
+      "value": null,
+      "verification_status": "PENDING_OWNER_CONFIRMATION",
+      "rule": "Keine Oeffnungszeiten im Brief genannt. Nicht erfinden, nicht veroeffentlichen."
+    },
+    {
+      "field_path": "products.flavor_count",
+      "value": 41,
+      "verification_status": "OPERATOR_CONFIRMED"
+    },
+    {
+      "field_path": "products.flavor_names",
+      "value": {
+        "regular": [
+          "After Eight", "Amarena Kirsch", "Banane", "Blauer Engel", "Buttermilch-Sanddorn",
+          "Cookies", "Dark Chocolate", "Dubai Eis", "Erdbeere", "Haselnuss",
+          "Himbeer", "Joghurt", "Lemon Crumble", "Malaga", "Mango",
+          "Mascarpone Pistazien", "Melone", "Mocca", "Mozart Praline", "Nutella",
+          "Oreo Keks", "Pistazie", "Raffaello", "Schokolade", "Siciliano",
+          "Snickers", "Stracciatella", "Vanille", "Yogo Twist", "Zitrone"
+        ],
+        "specials": [
+          "Açaí", "Amarena Crunchy", "Blond Brownie", "Cointreau", "Dragon Summer",
+          "Guapa", "Orange Minze", "Pokémon Party", "Quark Orange", "Strawberry Matcha",
+          "Zuppa Inglese"
+        ]
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Exakt 41 Namen (30 Regular + 11 Specials) wurden im Owner-Mission-Brief woertlich genannt. Keine Ernaehrungs-, Allergen- oder Alkoholmerkmale ergaenzt, da nicht belegt."
+    },
+    {
+      "field_path": "products.kernpreise",
+      "value": {
+        "kugel_eur": 1.60,
+        "sahne_eur": 1.20,
+        "sosse_eur": 1,
+        "creme_eur": 1.50,
+        "likoer_eur": 1.50,
+        "streusel_eur": 1
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Kernpreise woertlich aus dem Owner-Brief: Kugel 1,60€; Sahne 1,20€; Sosse 1€; Cremes 1,50€; Likoer 1,50€; Streusel 1€. Keine erfundenen Becher-Gesamtpreise."
+    },
+    {
+      "field_path": "products.eistorten",
+      "value": {
+        "sizes_eur": { "18cm": 65, "20cm": 75, "24cm": 95, "26cm": 109 },
+        "included_flavors": 2,
+        "premium_surcharge_eur": 5
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Eistorten-Groessen/Preise und Premium-Aufpreis woertlich aus dem Owner-Brief."
+    },
+    {
+      "field_path": "products.eisbomben",
+      "value": {
+        "sizes_eur": { "40_kugeln": 75, "60_kugeln": 109 },
+        "max_flavors": 6,
+        "premium_surcharge_eur": 5
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Eisbomben-Groessen/Preise, maximale Sortenanzahl und Premium-Aufpreis woertlich aus dem Owner-Brief."
+    },
+    {
+      "field_path": "products.eisvitrine",
+      "value": {
+        "miete_eur": 250,
+        "kaution_eur": 100,
+        "eis_liter": 5,
+        "sorten": 4,
+        "zubehoer_inklusive": true,
+        "dimensions_cm": "ca. 90 x 75 x 45"
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Eisvitrine-Konditionen woertlich aus dem Owner-Brief."
+    }
+  ],
+  "asset_rights": {
+    "owned_confirmed_asset_count": 0,
+    "publishable_asset_count": 0,
+    "unknown_rights_allowed": false,
+    "note": "Owner-Material (Laden/Innenraum/Vitrine, 41 Sortenbilder, Eisbecher, Eistorten, Eisbomben, Spaghetti-Eistorten) ist angekuendigt, aber in dieser Session noch nicht physisch im Workspace eingegangen. Bis dahin ausschliesslich bewusst gestaltete lokale Platzhalter, keine generischen Stockbilder, keine Behauptung bereits ingestierter Bilder."
+  },
+  "safety": {
+    "production_deploy": false,
+    "public_launch": false
+  }
+}
