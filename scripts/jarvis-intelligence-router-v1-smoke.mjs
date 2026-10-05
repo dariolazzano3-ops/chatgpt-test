@@ -9,12 +9,16 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
 
 {
   const calls = [];
-  const fetchImpl = async (_url, init) => {
-    calls.push(init);
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init });
     return new Response(JSON.stringify({
       model: 'gpt-6-luna',
-      choices: [{ message: { content: 'OK' } }],
-      usage: { prompt_tokens: 13, completion_tokens: 8, total_tokens: 21 }
+      output: [{
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'output_text', text: 'OK', annotations: [] }]
+      }],
+      usage: { input_tokens: 13, output_tokens: 8, total_tokens: 21 }
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   const client = createJarvisOpenAiBrainClientV1({
@@ -30,8 +34,15 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
     idempotency_key: 'job-1'
   });
   assert.equal(out.estimated_cost_usd, 0.0000053);
-  assert.equal(calls[0].headers.authorization, 'Bearer sk-test-abcdefghijklmnopqrstuvwxyz');
-  assert.equal(calls[0].headers['idempotency-key'], 'job-1');
+  assert.equal(calls[0].url, 'https://api.openai.com/v1/responses');
+  assert.equal(calls[0].init.headers.authorization, 'Bearer sk-test-abcdefghijklmnopqrstuvwxyz');
+  assert.equal(calls[0].init.headers['idempotency-key'], 'job-1');
+  const requestBody = JSON.parse(calls[0].init.body);
+  assert.deepEqual(requestBody.input, [{ role: 'user', content: 'hello' }]);
+  assert.equal(requestBody.max_output_tokens, 16);
+  assert.deepEqual(requestBody.reasoning, { effort: 'none' });
+  assert.equal('messages' in requestBody, false);
+  assert.equal('max_completion_tokens' in requestBody, false);
   assert.equal(JSON.stringify(out).includes('sk-test-'), false);
   await assert.rejects(() => client.complete({
     model: 'gpt-unknown',

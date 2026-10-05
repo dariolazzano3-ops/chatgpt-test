@@ -3,7 +3,7 @@
    Standard-mode pricing snapshot verified 2026-09-23 against OpenAI model docs. */
 
 const clean = (value, max = 65536) => String(value ?? '').trim().slice(0, max);
-const API_URL = 'https://api.openai.com/v1/chat/completions';
+const API_URL = 'https://api.openai.com/v1/responses';
 const MAX_RESPONSE_CHARS = 2_000_000;
 
 export const JARVIS_OPENAI_MODEL_PRICES_V1 = Object.freeze({
@@ -22,6 +22,22 @@ function makeError(code, status = 0) {
 function boundedPositive(value, fallback, max) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.min(max, Math.round(parsed)) : fallback;
+}
+
+function responseOutputText(body) {
+  const direct = clean(body?.output_text, 65536);
+  if (direct) return direct;
+  if (!Array.isArray(body?.output)) return '';
+  const parts = [];
+  for (const item of body.output) {
+    if (!item || !Array.isArray(item.content)) continue;
+    for (const part of item.content) {
+      if (!part || !['output_text', 'text'].includes(part.type)) continue;
+      const value = clean(part.text, 65536);
+      if (value) parts.push(value);
+    }
+  }
+  return clean(parts.join('\\n'), 65536);
 }
 
 export function estimateJarvisOpenAiCostV1(model, inputTokens, outputTokens) {
@@ -65,9 +81,9 @@ export function createJarvisOpenAiBrainClientV1(config = {}) {
     const reasoningEffort = clean(input.reasoning_effort, 20);
     const payload = {
       model,
-      messages,
-      max_completion_tokens: maxCompletionTokens,
-      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {})
+      input: messages,
+      max_output_tokens: maxCompletionTokens,
+      ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {})
     };
 
     const controller = new AbortController();
@@ -103,12 +119,12 @@ export function createJarvisOpenAiBrainClientV1(config = {}) {
 
     if (!response.ok) throw makeError('JARVIS_OPENAI_HTTP_' + response.status, response.status);
 
-    const text = clean(body?.choices?.[0]?.message?.content, 65536);
+    const text = responseOutputText(body);
     if (!text) throw makeError('JARVIS_OPENAI_EMPTY_RESPONSE');
 
     const usage = body?.usage || {};
-    const promptTokens = Math.max(0, Number(usage.prompt_tokens) || 0);
-    const completionTokens = Math.max(0, Number(usage.completion_tokens) || 0);
+    const promptTokens = Math.max(0, Number(usage.input_tokens ?? usage.prompt_tokens) || 0);
+    const completionTokens = Math.max(0, Number(usage.output_tokens ?? usage.completion_tokens) || 0);
     const totalTokens = Math.max(0, Number(usage.total_tokens) || promptTokens + completionTokens);
     const costUsd = estimateJarvisOpenAiCostV1(model, promptTokens, completionTokens);
 
