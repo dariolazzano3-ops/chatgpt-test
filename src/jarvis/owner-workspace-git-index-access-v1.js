@@ -469,6 +469,21 @@ function recoverLocallyExcludedProjectV1(repoDir) {
 
   if (!patterns.length) return { ok: true, recovered: false, files: [] };
 
+  // A local exclude is already the fail-closed quarantine boundary for an
+  // untracked stale project. Do not attempt a second cross-boundary move:
+  // the private runtime may have write access only through a bind-mounted
+  // project path while the ignored candidate lives on the underlying host
+  // workspace. Preserve it byte-for-byte and let normal status/stash handling
+  // deal only with remaining non-ignored residue.
+  return {
+    ok: true,
+    recovered: false,
+    files: [],
+    patterns_removed: [],
+    preserved_patterns: patterns,
+    mode: 'PRESERVE_LOCAL_EXCLUDE_QUARANTINE'
+  };
+
   let branch, head;
   try {
     branch = git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
@@ -776,6 +791,7 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     local_exclude_recovered: localExcludeRecovery.recovered === true,
     local_exclude_recovered_files: localExcludeRecovery.files || [],
     local_exclude_patterns_removed: localExcludeRecovery.patterns_removed || [],
+    local_exclude_preserved_patterns: localExcludeRecovery.preserved_patterns || [],
     local_exclude_recovery_mode: localExcludeRecovery.mode || null,
     unrelated_dirty_quarantined: unrelatedDirtyQuarantine?.quarantined === true,
     quarantine_files: unrelatedDirtyQuarantine?.files || [],
@@ -804,7 +820,8 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch: true,
     stale_failed_project_scope_quarantine_supported: true,
     local_exclude_recovery_supported: true,
-    local_exclude_recovery_uses_atomic_rename: true,
+    local_exclude_recovery_uses_atomic_rename: false,
+    local_exclude_quarantine_preserved_when_already_present: true,
     local_exclude_recovery_refuses_tracked_content: true,
     stale_failed_project_scope_quarantine_requires_explicit_scoped_flag: true,
     stale_failed_project_scope_quarantine_uses_git_stash_include_untracked: true,

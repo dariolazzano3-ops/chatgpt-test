@@ -129,11 +129,12 @@ try {
     worker_gid: gid
   });
   assert.equal(excludeRecovered.ok, true);
-  assert.equal(excludeRecovered.local_exclude_recovered, true);
-  assert.equal(excludeRecovered.local_exclude_recovery_mode, 'ATOMIC_RENAME_IGNORED_PROJECT');
-  assert.equal(fs.existsSync(staleProject), false, 'stale ignored project must be moved out of worktree');
-  assert.equal(fs.readFileSync(excludePath, 'utf8').includes('/projects/gelato-donatello-website-v5/'), false,
-    'local exclude must be removed after quarantine');
+  assert.equal(excludeRecovered.local_exclude_recovered, false);
+  assert.equal(excludeRecovered.local_exclude_recovery_mode, 'PRESERVE_LOCAL_EXCLUDE_QUARANTINE');
+  assert.deepEqual(excludeRecovered.local_exclude_preserved_patterns, ['/projects/gelato-donatello-website-v5/']);
+  assert.equal(fs.existsSync(staleProject), true, 'already quarantined project must be preserved byte-for-byte');
+  assert.equal(fs.readFileSync(excludePath, 'utf8').includes('/projects/gelato-donatello-website-v5/'), true,
+    'local exclude must remain the quarantine boundary');
   assert.equal(git(['status', '--porcelain', '--untracked-files=all']), '');
 
   fs.writeFileSync(path.join(tmp, '.git', 'index.lock'), 'active lock');
