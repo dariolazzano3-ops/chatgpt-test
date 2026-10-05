@@ -1,0 +1,78 @@
+name: Donatello Private V5 Preview
+
+on:
+  push:
+    branches:
+      - factory/donatello-private-preview-v5
+    paths:
+      - '.github/workflows/donatello-private-preview-v5.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PREVIEW_WORKER: gelato-donatello-private-preview-v2
+      PREVIEW_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout private preview revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify bounded target and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "factory/donatello-private-preview-v5"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -f projects/gelato-donatello-v5-final/index.html
+          test -f scripts/gelato-donatello-v5-final-smoke.mjs
+
+      - name: Run Donatello V5 acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/gelato-donatello-v5-final-smoke.mjs
+          grep -R 'noindex,nofollow,noarchive' projects/gelato-donatello-v5-final/*.html projects/gelato-donatello-v5-final/*/index.html >/dev/null
+
+      - name: Create private Worker static-assets config
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > wrangler.donatello-private-preview.toml <<'EOF'
+          name = "gelato-donatello-private-preview-v2"
+          compatibility_date = "2026-10-05"
+          workers_dev = true
+          preview_urls = false
+
+          [assets]
+          directory = "./projects/gelato-donatello-v5-final"
+          html_handling = "auto-trailing-slash"
+          EOF
+
+      - name: Deploy only to existing private preview Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy --config wrangler.donatello-private-preview.toml
+
+      - name: Verify Cloudflare Access still protects preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSI --max-time 20 "$PREVIEW_URL/" > /tmp/donatello-preview-headers
+          STATUS=$(head -n 1 /tmp/donatello-preview-headers | awk '{print $2}')
+          test "$STATUS" = "302"
+          tr -d '\r' < /tmp/donatello-preview-headers | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          echo "Private Access gate: PASS"
+          echo "Preview: $PREVIEW_URL/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Public production / DNS touched: NO" >> "$GITHUB_STEP_SUMMARY"
