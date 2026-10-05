@@ -56,7 +56,7 @@ export function conservativeTokenEstimateV1(messages = []) {
 export function createJarvisOpenAiBrainClientV1(config = {}) {
   const apiKey = clean(config.api_key, 4000);
   const fetchImpl = typeof config.fetch_impl === 'function' ? config.fetch_impl : globalThis.fetch;
-  const timeoutMs = boundedPositive(config.timeout_ms, 30000, 120000);
+  const timeoutMs = boundedPositive(config.timeout_ms, 90000, 120000);
   const allowedModels = new Set(
     (Array.isArray(config.allowed_models) ? config.allowed_models : Object.keys(JARVIS_OPENAI_MODEL_PRICES_V1))
       .map((x) => clean(x, 120))
