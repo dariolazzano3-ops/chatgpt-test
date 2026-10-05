@@ -6,9 +6,9 @@
     "scope_key": "gelato-donatello:gelato-donatello-v5-final"
   },
   "provenance": {
-    "source": "AURENTARA_PROJECT_MISSION_V1_OWNER_BRIEF",
+    "source": "AURENTARA_OWNER_BASELINE_CURRENT",
     "captured_at": "2026-10-05",
-    "rule": "Nur Fakten, die im Owner-Mission-Brief explizit benannt wurden, werden als OPERATOR_CONFIRMED gefuehrt. Alles andere bleibt PENDING_OWNER_CONFIRMATION und wird im Frontend nicht als Fakt dargestellt."
+    "rule": "Owner-bestaetigte Daten aus der aktuellen V5-Baseline werden als OPERATOR_CONFIRMED gefuehrt. Nicht bestaetigte Angaben bleiben PENDING_OWNER_CONFIRMATION und werden nicht als Fakt dargestellt."
   },
   "facts": [
     {
@@ -33,7 +33,12 @@
     },
     {
       "field_path": "business.address",
-      "value": { "street": "Hauptstrasse 4", "postal_code": "66346", "city": "Koellerbach", "country": "DE" },
+      "value": {
+        "street": "Hauptstrasse 4",
+        "postal_code": "66346",
+        "city": "Koellerbach",
+        "country": "DE"
+      },
       "verification_status": "OPERATOR_CONFIRMED"
     },
     {
@@ -56,16 +61,48 @@
       "field_path": "products.flavor_names",
       "value": {
         "regular": [
-          "After Eight", "Amarena Kirsch", "Banane", "Blauer Engel", "Buttermilch-Sanddorn",
-          "Cookies", "Dark Chocolate", "Dubai Eis", "Erdbeere", "Haselnuss",
-          "Himbeer", "Joghurt", "Lemon Crumble", "Malaga", "Mango",
-          "Mascarpone Pistazien", "Melone", "Mocca", "Mozart Praline", "Nutella",
-          "Oreo Keks", "Pistazie", "Raffaello", "Schokolade", "Siciliano",
-          "Snickers", "Stracciatella", "Vanille", "Yogo Twist", "Zitrone"
+          "After Eight",
+          "Amarena Kirsch",
+          "Banane",
+          "Blauer Engel",
+          "Buttermilch-Sanddorn",
+          "Cookies",
+          "Dark Chocolate",
+          "Dubai Eis",
+          "Erdbeere",
+          "Haselnuss",
+          "Himbeer",
+          "Joghurt",
+          "Lemon Crumble",
+          "Malaga",
+          "Mango",
+          "Mascarpone Pistazien",
+          "Melone",
+          "Mocca",
+          "Mozart Praline",
+          "Nutella",
+          "Oreo Keks",
+          "Pistazie",
+          "Raffaello",
+          "Schokolade",
+          "Siciliano",
+          "Snickers",
+          "Stracciatella",
+          "Vanille",
+          "Yogo Twist",
+          "Zitrone"
         ],
         "specials": [
-          "Açaí", "Amarena Crunchy", "Blond Brownie", "Cointreau", "Dragon Summer",
-          "Guapa", "Orange Minze", "Pokémon Party", "Quark Orange", "Strawberry Matcha",
+          "Açaí",
+          "Amarena Crunchy",
+          "Blond Brownie",
+          "Cointreau",
+          "Dragon Summer",
+          "Guapa",
+          "Orange Minze",
+          "Pokémon Party",
+          "Quark Orange",
+          "Strawberry Matcha",
           "Zuppa Inglese"
         ]
       },
@@ -75,20 +112,25 @@
     {
       "field_path": "products.kernpreise",
       "value": {
-        "kugel_eur": 1.60,
-        "sahne_eur": 1.20,
+        "kugel_eur": 1.6,
+        "sahne_eur": 1.2,
         "sosse_eur": 1,
-        "creme_eur": 1.50,
-        "likoer_eur": 1.50,
+        "creme_eur": 1.5,
+        "likoer_eur": 1.5,
         "streusel_eur": 1
       },
       "verification_status": "OPERATOR_CONFIRMED",
-      "rule": "Kernpreise woertlich aus dem Owner-Brief: Kugel 1,60€; Sahne 1,20€; Sosse 1€; Cremes 1,50€; Likoer 1,50€; Streusel 1€. Keine erfundenen Becher-Gesamtpreise."
+      "rule": "Kernpreise woertlich aus der aktuellen Owner-Quelle."
     },
     {
       "field_path": "products.eistorten",
       "value": {
-        "sizes_eur": { "18cm": 65, "20cm": 75, "24cm": 95, "26cm": 109 },
+        "sizes_eur": {
+          "18cm": 65,
+          "20cm": 75,
+          "24cm": 95,
+          "26cm": 109
+        },
         "included_flavors": 2,
         "premium_surcharge_eur": 5
       },
@@ -98,7 +140,10 @@
     {
       "field_path": "products.eisbomben",
       "value": {
-        "sizes_eur": { "40_kugeln": 75, "60_kugeln": 109 },
+        "sizes_eur": {
+          "40_kugeln": 75,
+          "60_kugeln": 109
+        },
         "max_flavors": 6,
         "premium_surcharge_eur": 5
       },
@@ -117,6 +162,357 @@
       },
       "verification_status": "OPERATOR_CONFIRMED",
       "rule": "Eisvitrine-Konditionen woertlich aus dem Owner-Brief."
+    },
+    {
+      "field_path": "products.eisbecher_karte",
+      "value": {
+        "category_count": 7,
+        "source_entry_count": 68,
+        "categories": {
+          "kleine_gaeste": [
+            [
+              "Smarties",
+              4.9
+            ],
+            [
+              "Pinocchio",
+              4.9
+            ],
+            [
+              "Mickey Mouse",
+              4.9
+            ],
+            [
+              "Spaghetti",
+              4.9
+            ],
+            [
+              "Gummibären",
+              4.9
+            ],
+            [
+              "Biene Maja",
+              4.9
+            ]
+          ],
+          "frisch_fruchtig": [
+            [
+              "Kiwi",
+              7.5
+            ],
+            [
+              "Erdbeer",
+              7.5
+            ],
+            [
+              "Früchte",
+              8.5
+            ],
+            [
+              "Coppa Italia",
+              8.5
+            ],
+            [
+              "Mango",
+              7.5
+            ],
+            [
+              "Ananas",
+              7.5
+            ],
+            [
+              "Himbeer",
+              8.5
+            ],
+            [
+              "Waldbeer",
+              8.5
+            ]
+          ],
+          "nussig_schokoladig": [
+            [
+              "Schoko",
+              7
+            ],
+            [
+              "Stracciatella",
+              7
+            ],
+            [
+              "Karamell",
+              7
+            ],
+            [
+              "Cookies",
+              7
+            ],
+            [
+              "Krokant",
+              7.5
+            ],
+            [
+              "Walnuss",
+              7.5
+            ],
+            [
+              "Haselnuss",
+              7.5
+            ],
+            [
+              "Nutella",
+              7.5
+            ],
+            [
+              "Crumble Becher",
+              7.5
+            ],
+            [
+              "Giotto",
+              8
+            ],
+            [
+              "Toffifee",
+              8
+            ],
+            [
+              "Pistazien",
+              9
+            ],
+            [
+              "Mozart Becher",
+              9
+            ]
+          ],
+          "mit_alkohol": [
+            [
+              "Eierlikör",
+              7.5
+            ],
+            [
+              "Malaga",
+              7.5
+            ],
+            [
+              "Tartufo",
+              8.5
+            ],
+            [
+              "Amaretto",
+              7.5
+            ],
+            [
+              "Banana Cup",
+              7.5
+            ],
+            [
+              "Schwarzwald",
+              7.5
+            ]
+          ],
+          "suesse_versuchungen": [
+            [
+              "Rocher",
+              8.5
+            ],
+            [
+              "After Eight",
+              8,
+              "mit Likör"
+            ],
+            [
+              "Raffaello",
+              8
+            ],
+            [
+              "Tartufo",
+              8.5,
+              "mit Likör"
+            ],
+            [
+              "Banana Split",
+              8
+            ],
+            [
+              "Köllerbacher",
+              8.5,
+              "mit Likör"
+            ],
+            [
+              "Erdbeer",
+              7.5
+            ],
+            [
+              "Ananas",
+              7.5
+            ],
+            [
+              "Früchte",
+              8.5
+            ],
+            [
+              "Nusstraum",
+              8.5,
+              "mit Likör"
+            ]
+          ],
+          "spaghetti_becher": [
+            [
+              "Spaghettieis",
+              7
+            ],
+            [
+              "Spaghettieis XL",
+              10.5
+            ],
+            [
+              "Tricolore",
+              7
+            ],
+            [
+              "Neri",
+              7
+            ],
+            [
+              "Joghurt",
+              7
+            ],
+            [
+              "Erdbeer",
+              7.5
+            ],
+            [
+              "Kiwi",
+              7.5
+            ],
+            [
+              "Italia",
+              8.5
+            ],
+            [
+              "Bonito",
+              7.5
+            ],
+            [
+              "Amarena",
+              7.5
+            ],
+            [
+              "Carbonara",
+              7.5
+            ],
+            [
+              "Melone",
+              7.5
+            ],
+            [
+              "Waldbeer",
+              8.5
+            ]
+          ],
+          "joghurtbecher": [
+            [
+              "Melone",
+              7.5
+            ],
+            [
+              "Erdbeer",
+              7.5
+            ],
+            [
+              "Früchte",
+              8.5
+            ],
+            [
+              "Amarena",
+              7.5
+            ],
+            [
+              "Ananas",
+              7.5
+            ],
+            [
+              "Himbeer",
+              8.5
+            ],
+            [
+              "Waldbeer",
+              8.5
+            ],
+            [
+              "Mango",
+              7.5
+            ],
+            [
+              "Kiwi",
+              7.5
+            ],
+            [
+              "Italia",
+              8.5
+            ],
+            [
+              "Banane",
+              7.5
+            ],
+            [
+              "Waldbeer",
+              8.5,
+              "DUPLICATE_IN_SOURCE"
+            ]
+          ]
+        },
+        "data_quality_note": "Waldbeer ist in der Joghurtbecher-Quelle zweimal aufgefuehrt; beide Eintraege bleiben bis zur Owner-Bereinigung erhalten."
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "Preise und Bezeichnungen aus der aktuellen Owner-Quelle. Duplikat nicht stillschweigend entfernt."
+    },
+    {
+      "field_path": "products.extras",
+      "value": {
+        "sossen_1_eur": [
+          "Schoko",
+          "Nutella",
+          "Karamell",
+          "Mocca",
+          "Walnuss",
+          "Amaretto",
+          "Amarena",
+          "Erdbeer",
+          "Himbeer",
+          "Waldbeer",
+          "Melone",
+          "Mango",
+          "Kiwi"
+        ],
+        "cremes_1_50_eur": [
+          "Pistaziencreme",
+          "Haselnusscreme"
+        ],
+        "likoere_1_50_eur": [
+          "Amaretto",
+          "Eierlikör",
+          "Nougatlikör",
+          "Baileys",
+          "Schokolikör",
+          "Batida de Coco",
+          "Kirschwasser",
+          "Kirschlikör",
+          "Pfefferminzlikör"
+        ],
+        "toppings_1_eur": [
+          "dunkle Schokolade",
+          "weiße Schokolade",
+          "Nuss Streusel",
+          "Krokant Streusel",
+          "Karamell Crumble",
+          "Butter Crumble",
+          "Gummibärchen",
+          "Smarties",
+          "Marshmallows"
+        ]
+      },
+      "verification_status": "OPERATOR_CONFIRMED",
+      "rule": "33 Extras aus der aktuellen Owner-Quelle."
     }
   ],
   "asset_rights": {

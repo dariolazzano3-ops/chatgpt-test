@@ -155,6 +155,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .price-facts { list-style: none; margin: var(--space-md) 0; padding: 0; display: grid; gap: var(--space-xs); }
 .price-facts li { padding: var(--space-xs) 0; border-bottom: 1px dashed var(--color-border); }
 
+/* -------------------------------------------------- Eisbecher menu -- */
+.section-intro { max-width: 720px; color: var(--color-ink-soft); }
+.menu-groups { display: grid; gap: var(--space-md); margin-top: var(--space-lg); }
+.menu-group { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); }
+.menu-group__title { font-size: var(--fs-display-sm); margin-bottom: var(--space-xs); }
+.menu-group .price-table { max-width: none; margin-block: var(--space-xs) 0; }
+.price-table__label { min-width: 0; }
+.price-table__note { display: block; margin-top: 2px; font-size: 0.75rem; color: var(--color-ink-soft); font-style: italic; }
+.menu-source-note { margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--color-border); font-size: var(--fs-small); color: var(--color-ink-soft); }
+@media (min-width: 768px) {
+  .menu-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .menu-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* -------------------------------------------------- Request form -- */
 .request-form { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); max-width: 560px; }
 .konfigurator__choice { display: flex; align-items: center; gap: var(--space-xs); min-height: var(--touch-target-min); }

@@ -9,17 +9,35 @@
   "language": "de",
   "environment": "private-staging",
   "website_standard": "aurentara.premium-website-standard.v1",
-  "purpose": "Eigenstaendige, finale Premium-Gelateria-Markenseite fuer Gelato Donatello gemaess AURENTARA_PROJECT_MISSION_V1 (2026-10-05 Owner-Brief), inklusive erstmals bestaetigter Kernpreise. Unabhaengig neu aufgebaut, nicht auf Basis von projects/gelato-donatello-website-v5/ oder projects/gelato-donatello-premium-v5/.",
+  "purpose": "Eigenstaendige, finale Premium-Gelateria-Markenseite fuer Gelato Donatello gemaess aktueller Owner-Baseline, inklusive 41 Sorten, vollstaendiger Eisbecher-Karte, Extras sowie Eistorten-, Eisbomben- und Eisvitrine-Preisen.",
   "basis_note": "Dieses Projekt ist eine eigenstaendige Neuimplementierung unter projects/gelato-donatello-v5-final/. Die bestehenden Ordner projects/gelato-donatello-website-v5/ und projects/gelato-donatello-premium-v5/ wurden NICHT veraendert und NICHT als Code- oder Content-Basis kopiert; lediglich bereits etablierte Repo-Konventionen (Dateistruktur, Design-Tokens-Ansatz, CSP-sichere Komponentenmuster, Safety-/Indexing-Pattern) wurden wiederverwendet (reuse-first).",
-  "predecessor_note": "Gegenueber projects/gelato-donatello-premium-v5/ ergaenzt dieses Projekt die in diesem neuen Owner-Brief erstmals bestaetigten Kernpreise (Kugel, Sahne, Sosse, Creme, Likoer, Streusel) sowie Eistorten-, Eisbomben- und Eisvitrine-Preise, die zuvor als PENDING_OWNER_CONFIRMATION gefuehrt wurden.",
+  "predecessor_note": "Gegenueber dem ersten V5-Release enthaelt dieser Stand zusaetzlich die vollstaendige owner-bestaetigte Eisbecher-Karte mit 68 Quelleneintraegen sowie 33 bestaetigte Sossen/Cremes/Likoere/Toppings.",
   "design_direction": "Bilddominant, editorial, grosse Food-Flaechen, grosszuegiger Weissraum, starke Typografie, ruhige Bewegung, mobile first (390px) bis Desktop (1440px). Keine Corporate-Dashboard-Optik. Buonissimo nur als Prinzipienreferenz, keine Kopie.",
   "expected_page_set": [
-    { "path": "/", "title": "Start" },
-    { "path": "/sortiment/", "title": "Sortiment" },
-    { "path": "/eisbecher/", "title": "Eisbecher" },
-    { "path": "/eistorten-eisbomben/", "title": "Eistorten & Eisbomben" },
-    { "path": "/eisvitrine/", "title": "Eisvitrine" },
-    { "path": "/kontakt/", "title": "Besuch / Kontakt" }
+    {
+      "path": "/",
+      "title": "Start"
+    },
+    {
+      "path": "/sortiment/",
+      "title": "Sortiment"
+    },
+    {
+      "path": "/eisbecher/",
+      "title": "Eisbecher"
+    },
+    {
+      "path": "/eistorten-eisbomben/",
+      "title": "Eistorten & Eisbomben"
+    },
+    {
+      "path": "/eisvitrine/",
+      "title": "Eisvitrine"
+    },
+    {
+      "path": "/kontakt/",
+      "title": "Besuch / Kontakt"
+    }
   ],
   "safety": {
     "production_deploy": false,
@@ -41,8 +59,8 @@
     "Keine Oeffnungszeiten bestaetigt – bewusst nicht veroeffentlicht, bis vom Inhaber bestaetigt.",
     "Owner-Bildmaterial (Laden, Vitrine, 41 Sortenbilder, Eisbecher, Eistorten, Eisbomben, Spaghetti-Eistorten) ist angekuendigt, aber in dieser Session noch nicht physisch im Workspace eingegangen – Asset-Manifest mit stabilen Drop-in-Pfaden ist vorbereitet, gestaltete Platzhalter sind aktiv, keine Stockfotos verwendet, keine Bilder als bereits ingestiert behauptet.",
     "Keine Ernaehrungs-, Allergen- oder Alkoholmerkmale ergaenzt, da im Brief nicht belegt.",
+    "Die Owner-Quelle fuehrt Waldbeer bei den Joghurtbechern zweimal. Beide Quelleneintraege bleiben bis zur finalen Owner-Bereinigung erhalten und sind als Datenqualitaets-Hinweis markiert.",
     "Kein bestaetigter digitaler Anfragekanal (E-Mail/CRM) – Anfrage-Formulare fassen lokal zusammen und verweisen auf Telefon/Besuch statt eine Uebermittlung zu simulieren.",
-    "Exakte Becher-Komposition/Gesamtpreise (einzelne Eisbecher-Kombinationen) nicht benannt – nur die bestaetigten Kernpreise (Kugel/Sahne/Sosse/Creme/Likoer/Streusel) werden gezeigt, keine erfundenen Becher-Gesamtpreise.",
     "Impressum/Datenschutz bewusst ausserhalb des beauftragten 6-Seiten-Scopes; vor jeder oeffentlichen Phase nachzuruesten."
   ]
 }

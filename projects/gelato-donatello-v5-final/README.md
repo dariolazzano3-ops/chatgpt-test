@@ -1,7 +1,7 @@
 # Gelato Donatello &mdash; Premium Website V5 (Final)
 
 Eigenstaendige, private Markenseite fuer Gelato Donatello im AURENTARA-Projekt,
-mit erstmals vollstaendig bestaetigten Kernpreisen. Statische,
+mit 41 bestaetigten Sorten, vollstaendiger Eisbecher-Karte und bestaetigten Extras/Preisen. Statische,
 abhaengigkeitsfreie Frontend-Codebasis (kein Build-Schritt notwendig) &mdash;
 HTML/CSS/ESM-JavaScript, konsistent mit den anderen `projects/*` Websites in
 diesem Repository.
@@ -26,7 +26,7 @@ Komponentenmuster, Reuse-first).
 ```
 index.html                     Start
 sortiment/index.html           Sortiment: 41 echte Sortennamen (30 Regular, 11 Specials)
-eisbecher/index.html           Eisbecher + bestaetigte Kernpreise (Kugel/Sahne/Sosse/Creme/Likoer/Streusel)
+eisbecher/index.html           Vollstaendige Eisbecher-Karte + Sossen/Cremes/Likoere/Toppings
 eistorten-eisbomben/index.html Eistorten (18-26cm), Eisbomben (40/60 Kugeln), Spaghetti-Eistorten + Anfrage
 eisvitrine/index.html          Eisvitrine mieten (Miete/Kaution/Inhalt) + Anfrage
 kontakt/index.html             Besuch & Kontakt
@@ -70,8 +70,8 @@ und sind dort mit Quelle/Status versehen:
   inklusive, ca. 90 x 75 x 45 cm): alle `OPERATOR_CONFIRMED`, woertlich aus
   dem Owner-Brief (`assets/js/data/pricing.js`).
 - **Oeffnungszeiten**: nicht genannt, daher nicht veroeffentlicht.
-- **Exakte Becher-Gesamtpreise** (einzelne Becher-Kombinationen): nicht
-  benannt, daher nicht erfunden &mdash; nur die Kernpreise werden gezeigt.
+- **Eisbecher-Karte**: 7 Kategorien mit 68 Quelleneintraegen und bestaetigten Einzelpreisen. Das doppelte Waldbeer bei den Joghurtbechern bleibt als markierter Quellen-Datensatz erhalten.
+- **Extras**: 13 Sossen, 2 Cremes, 9 Likoere und 9 Toppings mit bestaetigten Preisen.
 
 ## Wiederverwendung (reuse-first)
 
@@ -98,7 +98,7 @@ es wird an keiner Stelle behauptet, dass Bilder bereits eingebunden sind.
 node scripts/gelato-donatello-v5-final-smoke.mjs
 ```
 
-Prueft Routen, die 41 Sortendaten, die bestaetigten Kernpreise (Eisbecher,
+Prueft Routen, die 41 Sortendaten, die komplette Eisbecher-Karte (68 Quelleneintraege), 33 Extras, die bestaetigten Kernpreise (Eisbecher,
 Eistorten, Eisbomben, Eisvitrine), das Asset-Manifest, Safety-Flags,
 mobile/1440px CSS-Breakpoints, `prefers-reduced-motion`, CSP-Konformität
 (keine Inline-Styles) sowie, dass die bestehenden Alt-Ordner weiterhin

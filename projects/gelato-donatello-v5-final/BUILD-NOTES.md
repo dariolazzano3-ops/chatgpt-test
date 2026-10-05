@@ -22,7 +22,9 @@ irgendeiner Form veraendert &mdash; beide wurden ausschliesslich lesend als
 Konventionsreferenz genutzt. Wesentliche inhaltliche Weiterentwicklung
 gegenueber `gelato-donatello-premium-v5`:
 
-- **Kernpreise sind jetzt bestaetigt und veroeffentlicht**: Kugel 1,60 €,
+- **Die komplette Eisbecher-Karte ist jetzt strukturiert hinterlegt**: 7 Kategorien, 68 Quelleneintraege und alle bestaetigten Einzelpreise. Das doppelte Waldbeer in der Joghurt-Quelle bleibt markiert erhalten.
+- **Alle Extras sind strukturiert hinterlegt**: 13 Sossen, 2 Cremes, 9 Likoere und 9 Toppings.
+- **Kernpreise sind bestaetigt und veroeffentlicht**: Kugel 1,60 €,
   Sahne 1,20 €, Sosse 1 €, Creme 1,50 €, Likoer 1,50 €, Streusel 1 €
   (`assets/js/data/pricing.js`, zuvor in `gelato-donatello-premium-v5` als
   `PENDING_OWNER_CONFIRMATION` gefuehrt und nicht angezeigt).
@@ -95,9 +97,8 @@ dynamisch) und prueft:
 - `assets/js/data/flavors.js` enthaelt genau 41 Eintraege (30 `regular`,
   11 `special`), alle `status: 'confirmed'`, keine Duplikate; Stichproben
   echter Sortennamen sind vorhanden.
-- `assets/js/data/pricing.js` entspricht exakt den bestaetigten Kernpreisen,
-  Eistorten-/Eisbomben-Groessen und der Eisvitrine-Konditionen aus dem
-  Owner-Brief.
+- `assets/js/data/pricing.js` enthaelt zusaetzlich die vollstaendige Eisbecher-Karte (7 Kategorien / 68 Quelleneintraege) und 33 Extras; das doppelte Waldbeer der Joghurt-Quelle ist explizit markiert.
+- `assets/js/data/pricing.js` entspricht den bestaetigten Kernpreisen, Eistorten-/Eisbomben-Groessen und der Eisvitrine-Konditionen aus der Owner-Quelle.
 - Die bestaetigten Preise erscheinen tatsaechlich im HTML-Inhalt der
   jeweiligen Seiten (Eisbecher, Eistorten & Eisbomben, Eisvitrine).
 - Geschaeftsfakten stimmen mit dem Owner-Brief ueberein; Oeffnungszeiten
@@ -129,10 +130,12 @@ sind keine Laufzeitabhaengigkeit dieses Releases.
 - Keine Oeffnungszeiten bestaetigt.
 - Owner-Fotomaterial ist angekuendigt, aber in dieser Session noch nicht
   physisch im Workspace eingegangen; alle Manifest-Eintraege `pending`.
-- Exakte Becher-Gesamtpreise (einzelne Becher-Kompositionen) nicht benannt;
-  nur die Kernpreise werden gezeigt.
 - Kein bestaetigter digitaler Anfrage-Kanal (E-Mail/CRM) &rarr; Anfrage-Formulare
   fassen lokal zusammen statt zu versenden (technisch durch `form-action 'none'`
   in `_headers` zusaetzlich abgesichert).
 - Impressum/Datenschutz bewusst ausserhalb des beauftragten 6-Seiten-Scopes.
 - Der V5-Smoke wurde im isolierten Release-Checkout tatsaechlich ausgefuehrt und PASS verifiziert.
+
+## Daten-Pass Acceptance
+
+Am 2026-10-05 wurde der erweiterte V5-Smoke nach Integration der vollstaendigen Eisbecher- und Extras-Daten tatsaechlich ausgefuehrt. PASS: 6 Routen, 41 Sorten, 68 Becher-Quelleneintraege, 33 Extras, Kernpreise, Eistorten/Eisbomben, Eisvitrine, Safety/NOINDEX, Asset-Manifest und responsive CSS. Alle Projekt-JavaScript-Dateien bestanden node --check; alle JSON-Dateien wurden erfolgreich geparst.
