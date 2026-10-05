@@ -27,6 +27,8 @@ import {
   readFileSync,
   readlinkSync,
   mkdirSync,
+  renameSync,
+  unlinkSync,
   writeFileSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -451,6 +453,117 @@ function excludeUntrackedProjectDirectoryV1(repoDir, branch, head) {
   }
 }
 
+
+function recoverLocallyExcludedProjectV1(repoDir) {
+  const excludePath = path.join(repoDir, '.git', 'info', 'exclude');
+  if (!existsSync(excludePath)) return { ok: true, recovered: false, files: [] };
+
+  let before = '';
+  try { before = readFileSync(excludePath, 'utf8'); }
+  catch { return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_READ_FAILED' }; }
+
+  const lines = before.split('\n');
+  const patterns = [...new Set(lines.map((line) => line.trim()).filter((line) =>
+    /^\/projects\/[A-Za-z0-9._-]+\/$/.test(line)
+  ))];
+
+  if (!patterns.length) return { ok: true, recovered: false, files: [] };
+
+  let branch, head;
+  try {
+    branch = git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    head = git(repoDir, ['rev-parse', 'HEAD']);
+  } catch {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_TRUTH_UNAVAILABLE' };
+  }
+
+  const moved = [];
+  const recoveredFiles = [];
+  try {
+    for (const pattern of patterns) {
+      const rel = pattern.slice(1, -1);
+      const source = path.join(repoDir, rel);
+      if (!existsSync(source)) continue;
+
+      const tracked = git(repoDir, ['ls-files', '--', rel]);
+      if (tracked) {
+        throw Object.assign(new Error('tracked content under excluded project'), { code: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_TRACKED_REFUSED' });
+      }
+
+      const st = lstatSync(source);
+      if (!st.isDirectory() || st.isSymbolicLink()) {
+        throw Object.assign(new Error('excluded project is not a plain directory'), { code: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_SOURCE_INVALID' });
+      }
+
+      const ignored = git(repoDir, ['ls-files', '--others', '--ignored', '--exclude-standard', '--', rel]);
+      const files = ignored ? ignored.split('\n').map((line) => clean(line, 500)).filter(Boolean).sort() : [];
+      if (!files.length) {
+        throw Object.assign(new Error('excluded project has no ignored untracked files'), { code: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_EMPTY' });
+      }
+
+      const quarantineRoot = path.join(repoDir, '.git', 'jarvis-owner-untracked-quarantine');
+      mkdirSync(quarantineRoot, { recursive: true, mode: 0o770 });
+      const digest = createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 16);
+      const slug = path.basename(rel).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80);
+      const destination = path.join(quarantineRoot, head.slice(0, 12) + '-' + slug + '-' + digest);
+      const metadataPath = destination + '.json';
+
+      if (existsSync(destination) || existsSync(metadataPath)) {
+        throw Object.assign(new Error('quarantine destination already exists'), { code: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_COLLISION' });
+      }
+
+      renameSync(source, destination);
+      moved.push({ source, destination, metadataPath, pattern });
+
+      writeFileSync(metadataPath, JSON.stringify({
+        schema: 'aurentara.jarvis.owner-untracked-project-quarantine.v1',
+        branch,
+        head,
+        original_path: rel,
+        quarantine_path: path.relative(repoDir, destination),
+        files,
+        reason: 'RECOVER_JARVIS_LOCAL_EXCLUDE_BEFORE_NEW_OWNER_JOB'
+      }, null, 2) + '\n', { mode: 0o660 });
+      recoveredFiles.push(...files);
+    }
+
+    const removable = new Set(patterns);
+    const afterText = lines.filter((line) => !removable.has(line.trim())).join('\n');
+    writeFileSync(excludePath, afterText);
+
+    for (const pattern of patterns) {
+      const rel = pattern.slice(1, -1);
+      if (existsSync(path.join(repoDir, rel))) {
+        throw Object.assign(new Error('excluded project path still exists after quarantine'), { code: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_VERIFY_FAILED' });
+      }
+    }
+  } catch (error) {
+    for (const entry of moved.reverse()) {
+      try {
+        if (!existsSync(entry.source) && existsSync(entry.destination)) renameSync(entry.destination, entry.source);
+        if (existsSync(entry.metadataPath)) {
+          // Metadata is harmless if rollback cleanup cannot remove it; exclude restoration below is authoritative.
+          try { execFileSync('rm', ['-f', entry.metadataPath], { stdio: 'ignore', timeout: 5000 }); } catch {}
+        }
+      } catch {}
+    }
+    try { writeFileSync(excludePath, before); } catch {}
+    return {
+      ok: false,
+      error: clean(error?.code || 'OWNER_WORKSPACE_LOCAL_EXCLUDE_RECOVERY_FAILED', 160),
+      detail: clean(error?.message, 240)
+    };
+  }
+
+  return {
+    ok: true,
+    recovered: moved.length > 0 || patterns.length > 0,
+    files: sortedUniqueV1(recoveredFiles),
+    patterns_removed: patterns,
+    mode: 'ATOMIC_RENAME_IGNORED_PROJECT'
+  };
+}
+
 function stashStaleFailedProjectStateV1(repoDir) {
   let staged, trackedStatus, untracked;
   try {
@@ -615,6 +728,9 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     return { ok: false, error: 'OWNER_WORKSPACE_SHARED_REPOSITORY_VERIFY_FAILED' };
   }
 
+  const localExcludeRecovery = recoverLocallyExcludedProjectV1(repoDir);
+  if (!localExcludeRecovery.ok) return localExcludeRecovery;
+
   let failedCandidateRecovery = null;
   let unrelatedDirtyQuarantine = null;
   let currentStatus = [];
@@ -657,6 +773,10 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     failed_candidate_files: failedCandidateRecovery?.files || [],
     failed_candidate_diff_matched_exactly: failedCandidateRecovery?.diff_matched_exactly ?? null,
     failed_candidate_filesystem_hash_matched: failedCandidateRecovery?.filesystem_hash_matched ?? null,
+    local_exclude_recovered: localExcludeRecovery.recovered === true,
+    local_exclude_recovered_files: localExcludeRecovery.files || [],
+    local_exclude_patterns_removed: localExcludeRecovery.patterns_removed || [],
+    local_exclude_recovery_mode: localExcludeRecovery.mode || null,
     unrelated_dirty_quarantined: unrelatedDirtyQuarantine?.quarantined === true,
     quarantine_files: unrelatedDirtyQuarantine?.files || [],
     quarantine_patch_sha256: unrelatedDirtyQuarantine?.patch_sha256 || null,
@@ -683,6 +803,9 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     unrelated_dirty_quarantine_supported: true,
     unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch: true,
     stale_failed_project_scope_quarantine_supported: true,
+    local_exclude_recovery_supported: true,
+    local_exclude_recovery_uses_atomic_rename: true,
+    local_exclude_recovery_refuses_tracked_content: true,
     stale_failed_project_scope_quarantine_requires_explicit_scoped_flag: true,
     stale_failed_project_scope_quarantine_uses_git_stash_include_untracked: true,
     stale_failed_project_scope_quarantine_refuses_staged_deleted_renamed_or_conflicted_state: true,

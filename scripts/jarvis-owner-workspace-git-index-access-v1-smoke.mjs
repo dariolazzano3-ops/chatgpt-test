@@ -116,6 +116,26 @@ try {
   assert.equal(noHashMismatch.error, 'OWNER_WORKSPACE_FAILED_CANDIDATE_DIFF_MISMATCH');
   execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', 'README.md'], { cwd: tmp });
 
+  const staleProject = path.join(tmp, 'projects', 'gelato-donatello-website-v5');
+  fs.mkdirSync(staleProject, { recursive: true });
+  fs.writeFileSync(path.join(staleProject, 'index.html'), '<h1>stale candidate</h1>\n');
+  const excludePath = path.join(tmp, '.git', 'info', 'exclude');
+  fs.appendFileSync(excludePath, '/projects/gelato-donatello-website-v5/\n');
+  assert.equal(git(['status', '--porcelain', '--untracked-files=all']), '',
+    'locally excluded stale project should be invisible to ordinary status');
+
+  const excludeRecovered = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
+    repo_dir: tmp,
+    worker_gid: gid
+  });
+  assert.equal(excludeRecovered.ok, true);
+  assert.equal(excludeRecovered.local_exclude_recovered, true);
+  assert.equal(excludeRecovered.local_exclude_recovery_mode, 'ATOMIC_RENAME_IGNORED_PROJECT');
+  assert.equal(fs.existsSync(staleProject), false, 'stale ignored project must be moved out of worktree');
+  assert.equal(fs.readFileSync(excludePath, 'utf8').includes('/projects/gelato-donatello-website-v5/'), false,
+    'local exclude must be removed after quarantine');
+  assert.equal(git(['status', '--porcelain', '--untracked-files=all']), '');
+
   fs.writeFileSync(path.join(tmp, '.git', 'index.lock'), 'active lock');
   const locked = ensureJarvisOwnerWorkspaceGitIndexAccessV1({
     repo_dir: tmp,
