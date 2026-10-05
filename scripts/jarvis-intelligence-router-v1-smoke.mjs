@@ -120,7 +120,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
       }
       return {
         requested_model: model,
-        text: JSON.stringify({ execution_brief: 'Map boundaries, preserve invariants, implement bounded changes, verify independently.' }),
+        text: 'Planner result: ' + JSON.stringify({ execution_brief: 'Map boundaries, preserve invariants, implement bounded changes, verify independently.' }),
         estimated_cost_usd: 0.04
       };
     }
@@ -143,6 +143,37 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.equal(plan.api_fallback_used, true);
   assert.ok(plan.api_cost_usd < 0.25);
   assert.equal(plan.original_goal_authoritative, true);
+}
+
+{
+  let apiCalls = 0;
+  const hermes = {
+    configured: true,
+    chatCompletion: async () => {
+      const error = new Error('timeout');
+      error.code = 'HERMES_CORE_TIMEOUT';
+      throw error;
+    }
+  };
+  const openai = {
+    configured: true,
+    complete: async () => { apiCalls += 1; throw new Error('must not call on deterministic timeout failover'); }
+  };
+  const router = createJarvisIntelligenceRouterV1({
+    hermes_client: hermes,
+    openai_client: openai,
+    api_fallback_enabled: true,
+    max_job_cost_usd: 0.25
+  });
+  const plan = await router.plan({ goal: 'Implement the authenticated bounded owner task.', request_id: 'timeout-local-1' });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.provider, 'LOCAL_DETERMINISTIC');
+  assert.equal(plan.lane, 'STANDARD');
+  assert.equal(plan.primary_failure_reason, 'HERMES_CORE_TIMEOUT');
+  assert.equal(plan.api_fallback_used, false);
+  assert.equal(plan.api_cost_usd, 0);
+  assert.equal(apiCalls, 0);
+  assert.match(plan.execution_brief, /owner goal exactly as written/i);
 }
 
 {

@@ -32,12 +32,21 @@ function stripFence(text) {
 }
 
 function parseJsonObject(text) {
-  try {
-    const parsed = JSON.parse(stripFence(text));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+  const raw = stripFence(text);
+  const parse = (value) => {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+  const exact = parse(raw);
+  if (exact) return exact;
+  const first = raw.indexOf('{');
+  const last = raw.lastIndexOf('}');
+  if (first >= 0 && last > first) return parse(raw.slice(first, last + 1));
+  return null;
 }
 
 function validLane(value) {
@@ -79,6 +88,22 @@ function apiPlannerSystemPrompt(lane) {
     'Preserve every safety constraint. Never add public, production, DNS, billing, secret, destructive, or external actions.',
     'Complexity lane: ' + lane + '.'
   ].join('\n');
+}
+
+function localHermesTimeoutPlan() {
+  return {
+    ok: true,
+    provider: 'LOCAL_DETERMINISTIC',
+    lane: 'STANDARD',
+    model: null,
+    rationale: 'Hermes timed out; preserve the authenticated owner goal without adding another planning dependency.',
+    execution_brief: [
+      'Execute the authenticated owner goal exactly as written.',
+      'Treat the owner goal as authoritative and do not broaden scope or permissions.',
+      'Reuse existing project components and utilities before adding new code.',
+      'Make only bounded workspace changes, run the available safe local checks, and return concrete verification evidence.'
+    ].join(' ')
+  };
 }
 
 function astraPostReviewSystemPrompt() {
@@ -465,6 +490,20 @@ export function createJarvisIntelligenceRouterV1(config = {}) {
         schema: 'aurentara.jarvis.intelligence-plan.v1',
         primary_attempted: true,
         primary_failure_reason: null,
+        original_goal_authoritative: true,
+        max_job_cost_usd: cfg.max_job_cost_usd
+      };
+    }
+
+    if (primary.reason === 'HERMES_CORE_TIMEOUT') {
+      const local = localHermesTimeoutPlan();
+      return {
+        ...local,
+        schema: 'aurentara.jarvis.intelligence-plan.v1',
+        primary_attempted: true,
+        primary_failure_reason: primary.reason,
+        api_fallback_used: false,
+        api_cost_usd: 0,
         original_goal_authoritative: true,
         max_job_cost_usd: cfg.max_job_cost_usd
       };
