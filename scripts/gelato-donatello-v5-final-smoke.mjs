@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readFile, access } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
@@ -65,6 +65,12 @@ const slugs = FLAVORS.map((f) => f.slug);
 assert.equal(new Set(slugs).size, slugs.length, 'flavor slugs must be unique (no duplicates)');
 for (const label of ['Pistazie', 'Stracciatella', 'Dubai Eis', 'Dragon Summer', 'Strawberry Matcha']) {
   assert.ok(FLAVORS.some((f) => f.label === label), `expected flavor "${label}" to be present`);
+}
+
+for (const flavor of FLAVORS) {
+  const rel = flavorsModule.flavorImagePath(flavor.slug).replace(/^\//, '');
+  assert.match(rel, /^assets\/images\/flavors\/[a-z0-9-]+\.webp$/, `unexpected flavor image path: ${rel}`);
+  await access(path.join(PROJECT_DIR, rel));
 }
 
 // --- pricing -----------------------------------------------------------------
@@ -190,9 +196,54 @@ assert.equal(extrasFact?.verification_status, 'OPERATOR_CONFIRMED');
 assert.equal(Object.values(extrasFact?.value || {}).reduce((sum, list) => sum + list.length, 0), 33);
 
 const manifest = JSON.parse(await readProjectFile('assets/manifest.json'));
+assert.equal(manifest.schema, 'aurentara.asset-manifest.v2');
+assert.equal(manifest.production_rights_status, 'PENDING_OWNER_CONFIRMATION');
 assert.equal(manifest.flavor_assets.slots.length, 41, 'manifest must have 41 flavor slots');
-assert.ok(manifest.assets.every((a) => a.rights === 'pending'), 'no manifest asset may claim non-pending rights until owner photos are ingested');
+assert.equal(manifest.flavor_assets.path_template, '/assets/images/flavors/{slug}.webp');
+assert.equal(manifest.flavor_assets.rights, 'owner_provided_private_preview');
 assert.ok(manifest.flavor_assets.slots.every((s) => typeof s.slug === 'string' && s.slug.length > 0));
+assert.equal(manifest.assets.filter((a) => a.rights === 'pending').length, 2, 'only two mobile-rental-vitrine placeholders may remain pending');
+assert.ok(manifest.assets.filter((a) => a.rights === 'pending').every((a) => a.category === 'vitrine'));
+
+const provenance = JSON.parse(await readProjectFile('assets/ingest-provenance.json'));
+assert.equal(provenance.schema, 'gelato-donatello.asset-ingest.v1');
+assert.equal(provenance.counts.total, 78);
+assert.equal(provenance.counts.flavors, 41);
+assert.equal(provenance.counts.cups, 6);
+assert.equal(provenance.counts.shop, 5);
+assert.equal(provenance.counts.cakes + provenance.counts.bombs + provenance.counts.spaghetti_cakes, 24);
+assert.equal(provenance.records.length, 78);
+for (const record of provenance.records) {
+  assert.match(record.target_sha256, /^[a-f0-9]{64}$/);
+  assert.match(record.source_sha256, /^[a-f0-9]{64}$/);
+  await access(path.join(PROJECT_DIR, record.target.replace(/^assets\//, 'assets/')));
+}
+
+// --- owner image integration --------------------------------------------------
+
+const homeHtml = await readProjectFile('index.html');
+assert.match(homeHtml, /\/assets\/images\/flavors\/pistazie\.webp/);
+assert.match(homeHtml, /\/assets\/images\/shop\/vitrine-wide\.webp/);
+assert.match(homeHtml, /data-asset-loading="eager"/);
+
+const kontaktHtml = await readProjectFile(path.join('kontakt', 'index.html'));
+assert.match(kontaktHtml, /\/assets\/images\/shop\/vitrine-wide\.webp/);
+assert.match(kontaktHtml, /\/assets\/images\/shop\/interior-counter\.webp/);
+
+assert.match(eisbecherHtml, /\/assets\/images\/cups\/fruechte-becher\.webp/);
+for (const slug of ['after-eight-becher','biene-maja','amarena-becher','erdbeer-becher','banana-split']) {
+  assert.match(eisbecherHtml, new RegExp(`/assets/images/cups/${slug}\.webp`));
+}
+
+for (const asset of ['eistorte-01','eistorte-02','eisbombe-01','eisbombe-02','spaghetti-eistorte-01','spaghetti-eistorte-02']) {
+  assert.match(eistortenHtml, new RegExp(`/assets/images/cakes/${asset}\.webp`));
+}
+
+const navJs = await readProjectFile('assets/js/components/nav.js');
+assert.match(navJs, /\/assets\/images\/brand\/logo-donatello\.webp/);
+
+assert.match(eisvitrineHtml, /\/assets\/img\/vitrine\/mobil-1\.jpg/);
+assert.match(eisvitrineHtml, /\/assets\/img\/vitrine\/mobil-2\.jpg/);
 
 // --- headers / robots ----------------------------------------------------------
 
@@ -225,4 +276,4 @@ assert.doesNotMatch(cupMenuJs, /innerHTML/, 'cup-menu renderer must avoid innerH
 // Local quarantine candidates are intentionally outside this clean release checkout.
 // The release must therefore be self-contained and must not depend on their presence.
 
-console.log('OK: gelato-donatello-v5-final smoke test passed (6 routes, 41 flavors, 68 cup entries, 33 extras, confirmed pricing, safety, manifest, CSS breakpoints).');
+console.log('OK: gelato-donatello-v5-final smoke test passed (6 routes, 41 flavors + images, 68 cup entries, 33 extras, 78 owner assets, confirmed pricing, safety, manifest, CSS breakpoints).');

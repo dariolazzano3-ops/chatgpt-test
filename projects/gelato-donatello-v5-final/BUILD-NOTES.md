@@ -42,7 +42,7 @@ gegenueber `gelato-donatello-premium-v5`:
 ## Asset-Ingest (neue Fotos ergaenzen, ohne Redesign)
 
 1. `assets/manifest.json` oeffnen und den Ziel-Pfad fuer das gewuenschte Motiv
-   nachschlagen (z. B. `/assets/img/laden/aussen-1.jpg`), oder fuer Sorten
+   nachschlagen (z. B. `/assets/images/shop/interior-long.webp`), oder fuer Sorten
    `assets/manifest.json` &rarr; `flavor_assets.slots` nach `slug` durchsuchen.
 2. Die Bilddatei exakt unter diesem Pfad (als Datei relativ zum Projekt-Root,
    ohne das fuehrende `/`) ablegen.
@@ -51,7 +51,7 @@ gegenueber `gelato-donatello-premium-v5`:
 4. Nichts weiter aendern: `assets/js/components/asset-image.js` zeigt das Foto
    automatisch an; ohne Datei bleibt der gestaltete Platzhalter ("Foto folgt")
    sichtbar, es entsteht kein kaputtes Bild-Icon.
-5. Fuer Sortenfotos gilt das Pfadmuster `/assets/img/sorten/{slug}.jpg` aus
+5. Fuer Sortenfotos gilt das Pfadmuster `/assets/images/flavors/{slug}.webp` aus
    `assets/js/data/flavors.js` (`flavorImagePath`). Die 41 Slugs sind in
    `assets/manifest.json` &rarr; `flavor_assets.slots` einzeln aufgefuehrt.
 
@@ -65,7 +65,7 @@ ohne denselben Rechte-Nachweis wie Owner-Material eingebunden werden.
 ## Alle Pfade sind root-relativ (absolut)
 
 Jeder `data-asset-path` sowie `flavorImagePath()` nutzt einen Pfad, der mit
-`/` beginnt (z. B. `/assets/img/sorten/pistazie.jpg`). Das ist notwendig,
+`/` beginnt (z. B. `/assets/images/flavors/pistazie.webp`). Das ist notwendig,
 damit Bilder auch auf Unterseiten wie `/eisbecher/` korrekt relativ zur
 Domain statt zur aktuellen Verzeichnis-URL aufgeloest werden.
 
@@ -139,3 +139,7 @@ sind keine Laufzeitabhaengigkeit dieses Releases.
 ## Daten-Pass Acceptance
 
 Am 2026-10-05 wurde der erweiterte V5-Smoke nach Integration der vollstaendigen Eisbecher- und Extras-Daten tatsaechlich ausgefuehrt. PASS: 6 Routen, 41 Sorten, 68 Becher-Quelleneintraege, 33 Extras, Kernpreise, Eistorten/Eisbomben, Eisvitrine, Safety/NOINDEX, Asset-Manifest und responsive CSS. Alle Projekt-JavaScript-Dateien bestanden node --check; alle JSON-Dateien wurden erfolgreich geparst.
+
+## Asset-Ingest Acceptance
+
+Asset-Paket V1 enthaelt 78 aus Owner-Uploads abgeleitete WebP-Dateien mit SHA-256-Provenance. Alle 41 Sortenbilder sind physisch vorhanden. Eisbecher, Eistorten/Eisbomben, Logo und Ladenfotos sind in die private V5-Oberflaeche verdrahtet. Die mobile Mietvitrine bleibt mangels eindeutigem Owner-Foto absichtlich im Placeholder-Zustand. Production/Public bleiben OFF.

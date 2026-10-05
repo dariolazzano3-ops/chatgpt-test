@@ -26,7 +26,7 @@ export function renderSiteHeader(activePage) {
 
   header.innerHTML = `
     <div class="site-header__bar container">
-      <a class="site-header__brand" href="/">${BUSINESS.name}</a>
+      <a class="site-header__brand" href="/" aria-label="${BUSINESS.name} – Startseite"><img class="site-header__logo" src="/assets/images/brand/logo-donatello.webp" alt="${BUSINESS.name}" /></a>
       <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
         <span class="nav__toggle-label">Menu</span>
       </button>

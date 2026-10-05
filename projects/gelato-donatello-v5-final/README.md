@@ -88,7 +88,7 @@ und sind dort mit Quelle/Status versehen:
 
 Es sind noch keine Owner-Bilder physisch im Workspace vorhanden. Siehe
 `assets/manifest.json` fuer alle vorbereiteten, stabilen Drop-in-Pfade
-(z. B. `/assets/img/sorten/pistazie.jpg`) und `BUILD-NOTES.md` fuer das
+(z. B. `/assets/images/flavors/pistazie.webp`) und `BUILD-NOTES.md` fuer das
 Ingest-Verfahren. Alle Manifest-Eintraege stehen auf `rights: "pending"`;
 es wird an keiner Stelle behauptet, dass Bilder bereits eingebunden sind.
 
@@ -106,3 +106,7 @@ vorhanden sind (Existenzpruefung; ein vollstaendiger Unveraendert-Nachweis
 per Diff erfordert Git-/Shell-Zugriff, den diese statische Pruefung nicht
 hat). Siehe `BUILD-NOTES.md` fuer den genauen Ausfuehrungsstatus dieser
 Session.
+
+## Asset-Ingest V1
+
+78 owner-provided Bilddateien wurden fuer die private Vorschau als WebP integriert: 41 Sorten, 6 Eisbecher, 24 Torten/Eisbomben/Spaghetti-Eistorten, 5 Ladenfotos, 1 Logo und 1 Sortenposter. Die Produktions-/Public-Nutzung bleibt bis zur finalen Rechtebestaetigung gesperrt. Bilder der mobilen Mietvitrine fehlen weiterhin und bleiben bewusst als Platzhalter sichtbar.

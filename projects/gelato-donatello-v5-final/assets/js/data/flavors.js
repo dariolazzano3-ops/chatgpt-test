@@ -49,5 +49,5 @@ export const FLAVORS = [
 ];
 
 export function flavorImagePath(slug) {
-  return `/assets/img/sorten/${slug}.jpg`;
+  return `/assets/images/flavors/${slug}.webp`;
 }

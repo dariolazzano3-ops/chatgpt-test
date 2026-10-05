@@ -4,7 +4,7 @@
 // neutraler, markierter Platzhalter statt eines kaputten Bild-Icons. Keine
 // generischen Stockbilder.
 
-export function createAssetFigure({ path, alt, caption, aspect = '4-3' }) {
+export function createAssetFigure({ path, alt, caption, aspect = '4-3', loading = 'lazy' }) {
   const figure = document.createElement('figure');
   figure.className = `asset-figure asset-figure--${aspect}`;
 
@@ -14,7 +14,8 @@ export function createAssetFigure({ path, alt, caption, aspect = '4-3' }) {
   const img = document.createElement('img');
   img.src = path;
   img.alt = alt;
-  img.loading = 'lazy';
+  img.loading = loading;
+  if (loading === 'eager') img.fetchPriority = 'high';
   img.decoding = 'async';
   img.className = 'asset-figure__img';
 
@@ -48,7 +49,8 @@ export function hydrateAssetFigures(root = document) {
     const alt = placeholderEl.getAttribute('data-asset-alt') || '';
     const caption = placeholderEl.getAttribute('data-asset-caption') || '';
     const aspect = placeholderEl.getAttribute('data-asset-aspect') || '4-3';
-    const figure = createAssetFigure({ path, alt, caption, aspect });
+    const loading = placeholderEl.getAttribute('data-asset-loading') || 'lazy';
+    const figure = createAssetFigure({ path, alt, caption, aspect, loading });
     placeholderEl.replaceWith(figure);
   });
 }
