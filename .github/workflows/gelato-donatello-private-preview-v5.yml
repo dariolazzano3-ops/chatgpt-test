@@ -1,0 +1,92 @@
+name: Gelato Donatello Private Preview V5
+
+on:
+  push:
+    branches:
+      - 'factory/gelato-donatello-v5-buonissimo-fidelity-preview-deploy'
+    paths:
+      - '.github/workflows/gelato-donatello-private-preview-v5.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: staging
+    concurrency:
+      group: gelato-donatello-private-preview-v2
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_WORKER: gelato-donatello-private-preview-v2
+      SOURCE_DIR: projects/gelato-donatello-v5-final
+      EXPECTED_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Safety gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'factory/gelato-donatello-v5-buonissimo-fidelity-preview-deploy'
+          test "$TARGET_WORKER" = 'gelato-donatello-private-preview-v2'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -d "$SOURCE_DIR"
+          test -f "$SOURCE_DIR/index.html"
+          ! grep -R -E -- '--route|--domain|routes[[:space:]]*=' .github/workflows/gelato-donatello-private-preview-v5.yml
+          echo 'production_deploy=false'
+          echo 'dns_changes=false'
+          echo 'public_surface=false'
+
+      - name: Verify V5 and reference fidelity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/gelato-donatello-v5-final-smoke.mjs
+          node scripts/gelato-donatello-buonissimo-fidelity-smoke.mjs
+
+      - name: Isolated Wrangler dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE" \
+            --name "$TARGET_WORKER" \
+            --compatibility-date 2026-10-05 \
+            --keep-vars \
+            --dry-run \
+            --message "Gelato Donatello V5 reference fidelity dry run"
+
+      - name: Deploy private Worker preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE" \
+            --name "$TARGET_WORKER" \
+            --compatibility-date 2026-10-05 \
+            --keep-vars \
+            --message "Gelato Donatello V5 Buonissimo reference fidelity · 14588e4"
+
+      - name: Verify Cloudflare Access still protects preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 20 "$EXPECTED_URL/" > /tmp/headers.txt
+          head -n 8 /tmp/headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/headers.txt
+          tr -d '\r' < /tmp/headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          echo 'PRIVATE_PREVIEW_ACCESS_PROTECTED=PASS'
