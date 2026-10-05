@@ -489,9 +489,17 @@ export async function runJarvisOwnerChatJobV1(job = {}, deps = {}) {
           });
         }
       } catch (error) {
+        const preflightCode = clean(error?.code || 'OWNER_WORKSPACE_PREFLIGHT_FAILED', 80);
+        const preflightSyscall = clean(error?.syscall, 40);
+        const preflightPath = clean(error?.path, 320);
         workspacePreflight = {
           ok: false,
-          error: clean(error?.code || error?.message || 'OWNER_WORKSPACE_PREFLIGHT_FAILED', 160)
+          error: clean(
+            [preflightCode, preflightSyscall, preflightPath].filter(Boolean).join(':')
+              || error?.message
+              || 'OWNER_WORKSPACE_PREFLIGHT_FAILED',
+            400
+          )
         };
       }
 
