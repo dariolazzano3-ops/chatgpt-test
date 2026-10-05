@@ -25,7 +25,9 @@ import {
   realpathSync,
   readdirSync,
   readFileSync,
-  readlinkSync
+  readlinkSync,
+  mkdirSync,
+  writeFileSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -34,7 +36,7 @@ import path from 'node:path';
 const clean = (value, max = 400) => String(value ?? '').trim().slice(0, max);
 
 function git(repoDir, args) {
-  return execFileSync('git', args, {
+  return execFileSync('git', ['-c', `safe.directory=${repoDir}`, ...args], {
     cwd: repoDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 15000
@@ -178,6 +180,88 @@ function currentDiffV1(repoDir) {
   return git(repoDir, ['diff', '--no-ext-diff', '--unified=3', 'HEAD', '--']);
 }
 
+function quarantineUnrelatedDirtyStateV1(repoDir) {
+  let branch, head, staged, untracked, nameStatus, diff;
+  try {
+    branch = git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    head = git(repoDir, ['rev-parse', 'HEAD']);
+    staged = git(repoDir, ['diff', '--cached', '--name-only']);
+    untracked = git(repoDir, ['ls-files', '--others', '--exclude-standard']);
+    nameStatus = git(repoDir, ['diff', '--name-status', 'HEAD', '--']);
+    diff = currentDiffV1(repoDir);
+  } catch {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_TRUTH_UNAVAILABLE' };
+  }
+
+  if (staged || untracked) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_UNSAFE_DIRTY_STATE' };
+  }
+
+  const rows = nameStatus ? nameStatus.split('\n').map((line) => line.trim()).filter(Boolean) : [];
+  if (!rows.length || rows.some((line) => !/^M\t[^\t\n]+$/.test(line))) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_UNSAFE_CHANGE_TYPE' };
+  }
+  const files = rows.map((line) => line.slice(2).trim()).sort();
+  if (!diff || !files.length) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_EMPTY_DIFF' };
+  }
+
+  const patchPayload = diff.endsWith('\n') ? diff : diff + '\n';
+  const patchSha256 = createHash('sha256').update(patchPayload).digest('hex');
+  const quarantineDir = path.join(repoDir, '.git', 'jarvis-owner-quarantine');
+  const stem = head.slice(0, 12) + '-' + patchSha256.slice(0, 16);
+  const patchPath = path.join(quarantineDir, stem + '.patch');
+  const metadataPath = path.join(quarantineDir, stem + '.json');
+
+  try {
+    mkdirSync(quarantineDir, { recursive: true, mode: 0o770 });
+    writeFileSync(patchPath, patchPayload, { mode: 0o660 });
+    writeFileSync(metadataPath, JSON.stringify({
+      schema: 'aurentara.jarvis.owner-workspace-quarantine.v1',
+      branch,
+      head,
+      files,
+      patch_sha256: patchSha256,
+      reason: 'UNRELATED_DIRTY_STATE_BLOCKING_VERIFIED_FAILED_CANDIDATE_RECOVERY'
+    }, null, 2) + '\n', { mode: 0o660 });
+    const persisted = readFileSync(patchPath);
+    const persistedSha = createHash('sha256').update(persisted).digest('hex');
+    if (persistedSha !== patchSha256) {
+      return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_PERSIST_VERIFY_FAILED' };
+    }
+  } catch (error) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_PERSIST_FAILED', detail: clean(error?.message, 240) };
+  }
+
+  try {
+    execFileSync('git', ['-c', `safe.directory=${repoDir}`, 'restore', '--source=HEAD', '--worktree', '--', ...files], {
+      cwd: repoDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 15000
+    });
+  } catch (error) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_RESTORE_FAILED', detail: clean(error?.message, 240) };
+  }
+
+  let afterStatus = [];
+  try { afterStatus = statusLinesV1(repoDir); }
+  catch { return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_RESTORE_VERIFY_UNAVAILABLE' }; }
+  if (afterStatus.length) {
+    return { ok: false, error: 'OWNER_WORKSPACE_QUARANTINE_RESTORE_NOT_CLEAN' };
+  }
+
+  return {
+    ok: true,
+    quarantined: true,
+    branch,
+    head,
+    files,
+    patch_sha256: patchSha256,
+    patch_ref: path.relative(repoDir, patchPath),
+    metadata_ref: path.relative(repoDir, metadataPath)
+  };
+}
+
 function recoverProvenFailedCandidateV1(repoDir, candidate) {
   if (!candidate || candidate.schema !== 'aurentara.jarvis.owner-failed-candidate-provenance.v1') {
     return { ok: false, error: 'OWNER_WORKSPACE_DIRTY_UNPROVEN' };
@@ -239,7 +323,7 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
   }
 
   try {
-    execFileSync('git', ['restore', '--source=HEAD', '--worktree', '--', ...expectedFiles], {
+    execFileSync('git', ['-c', `safe.directory=${repoDir}`, 'restore', '--source=HEAD', '--worktree', '--', ...expectedFiles], {
       cwd: repoDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 15000
@@ -266,6 +350,170 @@ function recoverProvenFailedCandidateV1(repoDir, candidate) {
     files: expectedFiles,
     diff_matched_exactly: diffMatchesExactly,
     filesystem_hash_matched: filesystemHashMatched
+  };
+}
+
+
+function excludeUntrackedProjectDirectoryV1(repoDir, branch, head) {
+  let staged, trackedStatus, untracked;
+  try {
+    staged = git(repoDir, ['diff', '--cached', '--name-only']);
+    trackedStatus = git(repoDir, ['diff', '--name-status', 'HEAD', '--']);
+    untracked = git(repoDir, ['ls-files', '--others', '--exclude-standard']);
+  } catch {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_TRUTH_UNAVAILABLE' };
+  }
+
+  if (staged || trackedStatus) {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_TRACKED_STATE_REFUSED' };
+  }
+
+  const files = untracked
+    ? untracked.split('\n').map((line) => clean(line, 500)).filter(Boolean).sort()
+    : [];
+  if (!files.length) {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_NO_UNTRACKED' };
+  }
+
+  const roots = [...new Set(files.map((rel) => {
+    const parts = rel.split('/');
+    return parts.length >= 3 && parts[0] === 'projects'
+      ? parts.slice(0, 2).join('/')
+      : '';
+  }))];
+
+  if (roots.length !== 1 || !roots[0]) {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_SCOPE_REFUSED' };
+  }
+  const root = roots[0];
+  if (files.some((rel) => !rel.startsWith(root + '/'))) {
+    return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_FILESET_REFUSED' };
+  }
+
+  const excludePath = path.join(repoDir, '.git', 'info', 'exclude');
+  const metadataDir = path.join(repoDir, '.git', 'jarvis-owner-untracked-quarantine');
+  const pattern = '/' + root + '/';
+  let before = '';
+
+  try {
+    before = existsSync(excludePath) ? readFileSync(excludePath, 'utf8') : '';
+    const lines = before.split('\n').map((line) => line.trim());
+    if (!lines.includes(pattern)) {
+      const prefix = before && !before.endsWith('\n') ? '\n' : '';
+      writeFileSync(excludePath, before + prefix + pattern + '\n');
+    }
+
+    mkdirSync(metadataDir, { recursive: true, mode: 0o770 });
+    const digest = createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 16);
+    const metadataPath = path.join(
+      metadataDir,
+      head.slice(0, 12) + '-local-exclude-' + digest + '.json'
+    );
+
+    let stashCommit = null;
+    try { stashCommit = git(repoDir, ['rev-parse', 'refs/stash']); } catch {}
+
+    writeFileSync(metadataPath, JSON.stringify({
+      schema: 'aurentara.jarvis.owner-untracked-project-local-exclude.v1',
+      branch,
+      head,
+      excluded_path: root,
+      exclude_pattern: pattern,
+      files,
+      stash_commit: stashCommit,
+      reversible: true
+    }, null, 2) + '\n', { mode: 0o660 });
+
+    const after = statusLinesV1(repoDir);
+    if (after.length) {
+      writeFileSync(excludePath, before);
+      return { ok: false, error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_NOT_CLEAN' };
+    }
+
+    return {
+      ok: true,
+      quarantined: true,
+      mode: 'GIT_INFO_EXCLUDE_UNTRACKED_PROJECT',
+      branch,
+      head,
+      files,
+      excluded_path: root,
+      exclude_pattern: pattern,
+      metadata_ref: path.relative(repoDir, metadataPath)
+    };
+  } catch (error) {
+    try { if (existsSync(excludePath)) writeFileSync(excludePath, before); } catch {}
+    return {
+      ok: false,
+      error: 'OWNER_WORKSPACE_LOCAL_EXCLUDE_FAILED',
+      detail: clean(error?.message, 240)
+    };
+  }
+}
+
+function stashStaleFailedProjectStateV1(repoDir) {
+  let staged, trackedStatus, untracked;
+  try {
+    staged = git(repoDir, ['diff', '--cached', '--name-only']);
+    trackedStatus = git(repoDir, ['diff', '--name-status', 'HEAD', '--']);
+    untracked = git(repoDir, ['ls-files', '--others', '--exclude-standard']);
+  } catch {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_STATUS_UNAVAILABLE' };
+  }
+
+  if (staged) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_STAGED_REFUSED' };
+  }
+
+  const trackedRows = trackedStatus
+    ? trackedStatus.split('\n').map((line) => line.trim()).filter(Boolean)
+    : [];
+  if (trackedRows.some((line) => !/^M\t[^\t\n]+$/.test(line))) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_UNSAFE_STATE' };
+  }
+
+  const trackedFiles = trackedRows.map((line) => clean(line.slice(2), 500)).filter(Boolean);
+  const untrackedFiles = untracked ? untracked.split('\n').map((line) => clean(line, 500)).filter(Boolean) : [];
+  const files = [...new Set([...trackedFiles, ...untrackedFiles])].sort();
+  if (!files.length) return { ok: true, quarantined: false, files: [] };
+
+  let branch, head, stashCommit;
+  try {
+    branch = git(repoDir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    head = git(repoDir, ['rev-parse', 'HEAD']);
+    const label = 'JARVIS stale failed project quarantine ' + head.slice(0, 12);
+    git(repoDir, ['stash', 'push', '--include-untracked', '--message', label]);
+    stashCommit = git(repoDir, ['rev-parse', 'refs/stash']);
+  } catch (error) {
+    const excluded = excludeUntrackedProjectDirectoryV1(repoDir, branch, head);
+    if (excluded.ok) return excluded;
+    return {
+      ok: false,
+      error: 'OWNER_WORKSPACE_STALE_STASH_FAILED',
+      detail: clean(error?.message, 160),
+      local_exclude_error: excluded.error || null
+    };
+  }
+
+  let after = [];
+  try { after = statusLinesV1(repoDir); }
+  catch { return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_VERIFY_UNAVAILABLE' }; }
+  if (after.length) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_NOT_CLEAN' };
+  }
+  if (!/^[0-9a-f]{40}$/i.test(stashCommit)) {
+    return { ok: false, error: 'OWNER_WORKSPACE_STALE_STASH_REF_INVALID' };
+  }
+
+  return {
+    ok: true,
+    quarantined: true,
+    mode: 'GIT_STASH_INCLUDE_UNTRACKED',
+    branch,
+    head,
+    files,
+    stash_ref: 'refs/stash',
+    stash_commit: stashCommit
   };
 }
 
@@ -368,12 +616,27 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
   }
 
   let failedCandidateRecovery = null;
+  let unrelatedDirtyQuarantine = null;
   let currentStatus = [];
   try { currentStatus = statusLinesV1(repoDir); }
   catch { return { ok: false, error: 'OWNER_WORKSPACE_STATUS_UNAVAILABLE' }; }
   if (currentStatus.length) {
     failedCandidateRecovery = recoverProvenFailedCandidateV1(repoDir, input.recover_failed_candidate || null);
-    if (!failedCandidateRecovery.ok) return failedCandidateRecovery;
+    if (!failedCandidateRecovery.ok) {
+      const mayQuarantineMismatch = input.quarantine_unrelated_dirty === true
+        && failedCandidateRecovery.error === 'OWNER_WORKSPACE_FAILED_CANDIDATE_FILESET_MISMATCH'
+        && input.recover_failed_candidate?.schema === 'aurentara.jarvis.owner-failed-candidate-provenance.v1';
+      const mayQuarantineStaleFailedProject = input.quarantine_unrelated_dirty === true
+        && input.quarantine_stale_failed_project_scope === true
+        && failedCandidateRecovery.error === 'OWNER_WORKSPACE_DIRTY_UNPROVEN'
+        && !input.recover_failed_candidate;
+      if (!mayQuarantineMismatch && !mayQuarantineStaleFailedProject) return failedCandidateRecovery;
+      unrelatedDirtyQuarantine = mayQuarantineStaleFailedProject
+        ? stashStaleFailedProjectStateV1(repoDir)
+        : quarantineUnrelatedDirtyStateV1(repoDir);
+      if (!unrelatedDirtyQuarantine.ok) return unrelatedDirtyQuarantine;
+      failedCandidateRecovery = null;
+    }
     currentStatus = [];
   }
 
@@ -394,7 +657,15 @@ export function ensureJarvisOwnerWorkspaceGitIndexAccessV1(input = {}) {
     failed_candidate_files: failedCandidateRecovery?.files || [],
     failed_candidate_diff_matched_exactly: failedCandidateRecovery?.diff_matched_exactly ?? null,
     failed_candidate_filesystem_hash_matched: failedCandidateRecovery?.filesystem_hash_matched ?? null,
-    working_tree_content_changed: failedCandidateRecovery?.recovered === true
+    unrelated_dirty_quarantined: unrelatedDirtyQuarantine?.quarantined === true,
+    quarantine_files: unrelatedDirtyQuarantine?.files || [],
+    quarantine_patch_sha256: unrelatedDirtyQuarantine?.patch_sha256 || null,
+    quarantine_patch_ref: unrelatedDirtyQuarantine?.patch_ref || null,
+    quarantine_metadata_ref: unrelatedDirtyQuarantine?.metadata_ref || null,
+    quarantine_mode: unrelatedDirtyQuarantine?.mode || null,
+    quarantine_stash_ref: unrelatedDirtyQuarantine?.stash_ref || null,
+    quarantine_stash_commit: unrelatedDirtyQuarantine?.stash_commit || null,
+    working_tree_content_changed: failedCandidateRecovery?.recovered === true || unrelatedDirtyQuarantine?.quarantined === true
   };
 }
 
@@ -409,6 +680,14 @@ export function jarvisOwnerWorkspaceGitIndexAccessManifestV1() {
     failed_candidate_restore_requires_exact_branch_head_files_and_diff_or_full_filesystem_hash: true,
     failed_candidate_filesystem_hash_uses_bridge_compatible_snapshot: true,
     failed_candidate_restore_refuses_staged_or_untracked_state: true,
+    unrelated_dirty_quarantine_supported: true,
+    unrelated_dirty_quarantine_requires_failed_candidate_fileset_mismatch: true,
+    stale_failed_project_scope_quarantine_supported: true,
+    stale_failed_project_scope_quarantine_requires_explicit_scoped_flag: true,
+    stale_failed_project_scope_quarantine_uses_git_stash_include_untracked: true,
+    stale_failed_project_scope_quarantine_refuses_staged_deleted_renamed_or_conflicted_state: true,
+    unrelated_dirty_quarantine_preserves_exact_patch_before_restore: true,
+    unrelated_dirty_quarantine_refuses_staged_untracked_delete_rename_conflict: true,
     git_index_group_read_repair: true,
     shared_repository_group_enabled: true,
     default_worker_gid: 11000,
