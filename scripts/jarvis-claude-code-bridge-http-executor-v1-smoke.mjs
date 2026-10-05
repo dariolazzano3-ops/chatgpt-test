@@ -14,6 +14,7 @@ import http from 'node:http';
 import { execFileSync } from 'node:child_process';
 import {
   createJarvisBridgeHttpExecutorV1,
+  jarvisBridgeNodeHttpFetchV1,
   jarvisBridgeHttpExecutorManifestV1
 } from '../src/jarvis/claude-code-bridge-http-executor-v1.js';
 import {
@@ -426,6 +427,35 @@ await check('wrong/foreign workspace on the call object never changes the server
   }
 });
 
+
+await check('default private transport bypasses global fetch and honors AbortSignal', async () => {
+  const originalFetch = globalThis.fetch;
+  let globalFetchCalled = false;
+  globalThis.fetch = async () => {
+    globalFetchCalled = true;
+    throw new Error('global fetch must not be used by the private Bridge executor');
+  };
+  const fixture = await startFixtureBridgeV1((req, res) => {
+    setTimeout(() => jsonRes(res, 200, {
+      ok: true, exit_code: 0, mode: 'implement', project: 'chatgpt-test', stderr: ''
+    }), 25);
+  });
+  try {
+    const executor = createJarvisBridgeHttpExecutorV1({
+      bridge_url: fixture.url,
+      bridge_token: FIXTURE_TOKEN,
+      project: 'chatgpt-test'
+    });
+    const result = await executor(baseCall);
+    assert.equal(result.exit_code, 0);
+    assert.equal(globalFetchCalled, false);
+    assert.equal(typeof jarvisBridgeNodeHttpFetchV1, 'function');
+  } finally {
+    globalThis.fetch = originalFetch;
+    await fixture.close();
+  }
+});
+
 // ── 13. no local-Claude fallback ──
 await check('13. neither Bridge HTTP file imports a local/repo-bound Claude CLI path', () => {
   for (const file of ['claude-code-bridge-http-executor-v1.js', 'claude-code-bridge-http-runtime-binding-v1.js']) {
@@ -686,6 +716,8 @@ await check('without repo_dir configured, verification falls back to Bridge-only
 await check('manifests declare no local-CLI fallback and server-side-only token source', () => {
   const executorManifest = jarvisBridgeHttpExecutorManifestV1();
   assert.equal(executorManifest.local_cli_fallback, false);
+  assert.equal(executorManifest.transport_implementation, 'NODE_HTTP_SIGNAL_BOUNDED');
+  assert.equal(executorManifest.undici_response_header_deadline_avoided, true);
   assert.equal(executorManifest.token_source, 'SERVER_SIDE_CONFIG_ONLY');
   assert.equal(executorManifest.token_ever_logged, false);
   assert.equal(executorManifest.canonical_verification_schema, 'aurentara.jarvis.repo-bound-verification.v1');

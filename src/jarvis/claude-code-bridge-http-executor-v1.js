@@ -54,6 +54,8 @@
        already manages timeout/cancellation through) is passed straight to
        fetch — this file does not implement a second, competing timeout. */
 
+import * as http from 'node:http';
+import * as https from 'node:https';
 import {
   beginJarvisRepoBoundVerificationV1,
   finishJarvisRepoBoundVerificationV1,
@@ -72,6 +74,81 @@ function isNonEmptyEvidence(value) {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'object') return Object.keys(value).length > 0;
   return Boolean(value);
+}
+
+
+/** Private Bridge transport that deliberately avoids Node/Undici's implicit
+ * response-header deadline. The outer Claude bridge owns the real timeout via
+ * AbortSignal, so a long-running private Claude request can return its terminal
+ * Bridge evidence instead of being disconnected around five minutes. */
+export function jarvisBridgeNodeHttpFetchV1(input, init = {}) {
+  return new Promise((resolve, reject) => {
+    let url;
+    try { url = input instanceof URL ? input : new URL(String(input)); }
+    catch { reject(new Error('invalid bridge URL')); return; }
+    const transport = url.protocol === 'http:' ? http : url.protocol === 'https:' ? https : null;
+    if (!transport) { reject(new Error('unsupported bridge protocol')); return; }
+
+    const signal = init?.signal;
+    if (signal?.aborted) { reject(new Error('aborted')); return; }
+
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      if (signal) signal.removeEventListener('abort', onAbort);
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    const body = init?.body;
+    const requestHeaders = new Headers(init?.headers || {});
+    if (body !== undefined && body !== null && !requestHeaders.has('content-length')) {
+      const bodyLength = typeof body === 'string'
+        ? Buffer.byteLength(body)
+        : (Buffer.isBuffer(body) || body instanceof Uint8Array) ? body.byteLength : null;
+      if (bodyLength !== null) requestHeaders.set('content-length', String(bodyLength));
+    }
+
+    const request = transport.request(url, {
+      method: init?.method || 'GET',
+      headers: Object.fromEntries(requestHeaders.entries())
+    }, (response) => {
+      const chunks = [];
+      let bytes = 0;
+      response.on('data', (chunk) => {
+        if (settled) return;
+        const value = Buffer.from(chunk);
+        const remaining = (MAX_RESPONSE_BYTES + 1) - bytes;
+        if (remaining > 0) {
+          const kept = value.length > remaining ? value.subarray(0, remaining) : value;
+          chunks.push(kept);
+          bytes += kept.length;
+        }
+      });
+      response.on('error', fail);
+      response.on('end', () => {
+        if (settled) return;
+        settled = true;
+        if (signal) signal.removeEventListener('abort', onAbort);
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(response.headers || {})) {
+          if (Array.isArray(value)) for (const item of value) headers.append(key, String(item));
+          else if (value !== undefined) headers.set(key, String(value));
+        }
+        resolve(new Response(Buffer.concat(chunks), {
+          status: response.statusCode || 500,
+          statusText: response.statusMessage || '',
+          headers
+        }));
+      });
+    });
+
+    const onAbort = () => request.destroy(new Error('aborted'));
+    request.on('error', fail);
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    if (body !== undefined && body !== null) request.write(body);
+    request.end();
+  });
 }
 
 /** Reads a fetch Response body as JSON, refusing anything over `maxBytes`
@@ -186,7 +263,7 @@ export function createJarvisBridgeHttpExecutorV1(config = {}) {
   const baseUrl = clean(config.bridge_url, 400).replace(/\/+$/, '');
   const token = typeof config.bridge_token === 'string' ? config.bridge_token : '';
   const project = clean(config.project, 200);
-  const fetchImpl = typeof config.fetch_impl === 'function' ? config.fetch_impl : globalThis.fetch;
+  const fetchImpl = typeof config.fetch_impl === 'function' ? config.fetch_impl : jarvisBridgeNodeHttpFetchV1;
   const repoDir = clean(config.repo_dir, 400) || null;
 
   if (!baseUrl) throw new Error('BRIDGE_HTTP_EXECUTOR_URL_REQUIRED');
@@ -337,6 +414,8 @@ export function jarvisBridgeHttpExecutorManifestV1() {
   return {
     schema: 'aurentara.jarvis.claude-code-bridge-http-executor.v1',
     transport: 'PRIVATE_HTTP',
+    transport_implementation: 'NODE_HTTP_SIGNAL_BOUNDED',
+    undici_response_header_deadline_avoided: true,
     endpoint: '/v1/run',
     verification_computed_by: 'CANONICAL_REPO_BOUND_VERIFICATION_WHEN_REPO_DIR_CONFIGURED_ELSE_BRIDGE_RAW_ONLY',
     canonical_verification_schema: 'aurentara.jarvis.repo-bound-verification.v1',
