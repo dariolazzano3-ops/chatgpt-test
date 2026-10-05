@@ -29,7 +29,8 @@ import {
   jarvisRemoteOperatorManifestV1,
   JARVIS_REMOTE_OPERATOR_BIND_HOST,
   REMOTE_OPERATOR_AUTHENTICATION_LABEL,
-  resolveJarvisRemoteOperatorProgramRunnerConfigV1
+  resolveJarvisRemoteOperatorProgramRunnerConfigV1,
+  normalizeJarvisAurentaraRuntimeRepoDirV1
 } from '../src/jarvis/remote-operator-server-v1.js';
 import { createMemoryJarvisStoreV1 } from '../src/jarvis/memory-store-memory-v1.js';
 import { authorizeJarvisV1 } from '../src/jarvis/access-v1.js';
@@ -89,6 +90,17 @@ await check('B. this file never imports local-operator-server-v1.js or defines a
 await check('C. local-operator-server-v1.js has no coupling to the remote runtime', () => {
   const src = fs.readFileSync(new URL('../src/jarvis/local-operator-server-v1.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /remote-operator/i, 'local launcher must stay untouched by the new remote entrypoint');
+});
+
+await check('C2. AURENTARA host workspace path normalizes to the private writable service mount', () => {
+  assert.equal(
+    normalizeJarvisAurentaraRuntimeRepoDirV1('/home/jarvis/claude-worker/workspace/aurentara-real-lifecycle-v1'),
+    '/opt/jarvis/aurentara-project'
+  );
+  assert.equal(
+    normalizeJarvisAurentaraRuntimeRepoDirV1('/opt/jarvis/another-project'),
+    '/opt/jarvis/another-project'
+  );
 });
 
 // ── D. fail-closed: safety flags ──

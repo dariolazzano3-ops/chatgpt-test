@@ -82,6 +82,14 @@ export const JARVIS_PROJECT_MISSION_AURENTARA_EXECUTION_GUIDANCE =
   'AURENTARA PROJECT MISSION EXECUTION RULE: Agent is allowed only for explicitly curated JARVIS specialists from the supplied specialist registry. Specialists are read-only advisory; use zero or one by default and at most two only for a genuine cross-domain need. Do not use Task, unnamed/default/general-purpose agents, Explore, or background agents. Main Claude remains the sole Edit/Write actor. Keep the task bounded to the requested next step.';
 const PROJECT_MISSION_BLOCKED_BRANCHES = new Set(['main', 'master', 'factory-control']);
 const JARVIS_AUTOMATIC_AURENTARA_REPO_DEFAULT = '/opt/jarvis/aurentara-project';
+const JARVIS_AURENTARA_HOST_WORKSPACE_PATH = '/home/jarvis/claude-worker/workspace/aurentara-real-lifecycle-v1';
+
+export function normalizeJarvisAurentaraRuntimeRepoDirV1(value) {
+  const configured = clean(value, 400);
+  return configured === JARVIS_AURENTARA_HOST_WORKSPACE_PATH
+    ? JARVIS_AUTOMATIC_AURENTARA_REPO_DEFAULT
+    : configured;
+}
 const JARVIS_AUTOMATIC_AURENTARA_BRIDGE_PROJECT_DEFAULT = 'aurentara-real-lifecycle-v1';
 
 export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = process.env, options = {}) {
@@ -89,7 +97,7 @@ export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = p
     return { ok: true, requested: false, targets: {} };
   }
 
-  const repoDir = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR, 400);
+  const repoDir = normalizeJarvisAurentaraRuntimeRepoDirV1(env.JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR);
   const bridgeProject = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_BRIDGE_PROJECT, 200);
   const missing = [];
   if (!repoDir) missing.push('JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR');
@@ -217,7 +225,7 @@ export async function resolveJarvisRemoteOperatorRegistryProjectTargetsV1(env = 
 }
 
 export async function resolveJarvisRemoteOperatorAutomaticProjectTargetsV1(env = process.env, options = {}) {
-  const repoDir = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR, 400)
+  const repoDir = normalizeJarvisAurentaraRuntimeRepoDirV1(env.JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR)
     || JARVIS_AUTOMATIC_AURENTARA_REPO_DEFAULT;
   const bridgeProject = clean(env.JARVIS_PROJECT_MISSION_AURENTARA_BRIDGE_PROJECT, 200)
     || JARVIS_AUTOMATIC_AURENTARA_BRIDGE_PROJECT_DEFAULT;
