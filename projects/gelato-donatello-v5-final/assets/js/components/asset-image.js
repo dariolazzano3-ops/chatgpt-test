@@ -4,33 +4,42 @@
 // neutraler, markierter Platzhalter statt eines kaputten Bild-Icons. Keine
 // generischen Stockbilder.
 
-export function createAssetFigure({ path, alt, caption, aspect = '4-3', loading = 'lazy' }) {
+export function createAssetFigure({ path, alt, caption, aspect = '4-3', loading = 'lazy', pending = false }) {
   const figure = document.createElement('figure');
   figure.className = `asset-figure asset-figure--${aspect}`;
 
   const frame = document.createElement('div');
   frame.className = 'asset-figure__frame';
 
-  const img = document.createElement('img');
-  img.src = path;
-  img.alt = alt;
-  img.loading = loading;
-  if (loading === 'eager') img.fetchPriority = 'high';
-  img.decoding = 'async';
-  img.className = 'asset-figure__img';
-
-  img.addEventListener('error', () => {
+  const renderPlaceholder = () => {
     frame.classList.add('asset-figure__frame--placeholder');
-    img.remove();
     const placeholder = document.createElement('div');
     placeholder.className = 'asset-figure__placeholder';
     placeholder.setAttribute('role', 'img');
     placeholder.setAttribute('aria-label', alt);
-    placeholder.innerHTML = '<span class="asset-figure__placeholder-mark">Foto folgt</span>';
+    const mark = document.createElement('span');
+    mark.className = 'asset-figure__placeholder-mark';
+    mark.textContent = 'Foto folgt';
+    placeholder.appendChild(mark);
     frame.appendChild(placeholder);
-  }, { once: true });
+  };
 
-  frame.appendChild(img);
+  if (pending) {
+    renderPlaceholder();
+  } else {
+    const img = document.createElement('img');
+    img.src = path;
+    img.alt = alt;
+    img.loading = loading;
+    if (loading === 'eager') img.fetchPriority = 'high';
+    img.decoding = 'async';
+    img.className = 'asset-figure__img';
+    img.addEventListener('error', () => {
+      img.remove();
+      renderPlaceholder();
+    }, { once: true });
+    frame.appendChild(img);
+  }
   figure.appendChild(frame);
 
   if (caption) {
@@ -50,7 +59,8 @@ export function hydrateAssetFigures(root = document) {
     const caption = placeholderEl.getAttribute('data-asset-caption') || '';
     const aspect = placeholderEl.getAttribute('data-asset-aspect') || '4-3';
     const loading = placeholderEl.getAttribute('data-asset-loading') || 'lazy';
-    const figure = createAssetFigure({ path, alt, caption, aspect, loading });
+    const pending = placeholderEl.getAttribute('data-asset-pending') === 'true';
+    const figure = createAssetFigure({ path, alt, caption, aspect, loading, pending });
     placeholderEl.replaceWith(figure);
   });
 }

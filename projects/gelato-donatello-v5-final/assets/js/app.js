@@ -34,6 +34,7 @@ function initRequestForms() {
 }
 
 function init() {
+  document.body.classList.add('reveal-enabled');
   const activePage = document.body.dataset.page || '';
   renderSiteHeader(activePage);
   renderSiteFooter();
