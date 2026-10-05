@@ -224,7 +224,7 @@ for (const record of provenance.records) {
 const homeHtml = await readProjectFile('index.html');
 assert.match(homeHtml, /\/assets\/images\/flavors\/pistazie\.webp/);
 assert.match(homeHtml, /\/assets\/images\/shop\/vitrine-wide\.webp/);
-assert.match(homeHtml, /data-asset-loading="eager"/);
+assert.match(homeHtml, /(?:data-asset-loading="eager"|loading="eager"[^>]*fetchpriority="high")/);
 
 const kontaktHtml = await readProjectFile(path.join('kontakt', 'index.html'));
 assert.match(kontaktHtml, /\/assets\/images\/shop\/vitrine-wide\.webp/);

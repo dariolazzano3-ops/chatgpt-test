@@ -143,3 +143,29 @@ Am 2026-10-05 wurde der erweiterte V5-Smoke nach Integration der vollstaendigen 
 ## Asset-Ingest Acceptance
 
 Asset-Paket V1 enthaelt 78 aus Owner-Uploads abgeleitete WebP-Dateien mit SHA-256-Provenance. Alle 41 Sortenbilder sind physisch vorhanden. Eisbecher, Eistorten/Eisbomben, Logo und Ladenfotos sind in die private V5-Oberflaeche verdrahtet. Die mobile Mietvitrine bleibt mangels eindeutigem Owner-Foto absichtlich im Placeholder-Zustand. Production/Public bleiben OFF.
+
+
+## Buonissimo Reference Fidelity Pass — 2026-10-05
+
+Reference: https://buonissimo-online.de/
+
+Translated reference principles, without copying Buonissimo branding, text or assets:
+- oversized condensed editorial headlines
+- sage / cream / cocoa / sand color system
+- square, wide CTA buttons instead of pill UI
+- image-led, alternating full-width sections
+- four large photographic feature tiles with dark bottom overlays
+- reduced card chrome: no rounded corporate cards/shadows
+- 5% page gutters and 1140px editorial content rhythm
+- mobile collapses to image-first editorial single-column sections
+
+Donatello owner content and owner-provided photography remain authoritative.
+
+Acceptance evidence:
+- existing V5 smoke: PASS (6 routes, 41 flavor images, 68 cup entries, 33 extras, 78 owner assets, pricing, safety)
+- reference-fidelity smoke: PASS
+- JS syntax + git diff check: PASS
+- real Chromium browser QA at 1440x1100 and 390x844 on Home, Sortiment, Eisbecher, Eistorten/Eisbomben and Kontakt
+- browser QA: HTTP 200, zero horizontal overflow, zero broken images, zero hidden top-level sections, zero console/page errors
+- Home reference structure: 7 full-width sections, 4 image feature tiles, square CTA radius 0px
+- reveal behavior hardened so content visibility no longer depends on IntersectionObserver
