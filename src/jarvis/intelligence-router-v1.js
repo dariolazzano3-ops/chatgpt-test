@@ -319,12 +319,13 @@ async function planWithApi(goal, cfg, client, budget, requestId) {
   budget.charge(result.estimated_cost_usd);
 
   const parsed = parseJsonObject(result.text);
-  const brief = clean(parsed?.execution_brief, 6000);
-  if (!brief) throw makeError('JARVIS_OPENAI_API_INVALID_BRIEF');
+  const parsedBrief = clean(parsed?.execution_brief, 6000);
+  const plannerOutputFallbackUsed = !parsedBrief;
+  const brief = parsedBrief || localHermesTimeoutPlan().execution_brief;
 
   return {
     ok: true,
-    provider: 'OPENAI_API',
+    provider: plannerOutputFallbackUsed ? 'OPENAI_API_LOCAL_BRIEF_FALLBACK' : 'OPENAI_API',
     lane: classification.lane,
     model: result.requested_model,
     rationale: classification.rationale,
@@ -335,7 +336,9 @@ async function planWithApi(goal, cfg, client, budget, requestId) {
     api_cost_cap_usd: cfg.max_job_cost_usd,
     router_model: classification.router_model,
     router_cost_usd: classification.router_cost_usd,
-    planner_worst_case_usd: reservation.worst_case_usd
+    planner_worst_case_usd: reservation.worst_case_usd,
+    planner_output_fallback_used: plannerOutputFallbackUsed,
+    planner_output_fallback_reason: plannerOutputFallbackUsed ? 'OPENAI_API_INVALID_BRIEF_LOCAL_DETERMINISTIC' : null
   };
 }
 
@@ -664,6 +667,7 @@ export function jarvisIntelligenceRouterManifestV1() {
     astra_receives_trusted_branch_refs_and_relevant_commits: true,
     hard_budget_preflight: true,
     aggregate_job_budget_shared_across_plan_review_repairs: true,
+    invalid_api_planner_brief_fails_over_to_local_deterministic_brief: true,
     public_actions: false,
     production_deploy: false,
     hamyren_data_flow: false

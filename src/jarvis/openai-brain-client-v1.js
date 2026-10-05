@@ -42,9 +42,9 @@ function responseOutputText(body) {
 
 function structuredTextFormat(idempotencyKey) {
   const key = clean(idempotencyKey, 255);
-  if (key.endsWith(':api-plan')) return { format: { type: 'json_schema', name: 'jarvis_execution_plan', strict: true, schema: { type: 'object', properties: { execution_brief: { type: 'string' } }, required: ['execution_brief'], additionalProperties: false } } };
+  if (key.endsWith(':api-plan')) return { format: { type: 'json_schema', name: 'jarvis_execution_plan', strict: true, schema: { type: 'object', properties: { execution_brief: { type: 'string', minLength: 1 } }, required: ['execution_brief'], additionalProperties: false } } };
   if (key.endsWith(':api-classify')) return { format: { type: 'json_schema', name: 'jarvis_complexity_classification', strict: true, schema: { type: 'object', properties: { complexity: { type: 'string', enum: ['LIGHT', 'STANDARD', 'HEAVY'] }, rationale: { type: 'string' } }, required: ['complexity', 'rationale'], additionalProperties: false } } };
-  if (key.endsWith(':astra-post')) return { format: { type: 'json_schema', name: 'jarvis_astra_post_review', strict: true, schema: { type: 'object', properties: { decision: { type: 'string', enum: ['PASS', 'REPAIR', 'BLOCK'] }, rationale: { type: 'string' }, repair_brief: { type: 'string' } }, required: ['decision', 'rationale', 'repair_brief'], additionalProperties: false } } };
+  if (key.endsWith(':astra-post') || key.endsWith(':astra-post-api')) return { format: { type: 'json_schema', name: 'jarvis_astra_post_review', strict: true, schema: { type: 'object', properties: { decision: { type: 'string', enum: ['PASS', 'REPAIR', 'BLOCK'] }, rationale: { type: 'string' }, repair_brief: { type: 'string' } }, required: ['decision', 'rationale', 'repair_brief'], additionalProperties: false } } };
   return { format: { type: 'json_object' } };
 }
 

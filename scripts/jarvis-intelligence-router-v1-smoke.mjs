@@ -196,6 +196,46 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   let apiCalls = 0;
   const hermes = {
     configured: true,
+    chatCompletion: async () => ({ text: 'HTTP 429 usage_limit_reached' })
+  };
+  const openai = {
+    configured: true,
+    complete: async ({ model }) => {
+      apiCalls += 1;
+      if (apiCalls === 1) {
+        return {
+          requested_model: model,
+          text: JSON.stringify({ complexity: 'STANDARD', rationale: 'bounded multi-file work' }),
+          estimated_cost_usd: 0.00001
+        };
+      }
+      return {
+        requested_model: model,
+        text: JSON.stringify({ execution_brief: '' }),
+        estimated_cost_usd: 0.001
+      };
+    }
+  };
+  const router = createJarvisIntelligenceRouterV1({
+    hermes_client: hermes,
+    openai_client: openai,
+    api_fallback_enabled: true,
+    max_job_cost_usd: 0.25
+  });
+  const plan = await router.plan({ goal: 'Implement the authenticated bounded owner task.', request_id: 'invalid-brief-local-fallback' });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.provider, 'OPENAI_API_LOCAL_BRIEF_FALLBACK');
+  assert.equal(plan.planner_output_fallback_used, true);
+  assert.equal(plan.planner_output_fallback_reason, 'OPENAI_API_INVALID_BRIEF_LOCAL_DETERMINISTIC');
+  assert.equal(plan.api_fallback_used, true);
+  assert.equal(apiCalls, 2);
+  assert.match(plan.execution_brief, /owner goal exactly as written/i);
+}
+
+{
+  let apiCalls = 0;
+  const hermes = {
+    configured: true,
     chatCompletion: async () => ({ text: 'HTTP 429 usage limit reached' })
   };
   const openai = {
@@ -377,6 +417,7 @@ assert.equal(estimateJarvisOpenAiCostV1('gpt-6-luna', 13, 8), 0.0000053);
   assert.equal(manifest.fallback_requires_explicit_paid_approval, true);
   assert.equal(manifest.fallback_paid_approval_env, 'JARVIS_AI_API_FALLBACK_APPROVED');
   assert.equal(manifest.aggregate_job_budget_shared_across_plan_review_repairs, true);
+  assert.equal(manifest.invalid_api_planner_brief_fails_over_to_local_deterministic_brief, true);
   assert.equal(manifest.astra_receives_trusted_branch_head_and_read_only_integrity_summary, true);
   assert.equal(manifest.astra_receives_trusted_branch_refs_and_relevant_commits, true);
 }
