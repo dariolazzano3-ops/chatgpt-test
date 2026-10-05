@@ -1,0 +1,98 @@
+name: Gelato Donatello Premium V6 Private Preview
+
+on:
+  push:
+    branches:
+      - 'factory/gelato-donatello-premium-v6-private-deploy'
+    paths:
+      - '.github/workflows/gelato-donatello-private-preview-v6.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: staging
+    concurrency:
+      group: gelato-donatello-private-preview-v2
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_WORKER: gelato-donatello-private-preview-v2
+      SOURCE_DIR: projects/gelato-donatello-premium-v6
+      EXPECTED_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+      EXPECTED_SOURCE_SHA: c5711aa71be45cf3f743da4d98970a2c2628cd90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: V6 private-only safety gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'factory/gelato-donatello-premium-v6-private-deploy'
+          test "$TARGET_WORKER" = 'gelato-donatello-private-preview-v2'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -d "$SOURCE_DIR"
+          test -f "$SOURCE_DIR/index.html"
+          test -f scripts/gelato-donatello-premium-v6-smoke.mjs
+          git merge-base --is-ancestor "$EXPECTED_SOURCE_SHA" HEAD
+          node -e "const p=require('./$SOURCE_DIR/project.json'); if(p.safety.production_deploy!==false||p.safety.public_deploy!==false||p.safety.dns_changes!==false||p.safety.external_writes!==false) process.exit(1)"
+          ! grep -E -- '--route|--domain|--routes|--domains' .github/workflows/gelato-donatello-private-preview-v6.yml
+          echo 'production_deploy=false'
+          echo 'dns_changes=false'
+          echo 'public_publish=false'
+
+      - name: Verify V6 acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          find "$SOURCE_DIR/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Isolated private preview dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE" \
+            --name "$TARGET_WORKER" \
+            --compatibility-date 2026-10-05 \
+            --keep-vars \
+            --dry-run \
+            --message "Gelato Donatello Premium V6 private preview dry run"
+
+      - name: Deploy V6 to existing private Worker only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE" \
+            --name "$TARGET_WORKER" \
+            --compatibility-date 2026-10-05 \
+            --keep-vars \
+            --message "Gelato Donatello Premium V6 · c5711aa"
+
+      - name: Verify Cloudflare Access protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 20 "$EXPECTED_URL/" > /tmp/headers.txt
+          head -n 10 /tmp/headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/headers.txt
+          tr -d '\r' < /tmp/headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          echo 'V6_PRIVATE_PREVIEW_ACCESS_PROTECTED=PASS'
+          echo 'production_deploy=false'
+          echo 'dns_changes=false'
