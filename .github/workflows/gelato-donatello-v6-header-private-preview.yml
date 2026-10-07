@@ -1,0 +1,74 @@
+name: Gelato Donatello V6 Header Private Preview
+
+on:
+  push:
+    branches:
+      - 'factory/gelato-donatello-v6-header-private-deploy'
+    paths:
+      - '.github/workflows/gelato-donatello-v6-header-private-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: staging
+    concurrency:
+      group: gelato-donatello-private-preview-v2
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TARGET_WORKER: gelato-donatello-private-preview-v2
+      SOURCE_DIR: projects/gelato-donatello-premium-v6
+      EXPECTED_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+      EXPECTED_SHA: a723e0e193c6663ad98bddf9e61c1bafe46bbf02
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Safety and source gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'factory/gelato-donatello-v6-header-private-deploy'
+          test "$TARGET_WORKER" = 'gelato-donatello-private-preview-v2'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          git merge-base --is-ancestor "$EXPECTED_SHA" HEAD
+          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          test -f "$SOURCE_DIR/assets/images/brand/logo-donatello-header.webp"
+          ! grep -E -- '--route|--domain|--routes|--domains' .github/workflows/gelato-donatello-v6-header-private-preview.yml
+
+      - name: Isolated dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE"             --name "$TARGET_WORKER"             --compatibility-date 2026-10-07             --keep-vars             --dry-run             --message "Donatello V6 header polish dry run"
+
+      - name: Deploy existing private preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABS_SOURCE="$GITHUB_WORKSPACE/$SOURCE_DIR"
+          cd /tmp
+          npx --yes wrangler@4 deploy "$ABS_SOURCE"             --name "$TARGET_WORKER"             --compatibility-date 2026-10-07             --keep-vars             --message "Donatello V6 header polish · a723e0e"
+
+      - name: Verify Access still protects preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 20 "$EXPECTED_URL/" > /tmp/headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/headers.txt
+          tr -d '\r' < /tmp/headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          echo 'PRIVATE_ACCESS=PASS'
