@@ -36,6 +36,7 @@ Allowed automatically:
 - bounded repairs inside the project path
 - private preview deployment
 - evidence collection
+- J9 automated accessibility may advance to private owner preview while its separate human accessibility review remains pending; final delivery never treats that pending review as full acceptance
 
 Never automatic:
 
