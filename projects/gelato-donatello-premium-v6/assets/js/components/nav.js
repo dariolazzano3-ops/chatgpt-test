@@ -20,7 +20,7 @@ export function renderSiteHeader(activePage) {
   header.innerHTML = `
     <div class="site-header__bar">
       <a class="site-header__brand" href="/" aria-label="${BUSINESS.name} – Startseite">
-        <img class="site-header__logo" src="/assets/images/brand/logo-donatello.webp" alt="${BUSINESS.name}" />
+        <img class="site-header__logo" src="/assets/images/brand/logo-donatello-header.webp" alt="${BUSINESS.name}" />
         <span class="site-header__since">Familiengeführt seit 1965</span>
       </a>
       <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
