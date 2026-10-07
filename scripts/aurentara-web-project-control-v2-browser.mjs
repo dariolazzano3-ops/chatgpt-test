@@ -65,7 +65,7 @@ try{
   await page.waitForFunction(()=>!document.body.classList.contains('loading'));
 
   assert.equal(await page.locator('.side .brand strong').innerText(),'AURENTARA SYSTEMS');
-  assert.equal(await page.locator('.side .brand span').innerText(),'Web Project Control');
+  assert.equal(await page.locator('.side .brand .awc-brand-subtitle').innerText(),'Web Project Control');
   assert.equal(await page.locator('.nav [data-goto="projects"]').innerText(),'Webseiten');
   assert.equal(await page.locator('.nav [data-goto="approvals"]').innerText(),'Freigaben');
   assert.equal(await page.locator('.nav [data-goto="health"]').innerText(),'System');
