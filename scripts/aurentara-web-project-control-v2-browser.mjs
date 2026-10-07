@@ -128,7 +128,7 @@ try{
   await page.waitForTimeout(300);
   assert.equal(await page.locator('#approvals').isVisible(),true,'approval center opens from prepared work order');
 
-  await page.evaluate(()=>go('projects'));
+  await page.evaluate(()=>{state.detail=null;state.premiumWorkspace=false;go('projects')});
   await page.waitForSelector('.pm-list');
   await page.locator('.pm-list .pm-open[data-scope="gelato-donatello:gelato-donatello-website-v1"]').first().click();
   await page.waitForSelector('.pm-workspace');
