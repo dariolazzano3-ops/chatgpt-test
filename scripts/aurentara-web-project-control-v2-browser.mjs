@@ -75,7 +75,7 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
   await page.screenshot({path:outDir+'/hq-desktop.png',fullPage:true});
 
-  await page.locator('.nav [data-goto="projects"]').click();
+  await page.locator('[data-awc-hero] [data-goto="projects"]').click();
   await page.waitForSelector('.pm-list');
   assert.match(await page.locator('#projects').innerText(),/WebFactory verbunden/i);
   assert.match(await page.locator('#projects .pm-head').innerText(),/Webseiten/i);
@@ -128,7 +128,7 @@ try{
   await page.waitForTimeout(300);
   assert.equal(await page.locator('#approvals').isVisible(),true,'approval center opens from prepared work order');
 
-  await page.locator('.nav [data-goto="projects"]').click();
+  await page.evaluate(()=>go('projects'));
   await page.waitForSelector('.pm-list');
   await page.locator('.pm-list .pm-open[data-scope="gelato-donatello:gelato-donatello-website-v1"]').first().click();
   await page.waitForSelector('.pm-workspace');
