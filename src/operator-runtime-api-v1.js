@@ -12,6 +12,7 @@ import {
   listOperatorMissionPlans,
   decideOperatorMissionPlan,
   reserveOperatorLiveStagingExecution,
+  claimOperatorLiveStagingExecution,
   finalizeOperatorLiveStagingExecution
 } from './operator-finalization-runtime-v1.js';
 
@@ -320,6 +321,39 @@ export function createOperatorRuntimeApiService({ operator_id, store, initial_ru
       }, saved.runtime, { changed: true });
     },
 
+    async claimLiveStagingExecution(input = {}, options = {}) {
+      const current = await ensureRuntime();
+      const mutation = claimOperatorLiveStagingExecution(
+        current,
+        Number(input.expected_revision),
+        input.worker_id,
+        { at: options.at, lease_seconds: input.lease_seconds }
+      );
+      return saveMutation(current, mutation, mutation.changed ? 200 : 204);
+    },
+
+    async completeLiveStagingExecution(input = {}, options = {}) {
+      const current = await ensureRuntime();
+      const id = clean(input.execution_id, 220);
+      const worker = clean(input.worker_id, 160);
+      const run = (current.live_staging_runs || []).find((item) => item.execution_id === id);
+      if (!run) return response(404, { error: 'LIVE_STAGING_EXECUTION_NOT_FOUND', production_deploy: false }, current);
+      if (!run.execution_bridge || run.execution_bridge.status !== 'CLAIMED') {
+        return response(409, { error: 'EXECUTION_BRIDGE_RUN_NOT_CLAIMED', production_deploy: false }, current);
+      }
+      if (!worker || run.execution_bridge.worker_id !== worker) {
+        return response(403, { error: 'EXECUTION_BRIDGE_WORKER_MISMATCH', production_deploy: false }, current);
+      }
+      const mutation = finalizeOperatorLiveStagingExecution(
+        current,
+        id,
+        input.result || {},
+        Number(input.expected_revision),
+        { at: options.at }
+      );
+      return saveMutation(current, mutation, mutation.ok ? 200 : 502);
+    },
+
     async recordCanonicalProjectDelivery(input = {}, options = {}) {
       const current = await ensureRuntime();
       const project = input.project && typeof input.project === 'object' ? input.project : null;
@@ -355,6 +389,18 @@ export function createOperatorRuntimeApiService({ operator_id, store, initial_ru
           paid_overflow: false,
           production_deploy: false
         };
+      }
+
+      if (executorResult?.async_pending === true && executorResult?.status === 'EXECUTION_QUEUED') {
+        return response(202, {
+          execution_id: reserved.run.execution_id,
+          mission_id: reserved.run.mission_id,
+          scope_key: reserved.run.scope_key,
+          status: 'EXECUTION_QUEUED',
+          async_pending: true,
+          production_deploy: false,
+          runtime_revision: savedReservation.runtime.revision
+        }, savedReservation.runtime, { changed: true });
       }
 
       for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -399,11 +445,12 @@ export function operatorRuntimeApiManifest() {
       'POST /universal-missions',
       'POST /commands'
     ],
-    service_methods: ['recordMissionPlan','listMissionPlans','decideMissionPlan','approveSyntheticMissionPlan','recordCanonicalProjectDelivery','runLiveStaging'],
+    service_methods: ['recordMissionPlan','listMissionPlans','decideMissionPlan','approveSyntheticMissionPlan','claimLiveStagingExecution','completeLiveStagingExecution','recordCanonicalProjectDelivery','runLiveStaging'],
     mutations_require_runtime_revision: true,
     supervised_dispatch_preparation_only: true,
     live_staging_two_phase_reservation: true,
     live_staging_idempotency_required: true,
+    async_execution_bridge_supported: true,
     automatic_dispatch: false,
     direct_provider_calls: false,
     automatic_paid_overflow: false,

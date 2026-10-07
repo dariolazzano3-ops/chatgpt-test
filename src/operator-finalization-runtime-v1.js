@@ -287,6 +287,15 @@ export function reserveOperatorLiveStagingExecution(runtime = {}, input = {}, ex
     controlled_paid_staging: built.controlled_paid_staging,
     contract: built.contract,
     evidence: null,
+    execution_bridge: input.execution_bridge_async === true ? {
+      schema: 'aurentara.web-execution-bridge.run.v1',
+      status: 'QUEUED',
+      worker_id: null,
+      claimed_at: null,
+      lease_expires_at: null,
+      attempt: 0,
+      max_attempts: 3
+    } : null,
     reserved_variable_cost_eur: built.controlled_paid_staging ? Number(built.contract.variable_cost_ceiling_eur) : 0,
     variable_cost_eur: 0,
     production_deploy: false,
@@ -295,6 +304,52 @@ export function reserveOperatorLiveStagingExecution(runtime = {}, input = {}, ex
   };
   next.live_staging_runs = [...(runtime.live_staging_runs || []), run];
   return { ok: true, changed: true, runtime: next, run: clone(run), contract: clone(built.contract), production_deploy: false };
+}
+
+
+export function claimOperatorLiveStagingExecution(runtime = {}, expectedRevision, workerId = '', options = {}) {
+  if (!validRuntime(runtime)) return { ok: false, error: 'VALID_OPERATOR_RUNTIME_REQUIRED', production_deploy: false };
+  const revision = checkRevision(runtime, expectedRevision);
+  if (!revision.ok) return { ...revision, production_deploy: false };
+  const worker = clean(workerId, 160);
+  if (!worker) return { ok: false, error: 'EXECUTION_BRIDGE_WORKER_ID_REQUIRED', production_deploy: false };
+  const now = Date.parse(options.at || new Date().toISOString());
+  const runs = runtime.live_staging_runs || [];
+  const index = runs.findIndex((item) => {
+    if (item.status !== 'EXECUTING' || !item.execution_bridge) return false;
+    const bridge = item.execution_bridge || {};
+    if (bridge.status === 'QUEUED') return Number(bridge.attempt || 0) < Number(bridge.max_attempts || 3);
+    if (bridge.status !== 'CLAIMED') return false;
+    const expiry = Date.parse(bridge.lease_expires_at || '');
+    return Number.isFinite(expiry) && expiry <= now && Number(bridge.attempt || 0) < Number(bridge.max_attempts || 3);
+  });
+  if (index < 0) return { ok: true, changed: false, runtime: clone(runtime), run: null, production_deploy: false };
+
+  const current = runs[index];
+  const leaseSeconds = Math.max(60, Math.min(1800, Number(options.lease_seconds || 600)));
+  const claimedAt = nowIso(options.at);
+  const leaseExpiresAt = new Date(Date.parse(claimedAt) + leaseSeconds * 1000).toISOString();
+  const next = advance(runtime, 'WEB_EXECUTION_BRIDGE_CLAIMED', {
+    ...options,
+    scope_key: current.scope_key,
+    mission_id: current.mission_id,
+    plan_token: current.plan_token,
+    execution_id: current.execution_id
+  });
+  next.live_staging_runs = clone(runs);
+  next.live_staging_runs[index] = {
+    ...clone(current),
+    execution_bridge: {
+      ...clone(current.execution_bridge),
+      status: 'CLAIMED',
+      worker_id: worker,
+      claimed_at: claimedAt,
+      lease_expires_at: leaseExpiresAt,
+      attempt: Number(current.execution_bridge?.attempt || 0) + 1
+    },
+    updated_at: next.updated_at
+  };
+  return { ok: true, changed: true, runtime: next, run: clone(next.live_staging_runs[index]), production_deploy: false };
 }
 
 export function finalizeOperatorLiveStagingExecution(runtime = {}, executionId = '', result = {}, expectedRevision, options = {}) {
@@ -355,6 +410,12 @@ export function finalizeOperatorLiveStagingExecution(runtime = {}, executionId =
     ...clone(current),
     status: verified ? 'LIVE_STAGING_VERIFIED' : 'FAILED',
     evidence: safe,
+    execution_bridge: current.execution_bridge ? {
+      ...clone(current.execution_bridge),
+      status: verified ? 'COMPLETED' : 'FAILED',
+      completed_at: next.updated_at,
+      lease_expires_at: null
+    } : null,
     variable_cost_eur: controlled ? actualCost : 0,
     project_budget: controlled && nextProject ? controlledPaidStagingSnapshot(nextProject) : null,
     production_deploy: false,
@@ -370,6 +431,7 @@ export function operatorFinalizationRuntimeManifest() {
     durable_mission_plans: true,
     durable_approval_decisions: true,
     live_staging_two_phase_reservation: true,
+    async_execution_bridge_claim_lease: true,
     provider_execution_truth_required_for_controlled_routes: true,
     controlled_paid_staging_project_scoped: true,
     existing_cost_ledger_reused: true,

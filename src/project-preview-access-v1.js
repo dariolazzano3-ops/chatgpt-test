@@ -85,6 +85,30 @@ function candidateFromPayload(payload = {}) {
   return null;
 }
 
+function runtimeExternalPreview(runtime = {}, scopeKey = '') {
+  const runs = (runtime?.live_staging_runs || []).filter((run) =>
+    run?.scope_key === scopeKey
+    && ['LIVE_STAGING_VERIFIED','LIVE_STAGING_E2E_VERIFIED','LIVE_PROVIDER_VERIFIED','DELIVERED'].includes(run?.status)
+  );
+  for (const run of runs.slice().reverse()) {
+    const evidence = run?.evidence || {};
+    const url = safeHttpsUrl(evidence.preview_url || evidence.delivery?.preview_url);
+    const revision = clean(evidence.delivery?.candidate_sha || evidence.source_revision || run.updated_at || run.completed_at, 240) || null;
+    if (!url || evidence.private_access_verified !== true || evidence?.qa?.passed !== true) continue;
+    return {
+      preview_url: url,
+      preview_id: clean(run.execution_id, 240) || null,
+      source_revision: revision,
+      preview_status: 'AVAILABLE',
+      private_access_verified: true,
+      qa_passed: true,
+      human_outcome_accepted: null,
+      execution_id: clean(run.execution_id, 240) || null
+    };
+  }
+  return null;
+}
+
 function runtimeHtmlArtifact(runtime = {}, scopeKey = '') {
   const runs = (runtime?.live_staging_runs || []).filter((run) => run?.scope_key === scopeKey && run?.status === 'LIVE_STAGING_VERIFIED');
   for (const run of runs.slice().reverse()) {
@@ -231,6 +255,31 @@ export function resolveProjectPreviewAccess(payload = {}, options = {}) {
     };
   }
 
+  const runtimeExternal = runtimeExternalPreview(options.runtime || {}, scopeKey);
+  if (runtimeExternal) {
+    return {
+      schema: PROJECT_PREVIEW_ACCESS_SCHEMA,
+      project_id: projectId,
+      scope_key: scopeKey,
+      status: 'AVAILABLE',
+      available: true,
+      access_kind: 'EXISTING_PRIVATE_PREVIEW_URL',
+      provider: 'AURENTARA_EXECUTION_BRIDGE_PRIVATE_PREVIEW',
+      preview_url: runtimeExternal.preview_url,
+      operator_route: '/operator/project-preview/' + encodeURIComponent(scopeKey),
+      preview_id: runtimeExternal.preview_id,
+      source_revision: runtimeExternal.source_revision,
+      execution_id: runtimeExternal.execution_id,
+      exact_head_bound: /^[0-9a-f]{40}$/.test(runtimeExternal.source_revision || ''),
+      private_access_verified: true,
+      qa_passed: true,
+      human_outcome_accepted: null,
+      project_scoped: true,
+      production_deploy: false,
+      public_launch: false
+    };
+  }
+
   const runtimeArtifact = runtimeProjectPreviewArtifact(options.runtime || {}, scopeKey);
   if (runtimeArtifact) {
     return {
@@ -352,6 +401,7 @@ export function projectPreviewAccessManifest() {
     existing_preview_urls_reused: true,
     existing_customer_review_preview_reused: true,
     runtime_web_factory_artifacts_reused: true,
+    runtime_private_execution_bridge_previews_reused: true,
     build_time_project_preview_index: true,
     build_time_preview_index_runtime_network_dependency: false,
     canonical_project_artifacts_discovered_generically: true,
