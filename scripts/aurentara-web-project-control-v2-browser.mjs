@@ -84,7 +84,7 @@ try{
   assert.equal(await gelato.count(),1);
   await gelato.click();
   await page.waitForSelector('.pm-workspace');
-  await page.waitForSelector('[data-awc-work-order]',{timeout:15000});
+  await page.waitForSelector('[data-awc-work-order]',{state:'attached',timeout:15000});
 
   const workspace=page.locator('.pm-workspace');
   assert.equal(await workspace.getAttribute('data-scope'),'gelato-donatello:gelato-donatello-website-v1');
@@ -132,6 +132,7 @@ try{
   await page.waitForSelector('.pm-list');
   await page.locator('.pm-list .pm-open[data-scope="gelato-donatello:gelato-donatello-website-v1"]').first().click();
   await page.waitForSelector('.pm-workspace');
+  await page.locator('.pm-workspace [data-pm-tab="implementation"]').click();
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(200);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'iPhone workspace must not overflow');
