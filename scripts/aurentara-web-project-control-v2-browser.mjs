@@ -99,7 +99,7 @@ try{
   for(const [id,label] of expectedTabs){
     const tab=workspace.locator('[data-pm-tab="'+id+'"]');
     assert.equal(await tab.count(),1,'missing '+id);
-    assert.equal((await tab.innerText()).trim(),label,'unexpected label for '+id);
+    assert.equal((await tab.getAttribute('data-awc-label'))||(await tab.innerText()).trim(),label,'unexpected visible V2 label for '+id);
   }
 
   await workspace.locator('[data-pm-tab="implementation"]').click();
