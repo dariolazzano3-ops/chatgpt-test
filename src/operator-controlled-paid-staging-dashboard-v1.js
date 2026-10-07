@@ -307,6 +307,29 @@ async function defaultLiveStagingExecutor(contract = {}, options = {}) {
     synthetic_acceptance: options.synthetic_acceptance === true,
     cost_approval_validated: contract.paid_provider_calls === 'ALLOWED_WITHIN_PROJECT_BUDGET'
   });
+  if (executed.raw_result?.async_pending === true && executed.raw_result?.status === 'EXECUTION_QUEUED') {
+    return {
+      ok: true,
+      status: 'EXECUTION_QUEUED',
+      async_pending: true,
+      planned_provider: executed.provider_truth?.planned_provider || route.provider_id,
+      dispatched_provider: executed.provider_truth?.dispatched_provider || route.provider_id,
+      actual_provider: executed.provider_truth?.actual_provider || route.provider_id,
+      executor_id: executed.provider_truth?.executor_id || descriptor.executor_id,
+      qa: { passed: false, pending: true },
+      synthetic_only: false,
+      real_customer_data: false,
+      external_customer_writes: false,
+      public_deploy: false,
+      dns_change: false,
+      billing: false,
+      checkout: false,
+      public_indexing: false,
+      paid_overflow: false,
+      variable_cost_eur: 0,
+      production_deploy: false
+    };
+  }
   if (!executed.ok || executed.status !== 'COMPLETED') {
     return { ok: false, error: executed.error || executed.result?.error?.code || 'PROVIDER_EXECUTION_FAILED', status: 'FAILED', qa: { passed: false }, provider_truth: executed.provider_truth || null, variable_cost_eur: money(executed.raw_result?.actual_cost_eur || executed.raw_result?.variable_cost_eur || 0), production_deploy: false };
   }
@@ -355,7 +378,7 @@ async function controlledDecision(service, runtime, project, body = {}, request,
   if (!eligible.length) return { status: 409, body: { error: 'NO_CONTROLLED_PAID_STAGING_TARGET_PROVIDER_ROUTE_ELIGIBLE', provider_routes: providers, production_deploy: false } };
   if (body.readiness_only === true) return { status: 200, body: { schema: 'aurentara.controlled-paid-staging.execution-readiness.v1', status: 'EXECUTION_READY', project_policy: controlledPaidStagingSnapshot(project), cost_preflight: cost, budget_gate: budgetGate, provider_routes: providers, approval_binding: approvalBinding(project, review, cost, providers), execution_started: false, paid_provider_calls: 0, actual_cost_eur: 0, production_deploy: false } };
   const executor = (contract) => defaultLiveStagingExecutor(contract, options);
-  const result = await service.runLiveStaging({ plan_token: token, expected_revision: runtime.revision, confirmation_text: CONTROLLED_PAID_STAGING_CONFIRMATION, idempotency_key: `dashboard:${project.project_id}:${plan.mission_id}`, environment: 'staging', variable_cost_ceiling_eur: projectedCost, provider_routes: eligible, provider_eligibility_pass: true, project_scope_pass: true, production_authorized: false, synthetic_only: false, paid_overflow: false, external_customer_writes: false, public_deploy: false, dns_change: false, billing: false, checkout: false, public_indexing: false, real_customer_data: false }, { executor });
+  const result = await service.runLiveStaging({ plan_token: token, expected_revision: runtime.revision, confirmation_text: CONTROLLED_PAID_STAGING_CONFIRMATION, idempotency_key: `dashboard:${project.project_id}:${plan.mission_id}`, environment: 'staging', variable_cost_ceiling_eur: projectedCost, provider_routes: eligible, provider_eligibility_pass: true, project_scope_pass: true, production_authorized: false, synthetic_only: false, paid_overflow: false, external_customer_writes: false, public_deploy: false, dns_change: false, billing: false, checkout: false, public_indexing: false, real_customer_data: false, execution_bridge_async: options.live_staging_executor?.execution_bridge_async === true }, { executor });
   const latest = await service.handle({ method: 'GET', path: '/snapshot' });
   const run = (latest.runtime?.live_staging_runs || []).find((item) => item.plan_token === token) || null;
   const latestProject = (latest.runtime?.command_center_state?.portfolio?.projects || []).find((item) => item.scope_key === project.scope_key) || project;

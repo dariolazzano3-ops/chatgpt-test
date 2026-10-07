@@ -145,7 +145,8 @@ async function handleDurableApi(request, env, ctx, options = {}) {
         paid_overflow: false,
         provider_eligibility_pass: true,
         project_scope_pass: true,
-        provider_routes: publicPlan(plan, true).providers
+        provider_routes: publicPlan(plan, true).providers,
+        execution_bridge_async: options.live_staging_executor?.execution_bridge_async === true
       }, { executor: options.live_staging_executor });
       return json(result.body, result.status);
     }

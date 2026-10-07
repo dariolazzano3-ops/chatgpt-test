@@ -17,6 +17,7 @@ import { getDurableOperatorRuntimeService } from "./operator-runtime-bootstrap-v
 import { applyOperatorBranding } from "./operator-branding-v1.js";
 import { applyPremiumMasterdashboard } from "./operator-premium-masterdashboard-v1.js";
 import { applyAurentaraWebProjectControlV2 } from "./operator-web-project-control-v2.js";
+import { handleAurentaraWebExecutionBridgeV1 } from "./operator-web-execution-bridge-v1.js";
 import { createCustomerLaunchShield } from "./customer-product/prelaunch-security-privacy-v1.js";
 import { createProductionCustomerAccountPrivacySurface } from "./customer-product/production-account-privacy-surface-v1.js";
 import { enforceCustomerDistributedRateLimit } from "./customer-product/customer-rate-limit-do-v1.js";
@@ -138,9 +139,45 @@ function recordCustomerEvent(ctx, env, input = {}) {
   if (ctx?.waitUntil) ctx.waitUntil(work);
 }
 
+function executionBridgeQueueExecutor() {
+  const executor = async (contract = {}) => ({
+    ok: true,
+    status: 'EXECUTION_QUEUED',
+    async_pending: true,
+    execution_id: contract.execution_id || null,
+    actual_provider: 'riosystems-native-web',
+    executor_id: 'web-factory-native-v1',
+    qa: { passed: false, pending: true },
+    synthetic_only: contract.synthetic_only !== false,
+    real_customer_data: false,
+    external_customer_writes: false,
+    public_deploy: false,
+    dns_change: false,
+    billing: false,
+    checkout: false,
+    public_indexing: false,
+    paid_overflow: false,
+    variable_cost_eur: 0,
+    production_deploy: false
+  });
+  executor.execution_bridge_async = true;
+  return executor;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/internal/aurentara-web-execution-bridge/v1")) {
+      let runtimeService = null;
+      try {
+        runtimeService = getDurableOperatorRuntimeService(env);
+      } catch {
+        return operatorUnavailable();
+      }
+      const response = await handleAurentaraWebExecutionBridgeV1(request, env, ctx, { runtime_service: runtimeService });
+      if (response) return response;
+    }
 
     if (url.pathname === "/operator" || url.pathname === "/operator/" || url.pathname.startsWith("/operator/api/") || url.pathname.startsWith("/operator/workspace/") || url.pathname.startsWith("/operator/project-preview/")) {
       let runtimeService = null;
@@ -150,7 +187,14 @@ export default {
         if (String(env?.RIOSYSTEMS_ENVIRONMENT || "").toLowerCase() === "staging") return operatorUnavailable();
         throw error;
       }
-      const operatorOptions = runtimeService ? { runtime_service: runtimeService } : {};
+      const bridgeReady = Boolean(String(env?.AURENTARA_EXECUTION_BRIDGE_TOKEN || '').trim());
+      const operatorOptions = runtimeService ? {
+        runtime_service: runtimeService,
+        ...(bridgeReady ? {
+          live_staging_executor: executionBridgeQueueExecutor(),
+          current_runtime_verified_provider_ids: ['riosystems-native-web']
+        } : {})
+      } : {};
       const projectIntakeUxV2Response = await handleProjectIntakeUxV2Api(request, env, ctx, operatorOptions);
       if (projectIntakeUxV2Response) return projectIntakeUxV2Response;
       const projectKnowledgeReviewResponse = await handleProjectKnowledgeReviewApi(request, env, ctx, operatorOptions);

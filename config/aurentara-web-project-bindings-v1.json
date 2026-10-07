@@ -1,0 +1,27 @@
+{
+  "schema": "aurentara.web-project-bindings.v1",
+  "repository": "dariolazzano3-ops/chatgpt-test",
+  "projects": {
+    "gelato-donatello:gelato-donatello-website-v1": {
+      "operator_scope_key": "gelato-donatello:gelato-donatello-website-v1",
+      "project_slug": "gelato-donatello-premium-v6",
+      "project_path": "projects/gelato-donatello-premium-v6",
+      "seed_branch": "factory/gelato-donatello-premium-v6-header-polish",
+      "seed_sha": "a723e0e193c6663ad98bddf9e61c1bafe46bbf02",
+      "working_branch": "factory/aurentara-gelato-donatello-working-v1",
+      "candidate_branch_prefix": "factory/aurentara-exec-gelato-donatello-",
+      "private_preview_worker": "gelato-donatello-private-preview-v2",
+      "private_preview_url": "https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev",
+      "style_file": "assets/css/style.css",
+      "entry_file": "index.html",
+      "smoke_commands": [
+        "node scripts/gelato-donatello-premium-v6-smoke.mjs"
+      ],
+      "production_deploy": false,
+      "public_deploy": false,
+      "dns_change": false,
+      "billing": false,
+      "automatic_merge": false
+    }
+  }
+}
