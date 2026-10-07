@@ -46,7 +46,7 @@ jobs:
           git merge-base --is-ancestor "$EXPECTED_SHA" HEAD
           node scripts/gelato-donatello-premium-v6-smoke.mjs
           test -f "$SOURCE_DIR/assets/images/brand/logo-donatello-header.webp"
-          ! grep -E -- '--route|--domain|--routes|--domains' .github/workflows/gelato-donatello-v6-header-private-preview.yml
+          ! grep -E -- 'wrangler.*(--route|--domain)|routes[[:space:]]*=|domains[[:space:]]*=' .github/workflows/gelato-donatello-v6-header-private-preview.yml
 
       - name: Isolated dry run
         shell: bash
