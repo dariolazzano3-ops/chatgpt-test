@@ -6,7 +6,7 @@ export { componentRegistryManifest, composeComponents, renderComponents } from '
 export { runWebsiteQa } from './qa.js';
 export { runAutomaticRepairLoop } from './repair.js';
 export { buildWebsiteProject, writeWebsiteArtifact } from './factory.js';
-export { executeWebFactoryTask, webFactoryProviderManifest } from './adapter.js';
+export { executeWebFactoryTask, executeWebFactoryAsyncTask, webFactoryProviderManifest } from './adapter.js';
 export { WEB_PROVIDER_ROLES, WEB_PROVIDER_REGISTRY, webProviderRoleModel } from './provider-roles.js';
 export { deriveFramerProviderStatus, assertFramerProviderStatus, framerFreeActivationChecklist } from './framer-provider.js';
 export { validateAssetRights, validateVisualDesignContract, visualDesignContractManifest } from './visual-design-contract.js';
@@ -51,3 +51,4 @@ export { J11_CONTROL_FIELDS, J11_CONTROL_ACTIONS, J11_ACTION_STATES, deriveJ11Ac
 export { J12_NEXT_BEST_ACTION_CODES, J12_NEXT_BEST_ACTION_TARGETS, deriveJ12NextBestAction, j12NextBestActionManifest } from './next-best-action-v1.js';
 export { J13_DELIVERY_STATES, J13_OPERATIONS, createJ13DeliveryLifecycle, registerJ13PrivatePreview, submitJ13CustomerFeedback, recordJ13CustomerRevision, approveJ13CustomerReview, evaluateJ13Delivery, createJ13Handoff, createJ13DeliveryPackage, verifyJ13DeliveryPackage, inspectJ13DeliveryLifecycle, j13DeliveryLifecycleManifest } from './delivery-lifecycle-v1.js';
 export { J14_WAVES, J14_REQUIRED_SYNTHETIC_STAGES, evaluateJ14PrerequisiteWaves, evaluateJ14SyntheticFullDogfood, evaluateJ14RealProjectIntegrity, evaluateJ14FullDogfoodClosure, j14FullDogfoodClosureManifest } from './full-dogfood-closure-v1.js';
+export { AUTONOMOUS_DELIVERY_LOOP_SCHEMA, AUTONOMOUS_DELIVERY_LOOP_MAX_CYCLES, AUTONOMOUS_DELIVERY_LOOP_PHASES, validateAutonomousDeliveryLoopRequest, runAutonomousDeliveryLoop, autonomousDeliveryLoopManifest } from './autonomous-delivery-loop-v1.js';
