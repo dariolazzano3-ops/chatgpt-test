@@ -67,7 +67,9 @@ const adapters = {
     return {
       schema: 'riosystems.j9-browser-accessibility-performance-acceptance.v2',
       status: 'PASS',
-      full_accessibility_accepted: true,
+      accessibility: { status: 'PASS' },
+      full_accessibility_accepted: false,
+      human_accessibility_review_pending: true,
       blocking_issues: [],
       evidence_ref: 'evidence://j9/' + commit_sha,
       variable_cost_eur: 0
@@ -120,6 +122,9 @@ assert.equal(result.status, 'PRIVATE_PREVIEW_READY');
 assert.equal(result.final_commit_sha, 'repair-commit-1');
 assert.equal(result.cycles_completed, 2);
 assert.equal(result.private_preview.private_access_verified, true);
+assert.equal(result.accessibility.automated_pass, true);
+assert.equal(result.accessibility.full_accessibility_accepted, false);
+assert.equal(result.accessibility.human_review_pending, true);
 assert.equal(result.next_action.code, 'REVIEW_PRIVATE_PREVIEW');
 assert.equal(browserCalls, 2);
 assert.equal(repairCalls, 1);
@@ -144,7 +149,9 @@ const leakingAdapters = {
     return {
       schema: 'riosystems.j9-browser-accessibility-performance-acceptance.v2',
       status: 'PASS',
-      full_accessibility_accepted: true,
+      accessibility: { status: 'PASS' },
+      full_accessibility_accepted: false,
+      human_accessibility_review_pending: true,
       blocking_issues: [],
       variable_cost_eur: 0
     };
@@ -165,6 +172,25 @@ const leakingAdapters = {
 const leaking = await runAutonomousDeliveryLoop(baseInput, leakingAdapters);
 assert.equal(leaking.ok, false);
 assert.equal(leaking.reason, 'PRIVATE_PREVIEW_SAFETY_VERIFICATION_FAILED');
+
+const accessibilityBlockedAdapters = {
+  ...adapters,
+  async browser_acceptance() {
+    return {
+      schema: 'riosystems.j9-browser-accessibility-performance-acceptance.v2',
+      status: 'PASS',
+      accessibility: { status: 'FAIL' },
+      full_accessibility_accepted: false,
+      human_accessibility_review_pending: true,
+      blocking_issues: [],
+      variable_cost_eur: 0
+    };
+  }
+};
+const accessibilityBlocked = await runAutonomousDeliveryLoop(baseInput, accessibilityBlockedAdapters);
+assert.equal(accessibilityBlocked.ok, false);
+assert.equal(accessibilityBlocked.status, 'HUMAN_DECISION_REQUIRED');
+assert.equal(accessibilityBlocked.reason, 'BOUNDED_DELIVERY_CYCLES_EXHAUSTED');
 
 let exhaustedRepairs = 0;
 const exhaustedAdapters = {

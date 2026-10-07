@@ -294,16 +294,24 @@ export async function runAutonomousDeliveryLoop(input = {}, adapters = {}) {
     if (browserCostBlock) return browserCostBlock;
 
     const browserSchemaOk = browser?.schema === 'riosystems.j9-browser-accessibility-performance-acceptance.v2';
+    const automatedAccessibilityPass = clean(browser?.accessibility?.status, 80).toUpperCase() === 'PASS';
+    const fullAccessibilityAccepted = browser?.full_accessibility_accepted === true;
+    const humanAccessibilityReviewPending = browser?.human_accessibility_review_pending === true;
+    const privatePreviewAccessibilityReady = automatedAccessibilityPass
+      && (fullAccessibilityAccepted || humanAccessibilityReviewPending);
     const browserPass = browserSchemaOk
       && clean(browser?.status, 80).toUpperCase() === 'PASS'
-      && browser?.full_accessibility_accepted === true;
+      && privatePreviewAccessibilityReady;
 
     base.history.push({
       phase: 'BROWSER_ACCEPTANCE',
       cycle,
       ...summarizeGate(browser || {}),
       commit_sha: base.current_commit_sha,
-      full_accessibility_accepted: browser?.full_accessibility_accepted === true
+      automated_accessibility_pass: automatedAccessibilityPass,
+      full_accessibility_accepted: fullAccessibilityAccepted,
+      human_accessibility_review_pending: humanAccessibilityReviewPending,
+      private_preview_accessibility_ready: privatePreviewAccessibilityReady
     });
 
     if (!browserPass) {
@@ -369,6 +377,11 @@ export async function runAutonomousDeliveryLoop(input = {}, adapters = {}) {
         url: previewUrl,
         source_commit_sha: previewCommit,
         private_access_verified: true
+      },
+      accessibility: {
+        automated_pass: automatedAccessibilityPass,
+        full_accessibility_accepted: fullAccessibilityAccepted,
+        human_review_pending: humanAccessibilityReviewPending
       },
       history: clone(base.history),
       human_decision_required: false,
