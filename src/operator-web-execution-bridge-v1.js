@@ -75,7 +75,7 @@ export async function handleAurentaraWebExecutionBridgeV1(request,env={},ctx={},
       lease_seconds:Number(input.lease_seconds||600)
     });
     if(!result?.ok)return json(result?.body||{ok:false,error:'EXECUTION_BRIDGE_CLAIM_FAILED'},result?.status||409);
-    const run=result.body?.run||result.run||result.runtime?.live_staging_runs?.find(x=>x.execution_bridge?.worker_id===clean(input.worker_id,160)&&x.execution_bridge?.status==='CLAIMED')||null;
+    const run=result.body?.run||result.run||null;
     return json({
       ok:true,
       schema:'aurentara.web-execution-bridge.claim.v1',

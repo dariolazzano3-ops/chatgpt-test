@@ -73,6 +73,10 @@ assert.equal(claimBody.run.execution_id,queuedBody.execution_id);
 assert.equal(claimBody.run.execution_bridge.status,'CLAIMED');
 assert.equal(claimBody.run.execution_bridge.worker_id,'vps-bridge-1');
 
+const duplicateSameWorkerClaim=await handleAurentaraWebExecutionBridgeV1(req('/internal/aurentara-web-execution-bridge/v1/claim','POST',{worker_id:'vps-bridge-1',lease_seconds:600},true),env,{}, {runtime_service:service});
+assert.equal(duplicateSameWorkerClaim.status,200);
+assert.equal((await duplicateSameWorkerClaim.json()).run,null);
+
 const secondClaim=await handleAurentaraWebExecutionBridgeV1(req('/internal/aurentara-web-execution-bridge/v1/claim','POST',{worker_id:'vps-bridge-2',lease_seconds:600},true),env,{}, {runtime_service:service});
 assert.equal(secondClaim.status,200);
 assert.equal((await secondClaim.json()).run,null);
@@ -117,6 +121,6 @@ assert.equal(manifest.automatic_merge,false);
 console.log(JSON.stringify({
   ok:true,
   suite:'aurentara-web-execution-bridge-v1',
-  queue:'PASS',claim_lease:'PASS',completion:'PASS',preview_return:'PASS',auth:'PASS',
+  queue:'PASS',claim_lease:'PASS',same_worker_duplicate_claim:'PASS',completion:'PASS',preview_return:'PASS',auth:'PASS',
   github_credentials_in_worker:false,production_deploy:false,automatic_merge:false
 },null,2));
