@@ -525,3 +525,36 @@ body[data-page="eisbecher"] .v6-page-hero__copy h1{font-size:clamp(4rem,5.35vw,6
 @media (max-width:420px){
   .site-header__logo{width:min(210px,56vw)}
 }
+
+/* AURENTARA Web Execution Bridge V1: START */
+.site-header__brand{perspective:900px;isolation:isolate}
+.site-header__logo{
+  transform:translate3d(0,0,0);
+  transform-origin:50% 54%;
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,.72))
+    drop-shadow(0 2px 0 rgba(92,63,38,.18))
+    drop-shadow(0 5px 7px rgba(67,45,26,.18))
+    drop-shadow(0 12px 22px rgba(67,45,26,.10));
+  transition:transform .28s ease,filter .28s ease;
+  will-change:transform;
+}
+@media (hover:hover) and (pointer:fine){
+  .site-header__brand:hover .site-header__logo{
+    transform:translate3d(0,-1px,5px) rotateX(1.2deg) rotateY(-1.1deg);
+    filter:
+      drop-shadow(0 1px 0 rgba(255,255,255,.82))
+      drop-shadow(0 3px 0 rgba(92,63,38,.20))
+      drop-shadow(0 7px 10px rgba(67,45,26,.20))
+      drop-shadow(0 16px 28px rgba(67,45,26,.12));
+  }
+}
+@media (prefers-reduced-motion:reduce){.site-header__logo{transition:none}}
+
+@media(max-width:820px){
+  html,body{max-width:100%;overflow-x:clip}
+  img,svg,video{max-width:100%;height:auto}
+  .site-header__bar{min-width:0}
+  .site-header__brand{min-width:0}
+}
+/* AURENTARA Web Execution Bridge V1: END */
