@@ -551,6 +551,8 @@ body[data-page="eisbecher"] .v6-page-hero__copy h1{font-size:clamp(4rem,5.35vw,6
 }
 @media (prefers-reduced-motion:reduce){.site-header__logo{transition:none}}
 
+:root{--accent:#c7a583}
+
 @media(max-width:820px){
   html,body{max-width:100%;overflow-x:clip}
   img,svg,video{max-width:100%;height:auto}
