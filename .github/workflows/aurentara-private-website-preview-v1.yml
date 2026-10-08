@@ -100,7 +100,10 @@ jobs:
           if(s.production_deploy!==false||s.public_deploy!==false||s.dns_changes!==false||s.billing!==false||s.external_writes!==false) process.exit(1);
           if(p.preview_policy?.mode!=='PRIVATE_CLOUDFLARE_ACCESS_ONLY') process.exit(1);
           NODE
-          ! git grep -n -E 'production_deploy["'"']?[[:space:]]*:[[:space:]]*true' -- "$PROJECT_PATH"
+          if git grep -n -E 'production_deploy[^[:cntrl:]]*:[[:space:]]*true' -- "$PROJECT_PATH"; then
+            echo "Production deploy marker found inside private preview project"
+            exit 1
+          fi
 
       - name: Run project acceptance
         shell: bash
