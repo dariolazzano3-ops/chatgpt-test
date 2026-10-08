@@ -1,0 +1,39 @@
+name: Gelato Header Preview
+
+on:
+  push:
+    branches:
+      - feature/gelatodonatello-project
+    paths:
+      - '.github/workflows/gelato-header-preview.yml'
+      - 'GelatoDonatello/**'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Gelato dependencies
+        working-directory: GelatoDonatello
+        run: npm install
+
+      - name: Validate Gelato worker
+        working-directory: GelatoDonatello
+        run: npm run check
+
+      - name: Deploy isolated preview worker
+        working-directory: GelatoDonatello
+        run: npx wrangler deploy --name gelatodonatello-header-preview
