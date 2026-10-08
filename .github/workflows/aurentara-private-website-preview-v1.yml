@@ -1,0 +1,139 @@
+name: AURENTARA Private Website Preview V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope_key:
+        description: 'Operator project scope'
+        required: true
+        type: string
+      candidate_branch:
+        description: 'Private candidate branch'
+        required: true
+        type: string
+      candidate_sha:
+        description: 'Exact candidate SHA'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurentara-private-website-preview-v1
+  cancel-in-progress: false
+
+jobs:
+  deploy-private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SCOPE_KEY: ${{ inputs.scope_key }}
+      CANDIDATE_BRANCH: ${{ inputs.candidate_branch }}
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: factory-control
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Resolve allowlisted project binding
+        id: binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$CANDIDATE_BRANCH" != "factory-control"
+          case "$CANDIDATE_BRANCH" in factory/aurentara-exec-*) ;; *) echo "Unsafe candidate branch"; exit 1 ;; esac
+          test "$(printf '%s' "$CANDIDATE_SHA" | grep -Ec '^[0-9a-f]{40}$')" = "1"
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs=require('fs');
+          const cfg=JSON.parse(fs.readFileSync('config/aurentara-web-project-bindings-v1.json','utf8'));
+          const b=cfg.projects?.[process.env.SCOPE_KEY];
+          if(!b) throw new Error('PROJECT_BINDING_NOT_FOUND');
+          if(b.production_deploy!==false||b.public_deploy!==false||b.dns_change!==false||b.billing!==false||b.automatic_merge!==false) throw new Error('PROJECT_BINDING_SAFETY_INVALID');
+          for(const [k,v] of Object.entries({
+            project_path:b.project_path,
+            seed_sha:b.seed_sha,
+            worker:b.private_preview_worker,
+            preview_url:b.private_preview_url
+          })) console.log(k+'='+v);
+          NODE
+
+      - name: Checkout exact private candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$CANDIDATE_BRANCH"
+          test "$(git rev-parse "origin/$CANDIDATE_BRANCH")" = "$CANDIDATE_SHA"
+          git checkout --detach "$CANDIDATE_SHA"
+          git merge-base --is-ancestor "${{ steps.binding.outputs.seed_sha }}" HEAD
+          test -d "${{ steps.binding.outputs.project_path }}"
+          test -f "${{ steps.binding.outputs.project_path }}/project.json"
+          CHANGED="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          test -n "$CHANGED"
+          while IFS= read -r path; do
+            case "$path" in
+              "${{ steps.binding.outputs.project_path }}"/*) ;;
+              *) echo "Candidate changed forbidden path: $path"; exit 1 ;;
+            esac
+          done <<< "$CHANGED"
+
+      - name: Enforce private-staging project safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_PATH="${{ steps.binding.outputs.project_path }}"
+          node - "$PROJECT_PATH/project.json" <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const s=p.safety||{};
+          if(s.production_deploy!==false||s.public_deploy!==false||s.dns_changes!==false||s.billing!==false||s.external_writes!==false) process.exit(1);
+          if(p.preview_policy?.mode!=='PRIVATE_CLOUDFLARE_ACCESS_ONLY') process.exit(1);
+          NODE
+          ! git grep -n -E 'production_deploy["'"']?[[:space:]]*:[[:space:]]*true' -- "$PROJECT_PATH"
+
+      - name: Run project acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          find "${{ steps.binding.outputs.project_path }}/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Isolated private preview dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --dry-run             --message "AURENTARA private website execution $CANDIDATE_SHA"
+
+      - name: Deploy to pre-existing private preview Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --message "AURENTARA private website execution ${CANDIDATE_SHA:0:12}"
+
+      - name: Verify Cloudflare Access remains enforced
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.binding.outputs.preview_url }}"
+          curl -sS -I --max-time 20 "$URL/" > /tmp/headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/headers.txt
+          tr -d '\r' < /tmp/headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          echo "PRIVATE_PREVIEW_URL=$URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "CANDIDATE_SHA=$CANDIDATE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "PRODUCTION_DEPLOY=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "PUBLIC_DEPLOY=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "DNS_CHANGE=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "AUTOMATIC_MERGE=false" >> "$GITHUB_STEP_SUMMARY"
