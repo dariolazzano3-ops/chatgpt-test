@@ -67,7 +67,9 @@ try {
   assert.equal(projectsResponse.status, 200, output);
   const projects = await projectsResponse.json();
   assert.equal(projects.schema, 'riosystems.operator-projects-view.v2');
-  assert.equal(projects.items.length, 4);
+  assert.equal(projects.items.length, 5);
+  const gelato = projects.items.find((item) => item.scope_key === 'gelato-donatello:gelato-donatello-website-v1');
+  assert.ok(gelato, 'Gelato Donatello must be seeded into the active private operator runtime');
   const website = projects.items.find((item) => item.project_id === 'riosystems-public-website-v1');
   assert.ok(website, 'AURENTARA Public Website V1 workspace project must be projected');
   assert.equal(website.runtime_registration, 'REGISTERED_AUTHORITATIVE_RUNTIME');
