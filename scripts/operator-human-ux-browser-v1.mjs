@@ -170,15 +170,21 @@ try {
   assert.deepEqual(workspaceErrors, []);
   await workspacePage.close();
 
-  let legacyOpenIndex = -1;
-  for (let index = 0; index < await opens.count(); index += 1) {
-    if (!/workspace/i.test(await opens.nth(index).innerText())) {
-      legacyOpenIndex = index;
-      break;
+  let legacyOpen = null;
+  if (premiumPortfolio) {
+    const overviewOpen = page.locator('#projects .pm-list .pm-open[data-tab="overview"]').first();
+    if (await overviewOpen.count()) legacyOpen = overviewOpen;
+  }
+  if (!legacyOpen) {
+    for (let index = 0; index < await opens.count(); index += 1) {
+      if (!/workspace/i.test(await opens.nth(index).innerText())) {
+        legacyOpen = opens.nth(index);
+        break;
+      }
     }
   }
-  assert.ok(legacyOpenIndex >= 0, 'legacy project detail action must remain available');
-  await opens.nth(legacyOpenIndex).click();
+  assert.ok(legacyOpen, 'legacy project detail action must remain available');
+  await legacyOpen.click();
   if (premiumPortfolio) {
     await page.waitForFunction(() => {
       const premium = document.querySelector('.pm-workspace-head');
