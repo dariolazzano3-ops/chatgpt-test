@@ -20,10 +20,22 @@ function runtimeUrl(baseUrl, tableName, query = '') {
   return `${base}/rest/v1/${tableName}${query ? `?${query}` : ''}`;
 }
 
-function authHeaders(serviceRoleKey, extras = {}) {
-  const key = clean(serviceRoleKey, 4000);
-  if (!key) throw new Error('OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY_REQUIRED');
-  return { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json', ...extras };
+function authHeaders({ service_role_key = '', anon_key = '', bridge_token = '' } = {}, extras = {}) {
+  const bridgeToken = clean(bridge_token, 4000);
+  const anonKey = clean(anon_key, 4000);
+  const serviceRoleKey = clean(service_role_key, 4000);
+  if (bridgeToken) {
+    if (!anonKey) throw new Error('OPERATOR_RUNTIME_SUPABASE_ANON_KEY_REQUIRED');
+    return {
+      apikey: anonKey,
+      ...(anonKey.startsWith('sb_publishable_') ? {} : { authorization: `Bearer ${anonKey}` }),
+      'x-aurentara-runtime-token': bridgeToken,
+      'content-type': 'application/json',
+      ...extras
+    };
+  }
+  if (!serviceRoleKey) throw new Error('OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY_REQUIRED');
+  return { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}`, 'content-type': 'application/json', ...extras };
 }
 
 async function parseJson(response) {
@@ -39,19 +51,22 @@ function normalizeRow(row, operatorId = null) {
   return clone(row.runtime);
 }
 
-export function createSupabaseOperatorRuntimeStore({ supabase_url, service_role_key, table_name = 'riosystems_operator_runtime_v1', fetch_impl = globalThis.fetch, clock = () => new Date().toISOString() } = {}) {
+export function createSupabaseOperatorRuntimeStore({ supabase_url, service_role_key, anon_key, bridge_token, table_name = 'riosystems_operator_runtime_v1', fetch_impl = globalThis.fetch, clock = () => new Date().toISOString() } = {}) {
   const supabaseUrl = clean(supabase_url, 2000).replace(/\/+$/, '');
   const serviceRoleKey = clean(service_role_key, 4000);
+  const anonKey = clean(anon_key, 4000);
+  const bridgeToken = clean(bridge_token, 4000);
   const tableName = safeTableName(table_name);
   if (!supabaseUrl) throw new Error('OPERATOR_RUNTIME_SUPABASE_URL_REQUIRED');
-  if (!serviceRoleKey) throw new Error('OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY_REQUIRED');
+  if (bridgeToken && !anonKey) throw new Error('OPERATOR_RUNTIME_SUPABASE_ANON_KEY_REQUIRED');
+  if (!bridgeToken && !serviceRoleKey) throw new Error('OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY_REQUIRED');
   if (typeof fetch_impl !== 'function') throw new Error('OPERATOR_RUNTIME_FETCH_REQUIRED');
   runtimeUrl(supabaseUrl, tableName);
 
   async function request(query, init = {}) {
     let response;
     try {
-      response = await fetch_impl(runtimeUrl(supabaseUrl, tableName, query), { ...init, headers: authHeaders(serviceRoleKey, init.headers || {}) });
+      response = await fetch_impl(runtimeUrl(supabaseUrl, tableName, query), { ...init, headers: authHeaders({ service_role_key: serviceRoleKey, anon_key: anonKey, bridge_token: bridgeToken }, init.headers || {}) });
     } catch (error) {
       throw new Error(`OPERATOR_RUNTIME_STORE_UNAVAILABLE:${clean(error?.message || error, 240)}`);
     }
@@ -108,9 +123,28 @@ export function createOperatorRuntimeStoreFromEnv(env = {}, options = {}) {
     return null;
   }
   if (mode !== 'supabase') throw new Error('OPERATOR_RUNTIME_STORE_MODE_UNSUPPORTED');
-  return createSupabaseOperatorRuntimeStore({ supabase_url: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL, service_role_key: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY, table_name: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE || 'riosystems_operator_runtime_v1', fetch_impl: options.fetch_impl || globalThis.fetch, clock: options.clock || (() => new Date().toISOString()) });
+  return createSupabaseOperatorRuntimeStore({
+    supabase_url: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL,
+    service_role_key: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_SERVICE_ROLE_KEY,
+    anon_key: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_ANON_KEY,
+    bridge_token: env.RIOSYSTEMS_OPERATOR_RUNTIME_BRIDGE_TOKEN,
+    table_name: env.RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_TABLE || 'riosystems_operator_runtime_v1',
+    fetch_impl: options.fetch_impl || globalThis.fetch,
+    clock: options.clock || (() => new Date().toISOString())
+  });
 }
 
 export function supabaseOperatorRuntimeStoreManifest() {
-  return { schema: 'riosystems.operator-runtime-store.supabase.v1', contract: ['load','create','compareAndSwap'], optimistic_concurrency: true, durable: true, project_scope_preserved_inside_authoritative_runtime: true, browser_credentials: false, automatic_fallback_to_memory_in_staging: false, production_deploy: false };
+  return {
+    schema: 'riosystems.operator-runtime-store.supabase.v1',
+    contract: ['load','create','compareAndSwap'],
+    optimistic_concurrency: true,
+    durable: true,
+    rls_bridge_auth_supported: true,
+    service_role_fallback_supported: true,
+    project_scope_preserved_inside_authoritative_runtime: true,
+    browser_credentials: false,
+    automatic_fallback_to_memory_in_staging: false,
+    production_deploy: false
+  };
 }

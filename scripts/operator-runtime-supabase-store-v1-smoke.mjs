@@ -6,6 +6,7 @@ import { createSupabaseOperatorRuntimeStore, createOperatorRuntimeStoreFromEnv }
 const rows = new Map();
 let malformed = false;
 let unavailable = false;
+let authMode = 'service';
 const reply = (body, status = 200) => new Response(body === null ? '' : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 const operatorFilter = (url) => {
   const value = new URL(url).searchParams.get('operator_id') || '';
@@ -15,8 +16,15 @@ const operatorFilter = (url) => {
 async function fakeFetch(url, init = {}) {
   if (unavailable) throw new Error('synthetic-network-down');
   if (malformed) return new Response('{broken', { status: 200 });
-  assert.equal(init.headers.apikey, 'service-role-test');
-  assert.equal(init.headers.authorization, 'Bearer service-role-test');
+  if (authMode === 'bridge') {
+    assert.equal(init.headers.apikey, 'sb_publishable_test');
+    assert.equal(init.headers.authorization, undefined);
+    assert.equal(init.headers['x-aurentara-runtime-token'], 'bridge-token-test-12345678901234567890');
+  } else {
+    assert.equal(init.headers.apikey, 'service-role-test');
+    assert.equal(init.headers.authorization, 'Bearer service-role-test');
+    assert.equal(init.headers['x-aurentara-runtime-token'], undefined);
+  }
   const method = String(init.method || 'GET').toUpperCase();
   const key = operatorFilter(url);
   if (method === 'GET') return reply(rows.has(key) ? [structuredClone(rows.get(key))] : []);
@@ -90,6 +98,20 @@ const writerB = structuredClone(base); writerB.revision++;
 assert.equal((await store.compareAndSwap(writerA, base.revision)).ok, true);
 assert.equal((await store.compareAndSwap(writerB, base.revision)).error, 'STORE_REVISION_CONFLICT');
 
+
+authMode = 'bridge';
+const bridgeStore = createSupabaseOperatorRuntimeStore({
+  supabase_url: 'https://synthetic.supabase.co',
+  anon_key: 'sb_publishable_test',
+  bridge_token: 'bridge-token-test-12345678901234567890',
+  fetch_impl: fakeFetch,
+  clock: () => '2026-08-30T11:47:00.000Z'
+});
+const bridgeRuntime = buildRuntime('operator:bridge@example.com');
+assert.equal((await bridgeStore.create(bridgeRuntime)).ok, true);
+assert.equal((await bridgeStore.load(bridgeRuntime.operator_id)).operator_id, bridgeRuntime.operator_id);
+authMode = 'service';
+
 malformed = true;
 await assert.rejects(() => store.load(runtime.operator_id), /INVALID_RESPONSE/);
 malformed = false; unavailable = true;
@@ -98,5 +120,12 @@ unavailable = false;
 
 assert.throws(() => createOperatorRuntimeStoreFromEnv({ RIOSYSTEMS_ENVIRONMENT: 'staging' }), /DURABLE_STORE_REQUIRED/);
 assert.throws(() => createOperatorRuntimeStoreFromEnv({ RIOSYSTEMS_ENVIRONMENT: 'staging', RIOSYSTEMS_OPERATOR_RUNTIME_STORE: 'supabase', RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL: 'https://synthetic.supabase.co' }), /SERVICE_ROLE_KEY_REQUIRED/);
+assert.doesNotThrow(() => createOperatorRuntimeStoreFromEnv({
+  RIOSYSTEMS_ENVIRONMENT: 'staging',
+  RIOSYSTEMS_OPERATOR_RUNTIME_STORE: 'supabase',
+  RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_URL: 'https://synthetic.supabase.co',
+  RIOSYSTEMS_OPERATOR_RUNTIME_SUPABASE_ANON_KEY: 'sb_publishable_test',
+  RIOSYSTEMS_OPERATOR_RUNTIME_BRIDGE_TOKEN: 'bridge-token-test-12345678901234567890'
+}, { fetch_impl: fakeFetch }));
 
-console.log(JSON.stringify({ ok: true, schema: 'riosystems.operator-runtime-store.supabase.smoke.v1', checks: ['load_create','duplicate_create','cas','stale_revision','operator_isolation','restart_recovery','concurrency','malformed_fail_closed','unavailable_fail_closed','staging_memory_blocked'], production_deploy: false, variable_cost_eur: 0 }, null, 2));
+console.log(JSON.stringify({ ok: true, schema: 'riosystems.operator-runtime-store.supabase.smoke.v1', checks: ['load_create','duplicate_create','cas','stale_revision','operator_isolation','restart_recovery','concurrency','malformed_fail_closed','unavailable_fail_closed','rls_bridge_auth','staging_memory_blocked'], production_deploy: false, variable_cost_eur: 0 }, null, 2));
