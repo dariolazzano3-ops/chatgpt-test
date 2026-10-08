@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "Factory Test Two",
+    "slug": "factory-test-two"
+  },
+  "mode": "generate",
+  "intent": "local_food_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
