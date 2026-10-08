@@ -47,11 +47,15 @@ async function openProjectDetail(page) {
   const opens = page.locator('#projects .project-open');
   await opens.first().waitFor();
   let target = null;
-  for (let index = 0; index < await opens.count(); index += 1) {
-    const label = await opens.nth(index).innerText();
-    if (!/workspace/i.test(label)) {
-      target = opens.nth(index);
-      break;
+  const overviewOpen = page.locator('#projects .pm-list .project-open[data-tab="overview"]').first();
+  if (await overviewOpen.count()) target = overviewOpen;
+  if (!target) {
+    for (let index = 0; index < await opens.count(); index += 1) {
+      const label = await opens.nth(index).innerText();
+      if (!/workspace/i.test(label)) {
+        target = opens.nth(index);
+        break;
+      }
     }
   }
   assert.ok(target, 'a project detail action must be available');
