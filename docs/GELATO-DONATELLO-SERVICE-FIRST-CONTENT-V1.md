@@ -1,18 +1,15 @@
-# Gelato Donatello · Service-first Content Direction V1
+# Gelato Donatello · Service-first Content Direction V2
 
-Owner direction (2026-10-09): the website is a premium presentation of the business and its services, not an online price list. Guests get prices on site.
+Owner clarification (2026-10-09): retain Eisvitrine rental, individually made Eistorten and Eisbomben as important services WITH prices online.
 
-## Required public presentation
+## Visible site policy
 
-- **No numerical prices anywhere in visible site pages, meta descriptions, injected UI or bundled public data.**
-- Never build a dynamic Eisbecher menu, extras price grid, full flavor catalog, Eisbomben product listing, or numbered scoop price board.
-- Keep curated **Eisbecher photos**, **individuelle Eistorten**, **Eisvitrine mieten**, **Handwerk/Tradition** and **Besuch/Kontakt**.
-- Service-first language: why come here, what can be created for a personal occasion, and a clear contact/action path.
-- Eistorten requests stay simple: occasion, date, approximate party size and personal wishes. No online ordering or payment.
-- Prices and current selection may be explained briefly as “vor Ort”, not enumerated.
-- Images/logo are preserved; only the logo presentation can receive reversible visual depth.
-- Legacy /sortiment/ and /eistorten-eisbomben/ routes redirect to current relevant pages.
-- The old confirmed owner product/pricing/flavor baseline is **archived outside the published project root** at docs/gelato-donatello-internal-baseline-v6/. Do not serve or re-import it as a public product menu.
-- Production/DNS/public launch/billing/customer data writes remain off pending explicit approval.
+- **Prices displayed online:** Eistorten 18 cm 65 €, 20 cm 75 €, 24 cm 95 €, 26 cm 109 €; premium flavors +5 €. Eisbomben 40 Kugeln 75 €, 60 Kugeln 109 €, premium +5 €. Eisvitrine: rental 250 €, deposit 100 €, including 5 L ice cream, four flavors and accessories.
+- **No online prices:** regular scoops, Eisbecher, extras and individual flavor items; those prices are available on site.
+- Keep Eisbecher as imagery and inspiration, no 68-item menu or full flavor catalog.
+- Keep Eistorten and Eisbomben photos, relevant sizes, rates, and inquiry form. Eisvitrine rental terms and inquiry stay visible.
+- Preserve the existing logo, existing private Access protection and legacy redirects to current routes.
+- No production, public launch, DNS, billing or automatic merge.
+- Original complete owner pricing/flavor data remains archived OUTSIDE the deployed project root at docs/gelato-donatello-internal-baseline-v6/.
 
-Canonical acceptance gate: scripts/gelato-donatello-premium-v6-smoke.mjs.
+Canonical acceptance: scripts/gelato-donatello-service-first-acceptance-v1.mjs

@@ -17,7 +17,10 @@ const originals=pages.map(rel=>fs.readFileSync(path.join(root,rel),'utf8'));
 for(const [i,html] of originals.entries()){
   assert.match(html,/assets\/css\/style\.css/,pages[i]);
   assert.match(html,/assets\/js\/app\.js/,pages[i]);
-  assert.doesNotMatch(html,/\d+(?:[.,]\d+)?\s*€|EUR\b|Eisbomb|Kugel Eis[^<]*\d+|preise direkt|Aktuelle Karte|alle 41 sorten/i,'no catalog/prices in '+pages[i]);
+  // Only specialty cakes/bombs and the rental service may publish rates.
+  if(!['eistorten/index.html','eisvitrine/index.html'].includes(pages[i])){
+    assert.doesNotMatch(html,/\d+(?:[.,]\d+)?\s*€|EUR\b|Kugel Eis[^<]*\d+|preise direkt|Aktuelle Karte|alle 41 sorten/i,'no ordinary menu prices in '+pages[i]);
+  }
   for(const match of html.matchAll(/(?:src|href|data-asset-path)="(\/[^"#?]+)"/g)){
     const ref=match[1];
     assert.ok(fs.existsSync(path.join(root,ref.slice(1)))||fs.existsSync(path.join(root,ref.slice(1),'index.html')),'missing file '+ref+' in '+pages[i]);
@@ -33,10 +36,22 @@ assert.doesNotMatch(cups,/data-component="cup-menu"|data-component="extras-menu"
 assert.match(cakes,/Eistorte/i);
 assert.match(cakes,/Spaghetti-Eistorte/);
 assert.match(cakes,/data-include-flavor-picker="false"/);
-assert.doesNotMatch(cakes,/data-component="flavor-grid"|Kugeln|Eisbomb/);
+assert.doesNotMatch(cakes,/data-component="flavor-grid"/);
+for(const label of ['Eisbomben','40 Kugeln','60 Kugeln','18 cm','20 cm','24 cm','26 cm']){
+  assert.ok(cakes.includes(label),'missing specialty offering: '+label);
+}
+for(const price of ['65 €','75 €','95 €','109 €','5 €']){
+  assert.ok(cakes.includes(price),'missing specialty price: '+price);
+}
+assert.doesNotMatch(cakes,/1,60\s*€|Kugel Eis[^<]*1,60/i,'no ordinary scoop price in cakes');
+const cakeMoney=[...cakes.matchAll(/(?:\+)?\d+(?:[,.]\d+)?\s*€/g)].map(m=>m[0].trim().replace(/^\+/, ''));
+for(const price of cakeMoney) assert.ok(['5 €','65 €','75 €','95 €','109 €'].includes(price),'unexpected specialty price: '+price);
 assert.match(rental,/Eisvitrine mieten/);
 assert.match(rental,/data-component="request-form"/);
-assert.doesNotMatch(rental,/\d+[,.]\d+\s*€/);
+for(const price of ['250 €','100 €']) assert.ok(rental.includes(price),'missing rental price: '+price);
+for(const label of ['5 L','Miete','Kaution','ca. 90 cm']) assert.ok(rental.includes(label),'missing rental specification: '+label);
+const rentalMoney=[...rental.matchAll(/\d+(?:[,.]\d+)?\s*€/g)].map(m=>m[0].trim());
+for(const price of rentalMoney) assert.ok(['250 €','100 €'].includes(price),'unexpected rental price: '+price);
 assert.match(contact,/06806 9394980/);
 assert.match(fs.readFileSync(path.join(root,'sortiment/index.html'),'utf8'),/url=\/eisbecher\//);
 assert.match(fs.readFileSync(path.join(root,'eistorten-eisbomben/index.html'),'utf8'),/url=\/eistorten\//);
@@ -48,17 +63,21 @@ assert.equal(project.safety.production_deploy,false);
 assert.equal(project.safety.public_deploy,false);
 assert.equal(project.safety.dns_changes,false);
 assert.equal(project.safety.external_writes,false);
-assert.equal(project.content_policy.strategy,'SERVICE_FIRST');
-assert.equal(project.content_policy.online_prices_visible,false);
+assert.equal(project.content_policy.strategy,'SERVICE_FIRST_WITH_SPECIALTY_PRICING');
+assert.equal(project.content_policy.online_prices_visible,true);
+assert.deepEqual(project.content_policy.online_price_exceptions,['/eistorten/','/eisvitrine/']);
+assert.equal(project.content_policy.dedicated_flavor_catalog,false);
+assert.equal(project.content_policy.eisbomben_promotion,true);
 assert.deepEqual(project.expected_page_set.map(x=>x.path),['/','/eisbecher/','/eistorten/','/eisvitrine/','/kontakt/']);
 
 const nav=fs.readFileSync(path.join(root,'assets/js/components/nav.js'),'utf8');
 for(const href of ['/','/eisbecher/','/eistorten/','/eisvitrine/','/kontakt/'])assert.ok(nav.includes("href: '"+href+"'"),'navigation '+href);
-assert.doesNotMatch(nav,/Eisbomben|\/sortiment\//);
+assert.match(nav,/Eistorten & Eisbomben/);
+assert.doesNotMatch(nav,/\/sortiment\//);
 const js=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
 assert.doesNotMatch(js,/flavor-grid|cup-menu|extras-menu|pricing\.js/);
 const request=fs.readFileSync(path.join(root,'assets/js/components/request-form.js'),'utf8');
-assert.doesNotMatch(request,/FLAVORS|Eisbomb|sorten auswählen/i);
+assert.doesNotMatch(request,/FLAVORS|sorten auswählen/i);
 for(const obsolete of ['assets/js/data/pricing.js','assets/js/data/flavors.js','assets/js/components/cup-menu.js','assets/js/components/flavor-grid.js','confirmed-project-inputs.json'])assert.ok(!fs.existsSync(path.join(root,obsolete)),'internal list must not be deployed: '+obsolete);
 
 
@@ -66,4 +85,4 @@ const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
 for(const marker of ['.v6-hero','.v6-product-card','.v6-request-section','.v6-rental-board','.site-header__logo','@media (max-width:820px)','AURENTARA Web Execution Bridge V1: START'])assert.ok(css.includes(marker),marker);
 assert.match(css,/hyphens:none/);
 assert.match(css,/drop-shadow/);
-console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, zero visible prices, no flavor/bomb catalog, baseline absent from published project, logo retained, private-only.');
+console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
