@@ -560,3 +560,13 @@ body[data-page="eisbecher"] .v6-page-hero__copy h1{font-size:clamp(4rem,5.35vw,6
   .site-header__brand{min-width:0}
 }
 /* AURENTARA Web Execution Bridge V1: END */
+
+/* Service-first: Preislisten entfallen zugunsten von Genuss, Bildern und Anfragen. */
+.v6-hero__badge strong{font-size:clamp(2.4rem,3.5vw,3.2rem)}
+.v7-price-note{margin:1rem 0 1.6rem;font-size:.9rem;color:var(--ink-soft);font-style:italic}
+.v7-service-intro{padding:clamp(68px,8vw,120px) var(--gutter);max-width:950px;margin:0 auto;text-align:center}
+.v7-service-intro h2{margin-inline:auto;max-width:14ch}
+.v7-service-intro .lead{margin:0 auto}
+body[data-page="eisvitrine"] .v6-rental-board__specs{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-page="eisvitrine"] .v6-rental-board__specs>div:last-child{border-right:0}
+@media(max-width:760px){.v7-service-intro{padding:60px var(--gutter)}}

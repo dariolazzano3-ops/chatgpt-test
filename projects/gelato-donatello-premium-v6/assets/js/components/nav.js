@@ -2,11 +2,10 @@ import { BUSINESS } from '../data/business.js';
 
 const NAV_ITEMS = [
   { page: 'home', href: '/', label: 'Start' },
-  { page: 'sortiment', href: '/sortiment/', label: 'Sortiment' },
   { page: 'eisbecher', href: '/eisbecher/', label: 'Eisbecher' },
-  { page: 'eistorten-eisbomben', href: '/eistorten-eisbomben/', label: 'Eistorten & Eisbomben' },
-  { page: 'eisvitrine', href: '/eisvitrine/', label: 'Eisvitrine' },
-  { page: 'kontakt', href: '/kontakt/', label: 'Besuch' }
+  { page: 'eistorten', href: '/eistorten/', label: 'Eistorten' },
+  { page: 'eisvitrine', href: '/eisvitrine/', label: 'Eisvitrine mieten' },
+  { page: 'kontakt', href: '/kontakt/', label: 'Kontakt' }
 ];
 
 export function renderSiteHeader(activePage) {
