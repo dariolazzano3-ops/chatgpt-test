@@ -9,7 +9,7 @@
   "language": "de",
   "environment": "private-staging",
   "website_standard": "aurentara.premium-website-standard.v1",
-  "purpose": "Premium-Gelateria-Markenseite fuer Gelato Donatello mit Fokus auf Handwerk, Genuss, Eisbecher-Inspiration, individuelle Eistorten, Eisvitrinen-Vermietung und Besuch/Kontakt. Keine Online-Preisliste oder Eissorten-/Eisbomben-Kataloge.",
+  "purpose": "Premium-Gelateria-Markenseite: Handwerk, Eisbecher ohne Onlinepreise, individuelle Eistorten und Eisbomben mit Preisen sowie Eisvitrinenvermietung mit Preisen, Besuch/Kontakt. Keine vollständige Eissortenkarte.",
   "basis_note": "V6 ist der Designer-Loop-Nachfolger von gelato-donatello-v5-final. Inhalt, Datenmodell, Safety-Grenzen und owner-provided Assets wurden reuse-first uebernommen; Art Direction, Typografie, Seitenrhythmus, Komponenten und Anfrage-UX wurden neu gestaltet.",
   "predecessor_note": "V5 Reference Fidelity wurde als funktionale Basis uebernommen. V6 beseitigt Template-Rhythmus, unruhige Mobile-Wraps, leere Pending-Image-Flaechen und den rohen Checkbox-Anfrageblock.",
   "design_direction": "Designer-led editorial gelateria: warmes Ivory, Salbei, Espresso-Braun und Sand; starke aber kontrollierte Typografie, asymmetrische Food-Kompositionen, kuratierte Bildmosaike, klare Mikrotypografie, mobile snap galleries und deutlich weniger Corporate-Card-Chrome.",
@@ -24,7 +24,7 @@
     },
     {
       "path": "/eistorten/",
-      "title": "Individuelle Eistorten"
+      "title": "Eistorten & Eisbomben mit Preisen"
     },
     {
       "path": "/eisvitrine/",
@@ -65,17 +65,26 @@
     "production_rights": "PENDING_OWNER_CONFIRMATION"
   },
   "content_policy": {
-    "strategy": "SERVICE_FIRST",
-    "website_price_disclosure": "ON_SITE_ONLY",
-    "online_prices_visible": false,
+    "strategy": "SERVICE_FIRST_WITH_SPECIALTY_PRICING",
+    "website_price_disclosure": "SPECIALTY_PRODUCTS_ONLINE__SCOOPS_AND_CUPS_ON_SITE",
+    "online_prices_visible": true,
     "online_price_lists": false,
     "dedicated_flavor_catalog": false,
-    "eisbomben_promotion": false,
+    "eisbomben_promotion": true,
     "legacy_routes": [
       "/sortiment/",
       "/eistorten-eisbomben/"
     ],
     "owner_directive_date": "2026-10-09",
-    "note": "Alle Preise vor Ort. Quelle fuer interne Bestandsdaten separat erhalten, nicht als Webmenue ausliefern."
+    "note": "Eiskugeln, Eisbecher und Extras ohne Onlinepreise. Eistorten (18/20/24/26 cm), Eisbomben (40/60 Kugeln) und Mietvitrine mit Preisen. Sortimentkatalog bleibt entfernt.",
+    "online_price_exceptions": [
+      "/eistorten/",
+      "/eisvitrine/"
+    ],
+    "allowed_price_categories": [
+      "Eistorten",
+      "Eisbomben",
+      "Eisvitrine Vermietung"
+    ]
   }
 }
