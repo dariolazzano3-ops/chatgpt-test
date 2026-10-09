@@ -17,7 +17,7 @@
         <p class="eyebrow eyebrow--sand">Eistorten & Eisbomben</p>
         <h1>Für Momente, die ein bisschen größer sind.</h1>
         <p>Individuell zusammengestellt, mit Wunschsorten und Dekoration passend zum Anlass.</p>
-        <a class="button button--sand" href="#anfrage">Anfrage vorbereiten</a>
+        <a class="button button--sand" href="#kreationen">Alle Kreationen entdecken</a>
       </div>
       <div class="v6-page-hero__media">
         <img src="/assets/images/cakes/eistorte-01.webp" alt="Individuelle Eistorte von Gelato Donatello" loading="eager" />
@@ -70,18 +70,212 @@
       </div>
     </section>
 
-    <section class="v6-cake-gallery">
+    <section class="v6-cake-gallery" id="kreationen" aria-labelledby="kreationen-title">
       <div class="v6-section-head">
-        <div><p class="eyebrow">Echte Donatello-Arbeiten</p><h2>Jede Torte ein Einzelstück.</h2></div>
-        <p>Eine kleine Auswahl aus den vorhandenen Donatello-Motiven.</p>
+        <div>
+          <p class="eyebrow">Unsere Kreationen</p>
+          <h2 id="kreationen-title">Jede Kreation erzählt eine Geschichte.</h2>
+        </div>
+        <p>24 echte Donatello-Motive. Entdecke die Vielfalt unserer Eistorten und Eisbomben und lass dich für deinen Anlass inspirieren.</p>
       </div>
+      <div class="v6-cake-gallery__toolbar" role="group" aria-label="Kreationen filtern">
+        <button type="button" class="v6-cake-gallery__filter" data-cake-filter="alle" aria-pressed="true">Alle <span>24</span></button>
+        <button type="button" class="v6-cake-gallery__filter" data-cake-filter="eistorte" aria-pressed="false">Eistorten <span>19</span></button>
+        <button type="button" class="v6-cake-gallery__filter" data-cake-filter="spaghetti" aria-pressed="false">Spaghetti-Eistorten <span>3</span></button>
+        <button type="button" class="v6-cake-gallery__filter" data-cake-filter="eisbombe" aria-pressed="false">Eisbomben <span>2</span></button>
+      </div>
+      <p class="v6-cake-gallery__count" role="status" aria-live="polite">Alle 24 Kreationen</p>
       <div class="v6-cake-gallery__grid">
-        <figure class="v6-cake-gallery__item v6-cake-gallery__item--hero"><img src="/assets/images/cakes/eistorte-03.webp" alt="Eistorte von Gelato Donatello" loading="lazy" /></figure>
-        <figure class="v6-cake-gallery__item"><img src="/assets/images/cakes/eistorte-04.webp" alt="Eistorte von Gelato Donatello" loading="lazy" /></figure>
-        <figure class="v6-cake-gallery__item"><img src="/assets/images/cakes/eisbombe-02.webp" alt="Eisbombe von Gelato Donatello" loading="lazy" /></figure>
-        <figure class="v6-cake-gallery__item"><img src="/assets/images/cakes/spaghetti-eistorte-02.webp" alt="Spaghetti-Eistorte von Gelato Donatello" loading="lazy" /></figure>
-        <figure class="v6-cake-gallery__item"><img src="/assets/images/cakes/eistorte-05.webp" alt="Eistorte von Gelato Donatello" loading="lazy" /></figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-01.webp" data-cake-label="Individuelle Eistorte 01" aria-label="Individuelle Eistorte 01 vergrößern">
+              <img src="/assets/images/cakes/eistorte-01.webp" alt="Individuelle Eistorte 01 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 01</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-02.webp" data-cake-label="Individuelle Eistorte 02" aria-label="Individuelle Eistorte 02 vergrößern">
+              <img src="/assets/images/cakes/eistorte-02.webp" alt="Individuelle Eistorte 02 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 02</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-03.webp" data-cake-label="Individuelle Eistorte 03" aria-label="Individuelle Eistorte 03 vergrößern">
+              <img src="/assets/images/cakes/eistorte-03.webp" alt="Individuelle Eistorte 03 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 03</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-04.webp" data-cake-label="Individuelle Eistorte 04" aria-label="Individuelle Eistorte 04 vergrößern">
+              <img src="/assets/images/cakes/eistorte-04.webp" alt="Individuelle Eistorte 04 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 04</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-05.webp" data-cake-label="Individuelle Eistorte 05" aria-label="Individuelle Eistorte 05 vergrößern">
+              <img src="/assets/images/cakes/eistorte-05.webp" alt="Individuelle Eistorte 05 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 05</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-06.webp" data-cake-label="Individuelle Eistorte 06" aria-label="Individuelle Eistorte 06 vergrößern">
+              <img src="/assets/images/cakes/eistorte-06.webp" alt="Individuelle Eistorte 06 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 06</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-07.webp" data-cake-label="Individuelle Eistorte 07" aria-label="Individuelle Eistorte 07 vergrößern">
+              <img src="/assets/images/cakes/eistorte-07.webp" alt="Individuelle Eistorte 07 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 07</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-08.webp" data-cake-label="Individuelle Eistorte 08" aria-label="Individuelle Eistorte 08 vergrößern">
+              <img src="/assets/images/cakes/eistorte-08.webp" alt="Individuelle Eistorte 08 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 08</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-09.webp" data-cake-label="Individuelle Eistorte 09" aria-label="Individuelle Eistorte 09 vergrößern">
+              <img src="/assets/images/cakes/eistorte-09.webp" alt="Individuelle Eistorte 09 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 09</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-10.webp" data-cake-label="Individuelle Eistorte 10" aria-label="Individuelle Eistorte 10 vergrößern">
+              <img src="/assets/images/cakes/eistorte-10.webp" alt="Individuelle Eistorte 10 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 10</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-11.webp" data-cake-label="Individuelle Eistorte 11" aria-label="Individuelle Eistorte 11 vergrößern">
+              <img src="/assets/images/cakes/eistorte-11.webp" alt="Individuelle Eistorte 11 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 11</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-12.webp" data-cake-label="Individuelle Eistorte 12" aria-label="Individuelle Eistorte 12 vergrößern">
+              <img src="/assets/images/cakes/eistorte-12.webp" alt="Individuelle Eistorte 12 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 12</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-13.webp" data-cake-label="Individuelle Eistorte 13" aria-label="Individuelle Eistorte 13 vergrößern">
+              <img src="/assets/images/cakes/eistorte-13.webp" alt="Individuelle Eistorte 13 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 13</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-14.webp" data-cake-label="Individuelle Eistorte 14" aria-label="Individuelle Eistorte 14 vergrößern">
+              <img src="/assets/images/cakes/eistorte-14.webp" alt="Individuelle Eistorte 14 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 14</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-15.webp" data-cake-label="Individuelle Eistorte 15" aria-label="Individuelle Eistorte 15 vergrößern">
+              <img src="/assets/images/cakes/eistorte-15.webp" alt="Individuelle Eistorte 15 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 15</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-16.webp" data-cake-label="Individuelle Eistorte 16" aria-label="Individuelle Eistorte 16 vergrößern">
+              <img src="/assets/images/cakes/eistorte-16.webp" alt="Individuelle Eistorte 16 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 16</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-17.webp" data-cake-label="Individuelle Eistorte 17" aria-label="Individuelle Eistorte 17 vergrößern">
+              <img src="/assets/images/cakes/eistorte-17.webp" alt="Individuelle Eistorte 17 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 17</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-18.webp" data-cake-label="Individuelle Eistorte 18" aria-label="Individuelle Eistorte 18 vergrößern">
+              <img src="/assets/images/cakes/eistorte-18.webp" alt="Individuelle Eistorte 18 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 18</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eistorte">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eistorte-19.webp" data-cake-label="Individuelle Eistorte 19" aria-label="Individuelle Eistorte 19 vergrößern">
+              <img src="/assets/images/cakes/eistorte-19.webp" alt="Individuelle Eistorte 19 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Individuelle Eistorte 19</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="spaghetti">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/spaghetti-eistorte-01.webp" data-cake-label="Spaghetti-Eistorte 01" aria-label="Spaghetti-Eistorte 01 vergrößern">
+              <img src="/assets/images/cakes/spaghetti-eistorte-01.webp" alt="Spaghetti-Eistorte 01 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Spaghetti-Eistorte 01</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="spaghetti">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/spaghetti-eistorte-02.webp" data-cake-label="Spaghetti-Eistorte 02" aria-label="Spaghetti-Eistorte 02 vergrößern">
+              <img src="/assets/images/cakes/spaghetti-eistorte-02.webp" alt="Spaghetti-Eistorte 02 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Spaghetti-Eistorte 02</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="spaghetti">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/spaghetti-eistorte-03.webp" data-cake-label="Spaghetti-Eistorte 03" aria-label="Spaghetti-Eistorte 03 vergrößern">
+              <img src="/assets/images/cakes/spaghetti-eistorte-03.webp" alt="Spaghetti-Eistorte 03 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Spaghetti-Eistorte 03</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eisbombe">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eisbombe-01.webp" data-cake-label="Eisbombe 01" aria-label="Eisbombe 01 vergrößern">
+              <img src="/assets/images/cakes/eisbombe-01.webp" alt="Eisbombe 01 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Eisbombe 01</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
+          <figure class="v6-cake-gallery__item" data-cake-category="eisbombe">
+            <button class="v6-cake-gallery__open" type="button" data-cake-image="/assets/images/cakes/eisbombe-02.webp" data-cake-label="Eisbombe 02" aria-label="Eisbombe 02 vergrößern">
+              <img src="/assets/images/cakes/eisbombe-02.webp" alt="Eisbombe 02 von Gelato Donatello" loading="lazy" decoding="async" width="700" height="700" />
+              <span class="v6-cake-gallery__zoom" aria-hidden="true">↗</span>
+            </button>
+            <figcaption><span>Eisbombe 02</span><span class="v6-cake-gallery__detail">Ansehen ↗</span></figcaption>
+          </figure>
       </div>
+      <div class="v6-cake-gallery__outro">
+        <p>Alle Bilder sind Beispiele unserer bisherigen Arbeiten. Jede Eistorte wird persönlich nach Größe, Sorten und Dekorationswünschen abgestimmt.</p>
+        <a class="button button--dark" href="#anfrage">Deine Eistorte anfragen</a>
+      </div>
+      <dialog class="v6-cake-lightbox" aria-label="Vergrößerte Ansicht einer Eistorte">
+        <div class="v6-cake-lightbox__inner">
+          <div class="v6-cake-lightbox__top">
+            <span>Gelato Donatello · Unsere Kreationen</span>
+            <button type="button" class="v6-cake-lightbox__close" aria-label="Bild schließen">Schließen ×</button>
+          </div>
+          <figure>
+            <img class="v6-cake-lightbox__img" alt="" />
+            <figcaption class="v6-cake-lightbox__caption">Eistorten-Kreation</figcaption>
+          </figure>
+          <div class="v6-cake-lightbox__controls">
+            <button type="button" class="v6-cake-lightbox__prev" aria-label="Vorheriges Bild">← Zurück</button>
+            <span class="v6-cake-lightbox__index" aria-live="polite">1 / 24</span>
+            <button type="button" class="v6-cake-lightbox__next" aria-label="Nächstes Bild">Weiter →</button>
+          </div>
+        </div>
+      </dialog>
     </section>
 
     <section class="v6-request-section" id="anfrage">

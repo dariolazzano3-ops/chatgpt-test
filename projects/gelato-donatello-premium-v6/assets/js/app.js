@@ -20,6 +20,55 @@ function initReveal() {
   targets.forEach((el) => observer.observe(el));
 }
 
+function initCakeGallery() {
+  const section = document.querySelector('.v6-cake-gallery');
+  if (!section) return;
+  const cards = [...section.querySelectorAll('[data-cake-category]')];
+  const filters = [...section.querySelectorAll('[data-cake-filter]')];
+  const count = section.querySelector('.v6-cake-gallery__count');
+  const dialog = section.querySelector('.v6-cake-lightbox');
+  const largeImage = dialog.querySelector('.v6-cake-lightbox__img');
+  const caption = dialog.querySelector('.v6-cake-lightbox__caption');
+  const indexLabel = dialog.querySelector('.v6-cake-lightbox__index');
+  let current = 0;
+  const visibleCards = () => cards.filter(card => !card.hidden);
+
+  filters.forEach(button => button.addEventListener('click', () => {
+    const active = button.dataset.cakeFilter;
+    filters.forEach(filter => filter.setAttribute('aria-pressed', String(filter === button)));
+    cards.forEach(card => { card.hidden = active !== 'alle' && card.dataset.cakeCategory !== active; });
+    const quantity = visibleCards().length;
+    count.textContent = active === 'alle' ? 'Alle 24 Kreationen' : quantity + ' Kreationen';
+  }));
+
+  const show = position => {
+    const visible = visibleCards();
+    if (!visible.length) return;
+    current = (position + visible.length) % visible.length;
+    const button = visible[current].querySelector('.v6-cake-gallery__open');
+    largeImage.src = button.dataset.cakeImage;
+    largeImage.alt = button.dataset.cakeLabel + ' von Gelato Donatello';
+    caption.textContent = button.dataset.cakeLabel;
+    indexLabel.textContent = (current + 1) + ' / ' + visible.length;
+  };
+
+  cards.forEach(card => card.querySelector('.v6-cake-gallery__open').addEventListener('click', () => {
+    show(visibleCards().indexOf(card));
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+  }));
+
+  dialog.querySelector('.v6-cake-lightbox__close').addEventListener('click', () => dialog.close());
+  dialog.querySelector('.v6-cake-lightbox__prev').addEventListener('click', () => show(current - 1));
+  dialog.querySelector('.v6-cake-lightbox__next').addEventListener('click', () => show(current + 1));
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener('keydown', event => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      show(current + (event.key === 'ArrowLeft' ? -1 : 1));
+    }
+  });
+}
+
 function initRequestForms() {
   document.querySelectorAll('[data-component="request-form"]').forEach((host) => {
     renderRequestForm(host, {
@@ -38,6 +87,7 @@ function init() {
   initReveal();
 
   initRequestForms();
+  initCakeGallery();
 }
 
 document.addEventListener('DOMContentLoaded', init);
