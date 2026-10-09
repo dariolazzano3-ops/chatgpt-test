@@ -56,6 +56,31 @@ assert.match(contact,/06806 9394980/);
 assert.match(fs.readFileSync(path.join(root,'sortiment/index.html'),'utf8'),/url=\/eisbecher\//);
 assert.match(fs.readFileSync(path.join(root,'eistorten-eisbomben/index.html'),'utf8'),/url=\/eistorten\//);
 
+// Full cake portfolio: all 19 Eistorten, 3 Spaghetti-Eistorten and 2 Eisbomben.
+const galleryImages=[...cakes.matchAll(/data-cake-image="(\/assets\/images\/cakes\/[^"]+)"/g)].map(m=>m[1]);
+const expectedGallery=[
+  ...Array.from({length:19},(_,i)=>'/assets/images/cakes/eistorte-'+String(i+1).padStart(2,'0')+'.webp'),
+  ...Array.from({length:3},(_,i)=>'/assets/images/cakes/spaghetti-eistorte-'+String(i+1).padStart(2,'0')+'.webp'),
+  ...Array.from({length:2},(_,i)=>'/assets/images/cakes/eisbombe-'+String(i+1).padStart(2,'0')+'.webp')
+];
+assert.equal(galleryImages.length,24,'24 gallery cards required');
+assert.deepEqual([...galleryImages].sort(),[...expectedGallery].sort(),'every unique cake photo must appear');
+for(const img of galleryImages) assert.ok(fs.existsSync(path.join(root,img.slice(1))),'missing gallery photo: '+img);
+const categories=[...cakes.matchAll(/data-cake-category="([a-z]+)"/g)].map(m=>m[1]);
+assert.equal(categories.filter(c=>c==='eistorte').length,19);
+assert.equal(categories.filter(c=>c==='spaghetti').length,3);
+assert.equal(categories.filter(c=>c==='eisbombe').length,2);
+assert.match(cakes,/data-cake-filter="alle"/);
+assert.match(cakes,/data-cake-filter="spaghetti"/);
+assert.match(cakes,/v6-cake-lightbox/);
+assert.match(home,/24 Ideen/);
+assert.match(home,/\/eistorten\/#kreationen/);
+for(const img of ['eistorte-03.webp','eistorte-09.webp','spaghetti-eistorte-02.webp','eisbombe-02.webp']) {
+  assert.ok(home.includes('/assets/images/cakes/'+img),'missing home cake highlight '+img);
+}
+const appJs=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
+for(const token of ['initCakeGallery','dialog.showModal','ArrowLeft','ArrowRight']) assert.ok(appJs.includes(token),'missing gallery interaction '+token);
+
 const project=JSON.parse(fs.readFileSync(path.join(root,'project.json'),'utf8'));
 assert.equal(project.schema,'aurentara.gelato-premium-website.v6');
 assert.equal(project.preview_policy.mode,'PRIVATE_CLOUDFLARE_ACCESS_ONLY');
@@ -85,4 +110,4 @@ const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
 for(const marker of ['.v6-hero','.v6-product-card','.v6-request-section','.v6-rental-board','.site-header__logo','@media (max-width:820px)','AURENTARA Web Execution Bridge V1: START'])assert.ok(css.includes(marker),marker);
 assert.match(css,/hyphens:none/);
 assert.match(css,/drop-shadow/);
-console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
+console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, 24 cake gallery images, 4 home highlights, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
