@@ -9,7 +9,7 @@
   "language": "de",
   "environment": "private-staging",
   "website_standard": "aurentara.premium-website-standard.v1",
-  "purpose": "Designer-led Premium-Gelateria-Markenseite fuer Gelato Donatello mit owner-bestaetigten Inhalten, 41 Sorten, Eisbecher-Karte, Eistorten/Eisbomben, Eisvitrine und Besuch/Kontakt.",
+  "purpose": "Premium-Gelateria-Markenseite fuer Gelato Donatello mit Fokus auf Handwerk, Genuss, Eisbecher-Inspiration, individuelle Eistorten, Eisvitrinen-Vermietung und Besuch/Kontakt. Keine Online-Preisliste oder Eissorten-/Eisbomben-Kataloge.",
   "basis_note": "V6 ist der Designer-Loop-Nachfolger von gelato-donatello-v5-final. Inhalt, Datenmodell, Safety-Grenzen und owner-provided Assets wurden reuse-first uebernommen; Art Direction, Typografie, Seitenrhythmus, Komponenten und Anfrage-UX wurden neu gestaltet.",
   "predecessor_note": "V5 Reference Fidelity wurde als funktionale Basis uebernommen. V6 beseitigt Template-Rhythmus, unruhige Mobile-Wraps, leere Pending-Image-Flaechen und den rohen Checkbox-Anfrageblock.",
   "design_direction": "Designer-led editorial gelateria: warmes Ivory, Salbei, Espresso-Braun und Sand; starke aber kontrollierte Typografie, asymmetrische Food-Kompositionen, kuratierte Bildmosaike, klare Mikrotypografie, mobile snap galleries und deutlich weniger Corporate-Card-Chrome.",
@@ -19,24 +19,20 @@
       "title": "Start"
     },
     {
-      "path": "/sortiment/",
-      "title": "Sortiment"
-    },
-    {
       "path": "/eisbecher/",
-      "title": "Eisbecher"
+      "title": "Eisbecher & Genussmomente"
     },
     {
-      "path": "/eistorten-eisbomben/",
-      "title": "Eistorten & Eisbomben"
+      "path": "/eistorten/",
+      "title": "Individuelle Eistorten"
     },
     {
       "path": "/eisvitrine/",
-      "title": "Eisvitrine"
+      "title": "Eisvitrine mieten"
     },
     {
       "path": "/kontakt/",
-      "title": "Besuch / Kontakt"
+      "title": "Besuch & Kontakt"
     }
   ],
   "safety": {
@@ -67,5 +63,19 @@
     "owner_assets_ingested": 78,
     "flavor_images": 41,
     "production_rights": "PENDING_OWNER_CONFIRMATION"
+  },
+  "content_policy": {
+    "strategy": "SERVICE_FIRST",
+    "website_price_disclosure": "ON_SITE_ONLY",
+    "online_prices_visible": false,
+    "online_price_lists": false,
+    "dedicated_flavor_catalog": false,
+    "eisbomben_promotion": false,
+    "legacy_routes": [
+      "/sortiment/",
+      "/eistorten-eisbomben/"
+    ],
+    "owner_directive_date": "2026-10-09",
+    "note": "Alle Preise vor Ort. Quelle fuer interne Bestandsdaten separat erhalten, nicht als Webmenue ausliefern."
   }
 }

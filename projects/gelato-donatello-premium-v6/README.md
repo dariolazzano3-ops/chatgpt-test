@@ -1,3 +1,5 @@
+> **Owner-Content-Priorität seit 2026-10-09:** Service-first-Präsentation ohne Onlinepreise, Sortenkatalog oder Eisbomben-Angebotsseite. Sichtbar sind Eisbecher-Inspiration, Eistorten, Eisvitrine mieten und Kontakt. Für Details siehe `docs/GELATO-DONATELLO-SERVICE-FIRST-CONTENT-V1.md`. Ältere V6-Notizen unten sind historische Bau-Evidence und keine aktuelle Inhaltsvorgabe.
+
 # Gelato Donatello — Premium Website V6
 
 Designer-led private website generation for Gelato Donatello inside AURENTARA.

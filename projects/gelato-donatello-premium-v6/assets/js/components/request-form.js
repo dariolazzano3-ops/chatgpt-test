@@ -1,4 +1,3 @@
-import { FLAVORS } from '../data/flavors.js';
 import { BUSINESS } from '../data/business.js';
 
 function fieldMarkup(formId, field) {
@@ -29,30 +28,10 @@ function fieldMarkup(formId, field) {
   </div>`;
 }
 
-export function renderRequestForm(container, { formId, fields, includeFlavorPicker = false, maxFlavors = 6 }) {
+export function renderRequestForm(container, { formId, fields }) {
   if (!container) return;
 
   const fieldsHtml = fields.map((field)=>fieldMarkup(formId,field)).join('');
-  const flavorPickerHtml = includeFlavorPicker ? `
-    <div class="request-step request-step--flavors">
-      <div class="request-step__head">
-        <span class="request-step__number">02</span>
-        <div><span class="request-step__kicker">Eissorten</span><h3>Deine Auswahl</h3></div>
-      </div>
-      <details class="flavor-picker">
-        <summary><span>Sorten auswählen</span><span class="flavor-picker__count">0 / ${maxFlavors}</span></summary>
-        <div class="flavor-picker__grid" role="group" aria-label="Eissorten auswählen">
-          ${FLAVORS.map((flavor)=>`
-            <label class="flavor-choice">
-              <input type="checkbox" name="sorten" value="${flavor.label}" />
-              <span>${flavor.label}</span>
-            </label>
-          `).join('')}
-        </div>
-      </details>
-      <p class="request-note">Bei Eistorten und Spaghetti-Eistorten sind 2 Sorten vorgesehen, bei Eisbomben bis zu 6.</p>
-    </div>
-  ` : '';
 
   container.innerHTML = `
     <form class="request-form" id="${formId}" novalidate>
@@ -69,11 +48,10 @@ export function renderRequestForm(container, { formId, fields, includeFlavorPick
         <div class="request-form__grid">${fieldsHtml}</div>
       </div>
 
-      ${flavorPickerHtml}
 
       <div class="request-step request-step--finish">
         <div class="request-step__head">
-          <span class="request-step__number">${includeFlavorPicker ? '03' : '02'}</span>
+          <span class="request-step__number">02</span>
           <div><span class="request-step__kicker">Abschluss</span><h3>Anfrage vorbereiten</h3></div>
         </div>
         <button type="submit" class="button button--primary button--wide">Auswahl zusammenfassen</button>
@@ -85,32 +63,6 @@ export function renderRequestForm(container, { formId, fields, includeFlavorPick
 
   const form=container.querySelector('form');
   const summary=form.querySelector('.request-summary');
-  const countEl=form.querySelector('.flavor-picker__count');
-  const variant=form.querySelector('select[name="variante"]');
-
-  function effectiveMax(){
-    if(!includeFlavorPicker) return 0;
-    const selected=variant?.value || '';
-    return selected.toLowerCase().includes('eisbombe') ? 6 : (selected ? 2 : maxFlavors);
-  }
-  function syncFlavorState(){
-    if(!includeFlavorPicker) return;
-    const max=effectiveMax();
-    const checked=[...form.querySelectorAll('input[name="sorten"]:checked')];
-    if(countEl) countEl.textContent=`${checked.length} / ${max}`;
-    form.querySelectorAll('input[name="sorten"]:not(:checked)').forEach(input=>{ input.disabled=checked.length >= max; });
-  }
-  if(includeFlavorPicker){
-    form.querySelectorAll('input[name="sorten"]').forEach(input=>input.addEventListener('change',syncFlavorState));
-    variant?.addEventListener('change',()=>{
-      const max=effectiveMax();
-      const checked=[...form.querySelectorAll('input[name="sorten"]:checked')];
-      checked.slice(max).forEach(input=>{input.checked=false;});
-      syncFlavorState();
-    });
-    syncFlavorState();
-  }
-
   form.addEventListener('submit',(event)=>{
     event.preventDefault();
     const data=new FormData(form);
@@ -119,10 +71,6 @@ export function renderRequestForm(container, { formId, fields, includeFlavorPick
       const value=data.get(field.name);
       if(value) rows.push([field.label,value]);
     });
-    if(includeFlavorPicker){
-      const sorten=data.getAll('sorten');
-      if(sorten.length) rows.push(['Sortenwunsch',sorten.join(', ')]);
-    }
     summary.replaceChildren();
     const card=document.createElement('div');
     card.className='request-summary__card';
