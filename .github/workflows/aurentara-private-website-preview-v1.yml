@@ -128,7 +128,29 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp
-          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --message "AURENTARA private website execution ${CANDIDATE_SHA:0:12}"
+          # Recover from transient Cloudflare 5xx while reading Worker deployments.
+          # Do NOT retry validation, authentication or other non-5xx errors.
+          # Exact SHA, private worker, protected preview and no-live-change guard stay.
+          for attempt in 1 2 3; do
+            LOG="$(mktemp)"
+            if npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --message "AURENTARA private website execution ${CANDIDATE_SHA:0:12}" 2>&1 | tee "$LOG"; then
+              rm -f "$LOG"
+              echo "PRIVATE_STAGING_DEPLOY_OK attempt=$attempt"
+              break
+            fi
+            if ! grep -Eq -- '(-> 5[0-9]{2} |50[0-9] Internal Server Error|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout)' "$LOG"; then
+              echo "PRIVATE_STAGING_DEPLOY_FAILED_NONRETRYABLE"
+              rm -f "$LOG"
+              exit 1
+            fi
+            rm -f "$LOG"
+            if [ "$attempt" -ge 3 ]; then
+              echo "PRIVATE_STAGING_DEPLOY_FAILED_5XX_RETRIES_EXHAUSTED"
+              exit 1
+            fi
+            echo "TRANSIENT_CLOUDFLARE_5XX_RETRY $attempt of 2"
+            sleep "$((10 * attempt))"
+          done
 
       - name: Verify Cloudflare Access remains enforced
         shell: bash
