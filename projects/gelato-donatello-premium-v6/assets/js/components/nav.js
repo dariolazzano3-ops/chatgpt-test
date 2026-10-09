@@ -3,7 +3,7 @@ import { BUSINESS } from '../data/business.js';
 const NAV_ITEMS = [
   { page: 'home', href: '/', label: 'Start' },
   { page: 'eisbecher', href: '/eisbecher/', label: 'Eisbecher' },
-  { page: 'eistorten', href: '/eistorten/', label: 'Eistorten' },
+  { page: 'eistorten', href: '/eistorten/', label: 'Eistorten & Eisbomben' },
   { page: 'eisvitrine', href: '/eisvitrine/', label: 'Eisvitrine mieten' },
   { page: 'kontakt', href: '/kontakt/', label: 'Kontakt' }
 ];
