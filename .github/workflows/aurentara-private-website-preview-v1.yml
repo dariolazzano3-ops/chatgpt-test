@@ -109,7 +109,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          # The candidate may only change project files. Run a trusted acceptance
+          # script from the pinned control branch, not an arbitrary candidate script.
+          CONTROL_SHA="$(git rev-parse refs/remotes/origin/factory-control)"
+          git show "$CONTROL_SHA:scripts/gelato-donatello-service-first-acceptance-v1.mjs" > /tmp/gelato-service-first-acceptance-v1.mjs
+          node /tmp/gelato-service-first-acceptance-v1.mjs
           find "${{ steps.binding.outputs.project_path }}/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Isolated private preview dry run
