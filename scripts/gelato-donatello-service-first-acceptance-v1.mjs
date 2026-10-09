@@ -33,6 +33,23 @@ assert.doesNotMatch(home,/href="\/sortiment\/"/);
 assert.match(cups,/v6-photo-strip/);
 assert.match(cups,/photo-gallery/);
 assert.doesNotMatch(cups,/data-component="cup-menu"|data-component="extras-menu"/);
+// The owner requested that every photographed cake creation be visible in an
+// accessible, categorized gallery. This prevents future preview regressions.
+const galleryCards=[...cakes.matchAll(/data-cake-category="(eistorte|spaghetti|eisbombe)"/g)].map(x=>x[1]);
+assert.equal(galleryCards.length,24,'every cake creation must have a visible card');
+for(const [kind,n] of [['eistorte',19],['spaghetti',3],['eisbombe',2]]){
+  assert.equal(galleryCards.filter(x=>x===kind).length,n,'missing '+kind+' cards');
+  assert.ok(cakes.includes('data-cake-filter="'+kind+'"'),'missing category filter '+kind);
+}
+const galleryRefs=[...cakes.matchAll(/data-cake-image="(\/assets\/images\/cakes\/[a-z0-9-]+\.webp)"/g)].map(x=>x[1]);
+assert.equal(galleryRefs.length,24,'all 24 gallery images must open in large view');
+assert.equal(new Set(galleryRefs).size,24,'cake photos must not be repeated in gallery');
+for(const rel of galleryRefs) assert.ok(fs.existsSync(path.join(root,rel.slice(1))),'gallery asset missing '+rel);
+const galleryJs=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
+assert.match(galleryJs,/initCakeGallery/,'gallery filters and modal must be initialized');
+assert.match(cakes,/v6-cake-lightbox/,'missing large photo dialog');
+const homeTeasers=[...home.matchAll(/href="\/eistorten\/#kreationen"/g)];
+assert.ok(homeTeasers.length>=1,'homepage must link to complete cake portfolio');
 assert.match(cakes,/Eistorte/i);
 assert.match(cakes,/Spaghetti-Eistorte/);
 assert.match(cakes,/data-include-flavor-picker="false"/);
