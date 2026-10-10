@@ -1042,6 +1042,9 @@ body[data-page="eistorten"] .v7-cakes-pricing__special-link{
   padding:.65rem 0;border-bottom:1px solid var(--cocoa);
 }
 body[data-page="eistorten"] #kreationen{scroll-margin-top:96px}
+body[data-page="eistorten"] .v6-cake-gallery{padding-top:clamp(52px,6vw,90px);border-top:1px solid var(--line)}
+body[data-page="eistorten"] .v6-cake-gallery .v6-section-head h2{font-size:clamp(2.4rem,4.5vw,4.3rem);line-height:1.05}
+
 @media(max-width:820px){
   body[data-page="eistorten"] .v7-cakes-pricing__heading{align-items:start;flex-direction:column;gap:10px}
   body[data-page="eistorten"] .v7-cakes-pricing__grid{grid-template-columns:1fr;gap:12px}
