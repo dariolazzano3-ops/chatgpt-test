@@ -18,11 +18,18 @@ export function renderSiteHeader(activePage) {
 
   header.innerHTML = `
     <div class="site-header__bar">
-      <a class="site-header__brand" href="/" aria-label="${BUSINESS.name} – Startseite">
+      <div class="site-header__brand-group">
+        <a class="site-header__brand" href="/" aria-label="${BUSINESS.name} – Startseite">
         <img class="site-header__logo" src="/assets/images/brand/logo-donatello-header.webp" alt="${BUSINESS.name}" />
         <span class="site-header__since">Familiengeführt seit 1965</span>
-      </a>
-      <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
+        </a>
+        <a class="site-header__call" href="${BUSINESS.phoneHref}" aria-label="Gelato Donatello anrufen: ${BUSINESS.phone}" title="Jetzt anrufen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.91.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.33 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>
+          </svg>
+        </a>
+      </div>
+      <button class="nav__toggle" type="button" aria-label="Menü öffnen" aria-expanded="false" aria-controls="primary-nav">
         <span>Menü</span><span class="nav__toggle-icon" aria-hidden="true"></span>
       </button>
       <nav id="primary-nav" class="nav" aria-label="Hauptnavigation" data-state="closed">
@@ -37,11 +44,13 @@ export function renderSiteHeader(activePage) {
     const open = nav.getAttribute('data-state') === 'open';
     nav.setAttribute('data-state', open ? 'closed' : 'open');
     toggle.setAttribute('aria-expanded', String(!open));
+    toggle.setAttribute('aria-label', open ? 'Menü öffnen' : 'Menü schließen');
     document.body.classList.toggle('nav-open', !open);
   });
   nav.querySelectorAll('.nav__link').forEach((link) => link.addEventListener('click', () => {
     nav.setAttribute('data-state', 'closed');
     toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Menü öffnen');
     document.body.classList.remove('nav-open');
   }));
 }
