@@ -70,6 +70,24 @@ function initCakeGallery() {
   });
 }
 
+function initCakeCatalogRequests() {
+  const selector = document.querySelector('#eistorten-anfrage-kreation');
+  if (!selector) return;
+  const variant = document.querySelector('#eistorten-anfrage-variante');
+  document.querySelectorAll('[data-request-cake]').forEach((link) => {
+    link.addEventListener('click', () => {
+      const number = String(link.dataset.requestCake).padStart(2, '0');
+      const option = [...selector.options].find((item) => item.value.startsWith('Nr. ' + number + ' · '));
+      if (!option) return;
+      selector.value = option.value;
+      if (variant) {
+        const index = Number(number);
+        variant.value = index <= 19 ? 'Klassische Eistorte' : index <= 22 ? 'Spaghetti-Eistorte' : 'Eisbombe';
+      }
+    });
+  });
+}
+
 function initRequestForms() {
   document.querySelectorAll('[data-component="request-form"]').forEach((host) => {
     renderRequestForm(host, {
@@ -88,6 +106,7 @@ function init() {
   initReveal();
 
   initRequestForms();
+  initCakeCatalogRequests();
   initCakeGallery();
   initCakeIpad();
 }
