@@ -664,3 +664,65 @@ body[data-page="eisvitrine"] .v6-rental-board__specs>div:last-child{border-right
   .site-header__brand-group .site-header__logo{width:clamp(165px,55vw,200px)}
 }
 @media(prefers-reduced-motion:reduce){.site-header__call{transition:none}}
+
+/* V6 header owner refinement: phone icon in logo, menu label restored */
+.site-header__brand-group{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  flex:0 1 auto;
+  gap:0;
+  min-width:0;
+}
+.site-header__brand-group .site-header__brand{flex:0 1 auto;min-width:0}
+.site-header__brand-group .site-header__logo{width:270px;max-width:100%}
+/* The logo has a purposefully blank black panel to the right of its lettering.
+   Overlay a separate accessible tel link, keeping the source logo untouched. */
+.site-header__brand-group .site-header__call{
+  position:absolute;
+  top:50%;
+  right:5px;
+  transform:translateY(-50%);
+  flex:none;
+  width:48px;
+  height:44px;
+  border:0;
+  border-radius:3px;
+  background:transparent;
+  box-shadow:none;
+  color:#edd4a3;
+  z-index:1;
+}
+.site-header__brand-group .site-header__call svg{width:19px;height:19px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+.site-header__brand-group .site-header__call:hover{
+  background:rgba(230,191,123,.14);
+  color:#fff1c9;
+  border:0;
+  transform:translateY(-50%);
+}
+.site-header__brand-group .site-header__call:active{
+  transform:translateY(-50%) scale(.96);
+}
+@media(max-width:1100px){
+  .site-header__brand-group .site-header__logo{width:248px}
+}
+@media(max-width:820px){
+  .site-header__brand-group{flex:0 1 auto}
+  .site-header__brand-group .site-header__brand{flex:0 1 auto}
+  .site-header__brand-group .site-header__logo{width:min(248px,calc(100vw - 132px))}
+  .nav__toggle{flex:0 0 auto;gap:.6rem}
+}
+@media(max-width:520px){
+  .site-header__bar{justify-content:space-between;gap:8px}
+  .site-header__brand-group{flex:0 1 auto}
+  .site-header__brand-group .site-header__logo{width:min(248px,calc(100vw - 124px))}
+  .site-header__brand-group .site-header__call{right:2px;width:44px;height:44px}
+  .nav__toggle{flex:0 0 auto;width:auto;min-width:82px;min-height:44px;gap:.65rem;justify-content:flex-end}
+  .nav__toggle>span:first-child{display:inline}
+}
+@media(max-width:365px){
+  .site-header__brand-group .site-header__logo{width:min(248px,calc(100vw - 124px))}
+}
+@media(prefers-reduced-motion:reduce){
+  .site-header__brand-group .site-header__call{transition:none}
+}
