@@ -51,13 +51,47 @@
       </figure>
     </section>
 
-    <section class="v6-feature-dark">
-      <div class="v6-feature-dark__media">
-        <img src="/assets/images/cakes/eistorte-01.webp" alt="Individuell dekorierte Eistorte von Gelato Donatello" loading="lazy" />
+    <section class="v6-feature-dark" aria-labelledby="featured-cakes-heading">
+      <div class="v6-feature-dark__media v6-ipad-stage">
+        <div class="v6-ipad-stage__hint" aria-hidden="true">Swipe für<br />mehr Kreationen <span>↔</span></div>
+        <div class="v6-ipad" data-component="cake-ipad">
+          <div class="v6-ipad__camera" aria-hidden="true"></div>
+          <div class="v6-ipad__screen">
+            <div class="v6-ipad__viewport" tabindex="0" role="region" aria-label="Eistorten-Kreationen, zum Wechseln horizontal wischen oder Pfeiltasten verwenden" aria-roledescription="Karussell">
+              <div class="v6-ipad__track">
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Schokoladige Eistorten-Kreation, 1 von 6">
+                  <img src="/assets/images/cakes/eistorte-01.webp" alt="Schokoladige Eistorten-Kreation von Gelato Donatello" loading="eager" decoding="async" />
+                </a>
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Individuell dekorierte Eistorten-Kreation, 2 von 6">
+                  <img src="/assets/images/cakes/eistorte-03.webp" alt="Individuell dekorierte Eistorten-Kreation von Gelato Donatello" loading="lazy" decoding="async" />
+                </a>
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Besondere Eistorten-Kreation, 3 von 6">
+                  <img src="/assets/images/cakes/eistorte-09.webp" alt="Besondere Eistorten-Kreation von Gelato Donatello" loading="lazy" decoding="async" />
+                </a>
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Weitere Eistorten-Kreation, 4 von 6">
+                  <img src="/assets/images/cakes/eistorte-12.webp" alt="Weitere Eistorten-Kreation von Gelato Donatello" loading="lazy" decoding="async" />
+                </a>
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Spaghetti-Eistorte, 5 von 6">
+                  <img src="/assets/images/cakes/spaghetti-eistorte-02.webp" alt="Spaghetti-Eistorte von Gelato Donatello" loading="lazy" decoding="async" />
+                </a>
+                <a class="v6-ipad__slide" href="/eistorten/#kreationen" aria-roledescription="Folie" aria-label="Eisbombe von Gelato Donatello, 6 von 6">
+                  <img src="/assets/images/cakes/eisbombe-02.webp" alt="Eisbombe von Gelato Donatello von Gelato Donatello" loading="lazy" decoding="async" />
+                </a>
+              </div>
+            </div>
+            <button class="v6-ipad__arrow v6-ipad__arrow--prev" type="button" data-ipad-prev aria-label="Vorherige Kreation">←</button>
+            <button class="v6-ipad__arrow v6-ipad__arrow--next" type="button" data-ipad-next aria-label="Nächste Kreation">→</button>
+            <div class="v6-ipad__footer">
+              <div class="v6-ipad__dots" role="group" aria-label="Kreation direkt auswählen"><button type="button" class="v6-ipad__dot" data-ipad-dot="0" aria-label="Kreation 1 anzeigen" aria-current="true"></button><button type="button" class="v6-ipad__dot" data-ipad-dot="1" aria-label="Kreation 2 anzeigen"></button><button type="button" class="v6-ipad__dot" data-ipad-dot="2" aria-label="Kreation 3 anzeigen"></button><button type="button" class="v6-ipad__dot" data-ipad-dot="3" aria-label="Kreation 4 anzeigen"></button><button type="button" class="v6-ipad__dot" data-ipad-dot="4" aria-label="Kreation 5 anzeigen"></button><button type="button" class="v6-ipad__dot" data-ipad-dot="5" aria-label="Kreation 6 anzeigen"></button></div>
+              <span class="v6-ipad__counter" aria-live="polite">01 / 06</span>
+            </div>
+          </div>
+        </div>
+        <p class="v6-ipad-stage__caption">Echte Donatello-Kreationen · Zum Entdecken wischen</p>
       </div>
       <div class="v6-feature-dark__copy">
         <p class="eyebrow eyebrow--sand">Für deinen Anlass</p>
-        <h2>Eistorten & Eisbomben für besondere Momente.</h2>
+        <h2 id="featured-cakes-heading">Eistorten & Eisbomben für besondere Momente.</h2>
         <p>Individuelle Eistorten und Eisbomben für Geburtstage, Hochzeiten und besondere Feiern. Größen und Preise findest du bei den Angeboten.</p>
         <a class="button button--sand" href="/eistorten/">Eistorten & Eisbomben mit Preisen</a>
       </div>
