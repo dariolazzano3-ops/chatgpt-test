@@ -10,6 +10,7 @@ export function initCakeIpad() {
   const viewport = tablet.querySelector('.v6-ipad__viewport');
   const slides = [...tablet.querySelectorAll('.v6-ipad__slide')];
   const dots = [...tablet.querySelectorAll('[data-ipad-dot]')];
+  const dotsStrip = tablet.querySelector('.v6-ipad__dots');
   const previous = tablet.querySelector('[data-ipad-prev]');
   const next = tablet.querySelector('[data-ipad-next]');
   const count = tablet.querySelector('.v6-ipad__counter');
@@ -31,6 +32,12 @@ export function initCakeIpad() {
       else dot.removeAttribute('aria-current');
     });
     count.textContent = String(index + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    // Keep the active dot visible inside a compact, swipeable strip.
+    if (dotsStrip && typeof dotsStrip.scrollTo === 'function') {
+      const dot = dots[index];
+      const target = Math.max(0, dot.offsetLeft - (dotsStrip.clientWidth - dot.clientWidth) / 2);
+      dotsStrip.scrollTo({ left: target, behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+    }
   };
 
   const navigate = (index) => {

@@ -921,3 +921,29 @@ body[data-page="eisvitrine"] .v6-rental-board__specs>div:last-child{border-right
   .v6-ipad,.v6-ipad__arrow,.v6-ipad__dot{transition:none}
   .v6-ipad__viewport{scroll-behavior:auto}
 }
+
+
+/* 24-image iPad carousel: compact scrollable pagination instead of 24 dots on one line */
+.v6-ipad__footer{padding-inline:18px}
+.v6-ipad__dots{
+  position:relative;
+  flex:0 1 230px;
+  max-width:min(68%,230px);
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  scroll-behavior:smooth;
+  padding:5px 4px;
+  pointer-events:auto;
+  overscroll-behavior-x:contain;
+}
+.v6-ipad__dots::-webkit-scrollbar{display:none}
+.v6-ipad__dot{flex:0 0 8px}
+.v6-ipad__counter{flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:520px){
+  .v6-ipad__footer{padding-inline:10px;gap:8px}
+  .v6-ipad__dots{flex-basis:150px;max-width:61%;padding-block:4px}
+  .v6-ipad__dot{flex-basis:7px}
+}
+@media(prefers-reduced-motion:reduce){.v6-ipad__dots{scroll-behavior:auto}}
