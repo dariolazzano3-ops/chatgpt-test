@@ -1,6 +1,7 @@
 import { renderSiteHeader, renderSiteFooter } from './components/nav.js';
 import { hydrateAssetFigures } from './components/asset-image.js';
 import { renderRequestForm } from './components/request-form.js';
+import { initCakeIpad } from './components/cake-ipad.js';
 
 function initReveal() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -88,6 +89,7 @@ function init() {
 
   initRequestForms();
   initCakeGallery();
+  initCakeIpad();
 }
 
 document.addEventListener('DOMContentLoaded', init);
