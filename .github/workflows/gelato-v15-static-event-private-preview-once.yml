@@ -1,8 +1,8 @@
-name: Gelato V15 static event image private preview release (one time)
+name: Gelato V16 premium event editorial private preview release (one time)
 on:
   push:
     branches:
-      - release/gelato-static-event-v15-once
+      - release/gelato-event-premium-v16-once
     paths:
       - .github/workflows/gelato-v15-static-event-private-preview-once.yml
 
@@ -21,15 +21,15 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      EXPECTED_SHA: 8683b5dcec0b7481343c078bf344288e36de2061
+      EXPECTED_SHA: 563031d0d6805999ee2a81f7a9367d0552552ed9
       PROJECT_PATH: projects/gelato-donatello-premium-v6
       WORKER: gelato-donatello-private-preview-v2
       PRIVATE_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
     steps:
-      - name: Checkout owner-approved V15 feature at exact immutable commit
+      - name: Checkout owner-approved V16 feature at exact immutable commit
         uses: actions/checkout@v4
         with:
-          ref: 8683b5dcec0b7481343c078bf344288e36de2061
+          ref: 563031d0d6805999ee2a81f7a9367d0552552ed9
           fetch-depth: 0
           persist-credentials: false
 
@@ -51,7 +51,7 @@ jobs:
             if(s[k] !== false) throw Error('PRIVATE_SAFETY_VIOLATION: '+k);
           }
           if(p.preview_policy?.mode !== 'PRIVATE_CLOUDFLARE_ACCESS_ONLY') throw Error('NOT_PRIVATE_ACCESS_ONLY');
-          console.log('Exact V15 source and private safety OK');
+          console.log('Exact V16 source and private safety OK');
           NODE
 
       - name: Static event photo acceptance and JavaScript syntax
@@ -77,6 +77,11 @@ jobs:
           assert(!app.includes('initEventDepth'),'Event depth code still executes');
           assert(!app.includes('event-depth.js'),'Event depth module still loads');
           assert(css.includes('.v15-event-photo img'));
+          assert(home.includes('v16-event__media-credit'));
+          assert(home.includes('v16-event__cta-copy'));
+          assert(css.includes('/* V16: premium editorial event story'));
+          assert(home.includes('<em>Event.</em>'));
+
           assert(!css.includes('.v11-depth-scene__stage'));
           assert(!css.includes('.v12-gyro-toggle'));
           assert(home.includes('Eisvitrine entdecken'),'Event CTA missing');
@@ -90,7 +95,7 @@ jobs:
           assert(stat.size>100000 && stat.size<1500000,'Event image missing');
           assert(fs.readdirSync(path.join(root,'assets/images/flavors')).filter(x=>x.endsWith('.webp')).length>=41);
           assert(fs.readdirSync(path.join(root,'assets/images/cakes')).filter(x=>x.endsWith('.webp')).length>=24);
-          console.log('V15 static photo and site regression gate PASS');
+          console.log('V16 static photo and site regression gate PASS');
           NODE
           find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
 
@@ -163,7 +168,7 @@ jobs:
           cd /tmp
           npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
             --name "$WORKER" --compatibility-date 2026-10-07 \
-            --keep-vars --dry-run --message "Gelato Donatello private V15 8683b5dcec0b"
+            --keep-vars --dry-run --message "Gelato Donatello private V16 563031d0d680"
 
       - name: Publish only to existing Access-protected private Worker
         shell: bash
@@ -172,7 +177,7 @@ jobs:
           cd /tmp
           npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
             --name "$WORKER" --compatibility-date 2026-10-07 \
-            --keep-vars --message "Gelato Donatello private V15 8683b5dcec0b"
+            --keep-vars --message "Gelato Donatello private V16 563031d0d680"
 
       - name: Verify Cloudflare Access gate
         shell: bash
@@ -182,7 +187,7 @@ jobs:
           grep -Eq '^HTTP/.* 302' /tmp/gelato-access-headers.txt
           tr -d '\r' < /tmp/gelato-access-headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
           {
-            echo "### Gelato Donatello PRIVATE V15"
+            echo "### Gelato Donatello PRIVATE V16"
             echo "Preview: $PRIVATE_URL"
             echo "Source SHA: $EXPECTED_SHA"
             echo "Public deploy: false"
