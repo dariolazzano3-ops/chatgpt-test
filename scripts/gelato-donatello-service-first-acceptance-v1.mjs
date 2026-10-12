@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const repo=process.cwd();
 const root=path.join(repo,'projects','gelato-donatello-premium-v6');
@@ -102,7 +103,26 @@ assert.match(home,/href="\/eisvitrine\/"[^>]*>[\s\S]*?Eisvitrine entdecken/);
 assert.match(home,/class="v6-showcase"/,'Eisbecher showcase must remain after event teaser');
 assert.ok(home.indexOf('v7-event-teaser')>home.indexOf('v6-feature-dark'));
 assert.ok(home.indexOf('v7-event-teaser')<home.indexOf('v6-showcase'));
+// Owner-approved colorful and accessible hero: all 41 existing flavor photos.
+assert.match(home,/data-hero-flavors/,'Homepage hero must run authentic flavor slideshow');
+assert.match(home,/data-flavor-count>01 \/ 41/);
+assert.match(home,/data-flavor-name>Pistazie/);
+for(const marker of ['data-flavor-photo','data-flavor-prev','data-flavor-next','data-flavor-toggle']){
+  assert.ok(home.includes(marker),'missing flavor slideshow UI '+marker);
+}
+const flavorHeroJS=fs.readFileSync(path.join(root,'assets/js/components/hero-flavors.js'),'utf8');
+assert.match(flavorHeroJS,/const INTERVAL = 2000;/);
+assert.match(flavorHeroJS,/prefers-reduced-motion: reduce/);
+assert.match(flavorHeroJS,/touchstart/);
+assert.match(flavorHeroJS,/touchend/);
+assert.match(flavorHeroJS,/visibilitychange/);
+assert.match(flavorHeroJS,/IntersectionObserver/);
+const flavorHeroSources=[...flavorHeroJS.matchAll(/"src":"(\/assets\/images\/flavors\/[^"]+)"/g)].map(m=>m[1]);
+assert.equal(flavorHeroSources.length,41,'hero slideshow requires all 41 documented flavor photos');
+assert.deepEqual([...flavorHeroSources].sort(),[...flavorImageUrls].sort(),'hero uses exactly the gallery flavor images');
+execFileSync(process.execPath,['--test',path.join(root,'tests/hero-flavors.test.mjs')],{cwd:repo,stdio:'pipe',timeout:20000});
 const appJs=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
+assert.match(appJs,/initHeroFlavors\(\)/,'homepage slideshow must be initialized');
 for(const token of ['initCakeGallery','dialog.showModal','ArrowLeft','ArrowRight']) assert.ok(appJs.includes(token),'missing gallery interaction '+token);
 
 const project=JSON.parse(fs.readFileSync(path.join(root,'project.json'),'utf8'));
@@ -131,6 +151,8 @@ for(const obsolete of ['assets/js/data/pricing.js','assets/js/data/flavors.js','
 
 
 const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
+assert.match(css,/v6-hero\[data-hero-flavors\]/);
+assert.match(css,/--hero-tone/);
 for(const marker of ['.v6-hero','.v6-product-card','.v6-request-section','.v6-rental-board','.site-header__logo','@media (max-width:820px)','AURENTARA Web Execution Bridge V1: START'])assert.ok(css.includes(marker),marker);
 assert.match(css,/hyphens:none/);
 assert.match(css,/drop-shadow/);
