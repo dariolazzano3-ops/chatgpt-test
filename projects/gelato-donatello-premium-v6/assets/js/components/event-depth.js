@@ -1,247 +1,210 @@
 /**
- * Gelato Donatello V12: optional iPhone lock-screen-style depth.
- * The user-provided event photo remains the ONLY image.
- * No fake 360, no sensor storage, no sensor network transmission.
- * Motion sensors are accessed only after an explicit user gesture.
+ * Gelato Donatello V13: stronger lockscreen-style photo depth.
+ * Original owner-provided photograph only. No fake 360 or generated new angles.
+ * Gyroscope data stays in the browser, never stored or transmitted.
+ * iOS Safari requires requestPermission() during a user gesture. We trigger
+ * that on the first natural interaction with the photo, never silently.
  */
 export function initEventDepth() {
-  const stages = [...document.querySelectorAll('[data-event-depth-stage]')];
-  if (!stages.length) return;
+  const nodes = [...document.querySelectorAll('[data-event-depth-stage]')];
+  if (!nodes.length) return;
 
-  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const clamp = (value) => Math.max(-1, Math.min(1, value));
-  const entries = stages.map((stage) => ({
-    stage, scene: stage.closest('[data-event-depth]'),
+  const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const clamp = v => Math.max(-1, Math.min(1, v));
+  const views = nodes.map(stage => ({
+    stage,
+    scene: stage.closest('[data-event-depth]'),
     x: 0, y: 0, pointerId: null, startX: 0, startY: 0, fromX: 0, fromY: 0
   }));
 
-  // Keep the photo oversized inside the crop so neither a tilt nor a swipe can reveal gaps.
-  function draw(entry, x, y) {
-    entry.x = clamp(x);
-    entry.y = clamp(y);
-    const s = entry.stage.style;
-    s.setProperty('--depth-yaw', (entry.x * 9).toFixed(2) + 'deg');
-    s.setProperty('--depth-pitch', (-entry.y * 6).toFixed(2) + 'deg');
-    s.setProperty('--depth-shift-x', (-entry.x * 11).toFixed(2) + 'px');
-    s.setProperty('--depth-shift-y', (-entry.y * 8).toFixed(2) + 'px');
-    s.setProperty('--depth-photo-x', (-entry.x * 5.5).toFixed(2) + '%');
-    s.setProperty('--depth-light-x', (50 + entry.x * 19).toFixed(1) + '%');
-    s.setProperty('--depth-light-y', (30 + entry.y * 17).toFixed(1) + '%');
+  function render(view, x, y) {
+    // Respect the OS accessibility preference, including manual interactions.
+    view.x = preference.matches ? 0 : clamp(x);
+    view.y = preference.matches ? 0 : clamp(y);
+    const css = view.stage.style;
+    css.setProperty('--depth-yaw', (view.x * 16).toFixed(2) + 'deg');
+    css.setProperty('--depth-pitch', (-view.y * 11).toFixed(2) + 'deg');
+    css.setProperty('--depth-shift-x', (-view.x * 24).toFixed(2) + 'px');
+    css.setProperty('--depth-shift-y', (-view.y * 17).toFixed(2) + 'px');
+    css.setProperty('--depth-photo-x', (-view.x * 8).toFixed(2) + '%');
+    css.setProperty('--depth-light-x', (50 + view.x * 27).toFixed(1) + '%');
+    css.setProperty('--depth-light-y', (30 + view.y * 23).toFixed(1) + '%');
   }
 
-  const controls = [...document.querySelectorAll('[data-gyro-toggle]')];
-  const hasSensor = typeof window.DeviceOrientationEvent !== 'undefined' &&
+  const sensorAvailable = typeof window.DeviceOrientationEvent !== 'undefined' &&
     (navigator.maxTouchPoints > 0 || /iPhone|iPad|Android/i.test(navigator.userAgent));
-  const allowed = () => hasSensor && !motionPreference.matches;
-  let enabled = false;
-  let pending = false;
-  let sensed = false;
-  let initial = null;
-  let goalX = 0, goalY = 0, currentX = 0, currentY = 0;
-  let frame = 0, startupTimeout = 0;
+  const sensorAllowed = () => sensorAvailable && !preference.matches;
+  const requiresIosPermission = sensorAvailable &&
+    typeof window.DeviceOrientationEvent.requestPermission === 'function';
+  let sensorActive = false;
+  let requested = false;
+  let reference = null;
+  let targetX = 0, targetY = 0, smoothX = 0, smoothY = 0;
+  let raf = 0;
 
-  function setControls(label, pressed, isPending = false) {
-    controls.forEach((button) => {
-      button.querySelector('[data-gyro-label]').textContent = label;
-      button.setAttribute('aria-pressed', String(pressed));
-      button.disabled = isPending;
+  function tick() {
+    raf = 0;
+    if (!sensorActive || preference.matches || document.hidden) return;
+    smoothX += (targetX - smoothX) * .23;
+    smoothY += (targetY - smoothY) * .23;
+    views.forEach(view => {
+      if (view.pointerId === null) render(view, smoothX, smoothY);
     });
-  }
-  function syncControls() {
-    controls.forEach((button) => { button.hidden = !allowed(); });
-    if (!allowed() && enabled) disableGyro();
-  }
-  function settle() {
-    frame = 0;
-    if (!enabled || document.hidden || motionPreference.matches) return;
-    currentX += (goalX - currentX) * 0.17;
-    currentY += (goalY - currentY) * 0.17;
-    entries.forEach((entry) => {
-      if (entry.pointerId === null) draw(entry, currentX, currentY);
-    });
-    if (Math.abs(goalX - currentX) + Math.abs(goalY - currentY) > 0.004) {
-      frame = window.requestAnimationFrame(settle);
+    if (Math.abs(targetX - smoothX) + Math.abs(targetY - smoothY) > .003) {
+      raf = window.requestAnimationFrame(tick);
     }
   }
-  function queueFrame() {
-    if (!frame && enabled && !document.hidden && !motionPreference.matches) {
-      frame = window.requestAnimationFrame(settle);
+  function schedule() {
+    if (sensorActive && !raf && !document.hidden && !preference.matches) {
+      raf = window.requestAnimationFrame(tick);
     }
   }
   function onOrientation(event) {
-    if (!enabled || document.hidden || !Number.isFinite(event.beta) ||
-        !Number.isFinite(event.gamma)) return;
-    if (!sensed) {
-      sensed = true;
-      window.clearTimeout(startupTimeout);
-      setControls('Neigung ausschalten', true);
-    }
-    if (!initial) {
-      initial = { beta: event.beta, gamma: event.gamma };
+    if (!sensorActive || document.hidden || preference.matches ||
+      !Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+    if (!reference) {
+      reference = { beta: event.beta, gamma: event.gamma };
       return;
     }
-
-    const beta = Math.max(-25, Math.min(25, event.beta - initial.beta));
-    const gamma = Math.max(-25, Math.min(25, event.gamma - initial.gamma));
-    const angle = ((window.screen?.orientation?.angle ??
-      window.orientation ?? 0) + 360) % 360;
-    let horizontal = gamma, vertical = beta;
-    if (angle === 90) { horizontal = beta; vertical = -gamma; }
-    else if (angle === 270) { horizontal = -beta; vertical = gamma; }
-    else if (angle === 180) { horizontal = -gamma; vertical = -beta; }
-    // A small angular movement already feels like depth; ±14° saturates the range.
-    goalX = clamp(horizontal / 14) * 0.72;
-    goalY = clamp(vertical / 14) * 0.60;
-    queueFrame();
+    const angle = ((window.screen?.orientation?.angle ?? window.orientation ?? 0) + 360) % 360;
+    let horizontal = event.gamma - reference.gamma;
+    let vertical = event.beta - reference.beta;
+    if (angle === 90) [horizontal, vertical] = [vertical, -horizontal];
+    else if (angle === 270) [horizontal, vertical] = [-vertical, horizontal];
+    else if (angle === 180) [horizontal, vertical] = [-horizontal, -vertical];
+    // A modest 11-degree device tilt now uses ~90% of the bigger range.
+    targetX = clamp(horizontal / 11) * .91;
+    targetY = clamp(vertical / 11) * .84;
+    schedule();
   }
-  function disableGyro() {
-    enabled = false;
-    sensed = false;
-    initial = null;
-    goalX = goalY = currentX = currentY = 0;
+  function stopSensor() {
+    sensorActive = false;
+    reference = null;
+    targetX = targetY = smoothX = smoothY = 0;
     window.removeEventListener('deviceorientation', onOrientation);
-    window.clearTimeout(startupTimeout);
-    if (frame) window.cancelAnimationFrame(frame);
-    frame = 0;
-    entries.forEach((entry) => {
-      if (entry.pointerId === null) draw(entry, 0, 0);
-      entry.scene?.classList.remove('is-gyro-active');
+    if (raf) window.cancelAnimationFrame(raf);
+    raf = 0;
+    views.forEach(view => {
+      view.scene?.classList.remove('is-gyro-active');
+      if (view.pointerId === null) render(view, 0, 0);
     });
-    setControls('Neigung aktivieren', false);
   }
-  function startGyro() {
-    pending = false;
-    enabled = true;
-    sensed = false;
-    initial = null;
-    setControls('Sensor wird verbunden', true);
+  function startSensor() {
+    if (!sensorAllowed() || sensorActive) return;
+    sensorActive = true;
+    reference = null;
+    views.forEach(view => view.scene?.classList.add('is-gyro-active'));
     window.addEventListener('deviceorientation', onOrientation, { passive: true });
-    entries.forEach((entry) => entry.scene?.classList.add('is-gyro-active'));
-    startupTimeout = window.setTimeout(() => {
-      if (enabled && !sensed) {
-        disableGyro();
-        setControls('Sensor nicht verfügbar', false);
-      }
-    }, 4500);
   }
-  function activate(event) {
-    if (!allowed() || pending) return;
-    if (enabled) { disableGyro(); return; }
-    const Orientation = window.DeviceOrientationEvent;
-    // On iOS requestPermission MUST be called synchronously from the click handler.
-    if (typeof Orientation.requestPermission === 'function') {
-      pending = true;
-      setControls('Zugriff wird angefragt', false, true);
-      let permission;
-      try { permission = Orientation.requestPermission(); }
-      catch (_) {
-        pending = false;
-        setControls('Neigung aktivieren', false);
-        return;
-      }
-      Promise.resolve(permission).then((result) => {
-        if (result === 'granted' && allowed()) startGyro();
-        else {
-          pending = false;
-          setControls('Zugriff nicht erlaubt', false);
-        }
-      }).catch(() => {
-        pending = false;
-        setControls('Neigung aktivieren', false);
-      });
-    } else {
-      startGyro();
+  function maybeRequestIosSensor() {
+    if (!requiresIosPermission || !sensorAllowed() || requested) return;
+    requested = true;
+    let permission;
+    // Called synchronously from a trusted pointerup/touchend/click gesture.
+    try {
+      permission = window.DeviceOrientationEvent.requestPermission();
+    } catch (_) {
+      return; // Safari denied access. Swipe/keyboard fallbacks still work.
     }
-  }
-  controls.forEach((button) => button.addEventListener('click', activate));
-  syncControls();
-  if (typeof motionPreference.addEventListener === 'function') {
-    motionPreference.addEventListener('change', syncControls);
+    Promise.resolve(permission).then(result => {
+      if (result === 'granted') startSensor();
+    }).catch(() => {});
   }
 
-  entries.forEach((entry) => {
-    const { stage, scene } = entry;
-    stage.addEventListener('pointerdown', (event) => {
-      if (entry.pointerId !== null || !event.isPrimary ||
-          (event.pointerType === 'mouse' && event.button !== 0)) return;
-      entry.pointerId = event.pointerId;
-      entry.startX = event.clientX;
-      entry.startY = event.clientY;
-      entry.fromX = entry.x;
-      entry.fromY = entry.y;
+  // Android and other permissionless browsers may start without an extra button.
+  // iOS instead waits for the viewer's first natural touch (browser requirement).
+  if (sensorAllowed() && !requiresIosPermission) startSensor();
+  const handlePreference = () => {
+    if (preference.matches) {
+      stopSensor();
+      views.forEach(view => render(view, 0, 0));
+    } else if (sensorAllowed() && !requiresIosPermission) {
+      startSensor();
+    }
+  };
+  preference.addEventListener?.('change', handlePreference);
+
+  views.forEach(view => {
+    const {stage, scene} = view;
+    stage.addEventListener('pointerdown', e => {
+      if (view.pointerId !== null || !e.isPrimary ||
+        (e.pointerType === 'mouse' && e.button !== 0)) return;
+      view.pointerId = e.pointerId;
+      view.startX = e.clientX;
+      view.startY = e.clientY;
+      view.fromX = view.x;
+      view.fromY = view.y;
       stage.classList.add('is-dragging');
-      if (stage.setPointerCapture) stage.setPointerCapture(entry.pointerId);
+      stage.setPointerCapture?.(e.pointerId);
     });
-    stage.addEventListener('pointermove', (event) => {
+    stage.addEventListener('pointermove', e => {
       const rect = stage.getBoundingClientRect();
-      if (entry.pointerId === event.pointerId) {
-        const dx = event.clientX - entry.startX;
-        const dy = event.clientY - entry.startY;
-        draw(entry, entry.fromX + dx / Math.max(rect.width * 0.50, 1),
-          entry.fromY + dy / Math.max(rect.height * 0.66, 1));
-        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) scene?.classList.add('has-explored');
-      } else if (entry.pointerId === null && event.pointerType === 'mouse' &&
-                 !enabled && !motionPreference.matches) {
-        draw(entry, ((event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5) * 1.1,
-          ((event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5) * 1.1);
+      if (view.pointerId === e.pointerId) {
+        const dx = e.clientX - view.startX, dy = e.clientY - view.startY;
+        render(view, view.fromX + dx / Math.max(rect.width * .50, 1),
+          view.fromY + dy / Math.max(rect.height * .66, 1));
+      } else if (view.pointerId === null && e.pointerType === 'mouse' &&
+        !sensorActive && !preference.matches) {
+        render(view, ((e.clientX - rect.left) / Math.max(rect.width, 1) - .5) * 1.2,
+          ((e.clientY - rect.top) / Math.max(rect.height, 1) - .5) * 1.2);
       }
     });
-    const release = (event) => {
-      if (entry.pointerId !== event.pointerId) return;
-      entry.pointerId = null;
+    const release = e => {
+      if (view.pointerId !== e.pointerId) return;
+      view.pointerId = null;
       stage.classList.remove('is-dragging');
-      if (stage.hasPointerCapture?.(event.pointerId)) stage.releasePointerCapture(event.pointerId);
-      if (enabled) queueFrame();
+      if (stage.hasPointerCapture?.(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+      if (sensorActive) schedule();
     };
-    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointerup', e => {
+      release(e);
+      // iOS touch pointerup can count as user activation. No visible button.
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') maybeRequestIosSensor();
+    });
+    stage.addEventListener('touchend', maybeRequestIosSensor, {passive: true});
     stage.addEventListener('pointercancel', release);
     stage.addEventListener('lostpointercapture', () => {
-      entry.pointerId = null;
+      view.pointerId = null;
       stage.classList.remove('is-dragging');
-      if (enabled) queueFrame();
+      if (sensorActive) schedule();
     });
-    stage.addEventListener('pointerleave', (event) => {
-      if (entry.pointerId === null && event.pointerType === 'mouse' && !enabled &&
-          !motionPreference.matches) draw(entry, 0, 0);
+    stage.addEventListener('pointerleave', e => {
+      if (view.pointerId === null && e.pointerType === 'mouse' && !sensorActive &&
+        !preference.matches) render(view, 0, 0);
     });
-    stage.addEventListener('keydown', (event) => {
-      const changes = {
-        ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0],
-        ArrowUp: [0, -0.2], ArrowDown: [0, 0.2], Home: [0, 0]
-      };
-      if (!Object.prototype.hasOwnProperty.call(changes, event.key)) return;
-      event.preventDefault();
-      if (event.key === 'Home') draw(entry, 0, 0);
-      else draw(entry, entry.x + changes[event.key][0], entry.y + changes[event.key][1]);
-      scene?.classList.add('has-explored');
+    stage.addEventListener('keydown', e => {
+      const dirs = { ArrowLeft:[-.2,0], ArrowRight:[.2,0],
+        ArrowUp:[0,-.2], ArrowDown:[0,.2], Home:[0,0] };
+      if (!Object.hasOwn(dirs, e.key)) return;
+      e.preventDefault();
+      if (e.key === 'Home') render(view, 0, 0);
+      else render(view, view.x + dirs[e.key][0], view.y + dirs[e.key][1]);
     });
-    draw(entry, 0, 0);
+    render(view, 0, 0);
   });
 
-  // Avoid collecting motion information while the tab is not active.
   document.addEventListener('visibilitychange', () => {
-    if (!enabled) return;
-    initial = null;
+    if (!sensorActive) return;
+    reference = null;
     if (document.hidden) {
-      goalX = goalY = currentX = currentY = 0;
-      if (frame) window.cancelAnimationFrame(frame);
-      frame = 0;
-      entries.forEach((entry) => {
-        if (entry.pointerId === null) draw(entry, 0, 0);
-      });
+      targetX = targetY = smoothX = smoothY = 0;
+      if (raf) window.cancelAnimationFrame(raf);
+      raf = 0;
+      views.forEach(view => { if (view.pointerId === null) render(view, 0, 0); });
     }
   });
-
   const dialog = document.querySelector('[data-event-depth-dialog]');
   const openButton = document.querySelector('[data-event-depth-open]');
   if (!dialog || !openButton || typeof dialog.showModal !== 'function') return;
   openButton.addEventListener('click', () => {
+    // Opening the image is also an intentional interaction on iOS.
+    maybeRequestIosSensor();
     dialog.showModal();
-    dialog.querySelector('[data-event-depth-stage]')?.focus({ preventScroll: true });
+    dialog.querySelector('[data-event-depth-stage]')?.focus({preventScroll:true});
   });
   dialog.querySelector('[data-event-depth-close]')?.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) dialog.close();
+  dialog.addEventListener('click', e => {
+    if (e.target === dialog) dialog.close();
   });
-  dialog.addEventListener('close', () => openButton.focus({ preventScroll: true }));
+  dialog.addEventListener('close', () => openButton.focus({preventScroll:true}));
 }
