@@ -71,7 +71,7 @@ jobs:
           assert(home.includes('data-event-depth-stage'));
           assert(home.includes('data-event-depth-open'));
           assert(home.includes('data-event-depth-dialog'));
-          assert(home.includes('Interaktive 3D-Ansicht'));
+          assert(home.includes('Interaktives Tiefenfoto'));
           const app=read('assets/js/app.js');
           const depth=read('assets/js/components/event-depth.js');
           assert(app.includes('initEventDepth();'));
