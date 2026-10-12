@@ -1,0 +1,190 @@
+name: Gelato V15 static event image private preview release (one time)
+on:
+  push:
+    branches:
+      - release/gelato-static-event-v15-once
+    paths:
+      - .github/workflows/gelato-v15-static-event-private-preview-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gelato-v15-static-event-private-preview-once
+  cancel-in-progress: false
+
+jobs:
+  private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPECTED_SHA: 8683b5dcec0b7481343c078bf344288e36de2061
+      PROJECT_PATH: projects/gelato-donatello-premium-v6
+      WORKER: gelato-donatello-private-preview-v2
+      PRIVATE_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout owner-approved V15 feature at exact immutable commit
+        uses: actions/checkout@v4
+        with:
+          ref: 8683b5dcec0b7481343c078bf344288e36de2061
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require exact source and private safety limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -f "$PROJECT_PATH/assets/images/events/gelato-event-familie.webp"
+          grep -q 'v10-event-feature' "$PROJECT_PATH/index.html"
+          grep -q 'gelato-event-familie.webp' "$PROJECT_PATH/index.html"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync(process.env.PROJECT_PATH+'/project.json','utf8'));
+          const s = p.safety || {};
+          for (const k of ['production_deploy','public_deploy','dns_changes','billing','external_writes']) {
+            if(s[k] !== false) throw Error('PRIVATE_SAFETY_VIOLATION: '+k);
+          }
+          if(p.preview_policy?.mode !== 'PRIVATE_CLOUDFLARE_ACCESS_ONLY') throw Error('NOT_PRIVATE_ACCESS_ONLY');
+          console.log('Exact V15 source and private safety OK');
+          NODE
+
+      - name: Static event photo acceptance and JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const assert=require('node:assert/strict');
+          const root=process.env.PROJECT_PATH;
+          const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+          const home=read('index.html'), css=read('assets/css/style.css'), app=read('assets/js/app.js');
+          assert(home.includes('v10-event-feature'));
+          assert(home.includes('<figure class="v10-event-feature__visual v15-event-photo">'));
+          assert(home.includes('/assets/images/events/gelato-event-familie.webp'));
+          assert(home.includes('alt="Familie beim Eisgenuss'));
+          assert(!home.includes('data-event-depth'),'Depth data attributes remain');
+          assert(!home.includes('v11-depth-scene'),'Old depth UI remains');
+          assert(!home.includes('v11-depth-viewer'),'Viewer remains');
+          assert(!home.includes('data-event-depth-open'),'Fullscreen icon remains');
+          assert(!home.includes('data-gyro-toggle'),'Sensor UI remains');
+          assert(!app.includes('initEventDepth'),'Event depth code still executes');
+          assert(!app.includes('event-depth.js'),'Event depth module still loads');
+          assert(css.includes('.v15-event-photo img'));
+          assert(!css.includes('.v11-depth-scene__stage'));
+          assert(!css.includes('.v12-gyro-toggle'));
+          assert(home.includes('Eisvitrine entdecken'),'Event CTA missing');
+          assert(home.includes('href="/eisvitrine/"'),'Event CTA route changed');
+          assert(css.includes('v8-cake-spotlight'));
+          assert(!home.includes('Bewegliches Eventfoto'));
+          for(const route of ['eissorten','eisbecher','eistorten','eisvitrine','kontakt']) {
+            assert.match(read(route+'/index.html'),/noindex/i,route+' should remain private');
+          }
+          const stat=fs.statSync(path.join(root,'assets/images/events/gelato-event-familie.webp'));
+          assert(stat.size>100000 && stat.size<1500000,'Event image missing');
+          assert(fs.readdirSync(path.join(root,'assets/images/flavors')).filter(x=>x.endsWith('.webp')).length>=41);
+          assert(fs.readdirSync(path.join(root,'assets/images/cakes')).filter(x=>x.endsWith('.webp')).length>=24);
+          console.log('V15 static photo and site regression gate PASS');
+          NODE
+          find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Install Chromium for real mobile gesture verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Mobile and desktop static-photo visual acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory "$PROJECT_PATH" >/tmp/gelato-v15-photo.log 2>&1 &
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try {
+              const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+              const photo=page.locator('.v15-event-photo img');
+              await photo.scrollIntoViewIfNeeded();
+              assert(await photo.isVisible(),'Static event image not visible');
+              assert(await photo.evaluate(el=>el.complete&&el.naturalWidth>=1000),'Image did not load');
+              assert.equal(await photo.getAttribute('src'),'/assets/images/events/gelato-event-familie.webp');
+              assert.equal(await page.locator('.v15-event-photo button').count(),0,'Overlay button remains');
+              assert.equal(await page.locator('dialog[data-event-depth-dialog]').count(),0,'Viewer dialog remains');
+              assert.equal(await page.locator('[data-event-depth-stage]').count(),0,'Swipe target remains');
+              const original=await photo.evaluate(el=>({style:getComputedStyle(el).transform,src:el.currentSrc}));
+              assert.equal(original.style,'none','Unexpected 3D transform');
+              const photoBox=await photo.boundingBox();
+              assert(photoBox&&photoBox.width>280&&photoBox.height>210,'Bad mobile image dimensions');
+              await page.mouse.move(photoBox.x+photoBox.width*.4,photoBox.y+photoBox.height*.5);
+              await page.mouse.down();
+              await page.mouse.move(photoBox.x+photoBox.width*.65,photoBox.y+photoBox.height*.5,{steps:5});
+              await page.mouse.up();
+              assert.equal(await photo.evaluate(el=>getComputedStyle(el).transform),'none','Photo moved on swipe');
+              assert(await page.locator('.v10-event-feature__cta').isVisible(),'CTA missing');
+
+              await page.setViewportSize({width:320,height:700});
+              await photo.scrollIntoViewIfNeeded();
+              const mobile=await photo.boundingBox();
+              assert(mobile&&mobile.x>=10&&mobile.x+mobile.width<=322,'320px image overflow');
+              await page.setViewportSize({width:1440,height:900});
+              await photo.scrollIntoViewIfNeeded();
+              assert(await photo.isVisible(),'Desktop photo missing');
+              assert.equal(await photo.evaluate(el=>getComputedStyle(el).transform),'none','Desktop photo transformed');
+              assert.equal(errors.length,0,'Browser errors: '+errors.join('; '));
+              console.log('PASS: original fixed photo, no box, no swipe/viewer, CTA, iPhone 320/390 and desktop 1440');
+            } finally {await browser.close();}
+          })().catch(err=>{console.error(err);process.exitCode=1;});
+          NODE
+
+      - name: Confirm existing Cloudflare Access remains protected BEFORE deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-predeploy-access.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-predeploy-access.txt
+          tr -d '\r' < /tmp/gelato-predeploy-access.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+
+      - name: Private Worker dry run only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --dry-run --message "Gelato Donatello private V15 8683b5dcec0b"
+
+      - name: Publish only to existing Access-protected private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --message "Gelato Donatello private V15 8683b5dcec0b"
+
+      - name: Verify Cloudflare Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-access-headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-access-headers.txt
+          tr -d '\r' < /tmp/gelato-access-headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          {
+            echo "### Gelato Donatello PRIVATE V15"
+            echo "Preview: $PRIVATE_URL"
+            echo "Source SHA: $EXPECTED_SHA"
+            echo "Public deploy: false"
+            echo "DNS changes: false"
+          } >> "$GITHUB_STEP_SUMMARY"
