@@ -102,12 +102,41 @@ jobs:
           NODE
           ! git grep -n -E "production_deploy[\"']?[[:space:]]*:[[:space:]]*true" -- "$PROJECT_PATH"
 
-      - name: Run project acceptance
+      - name: Run current project acceptance
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/gelato-donatello-premium-v6-smoke.mjs
-          find "${{ steps.binding.outputs.project_path }}/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --test projects/gelato-donatello-premium-v6/tests/hero-flavors.test.mjs
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const root='projects/gelato-donatello-premium-v6';
+          const project=JSON.parse(fs.readFileSync(path.join(root,'project.json'),'utf8'));
+          assert.equal(project.preview_policy?.mode,'PRIVATE_CLOUDFLARE_ACCESS_ONLY');
+          assert.equal(project.safety?.production_deploy,false);
+          assert.equal(project.safety?.public_deploy,false);
+          for(const item of project.expected_page_set){
+            const route=item.path==='/'?'index.html':item.path.replace(/^\\/|\\/$/g,'')+'/index.html';
+            const page=fs.readFileSync(path.join(root,route),'utf8');
+            assert.match(page,/noindex,nofollow,noarchive/,'noindex on '+route);
+            assert.match(page,/assets\\/css\\/style\\.css/,'stylesheet on '+route);
+          }
+          const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
+          const heading=home.indexOf('id="featured-cakes-heading"');
+          const ipad=home.indexOf('data-component="cake-ipad"');
+          const button=home.indexOf('Alle Eistorten entdecken');
+          assert.ok(heading>=0 && heading<ipad && ipad<button,'headline, iPad, CTA order');
+          assert.equal((home.match(/class="v6-ipad__slide"/g)||[]).length,24);
+          assert.equal((home.match(/class="v6-ipad__dot"/g)||[]).length,24);
+          assert.match(home,/v8-cake-spotlight/);
+          const flavorPage=fs.readFileSync(path.join(root,'eissorten/index.html'),'utf8');
+          assert.equal((flavorPage.match(/class="v7-flavors__item"/g)||[]).length,41);
+          const cakePage=fs.readFileSync(path.join(root,'eistorten/index.html'),'utf8');
+          assert.match(cakePage,/Eisbomben/);
+          console.log('PASS: current active routes, private safety, 41 Eissorten, 24 iPad slides, heading and CTA order');
+          NODE
+          find "projects/gelato-donatello-premium-v6/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Isolated private preview dry run
         shell: bash
