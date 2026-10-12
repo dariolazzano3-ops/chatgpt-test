@@ -211,6 +211,7 @@ jobs:
               await button.click();
               await page.waitForFunction(()=>document.querySelector('[data-gyro-toggle]').textContent.includes('nicht erlaubt'));
               assert((await button.getAttribute('aria-pressed'))==='false','Denied permission should not start gyro');
+              await stage.scrollIntoViewIfNeeded();
               const box=await stage.boundingBox();
               assert(box && box.width>=265,'Mobile visual is too small');
               await page.mouse.move(box.x+box.width*.3,box.y+box.height*.5);
