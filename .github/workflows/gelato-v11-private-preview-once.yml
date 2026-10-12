@@ -106,7 +106,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --ignore-scripts
+          npm install --package-lock=false --ignore-scripts --no-audit --no-fund
           npx playwright install --with-deps chromium
 
       - name: Mobile 3D gesture, fullscreen and accessibility smoke
