@@ -68,10 +68,10 @@ jobs:
           const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
           const home=read('index.html'), css=read('assets/css/style.css');
           assert.match(home, /v10-event-feature/);
-          assert.match(home, /assets\\/images\\/events\\/gelato-event-familie\\.webp/);
+          assert(home.includes('assets/images/events/gelato-event-familie.webp'));
           assert.match(home, /Gelato für dein Event/);
-          assert.match(home, /href="\\/eisvitrine\\/"/);
-          assert.match(home, /assets\\/css\\/style\\.css/);
+          assert(home.includes('href="/eisvitrine/"'));
+          assert(home.includes('assets/css/style.css'));
           assert.match(css, /v10-event-feature__visual/);
           assert.match(css, /v8-cake-spotlight/);
           for(const route of ['eissorten','eisbecher','eistorten','eisvitrine','kontakt']){
