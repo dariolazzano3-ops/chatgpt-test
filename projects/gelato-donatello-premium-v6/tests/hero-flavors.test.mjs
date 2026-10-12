@@ -56,7 +56,7 @@ function setup({ reducedMotion = false } = {}) {
   globalThis.window = {
     matchMedia() { return { matches: reducedMotion }; },
     setTimeout(callback, delay) {
-      assert.ok(delay >= 5000, 'timer never faster than five seconds');
+      assert.ok(delay >= 3500, 'timer never faster than 3.5 seconds');
       const id = ++nextTimerId;
       timerJobs.set(id, { callback, delay });
       return id;
@@ -90,21 +90,21 @@ function setup({ reducedMotion = false } = {}) {
   return { old, root, photoVisual, photos, name, listeners, timerJobs, fireNextTimer, flush, get observer() { return observer; }, restore() { Object.assign(globalThis, old); } };
 }
 
-test('41-photo slideshow rotates at 5s with synchronized soft ambient colors and no controls', async () => {
+test('41-photo slideshow rotates at 3.5s with synchronized soft ambient colors and no controls', async () => {
   const e = setup();
   try {
     initHeroFlavors();
     assert.equal(e.name.textContent, 'Pistazie');
     assert.equal(e.root.style.values.get('--hero-tone'), '#b9c5a8');
     assert.equal(e.timerJobs.size, 1);
-    assert.equal(await e.fireNextTimer(), 5000);
+    assert.equal(await e.fireNextTimer(), 3500);
     assert.equal(e.name.textContent, 'Erdbeere');
     assert.equal(e.root.style.values.get('--hero-tone'), '#dfbbb4');
     assert.equal(e.photos[1].classList.contains('is-active'), true);
     assert.equal(e.photos[1].src, '/assets/images/flavors/erdbeere.webp');
     assert.equal(e.photos[1].attrs['aria-hidden'], 'false');
     assert.equal(e.photos[0].attrs['aria-hidden'], 'true');
-    assert.equal(await e.fireNextTimer(), 5000);
+    assert.equal(await e.fireNextTimer(), 3500);
     assert.equal(e.name.textContent, 'Zitrone');
     assert.equal(e.root.style.values.get('--hero-tone'), '#e4d8ab');
     assert.equal(e.photos.filter(p => p.classList.contains('is-active')).length, 1);

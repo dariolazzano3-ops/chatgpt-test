@@ -1326,7 +1326,7 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
 /* Premium gelato ambient hero V8: 41 real flavors, timed fade and coordinated pastel wash. */
 .v6-hero[data-hero-flavors]{
   background-color:var(--hero-tone,var(--sage));
-  transition:--hero-tone 1500ms ease,--hero-glow 1500ms ease,background-color 1500ms ease;
+  transition:--hero-tone 1200ms ease,--hero-glow 1200ms ease,background-color 1200ms ease;
   isolation:isolate;
 }
 .v6-hero[data-hero-flavors]::before{
@@ -1337,7 +1337,7 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   background:radial-gradient(ellipse at 14% 36%,color-mix(in srgb,var(--hero-glow,#8fa66e) 45%,transparent),transparent 70%);
   opacity:.46;
   pointer-events:none;
-  transition:background 1500ms ease;
+  transition:background 1200ms ease;
 }
 .v6-hero[data-hero-flavors] > .v6-hero__copy,
 .v6-hero[data-hero-flavors] > .v6-hero__visual{
@@ -1358,7 +1358,7 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   object-position:center;
   opacity:0;
   z-index:0;
-  transition:opacity 1000ms ease-in-out;
+  transition:opacity 900ms ease-in-out;
   will-change:opacity,transform;
 }
 .v6-hero[data-hero-flavors] .v6-hero__visual .v8-flavor-photo.is-active{opacity:1}
@@ -1580,7 +1580,7 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   filter:contrast(1.025) saturate(1.018);
 }
 .v6-hero[data-hero-flavors] .v6-hero__visual .v8-flavor-photo.is-active{
-  animation:gelatoCinematicZoom 5000ms linear both;
+  animation:gelatoCinematicZoom 3500ms linear both;
 }
 @keyframes gelatoCinematicZoom{
   from{transform:scale(1)}
