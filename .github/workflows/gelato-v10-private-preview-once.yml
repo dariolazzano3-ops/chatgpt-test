@@ -1,0 +1,95 @@
+name: Gelato V10 private preview release (one time)
+on:
+  push:
+    branches:
+      - factory/aurentara-exec-gelato-v10-preview-release-once
+    paths:
+      - .github/workflows/gelato-v10-private-preview-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gelato-v10-private-preview-once
+  cancel-in-progress: false
+
+jobs:
+  private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPECTED_SHA: bbb01ac2c68f78df4ab5a376a5ef00f208251cd2
+      PROJECT_PATH: projects/gelato-donatello-premium-v6
+      WORKER: gelato-donatello-private-preview-v2
+      PRIVATE_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout owner-approved V10 source at exact merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: bbb01ac2c68f78df4ab5a376a5ef00f208251cd2
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require exact source and private safety limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -f "$PROJECT_PATH/assets/images/events/gelato-event-familie.webp"
+          grep -q 'v10-event-feature' "$PROJECT_PATH/index.html"
+          grep -q 'gelato-event-familie.webp' "$PROJECT_PATH/index.html"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync(process.env.PROJECT_PATH+'/project.json','utf8'));
+          const s = p.safety || {};
+          for (const k of ['production_deploy','public_deploy','dns_changes','billing','external_writes']) {
+            if(s[k] !== false) throw Error('PRIVATE_SAFETY_VIOLATION: '+k);
+          }
+          if(p.preview_policy?.mode !== 'PRIVATE_CLOUDFLARE_ACCESS_ONLY') throw Error('NOT_PRIVATE_ACCESS_ONLY');
+          console.log('Exact V10 source and private safety OK');
+          NODE
+
+      - name: Acceptance and JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Private Worker dry run only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --dry-run --message "Gelato Donatello private V10 bbb01ac2c68f"
+
+      - name: Publish only to existing Access-protected private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --message "Gelato Donatello private V10 bbb01ac2c68f"
+
+      - name: Verify Cloudflare Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-access-headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-access-headers.txt
+          tr -d '\r' < /tmp/gelato-access-headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          {
+            echo "### Gelato Donatello PRIVATE V10"
+            echo "Preview: $PRIVATE_URL"
+            echo "Source SHA: $EXPECTED_SHA"
+            echo "Public deploy: false"
+            echo "DNS changes: false"
+          } >> "$GITHUB_STEP_SUMMARY"
