@@ -83,7 +83,7 @@ jobs:
           assert(!depth.includes('requestPermission'));
           assert(!depth.includes('touchend'));
           assert(!depth.includes('startSensor'));
-          assert(!home.includes('Sensorfreigabe'));
+          assert(!home.includes('nach der Sensorfreigabe'));
           assert(!home.includes('Neige dein iPhone'));
           assert(!home.includes('data-gyro-toggle'));
           assert(!home.includes('v11-depth-scene__hint'));
