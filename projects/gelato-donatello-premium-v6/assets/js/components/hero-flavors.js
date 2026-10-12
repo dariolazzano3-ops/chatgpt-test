@@ -11,7 +11,7 @@ export function initHeroFlavors() {
   const nameEl = hero.querySelector('[data-flavor-name]');
   if (!visual || photos.length !== 2 || !nameEl) return;
 
-  const INTERVAL = 2000;
+  const INTERVAL = 5000;
   const MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
   let activeIndex = 0;
   let activePhoto = 0;
@@ -64,7 +64,7 @@ export function initHeroFlavors() {
     const target = (index + FLAVORS.length) % FLAVORS.length;
     if (manual) stopTimer();
     if (target === activeIndex && !pending) {
-      if (manual) schedule(6000);
+      if (manual) schedule(INTERVAL);
       return;
     }
     if (pending) return;
@@ -77,7 +77,7 @@ export function initHeroFlavors() {
     if (!loaded) {
       // Keep the previous photo rather than exposing a broken / blank frame.
       if (!manual) schedule(INTERVAL * 2);
-      else schedule(6000);
+      else schedule(INTERVAL);
       return;
     }
     const flavor = FLAVORS[target];
@@ -93,7 +93,7 @@ export function initHeroFlavors() {
     activeIndex = target;
     announce(target);
     preload(target + 1);
-    schedule(manual ? 6000 : INTERVAL);
+    schedule(INTERVAL);
   }
 
   // Swipe only for mostly horizontal gestures. Native vertical page scroll stays enabled.
@@ -117,7 +117,7 @@ export function initHeroFlavors() {
   hero.addEventListener('mouseleave', () => schedule());
   hero.addEventListener('focusin', stopTimer);
   hero.addEventListener('focusout', (event) => {
-    if (!hero.contains(event.relatedTarget)) schedule(6000);
+    if (!hero.contains(event.relatedTarget)) schedule(INTERVAL);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) stopTimer();
