@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const repo=process.cwd();
 const root=path.join(repo,'projects','gelato-donatello-premium-v6');
-const pages=['index.html','eisbecher/index.html','eistorten/index.html','eisvitrine/index.html','kontakt/index.html'];
+const pages=['index.html','eisbecher/index.html','eissorten/index.html','eistorten/index.html','eisvitrine/index.html','kontakt/index.html'];
 const legacy=['sortiment/index.html','eistorten-eisbomben/index.html'];
 for(const rel of [...pages,...legacy]){
   const full=path.join(root,rel);
@@ -26,9 +26,25 @@ for(const [i,html] of originals.entries()){
     assert.ok(fs.existsSync(path.join(root,ref.slice(1)))||fs.existsSync(path.join(root,ref.slice(1),'index.html')),'missing file '+ref+' in '+pages[i]);
   }
 }
-const [home,cups,cakes,rental,contact]=originals;
+const [home,cups,flavorsPage,cakes,rental,contact]=originals;
 for(const marker of ['v6-hero','v6-facts','v6-feature-dark','v6-showcase','v6-cup-story','v6-image-story'])assert.ok(home.includes(marker),marker);
 assert.match(home,/1965/);
+assert.match(home,/<a class="v7-flavor-hero-link" href="\/eissorten\/"[^>]*>/,'homepage hero must link to real Eissorten page');
+assert.match(home,/Alle Eissorten/);
+assert.match(home,/class="v6-hero__badge"/,'1965 stamp must remain');
+assert.ok(home.indexOf('v7-flavor-hero-link')>home.indexOf('v6-hero__visual'));
+assert.ok(home.indexOf('v7-flavor-hero-link')<home.indexOf('v6-hero__badge'));
+assert.match(flavorsPage,/Unsere Eissorten\./);
+assert.match(flavorsPage,/Die Auswahl kann saisonal wechseln/);
+assert.match(flavorsPage,/Aktuell verfügbare Sorten und Preise erfährst du vor Ort/);
+assert.doesNotMatch(flavorsPage,/\d+(?:[.,]\d+)?\s*€|EUR\b|1,60/,'Eissorten page must not show prices');
+const flavorImageUrls=[...flavorsPage.matchAll(/<img src="(\/assets\/images\/flavors\/[^"]+)"[^>]+>/g)].map(m=>m[1]);
+const flavorDir=path.join(root,'assets','images','flavors');
+const availableFlavorUrls=fs.readdirSync(flavorDir).filter(name=>name.endsWith('.webp')).map(name=>'/assets/images/flavors/'+name);
+assert.equal(flavorImageUrls.length,41,'exact 41 known flavor images');
+assert.deepEqual([...flavorImageUrls].sort(),availableFlavorUrls.sort(),'all owner-provided flavor images must appear exactly once');
+for(const url of flavorImageUrls) assert.ok(fs.existsSync(path.join(root,url.slice(1))),url);
+
 assert.doesNotMatch(home,/href="\/sortiment\/"/);
 assert.match(cups,/v6-photo-strip/);
 assert.match(cups,/photo-gallery/);
@@ -99,9 +115,9 @@ assert.equal(project.safety.external_writes,false);
 assert.equal(project.content_policy.strategy,'SERVICE_FIRST_WITH_SPECIALTY_PRICING');
 assert.equal(project.content_policy.online_prices_visible,true);
 assert.deepEqual(project.content_policy.online_price_exceptions,['/eistorten/','/eisvitrine/']);
-assert.equal(project.content_policy.dedicated_flavor_catalog,false);
+assert.equal(project.content_policy.dedicated_flavor_catalog,true);
 assert.equal(project.content_policy.eisbomben_promotion,true);
-assert.deepEqual(project.expected_page_set.map(x=>x.path),['/','/eisbecher/','/eistorten/','/eisvitrine/','/kontakt/']);
+assert.deepEqual(project.expected_page_set.map(x=>x.path),['/','/eisbecher/','/eissorten/','/eistorten/','/eisvitrine/','/kontakt/']);
 
 const nav=fs.readFileSync(path.join(root,'assets/js/components/nav.js'),'utf8');
 for(const href of ['/','/eisbecher/','/eistorten/','/eisvitrine/','/kontakt/'])assert.ok(nav.includes("href: '"+href+"'"),'navigation '+href);
@@ -118,4 +134,4 @@ const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
 for(const marker of ['.v6-hero','.v6-product-card','.v6-request-section','.v6-rental-board','.site-header__logo','@media (max-width:820px)','AURENTARA Web Execution Bridge V1: START'])assert.ok(css.includes(marker),marker);
 assert.match(css,/hyphens:none/);
 assert.match(css,/drop-shadow/);
-console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, 24 cake gallery images, 24-photo iPad, dedicated Eisvitrine event teaser, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
+console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 6 main pages, 2 legacy redirects, 41 price-free Eissorten photo tiles, 24 cake gallery images, 24-photo iPad, dedicated Eisvitrine event teaser, no scoop/cup prices, specialty prices restored, baseline absent from published project, logo retained, private-only.');
