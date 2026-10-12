@@ -217,7 +217,14 @@ jobs:
               await page.mouse.down();
               await page.mouse.move(box.x+box.width*.75,box.y+box.height*.5,{steps:6});
               await page.mouse.up();
-              assert((await stage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw'))))>1.0,'Swipe fallback failed');
+              const swipeDiagnostics = await stage.evaluate(el=>({
+                yaw:parseFloat(el.style.getPropertyValue('--depth-yaw')),
+                dragging:el.classList.contains('is-dragging'),
+                explored:el.closest('[data-event-depth]')?.classList.contains('has-explored'),
+                rect:el.getBoundingClientRect().toJSON()
+              }));
+              console.log('SWIPE DIAGNOSTICS',JSON.stringify(swipeDiagnostics));
+              assert(swipeDiagnostics.yaw>1.0,'Swipe fallback failed');
 
               // Small iPhone width: controls must not cover each other.
               await page.setViewportSize({width:320,height:700});
