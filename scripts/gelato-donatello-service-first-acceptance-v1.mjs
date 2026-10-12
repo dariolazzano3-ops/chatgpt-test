@@ -73,11 +73,19 @@ assert.equal(categories.filter(c=>c==='eisbombe').length,2);
 assert.match(cakes,/data-cake-filter="alle"/);
 assert.match(cakes,/data-cake-filter="spaghetti"/);
 assert.match(cakes,/v6-cake-lightbox/);
-assert.match(home,/24 Ideen/);
+// Cakes remain in the full gallery and the 24-photo homepage iPad.
+const ipadPhotos=[...home.matchAll(/<a class="v6-ipad__slide"[\s\S]*?<img src="(\/assets\/images\/cakes\/[^"]+)"/g)].map(m=>m[1]);
+assert.equal(ipadPhotos.length,24,'homepage iPad retains all 24 cake photos');
+assert.deepEqual([...ipadPhotos].sort(),[...expectedGallery].sort(),'iPad retains each cake photo exactly once');
 assert.match(home,/\/eistorten\/#kreationen/);
-for(const img of ['eistorte-03.webp','eistorte-09.webp','spaghetti-eistorte-02.webp','eisbombe-02.webp']) {
-  assert.ok(home.includes('/assets/images/cakes/'+img),'missing home cake highlight '+img);
-}
+assert.doesNotMatch(home,/v6-cake-teaser|24 Ideen\. Dein ganz besonderer Anlass/,'redundant cake teaser must be removed');
+assert.match(home,/class="v7-event-teaser"/,'new event teaser required');
+assert.match(home,/Gelato für dein Event\./);
+assert.match(home,/Unsere Eisvitrine bringt Gelato Donatello direkt zu Hochzeiten, Geburtstagen und besonderen Feiern\./);
+assert.match(home,/href="\/eisvitrine\/"[^>]*>[\s\S]*?Eisvitrine entdecken/);
+assert.match(home,/class="v6-showcase"/,'Eisbecher showcase must remain after event teaser');
+assert.ok(home.indexOf('v7-event-teaser')>home.indexOf('v6-feature-dark'));
+assert.ok(home.indexOf('v7-event-teaser')<home.indexOf('v6-showcase'));
 const appJs=fs.readFileSync(path.join(root,'assets/js/app.js'),'utf8');
 for(const token of ['initCakeGallery','dialog.showModal','ArrowLeft','ArrowRight']) assert.ok(appJs.includes(token),'missing gallery interaction '+token);
 
@@ -110,4 +118,4 @@ const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
 for(const marker of ['.v6-hero','.v6-product-card','.v6-request-section','.v6-rental-board','.site-header__logo','@media (max-width:820px)','AURENTARA Web Execution Bridge V1: START'])assert.ok(css.includes(marker),marker);
 assert.match(css,/hyphens:none/);
 assert.match(css,/drop-shadow/);
-console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, 24 cake gallery images, 4 home highlights, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
+console.log('OK: Gelato Donatello SERVICE_FIRST acceptance. 5 main pages, 2 legacy redirects, 24 cake gallery images, 24-photo iPad, dedicated Eisvitrine event teaser, no scoop/cup prices, specialty prices restored, no flavor catalog, baseline absent from published project, logo retained, private-only.');
