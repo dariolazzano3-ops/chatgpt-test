@@ -1948,9 +1948,9 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
 /* V16: premium editorial event story. Original photo is always static and unaltered. */
 .v7-event-teaser.v10-event-feature{
   background:
-    radial-gradient(ellipse at 100% 2%,rgba(255,250,235,.88) 0,transparent 47%),
-    radial-gradient(ellipse at 0% 96%,rgba(212,186,146,.18) 0,transparent 55%),
-    linear-gradient(145deg,#f0eadc 0%,#e9dfce 58%,#e7ddcc 100%);
+    radial-gradient(ellipse at 100% 2%,rgba(251,240,217,.47) 0,transparent 47%),
+    radial-gradient(ellipse at 0% 96%,rgba(175,141,101,.15) 0,transparent 55%),
+    linear-gradient(145deg,#e7ddce 0%,#e0d4c3 58%,#d8cbb9 100%);
   border-block:1px solid rgba(69,44,29,.11);
   padding-block:clamp(74px,8.4vw,126px);
 }
