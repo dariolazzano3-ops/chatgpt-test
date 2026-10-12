@@ -11,7 +11,7 @@ export function initHeroFlavors() {
   const nameEl = hero.querySelector('[data-flavor-name]');
   if (!visual || photos.length !== 2 || !nameEl) return;
 
-  const INTERVAL = 5000;
+  const INTERVAL = 3500;
   const MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
   let activeIndex = 0;
   let activePhoto = 0;
