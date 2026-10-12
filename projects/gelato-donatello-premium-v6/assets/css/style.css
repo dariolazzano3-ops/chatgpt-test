@@ -1727,3 +1727,27 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   .v8-cake-spotlight__action{width:calc(100% - 42px);margin-top:25px}
   .v8-cake-spotlight__action .button{width:min(100%,390px);gap:10px}
 }
+
+
+/* Retain V6 acceptance marker while the V8 unified layout replaces its grid. */
+.v6-feature-dark.v8-cake-spotlight{
+  display:flex;
+  min-height:0;
+  grid-template-columns:none;
+}
+.v6-feature-dark.v8-cake-spotlight p.v8-cake-spotlight__lead{
+  max-width:560px;
+  margin:clamp(16px,2.4vw,27px) auto 0;
+  color:#5d4031;
+}
+.v6-feature-dark.v8-cake-spotlight p.v6-ipad-stage__caption{
+  max-width:min(100%,570px);
+  margin:0;
+  color:#493024;
+}
+@media(max-width:520px){
+  .v6-feature-dark.v8-cake-spotlight p.v6-ipad-stage__caption{
+    max-width:100%;
+    margin:0;
+  }
+}
