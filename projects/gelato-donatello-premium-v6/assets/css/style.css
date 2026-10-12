@@ -2084,57 +2084,7 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
 }
 
 
-/* V12: opt-in iPhone tilt, intentionally restrained wallpaper-style depth. */
-.v12-gyro-toggle{
-  position:absolute;top:15px;left:15px;z-index:5;
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:10px 13px;
-  min-height:43px;min-width:44px;
-  border-radius:100px;
-  border:1px solid rgba(255,253,247,.31);
-  background:rgba(34,27,23,.67);color:#fffbf4;
-  box-shadow:0 5px 20px rgba(38,25,19,.18);
-  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
-  font-size:.72rem;font-weight:700;letter-spacing:.02em;
-  cursor:pointer;
-  transition:background .2s ease,transform .2s ease;
-  -webkit-tap-highlight-color:transparent;
-}
-.v12-gyro-toggle[hidden]{display:none!important}
-.v12-gyro-toggle svg{display:block;width:17px;height:17px;flex:0 0 17px}
-.v12-gyro-toggle:hover{background:rgba(34,27,23,.87);transform:translateY(-1px)}
-.v12-gyro-toggle[aria-pressed="true"]{
-  background:rgba(34,59,43,.88);
-  border-color:rgba(220,239,221,.48);
-}
-.v12-gyro-toggle:disabled{opacity:.72;cursor:wait}
-.v12-gyro-toggle:focus-visible{outline:3px solid #fffaf2;outline-offset:3px}
-.v11-depth-scene.is-gyro-active .v11-depth-scene__hint{opacity:0}
 .v12-depth-viewer__actions{display:flex;align-items:center;justify-content:flex-end;gap:10px}
-.v12-gyro-toggle--dialog{
-  position:static;flex:0 0 auto;
-  background:rgba(255,247,229,.11);
-  box-shadow:none;
-}
-.v12-gyro-toggle--dialog:hover{background:rgba(255,247,229,.18)}
-@media(max-width:520px){
-  .v12-gyro-toggle:not(.v12-gyro-toggle--dialog){
-    top:12px;left:12px;padding:9px 10px;
-    min-height:41px;font-size:.62rem;gap:6px;
-  }
-  .v12-gyro-toggle svg{width:16px;height:16px;flex-basis:16px}
-  .v12-depth-viewer__actions{gap:8px}
-  .v12-gyro-toggle--dialog{padding:9px 10px;font-size:.65rem}
-}
-@media(max-width:365px){
-  .v12-gyro-toggle:not(.v12-gyro-toggle--dialog){font-size:.58rem;padding:8px}
-  .v11-depth-scene__expand{font-size:.6rem;padding:8px}
-  .v12-gyro-toggle--dialog{font-size:.6rem}
-}
-@media(prefers-reduced-motion:reduce){
-  .v12-gyro-toggle{transition:none}
-}
-
 
 /* V13: stronger iPhone wallpaper depth, zero text laid over the event photo. */
 .v11-depth-scene__plane{
