@@ -117,10 +117,10 @@ jobs:
           assert.equal(project.safety?.production_deploy,false);
           assert.equal(project.safety?.public_deploy,false);
           for(const item of project.expected_page_set){
-            const route=item.path==='/'?'index.html':item.path.replace(/^\\/|\\/$/g,'')+'/index.html';
+            const route=item.path==='/'?'index.html':item.path.replace(/^\/|\/$/g,'')+'/index.html';
             const page=fs.readFileSync(path.join(root,route),'utf8');
             assert.match(page,/noindex,nofollow,noarchive/,'noindex on '+route);
-            assert.match(page,/assets\\/css\\/style\\.css/,'stylesheet on '+route);
+            assert.match(page,/assets\/css\/style\.css/,'stylesheet on '+route);
           }
           const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
           const heading=home.indexOf('id="featured-cakes-heading"');
