@@ -32,10 +32,6 @@ function setup({ reducedMotion = false } = {}) {
   photos[0].src = '/assets/images/flavors/pistazie.webp';
   const photoVisual = element();
   const name = element();
-  const counter = element();
-  const prev = element();
-  const next = element();
-  const toggle = element();
   const root = element();
   root.style = {
     values: new Map(),
@@ -46,10 +42,6 @@ function setup({ reducedMotion = false } = {}) {
     const map = {
       '.v6-hero__visual': photoVisual,
       '[data-flavor-name]': name,
-      '[data-flavor-count]': counter,
-      '[data-flavor-prev]': prev,
-      '[data-flavor-next]': next,
-      '[data-flavor-toggle]': toggle,
     };
     return map[key] ?? null;
   };
@@ -95,41 +87,30 @@ function setup({ reducedMotion = false } = {}) {
     await Promise.resolve();
     await Promise.resolve();
   }
-  return { old, root, photoVisual, photos, counter, name, prev, next, toggle, listeners, timerJobs, fireNextTimer, flush, get observer() { return observer; }, restore() { Object.assign(globalThis, old); } };
+  return { old, root, photoVisual, photos, name, listeners, timerJobs, fireNextTimer, flush, get observer() { return observer; }, restore() { Object.assign(globalThis, old); } };
 }
 
-test('41-photo slideshow advances on 2s intervals, controls coordinate visuals, and respects user pause', async () => {
+test('41-photo slideshow rotates at 2s with synchronized soft ambient colors and no controls', async () => {
   const e = setup();
   try {
     initHeroFlavors();
     assert.equal(e.name.textContent, 'Pistazie');
-    assert.equal(e.counter.textContent, '01 / 41');
     assert.equal(e.root.style.values.get('--hero-tone'), '#b9c5a8');
     assert.equal(e.timerJobs.size, 1);
     assert.equal(await e.fireNextTimer(), 2000);
     assert.equal(e.name.textContent, 'Erdbeere');
-    assert.equal(e.counter.textContent, '02 / 41');
     assert.equal(e.root.style.values.get('--hero-tone'), '#dfbbb4');
     assert.equal(e.photos[1].classList.contains('is-active'), true);
     assert.equal(e.photos[1].src, '/assets/images/flavors/erdbeere.webp');
-
-    e.toggle.events.click();
-    assert.equal(e.toggle.getAttribute('aria-pressed'), 'true');
-    assert.equal(e.toggle.getAttribute('aria-label'), 'Diashow fortsetzen');
-    assert.equal(e.timerJobs.size, 0);
-    e.toggle.events.click();
-    assert.equal(e.toggle.getAttribute('aria-pressed'), 'false');
+    assert.equal(e.photos[1].attrs['aria-hidden'], 'false');
+    assert.equal(e.photos[0].attrs['aria-hidden'], 'true');
     assert.equal(await e.fireNextTimer(), 2000);
     assert.equal(e.name.textContent, 'Zitrone');
     assert.equal(e.root.style.values.get('--hero-tone'), '#e4d8ab');
-
-    e.next.events.click();
-    await e.flush();
-    assert.equal(e.name.textContent, 'Schokolade');
-    assert.equal([...e.timerJobs.values()][0].delay, 6000);
-    e.prev.events.click();
-    await e.flush();
-    assert.equal(e.name.textContent, 'Zitrone');
+    assert.equal(e.photos.filter(p => p.classList.contains('is-active')).length, 1);
+    // Cycling through every flavor eventually returns to the first picture.
+    for (let i = 0; i < 39; i++) await e.fireNextTimer();
+    assert.equal(e.name.textContent, 'Pistazie');
     assert.equal(e.photos.filter(p => p.classList.contains('is-active')).length, 1);
   } finally { e.restore(); }
 });
@@ -162,19 +143,17 @@ test('swipes change flavors without intercepting vertical scroll, and offscreen 
   } finally { e.restore(); }
 });
 
-test('reduced-motion users see a stationary hero until choosing manual navigation', async () => {
+test('reduced-motion users see a stationary hero, but can still swipe manually', async () => {
   const e = setup({ reducedMotion: true });
   try {
     initHeroFlavors();
     assert.equal(e.name.textContent, 'Pistazie');
-    assert.equal(e.toggle.getAttribute('aria-pressed'), 'true');
     assert.equal(e.timerJobs.size, 0);
-    e.next.events.click();
+    const target = { closest() { return null; } };
+    e.photoVisual.events.touchstart({ target, touches: [{ clientX: 200, clientY: 150 }] });
+    e.photoVisual.events.touchend({ changedTouches: [{ clientX: 100, clientY: 150 }] });
     await e.flush();
     assert.equal(e.name.textContent, 'Erdbeere');
     assert.equal(e.timerJobs.size, 0);
-    e.toggle.events.click();
-    assert.equal(e.toggle.getAttribute('aria-pressed'), 'false');
-    assert.equal(e.timerJobs.size, 1);
   } finally { e.restore(); }
 });
