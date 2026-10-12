@@ -1383,13 +1383,6 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   backdrop-filter:blur(10px);
   box-shadow:0 4px 20px rgba(29,18,12,.1);
 }
-.v8-flavor-caption__eyebrow{
-  font-size:clamp(.54rem,.62vw,.68rem);
-  font-weight:800;
-  letter-spacing:.13em;
-  color:var(--ink-soft);
-  text-transform:uppercase;
-}
 .v8-flavor-caption strong{
   font-family:var(--font-display);
   font-size:clamp(1.1rem,1.8vw,1.7rem);
@@ -1397,63 +1390,42 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
   font-weight:800;
   overflow-wrap:anywhere;
 }
-.v8-flavor-caption>span:last-child{
-  font-size:.61rem;
-  font-weight:700;
-  letter-spacing:.12em;
-  font-variant-numeric:tabular-nums;
-}
-.v8-flavor-controls{
-  position:absolute;
-  z-index:3;
-  top:clamp(18px,3vw,36px);
-  right:clamp(16px,3vw,34px);
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-.v8-flavor-controls button{
-  appearance:none;
-  display:grid;
-  place-items:center;
-  width:42px;
-  height:42px;
-  border:1px solid rgba(255,252,244,.85);
-  border-radius:50%;
-  color:var(--cocoa);
-  background:rgba(255,251,240,.9);
-  box-shadow:0 3px 13px rgba(33,19,12,.12);
-  backdrop-filter:blur(8px);
-  font-size:1.02rem;
-  line-height:1;
-  cursor:pointer;
-  transition:background .2s ease,transform .2s ease;
-}
-.v8-flavor-controls button:hover{background:#fffdf8;transform:translateY(-1px)}
-.v8-flavor-controls button:active{transform:scale(.94)}
-.v8-flavor-controls [data-flavor-toggle]{font-size:.81rem}
 @media(max-width:820px){
   .v8-flavor-caption{top:22px;left:22px;max-width:49%;padding:8px 11px}
-  .v8-flavor-controls{top:22px;right:20px;gap:3px}
-  .v8-flavor-controls button{width:39px;height:39px}
 }
 @media(max-width:520px){
   .v8-flavor-caption{top:15px;left:15px;max-width:49%;padding:7px 10px;gap:3px}
   .v8-flavor-caption strong{font-size:clamp(.98rem,4vw,1.25rem)}
-  .v8-flavor-caption__eyebrow{font-size:.52rem}
-  .v8-flavor-caption>span:last-child{font-size:.57rem}
-  .v8-flavor-controls{top:15px;right:13px;gap:4px}
-  .v8-flavor-controls button{width:37px;height:37px;font-size:.95rem}
-  .v8-flavor-controls [data-flavor-toggle]{font-size:.73rem}
 }
 @media(max-width:360px){
   .v8-flavor-caption{max-width:45%;padding:7px 8px}
-  .v8-flavor-controls{gap:2px;right:8px}
-  .v8-flavor-controls button{width:34px;height:34px}
 }
 @media(prefers-reduced-motion:reduce){
   .v6-hero[data-hero-flavors],
   .v6-hero[data-hero-flavors]::before,
-  .v6-hero[data-hero-flavors] .v6-hero__visual .v8-flavor-photo,
-  .v8-flavor-controls button{transition:none}
+  .v6-hero[data-hero-flavors] .v6-hero__visual .v8-flavor-photo{transition:none}
+}
+
+
+/* V8 cleanup: only the changing flavor name, with no carousel UI chrome. */
+.v8-flavor-caption{
+  top:clamp(18px,3vw,36px);
+  left:clamp(18px,3.5vw,44px);
+  max-width:min(70%,320px);
+  gap:0;
+  padding:9px 15px;
+  background:rgba(255,251,240,.91);
+  border-color:rgba(73,41,29,.15);
+  box-shadow:0 4px 12px rgba(29,18,12,.075);
+}
+.v8-flavor-caption strong{font-size:clamp(1rem,1.5vw,1.38rem);font-weight:700}
+@media(max-width:820px){
+ .v8-flavor-caption{top:22px;left:22px;max-width:64%;padding:9px 13px}
+}
+@media(max-width:520px){
+ .v8-flavor-caption{top:16px;left:16px;max-width:68%;padding:8px 12px}
+ .v8-flavor-caption strong{font-size:clamp(1rem,4.2vw,1.28rem)}
+}
+@media(max-width:360px){
+ .v8-flavor-caption{max-width:66%;padding:8px 10px}
 }

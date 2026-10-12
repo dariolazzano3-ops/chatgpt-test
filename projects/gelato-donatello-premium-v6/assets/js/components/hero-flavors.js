@@ -9,17 +9,13 @@ export function initHeroFlavors() {
   const visual = hero.querySelector('.v6-hero__visual');
   const photos = [...hero.querySelectorAll('[data-flavor-photo]')];
   const nameEl = hero.querySelector('[data-flavor-name]');
-  const countEl = hero.querySelector('[data-flavor-count]');
-  const prev = hero.querySelector('[data-flavor-prev]');
-  const next = hero.querySelector('[data-flavor-next]');
-  const toggle = hero.querySelector('[data-flavor-toggle]');
-  if (!visual || photos.length !== 2 || !nameEl || !countEl || !prev || !next || !toggle) return;
+  if (!visual || photos.length !== 2 || !nameEl) return;
 
   const INTERVAL = 2000;
   const MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
   let activeIndex = 0;
   let activePhoto = 0;
-  let paused = MOTION.matches;
+  const paused = MOTION.matches;
   let visible = true;
   let timer = null;
   let pending = false;
@@ -39,13 +35,6 @@ export function initHeroFlavors() {
     });
     cache.set(key, ready);
     return ready;
-  }
-
-  function setPauseLabel() {
-    toggle.setAttribute('aria-pressed', String(paused));
-    toggle.setAttribute('aria-label', paused ? 'Diashow fortsetzen' : 'Diashow pausieren');
-    toggle.textContent = paused ? '▶' : 'Ⅱ';
-    toggle.title = paused ? 'Diashow fortsetzen' : 'Diashow pausieren';
   }
 
   function stopTimer() {
@@ -68,7 +57,6 @@ export function initHeroFlavors() {
   function announce(index) {
     const item = FLAVORS[index];
     nameEl.textContent = item.name;
-    countEl.textContent = String(index + 1).padStart(2, '0') + ' / ' + FLAVORS.length;
     applyTone(item);
   }
 
@@ -108,15 +96,6 @@ export function initHeroFlavors() {
     schedule(manual ? 6000 : INTERVAL);
   }
 
-  prev.addEventListener('click', () => goTo(activeIndex - 1));
-  next.addEventListener('click', () => goTo(activeIndex + 1));
-  toggle.addEventListener('click', () => {
-    paused = !paused;
-    setPauseLabel();
-    if (paused) stopTimer();
-    else schedule();
-  });
-
   // Swipe only for mostly horizontal gestures. Native vertical page scroll stays enabled.
   visual.addEventListener('touchstart', (event) => {
     const touch = event.touches[0];
@@ -154,7 +133,6 @@ export function initHeroFlavors() {
   }
 
   announce(0);
-  setPauseLabel();
   preload(1);
   schedule();
 }
