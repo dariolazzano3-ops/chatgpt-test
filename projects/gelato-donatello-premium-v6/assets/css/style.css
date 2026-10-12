@@ -2134,3 +2134,28 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
 @media(prefers-reduced-motion:reduce){
   .v12-gyro-toggle{transition:none}
 }
+
+
+/* V13: stronger iPhone wallpaper depth, zero text laid over the event photo. */
+.v11-depth-scene__plane{
+  inset:-12%;
+  transform:translate3d(var(--depth-shift-x),var(--depth-shift-y),0)
+    rotateY(var(--depth-yaw)) rotateX(var(--depth-pitch)) scale(1.055);
+}
+.v11-depth-scene__expand{
+  display:grid;
+  place-items:center;
+  width:44px;height:44px;
+  min-width:44px;min-height:44px;
+  padding:0;
+  border-radius:50%;
+  background:rgba(255,250,242,.89);
+}
+.v11-depth-scene__expand svg{width:19px;height:19px}
+.v11-depth-scene__expand:focus-visible{outline:3px solid #fffaf1;outline-offset:3px}
+@media(max-width:520px){
+  .v11-depth-scene__expand{width:42px;height:42px;min-width:42px;min-height:42px;padding:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .v11-depth-scene__plane,.v11-depth-scene__photo{transform:none;transition:none}
+}
