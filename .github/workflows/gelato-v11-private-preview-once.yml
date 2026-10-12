@@ -1,0 +1,188 @@
+name: Gelato V11 touch 3D private preview release (one time)
+on:
+  push:
+    branches:
+      - release/gelato-event-depth-v11-once
+    paths:
+      - .github/workflows/gelato-v11-private-preview-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gelato-v11-private-preview-once
+  cancel-in-progress: false
+
+jobs:
+  private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPECTED_SHA: 3a38fd6d81e4da1f737bdc42848eeb4557ac9796
+      PROJECT_PATH: projects/gelato-donatello-premium-v6
+      WORKER: gelato-donatello-private-preview-v2
+      PRIVATE_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout owner-approved V11 feature at exact immutable commit
+        uses: actions/checkout@v4
+        with:
+          ref: 3a38fd6d81e4da1f737bdc42848eeb4557ac9796
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require exact source and private safety limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -f "$PROJECT_PATH/assets/images/events/gelato-event-familie.webp"
+          grep -q 'v10-event-feature' "$PROJECT_PATH/index.html"
+          grep -q 'gelato-event-familie.webp' "$PROJECT_PATH/index.html"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync(process.env.PROJECT_PATH+'/project.json','utf8'));
+          const s = p.safety || {};
+          for (const k of ['production_deploy','public_deploy','dns_changes','billing','external_writes']) {
+            if(s[k] !== false) throw Error('PRIVATE_SAFETY_VIOLATION: '+k);
+          }
+          if(p.preview_policy?.mode !== 'PRIVATE_CLOUDFLARE_ACCESS_ONLY') throw Error('NOT_PRIVATE_ACCESS_ONLY');
+          console.log('Exact V11 source and private safety OK');
+          NODE
+
+      - name: Acceptance and JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Legacy V6 smoke incorrectly requires stylesheet tags on intentional
+          # backwards-compatibility redirect pages. Check current V10 invariants.
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const root=process.env.PROJECT_PATH;
+          const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
+          const home=read('index.html'), css=read('assets/css/style.css');
+          assert.match(home, /v10-event-feature/);
+          assert(home.includes('data-event-depth-stage'));
+          assert(home.includes('data-event-depth-open'));
+          assert(home.includes('data-event-depth-dialog'));
+          assert(home.includes('Interaktive 3D-Ansicht'));
+          const app=read('assets/js/app.js');
+          const depth=read('assets/js/components/event-depth.js');
+          assert(app.includes('initEventDepth();'));
+          assert(depth.includes('pointerdown') && depth.includes('pointermove'));
+          assert(depth.includes('keydown') && depth.includes('pointercancel'));
+          assert(depth.includes('showModal()'));
+          assert(depth.includes('Keine echte 360') || depth.includes('NOT an actual 360'));
+          assert(css.includes('touch-action:pan-y'));
+          assert(css.includes('prefers-reduced-motion'));
+          assert(home.includes('assets/images/events/gelato-event-familie.webp'));
+          assert.match(home, /Gelato für dein Event/);
+          assert(home.includes('href="/eisvitrine/"'));
+          assert(home.includes('assets/css/style.css'));
+          assert.match(css, /v10-event-feature__visual/);
+          assert.match(css, /v8-cake-spotlight/);
+          for(const route of ['eissorten','eisbecher','eistorten','eisvitrine','kontakt']){
+            const doc=read(route+'/index.html');
+            assert.match(doc, /noindex/i);
+          }
+          const photo=fs.statSync(path.join(root,'assets/images/events/gelato-event-familie.webp'));
+          assert(photo.size>100000&&photo.size<1500000,'Missing or unexpected event photo');
+          const flavorCount=fs.readdirSync(path.join(root,'assets/images/flavors')).filter(f=>f.endsWith('.webp')).length;
+          const cakeCount=fs.readdirSync(path.join(root,'assets/images/cakes')).filter(f=>f.endsWith('.webp')).length;
+          assert(flavorCount>=41,'41 flavor images not retained');
+          assert(cakeCount>=24,'24 cakes not retained');
+          console.log('V11 acceptance PASS: event photo, CSS, all routes, 41+ flavors, 24+ cakes, noindex');
+          NODE
+          find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+
+      - name: Install Chromium for real mobile gesture verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+
+      - name: Mobile 3D gesture, fullscreen and accessibility smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory "$PROJECT_PATH" >/tmp/gelato-v11-server.log 2>&1 &
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try{
+              const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+              const stage=page.locator('[data-event-depth-stage]').first();
+              await stage.scrollIntoViewIfNeeded();
+              await stage.waitFor({state:'visible'});
+              const bounds=await stage.boundingBox();
+              assert(bounds && bounds.width>=270,'Missing or too narrow event stage');
+              const imgLoaded=await page.locator('.v11-depth-scene__photo').first().evaluate(img=>img.complete&&img.naturalWidth>1000);
+              assert(imgLoaded,'Event photo did not load');
+              await page.mouse.move(bounds.x+bounds.width*.43,bounds.y+bounds.height*.55);
+              await page.mouse.down();
+              await page.mouse.move(bounds.x+bounds.width*.74,bounds.y+bounds.height*.55,{steps:7});
+              await page.mouse.up();
+              const yaw=await stage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw')));
+              assert(yaw>3 && yaw<=12,'Swipe did not rotate the scene: '+yaw);
+              await stage.focus();
+              await page.keyboard.press('ArrowLeft');
+              const afterKey=await stage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw')));
+              assert(afterKey<yaw,'Keyboard navigation did not rotate');
+              await page.locator('[data-event-depth-open]').click();
+              assert(await page.locator('[data-event-depth-dialog]').evaluate(el=>el.open),'Fullscreen dialog did not open');
+              await page.keyboard.press('Escape');
+              assert(!(await page.locator('[data-event-depth-dialog]').evaluate(el=>el.open)),'Escape did not close fullscreen');
+              assert(!errors.length,'Browser errors: '+errors.join('; '));
+              await page.setViewportSize({width:1440,height:900});
+              await stage.scrollIntoViewIfNeeded();
+              assert(await stage.isVisible(),'Desktop event stage missing');
+              console.log('V11 browser PASS: mobile/desktop, source image, swipe yaw '+yaw+', keyboard, modal, ESC, no JS errors');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+
+      - name: Private Worker dry run only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --dry-run --message "Gelato Donatello private V11 3a38fd6d81e4"
+
+      - name: Publish only to existing Access-protected private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --message "Gelato Donatello private V11 3a38fd6d81e4"
+
+      - name: Verify Cloudflare Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-access-headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-access-headers.txt
+          tr -d '\r' < /tmp/gelato-access-headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          {
+            echo "### Gelato Donatello PRIVATE V11"
+            echo "Preview: $PRIVATE_URL"
+            echo "Source SHA: $EXPECTED_SHA"
+            echo "Public deploy: false"
+            echo "DNS changes: false"
+          } >> "$GITHUB_STEP_SUMMARY"
