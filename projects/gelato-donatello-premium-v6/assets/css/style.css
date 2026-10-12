@@ -1751,3 +1751,74 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
     margin:0;
   }
 }
+
+
+/* V9: keep the complete carousel display inside the iPad bezel at every viewport. */
+.v6-feature-dark.v8-cake-spotlight .v6-ipad{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr);
+  min-height:0;
+  box-sizing:border-box;
+  overflow:hidden;
+  isolation:isolate;
+}
+.v6-feature-dark.v8-cake-spotlight .v6-ipad__screen{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.v6-feature-dark.v8-cake-spotlight .v6-ipad__viewport{
+  min-height:0;
+  min-width:0;
+  height:100%;
+  border-radius:inherit;
+}
+/* A drawn vector arrow prevents blue native emoji rendering on iOS. */
+.v8-cake-spotlight__cta .v8-cake-spotlight__cta-label{
+  font-size:inherit;
+}
+.v8-cake-spotlight__action .v8-cake-spotlight__cta-icon{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.30);
+  background:rgba(255,255,255,.085);
+  color:inherit;
+  transition:background .2s ease,border-color .2s ease,transform .2s ease;
+}
+.v8-cake-spotlight__action .v8-cake-spotlight__cta-icon svg{
+  display:block;
+  width:17px;
+  height:17px;
+}
+.v8-cake-spotlight__cta:hover .v8-cake-spotlight__cta-icon{
+  transform:translate(1px,-1px);
+  background:rgba(255,255,255,.16);
+  border-color:rgba(255,255,255,.48);
+}
+@media(max-width:520px){
+  .v8-cake-spotlight__action .v8-cake-spotlight__cta{
+    gap:10px;
+    padding-inline:clamp(10px,3vw,18px);
+    font-size:clamp(.83rem,3.5vw,1rem);
+  }
+  .v8-cake-spotlight__action .v8-cake-spotlight__cta-icon{
+    width:27px;
+    height:27px;
+    flex-basis:27px;
+  }
+  .v8-cake-spotlight__action .v8-cake-spotlight__cta-icon svg{
+    width:15px;
+    height:15px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .v8-cake-spotlight__action .v8-cake-spotlight__cta-icon{transition:none}
+}
