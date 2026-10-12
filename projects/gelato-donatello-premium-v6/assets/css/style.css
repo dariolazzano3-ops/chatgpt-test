@@ -1599,3 +1599,131 @@ body[data-page="eistorten"] .request-form textarea{font-size:max(16px,1rem)}
     transform:none;
   }
 }
+
+
+/* Unified cake spotlight: one warm composition across title, iPad and CTA. */
+.v8-cake-spotlight{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:clamp(66px,8vw,114px) 0 clamp(76px,9vw,124px);
+  background:#c5a589;
+  color:#3d261e;
+  text-align:center;
+}
+.v8-cake-spotlight::before{
+  content:"";
+  position:absolute;
+  inset:-36px;
+  z-index:-2;
+  background:url('/assets/images/shop/show-premium.webp') center/cover no-repeat;
+  filter:blur(30px) saturate(.72);
+  opacity:.42;
+  transform:scale(1.09);
+  pointer-events:none;
+}
+.v8-cake-spotlight::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:linear-gradient(180deg,rgba(248,239,220,.88),rgba(223,194,165,.68) 58%,rgba(174,130,102,.53));
+  pointer-events:none;
+}
+.v8-cake-spotlight__intro{
+  width:min(880px,calc(100% - 48px));
+  margin:0 auto;
+}
+.v8-cake-spotlight__intro .eyebrow{
+  margin:0 0 18px;
+  color:#654838;
+  letter-spacing:.19em;
+}
+.v8-cake-spotlight__intro h2{
+  margin:0 auto;
+  max-width:18ch;
+  color:#39231d;
+  font-size:clamp(2.6rem,5.8vw,5.5rem);
+  line-height:.99;
+  letter-spacing:-.035em;
+  text-wrap:balance;
+}
+.v8-cake-spotlight__lead{
+  max-width:560px;
+  margin:clamp(16px,2.4vw,27px) auto 0;
+  color:#5d4031;
+  font-size:clamp(.92rem,1.2vw,1.08rem);
+  line-height:1.6;
+  text-wrap:pretty;
+}
+.v8-cake-spotlight .v8-cake-spotlight__media.v6-ipad-stage{
+  width:min(100%,1000px);
+  min-height:0;
+  margin:0 auto;
+  padding:clamp(70px,9vw,102px) clamp(18px,4vw,56px) 0;
+  gap:clamp(18px,2.4vw,27px);
+  background:transparent;
+  overflow:visible;
+  position:relative;
+}
+.v8-cake-spotlight .v6-ipad-stage::before,
+.v8-cake-spotlight .v6-ipad-stage::after{display:none}
+.v8-cake-spotlight .v6-ipad-stage__hint{
+  top:clamp(18px,2vw,26px);
+  right:clamp(24px,7vw,104px);
+  font-size:clamp(1.08rem,2vw,1.5rem);
+}
+.v8-cake-spotlight .v6-ipad-stage__caption{
+  color:#493024;
+  font-size:clamp(.65rem,.85vw,.75rem);
+  line-height:1.5;
+  max-width:min(100%,570px);
+}
+.v8-cake-spotlight__action{
+  margin:clamp(25px,4vw,44px) auto 0;
+  width:calc(100% - 48px);
+  display:flex;
+  justify-content:center;
+}
+.v8-cake-spotlight__action .button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  min-height:54px;
+  text-decoration:none;
+}
+.v8-cake-spotlight__action .button span{font-size:1.15em}
+@media(max-width:820px){
+  .v8-cake-spotlight{padding:64px 0 82px}
+  .v8-cake-spotlight__intro{width:calc(100% - 42px)}
+  .v8-cake-spotlight__intro h2{font-size:clamp(2.5rem,7vw,4rem);max-width:13ch}
+  .v8-cake-spotlight .v8-cake-spotlight__media.v6-ipad-stage{
+    padding:70px 18px 0;
+    gap:18px;
+  }
+  .v8-cake-spotlight .v6-ipad-stage__hint{top:12px;right:8%;font-size:1.2rem}
+  .v8-cake-spotlight__action{margin-top:28px}
+}
+@media(max-width:520px){
+  .v8-cake-spotlight{padding:55px 0 72px}
+  .v8-cake-spotlight__intro h2{font-size:clamp(2.42rem,10vw,3.55rem);max-width:11ch;line-height:1}
+  .v8-cake-spotlight__intro .eyebrow{margin-bottom:15px}
+  .v8-cake-spotlight__lead{font-size:.9rem;line-height:1.55}
+  .v8-cake-spotlight .v8-cake-spotlight__media.v6-ipad-stage{
+    padding:69px 14px 0;
+    gap:16px;
+  }
+  .v8-cake-spotlight .v6-ipad-stage__hint{top:13px;right:8%;font-size:1.1rem}
+  .v8-cake-spotlight .v6-ipad-stage__caption{
+    width:100%;
+    padding:0 10px;
+    font-size:.61rem;
+    letter-spacing:.1em;
+  }
+  .v8-cake-spotlight__action{width:calc(100% - 42px);margin-top:25px}
+  .v8-cake-spotlight__action .button{width:min(100%,390px);gap:10px}
+}
