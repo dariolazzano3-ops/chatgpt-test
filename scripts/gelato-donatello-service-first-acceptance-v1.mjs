@@ -110,7 +110,7 @@ assert.equal((home.match(/data-flavor-photo/g)||[]).length,2,'crossfade must ret
 assert.doesNotMatch(home,/Unsere Eiswelt|data-flavor-count|v8-flavor-controls|data-flavor-prev|data-flavor-next|data-flavor-toggle/,'owner requested only the sort name, no counter or controls');
 assert.match(home,/Alle Eissorten/,'full catalog CTA remains visible');
 const flavorHeroJS=fs.readFileSync(path.join(root,'assets/js/components/hero-flavors.js'),'utf8');
-assert.match(flavorHeroJS,/const INTERVAL = 5000;/,'cinematic auto-play must hold each image for 5 seconds');
+assert.match(flavorHeroJS,/const INTERVAL = 3500;/,'cinematic auto-play must hold each image for 3.5 seconds');
 assert.doesNotMatch(flavorHeroJS,/data-flavor-count|data-flavor-prev|data-flavor-next|data-flavor-toggle/,'removed controls must not be required by runtime');
 assert.match(flavorHeroJS,/prefers-reduced-motion: reduce/);
 assert.match(flavorHeroJS,/touchstart/);
@@ -152,11 +152,11 @@ for(const obsolete of ['assets/js/data/pricing.js','assets/js/data/flavors.js','
 
 const css=fs.readFileSync(path.join(root,'assets/css/style.css'),'utf8');
 assert.match(css,/v6-hero\[data-hero-flavors\]/);
-assert.match(css,/transition:opacity 1000ms ease-in-out/,'one-second photographic crossfade');
-assert.match(css,/transition:--hero-tone 1500ms ease/,'soft palette transition');
+assert.match(css,/transition:opacity 900ms ease-in-out/,'900ms photographic crossfade');
+assert.match(css,/transition:--hero-tone 1200ms ease/,'soft palette transition');
 assert.match(css,/@keyframes gelatoCinematicZoom/);
 assert.match(css,/to\{transform:scale\(1\.015\)\}/,'1.5 percent slow zoom');
-assert.match(css,/animation:gelatoCinematicZoom 5000ms linear/);
+assert.match(css,/animation:gelatoCinematicZoom 3500ms linear/);
 assert.match(css,/@keyframes gelatoAmbientBreathing/);
 assert.match(css,/prefers-reduced-motion:reduce/);
 
