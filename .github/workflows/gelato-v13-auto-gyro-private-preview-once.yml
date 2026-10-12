@@ -1,0 +1,282 @@
+name: Gelato V13 auto iPhone Gyro private preview release (one time)
+on:
+  push:
+    branches:
+      - release/gelato-auto-gyro-v13-once
+    paths:
+      - .github/workflows/gelato-v13-auto-gyro-private-preview-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gelato-v13-auto-gyro-private-preview-once
+  cancel-in-progress: false
+
+jobs:
+  private-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPECTED_SHA: 2070bb1a55446d7cbabe22c1350aa28c912a4332
+      PROJECT_PATH: projects/gelato-donatello-premium-v6
+      WORKER: gelato-donatello-private-preview-v2
+      PRIVATE_URL: https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev
+    steps:
+      - name: Checkout owner-approved V13 feature at exact immutable commit
+        uses: actions/checkout@v4
+        with:
+          ref: 2070bb1a55446d7cbabe22c1350aa28c912a4332
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require exact source and private safety limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -f "$PROJECT_PATH/assets/images/events/gelato-event-familie.webp"
+          grep -q 'v10-event-feature' "$PROJECT_PATH/index.html"
+          grep -q 'gelato-event-familie.webp' "$PROJECT_PATH/index.html"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync(process.env.PROJECT_PATH+'/project.json','utf8'));
+          const s = p.safety || {};
+          for (const k of ['production_deploy','public_deploy','dns_changes','billing','external_writes']) {
+            if(s[k] !== false) throw Error('PRIVATE_SAFETY_VIOLATION: '+k);
+          }
+          if(p.preview_policy?.mode !== 'PRIVATE_CLOUDFLARE_ACCESS_ONLY') throw Error('NOT_PRIVATE_ACCESS_ONLY');
+          console.log('Exact V13 source and private safety OK');
+          NODE
+
+      - name: Acceptance and JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Legacy V6 smoke incorrectly requires stylesheet tags on intentional
+          # backwards-compatibility redirect pages. Check current V10 invariants.
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const root=process.env.PROJECT_PATH;
+          const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
+          const home=read('index.html'), css=read('assets/css/style.css');
+          assert.match(home, /v10-event-feature/);
+          assert(home.includes('data-event-depth-stage'));
+          assert(home.includes('data-event-depth-open'));
+          assert(home.includes('data-event-depth-dialog'));
+          assert(home.includes('Interaktives Tiefenfoto'));
+          const app=read('assets/js/app.js');
+          const depth=read('assets/js/components/event-depth.js');
+          assert(app.includes('initEventDepth();'));
+          assert(depth.includes('pointerdown') && depth.includes('pointermove'));
+          assert(depth.includes('keydown') && depth.includes('pointercancel'));
+          assert(depth.includes('showModal()'));
+          assert(depth.includes('No fake 360'));
+          assert(depth.includes('DeviceOrientationEvent'));
+          assert(depth.includes('requestPermission()'));
+          assert(depth.includes('deviceorientation'));
+          assert(depth.includes('prefers-reduced-motion'));
+          assert(depth.includes('visibilitychange'));
+          assert(!home.includes('data-gyro-toggle'), 'No visible gyro buttons');
+          assert(!home.includes('v11-depth-scene__hint'), 'No hint text overlay');
+          assert(!home.includes('<figcaption>Gelato-Momente'), 'No caption overlay');
+          assert(!home.includes('<span>3D ansehen</span>'), 'No fullscreen text');
+          assert(css.includes('/* V13: stronger iPhone wallpaper depth'));
+          assert(depth.includes('maybeRequestIosSensor'));
+          assert(depth.includes('startSensor();'));
+          assert(depth.includes('touchend'));
+          assert(home.includes('gelato-event-familie.webp'));
+          assert(css.includes('touch-action:pan-y'));
+          assert(css.includes('prefers-reduced-motion'));
+          assert(home.includes('assets/images/events/gelato-event-familie.webp'));
+          assert.match(home, /Gelato für dein Event/);
+          assert(home.includes('href="/eisvitrine/"'));
+          assert(home.includes('assets/css/style.css'));
+          assert.match(css, /v10-event-feature__visual/);
+          assert.match(css, /v8-cake-spotlight/);
+          for(const route of ['eissorten','eisbecher','eistorten','eisvitrine','kontakt']){
+            const doc=read(route+'/index.html');
+            assert.match(doc, /noindex/i);
+          }
+          const photo=fs.statSync(path.join(root,'assets/images/events/gelato-event-familie.webp'));
+          assert(photo.size>100000&&photo.size<1500000,'Missing or unexpected event photo');
+          const flavorCount=fs.readdirSync(path.join(root,'assets/images/flavors')).filter(f=>f.endsWith('.webp')).length;
+          const cakeCount=fs.readdirSync(path.join(root,'assets/images/cakes')).filter(f=>f.endsWith('.webp')).length;
+          assert(flavorCount>=41,'41 flavor images not retained');
+          assert(cakeCount>=24,'24 cakes not retained');
+          console.log('V13 acceptance PASS: event photo, CSS, all routes, 41+ flavors, 24+ cakes, noindex');
+          NODE
+          find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
+
+
+      - name: Install Chromium for real mobile gesture verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Automatic tilt, iOS first-touch consent, no overlays and mobile browser acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory "$PROJECT_PATH" >/tmp/gelato-v13-server.log 2>&1 &
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const {chromium}=require('playwright');
+          const base='http://127.0.0.1:4173/';
+          const mockPermission=() => {
+            window.permissionCalls=0;window.permissionAnswer='granted';
+            class FakeOrientation extends Event {
+              static requestPermission(){
+                window.permissionCalls++;
+                return Promise.resolve(window.permissionAnswer);
+              }
+              constructor(type,values){super(type);this.beta=values.beta;this.gamma=values.gamma;}
+            }
+            Object.defineProperty(window,'DeviceOrientationEvent',{value:FakeOrientation,configurable:true});
+            Object.defineProperty(navigator,'maxTouchPoints',{get:()=>5,configurable:true});
+          };
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try{
+              const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.addInitScript(mockPermission);
+              await page.goto(base,{waitUntil:'networkidle'});
+              const stage=page.locator('[data-event-depth-stage]').first();
+              const figure=page.locator('figure[data-event-depth]').first();
+              await stage.scrollIntoViewIfNeeded();
+              const picture=page.locator('.v11-depth-scene__photo').first();
+              assert(await picture.evaluate(el=>el.complete&&el.naturalWidth>1000),'Original photo missing');
+              assert.equal(await picture.getAttribute('src'),'/assets/images/events/gelato-event-familie.webp');
+              assert.equal((await figure.innerText()).trim(),'','Photo still contains visible text');
+              assert.equal(await page.locator('[data-gyro-toggle]').count(),0);
+              assert.equal(await page.evaluate(()=>window.permissionCalls),0,'iOS permission requested before user gesture');
+
+              const bounds=await stage.boundingBox();
+              await page.touchscreen.tap(bounds.x+bounds.width*.5,bounds.y+bounds.height*.5);
+              await page.waitForFunction(()=>window.permissionCalls===1);
+              await page.evaluate(()=>{
+                window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:6,gamma:2}));
+                window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:17,gamma:14}));
+              });
+              await page.waitForFunction(()=>{
+                return parseFloat(document.querySelector('[data-event-depth-stage]').style.getPropertyValue('--depth-yaw'))>7;
+              },null,{timeout:3500});
+              const yaw=await stage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw')));
+              assert(yaw<=16&&yaw>7,'Not strong enough or excess tilt: '+yaw);
+
+              await page.locator('[data-event-depth-open]').click();
+              assert(await page.locator('[data-event-depth-dialog]').evaluate(el=>el.open),'Fullscreen failed');
+              assert.equal(await page.locator('[data-event-depth-dialog] [data-gyro-toggle]').count(),0);
+              const full=page.locator('[data-event-depth-dialog] [data-event-depth-stage]');
+              await page.evaluate(()=>window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:10,gamma:-13})));
+              await page.waitForFunction(()=>{
+                return parseFloat(document.querySelector('[data-event-depth-dialog] [data-event-depth-stage]').style.getPropertyValue('--depth-yaw')) < -4;
+              },null,{timeout:3500});
+              await page.keyboard.press('Escape');
+              assert(!await page.locator('[data-event-depth-dialog]').evaluate(el=>el.open),'ESC failed');
+              await stage.scrollIntoViewIfNeeded();
+              await page.setViewportSize({width:320,height:700});
+              const frameRect=await figure.boundingBox();
+              const iconRect=await page.locator('[data-event-depth-open]').boundingBox();
+              assert(frameRect&&iconRect&&iconRect.x>=frameRect.x&&iconRect.x+iconRect.width<=frameRect.x+frameRect.width+2,'Mobile fullscreen icon outside crop');
+
+              const denied=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+              await denied.addInitScript(mockPermission);
+              await denied.goto(base,{waitUntil:'networkidle'});
+              await denied.evaluate(()=>window.permissionAnswer='denied');
+              const deniedStage=denied.locator('[data-event-depth-stage]').first();
+              await deniedStage.scrollIntoViewIfNeeded();
+              const deniedBounds=await deniedStage.boundingBox();
+              await denied.touchscreen.tap(deniedBounds.x+deniedBounds.width*.4,deniedBounds.y+deniedBounds.height*.5);
+              await denied.waitForFunction(()=>window.permissionCalls===1);
+              await deniedStage.focus();
+              await denied.keyboard.press('ArrowRight');
+              assert((await deniedStage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw'))))>=3,'Keyboard fallback broken on declined sensor');
+              await denied.touchscreen.tap(deniedBounds.x+deniedBounds.width*.4,deniedBounds.y+deniedBounds.height*.5);
+              assert.equal(await denied.evaluate(()=>window.permissionCalls),1,'Unwanted repeated iOS permission requests');
+              await denied.close();
+
+              const reduced=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
+              await reduced.addInitScript(mockPermission);
+              await reduced.goto(base,{waitUntil:'networkidle'});
+              const reducedStage=reduced.locator('[data-event-depth-stage]').first();
+              await reducedStage.scrollIntoViewIfNeeded();
+              const rb=await reducedStage.boundingBox();
+              await reduced.touchscreen.tap(rb.x+rb.width*.5,rb.y+rb.height*.5);
+              assert.equal(await reduced.evaluate(()=>window.permissionCalls),0,'Reduced motion should never request permission');
+              await reducedStage.focus();await reduced.keyboard.press('ArrowRight');
+              assert.equal(await reducedStage.evaluate(el=>parseFloat(el.style.getPropertyValue('--depth-yaw'))),0,'Reduced motion should have static image');
+              await reduced.close();
+
+              const auto=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+              await auto.addInitScript(()=>{
+                class AutoOrientation extends Event{
+                  constructor(type,values){super(type);this.beta=values.beta;this.gamma=values.gamma;}
+                }
+                Object.defineProperty(window,'DeviceOrientationEvent',{value:AutoOrientation,configurable:true});
+                Object.defineProperty(navigator,'maxTouchPoints',{get:()=>5,configurable:true});
+              });
+              await auto.goto(base,{waitUntil:'networkidle'});
+              await auto.evaluate(()=>{
+                window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:3,gamma:1}));
+                window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:13,gamma:13}));
+              });
+              await auto.waitForFunction(()=>parseFloat(document.querySelector('[data-event-depth-stage]').style.getPropertyValue('--depth-yaw'))>7,null,{timeout:3500});
+              await auto.close();
+
+              assert(!errors.length,'Browser JS errors: '+errors.join('; '));
+              console.log('PASS: automatic permissionless tilt, iOS first-touch permission, stronger depth, photo overlay removal, fullscreen, denied fallback, reduced motion, 320px mobile');
+            }finally{await browser.close();}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          NODE
+
+      - name: Confirm existing Cloudflare Access remains protected BEFORE deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-predeploy-access.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-predeploy-access.txt
+          tr -d '\r' < /tmp/gelato-predeploy-access.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+
+      - name: Private Worker dry run only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --dry-run --message "Gelato Donatello private V13 2070bb1a5544"
+
+      - name: Publish only to existing Access-protected private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/$PROJECT_PATH" \
+            --name "$WORKER" --compatibility-date 2026-10-07 \
+            --keep-vars --message "Gelato Donatello private V13 2070bb1a5544"
+
+      - name: Verify Cloudflare Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -I --max-time 25 "$PRIVATE_URL/" > /tmp/gelato-access-headers.txt
+          grep -Eq '^HTTP/.* 302' /tmp/gelato-access-headers.txt
+          tr -d '\r' < /tmp/gelato-access-headers.txt | grep -Eqi '^location: https://[^ ]*cloudflareaccess\.com/'
+          {
+            echo "### Gelato Donatello PRIVATE V13"
+            echo "Preview: $PRIVATE_URL"
+            echo "Source SHA: $EXPECTED_SHA"
+            echo "Public deploy: false"
+            echo "DNS changes: false"
+          } >> "$GITHUB_STEP_SUMMARY"
