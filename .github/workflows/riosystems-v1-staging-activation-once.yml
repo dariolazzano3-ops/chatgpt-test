@@ -40,14 +40,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "b4f1861cb25b4fe9bb7ebca25102f205dc896ba8"
+          test "$(git rev-parse HEAD^1)" = "332a280fd1593382f3ee1ee6377f0b4b989584ce"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          EXPECTED="$(cat <<'EOF'
-          .github/workflows/riosystems-v1-staging-activation-once.yml
-          scripts/staging-worker-runtime-bindings-v1-smoke.mjs
-          scripts/staging-worker-runtime-bindings-v1.mjs
-          EOF
-          )"
+          EXPECTED=".github/workflows/riosystems-v1-staging-activation-once.yml"
           test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ENVIRONMENT" = "staging"
           test "$RIOSYSTEMS_OPERATOR_RUNTIME_STORE" = "supabase"
@@ -92,14 +87,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "factory-control"
-          test "$(git rev-parse HEAD^1)" = "b4f1861cb25b4fe9bb7ebca25102f205dc896ba8"
+          test "$(git rev-parse HEAD^1)" = "332a280fd1593382f3ee1ee6377f0b4b989584ce"
           CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          EXPECTED="$(cat <<'EOF'
-          .github/workflows/riosystems-v1-staging-activation-once.yml
-          scripts/staging-worker-runtime-bindings-v1-smoke.mjs
-          scripts/staging-worker-runtime-bindings-v1.mjs
-          EOF
-          )"
+          EXPECTED=".github/workflows/riosystems-v1-staging-activation-once.yml"
           test "$CHANGED" = "$EXPECTED"
           test "$RIOSYSTEMS_ZERO_COST_CONFIRMED" = "true"
           test "$RIOSYSTEMS_STAGING_CONFIRMATION" = "DEPLOY_RIOSYSTEMS_STAGING_ZERO_COST"
@@ -124,10 +114,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler deployments list --env staging 2>&1 | tee /tmp/riosystems-deployments.log
           URL="$(grep -Eo 'https://[^[:space:]]+workers\.dev' /tmp/riosystems-deploy.log | tail -n 1 || true)"
           test -n "$URL"
-          STATUS="$(curl -sS -L --max-redirs 0 -o /tmp/operator-response -w '%{http_code}' "$URL/operator" || true)"
+          STATUS="$(curl -sS --max-redirs 0 -o /tmp/operator-response -w '%{http_code}' "$URL/operator" || true)"
           test "$STATUS" != "000"
           test "$STATUS" != "200"
           {
