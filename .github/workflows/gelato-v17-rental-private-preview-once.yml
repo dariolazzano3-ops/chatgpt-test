@@ -79,7 +79,7 @@ jobs:
           assert(css.includes('.v15-event-photo img'));
           assert(home.includes('v16-event__media-credit'));
           assert(home.includes('v16-event__cta-copy'));
-          assert(css.includes('/* V17: premium editorial event story'));
+          assert(css.includes('/* V16: premium editorial event story'));
           assert(home.includes('<em>Event.</em>'));
 
           assert(!css.includes('.v11-depth-scene__stage'));
