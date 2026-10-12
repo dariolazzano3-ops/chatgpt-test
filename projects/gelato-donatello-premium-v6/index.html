@@ -203,41 +203,25 @@
         </div>
         <figure class="v10-event-feature__visual v11-depth-scene" data-event-depth>
           <div class="v11-depth-scene__stage" data-event-depth-stage tabindex="0" role="group"
-               aria-label="Interaktives Eventfoto. Wische über das Bild oder benutze die Pfeiltasten. Auf dem iPhone kannst du die Neigungssteuerung gesondert aktivieren.">
+               aria-label="Bewegliches Eventfoto. Neige das Smartphone für Tiefenwirkung. Auf iPhones wird beim ersten Berühren gegebenenfalls eine einmalige Sensorfreigabe angefragt. Alternativ kannst du wischen oder Pfeiltasten benutzen.">
             <img class="v11-depth-scene__ambient" src="/assets/images/events/gelato-event-familie.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
             <div class="v11-depth-scene__plane">
               <img class="v11-depth-scene__photo" src="/assets/images/events/gelato-event-familie.webp" width="1536" height="1024"
                    loading="lazy" decoding="async" draggable="false" alt="Familie beim Eisgenuss an der Gelato-Donatello-Eisvitrine auf einem Gartenfest." />
             </div>
             <span class="v11-depth-scene__glass" aria-hidden="true"></span>
-            <span class="v11-depth-scene__hint" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7-5 5 5 5M17 7l5 5-5 5M2 12h20"/></svg>
-              Zum Bewegen streichen
-            </span>
+
           </div>
-          <button class="v12-gyro-toggle" type="button" data-gyro-toggle hidden aria-pressed="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="7.2" y="3.2" width="9.6" height="17.6" rx="2.5"/><path d="M10.5 17.8h3M3 8l-1 4 1 4M21 8l1 4-1 4"/>
-            </svg>
-            <span data-gyro-label>Neigung aktivieren</span>
-          </button>
+
           <button class="v11-depth-scene__expand" type="button" data-event-depth-open aria-label="Interaktive Fotoansicht vergrößern">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg>
-            <span>3D ansehen</span>
           </button>
-          <figcaption>Gelato-Momente, die verbinden.</figcaption>
         </figure>
         <dialog class="v11-depth-viewer" data-event-depth-dialog aria-label="Gelato Donatello interaktive 3D-Fotoansicht">
           <div class="v11-depth-viewer__shell">
             <div class="v11-depth-viewer__top">
               <p>GELATO DONATELLO <span>· Interaktives Tiefenfoto</span></p>
               <div class="v12-depth-viewer__actions">
-                <button type="button" class="v12-gyro-toggle v12-gyro-toggle--dialog" data-gyro-toggle hidden aria-pressed="false">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="7.2" y="3.2" width="9.6" height="17.6" rx="2.5"/><path d="M10.5 17.8h3M3 8l-1 4 1 4M21 8l1 4-1 4"/>
-                  </svg>
-                  <span data-gyro-label>Neigung aktivieren</span>
-                </button>
               <button type="button" class="v11-depth-viewer__close" data-event-depth-close aria-label="Ansicht schließen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19"/></svg>
               </button>
@@ -245,17 +229,16 @@
             </div>
             <div class="v11-depth-viewer__frame v11-depth-scene" data-event-depth>
               <div class="v11-depth-scene__stage" data-event-depth-stage tabindex="0" role="group"
-                   aria-label="Interaktives Eventfoto. Mit dem Finger bewegen, Pfeiltasten verwenden oder die optionale iPhone-Neigungssteuerung aktivieren.">
+                   aria-label="Bewegliches Eventfoto im Vollbild. Neige das Smartphone oder wische über das Foto, um den räumlichen Effekt zu erleben.">
                 <img class="v11-depth-scene__ambient" src="/assets/images/events/gelato-event-familie.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
                 <div class="v11-depth-scene__plane">
                   <img class="v11-depth-scene__photo" src="/assets/images/events/gelato-event-familie.webp" width="1536" height="1024"
                        loading="lazy" decoding="async" draggable="false" alt="Gelato Donatello: Vater und Kinder an der Eisvitrine auf einer Gartenfeier." />
                 </div>
                 <span class="v11-depth-scene__glass" aria-hidden="true"></span>
-                <span class="v11-depth-scene__hint" aria-hidden="true">↔ Zum Bewegen streichen</span>
               </div>
             </div>
-            <p class="v11-depth-viewer__note">Wische über das Foto oder aktiviere auf dem iPhone die Neigung. Die Perspektive ist simuliert, keine echte 360°-Aufnahme. Bewegungsdaten bleiben auf deinem Gerät.</p>
+            <p class="v11-depth-viewer__note">Neige dein iPhone leicht. Safari fragt beim ersten Berühren des Fotos gegebenenfalls einmalig nach der Sensorfreigabe. Alternativ kannst du mit dem Finger wischen. Keine echte 360°-Aufnahme; keine Übertragung von Sensorwerten.</p>
           </div>
         </dialog>
         <div class="v7-event-teaser__action v10-event-feature__action">
