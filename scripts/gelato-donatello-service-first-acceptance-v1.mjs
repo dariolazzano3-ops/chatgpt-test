@@ -105,13 +105,13 @@ assert.ok(home.indexOf('v7-event-teaser')>home.indexOf('v6-feature-dark'));
 assert.ok(home.indexOf('v7-event-teaser')<home.indexOf('v6-showcase'));
 // Owner-approved colorful and accessible hero: all 41 existing flavor photos.
 assert.match(home,/data-hero-flavors/,'Homepage hero must run authentic flavor slideshow');
-assert.match(home,/data-flavor-count>01 \/ 41/);
 assert.match(home,/data-flavor-name>Pistazie/);
-for(const marker of ['data-flavor-photo','data-flavor-prev','data-flavor-next','data-flavor-toggle']){
-  assert.ok(home.includes(marker),'missing flavor slideshow UI '+marker);
-}
+assert.equal((home.match(/data-flavor-photo/g)||[]).length,2,'crossfade must retain two photos');
+assert.doesNotMatch(home,/Unsere Eiswelt|data-flavor-count|v8-flavor-controls|data-flavor-prev|data-flavor-next|data-flavor-toggle/,'owner requested only the sort name, no counter or controls');
+assert.match(home,/Alle Eissorten/,'full catalog CTA remains visible');
 const flavorHeroJS=fs.readFileSync(path.join(root,'assets/js/components/hero-flavors.js'),'utf8');
 assert.match(flavorHeroJS,/const INTERVAL = 2000;/);
+assert.doesNotMatch(flavorHeroJS,/data-flavor-count|data-flavor-prev|data-flavor-next|data-flavor-toggle/,'removed controls must not be required by runtime');
 assert.match(flavorHeroJS,/prefers-reduced-motion: reduce/);
 assert.match(flavorHeroJS,/touchstart/);
 assert.match(flavorHeroJS,/touchend/);
