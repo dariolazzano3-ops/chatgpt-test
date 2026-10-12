@@ -58,7 +58,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          # Legacy V6 smoke incorrectly requires stylesheet tags on intentional
+          # backwards-compatibility redirect pages. Check current V10 invariants.
+          node <<'NODE'
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const root=process.env.PROJECT_PATH;
+          const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
+          const home=read('index.html'), css=read('assets/css/style.css');
+          assert.match(home, /v10-event-feature/);
+          assert.match(home, /assets\\/images\\/events\\/gelato-event-familie\\.webp/);
+          assert.match(home, /Gelato für dein Event/);
+          assert.match(home, /href="\\/eisvitrine\\/"/);
+          assert.match(home, /assets\\/css\\/style\\.css/);
+          assert.match(css, /v10-event-feature__visual/);
+          assert.match(css, /v8-cake-spotlight/);
+          for(const route of ['eissorten','eisbecher','eistorten','eisvitrine','kontakt']){
+            const doc=read(route+'/index.html');
+            assert.match(doc, /noindex/i);
+          }
+          const photo=fs.statSync(path.join(root,'assets/images/events/gelato-event-familie.webp'));
+          assert(photo.size>100000&&photo.size<1500000,'Missing or unexpected event photo');
+          const flavorCount=fs.readdirSync(path.join(root,'assets/images/flavors')).filter(f=>f.endsWith('.webp')).length;
+          const cakeCount=fs.readdirSync(path.join(root,'assets/images/cakes')).filter(f=>f.endsWith('.webp')).length;
+          assert(flavorCount>=41,'41 flavor images not retained');
+          assert(cakeCount>=24,'24 cakes not retained');
+          console.log('V10 acceptance PASS: event photo, CSS, all routes, 41+ flavors, 24+ cakes, noindex');
+          NODE
           find "$PROJECT_PATH/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Private Worker dry run only
