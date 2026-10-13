@@ -2800,33 +2800,60 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){.v66-kids__card{transition:none!important;transform:none!important}}
 
 
-/* V68: subtle responsive melting-gelato edge, dynamically matching the active flavor tone. */
-.v68-hero-melt{display:none}
-.v6-hero[data-hero-flavors] .v6-actions>.button--light{
-  min-height:46px;padding:0 clamp(15px,2vw,23px);font-size:clamp(.83rem,1.13vw,.98rem);
-  letter-spacing:.025em;max-width:100%;
-}
-@media(max-width:820px){
-  /* Above the photo without interrupting the active image or blocking interaction. */
-  .v6-hero[data-hero-flavors]>.v6-hero__copy{z-index:4;max-width:none}
-  .v6-hero[data-hero-flavors]>.v6-hero__visual{z-index:1}
-  .v68-hero-melt{
-    display:block;position:absolute;z-index:5;left:0;bottom:-29px;
-    width:100%;height:33px;color:var(--hero-tone,var(--sage));pointer-events:none;
-    filter:drop-shadow(0 2px 2px rgba(55,43,33,.06));
-    /* No independent color transition: inherit the EXACT animated hero tone. */
-    transition:none;
-  }
-  /* Both labels stay safely below the 33px melt edge, without covering the photos. */
-  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:48px}
-  .v6-hero[data-hero-flavors] .v6-hero__visual .v6-hero__badge{top:48px}
+/* V70: keep the compact Eisbecher CTA from V68 while restoring a clean photo edge. */
+.v70-first-impression .v6-actions>.button--light{
+  min-height:46px;
+  padding:0 clamp(15px,2vw,23px);
+  font-size:clamp(.83rem,1.13vw,.98rem);
+  letter-spacing:.025em;
+  max-width:100%;
 }
 @media(max-width:520px){
-  .v6-hero[data-hero-flavors] .v6-actions>.button--light{
-    width:auto;max-width:100%;min-height:44px;padding-inline:clamp(13px,4vw,18px);
-    font-size:clamp(.82rem,3.2vw,.92rem);white-space:normal;line-height:1.18;text-align:center;
+  .v70-first-impression .v6-actions>.button--light{
+    width:auto;
+    max-width:100%;
+    min-height:44px;
+    padding-inline:clamp(13px,4vw,18px);
+    font-size:clamp(.82rem,3.2vw,.92rem);
+    white-space:normal;
+    line-height:1.18;
+    text-align:center;
   }
-  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:46px}
-  .v6-hero[data-hero-flavors] .v6-hero__visual .v6-hero__badge{top:46px}
 }
-@media(prefers-reduced-motion:reduce){.v68-hero-melt{transition:none}}
+
+/* V70: a calm first-impression choreography, not a distracting looping effect.
+   Text comes into focus; the authentic photo subtly settles into place.
+   The existing gelato photo carousel and flavor-color transitions remain intact. */
+@keyframes v70-first-copy{
+  from{opacity:0;transform:translate3d(0,15px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes v70-first-visual{
+  from{opacity:.72;transform:translate3d(0,12px,0) scale(1.012)}
+  to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+.v70-first-impression .v6-hero__copy>.eyebrow,
+.v70-first-impression .v6-hero__copy>h1,
+.v70-first-impression .v6-hero__copy>.v6-hero__lead,
+.v70-first-impression .v6-hero__copy>.v6-actions{
+  animation:v70-first-copy .68s cubic-bezier(.22,.75,.22,1) both;
+}
+.v70-first-impression .v6-hero__copy>.eyebrow{animation-delay:.04s}
+.v70-first-impression .v6-hero__copy>h1{animation-delay:.10s}
+.v70-first-impression .v6-hero__copy>.v6-hero__lead{animation-delay:.19s}
+.v70-first-impression .v6-hero__copy>.v6-actions{animation-delay:.29s}
+.v70-first-impression>.v6-hero__visual{
+  animation:v70-first-visual .88s cubic-bezier(.2,.72,.27,1) both;
+}
+/* Keep the flavor name and the 1965 seal where they were in the original layout. */
+@media(prefers-reduced-motion:reduce){
+  .v70-first-impression .v6-hero__copy>.eyebrow,
+  .v70-first-impression .v6-hero__copy>h1,
+  .v70-first-impression .v6-hero__copy>.v6-hero__lead,
+  .v70-first-impression .v6-hero__copy>.v6-actions,
+  .v70-first-impression>.v6-hero__visual{
+    animation:none!important;
+    opacity:1!important;
+    transform:none!important;
+  }
+}
