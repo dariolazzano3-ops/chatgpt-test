@@ -1,0 +1,131 @@
+name: Gelato V59 · drei Originalbecher · private Preview
+on:
+  push:
+    branches: [aurentara/gelato-joghurt-kinder-v59]
+    paths: [.github/workflows/gelato-v59-private-preview.yml]
+permissions:
+  contents: read
+concurrency:
+  group: gelato-v59-private-preview
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all three source photos and private scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-joghurt-kinder-v59"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,re
+          root=Path('projects/gelato-donatello-premium-v6')
+          originals={
+            'joghurt-fruechte':'61d1de88995474575573c237451eeb00dcdb8c31bf8b65d65c1a10fd0fd547e4',
+            'joghurt-waldbeer':'aada02704921633178e90e3faed728e77782cc79b6ddccf2704b28920e83d093',
+            'kinder-spaghetti':'56b1ad05af392de2b7d2601a1fc98e70c3889258ebaa0b8c3f408f00a8fe6bc2',
+          }
+          slides=(root/'assets/js/components/discovery-cups.js').read_text()
+          gallery=(root/'eisbecher/index.html').read_text()
+          config=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          assert config['name']=='gelato-donatello-private-preview-v2'
+          assert config['assets']['run_worker_first'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          assert 'const TICK_MS = 2000;' in slides
+          assert len(re.findall(r'src: "/assets/images/cups/',slides))==27
+          assert gallery.count('<h2 id="joghurt-heading">')==1
+          assert gallery.count('Kinder Spaghetti</strong>')==1
+          for name,expected in originals.items():
+            target=root/'assets/images/cups'/f'{name}.webp'
+            content=target.read_bytes()
+            assert content[:4]==b'RIFF' and content[8:12]==b'WEBP'
+            assert hashlib.sha256(content).hexdigest()==expected,f'byte mismatch: {name}'
+            assert slides.count('/assets/images/cups/'+name+'.webp')==1
+            assert gallery.count('/assets/images/cups/'+name+'.webp')==1
+            print('PASS:',name,'SHA-256',expected[:14],'bytes',len(content))
+          for src in re.findall(r'src: "(/assets/images/cups/[^"]+)"',slides):
+            assert (root/src.lstrip('/')).is_file(),src
+          print('PASS: 27 photos, three authentic uploads, all slideshow assets, private-only target')
+          PY
+      - name: iPhone + Desktop visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43121 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gd-v59-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gd-v59-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gd-v59-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [device,width,height] of [['iphone',390,844],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43121/',{waitUntil:'domcontentloaded',timeout:30000});
+              const tile=page.locator('[data-discovery-cups]');
+              await tile.scrollIntoViewIfNeeded();
+              await page.waitForFunction(()=>document.querySelector('[data-discovery-cups] img.is-active')?.naturalWidth>0,{},{timeout:10000});
+              const original=await tile.locator('img.is-active').getAttribute('src');
+              await page.waitForFunction(first=>document.querySelector('[data-discovery-cups] img.is-active')?.getAttribute('src')!==first,original,{timeout:7500});
+              const pulse=await tile.locator('img.is-active').evaluate(e=>getComputedStyle(e).animationName);
+              assert(pulse.includes('v27-gelato-heartbeat'),pulse);
+              await page.goto('http://127.0.0.1:43121/eisbecher/',{waitUntil:'domcontentloaded',timeout:30000});
+              const check=await page.evaluate(async()=>{
+                const ids=['joghurt-fruechte','joghurt-waldbeer','kinder-spaghetti'];
+                const imgs=ids.map(id=>document.querySelector('img[src$="'+id+'.webp"]'));
+                await Promise.all(imgs.map(img=>img?.decode().catch(()=>{})));
+                const gallery=document.querySelector('#joghurt-eisbecher');
+                return {images:imgs.map((img,i)=>({name:ids[i],loaded:!!img&&img.naturalWidth===1254})),
+                  galleryImages:gallery?.querySelectorAll('figure').length,
+                  bounds:gallery?.getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth+3};
+              });
+              assert(check.images.every(i=>i.loaded),JSON.stringify(check));
+              assert(check.galleryImages===6,JSON.stringify(check));
+              assert(!check.overflow,'unexpected mobile or desktop horizontal overflow');
+              assert.deepStrictEqual(errors,[],errors.join(';'));
+              await page.locator('#joghurt-eisbecher').screenshot({path:'visual-evidence/v59-joghurt-'+device+'.png',animations:'disabled'});
+              await page.locator('img[src$="kinder-spaghetti.webp"]').scrollIntoViewIfNeeded();
+              await page.locator('img[src$="kinder-spaghetti.webp"]').screenshot({path:'visual-evidence/v59-kinder-'+device+'.png',animations:'disabled'});
+              console.log('PASS '+device+': 27-photo slideshow pulses, 3 new photos decoded, 6-photo Joghurt gallery, no overflow');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error('V59 VISUAL QA FAIL',e);process.exit(1)});
+          JS
+      - name: Upload visual screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v59-private-visual-qa
+          path: visual-evidence/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Verify existing protected Cloudflare worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$response" = "200"
+      - name: Deploy ONLY private Gelato preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/v59-cloudflare-deployment.json
+          node -e "const r=require('/tmp/v59-cloudflare-deployment.json'),d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('Private deployment SUCCESS:',d.id)"
