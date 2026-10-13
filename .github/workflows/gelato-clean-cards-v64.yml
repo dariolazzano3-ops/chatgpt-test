@@ -1,0 +1,134 @@
+name: Gelato V64 Clean Discovery Cards Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-clean-discovery-cards-v64]
+    paths: ['.github/workflows/gelato-clean-cards-v64.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-clean-cards-private-v64
+  cancel-in-progress: false
+jobs:
+  qa-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source and preview isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-clean-discovery-cards-v64"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,json
+          root=Path('projects/gelato-donatello-premium-v6')
+          home=(root/'index.html').read_text()
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          policy=json.loads((root/'project.json').read_text())
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert cfg['assets']['run_worker_first'] is False
+          assert policy['preview_policy']['external_publish'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          match=re.search(r'<div class="v26-discovery__grid".*?</div>\s*<div class="v26-discovery__shake-note"',home,re.S)
+          assert match,'discovery grid missing'
+          grid=match.group(0)
+          for klass,href,label,subtitle in [
+            ('cups','/eisbecher/','Eisbecher','Fruchtig. Cremig. Besonders.'),
+            ('flavors','/eissorten/','Eissorten','Jede Kugel ein Genuss.'),
+            ('shakes','/getraenke/','Shakes','Milchshakes und sonstige Eisgetränke')]:
+            card=re.search(r'<a class="v26-discovery__card v26-discovery__card--'+klass+r'".*?</a>',grid,re.S)
+            assert card,klass+' missing'
+            content=card.group(0)
+            assert 'href="'+href+'"' in content
+            assert '<strong>'+label in content and subtitle in content
+            assert 'v26-discovery__arrow' not in content and 'v26-discovery__number' not in content
+            assert '01 /' not in content and '02 /' not in content and '03 /' not in content
+          assert grid.count('v26-discovery__card-copy')==3
+          assert 'data-discovery-flavors' in grid and 'data-discovery-cups' in grid
+          assert 'data-discovery-drinks' not in grid
+          print('PASS three clear cards, links, titles, descriptions, original photos and private-only deployment')
+          PY
+          node --check projects/gelato-donatello-premium-v6/assets/js/app.js
+      - name: Responsive real browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v64-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v64-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v64-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [label,width,height] of [['iphone',390,844],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height}});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              const grid=page.locator('.v26-discovery__grid');
+              await grid.scrollIntoViewIfNeeded();
+              const cards=grid.locator('a.v26-discovery__card');
+              assert.strictEqual(await cards.count(),3);
+              assert.strictEqual(await grid.locator('.v26-discovery__number, .v26-discovery__arrow').count(),0);
+              for(const [i,href,title] of [[0,'/eisbecher/','Eisbecher'],[1,'/eissorten/','Eissorten'],[2,'/getraenke/','Shakes']]){
+                const card=cards.nth(i);
+                assert.strictEqual(await card.getAttribute('href'),href);
+                assert((await card.innerText()).includes(title));
+                const image=card.locator('img.is-active');
+                await page.waitForFunction(index=>{
+                  const c=document.querySelectorAll('.v26-discovery__grid>a.v26-discovery__card')[index];
+                  const img=c?.querySelector('img.is-active');return Boolean(img?.complete && img.naturalWidth>0);
+                },i);
+                assert((await image.evaluate(e=>e.naturalWidth))>0);
+              }
+              const strawberry=cards.nth(2).locator('img.is-active');
+              await page.waitForTimeout(2600);
+              assert((await strawberry.getAttribute('src')).includes('erdbeer-shake.webp'));
+              const bounds=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,inner:innerWidth}));
+              assert(bounds.scroll<=bounds.inner+3,'horizontal overflow '+JSON.stringify(bounds));
+              await grid.screenshot({path:'visual-evidence/cards-'+label+'.png',animations:'disabled'});
+              assert.deepStrictEqual(errors,[],'JS errors');
+              for (const href of ['/eisbecher/','/eissorten/','/getraenke/']){
+                const response=await page.request.get('http://127.0.0.1:43119'+href);
+                assert.strictEqual(response.status(),200,href);
+              }
+              console.log('PASS',label,'three clean responsive clickable cards, assets, no overflow');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error('BROWSER QA FAILURE',e);process.exit(1)});
+          JS
+      - name: Store screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v64-cards-responsive
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Confirm private worker target
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy ONLY private Gelato Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Verify deployment activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/gelato-v64-deploy.json
+          node -e "const r=require('/tmp/gelato-v64-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V64 PRIVATE DEPLOY PASS',d.id)"
