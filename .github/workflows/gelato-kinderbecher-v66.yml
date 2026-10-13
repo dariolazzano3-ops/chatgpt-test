@@ -1,0 +1,143 @@
+name: Gelato V66 Kinderbecher Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-kinderbecher-home-v66]
+    paths: ['.github/workflows/gelato-kinderbecher-v66.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-kids-private-v66
+  cancel-in-progress: false
+jobs:
+  qa-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm five real original cup photos, links, noindex and private target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-kinderbecher-home-v66"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,json
+          root=Path('projects/gelato-donatello-premium-v6')
+          home=(root/'index.html').read_text()
+          css=(root/'assets/css/style.css').read_text()
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          project=json.loads((root/'project.json').read_text())
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert cfg['assets']['run_worker_first'] is False
+          assert project['preview_policy']['external_publish'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          section=re.search(r'<section class="v66-kids".*?</section>',home,re.S)
+          assert section
+          kids=section.group(0)
+          assert 'Für unsere kleinen Gäste' in kids and 'Alle Eisbecher entdecken' in kids
+          assert kids.count('class="v66-kids__card"')==5
+          sources=['smarties-becher.webp','micky-mouse.webp','biene-maja.webp','gummibaeren-becher.webp','kinder-spaghetti.webp']
+          for source in sources:
+            path=root/'assets/images/cups'/source
+            assert path.is_file() and path.stat().st_size>50000,source
+            assert kids.count('src="/assets/images/cups/'+source+'"')==1
+          assert kids.count('href="/eisbecher/"')==6
+          assert 'v29-drinks-teaser' not in home
+          assert 'src="/assets/images/drinks/eiskaffee.webp"' not in kids
+          assert 'src="/assets/images/drinks/eisschokolade.webp"' not in kids
+          assert 'Shake it. Sip it. Donatello.' in home
+          assert 'Milchshakes und sonstige Eisgetränke' in home
+          assert 'v66-kids__rail' in css and 'scroll-snap-type:x mandatory' in css
+          assert (root/'getraenke/index.html').is_file()
+          print('PASS V66 5 original kids cups, replaced old homepage drinks cards, retained independent drinks catalog and private target')
+          PY
+      - name: Real Chromium QA for iPhone, tablet and desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v66-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v66-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v66-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [name,width,height] of [['iphone',390,844],['tablet',768,1024],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height}});
+              const errors=[];page.on('pageerror',err=>errors.push(err.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              const section=page.locator('.v66-kids');
+              await section.scrollIntoViewIfNeeded();
+              assert.strictEqual(await section.locator('h2').innerText(),'Für unsere kleinen Gäste');
+              assert.strictEqual(await section.locator('a.v66-kids__card').count(),5);
+              assert.strictEqual(await section.locator('a.v66-kids__all').getAttribute('href'),'/eisbecher/');
+              const expected=['smarties-becher.webp','micky-mouse.webp','biene-maja.webp','gummibaeren-becher.webp','kinder-spaghetti.webp'];
+              for(let i=0;i<expected.length;i++){
+                const c=section.locator('a.v66-kids__card').nth(i);
+                assert.strictEqual(await c.getAttribute('href'),'/eisbecher/');
+                const img=c.locator('img');
+                assert((await img.getAttribute('src')).endsWith(expected[i]));
+                const loaded=await img.evaluate(async e=>{
+                  if(!e.complete) await new Promise((resolve,reject)=>{e.addEventListener('load',resolve,{once:true});e.addEventListener('error',reject,{once:true});});
+                  return e.naturalWidth>0 && e.naturalHeight>0;
+                });
+                assert(loaded,'Broken original image '+expected[i]);
+              }
+              const rail=section.locator('.v66-kids__rail');
+              if(width<=850){
+                const dims=await rail.evaluate(e=>({scroll:e.scrollWidth,client:e.clientWidth,snap:getComputedStyle(e).scrollSnapType}));
+                assert(dims.scroll>dims.client+50,'Missing swipeable gallery '+JSON.stringify(dims));
+                assert(dims.snap.includes('mandatory'),'Missing snap '+JSON.stringify(dims));
+                await rail.evaluate(e=>{e.scrollLeft=e.scrollWidth;});
+                const slid=await rail.evaluate(e=>e.scrollLeft);
+                assert(slid>0,'Unable to scroll kids cards');
+                await rail.evaluate(e=>{e.scrollLeft=0;});
+              }
+              const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,viewport:window.innerWidth}));
+              assert(overflow.scroll<=overflow.viewport+3,'Unexpected full-page horizontal overflow '+JSON.stringify(overflow));
+              assert.strictEqual(await page.locator('.v29-drinks-teaser').count(),0);
+              assert.deepStrictEqual(errors,[],'Javascript console errors');
+              await section.screenshot({path:'visual-evidence/kids-'+name+'.png',animations:'disabled'});
+              for(const target of ['/eisbecher/','/getraenke/']){
+                const response=await page.request.get('http://127.0.0.1:43119'+target);
+                assert.strictEqual(response.status(),200,target);
+              }
+              console.log('PASS V66',name,'five kids products, responsive gallery, genuine images, link paths, no page overflow');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(err=>{console.error('BROWSER QA FAILURE',err);process.exit(1)});
+          JS
+      - name: Save preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v66-kinderbecher-responsive
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify dedicated private Cloudflare target
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy ONLY existing private Gelato Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm Cloudflare 100 percent active
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/v66-deploy.json
+          node -e "const r=require('/tmp/v66-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V66 PRIVATE DEPLOY PASS',d.id)"
