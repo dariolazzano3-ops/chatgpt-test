@@ -2703,3 +2703,42 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v29-drinks-catalog__card h3{font-size:2.15rem}
 }
 @media(prefers-reduced-motion:reduce){.v29-drinks-teaser__item{transition:none!important;transform:none!important}}
+
+
+/* V30 authentic spaghetti cup gallery: true Donatello photography, optimized on mobile. */
+.v30-cup-gallery{max-width:var(--container);margin:0 auto;padding:clamp(70px,8vw,120px) var(--gutter);color:#452920}
+.v30-cup-gallery__heading{display:flex;align-items:end;justify-content:space-between;gap:28px;margin-bottom:clamp(28px,4vw,52px)}
+.v30-cup-gallery__heading .eyebrow{margin:0 0 10px;font-size:.73rem;letter-spacing:.18em;color:#8c795f}
+.v30-cup-gallery__heading h2{font-family:var(--font-display,inherit);font-size:clamp(3rem,5.2vw,6rem);letter-spacing:-.044em;line-height:.96;margin:0;max-width:14ch;text-wrap:balance}
+.v30-cup-gallery__heading>p{font-size:1.02rem;line-height:1.6;max-width:32ch;margin:0 0 5px;color:#766b5f}
+.v30-cup-gallery__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row dense;gap:clamp(10px,1.5vw,18px)}
+.v30-cup-gallery__item{min-width:0;position:relative;margin:0;overflow:hidden;border-radius:17px;background:#ddd0bb;box-shadow:0 12px 38px rgba(67,39,27,.06)}
+.v30-cup-gallery__item--feature{grid-column:span 2;grid-row:span 2}
+.v30-cup-gallery__item>img{display:block;width:100%;height:100%;aspect-ratio:1;object-fit:cover;transition:transform .65s cubic-bezier(.21,.67,.2,1)}
+.v30-cup-gallery__item--feature>img{aspect-ratio:1}
+.v30-cup-gallery__item:hover>img{transform:scale(1.04)}
+.v30-cup-gallery__item figcaption{position:absolute;z-index:1;left:0;right:0;bottom:0;min-height:86px;display:flex;flex-direction:column;justify-content:end;gap:5px;padding:37px clamp(13px,1.5vw,24px) 18px;background:linear-gradient(transparent,rgba(40,22,17,.75));color:#fff}
+.v30-cup-gallery__item figcaption span{font-size:.68rem;letter-spacing:.15em;font-weight:700;color:#e7d2bc}
+.v30-cup-gallery__item figcaption strong{font-family:var(--font-display,inherit);font-size:clamp(1.45rem,2vw,2.7rem);line-height:1.02;letter-spacing:-.02em}
+.v30-cup-gallery__item--feature figcaption{padding:50px 28px 27px}
+.v30-cup-gallery__item--feature figcaption strong{font-size:clamp(2.4rem,3.6vw,4.6rem)}
+@media(max-width:900px){
+ .v30-cup-gallery__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .v30-cup-gallery__item--feature{grid-column:span 2;grid-row:span 1}
+ .v30-cup-gallery__item--feature>img{aspect-ratio:1.75/1}
+ .v30-cup-gallery__heading{display:block}
+ .v30-cup-gallery__heading>p{margin-top:18px}
+}
+@media(max-width:700px){
+ .v30-cup-gallery{padding:70px 19px 88px}
+ .v30-cup-gallery__heading h2{font-size:clamp(2.8rem,10vw,4rem)}
+ .v30-cup-gallery__grid{gap:10px}
+ .v30-cup-gallery__item{border-radius:14px}
+ .v30-cup-gallery__item--feature>img{aspect-ratio:1.35/1}
+ .v30-cup-gallery__item figcaption{padding:27px 12px 13px;gap:4px;min-height:68px}
+ .v30-cup-gallery__item figcaption strong{font-size:clamp(1.28rem,4.2vw,1.8rem)}
+ .v30-cup-gallery__item figcaption span{font-size:.57rem}
+ .v30-cup-gallery__item--feature figcaption{padding:38px 19px 21px}
+ .v30-cup-gallery__item--feature figcaption strong{font-size:2.55rem}
+}
+@media(prefers-reduced-motion:reduce){.v30-cup-gallery__item>img{transition:none!important;transform:none!important}}
