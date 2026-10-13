@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gelato-kids-private-v66
+  group: gelato-kids-private-v66-qa2
   cancel-in-progress: false
 jobs:
   qa-and-deploy:
@@ -82,13 +82,15 @@ jobs:
               const expected=['smarties-becher.webp','micky-mouse.webp','biene-maja.webp','gummibaeren-becher.webp','kinder-spaghetti.webp'];
               for(let i=0;i<expected.length;i++){
                 const c=section.locator('a.v66-kids__card').nth(i);
+                await c.scrollIntoViewIfNeeded();
                 assert.strictEqual(await c.getAttribute('href'),'/eisbecher/');
                 const img=c.locator('img');
                 assert((await img.getAttribute('src')).endsWith(expected[i]));
-                const loaded=await img.evaluate(async e=>{
-                  if(!e.complete) await new Promise((resolve,reject)=>{e.addEventListener('load',resolve,{once:true});e.addEventListener('error',reject,{once:true});});
-                  return e.naturalWidth>0 && e.naturalHeight>0;
-                });
+                await page.waitForFunction(index=>{
+                  const image=document.querySelectorAll('.v66-kids__card img')[index];
+                  return !!image && image.complete && image.naturalWidth>0 && image.naturalHeight>0;
+                },i,{timeout:10000});
+                const loaded=await img.evaluate(e=>e.naturalWidth>0 && e.naturalHeight>0);
                 assert(loaded,'Broken original image '+expected[i]);
               }
               const rail=section.locator('.v66-kids__rail');
