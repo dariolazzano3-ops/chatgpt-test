@@ -2857,3 +2857,50 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
     transform:none!important;
   }
 }
+
+
+/* V71: confident, concise editorial CTA for the original Gelato Donatello hero. */
+.v70-first-impression .v6-actions>.v71-cups-cta{
+  display:inline-flex;align-items:center;justify-content:space-between;
+  gap:clamp(12px,2.2vw,20px);
+  width:max-content;max-width:100%;min-height:49px;
+  padding:8px 10px 8px clamp(17px,2.5vw,24px);
+  background:#472b22;color:#fffbf2;
+  border:1px solid rgba(72,43,32,.22);
+  border-radius:999px;
+  box-shadow:0 5px 15px rgba(62,39,29,.14);
+  font-size:clamp(.86rem,1.1vw,.98rem);
+  letter-spacing:.012em;line-height:1.12;
+  text-decoration:none;
+  transition:background .25s ease,box-shadow .25s ease,transform .25s ease;
+}
+.v71-cups-cta>span:first-child{min-width:0}
+.v71-cups-cta__arrow{
+  flex:0 0 30px;display:grid;place-items:center;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(255,251,242,.14);font-family:Arial,sans-serif;
+  font-weight:500;font-size:1.15rem;line-height:1;
+  transition:background .25s ease,transform .25s ease;
+}
+.v70-first-impression .v6-actions>.v71-cups-cta:hover{
+  background:#5d382a;color:#fffdf8;
+  box-shadow:0 7px 19px rgba(62,39,29,.17);
+  transform:translateY(-2px);
+}
+.v71-cups-cta:hover .v71-cups-cta__arrow{background:rgba(255,251,242,.24);transform:translate(2px,-2px)}
+.v70-first-impression .v6-actions>.v71-cups-cta:focus-visible{
+  outline:3px solid #78543e;outline-offset:4px;
+}
+@media(max-width:520px){
+  .v70-first-impression .v6-actions>.v71-cups-cta{
+    width:max-content;max-width:100%;min-height:48px;
+    padding:8px 10px 8px 18px;
+    font-size:clamp(.82rem,3.3vw,.92rem);
+    white-space:nowrap;
+  }
+  .v71-cups-cta__arrow{flex-basis:28px;width:28px;height:28px}
+}
+@media(prefers-reduced-motion:reduce){
+  .v70-first-impression .v6-actions>.v71-cups-cta,
+  .v71-cups-cta__arrow{transition:none!important;transform:none!important}
+}
