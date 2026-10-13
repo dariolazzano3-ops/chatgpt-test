@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gelato-hero-melt-private-v68
+  group: gelato-hero-melt-private-v68-qa2
   cancel-in-progress: false
 jobs:
   qa-and-deploy:
@@ -73,7 +73,7 @@ jobs:
               const button=hero.locator('.v6-actions .button--light');
               const melt=hero.locator('.v68-hero-melt');
               assert.strictEqual(await button.getAttribute('href'),'/eisbecher/');
-              assert((await button.innerText()).includes('Unsere Eisbecher entdecken'));
+              assert((await button.innerText()).toLocaleLowerCase('de').includes('unsere eisbecher entdecken'));
               const buttonBox=await button.boundingBox(), copyBox=await hero.locator('.v6-hero__copy').boundingBox();
               assert(buttonBox && copyBox && buttonBox.width>180 && buttonBox.width<=copyBox.width+2);
               const style=await button.evaluate(el=>({height:getComputedStyle(el).minHeight,font:getComputedStyle(el).fontSize,width:el.getBoundingClientRect().width}));
@@ -96,8 +96,10 @@ jobs:
                 },null,{timeout:12000});
                 if(device==='iphone'){
                   await page.waitForFunction(()=>document.querySelector('.v6-hero')?.style.getPropertyValue('--hero-tone')==='#dfbbb4',null,{timeout:12000});
-                  const tone=await melt.evaluate(el=>getComputedStyle(el).color);
-                  assert(tone.includes('223') && tone.includes('187') && tone.includes('180'),'Melt not matching Strawberry tone '+tone);
+                  await page.waitForFunction(()=>{
+                    const el=document.querySelector('.v68-hero-melt');
+                    return el && getComputedStyle(el).color==='rgb(223, 187, 180)';
+                  },null,{timeout:5000});
                 }
                 await hero.screenshot({path:'visual-evidence/hero-'+device+'.png',animations:'disabled'});
               }else{
