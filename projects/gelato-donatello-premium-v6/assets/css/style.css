@@ -2811,18 +2811,22 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v6-hero[data-hero-flavors]>.v6-hero__copy{z-index:4;max-width:none}
   .v6-hero[data-hero-flavors]>.v6-hero__visual{z-index:1}
   .v68-hero-melt{
-    display:block;position:absolute;z-index:5;left:0;bottom:-112px;
-    width:100%;height:116px;color:var(--hero-tone,var(--sage));pointer-events:none;
-    filter:drop-shadow(0 5px 5px rgba(55,43,33,.08));
-    transition:color 1200ms ease;
+    display:block;position:absolute;z-index:5;left:0;bottom:-29px;
+    width:100%;height:33px;color:var(--hero-tone,var(--sage));pointer-events:none;
+    filter:drop-shadow(0 2px 2px rgba(55,43,33,.06));
+    /* No independent color transition: inherit the EXACT animated hero tone. */
+    transition:none;
   }
-  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:116px}
+  /* Both labels stay safely below the 33px melt edge, without covering the photos. */
+  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:48px}
+  .v6-hero[data-hero-flavors] .v6-hero__visual .v6-hero__badge{top:48px}
 }
 @media(max-width:520px){
   .v6-hero[data-hero-flavors] .v6-actions>.button--light{
     width:auto;max-width:100%;min-height:44px;padding-inline:clamp(13px,4vw,18px);
     font-size:clamp(.82rem,3.2vw,.92rem);white-space:normal;line-height:1.18;text-align:center;
   }
-  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:108px}
+  .v6-hero[data-hero-flavors] .v8-flavor-caption{top:46px}
+  .v6-hero[data-hero-flavors] .v6-hero__visual .v6-hero__badge{top:46px}
 }
 @media(prefers-reduced-motion:reduce){.v68-hero-melt{transition:none}}
