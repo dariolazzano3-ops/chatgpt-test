@@ -1,0 +1,147 @@
+name: Gelato V69 Melt Geometry and Color Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-hero-melt-sync-v69]
+    paths: ['.github/workflows/gelato-hero-melt-v69.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-private-melt-v69
+  cancel-in-progress: false
+jobs:
+  qa-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact private scope and geometry changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-hero-melt-sync-v69"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('projects/gelato-donatello-premium-v6')
+          html=(root/'index.html').read_text()
+          css=(root/'assets/css/style.css').read_text()
+          project=json.loads((root/'project.json').read_text())
+          config=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          assert config['name']=='gelato-donatello-private-preview-v2'
+          assert config['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert config['assets']['run_worker_first'] is False
+          assert project['preview_policy']['external_publish'] is False
+          assert project['safety']['production_deploy'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          assert 'viewBox="0 0 1000 48"' in html
+          assert html.count('class="v68-hero-melt"')==1
+          assert 'bottom:-29px' in css and 'height:33px' in css
+          assert 'transition:color 1200ms ease' not in css
+          assert 'color:var(--hero-tone,var(--sage))' in css
+          assert 'top:46px' in css and 'top:48px' in css
+          assert 'Unsere Eisbecher entdecken' in html
+          assert 'data-flavor-photo' in html and 'class="v6-hero__badge"' in html
+          print('PASS V69 private-only target, compact melt, no independent color timing, labels clear')
+          PY
+      - name: Real browser QA synchronization and no overlap
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v69-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v69-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v69-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [device,width,height] of [['iphone-small',360,780],['iphone',390,844],['tablet',768,1024],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height}});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              const hero=page.locator('.v6-hero[data-hero-flavors]');
+              const melt=hero.locator('.v68-hero-melt');
+              const button=hero.locator('.button--light');
+              assert.strictEqual(await button.getAttribute('href'),'/eisbecher/');
+              assert((await button.innerText()).toLowerCase().includes('unsere eisbecher entdecken'));
+              const overflow=await page.evaluate(()=>({doc:document.documentElement.scrollWidth,width:innerWidth}));
+              assert(overflow.doc<=overflow.width+3,'page horizontal overflow '+JSON.stringify(overflow));
+              if(width<=820){
+                const checkGeometry=await page.evaluate(()=>{
+                  const hero=document.querySelector('.v6-hero'), photo=hero.querySelector('.v6-hero__visual');
+                  const melt=hero.querySelector('.v68-hero-melt'),badge=hero.querySelector('.v6-hero__badge');
+                  const name=hero.querySelector('.v8-flavor-caption');
+                  const m=melt.getBoundingClientRect(),p=photo.getBoundingClientRect(),b=badge.getBoundingClientRect(),n=name.getBoundingClientRect();
+                  return {meltDisplay:getComputedStyle(melt).display,meltHeight:m.height,top:m.top,bottom:m.bottom,
+                    photoTop:p.top,badgeTop:b.top,nameTop:n.top,badgeGap:b.top-m.bottom,nameGap:n.top-m.bottom};
+                });
+                assert.strictEqual(checkGeometry.meltDisplay,'block');
+                assert(checkGeometry.meltHeight<=34,'drip too deep '+JSON.stringify(checkGeometry));
+                assert(checkGeometry.top>=checkGeometry.photoTop-5&&checkGeometry.top<=checkGeometry.photoTop+5,'drip not at border '+JSON.stringify(checkGeometry));
+                assert(checkGeometry.badgeGap>=11,'melt overlays 1965 badge '+JSON.stringify(checkGeometry));
+                assert(checkGeometry.nameGap>=11,'melt overlays flavor name '+JSON.stringify(checkGeometry));
+                // Computed colors must stay identical during real animated flavor-tone changes.
+                const colorProof=await page.evaluate(async()=>{
+                  const hero=document.querySelector('.v6-hero'),melt=hero.querySelector('.v68-hero-melt');
+                  const rgb=v=>[...v.matchAll(/[+-]?(?:\d*\.)?\d+/g)].slice(0,3).map(x=>Number(x[0]));
+                  const samples=[];
+                  const start=performance.now();
+                  while(performance.now()-start<4900){
+                    const background=getComputedStyle(hero).backgroundColor;
+                    const drip=getComputedStyle(melt).color;
+                    const a=rgb(background),b=rgb(drip);
+                    const delta=Math.max(...a.map((v,i)=>Math.abs(v-b[i])));
+                    samples.push({delta,background,drip,tone:hero.style.getPropertyValue('--hero-tone')});
+                    await new Promise(resolve=>setTimeout(resolve,90));
+                  }
+                  return {maxDelta:Math.max(...samples.map(x=>x.delta)),first:samples[0],last:samples.at(-1),
+                    uniqueTones:[...new Set(samples.map(x=>x.tone))],sampleCount:samples.length};
+                });
+                assert(colorProof.uniqueTones.length>=2,'real flavor switch not observed '+JSON.stringify(colorProof));
+                assert(colorProof.maxDelta<=2.1,'melt lagged behind background '+JSON.stringify(colorProof));
+                await melt.scrollIntoViewIfNeeded();
+                await hero.screenshot({path:'visual-evidence/hero-'+device+'.png',animations:'disabled'});
+                console.log('PASS V69 '+device+' badge clearance '+checkGeometry.badgeGap.toFixed(1)+'px, max color delta '+colorProof.maxDelta+'; '+colorProof.sampleCount+' samples');
+              }else{
+                assert.strictEqual(await melt.evaluate(e=>getComputedStyle(e).display),'none');
+                await hero.screenshot({path:'visual-evidence/hero-'+device+'.png',animations:'disabled'});
+                console.log('PASS V69 desktop original split composition retained');
+              }
+              assert.deepStrictEqual(errors,[],'JavaScript errors');
+              assert.strictEqual((await page.request.get('http://127.0.0.1:43119/eisbecher/')).status(),200);
+              await page.close();
+            }
+            await browser.close();
+          })().catch(err=>{console.error('BROWSER QA FAILURE',err);process.exit(1)});
+          JS
+      - name: Save screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v69-melt-qa
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify dedicated private worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy ONLY private Gelato Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm Cloudflare 100 percent active
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/v69-deploy.json
+          node -e "const r=require('/tmp/v69-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V69 PRIVATE DEPLOY PASS',d.id)"
