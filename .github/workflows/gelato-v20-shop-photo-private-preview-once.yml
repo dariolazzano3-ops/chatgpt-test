@@ -213,7 +213,7 @@ jobs:
               assert(await img.evaluate(e=>e.complete&&e.naturalWidth===900&&e.naturalHeight===1200),
                 'Owner-supplied interior photo did not decode');
               assert.equal((await media.locator('figcaption').innerText()).trim().toLocaleLowerCase('de-DE'),
-                'Direkt aus dem Eislabor in die Vitrine.','Existing caption changed');
+                'direkt aus dem eislabor in die vitrine.','Existing caption changed');
               for(const width of [320,390,768,1440]){
                 await page.setViewportSize({width,height:900});
                 await img.scrollIntoViewIfNeeded();
