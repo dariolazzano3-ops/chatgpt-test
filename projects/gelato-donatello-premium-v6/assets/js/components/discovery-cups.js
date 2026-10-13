@@ -1,14 +1,13 @@
 // Existing, confirmed local Gelato Donatello Eisbecher photos.
-// Adding additional original cups later only requires appending new entries here.
+// Kinderbecher are presented in the dedicated homepage kids gallery and excluded here.
+// Adding additional adult cup photos later only requires appending new entries here.
 const FLAVORS = [
   { name: "fruechte becher", src: "/assets/images/cups/fruechte-becher.webp" },
   { name: "erdbeer becher", src: "/assets/images/cups/erdbeer-becher.webp" },
   { name: "amarena becher", src: "/assets/images/cups/amarena-becher.webp" },
   { name: "banana split", src: "/assets/images/cups/banana-split.webp" },
   { name: "after eight becher", src: "/assets/images/cups/after-eight-becher.webp" },
-  { name: "biene maja", src: "/assets/images/cups/biene-maja.webp" },
   { name: "ananas becher", src: "/assets/images/cups/ananas-becher.webp" },
-  { name: "gummibaeren becher", src: "/assets/images/cups/gummibaeren-becher.webp" },
   { name: "joghurt banane", src: "/assets/images/cups/joghurt-banane.webp" },
   { name: "Spaghetti Classic", src: "/assets/images/cups/spaghetti-classic.webp" },
   { name: "Spaghetti Erdbeere", src: "/assets/images/cups/spaghetti-erdbeere.webp" },
@@ -20,15 +19,12 @@ const FLAVORS = [
   { name: "Raffaello-Becher", src: "/assets/images/cups/raffaello-becher.webp" },
   { name: "Schneemann", src: "/assets/images/cups/schneemann-becher.webp" },
   { name: "Roche-Becher", src: "/assets/images/cups/roche-becher.webp" },
-  { name: "Smarties-Becher", src: "/assets/images/cups/smarties-becher.webp" },
   { name: "Joghurt Kiwi", src: "/assets/images/cups/joghurt-kiwi.webp" },
   { name: "Joghurt Mango", src: "/assets/images/cups/joghurt-mango.webp" },
   { name: "Joghurt Italia", src: "/assets/images/cups/joghurt-italia.webp" },
   { name: "Joghurt Früchte", src: "/assets/images/cups/joghurt-fruechte.webp" },
   { name: "Joghurt Waldbeer", src: "/assets/images/cups/joghurt-waldbeer.webp" },
-  { name: "Kinder Spaghetti", src: "/assets/images/cups/kinder-spaghetti.webp" },
   { name: "Melonen Becher", src: "/assets/images/cups/melonen-becher.webp" },
-  { name: "Micky Mouse", src: "/assets/images/cups/micky-mouse.webp" },
   { name: "Mocca Becher", src: "/assets/images/cups/mocca-becher.webp" },
   { name: "Nusstraum Becher", src: "/assets/images/cups/nusstraum-becher.webp" },
   { name: "Köllerbacher Becher", src: "/assets/images/cups/koellerbacher-becher.webp" }
