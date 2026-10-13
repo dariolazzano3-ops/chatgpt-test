@@ -42,8 +42,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2" -o /tmp/gelato-target-check.json
-          node -e "const r=require('/tmp/gelato-target-check.json');if(r.success!==true)process.exit(3);console.log('Existing private Worker is accessible')"
+          http_code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2")
+          test "$http_code" = "200"
+          echo 'Existing private Worker is accessible'
       - name: Deploy only to private Cloudflare Worker
         shell: bash
         run: |
