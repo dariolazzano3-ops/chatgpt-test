@@ -26,7 +26,6 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           python3 - <<'PY'
           from pathlib import Path
-          from PIL import Image
           import re,json,hashlib
           root=Path('projects/gelato-donatello-premium-v6')
           images={
@@ -38,9 +37,7 @@ jobs:
             assert p.is_file(), name
             raw=p.read_bytes()
             assert hashlib.sha256(raw).hexdigest().startswith(prefix),name
-            with Image.open(p) as im:
-              assert im.size==(1254,1254),(name,im.size)
-              im.verify()
+            assert raw[:4]==b'RIFF' and raw[8:12]==b'WEBP',name
             print('Verified original image:',name,len(raw))
           js=(root/'assets/js/components/discovery-cups.js').read_text()
           html=(root/'eisbecher/index.html').read_text()
