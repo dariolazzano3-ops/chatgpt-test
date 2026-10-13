@@ -1,0 +1,145 @@
+name: Gelato V71 Eisbecher CTA Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-eisbecher-cta-v71]
+    paths: ['.github/workflows/gelato-eisbecher-cta-v71.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-eisbecher-cta-v71-private
+  cancel-in-progress: false
+jobs:
+  qa-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact CTA and private target safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-eisbecher-cta-v71"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          root=Path('projects/gelato-donatello-premium-v6')
+          home=(root/'index.html').read_text()
+          css=(root/'assets/css/style.css').read_text()
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          policy=json.loads((root/'project.json').read_text())
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert cfg['assets']['run_worker_first'] is False
+          assert policy['preview_policy']['external_publish'] is False
+          assert policy['safety']['production_deploy'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          hero=re.search(r'<section class="v6-hero v70-first-impression".*?</section>',home,re.S)
+          assert hero
+          cta=re.search(r'<a class="button button--light v71-cups-cta".*?</a>',hero.group(0))
+          assert cta
+          assert cta.group(0).count('Eisbecher entdecken')==1
+          assert 'Unsere Eisbecher entdecken' not in cta.group(0)
+          assert 'href="/eisbecher/"' in cta.group(0)
+          assert 'v71-cups-cta__arrow' in cta.group(0) and 'aria-hidden="true"' in cta.group(0)
+          assert 'href="/kontakt/"' in hero.group(0)
+          assert 'data-flavor-photo' in hero.group(0)
+          assert 'class="v6-hero__badge"' in hero.group(0)
+          assert 'v68-hero-melt' not in hero.group(0)
+          assert 'background:#472b22;color:#fffbf2' in css
+          assert 'border-radius:999px' in css
+          assert '.v71-cups-cta:focus-visible' in css
+          assert 'prefers-reduced-motion:reduce' in css
+          print('PASS V71 exact button title/arrow and unchanged Gelato hero, private-only deployment')
+          PY
+      - name: Chromium QA on small iPhone, iPhone, desktop and reduced motion
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v71-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v71-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v71-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [label,width,height,reducedMotion] of [
+              ['small-iphone',360,780,'no-preference'],['iphone',390,844,'no-preference'],
+              ['desktop',1440,900,'no-preference'],['reduced-motion',390,844,'reduce']
+            ]){
+              const page=await browser.newPage({viewport:{width,height},reducedMotion});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              const hero=page.locator('.v70-first-impression');
+              const cta=hero.locator('a.v71-cups-cta');
+              assert.strictEqual(await cta.count(),1);
+              assert.strictEqual(await cta.getAttribute('href'),'/eisbecher/');
+              assert((await cta.innerText()).toLocaleLowerCase('de').includes('eisbecher entdecken'));
+              assert(!(await cta.innerText()).toLocaleLowerCase('de').includes('unsere'));
+              assert.strictEqual(await cta.locator('.v71-cups-cta__arrow').getAttribute('aria-hidden'),'true');
+              await page.waitForTimeout(1130);
+              const info=await cta.evaluate(el=>{
+                const s=getComputedStyle(el),r=el.getBoundingClientRect();
+                const p=el.parentElement.getBoundingClientRect();
+                const arrow=el.querySelector('.v71-cups-cta__arrow').getBoundingClientRect();
+                return {background:s.backgroundColor,color:s.color,borderRadius:s.borderRadius,
+                  width:r.width,height:r.height,left:r.left,right:r.right,parentLeft:p.left,parentRight:p.right,
+                  arrowWidth:arrow.width,arrowHeight:arrow.height};
+              });
+              assert.strictEqual(info.background,'rgb(71, 43, 34)');
+              assert(info.color.includes('255'),'CTA text lost contrast '+JSON.stringify(info));
+              assert(parseFloat(info.borderRadius)>20,'CTA not softly rounded');
+              assert(info.width>180 && info.width<340,'CTA not compact '+JSON.stringify(info));
+              assert(info.height>=44,'Touch target too small '+JSON.stringify(info));
+              assert(info.left>=info.parentLeft-2 && info.right<=info.parentRight+2,'CTA overflowing hero '+JSON.stringify(info));
+              assert(info.arrowWidth>=27 && info.arrowHeight>=27,'Arrow too small');
+              const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,viewport:innerWidth}));
+              assert(overflow.page<=overflow.viewport+3,'Horizontal overflow '+JSON.stringify(overflow));
+              assert.strictEqual(await hero.locator('.v68-hero-melt').count(),0);
+              assert.strictEqual(await hero.locator('.v6-hero__badge').count(),1);
+              const photo=hero.locator('img.v8-flavor-photo.is-active');
+              await page.waitForFunction(()=>{
+                const im=document.querySelector('.v6-hero .v8-flavor-photo.is-active');
+                return im?.complete && im.naturalWidth>0;
+              },null,{timeout:15000});
+              assert.strictEqual(await hero.locator('a.text-link').getAttribute('href'),'/kontakt/');
+              assert.deepStrictEqual(errors,[]);
+              await hero.screenshot({path:'visual-evidence/hero-'+label+'.png',animations:'disabled'});
+              assert.strictEqual((await page.request.get('http://127.0.0.1:43119/eisbecher/')).status(),200);
+              console.log('PASS V71',label,'premium Eisbecher entdecken CTA, accessible target, original photo, responsive');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(err=>{console.error('BROWSER QA FAILURE',err);process.exit(1)});
+          JS
+      - name: Store responsive QA images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v71-cta-responsive
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Confirm existing private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy private Gelato Worker ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm Cloudflare new deployment 100 percent
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/v71-deploy.json
+          node -e "const r=require('/tmp/v71-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V71 PRIVATE DEPLOY PASS',d.id)"
