@@ -2584,3 +2584,31 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){
  .v26-discovery__card>img,.v26-discovery__arrow,.v26-discovery__shake-link{transition:none!important;transform:none!important}
 }
+
+
+/* V27: pulsating 2-second Eissorten photo slideshow in the discovery tile. */
+.v26-discovery__card--flavors>img.v27-flavor-frame{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 45%;
+  opacity:0;z-index:0;transform:scale(1.07);
+  transition:opacity .58s cubic-bezier(.42,0,.25,1),transform .8s cubic-bezier(.22,.61,.36,1);
+  will-change:opacity,transform;pointer-events:none;
+}
+.v26-discovery__card--flavors>img.v27-flavor-frame.is-active{opacity:1;transform:scale(1.035)}
+.v26-discovery__card--flavors>img.v27-flavor-frame.is-active.is-beating{
+  animation:v27-gelato-heartbeat .82s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes v27-gelato-heartbeat{
+  0%{transform:scale(1.072)}
+  23%{transform:scale(1.093)}
+  48%{transform:scale(1.047)}
+  68%{transform:scale(1.071)}
+  100%{transform:scale(1.035)}
+}
+@media(prefers-reduced-motion:reduce){
+  .v26-discovery__card--flavors>img.v27-flavor-frame,
+  .v26-discovery__card--flavors>img.v27-flavor-frame.is-active,
+  .v26-discovery__card--flavors>img.v27-flavor-frame.is-active.is-beating{
+    animation:none!important;transition:none!important;transform:none!important;
+  }
+}
