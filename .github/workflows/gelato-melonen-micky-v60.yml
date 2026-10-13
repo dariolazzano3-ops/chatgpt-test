@@ -115,7 +115,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+          # Explicitly install Wrangler's platform-specific workerd binary: GitHub's
+          # npx transient cache has occasionally omitted this optional dependency.
+          prefix=/tmp/gelato-v60-wrangler
+          npm install --prefix "$prefix" --no-package-lock --no-audit --no-fund --include=optional --no-save wrangler@4.148.0
+          binary_spec=$(node -e "const p=require('$prefix/node_modules/workerd/package.json');process.stdout.write(p.optionalDependencies['@cloudflare/workerd-linux-64'])")
+          test -n "$binary_spec"
+          npm install --prefix "$prefix" --no-package-lock --no-audit --no-fund --include=optional --no-save wrangler@4.148.0 "@cloudflare/workerd-linux-64@$binary_spec"
+          test -f "$prefix/node_modules/@cloudflare/workerd-linux-64/bin/workerd"
+          node "$prefix/node_modules/wrangler/bin/wrangler.js" deploy --config wrangler.gelato-private-preview.jsonc
       - name: Verify Cloudflare deployment
         shell: bash
         run: |
