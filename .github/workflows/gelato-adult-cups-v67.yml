@@ -1,0 +1,136 @@
+name: Gelato V67 Adult Eisbecher Slider Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-exclude-kids-from-cup-slider-v67]
+    paths: ['.github/workflows/gelato-adult-cups-v67.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-v67-private-slider
+  cancel-in-progress: false
+jobs:
+  qa-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check precise slideshow separation and private deployment policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-exclude-kids-from-cup-slider-v67"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,json
+          root=Path('projects/gelato-donatello-premium-v6')
+          script=(root/'assets/js/components/discovery-cups.js').read_text()
+          home=(root/'index.html').read_text()
+          cups=(root/'eisbecher/index.html').read_text()
+          conf=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          project=json.loads((root/'project.json').read_text())
+          assert conf['name']=='gelato-donatello-private-preview-v2'
+          assert conf['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert conf['assets']['run_worker_first'] is False
+          assert project['preview_policy']['external_publish'] is False
+          assert project['safety']['production_deploy'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          excluded=['biene-maja.webp','gummibaeren-becher.webp','smarties-becher.webp','kinder-spaghetti.webp','micky-mouse.webp']
+          paths=re.findall(r'src: "(/assets/images/cups/[^"]+)"',script)
+          assert len(paths)==26 and len(set(paths))==26,(len(paths),len(set(paths)))
+          assert all(not any(x in p for x in excluded) for p in paths)
+          assert 'const TICK_MS = 2000' in script
+          assert 'prefers-reduced-motion' in script
+          assert 'data-discovery-cups' in home and 'data-cup-layer="0"' in home and 'data-cup-layer="1"' in home
+          assert 'class="v66-kids"' in home and home.count('class="v66-kids__card"')==5
+          for name in excluded:
+            img=root/'assets/images/cups'/name
+            assert img.is_file() and img.stat().st_size>50000,name
+            assert 'src="/assets/images/cups/'+name+'"' in home,name
+            assert name in cups or name=='biene-maja.webp',name
+          for path in paths:
+            assert (root/path.lstrip('/')).is_file(),path
+          assert (root/'getraenke/index.html').is_file()
+          print('PASS V67 exactly 26 adult carousel photos; 5 children removed only from slider; kids assets and area intact; private Access target')
+          PY
+          node --check projects/gelato-donatello-premium-v6/assets/js/components/discovery-cups.js
+      - name: Browser verify slider still advances and kids remain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v67-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v67-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v67-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [device,width,height] of [['iphone',390,844],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height}});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              const card=page.locator('[data-discovery-cups]');
+              await card.scrollIntoViewIfNeeded();
+              await page.waitForFunction(()=>{
+                const im=document.querySelector('[data-discovery-cups] img.is-active');
+                return im?.complete&&im.naturalWidth>0;
+              },null,{timeout:12000});
+              assert((await card.locator('img.is-active').getAttribute('src')).includes('fruechte-becher.webp'));
+              await page.waitForFunction(()=>{
+                const im=document.querySelector('[data-discovery-cups] img.is-active');
+                return im?.src.includes('erdbeer-becher.webp') && im.complete && im.naturalWidth>0;
+              },null,{timeout:8000});
+              await page.waitForFunction(()=>{
+                const im=document.querySelector('[data-discovery-cups] img.is-active');
+                return im?.src.includes('amarena-becher.webp') && im.complete && im.naturalWidth>0;
+              },null,{timeout:8000});
+              assert.strictEqual(await card.getAttribute('href'),'/eisbecher/');
+              const kids=page.locator('.v66-kids');
+              await kids.scrollIntoViewIfNeeded();
+              assert.strictEqual(await kids.locator('.v66-kids__card').count(),5);
+              for(const filename of ['smarties-becher','micky-mouse','biene-maja','gummibaeren-becher','kinder-spaghetti']){
+                assert.strictEqual(await kids.locator('img[src="/assets/images/cups/'+filename+'.webp"]').count(),1,filename);
+              }
+              const full=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:window.innerWidth}));
+              assert(full.width<=full.viewport+3,'Horizontal overflow '+JSON.stringify(full));
+              assert.deepStrictEqual(errors,[]);
+              await card.screenshot({path:'visual-evidence/slider-'+device+'.png',animations:'disabled'});
+              await kids.screenshot({path:'visual-evidence/kids-'+device+'.png',animations:'disabled'});
+              console.log('PASS V67',device,'2-second Eisbecher slideshow, no kid products in list, kids area intact, responsive');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(err=>{console.error('BROWSER QA FAILURE',err);process.exit(1)});
+          JS
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v67-adult-slider-qa
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify private Cloudflare Worker destination
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy to private Gelato Preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm active Cloudflare deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/gelato-v67-deploy.json
+          node -e "const r=require('/tmp/gelato-v67-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V67 PRIVATE DEPLOY PASS',d.id)"
