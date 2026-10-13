@@ -19,7 +19,6 @@ const FLAVORS = [
   { name: "Tartufo Becher", src: "/assets/images/cups/tartufo-becher.webp" },
   { name: "Raffaello-Becher", src: "/assets/images/cups/raffaello-becher.webp" },
   { name: "Schneemann", src: "/assets/images/cups/schneemann-becher.webp" },
-  { name: "Orange Flip", src: "/assets/images/cups/orange-flip-becher.webp" },
   { name: "Roche-Becher", src: "/assets/images/cups/roche-becher.webp" },
   { name: "Smarties-Becher", src: "/assets/images/cups/smarties-becher.webp" },
   { name: "Joghurt Kiwi", src: "/assets/images/cups/joghurt-kiwi.webp" },
