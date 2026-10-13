@@ -42,7 +42,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          http_code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2")
+          http_code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          echo "Cloudflare private deployment preflight HTTP $http_code"
           test "$http_code" = "200"
           echo 'Existing private Worker is accessible'
       - name: Deploy only to private Cloudflare Worker
