@@ -27,7 +27,9 @@ const FLAVORS = [
   { name: "Joghurt Italia", src: "/assets/images/cups/joghurt-italia.webp" },
   { name: "Joghurt Früchte", src: "/assets/images/cups/joghurt-fruechte.webp" },
   { name: "Joghurt Waldbeer", src: "/assets/images/cups/joghurt-waldbeer.webp" },
-  { name: "Kinder Spaghetti", src: "/assets/images/cups/kinder-spaghetti.webp" }
+  { name: "Kinder Spaghetti", src: "/assets/images/cups/kinder-spaghetti.webp" },
+  { name: "Melonen Becher", src: "/assets/images/cups/melonen-becher.webp" },
+  { name: "Micky Mouse", src: "/assets/images/cups/micky-mouse.webp" }
 ];
 
 const TICK_MS = 2000;
