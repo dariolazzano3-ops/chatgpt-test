@@ -2920,3 +2920,76 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v6-hero[data-hero-flavors]::before{
   background:radial-gradient(ellipse at 14% 36%,color-mix(in srgb,var(--hero-tone) 32%,transparent),transparent 70%);
 }
+
+
+/* V73: Coffee ritual. Authentic customer-owned cup, warm editorial composition. */
+.v73-caffe{
+  position:relative;isolation:isolate;overflow:hidden;
+  background:linear-gradient(145deg,#f7efe4 0%,#f0e1ce 58%,#eee0cf 100%);
+  color:#48291f;padding:clamp(65px,10vw,130px) clamp(22px,5vw,84px);
+}
+.v73-caffe::before{
+  content:"";pointer-events:none;position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(ellipse at 52% 22%,rgba(255,253,245,.78) 0%,transparent 59%);
+}
+.v73-caffe__inner{max-width:1080px;margin-inline:auto;display:flex;flex-direction:column;align-items:center;gap:clamp(14px,3vw,36px)}
+.v73-caffe__visual{
+  position:relative;width:min(100%,580px);aspect-ratio:1/0.89;
+  display:grid;place-items:center;isolation:isolate;
+  --coffee-rotation:0deg;--coffee-rise:0px;
+}
+.v73-caffe__halo{
+  position:absolute;z-index:-1;width:76%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(181,128,82,.13),rgba(215,180,146,.04) 57%,transparent 74%);
+  box-shadow:0 0 80px 25px rgba(197,157,113,.07);
+}
+.v73-caffe__cup{
+  width:90%;max-width:525px;height:auto;display:block;object-fit:contain;
+  transform:translate3d(0,var(--coffee-rise),0) rotate(var(--coffee-rotation));
+  transform-origin:50% 50%;will-change:transform;
+  filter:drop-shadow(1px 22px 22px rgba(78,45,27,.19));
+}
+.v73-caffe__orbit{
+  position:absolute;right:4%;bottom:5%;font-size:clamp(.54rem,.9vw,.69rem);
+  font-weight:750;letter-spacing:.21em;color:#997862;
+}
+.v73-caffe__copy{max-width:830px;text-align:center;margin:auto}
+.v73-caffe__eyebrow{
+  color:#916748;font-size:clamp(.66rem,1.3vw,.78rem);font-weight:800;
+  letter-spacing:.22em;margin:0 0 clamp(16px,2.5vw,25px);
+}
+.v73-caffe__copy h2{
+  font-family:var(--font-display,inherit);font-size:clamp(2.2rem,5.9vw,5rem);
+  color:#48291f;font-weight:850;letter-spacing:-.042em;line-height:1.04;
+  text-wrap:balance;margin:0 auto clamp(20px,3vw,30px);
+}
+.v73-caffe__copy h2 em{font-style:normal;color:#946240}
+.v73-caffe__copy>p:not(.v73-caffe__eyebrow){
+  max-width:610px;margin:0 auto 25px;color:#6d5142;
+  font-size:clamp(1rem,2vw,1.23rem);line-height:1.6;
+}
+.v73-caffe__link{
+  color:#512e22;display:inline-flex;align-items:center;gap:11px;
+  font-weight:850;text-decoration:none;font-size:clamp(.79rem,1.4vw,.92rem);
+  text-transform:uppercase;letter-spacing:.09em;border-bottom:1px solid #78513f;
+  padding-block:13px 8px;min-height:44px;
+  transition:color .2s ease,border-color .2s ease;
+}
+.v73-caffe__link svg{width:16px;height:16px;transition:transform .2s ease}
+.v73-caffe__link:hover{color:#a16e49;border-color:currentColor}
+.v73-caffe__link:hover svg{transform:translate(2px,-2px)}
+.v73-caffe__link:focus-visible{outline:3px solid #8e614b;outline-offset:5px}
+@media(max-width:650px){
+  .v73-caffe{padding:55px 26px 72px}
+  .v73-caffe__inner{gap:15px}
+  .v73-caffe__visual{width:min(100%,450px);aspect-ratio:1/0.90}
+  .v73-caffe__cup{width:100%;filter:drop-shadow(0 12px 13px rgba(78,45,27,.17))}
+  .v73-caffe__orbit{bottom:0;right:0;font-size:.52rem}
+  .v73-caffe__copy h2{font-size:clamp(2.08rem,8.1vw,3.3rem);line-height:1.08}
+  .v73-caffe__copy h2 br{display:none}
+  .v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:1rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .v73-caffe__cup{transform:none!important;will-change:auto!important}
+  .v73-caffe__link,.v73-caffe__link svg{transition:none!important;transform:none!important}
+}
