@@ -2773,3 +2773,28 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
     animation:none!important;transition:none!important;transform:none!important;
   }
 }
+
+
+/* V66: genuine Gelato Donatello children's cups replace the two drink teasers. */
+.v66-kids{margin-top:clamp(28px,3.5vw,56px);min-width:0}
+.v66-kids__head{display:flex;align-items:end;justify-content:space-between;gap:16px 32px;margin-bottom:clamp(16px,2vw,26px)}
+.v66-kids__head h2{font-family:var(--font-display,inherit);color:#46291f;font-size:clamp(2.25rem,4.2vw,4.3rem);font-weight:800;letter-spacing:-.045em;line-height:1;max-width:15ch;margin:0;text-wrap:balance}
+.v66-kids__all{color:#6b4435;font-size:.76rem;font-weight:800;letter-spacing:.065em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:5px;white-space:nowrap}
+.v66-kids__all:hover{color:#a06a46}
+.v66-kids__rail{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,1.25vw,18px)}
+.v66-kids__card{min-width:0;overflow:hidden;display:flex;flex-direction:column;background:#e9dccb;border:1px solid rgba(110,77,53,.10);border-radius:19px;color:#46281e;text-decoration:none;transition:transform .3s ease,box-shadow .3s ease}
+.v66-kids__card:hover{transform:translateY(-3px);box-shadow:0 12px 25px rgba(59,36,19,.10)}
+.v66-kids__card img{display:block;aspect-ratio:1/1;width:100%;height:auto;object-fit:cover;object-position:center}
+.v66-kids__name{display:flex;align-items:center;min-height:66px;padding:12px 14px 15px;font-family:var(--font-display,inherit);font-size:clamp(1.25rem,1.75vw,1.7rem);font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.v66-kids__card:focus-visible,.v66-kids__all:focus-visible{outline:3px solid #a47751;outline-offset:3px}
+@media(max-width:850px){
+  .v66-kids__rail{display:flex;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:1px;padding:2px 2px 14px;margin:0 -2px;scrollbar-width:thin}
+  .v66-kids__card{flex:0 0 calc((100% - 16px)/2.05);scroll-snap-align:start;border-radius:16px}
+  .v66-kids__name{min-height:58px;font-size:clamp(1.22rem,4.5vw,1.85rem);padding:12px}
+}
+@media(max-width:550px){
+  .v66-kids__head{display:block;margin-bottom:18px}
+  .v66-kids__head h2{font-size:clamp(2.45rem,9vw,3.25rem);max-width:12ch}
+  .v66-kids__all{display:inline-block;margin-top:14px;font-size:.72rem}
+}
+@media(prefers-reduced-motion:reduce){.v66-kids__card{transition:none!important;transform:none!important}}
