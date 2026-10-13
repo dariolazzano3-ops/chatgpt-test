@@ -212,7 +212,7 @@ jobs:
               assert.equal(await img.getAttribute('src'),'/assets/images/shop/interior-original-2026.avif');
               assert(await img.evaluate(e=>e.complete&&e.naturalWidth===900&&e.naturalHeight===1200),
                 'Owner-supplied interior photo did not decode');
-              assert.equal((await media.locator('figcaption').innerText()).trim(),
+              assert.equal((await media.locator('figcaption').innerText()).trim().toLocaleLowerCase('de-DE'),
                 'Direkt aus dem Eislabor in die Vitrine.','Existing caption changed');
               for(const width of [320,390,768,1440]){
                 await page.setViewportSize({width,height:900});
