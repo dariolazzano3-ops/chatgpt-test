@@ -2508,3 +2508,7 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){
   .v17-rental-hero__copy .v17-rental-button{transition:none}
 }
+
+/* V19: preserve the full-width, crisp AVIF product image inside a picture element. */
+.v17-rental-hero__visual picture{display:block;line-height:0;width:100%}
+.v17-rental-hero__visual picture img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover;image-rendering:auto}
