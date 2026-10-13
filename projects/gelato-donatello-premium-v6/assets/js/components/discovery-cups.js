@@ -16,7 +16,12 @@ const FLAVORS = [
   { name: "Spaghetti Carbonara", src: "/assets/images/cups/spaghetti-carbonara.webp" },
   { name: "Spaghetti Melone", src: "/assets/images/cups/spaghetti-melone.webp" },
   { name: "Spaghetti Neri", src: "/assets/images/cups/spaghetti-neri.webp" },
-  { name: "Tartufo Becher", src: "/assets/images/cups/tartufo-becher.webp" }
+  { name: "Tartufo Becher", src: "/assets/images/cups/tartufo-becher.webp" },
+  { name: "Raffaello-Becher", src: "/assets/images/cups/raffaello-becher.webp" },
+  { name: "Schneemann", src: "/assets/images/cups/schneemann-becher.webp" },
+  { name: "Orange Flip", src: "/assets/images/cups/orange-flip-becher.webp" },
+  { name: "Roche-Becher", src: "/assets/images/cups/roche-becher.webp" },
+  { name: "Smarties-Becher", src: "/assets/images/cups/smarties-becher.webp" }
 ];
 
 const TICK_MS = 2000;
