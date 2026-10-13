@@ -92,6 +92,8 @@ jobs:
                 const img=document.querySelector('.v6-hero .v8-flavor-photo.is-active');
                 return img?.complete && img.naturalWidth>=800;
               },null,{timeout:15000});
+              // Let the one-shot entrance settle before measuring pixel-perfect final seams.
+              await page.waitForTimeout(1120);
               const initial=await hero.evaluate(h=>{
                 const c=h.querySelector('.v6-hero__copy').getBoundingClientRect();
                 const v=h.querySelector('.v6-hero__visual').getBoundingClientRect();
@@ -102,7 +104,6 @@ jobs:
               }else{
                 assert(initial.photoLeft>initial.copyRight-3,'Desktop side-by-side layout broken '+JSON.stringify(initial));
               }
-              await page.waitForTimeout(1120);
               const anim=await hero.evaluate(h=>({
                 heading:getComputedStyle(h.querySelector('h1')).animationName,
                 opacity:getComputedStyle(h.querySelector('h1')).opacity,
