@@ -1,0 +1,126 @@
+name: Gelato V61 final three Eisbecher private preview
+on:
+  push:
+    branches: [aurentara/gelato-cups-final-three-v61]
+    paths: [.github/workflows/gelato-cups-final-three-v61.yml]
+permissions:
+  contents: read
+concurrency:
+  group: gelato-cups-v61-private
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Private deployment and image integrity gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'aurentara/gelato-cups-final-three-v61'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib,re
+          root=Path('projects/gelato-donatello-premium-v6')
+          script=(root/'assets/js/components/discovery-cups.js').read_text()
+          html=(root/'eisbecher/index.html').read_text()
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          assert cfg['name']=='gelato-donatello-private-preview-v2' and cfg['assets']['run_worker_first'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          paths=re.findall(r'src: "(/assets/images/cups/[^"]+)"',script)
+          assert len(paths)==32, len(paths)
+          assert len(set(paths))==32
+          for path in paths: assert (root/path.lstrip('/')).is_file(),path
+          assert 'const TICK_MS = 2000' in script and "v27-gelato-heartbeat" in (root/'assets/css/style.css').read_text()
+          expected={
+           'mocca-becher':('mocca-becher.webp',254, '09'),
+           'nusstraum-becher':('nusstraum-becher.webp',283, '10'),
+           'koellerbacher-becher':('koellerbacher-becher.webp',227, '11')
+          }
+          for name,(file,kb,index) in expected.items():
+            img=root/'assets/images/cups'/file
+            b=img.read_bytes()
+            assert b[:4]==b'RIFF' and b[8:12]==b'WEBP'
+            assert len(b)>kb*1000//2 and len(b)<500000
+            assert script.count('/assets/images/cups/'+file)==1
+            assert html.count('/assets/images/cups/'+file)==1
+            assert f'<span>{index}</span>' in html
+            print('VERIFIED',file,len(b),'bytes')
+          print('PASS: all 32 product photo paths, caption order, 2s pulse, private target')
+          PY
+      - name: iPhone and desktop visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gd-v61-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gd-v61-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gd-v61-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [name,width,height] of [['iphone',390,844],['desktop',1440,900]]){
+              const page=await browser.newPage({viewport:{width,height}});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/eisbecher/',{waitUntil:'domcontentloaded'});
+              for(const asset of ['mocca-becher','nusstraum-becher','koellerbacher-becher']){
+                const img=page.locator('img[src$="/'+asset+'.webp"]');
+                assert(await img.count()===1,'Missing image '+asset);
+                await img.scrollIntoViewIfNeeded();
+                await img.evaluate(async e=>{await e.decode()});
+                assert(await img.evaluate(e=>e.naturalWidth===1254&&e.naturalHeight===1254));
+              }
+              await page.locator('#becher-fuer-jeden-geschmack').screenshot({path:'visual-evidence/v61-gallery-'+name+'.png',animations:'disabled'});
+              assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'horizontal overflow');
+              assert.deepStrictEqual(errors,[],'browser JavaScript errors');
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded'});
+              const card=page.locator('[data-discovery-cups]');
+              await card.scrollIntoViewIfNeeded();
+              await page.waitForTimeout(2250);
+              assert(await card.locator('img.is-active').count()===1);
+              const first=await card.locator('img.is-active').getAttribute('src');
+              await page.waitForTimeout(2250);
+              const second=await card.locator('img.is-active').getAttribute('src');
+              assert(first!==second,'Diashow does not switch every 2 seconds');
+              assert.deepStrictEqual(errors,[],'browser errors in homepage');
+              console.log('PASS',name,'gallery 3 new verified photos + 2-second Eisbecher carousel');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error('VISUAL QA FAIL',e);process.exit(1)})
+          JS
+      - name: Save visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v61-cups-qa
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify existing Cloudflare private preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$code" = 200
+      - name: Deploy ONLY private preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Cloudflare deployment evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/gd-v61-deployment.json
+          node -e "const r=require('/tmp/gd-v61-deployment.json'),d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('Private deployment verified',d.id)"
