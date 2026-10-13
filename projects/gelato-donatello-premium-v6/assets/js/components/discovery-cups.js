@@ -6,7 +6,10 @@ const FLAVORS = [
   { name: "amarena becher", src: "/assets/images/cups/amarena-becher.webp" },
   { name: "banana split", src: "/assets/images/cups/banana-split.webp" },
   { name: "after eight becher", src: "/assets/images/cups/after-eight-becher.webp" },
-  { name: "biene maja", src: "/assets/images/cups/biene-maja.webp" }
+  { name: "biene maja", src: "/assets/images/cups/biene-maja.webp" },
+  { name: "ananas becher", src: "/assets/images/cups/ananas-becher.webp" },
+  { name: "gummibaeren becher", src: "/assets/images/cups/gummibaeren-becher.webp" },
+  { name: "joghurt banane", src: "/assets/images/cups/joghurt-banane.webp" }
 ];
 
 const TICK_MS = 2000;
