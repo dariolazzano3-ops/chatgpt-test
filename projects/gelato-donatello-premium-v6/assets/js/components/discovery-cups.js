@@ -9,7 +9,14 @@ const FLAVORS = [
   { name: "biene maja", src: "/assets/images/cups/biene-maja.webp" },
   { name: "ananas becher", src: "/assets/images/cups/ananas-becher.webp" },
   { name: "gummibaeren becher", src: "/assets/images/cups/gummibaeren-becher.webp" },
-  { name: "joghurt banane", src: "/assets/images/cups/joghurt-banane.webp" }
+  { name: "joghurt banane", src: "/assets/images/cups/joghurt-banane.webp" },
+  { name: "Spaghetti Classic", src: "/assets/images/cups/spaghetti-classic.webp" },
+  { name: "Spaghetti Erdbeere", src: "/assets/images/cups/spaghetti-erdbeere.webp" },
+  { name: "Spaghetti Amarena", src: "/assets/images/cups/spaghetti-amarena.webp" },
+  { name: "Spaghetti Carbonara", src: "/assets/images/cups/spaghetti-carbonara.webp" },
+  { name: "Spaghetti Melone", src: "/assets/images/cups/spaghetti-melone.webp" },
+  { name: "Spaghetti Neri", src: "/assets/images/cups/spaghetti-neri.webp" },
+  { name: "Tartufo Becher", src: "/assets/images/cups/tartufo-becher.webp" }
 ];
 
 const TICK_MS = 2000;
