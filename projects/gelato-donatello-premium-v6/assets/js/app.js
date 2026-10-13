@@ -4,6 +4,7 @@ import { renderRequestForm } from './components/request-form.js';
 import { initCakeIpad } from './components/cake-ipad.js';
 import { initHeroFlavors } from './components/hero-flavors.js';
 import { initDiscoveryFlavors } from './components/discovery-flavors.js';
+import { initDiscoveryCups } from './components/discovery-cups.js';
 
 function initReveal() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -113,6 +114,7 @@ function init() {
   initCakeIpad();
   initHeroFlavors();
   initDiscoveryFlavors();
+  initDiscoveryCups();
 }
 
 document.addEventListener('DOMContentLoaded', init);

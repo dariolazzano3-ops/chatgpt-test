@@ -2612,3 +2612,23 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
     animation:none!important;transition:none!important;transform:none!important;
   }
 }
+
+
+/* V28: subtle two-beat photo pulse for the Eisbecher discovery card. */
+.v26-discovery__card--cups>img.v28-cup-frame{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  opacity:0;z-index:0;transform:scale(1.07);
+  transition:opacity .58s cubic-bezier(.42,0,.25,1),transform .8s cubic-bezier(.22,.61,.36,1);
+  will-change:opacity,transform;pointer-events:none;
+}
+.v26-discovery__card--cups>img.v28-cup-frame.is-active{opacity:1;transform:scale(1.035)}
+.v26-discovery__card--cups>img.v28-cup-frame.is-active.is-beating{
+  animation:v27-gelato-heartbeat .82s cubic-bezier(.22,.61,.36,1) both;
+}
+@media(prefers-reduced-motion:reduce){
+  .v26-discovery__card--cups>img.v28-cup-frame,
+  .v26-discovery__card--cups>img.v28-cup-frame.is-active,
+  .v26-discovery__card--cups>img.v28-cup-frame.is-active.is-beating{
+    animation:none!important;transition:none!important;transform:none!important;
+  }
+}
