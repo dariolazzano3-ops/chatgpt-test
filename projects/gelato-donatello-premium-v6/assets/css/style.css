@@ -2904,3 +2904,19 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v70-first-impression .v6-actions>.v71-cups-cta,
   .v71-cups-cta__arrow{transition:none!important;transform:none!important}
 }
+
+
+/* V72: fine outlined vector arrow instead of the emoji-like text glyph. */
+.v71-cups-cta__arrow{
+  font-size:0;line-height:0;
+  color:#fffbf2;
+  background:rgba(255,251,242,.10);
+}
+.v71-cups-cta__arrow svg{
+  display:block;width:17px;height:17px;flex:none;
+  stroke:currentColor;fill:none;
+}
+/* V72: the ambient sheen must not add an unrelated fruit-yellow color cast. */
+.v6-hero[data-hero-flavors]::before{
+  background:radial-gradient(ellipse at 14% 36%,color-mix(in srgb,var(--hero-tone) 32%,transparent),transparent 70%);
+}
