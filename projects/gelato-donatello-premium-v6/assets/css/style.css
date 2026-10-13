@@ -81,6 +81,7 @@ p{margin-bottom:1.15rem}
 .v6-facts>div span:last-child{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
 
 .v6-editorial{padding:var(--section) var(--gutter);display:grid;grid-template-columns:minmax(0,42%) minmax(0,58%);gap:clamp(3rem,8vw,9rem);align-items:center;max-width:var(--container);margin:0 auto}
+.v6-editorial--heritage{grid-template-columns:minmax(0,1fr);gap:0}
 .v6-editorial__copy{padding-left:clamp(0px,3vw,40px)}
 .v6-editorial__copy h2{max-width:9ch}
 .v6-editorial__copy .lead{max-width:35rem}
