@@ -2821,7 +2821,7 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(max-width:520px){
   .v6-hero[data-hero-flavors] .v6-actions>.button--light{
     width:auto;max-width:100%;min-height:44px;padding-inline:clamp(13px,4vw,18px);
-    font-size:clamp(.72rem,3vw,.89rem);white-space:normal;line-height:1.18;text-align:center;
+    font-size:clamp(.82rem,3.2vw,.92rem);white-space:normal;line-height:1.18;text-align:center;
   }
   .v6-hero[data-hero-flavors] .v8-flavor-caption{top:108px}
 }
