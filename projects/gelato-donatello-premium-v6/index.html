@@ -364,16 +364,25 @@
         <div class="v102-location__grid">
           <div class="v102-location__map" aria-label="Karte zum Standort Gelato Donatello">
             <div class="v102-location__map-surface">
-              <iframe
-                title="OpenStreetMap-Karte mit dem Standort Gelato Donatello, Hauptstraße 4 in Püttlingen-Köllerbach"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=6.8957%2C49.29835%2C6.8999%2C49.30085&amp;layer=mapnik&amp;marker=49.299548%2C6.8977832"
-                loading="lazy"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen></iframe>
-              <div class="v102-location__map-badge" aria-hidden="true">
-                <span class="v102-location__map-badge-dot"></span>
-                GELATO DONATELLO
-              </div>
+              <!-- V103: self-hosted, geocoded OpenStreetMap snapshot. Visible even when
+                   Safari/content blockers refuse third-party map iframes. -->
+              <a class="v103-location__map-static"
+                 href="https://www.openstreetmap.org/?mlat=49.299548&amp;mlon=6.8977832#map=17/49.299548/6.8977832"
+                 target="_blank" rel="noopener noreferrer"
+                 aria-label="Standortkarte Gelato Donatello in OpenStreetMap öffnen">
+                <img src="/assets/images/editorial/gelato-donatello-location-map-v103.webp"
+                     alt="Straßenkarte von Köllerbach mit Standortmarkierung bei Gelato Donatello an der Hauptstraße 4, gegenüber Burg Bucherbach"
+                     width="550" height="390" loading="eager" decoding="async" fetchpriority="low" />
+                <span class="v102-location__map-badge" aria-hidden="true">
+                  <span class="v102-location__map-badge-dot"></span>
+                  GELATO DONATELLO
+                </span>
+                <span class="v103-location__map-open" aria-hidden="true">Karte öffnen ↗</span>
+              </a>
+              <a class="v103-location__map-attribution"
+                 href="https://www.openstreetmap.org/copyright"
+                 target="_blank" rel="noopener noreferrer"
+                 aria-label="Kartendaten: OpenStreetMap-Mitwirkende, Lizenzinformationen">© OpenStreetMap contributors</a>
             </div>
             <div class="v102-location__map-footer">
               <span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg> <strong>Hier sind wir.</strong></span>

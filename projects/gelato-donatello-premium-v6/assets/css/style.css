@@ -3574,3 +3574,68 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v102-location__map-footer>a{font-size:.70rem;}
 }
 @media(prefers-reduced-motion:reduce){.v102-location__actions a{transition:none!important;transform:none!important;}}
+
+
+/* V103: visible map regardless of third-party iframe blocking in iOS Safari.
+   Actual OpenStreetMap tiles photographed at the verified address, served locally.
+   Full interactive OSM is available on click, with permanent attribution. */
+.v102-location__map-surface{position:relative;isolation:isolate;}
+.v103-location__map-static{
+  display:block;
+  width:100%;
+  height:clamp(320px,31vw,438px);
+  position:relative;
+  overflow:hidden;
+  text-decoration:none;
+  color:#4b2c21;
+  cursor:pointer;
+  background:#dfdfd0;
+}
+.v103-location__map-static img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+  filter:saturate(.91) contrast(1.015);
+  transition:transform .7s cubic-bezier(.22,.61,.36,1),filter .35s ease;
+}
+.v103-location__map-static:hover img,
+.v103-location__map-static:focus-visible img{transform:scale(1.035);filter:saturate(.99) contrast(1.03);}
+.v103-location__map-static:focus-visible{outline:3px solid #754832;outline-offset:-5px;}
+.v103-location__map-open{
+  position:absolute;z-index:3;top:22px;right:22px;
+  background:rgba(255,252,245,.97);
+  color:#4b2c21;
+  border-radius:999px;
+  border:1px solid rgba(94,72,55,.13);
+  box-shadow:0 7px 22px rgba(38,31,25,.12);
+  padding:10px 13px;
+  font-size:.74rem;
+  font-weight:800;
+  letter-spacing:.01em;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.v103-location__map-attribution{
+  position:absolute;z-index:4;bottom:8px;right:11px;
+  color:#584d40;
+  background:rgba(255,252,245,.91);
+  border-radius:4px;
+  padding:3px 6px;
+  line-height:1.2;
+  font-size:.62rem;
+  text-decoration:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.10);
+}
+.v103-location__map-attribution:hover,.v103-location__map-attribution:focus-visible{text-decoration:underline;text-underline-offset:2px;}
+@media(max-width:850px){
+  .v103-location__map-static{height:clamp(270px,74vw,390px);}
+  .v103-location__map-open{top:13px;right:13px;font-size:.69rem;padding:9px 11px;}
+}
+@media(max-width:390px){
+  .v103-location__map-open{top:auto;bottom:40px;right:13px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .v103-location__map-static img{transition:none!important;transform:none!important;}
+}
