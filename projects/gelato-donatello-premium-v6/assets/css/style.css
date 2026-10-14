@@ -3134,3 +3134,10 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:510px;line-height:1.55;opacity:.94}
 .v73-caffe__eyebrow{letter-spacing:.2em}
 @media(max-width:650px){.v73-caffe{padding-block:36px 58px}.v73-caffe__inner{gap:12px}.v73-caffe__visual{aspect-ratio:1/0.77}.v73-caffe__copy h2{font-size:clamp(2rem,7.7vw,3.1rem);line-height:1.09}.v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:clamp(1rem,3.8vw,1.13rem);line-height:1.5}}
+
+/* V84: crisp charcoal-stone ambience tuned to the supplied original coffee photograph.
+   No scaled coffee-bean illustration: keep the visual field quiet and dark. */
+.v73-caffe{background-color:#252321;background-image:radial-gradient(ellipse 75% 55% at 48% 20%,rgba(104,95,85,.22),transparent 78%),linear-gradient(145deg,#35312d 0%,#242220 47%,#171615 100%);background-position:center;background-size:cover}
+.v73-caffe::after{background:radial-gradient(ellipse 55% 32% at 50% 26%,rgba(216,166,112,.13),transparent 82%)}
+.v73-caffe__halo{opacity:.19;filter:blur(16px)}
+@media(max-width:650px){.v73-caffe{background-image:radial-gradient(ellipse 95% 45% at 50% 18%,rgba(104,95,85,.2),transparent 80%),linear-gradient(160deg,#34302c 0%,#242220 50%,#171615 100%)}}
