@@ -3074,3 +3074,8 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){
   .v73-caffe__cup{will-change:auto!important;transform:none!important}
 }
+
+/* V76: clean high-definition dark espresso backdrop, no enlarged low-res photo texture. */
+.v73-caffe{background-color:#302b28;background-image:radial-gradient(ellipse 85% 65% at 50% 23%,rgba(116,94,76,.28),transparent 78%),linear-gradient(155deg,#39332f 0%,#2b2725 55%,#211e1c 100%);background-size:cover;background-repeat:no-repeat}
+.v73-caffe::before{background-image:none;opacity:0}
+.v73-caffe__halo{background:radial-gradient(circle,rgba(234,190,136,.09),transparent 73%)}
