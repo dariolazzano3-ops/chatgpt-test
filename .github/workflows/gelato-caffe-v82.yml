@@ -1,0 +1,45 @@
+name: Gelato V82 Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-caffe-v82-refine]
+    paths: ['.github/workflows/gelato-caffe-v82.yml']
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify private-only V82
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=Path('projects/gelato-donatello-premium-v6')
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          css=(r/'assets/css/style.css').read_text()
+          html=(r/'index.html').read_text()
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./'+str(r)
+          assert cfg['assets']['run_worker_first'] is False
+          assert 'V82: calmer premium editorial rhythm' in css
+          assert 'Ein guter Kaffee. Ein kleiner Moment nur für dich.' in html
+          assert 'CAFFÈ · GELATO DONATELLO ·' not in html
+          assert (r/'assets/images/editorial/caffe-donatello-cup-v75.webp').is_file()
+          assert 'const rotation=(progress-.5)*360' in (r/'assets/js/app.js').read_text()
+          assert 'X-Robots-Tag: noindex' in (r/'_headers').read_text()
+          print('V82 source PASS')
+          PY
+      - name: Deploy protected preview only
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Verify Cloudflare deployment
+        run: |
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" >/tmp/v82.json
+          node -e "const x=require('/tmp/v82.json');const d=x.result?.deployments?.[0];if(!x.success||!d?.versions?.some(v=>v.percentage===100))process.exit(1);console.log('V82 PRIVATE DEPLOY PASS',d.id)"
