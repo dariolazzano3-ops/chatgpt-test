@@ -1,0 +1,20 @@
+{
+  "source": "OpenStreetMap contributors; OSM API 0.6 /map",
+  "source_url": "https://www.openstreetmap.org/#map=18/49.3000/6.8970",
+  "verified_date": "2026-10-14",
+  "license": "Open Database License 1.0 (ODbL)",
+  "coordinates": "WGS84 latitude, longitude",
+  "note": "Centroids for mapped ways and original OSM points for stop positions; visual map geometry is sourced from OSM ways, not generative imagery.",
+  "places": [
+    {"type":"gelateria","name":"Gelato Donatello","osm":"node/11059906405","lat":49.299548,"lon":6.8977832},
+    {"type":"stadium","name":"Stadion an der Burg","osm":"way/1443340764","lat":49.2995104,"lon":6.8962065},
+    {"type":"castle","name":"Burg Bucherbach","osm":"way/119450522","lat":49.3002112,"lon":6.8970861},
+    {"type":"playground","name":"Spielplatz Burg Bucherbach","osm":"way/119927556","lat":49.3005305,"lon":6.8963389},
+    {"type":"parking","name":"Parkplatz","osm":"way/24932629","lat":49.3011375,"lon":6.8959953,"access":"yes"},
+    {"type":"parking","name":"Parkplatz","osm":"way/1443340781","lat":49.3000546,"lon":6.8976379,"access":"yes"},
+    {"type":"parking","name":"Parkplatz","osm":"way/321998122","lat":49.3008887,"lon":6.8981034,"access":"yes"},
+    {"type":"parking","name":"Parkplatz","osm":"way/1382837610","lat":49.2987482,"lon":6.8981702,"access":"yes"},
+    {"type":"bus_stop","name":"Köllerbach Burg/Uhrmachershaus","osm":"node/899814529","lat":49.2999111,"lon":6.8976005},
+    {"type":"bus_stop","name":"Köllerbach Burg/Uhrmachershaus","osm":"node/899814454","lat":49.2988105,"lon":6.8974717}
+  ]
+}

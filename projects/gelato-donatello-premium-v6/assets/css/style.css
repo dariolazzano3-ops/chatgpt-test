@@ -3639,3 +3639,8 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){
   .v103-location__map-static img{transition:none!important;transform:none!important;}
 }
+
+
+/* V104: higher-resolution OSM-derived public landmarks map, no invented shops or roads. */
+.v103-location__map-static img{object-position:50% 50%;image-rendering:auto;}
+@media(max-width:650px){.v103-location__map-static img{object-position:52% 50%;}}
