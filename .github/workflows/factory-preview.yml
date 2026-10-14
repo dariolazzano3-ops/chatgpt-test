@@ -63,9 +63,12 @@ jobs:
           elif [ "${{ github.ref_name }}" = "feature/project-factory-v1-5" ]; then
             PROJECT_SLUG='factory-preview-smoke'
           else
-            PROJECT_SLUG=$(git diff-tree --no-commit-id --name-only -r HEAD \
-              | sed -n 's#^projects/\([^/][^/]*\)/.*#\1#p' \
-              | head -n 1)
+            # Compare the push range, including merge commits. Fail closed for ambiguous changes.
+            CHANGED_PROJECTS=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- projects/ \
+              | sed -n 's#^projects/\\([^/][^/]*\\)/.*#\\1#p' | sort -u)
+            PROJECT_COUNT=$(printf '%s\\n' "$CHANGED_PROJECTS" | sed '/^$/d' | wc -l | tr -d ' ')
+            test "$PROJECT_COUNT" -eq 1 || { echo "Expected exactly one changed project; found $PROJECT_COUNT"; exit 1; }
+            PROJECT_SLUG="$CHANGED_PROJECTS"
             test -n "$PROJECT_SLUG" || { echo "No changed project folder found in triggering commit"; exit 1; }
           fi
           echo "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
