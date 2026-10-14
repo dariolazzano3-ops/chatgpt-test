@@ -19,7 +19,7 @@ function initCaffeScroll() {
     const rect=section.getBoundingClientRect();
     const travel=Math.max(1,window.innerHeight+rect.height);
     const progress=Math.min(1,Math.max(0,(window.innerHeight-rect.top)/travel));
-    const rotation=(progress-.5)*72; // V74: 6x stronger than V73, still scroll-controlled (-36..+36 degrees)
+    const rotation=(progress-.5)*180; // V75: requested 150% strength vs V74's 60% (-90..+90 degrees)
     const lift=(.5-progress)*28; // compact vertical parallax (-14..+14px) avoids clipping
     visual.style.setProperty('--coffee-rotation',rotation.toFixed(2)+'deg');
     visual.style.setProperty('--coffee-rise',lift.toFixed(1)+'px');
