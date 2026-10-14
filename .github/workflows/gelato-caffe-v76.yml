@@ -1,0 +1,46 @@
+name: Gelato V76 Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-caffe-v76-200]
+    paths: ['.github/workflows/gelato-caffe-v76.yml']
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify safe preview and coffee changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          r=Path('projects/gelato-donatello-premium-v6')
+          css=(r/'assets/css/style.css').read_text()
+          js=(r/'assets/js/app.js').read_text()
+          h=(r/'index.html').read_text()
+          w=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          assert w['name']=='gelato-donatello-private-preview-v2'
+          assert w['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert 'background-image:radial-gradient' in css
+          assert '/* V76: clean high-definition dark espresso backdrop' in css
+          assert 'const rotation=(progress-.5)*240' in js
+          assert 'prefers-reduced-motion' in css
+          assert 'caffe-donatello-cup-v75.webp' in h
+          assert (r/'assets/images/editorial/caffe-donatello-cup-v75.webp').is_file()
+          assert 'X-Robots-Tag: noindex' in (r/'_headers').read_text()
+          print('PASS V76 200% rotation, vector-sharp backdrop, unchanged cup and private-only target')
+          PY
+      - name: Deploy only private Gelato preview
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Verify deployment
+        run: |
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" > /tmp/deploy.json
+          node -e "const d=require('/tmp/deploy.json');if(!d.success||!d.result?.deployments?.[0]?.versions?.some(x=>x.percentage===100))process.exit(1);console.log('V76 DEPLOY VERIFIED',d.result.deployments[0].id)"
