@@ -23,9 +23,10 @@ function initCaffeScroll() {
     const lift=(.5-progress)*28; // compact vertical parallax (-14..+14px) avoids clipping
     visual.style.setProperty('--coffee-rotation',rotation.toFixed(2)+'deg');
     visual.style.setProperty('--coffee-rise',lift.toFixed(1)+'px');
+    section.style.setProperty('--coffee-focus',Math.max(0,1-Math.abs(progress-.5)*2).toFixed(3));
   };
   const schedule=()=>{if(!frame)frame=window.requestAnimationFrame(update)};
-  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;schedule();},{rootMargin:'120px'});
+  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;section.classList.toggle('v81-in-view',visible);schedule();},{rootMargin:'120px'});
   observer.observe(section);
   window.addEventListener('scroll',schedule,{passive:true});
   window.addEventListener('resize',schedule,{passive:true});
