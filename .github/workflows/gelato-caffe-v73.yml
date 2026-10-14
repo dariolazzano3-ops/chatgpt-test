@@ -1,0 +1,138 @@
+name: Gelato V73 Coffee Scene Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-caffe-scroll-v73]
+    paths: ['.github/workflows/gelato-caffe-v73.yml']
+permissions:
+  contents: read
+concurrency:
+  group: gelato-caffe-v73-private
+  cancel-in-progress: false
+jobs:
+  qa-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source photo, section replacement and safe Worker destination
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-caffe-scroll-v73"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('projects/gelato-donatello-premium-v6')
+          html=(root/'index.html').read_text()
+          app=(root/'assets/js/app.js').read_text()
+          css=(root/'assets/css/style.css').read_text()
+          config=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          project=json.loads((root/'project.json').read_text())
+          assert config['name']=='gelato-donatello-private-preview-v2'
+          assert config['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert config['assets']['run_worker_first'] is False
+          assert project['preview_policy']['external_publish'] is False
+          assert project['safety']['production_deploy'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          assert 'class="v6-cup-story"' not in html
+          assert 'class="v6-image-story"' not in html
+          assert html.count('class="v73-caffe"')==1
+          assert 'Auch wenn alles eiskalt ist:' in html and 'Ein warmer Caffè geht immer.' in html
+          assert 'href="/kontakt/"' in html
+          path=root/'assets/images/editorial/caffe-donatello-cup.webp'
+          assert path.is_file() and path.stat().st_size==9308, (path, path.stat().st_size)
+          assert path.read_bytes()[:4]==b'RIFF' and path.read_bytes()[8:12]==b'WEBP'
+          assert 'src="/assets/images/editorial/caffe-donatello-cup.webp"' in html
+          assert 'function initCaffeScroll()' in app and 'initCaffeScroll();' in app
+          assert 'prefers-reduced-motion:reduce' in css
+          assert 'const rotation=(progress-.5)*12' in app
+          assert 'window.requestAnimationFrame(update)' in app
+          assert "window.addEventListener('scroll',schedule,{passive:true})" in app
+          print('PASS V73 real owner-supplied coffee photo, 2 replaced blocks, lightweight scroll animation, private-only Worker')
+          PY
+          node --check projects/gelato-donatello-premium-v6/assets/js/app.js
+      - name: Chromium mobile, desktop and reduced-motion QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v73-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v73-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v73-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [device,width,height,reducedMotion] of [
+              ['small-iphone',360,780,'no-preference'],['iphone',390,844,'no-preference'],
+              ['desktop',1440,900,'no-preference'],['reduce',390,844,'reduce']
+            ]){
+              const page=await browser.newPage({viewport:{width,height},reducedMotion});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              assert.strictEqual(await page.locator('section.v6-cup-story,section.v6-image-story').count(),0);
+              const coffee=page.locator('[data-caffe-scroll]');
+              assert.strictEqual(await coffee.count(),1);
+              const title=await coffee.locator('h2').innerText();
+              assert(title.includes('Auch wenn alles eiskalt ist:') && title.includes('Ein warmer Caffè geht immer.'));
+              assert.strictEqual(await coffee.locator('a.v73-caffe__link').getAttribute('href'),'/kontakt/');
+              const photo=coffee.locator('img.v73-caffe__cup');
+              await coffee.scrollIntoViewIfNeeded();
+              await page.waitForFunction(()=>{
+                const i=document.querySelector('.v73-caffe__cup');return i?.complete && i.naturalWidth>=300 && i.naturalHeight>=280;
+              },null,{timeout:15000});
+              const bbox=await photo.boundingBox();
+              assert(bbox && bbox.width>=240 && bbox.width<=560,'coffee size invalid '+JSON.stringify(bbox));
+              const before=await coffee.locator('.v73-caffe__visual').evaluate(e=>e.style.getPropertyValue('--coffee-rotation'));
+              await page.evaluate(()=>window.scrollBy({top:250,behavior:'instant'}));
+              await page.waitForTimeout(150);
+              const after=await coffee.locator('.v73-caffe__visual').evaluate(e=>e.style.getPropertyValue('--coffee-rotation'));
+              if(reducedMotion==='reduce'){
+                assert.strictEqual(after,'0deg','Animation not disabled when reduced motion');
+                assert.strictEqual(await photo.evaluate(e=>getComputedStyle(e).transform),'none','Visual still transformed');
+              }else{
+                assert.notStrictEqual(before,after,'Coffee rotation must respond to real scroll');
+                assert(Math.abs(parseFloat(after))<=6.1,'Rotation too aggressive '+after);
+              }
+              const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,viewport:innerWidth}));
+              assert(size.scroll<=size.viewport+3,'Horizontal overflow '+JSON.stringify(size));
+              assert.deepStrictEqual(errors,[],'Browser JS errors');
+              await coffee.screenshot({path:'visual-evidence/coffee-'+device+'.png',animations:'disabled'});
+              assert.strictEqual((await page.request.get('http://127.0.0.1:43119/kontakt/')).status(),200);
+              console.log('PASS V73 '+device+' real cup, on-scroll subtle rotation, readable marketing text, no overflow');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error('BROWSER QA FAILURE',e);process.exit(1)});
+          JS
+      - name: Upload coffee QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v73-coffee-responsive
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Ensure deployment points to existing private Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy ONLY private Gelato Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Verify Cloudflare rollout at 100 percent
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/v73-deploy.json
+          node -e "const r=require('/tmp/v73-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V73 PRIVATE DEPLOY PASS',d.id)"
