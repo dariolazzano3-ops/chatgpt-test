@@ -1,0 +1,44 @@
+name: Gelato V81 Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-caffe-v81-premium]
+    paths: ['.github/workflows/gelato-caffe-v81.yml']
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify safe V81 source
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=Path('projects/gelato-donatello-premium-v6')
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          css=(r/'assets/css/style.css').read_text()
+          js=(r/'assets/js/app.js').read_text()
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./'+str(r)
+          assert cfg['assets']['run_worker_first'] is False
+          assert 'V81: editorial coffee motion' in css
+          assert 'v81-in-view' in js
+          assert 'const rotation=(progress-.5)*360' in js
+          assert 'prefers-reduced-motion:reduce' in css
+          assert 'X-Robots-Tag: noindex' in (r/'_headers').read_text()
+          print('V81 PRIVATE SOURCE PASS')
+          PY
+      - name: Deploy private preview only
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Verify deployment
+        run: |
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" >/tmp/v81.json
+          node -e "const x=require('/tmp/v81.json');const d=x.result?.deployments?.[0];if(!x.success||!d?.versions?.some(v=>v.percentage===100))process.exit(1);console.log('V81 DEPLOY PASS',d.id)"
