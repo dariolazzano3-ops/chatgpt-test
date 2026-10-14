@@ -9,7 +9,7 @@ test('gifts sit between kids cups and coffee, before the visit, only once', () =
   const kids = html.indexOf('class="v66-kids');
   const gifts = html.indexOf('class="v99-gifts" id="gutscheine"');
   const coffee = html.indexOf('data-caffe-scroll');
-  const visit = html.indexOf('class="v6-contact-cta"');
+  const visit = html.indexOf('class="v102-location"');
   assert.ok(kids >= 0 && kids < gifts && gifts < coffee && coffee < visit);
   assert.equal((html.match(/id="gutscheine"/g) || []).length, 1);
   assert.equal((html.match(/class="v99-gift"/g) || []).length, 2);
