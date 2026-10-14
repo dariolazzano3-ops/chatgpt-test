@@ -1,0 +1,194 @@
+name: Gelato V75 Crisp Caffe Private Preview
+on:
+  push:
+    branches: [aurentara/gelato-caffe-crisp-v75]
+    paths: ['.github/workflows/gelato-caffe-v75.yml']
+permissions:
+  contents: write
+concurrency:
+  group: gelato-v75-private-preview
+  cancel-in-progress: false
+jobs:
+  generate-qa-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Check V75 branch, source files and private-only safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "aurentara/gelato-caffe-crisp-v75"
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('projects/gelato-donatello-premium-v6')
+          html=(root/'index.html').read_text()
+          css=(root/'assets/css/style.css').read_text()
+          js=(root/'assets/js/app.js').read_text()
+          cfg=json.loads(Path('wrangler.gelato-private-preview.jsonc').read_text())
+          project=json.loads((root/'project.json').read_text())
+          assert cfg['name']=='gelato-donatello-private-preview-v2'
+          assert cfg['assets']['directory']=='./projects/gelato-donatello-premium-v6'
+          assert cfg['assets']['run_worker_first'] is False
+          assert project['preview_policy']['external_publish'] is False
+          assert project['safety']['production_deploy'] is False
+          assert 'X-Robots-Tag: noindex' in (root/'_headers').read_text()
+          assert html.count('class="v73-caffe"')==1
+          assert 'caffe-donatello-cup-v75.webp' in html
+          assert 'caffe-tisch-fine-v75.webp' in css
+          assert 'Ein warmer Caffè geht immer.' in html
+          assert 'const rotation=(progress-.5)*180' in js
+          assert 'prefers-reduced-motion:reduce' in css
+          assert 'requestAnimationFrame(update)' in js
+          for p in ['caffe-donatello-cup.webp','caffe-original-tisch-textur-v74.webp']:
+            assert (root/'assets/images/editorial'/p).is_file()
+          print('PASS safe private target, unmodified marketing copy and source-original asset paths')
+          PY
+      - name: Generate sharp, high-resolution coffee assets from owner-provided photos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --break-system-packages -q Pillow
+          python3 - <<'PY'
+          from PIL import Image,ImageFilter,ImageEnhance,ImageOps
+          from pathlib import Path
+          import random
+          path=Path('projects/gelato-donatello-premium-v6/assets/images/editorial')
+          # Re-render existing user-supplied transparent cup at retina dimensions.
+          source=Image.open(path/'caffe-donatello-cup.webp').convert('RGBA')
+          target=source.resize((1040,970),Image.Resampling.LANCZOS)
+          r,g,b,a=target.split()
+          rgb=Image.merge('RGB',(r,g,b))
+          rgb=ImageEnhance.Contrast(rgb).enhance(1.07)
+          rgb=rgb.filter(ImageFilter.UnsharpMask(radius=1.5,percent=142,threshold=2))
+          r,g,b=rgb.split()
+          cup=Image.merge('RGBA',(r,g,b,a))
+          cup.save(path/'caffe-donatello-cup-v75.webp',format='WEBP',quality=96,method=6)
+          # Retain the source's real dark tabletop, but reconstruct a full-res
+          # nonpixelated stone surface with gentle grain and mirrored seams.
+          original=Image.open(path/'caffe-original-tisch-textur-v74.webp').convert('RGB')
+          original=ImageEnhance.Contrast(original).enhance(1.08)
+          original=ImageEnhance.Brightness(original).enhance(.84)
+          tex=original.resize((720,720),Image.Resampling.LANCZOS)
+          full=Image.new('RGB',(1440,1440))
+          full.paste(tex,(0,0))
+          full.paste(ImageOps.mirror(tex),(720,0))
+          full.paste(ImageOps.flip(tex),(0,720))
+          full.paste(ImageOps.flip(ImageOps.mirror(tex)),(720,720))
+          rnd=random.Random(75195)
+          pixels=full.load()
+          for y in range(1440):
+            for x in range(1440):
+              c=pixels[x,y]
+              n=rnd.randint(-6,6)
+              pixels[x,y]=tuple(max(0,min(255,v+n)) for v in c)
+          full=full.filter(ImageFilter.UnsharpMask(radius=1.0,percent=115,threshold=2))
+          full.save(path/'caffe-tisch-fine-v75.webp',format='WEBP',quality=88,method=6)
+          print('GENERATED V75',source.size,cup.size,original.size,full.size)
+          print('ASSET_SIZES', (path/'caffe-donatello-cup-v75.webp').stat().st_size, (path/'caffe-tisch-fine-v75.webp').stat().st_size)
+          PY
+      - name: Persist optimized assets in version-controlled feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add projects/gelato-donatello-premium-v6/assets/images/editorial/caffe-donatello-cup-v75.webp
+          git add projects/gelato-donatello-premium-v6/assets/images/editorial/caffe-tisch-fine-v75.webp
+          git diff --cached --check
+          git commit -m 'assets: save optimized hi-res V75 Caffè originals in feature branch'
+          git push origin HEAD:aurentara/gelato-caffe-crisp-v75
+      - name: Browser verify hero rendering and coffee animation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-evidence
+          python3 -m http.server 43119 --bind 127.0.0.1 --directory projects/gelato-donatello-premium-v6 >/tmp/gelato-v75-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          npm install --prefix /tmp/gelato-v75-browser --no-save --no-package-lock --no-audit --no-fund --silent playwright@1.56.1
+          node <<'JS'
+          const assert=require('assert');
+          const {chromium}=require('/tmp/gelato-v75-browser/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            for(const [name,width,height,reducedMotion] of [
+              ['iphone-small',360,780,'no-preference'],['iphone',390,844,'no-preference'],
+              ['tablet',768,1024,'no-preference'],['desktop',1440,900,'no-preference'],
+              ['reduced-motion',390,844,'reduce']
+            ]){
+              const page=await browser.newPage({viewport:{width,height},reducedMotion});
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const response=await page.goto('http://127.0.0.1:43119/',{waitUntil:'domcontentloaded',timeout:30000});
+              assert.strictEqual(response.status(),200);
+              const section=page.locator('section.v73-caffe'),cup=section.locator('.v73-caffe__cup'),visual=section.locator('.v73-caffe__visual');
+              assert.strictEqual(await section.count(),1);
+              assert((await section.locator('h2').innerText()).includes('Ein warmer Caffè geht immer.'));
+              await section.scrollIntoViewIfNeeded();
+              await page.waitForFunction(()=>{
+                const img=document.querySelector('.v73-caffe__cup');
+                return img?.complete && img.naturalWidth>=1000 && img.naturalHeight>=900;
+              },null,{timeout:15000});
+              const stats=await section.evaluate(s=>{
+                const cup=s.querySelector('.v73-caffe__cup'),visual=s.querySelector('.v73-caffe__visual');
+                const bg=getComputedStyle(s).backgroundImage;
+                return {cupWidth:cup.getBoundingClientRect().width,visualWidth:visual.getBoundingClientRect().width,
+                  naturalWidth:cup.naturalWidth,naturalHeight:cup.naturalHeight,
+                  bg,text:getComputedStyle(s.querySelector('h2')).color};
+              });
+              assert(stats.bg.includes('caffe-tisch-fine-v75.webp'),'original textured background missing');
+              assert(stats.cupWidth/stats.visualWidth<=.73,'cup size too large '+JSON.stringify(stats));
+              assert(stats.text==='rgb(250, 244, 233)','text contrast changed');
+              const old=(parseFloat(await visual.evaluate(e=>e.style.getPropertyValue('--coffee-rotation')))||0);
+              await page.evaluate(()=>window.scrollBy({top:220,behavior:'instant'}));
+              await page.waitForTimeout(220);
+              const moved=(parseFloat(await visual.evaluate(e=>e.style.getPropertyValue('--coffee-rotation')))||0);
+              if(reducedMotion==='reduce'){
+                assert.strictEqual(moved,0);
+                assert.strictEqual(await cup.evaluate(e=>getComputedStyle(e).transform),'none');
+              } else {
+                assert(Math.abs(moved-old)>=10,'150 percent rotation not responding '+JSON.stringify({old,moved}));
+                assert(Math.abs(moved)<=90.1,'animation exceeds safe bounds');
+              }
+              assert.deepStrictEqual(errors,[]);
+              const overflow=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
+              assert(overflow.width<=overflow.viewport+3,'horizontal overflow '+JSON.stringify(overflow));
+              await section.screenshot({path:'visual-evidence/coffee-'+name+'.png',animations:'disabled'});
+              console.log('PASS V75 '+name+' retina sharp 1040px coffee, detailed original dark stone, smaller cup, stronger scroll',old,moved);
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error('BROWSER QA FAILURE',e);process.exit(1)});
+          JS
+      - name: Store browser QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelato-v75-caffe-sharp-review
+          path: visual-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Check private Cloudflare destination exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments")
+          test "$status" = "200"
+      - name: Deploy ONLY the existing private Gelato Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.148.0 deploy --config wrangler.gelato-private-preview.jsonc
+      - name: Confirm Cloudflare private rollout at 100 percent
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/gelato-donatello-private-preview-v2/deployments" -o /tmp/gelato-v75-deploy.json
+          node -e "const r=require('/tmp/gelato-v75-deploy.json');const d=r.result?.deployments?.[0];if(!r.success||!d?.versions?.some(v=>v.percentage===100))process.exit(2);console.log('GELATO V75 PRIVATE DEPLOY PASS',d.id)"
