@@ -3211,3 +3211,29 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v88-caffe-photo .v73-caffe__cup{width:min(75vw,305px)!important;max-width:305px!important}
   .v88-caffe-photo .v73-caffe__copy{padding-block:4px 18px}
 }
+
+/* V91: keep source pixels sharp by reducing cup scale; remove enlarged grain texture. */
+.v88-caffe-photo{
+  background-color:#292725;
+  background-image:
+    linear-gradient(to bottom,#f8f4e9 0%,rgba(248,244,233,.94) 5%,rgba(248,244,233,.5) 14%,rgba(248,244,233,0) 30%),
+    radial-gradient(ellipse 85% 65% at 50% 35%,rgba(94,87,80,.22),transparent 82%),
+    linear-gradient(160deg,#393532 0%,#292624 53%,#1e1c1a 100%);
+  background-size:cover;
+  background-repeat:no-repeat;
+}
+.v88-caffe-photo::before{display:none!important}
+.v88-caffe-photo .v73-caffe__cup{
+  width:min(62%,310px)!important;
+  max-width:310px!important;
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,.28));
+  image-rendering:auto;
+}
+@media(max-width:650px){
+  .v88-caffe-photo .v73-caffe__visual{aspect-ratio:1/0.73}
+  .v88-caffe-photo .v73-caffe__cup{
+    width:min(58vw,238px)!important;
+    max-width:238px!important;
+    filter:drop-shadow(0 9px 12px rgba(0,0,0,.26));
+  }
+}
