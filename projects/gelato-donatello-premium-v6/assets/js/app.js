@@ -7,34 +7,85 @@ import { initDiscoveryFlavors } from './components/discovery-flavors.js';
 import { initDiscoveryCups } from './components/discovery-cups.js';
 
 function initCaffeScroll() {
-  const section=document.querySelector('[data-caffe-scroll]');
-  if(!section) return;
-  const visual=section.querySelector('.v73-caffe__visual');
-  if(!visual) return;
-  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)');
-  let visible=false, frame=0;
-  const update=()=>{
-    frame=0;
-    if (reduce.matches) {
-      visual.style.setProperty('--coffee-rotation', '0deg');
+  const section = document.querySelector('[data-caffe-scroll]');
+  const visual = section?.querySelector('.v73-caffe__visual');
+  if (!visual) return;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const clamp = (value) => Math.max(0, Math.min(1, value));
+  let visible = false;
+  let currentAngle = 0;
+  let targetAngle = 0;
+  let frame = 0;
+  let lastFrameTime = 0;
+
+  // Measure the untransformed visual wrapper so rotation cannot move its own reference point.
+  function measureAngle() {
+    const box = visual.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const cupCenter = box.top + box.height / 2;
+    // One calm, complete revolution while the cup passes through the viewport.
+    const progress = clamp((viewportHeight * 0.95 - cupCenter) / viewportHeight);
+    section.style.setProperty('--coffee-focus', (1 - Math.abs(progress - 0.5) * 2).toFixed(3));
+    return progress * 360;
+  }
+
+  function paint(angle) {
+    visual.style.setProperty('--coffee-rotation', `${angle.toFixed(2)}deg`);
+  }
+
+  // Time-based damping eliminates trackpad/touch-wheel steps without becoming a free-running spin.
+  // No perpetual RAF: stop precisely at the scroll-derived target after the last movement.
+  function animate(time) {
+    frame = 0;
+    if (reducedMotion.matches || !visible || document.hidden) {
+      lastFrameTime = 0;
       return;
     }
-    if (!visible) return;
-    // Complete one revolution while the cup travels through the viewport.
-    // Measure its stationary wrapper, not the rotating image, to avoid jitter.
-    const rect=visual.getBoundingClientRect();
-    const travel=Math.max(1,window.innerHeight+rect.height);
-    const progress=Math.min(1,Math.max(0,(window.innerHeight-rect.top)/travel));
-    visual.style.setProperty('--coffee-rotation',(progress*360).toFixed(2)+'deg');
-    section.style.setProperty('--coffee-focus',Math.max(0,1-Math.abs(progress-.5)*2).toFixed(3));
-  };
-  const schedule=()=>{if(!frame)frame=window.requestAnimationFrame(update)};
-  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;section.classList.toggle('v81-in-view',visible);schedule();},{rootMargin:'120px'});
+    const elapsed = lastFrameTime ? Math.min(64, time - lastFrameTime) : 16;
+    lastFrameTime = time;
+    const smoothing = 1 - Math.exp(-elapsed / 90);
+    currentAngle += (targetAngle - currentAngle) * smoothing;
+    if (Math.abs(targetAngle - currentAngle) < 0.08) currentAngle = targetAngle;
+    paint(currentAngle);
+    if (currentAngle !== targetAngle) frame = window.requestAnimationFrame(animate);
+    else lastFrameTime = 0;
+  }
+
+  function update() {
+    targetAngle = measureAngle();
+    if (reducedMotion.matches) {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      lastFrameTime = 0;
+      currentAngle = 0;
+      paint(0);
+      return;
+    }
+    if (!visible || document.hidden) {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      lastFrameTime = 0;
+      currentAngle = targetAngle;
+      paint(currentAngle);
+      return;
+    }
+    if (!frame && Math.abs(targetAngle - currentAngle) > 0.01) {
+      frame = window.requestAnimationFrame(animate);
+    }
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    visible = entries[0].isIntersecting;
+    section.classList.toggle('v81-in-view', visible);
+    update();
+  }, { rootMargin: '120px 0px' });
   observer.observe(section);
-  window.addEventListener('scroll',schedule,{passive:true});
-  window.addEventListener('resize',schedule,{passive:true});
-  if(reduce.addEventListener)reduce.addEventListener('change',schedule);
-  schedule();
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update, { passive: true });
+  document.addEventListener('visibilitychange', update);
+  if (reducedMotion.addEventListener) reducedMotion.addEventListener('change', update);
+  update();
 }
 
 function initReveal() {

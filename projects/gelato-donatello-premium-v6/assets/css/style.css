@@ -3300,12 +3300,13 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v88-caffe-photo .v73-caffe__copy h2 em{display:block;margin-top:.16em}
 @media(max-width:650px){.v26-discovery{padding-bottom:0!important}.v66-kids{margin-bottom:0!important;padding-bottom:0!important}.v88-caffe-photo{padding:20px 20px 58px!important;background-image:linear-gradient(180deg,#f8f4e9 0%,rgba(248,244,233,.95) 8%,rgba(248,244,233,.65) 22%,rgba(248,244,233,0) 42%),linear-gradient(165deg,#3b2c25 0%,#291f1b 55%,#171311 100%)!important}.v88-caffe-photo .v73-caffe__visual{aspect-ratio:1/.79!important}.v88-caffe-photo .v73-caffe__inner{gap:8px!important}.v88-caffe-photo .v73-caffe__copy h2{font-size:clamp(1.9rem,7vw,2.65rem)!important;line-height:1.18!important;letter-spacing:-.025em!important}.v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:1rem;line-height:1.55;max-width:32ch}.v88-caffe-photo .v73-caffe__eyebrow{margin-bottom:14px}}
 
-/* V95: native-resolution coffee cup, scroll-synchronised 360-degree spin. */
+/* V96: optically centred, inertial scroll-controlled 360° rotation. */
 .v88-caffe-photo .v73-caffe__cup{
   width:min(58%,280px)!important;
   max-width:280px!important;
   transform:rotate(var(--coffee-rotation,0deg))!important;
-  transform-origin:50% 50%;
+  transform-origin:47.5% 51.8%;
+  transition:none!important;
   image-rendering:auto;
 }
 @media(prefers-reduced-motion:no-preference){
