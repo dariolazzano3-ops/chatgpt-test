@@ -6,6 +6,33 @@ import { initHeroFlavors } from './components/hero-flavors.js';
 import { initDiscoveryFlavors } from './components/discovery-flavors.js';
 import { initDiscoveryCups } from './components/discovery-cups.js';
 
+function initCaffeScroll() {
+  const section=document.querySelector('[data-caffe-scroll]');
+  if(!section) return;
+  const visual=section.querySelector('.v73-caffe__visual');
+  if(!visual) return;
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)');
+  let visible=false, frame=0;
+  const update=()=>{
+    frame=0;
+    if(!visible||reduce.matches){visual.style.setProperty('--coffee-rotation','0deg');visual.style.setProperty('--coffee-rise','0px');return;}
+    const rect=section.getBoundingClientRect();
+    const travel=Math.max(1,window.innerHeight+rect.height);
+    const progress=Math.min(1,Math.max(0,(window.innerHeight-rect.top)/travel));
+    const rotation=(progress-.5)*12; // restrained -6..+6 degrees
+    const lift=(.5-progress)*13; // restrained -6.5..+6.5px
+    visual.style.setProperty('--coffee-rotation',rotation.toFixed(2)+'deg');
+    visual.style.setProperty('--coffee-rise',lift.toFixed(1)+'px');
+  };
+  const schedule=()=>{if(!frame)frame=window.requestAnimationFrame(update)};
+  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;schedule();},{rootMargin:'120px'});
+  observer.observe(section);
+  window.addEventListener('scroll',schedule,{passive:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  if(reduce.addEventListener)reduce.addEventListener('change',schedule);
+  schedule();
+}
+
 function initReveal() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const targets = document.querySelectorAll('[data-reveal]');
@@ -113,6 +140,7 @@ function init() {
   initCakeGallery();
   initCakeIpad();
   initHeroFlavors();
+  initCaffeScroll();
   initDiscoveryFlavors();
   initDiscoveryCups();
 }
