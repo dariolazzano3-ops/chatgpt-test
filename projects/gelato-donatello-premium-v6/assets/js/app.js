@@ -15,14 +15,17 @@ function initCaffeScroll() {
   let visible=false, frame=0;
   const update=()=>{
     frame=0;
-    if(!visible||reduce.matches){visual.style.setProperty('--coffee-rotation','0deg');visual.style.setProperty('--coffee-rise','0px');return;}
-    const rect=section.getBoundingClientRect();
+    if (reduce.matches) {
+      visual.style.setProperty('--coffee-rotation', '0deg');
+      return;
+    }
+    if (!visible) return;
+    // Complete one revolution while the cup travels through the viewport.
+    // Measure its stationary wrapper, not the rotating image, to avoid jitter.
+    const rect=visual.getBoundingClientRect();
     const travel=Math.max(1,window.innerHeight+rect.height);
     const progress=Math.min(1,Math.max(0,(window.innerHeight-rect.top)/travel));
-    const rotation=(progress-.5)*360; // V77: full 360 degree scroll-controlled rotation (-180 to +180 degrees)
-    const lift=(.5-progress)*28; // compact vertical parallax (-14..+14px) avoids clipping
-    visual.style.setProperty('--coffee-rotation',rotation.toFixed(2)+'deg');
-    visual.style.setProperty('--coffee-rise',lift.toFixed(1)+'px');
+    visual.style.setProperty('--coffee-rotation',(progress*360).toFixed(2)+'deg');
     section.style.setProperty('--coffee-focus',Math.max(0,1-Math.abs(progress-.5)*2).toFixed(3));
   };
   const schedule=()=>{if(!frame)frame=window.requestAnimationFrame(update)};
