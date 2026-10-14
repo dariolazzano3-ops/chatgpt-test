@@ -1,0 +1,79 @@
+name: Gelato Private Worker Preview
+
+on:
+  push:
+    branches:
+      - factory/aurentara-gelato-donatello-working-v1
+    paths:
+      - 'projects/gelato-donatello-premium-v6/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gelato-private-worker-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy-private:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_NAME: gelato-donatello-private-preview-v2
+      PROJECT_DIR: projects/gelato-donatello-premium-v6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify private-only policy and existing Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.ref_name }}" = 'factory/aurentara-gelato-donatello-working-v1'
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          node -e 'const p=require("./"+process.env.PROJECT_DIR+"/project.json"); if(p.preview_policy?.external_publish!==false||p.safety?.production_deploy!==false||p.safety?.public_deploy!==false||p.safety?.indexing!=="NOINDEX")process.exit(1)'
+          grep -q 'name="robots" content="noindex,nofollow,noarchive"' "$PROJECT_DIR/index.html"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps?per_page=100" \
+            | node -e '
+              let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{
+                const j=JSON.parse(s);
+                const domain="gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev";
+                if(!j.success||!j.result?.some(a=>a.domain===domain&&a.type==="self_hosted"))process.exit(1);
+                console.log("Existing Cloudflare Access application confirmed");
+              })'
+      - name: Deploy existing private Worker only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/wrangler-gelato-private.json" <<EOF
+          {
+            "name": "gelato-donatello-private-preview-v2",
+            "main": "$GITHUB_WORKSPACE/.github/gelato-private-assets-worker.js",
+            "compatibility_date": "2026-10-01",
+            "workers_dev": true,
+            "assets": {
+              "directory": "$GITHUB_WORKSPACE/$PROJECT_DIR",
+              "binding": "ASSETS",
+              "run_worker_first": false
+            }
+          }
+          EOF
+          npx --yes wrangler@4 deploy --config "$RUNNER_TEMP/wrangler-gelato-private.json"
+      - name: Verify private endpoint responds with Access gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev/"
+          STATUS=$(curl -L -s -o /dev/null -w '%{http_code}' "$URL")
+          case "$STATUS" in
+            200|302|303|401|403) echo "Private endpoint HTTP $STATUS (Access may require login)" ;;
+            *) echo "Unexpected endpoint status: $STATUS"; exit 1 ;;
+          esac
+          echo "Private preview: $URL" >> "$GITHUB_STEP_SUMMARY"
