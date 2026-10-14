@@ -3170,3 +3170,8 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v73-caffe__cup { width:min(61vw,230px)!important;max-width:230px!important; }
   .v73-caffe__visual { aspect-ratio:1/0.93; }
 }
+
+/* V87: text-first Caffè section after owner removed the coffee cup. */
+.v73-caffe__inner{gap:0;}
+.v73-caffe__copy{padding-block:clamp(26px,5vw,64px);}
+@media(max-width:650px){.v73-caffe{padding-block:clamp(46px,9vw,72px)}.v73-caffe__copy{padding-block:8px 18px}}
