@@ -3143,3 +3143,30 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(max-width:650px){.v73-caffe{background-image:radial-gradient(ellipse 95% 45% at 50% 18%,rgba(104,95,85,.2),transparent 80%),linear-gradient(160deg,#34302c 0%,#242220 50%,#171615 100%)}}
 
 /* V85: private preview pipeline activation; coffee styling preserved. */
+
+/* V86: mobile gallery-to-caffe rhythm and bounded rotating cup. */
+@media (max-width:650px) {
+  .v73-caffe {
+    padding:clamp(30px,6vw,42px) 22px 58px;
+    overflow:hidden;
+  }
+  .v73-caffe__inner { gap:clamp(12px,3.4vw,20px); }
+  .v73-caffe__visual {
+    width:min(100%,390px);
+    max-width:390px;
+    aspect-ratio:1/0.95;
+    margin-inline:auto;
+    overflow:visible;
+    contain:layout;
+  }
+  .v73-caffe__cup {
+    width:min(64vw,270px)!important;
+    max-width:270px!important;
+    transform-origin:center center;
+  }
+  .v73-caffe__copy h2 { margin-top:0; }
+}
+@media (max-width:380px) {
+  .v73-caffe__cup { width:min(61vw,230px)!important;max-width:230px!important; }
+  .v73-caffe__visual { aspect-ratio:1/0.93; }
+}
