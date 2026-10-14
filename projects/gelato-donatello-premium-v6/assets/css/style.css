@@ -3126,3 +3126,11 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe__copy{transition:opacity .75s ease,translate .75s cubic-bezier(.2,.7,.2,1)}
 @media(prefers-reduced-motion:no-preference){.v73-caffe:not(.v81-in-view) .v73-caffe__copy{opacity:.8;translate:0 12px}.v73-caffe.v81-in-view .v73-caffe__copy{opacity:1;translate:0 0}}
 @media(prefers-reduced-motion:reduce){.v73-caffe__copy{transition:none;translate:none!important;opacity:1!important}.v73-caffe::after{transition:none}}
+
+/* V82: calmer premium editorial rhythm, cleaner cup focus and readable mobile copy. */
+.v73-caffe__visual{aspect-ratio:1/0.82}
+.v73-caffe__copy{max-width:650px}
+.v73-caffe__copy h2{font-size:clamp(2.1rem,5.5vw,4.35rem);line-height:1.09;letter-spacing:-.035em}
+.v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:510px;line-height:1.55;opacity:.94}
+.v73-caffe__eyebrow{letter-spacing:.2em}
+@media(max-width:650px){.v73-caffe{padding-block:36px 58px}.v73-caffe__inner{gap:12px}.v73-caffe__visual{aspect-ratio:1/0.77}.v73-caffe__copy h2{font-size:clamp(2rem,7.7vw,3.1rem);line-height:1.09}.v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:clamp(1rem,3.8vw,1.13rem);line-height:1.5}}
