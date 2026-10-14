@@ -3105,3 +3105,8 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe__link{justify-content:center}
 @media(max-width:650px){.v73-caffe{padding:40px 25px 65px}.v73-caffe__inner{gap:17px}.v73-caffe__visual{width:100%;max-width:470px}.v73-caffe__cup{width:83%;max-width:360px}.v73-caffe__copy h2{font-size:clamp(32px,8.1vw,50px);line-height:1.04}.v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:clamp(16px,4.1vw,19px)}.v73-caffe__orbit{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.v73-caffe__cup{transform:none!important}}
+
+/* V79: dedicated scalable coffee-bean tabletop artwork, cup remains a separate 360deg layer. */
+.v73-caffe{background-color:#1c0e08;background-image:linear-gradient(180deg,rgba(19,9,5,.04) 0%,rgba(19,9,5,.12) 35%,rgba(19,9,5,.65) 83%,#180b07 100%),url('/assets/images/editorial/gelato-v79-coffee-beans.svg');background-position:center top;background-size:cover;background-repeat:no-repeat}
+.v73-caffe::before{display:none}
+.v73-caffe__halo{opacity:.35}
