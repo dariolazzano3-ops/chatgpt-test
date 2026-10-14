@@ -3483,3 +3483,16 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 }
 @media(prefers-reduced-motion:no-preference){body.reveal-enabled .v99-gifts [data-reveal]{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease;}body.reveal-enabled .v99-gifts [data-reveal].is-visible{opacity:1;transform:none;}}
 @media(prefers-reduced-motion:reduce){.v99-gifts [data-reveal]{opacity:1!important;transform:none!important;transition:none!important;}.v99-gift,.v99-gift__link{transition:none!important;}}
+
+
+/* V100 · customer-first copy: one emotional promise, concise details and a clear CTA. */
+@media(min-width:651px){.v88-caffe-photo .v73-caffe__copy h2{font-size:clamp(2.35rem,4vw,3.65rem)!important;max-width:720px;}}
+.v88-caffe-photo .v73-caffe__eyebrow{letter-spacing:.19em!important;font-size:.72rem;text-transform:uppercase;}
+.v88-caffe-photo .v73-caffe__copy h2{max-width:720px;line-height:1.14!important;letter-spacing:-.032em!important;text-wrap:balance;}
+.v88-caffe-photo .v73-caffe__copy h2 em{margin-top:.12em;display:block;}
+.v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:420px;line-height:1.5;}
+@media(max-width:650px){
+  .v88-caffe-photo .v73-caffe__copy h2{font-size:clamp(1.86rem,7.15vw,2.65rem)!important;line-height:1.16!important;}
+  .v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:29ch;font-size:.99rem!important;line-height:1.5!important;}
+  .v88-caffe-photo .v73-caffe__eyebrow{margin-bottom:13px!important;}
+}
