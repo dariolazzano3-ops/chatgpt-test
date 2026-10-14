@@ -3141,3 +3141,5 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe::after{background:radial-gradient(ellipse 55% 32% at 50% 26%,rgba(216,166,112,.13),transparent 82%)}
 .v73-caffe__halo{opacity:.19;filter:blur(16px)}
 @media(max-width:650px){.v73-caffe{background-image:radial-gradient(ellipse 95% 45% at 50% 18%,rgba(104,95,85,.2),transparent 80%),linear-gradient(160deg,#34302c 0%,#242220 50%,#171615 100%)}}
+
+/* V85: private preview pipeline activation; coffee styling preserved. */
