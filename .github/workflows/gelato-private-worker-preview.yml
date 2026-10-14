@@ -47,8 +47,8 @@ jobs:
               let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{
                 const j=JSON.parse(s);
                 const domain="gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev";
-                if(!j.success||!j.result?.some(a=>a.domain===domain&&a.type==="self_hosted"))process.exit(1);
-                console.log("Existing Cloudflare Access application confirmed");
+                if(!j.success||!j.result?.some(a=>a.domain===domain&&a.type==="self_hosted"&&a.policies?.some(p=>p.decision==="allow"&&p.include?.some(i=>i.email?.email))))process.exit(1);
+                console.log("Existing Cloudflare Access application with email-restricted allow policy confirmed");
               })'
       - name: Deploy existing private Worker only
         shell: bash
@@ -79,3 +79,4 @@ jobs:
             *) echo "Unexpected endpoint status: $STATUS"; exit 1 ;;
           esac
           echo "Private preview: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
