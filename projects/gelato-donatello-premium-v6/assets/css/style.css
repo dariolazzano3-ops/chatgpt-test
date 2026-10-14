@@ -3088,3 +3088,20 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe__eyebrow,.v73-caffe__orbit{color:#ecc8a6}
 .v73-caffe__copy h2 em{color:#eec092}
 @media(max-width:650px){.v73-caffe{padding-top:54px}.v73-caffe__cup{width:74%;max-width:325px}.v73-caffe__visual{margin-inline:auto}}
+
+/* V78: user reference art direction, rich warm coffee-bean tabletop. */
+.v73-caffe{background-color:#1c100b;background-image:radial-gradient(ellipse 70% 32% at 86% 6%,rgba(212,142,81,.43),transparent 82%),radial-gradient(ellipse 52% 44% at 48% 28%,rgba(112,64,35,.30),transparent 85%),linear-gradient(157deg,#160b07 0%,#382115 32%,#22130d 67%,#100805 100%);background-repeat:no-repeat;background-size:cover;isolation:isolate}
+.v73-caffe::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.48' numOctaves='3' seed='29' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23grain)' opacity='.2'/%3E%3C/svg%3E");background-size:160px 160px;z-index:0}
+.v73-caffe__inner{position:relative;z-index:1;max-width:860px;gap:clamp(10px,2.5vw,24px)}
+.v73-caffe__visual{width:min(100%,570px)}
+.v73-caffe__cup{width:83%;max-width:460px;filter:contrast(1.09) saturate(1.08) drop-shadow(0 23px 23px rgba(0,0,0,.40))}
+.v73-caffe__halo{opacity:.5;background:radial-gradient(circle,rgba(238,164,101,.18),transparent 68%)}
+.v73-caffe__orbit{font-weight:700;letter-spacing:.28em;color:#f2d3b8}
+.v73-caffe__eyebrow{color:#eac19f;letter-spacing:.24em}
+.v73-caffe__copy{text-align:center;max-width:740px;margin-inline:auto}
+.v73-caffe__copy h2{max-width:700px;margin-inline:auto;line-height:1.04;letter-spacing:-.04em}
+.v73-caffe__copy h2 em{color:#f2bd90}
+.v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:620px;margin-inline:auto;line-height:1.65}
+.v73-caffe__link{justify-content:center}
+@media(max-width:650px){.v73-caffe{padding:40px 25px 65px}.v73-caffe__inner{gap:17px}.v73-caffe__visual{width:100%;max-width:470px}.v73-caffe__cup{width:83%;max-width:360px}.v73-caffe__copy h2{font-size:clamp(32px,8.1vw,50px);line-height:1.04}.v73-caffe__copy>p:not(.v73-caffe__eyebrow){font-size:clamp(16px,4.1vw,19px)}.v73-caffe__orbit{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.v73-caffe__cup{transform:none!important}}
