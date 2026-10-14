@@ -3496,3 +3496,15 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
   .v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:29ch;font-size:.99rem!important;line-height:1.5!important;}
   .v88-caffe-photo .v73-caffe__eyebrow{margin-bottom:13px!important;}
 }
+
+
+/* V101: clean Italian gelateria message, naturally stacked for small screens. */
+.v88-caffe-photo .v73-caffe__copy h2{max-width:720px;line-height:1.13!important;}
+.v88-caffe-photo .v73-caffe__copy h2 em{display:block;max-width:19ch;margin:.14em auto 0;}
+.v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:440px;}
+@media(max-width:650px){
+  .v88-caffe-photo .v73-caffe__copy h2{font-size:clamp(1.85rem,7.2vw,2.6rem)!important;line-height:1.17!important;}
+  .v88-caffe-photo .v73-caffe__copy h2 em{max-width:14ch;}
+  .v88-caffe-photo .v73-caffe__eyebrow{font-size:.67rem!important;letter-spacing:.15em!important;}
+  .v88-caffe-photo .v73-caffe__copy>p:not(.v73-caffe__eyebrow){max-width:32ch;}
+}

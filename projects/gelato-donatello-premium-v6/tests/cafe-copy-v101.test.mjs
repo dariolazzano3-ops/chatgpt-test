@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
-test('Caffè storytelling sells an experience instead of repeating coffee clichés', () => {
+test('Caffè storytelling connects authentic ice cream and Italian coffee without old clichés', () => {
  const section = html.match(/<section class="v73-caffe v88-caffe-photo"[\s\S]*?<\/section>/)?.[0];
  assert.ok(section);
- assert.match(section, /MEHR ALS EINE PAUSE/);
- assert.match(section, /Komm für den Genuss\.<br \/><em>Bleib für das Gefühl\.<\/em>/);
- assert.match(section, /Ein Cappuccino\. Ein bisschen Ruhe\. Ein Moment nur für dich\./);
+ assert.match(section, /ZWEI KLASSIKER\. EIN GENUSSMOMENT\./);
+ assert.match(section, /Zu echtem Eis<br \/><em>darf ein echter Caffè nicht fehlen\.<\/em>/);
+ assert.match(section, /Erst ein Eis\. Dann ein Cappuccino\. Und am liebsten noch ein bisschen bleiben\./);
  assert.match(section, /href="\/kontakt\/">Jetzt vorbeikommen/);
- assert.doesNotMatch(section, /Auch wenn alles eiskalt|Ein warmer Caffè geht immer|Ein guter Kaffee/);
+ assert.doesNotMatch(section, /Komm für den Genuss|Bleib für das Gefühl|Auch wenn alles eiskalt|Ein warmer Caffè geht immer/);
  assert.equal((section.match(/Cappuccino/g) || []).length, 2); // image alt + concise supporting text
 });
 
