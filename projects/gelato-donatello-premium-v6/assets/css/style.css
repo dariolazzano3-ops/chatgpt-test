@@ -3110,3 +3110,8 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe{background-color:#1c0e08;background-image:linear-gradient(180deg,rgba(19,9,5,.04) 0%,rgba(19,9,5,.12) 35%,rgba(19,9,5,.65) 83%,#180b07 100%),url('/assets/images/editorial/gelato-v79-coffee-beans.svg');background-position:center top;background-size:cover;background-repeat:no-repeat}
 .v73-caffe::before{display:none}
 .v73-caffe__halo{opacity:.35}
+
+/* V80: present our original Gelato cup at a restrained native-detail size. */
+.v73-caffe__cup{width:clamp(210px,45vw,330px)!important;max-width:330px!important;height:auto;image-rendering:auto;filter:contrast(1.04) saturate(1.04) drop-shadow(0 14px 20px rgba(0,0,0,.38))}
+.v73-caffe__visual{max-width:470px;margin-inline:auto}
+@media(max-width:650px){.v73-caffe__cup{width:min(68vw,285px)!important;max-width:285px!important}.v73-caffe__visual{max-width:390px}}
