@@ -3079,3 +3079,12 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 .v73-caffe{background-color:#302b28;background-image:radial-gradient(ellipse 85% 65% at 50% 23%,rgba(116,94,76,.28),transparent 78%),linear-gradient(155deg,#39332f 0%,#2b2725 55%,#211e1c 100%);background-size:cover;background-repeat:no-repeat}
 .v73-caffe::before{background-image:none;opacity:0}
 .v73-caffe__halo{background:radial-gradient(circle,rgba(234,190,136,.09),transparent 73%)}
+
+/* V77: approved first-reference editorial coffee styling, rendered at native CSS resolution. */
+.v73-caffe{background-color:#1b100c;background-image:radial-gradient(ellipse 62% 35% at 77% 9%,rgba(190,115,62,.43),transparent 88%),radial-gradient(ellipse 75% 50% at 23% 41%,rgba(91,51,32,.34),transparent 85%),linear-gradient(150deg,#180d09 0%,#3a2015 36%,#20110c 68%,#130a08 100%);background-size:cover;background-repeat:no-repeat}
+.v73-caffe::before{opacity:.26;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.38' numOctaves='3' seed='17' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.23'/%3E%3C/svg%3E");background-size:180px 180px;background-repeat:repeat;pointer-events:none}
+.v73-caffe__halo{background:radial-gradient(circle,rgba(240,175,108,.16),transparent 70%)}
+.v73-caffe__cup{filter:contrast(1.07) saturate(1.05) drop-shadow(0 18px 19px rgba(0,0,0,.42))}
+.v73-caffe__eyebrow,.v73-caffe__orbit{color:#ecc8a6}
+.v73-caffe__copy h2 em{color:#eec092}
+@media(max-width:650px){.v73-caffe{padding-top:54px}.v73-caffe__cup{width:74%;max-width:325px}.v73-caffe__visual{margin-inline:auto}}
