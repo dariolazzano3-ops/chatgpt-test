@@ -6,6 +6,8 @@ on:
       - factory/aurentara-gelato-donatello-working-v1
     paths:
       - 'projects/gelato-donatello-premium-v6/**'
+      - '.github/workflows/gelato-private-worker-preview.yml'
+      - '.github/gelato-private-assets-worker.js'
   workflow_dispatch:
 
 permissions:
@@ -71,9 +73,9 @@ jobs:
         run: |
           set -euo pipefail
           URL="https://gelato-donatello-private-preview-v2.gelato-donatello-dario-a5a5376c.workers.dev/"
-          STATUS=$(curl -L -s -o /dev/null -w '%{http_code}' "$URL")
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
           case "$STATUS" in
-            200|302|303|401|403) echo "Private endpoint HTTP $STATUS (Access may require login)" ;;
+            302|303|401|403) echo "Private endpoint HTTP $STATUS (Access may require login)" ;;
             *) echo "Unexpected endpoint status: $STATUS"; exit 1 ;;
           esac
           echo "Private preview: $URL" >> "$GITHUB_STEP_SUMMARY"
