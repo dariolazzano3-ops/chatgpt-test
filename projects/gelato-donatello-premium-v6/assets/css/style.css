@@ -3318,3 +3318,22 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 @media(prefers-reduced-motion:reduce){
   .v88-caffe-photo .v73-caffe__cup{animation:none!important;transform:none!important;will-change:auto!important}
 }
+
+
+/* V97: truly seamless cup. No box, bitmap mask or composited rectangular shadow.
+   Keep the original transparent photograph and V96's scroll-controlled rotation. */
+.v88-caffe-photo .v73-caffe__visual {
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  isolation: auto;
+}
+.v88-caffe-photo .v73-caffe__cup {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  filter: none !important;
+  backface-visibility: visible !important;
+  will-change: auto !important;
+}
