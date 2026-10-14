@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { page: 'eisbecher', href: '/eisbecher/', label: 'Eisbecher' },
   { page: 'getraenke', href: '/getraenke/', label: 'Shakes & Drinks' },
   { page: 'eistorten', href: '/eistorten/', label: 'Eistorten' },
+  { page: 'gutscheine', href: '/#gutscheine', label: 'Gutscheine' },
   { page: 'eisvitrine', href: '/eisvitrine/', label: 'Eisvitrine mieten' },
   { page: 'kontakt', href: '/kontakt/', label: 'Kontakt' }
 ];
