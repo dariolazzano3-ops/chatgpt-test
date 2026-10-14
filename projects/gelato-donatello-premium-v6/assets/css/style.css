@@ -3032,3 +3032,45 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
     filter:drop-shadow(0 13px 14px rgba(12,9,8,.25));
   }
 }
+
+
+/* V75: Premium Caffè like approved mobile art direction.
+ * Crisp, higher-resolution WebP derivatives of our existing original photo assets.
+ * Fine non-tiling grain keeps the original charcoal tabletop tactile on Retina screens. */
+.v73-caffe{
+  background-color:#292624;
+  background-image:linear-gradient(110deg,rgba(28,23,21,.10) 0%,rgba(9,8,8,.31) 100%),
+    url("/assets/images/editorial/caffe-tisch-fine-v75.webp");
+  background-position:center,center;
+  background-size:cover,cover;
+  background-repeat:no-repeat;
+}
+.v73-caffe::before{
+  background-image:radial-gradient(ellipse at 42% 14%,rgba(243,203,155,.075),transparent 66%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.77' numOctaves='3' seed='8' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='.15'/%3E%3C/svg%3E");
+  background-repeat:no-repeat,repeat;
+  background-size:cover,256px 256px;
+  opacity:.65;
+  pointer-events:none;
+}
+.v73-caffe__visual{width:min(100%,550px)}
+.v73-caffe__cup{
+  width:69%;max-width:395px;
+  image-rendering:auto;
+  filter:contrast(1.045) saturate(1.025) drop-shadow(0 13px 15px rgba(8,6,6,.28));
+  backface-visibility:hidden;
+}
+.v73-caffe__halo{opacity:.55}
+.v73-caffe__orbit{color:#e0cdbd}
+@media(max-width:650px){
+  .v73-caffe{padding:55px 26px 73px}
+  .v73-caffe__visual{width:min(100%,450px)}
+  .v73-caffe__cup{
+    width:70%;max-width:305px;
+    filter:contrast(1.045) saturate(1.025) drop-shadow(0 12px 13px rgba(8,6,6,.27));
+  }
+  .v73-caffe__inner{gap:clamp(16px,3.5vw,28px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .v73-caffe__cup{will-change:auto!important;transform:none!important}
+}
