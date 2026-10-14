@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && steps.source.outputs.source_branch || github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Resolve project slug
@@ -63,10 +63,18 @@ jobs:
           elif [ "${{ github.ref_name }}" = "feature/project-factory-v1-5" ]; then
             PROJECT_SLUG='factory-preview-smoke'
           else
-            PROJECT_SLUG=$(git diff-tree --no-commit-id --name-only -r HEAD \
-              | sed -n 's#^projects/\([^/][^/]*\)/.*#\1#p' \
-              | head -n 1)
-            test -n "$PROJECT_SLUG" || { echo "No changed project folder found in triggering commit"; exit 1; }
+            # Resolve the complete push range (merge commits included).
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.sha }}"
+            if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+              echo "Push base unavailable; refuse ambiguous project detection"
+              exit 1
+            fi
+            CHANGED_PROJECTS=$(git diff --name-only "$BEFORE" "$AFTER" -- projects/ \
+              | cut -d/ -f2 | sort -u)
+            PROJECT_COUNT=$(printf '%s\\n' "$CHANGED_PROJECTS" | sed '/^$/d' | wc -l | tr -d ' ')
+            test "$PROJECT_COUNT" -eq 1 || { echo "Expected exactly one changed project; found $PROJECT_COUNT"; exit 1; }
+            PROJECT_SLUG="$CHANGED_PROJECTS"
           fi
           echo "project_slug=$PROJECT_SLUG" >> "$GITHUB_OUTPUT"
 
