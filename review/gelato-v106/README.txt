@@ -1,0 +1,1 @@
+V106 private review screenshots: BEFORE = deployed old V105 preview with simplified V104 map, AFTER = commit 988fa6e2405b3c9c9ffe8df718130ab5c4a19f14 on local Chromium at iPhone 390x844 and desktop 1440x900. Original JPEG remains unchanged. GitHub Actions run 38734737005 contains the WebKit evidence artifact when completed.
