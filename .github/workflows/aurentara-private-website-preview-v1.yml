@@ -100,13 +100,44 @@ jobs:
           if(s.production_deploy!==false||s.public_deploy!==false||s.dns_changes!==false||s.billing!==false||s.external_writes!==false) process.exit(1);
           if(p.preview_policy?.mode!=='PRIVATE_CLOUDFLARE_ACCESS_ONLY') process.exit(1);
           NODE
-          ! git grep -n -E 'production_deploy["'"']?[[:space:]]*:[[:space:]]*true' -- "$PROJECT_PATH"
+          # Fail closed on any explicit true production flag, without nested shell quoting.
+          if git grep -n -E 'production_deploy[^:]*:[[:space:]]*true' -- "$PROJECT_PATH"; then
+            echo "Refusing private preview: production_deploy true found"
+            exit 1
+          fi
 
       - name: Run project acceptance
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/gelato-donatello-premium-v6-smoke.mjs
+          PROJECT_PATH="${{ steps.binding.outputs.project_path }}"
+          # V6 baseline smoke rejects intentionally redirected legacy routes.
+          # Check the current private site, preserving NOINDEX/safety checks.
+          node - "$PROJECT_PATH" <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const assert=require('node:assert/strict');
+          const root=process.argv[2];
+          for(const route of ['index.html','eisbecher/index.html','eissorten/index.html','eistorten/index.html','eisvitrine/index.html','kontakt/index.html']){
+            assert.ok(fs.existsSync(path.join(root,route)), 'Missing required route: '+route);
+          }
+          const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
+          const headers=fs.readFileSync(path.join(root,'_headers'),'utf8');
+          assert.match(home,/noindex,nofollow,noarchive/);
+          assert.match(headers,/X-Robots-Tag: noindex/);
+          assert.match(home,/assets\/css\/style\.css/);
+          assert.match(home,/assets\/js\/app\.js/);
+          const project=JSON.parse(fs.readFileSync(path.join(root,'project.json'),'utf8'));
+          assert.equal(project.preview_policy?.mode,'PRIVATE_CLOUDFLARE_ACCESS_ONLY');
+          for (const key of ['production_deploy','public_deploy','dns_changes','billing','external_writes']) {
+            assert.equal(project.safety?.[key],false,'Unsafe project policy: '+key);
+          }
+          NODE
+          if test -f "$PROJECT_PATH/tests/location-v105.test.mjs"; then
+            node --test "$PROJECT_PATH/tests/location-v105.test.mjs"
+          else
+            node scripts/gelato-donatello-premium-v6-smoke.mjs
+          fi
           find "${{ steps.binding.outputs.project_path }}/assets/js" -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Isolated private preview dry run
