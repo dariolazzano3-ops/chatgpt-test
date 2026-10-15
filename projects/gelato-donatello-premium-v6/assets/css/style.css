@@ -4228,3 +4228,40 @@ to{opacity:1;transform:translateY(0) scale(1)}}
  .v113-navigation__choice{transition:none!important;transform:none!important}
  .v113-navigation::backdrop{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+
+/* V114 footer logo cleanup. The owner-supplied logo has been extracted
+   without redrawing any colored elements, with black matte made transparent.
+   The centered full-width grid row is independent of the other columns. */
+#site-footer .site-footer__inner{row-gap:clamp(23px,3.3vw,39px)}
+#site-footer .site-footer__logo-row{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  margin:0 auto;
+  padding:0 0 clamp(1px,.4vw,7px);
+}
+#site-footer .site-footer__logo-row .site-footer__logo{
+  display:block;
+  width:min(460px,100%);
+  max-width:100%;
+  height:auto;
+  margin:0 auto;
+  object-fit:contain;
+  object-position:center center;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+#site-footer .site-footer__brand-block p{margin-top:0}
+@media(max-width:760px){
+  #site-footer .site-footer__inner{row-gap:30px}
+  #site-footer .site-footer__logo-row{padding-bottom:2px}
+  #site-footer .site-footer__logo-row .site-footer__logo{width:min(340px,92vw)}
+}
+@media(max-width:380px){
+  #site-footer .site-footer__logo-row .site-footer__logo{width:min(315px,91vw)}
+}

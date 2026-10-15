@@ -64,8 +64,11 @@ export function renderSiteFooter() {
   const links = NAV_ITEMS.slice(1).map(item => `<a href="${item.href}">${item.label}</a>`).join('');
   footer.innerHTML = `
     <div class="site-footer__inner">
+      <div class="site-footer__logo-row">
+        <img class="site-footer__logo" width="766" height="86" decoding="async"
+             src="/assets/images/brand/logo-donatello-footer-transparent-v114.webp" alt="${BUSINESS.name}" />
+      </div>
       <div class="site-footer__brand-block">
-        <img class="site-footer__logo" src="/assets/images/brand/logo-donatello.webp" alt="${BUSINESS.name}" />
         <p>Familiengeführt seit ${BUSINESS.foundingYear}. Zweite Generation. Eigenes Eislabor.</p>
       </div>
       <div class="site-footer__contact">
