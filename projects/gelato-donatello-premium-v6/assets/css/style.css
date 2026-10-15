@@ -3644,3 +3644,37 @@ body.v17-rental-page{background:#100f0d;color:#efe7d8}
 /* V104: higher-resolution OSM-derived public landmarks map, no invented shops or roads. */
 .v103-location__map-static img{object-position:50% 50%;image-rendering:auto;}
 @media(max-width:650px){.v103-location__map-static img{object-position:52% 50%;}}
+
+
+/* V105: exact user-supplied location image, displayed without overlays or cropping. */
+.v102-location__map .v102-location__map-surface{
+  min-height:0!important;
+  flex:0 0 auto;
+  background:#f5f1e7;
+}
+.v102-location__map .v103-location__map-static{
+  width:100%;
+  height:auto!important;
+  min-height:0;
+  aspect-ratio:4 / 3;
+  overflow:hidden;
+  display:block;
+  border:0;
+}
+.v102-location__map .v103-location__map-static img{
+  display:block;
+  width:100%;
+  height:100%;
+  aspect-ratio:4 / 3;
+  object-fit:contain;
+  object-position:center center;
+  filter:none!important;
+  transform:none!important;
+  transition:none!important;
+}
+@media(max-width:850px){
+  .v102-location__map .v103-location__map-static{
+    height:auto!important;
+    aspect-ratio:4 / 3;
+  }
+}
