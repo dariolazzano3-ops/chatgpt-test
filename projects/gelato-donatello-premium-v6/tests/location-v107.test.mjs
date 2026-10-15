@@ -1,0 +1,44 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+const read = p => readFileSync(new URL(p, import.meta.url));
+const html=read('../index.html').toString();
+const css=read('../assets/css/style.css').toString();
+const js=read('../assets/js/app.js').toString();
+const loc=html.split('<section class="v102-location"',2)[1]?.split('</main>',1)[0]||'';
+const header=loc.split('<header class="v102-location__heading"',2)[1]?.split('</header>',1)[0]||'';
+test('Location heading contains exactly the two approved texts',()=>{
+  assert.match(header,/id="v102-location-title"/);
+  assert.match(header,/BESUCH UNS/);
+  assert.match(header,/Direkt gegenüber der Burg Bucherbach\./);
+  assert.doesNotMatch(header,/Das gute Leben|liegt ganz nah|Ein Stück Italien|in Köllerbach/);
+  assert.equal((header.match(/<h2\b/g)||[]).length,1);
+  assert.equal((header.match(/<p\b/g)||[]).length,1);
+  assert.match(loc,/aria-labelledby="v102-location-title"/);
+});
+test('Compact responsive gaps apply without moving or altering the original map',()=>{
+  assert.match(css,/V107: compact visit handoff/);
+  assert.match(css,/padding-bottom:12px!important/);
+  assert.match(css,/padding-top:18px/);
+  assert.match(css,/\.v102-location__heading\{margin-bottom:15px/);
+  assert.match(css,/background-color:#211916!important/);
+  assert.match(loc,/gelato-donatello-original-location-v105\.jpg/);
+  assert.match(loc,/width="1448" height="1086"/);
+  assert.doesNotMatch(loc,/gelato-donatello-public-map-v104\.webp/);
+  const jpeg=read('../assets/images/editorial/gelato-donatello-original-location-v105.jpg');
+  assert.equal(createHash('sha256').update(jpeg).digest('hex'),'78a5ce0501ac07b27ddc09fef4e7fa0beb637b60f55e2999bcf0eac546517af0');
+});
+test('Contact CTA, route, phone, map interaction and reveal remain',()=>{
+  const coffee=html.split('<section class="v73-caffe v88-caffe-photo"',2)[1]?.split('</section>',1)[0]||'';
+  assert.match(coffee,/Jetzt vorbeikommen/);
+  assert.equal((loc.match(/Route starten/g)||[]).length,1);
+  assert.equal((loc.match(/>\s*Anrufen\s*</g)||[]).length,1);
+  assert.match(loc,/href="tel:\+4968069394980"/);
+  assert.match(loc,/href="https:\/\/www\.google\.com\/maps\/dir/);
+  assert.match(loc,/class="v102-location__details"/);
+  assert.match(loc,/data-location-reveal/);
+  assert.match(js,/observer\.disconnect\(\)/);
+  assert.match(css,/transition:opacity 1100ms/);
+  assert.match(css,/prefers-reduced-motion:reduce/);
+});

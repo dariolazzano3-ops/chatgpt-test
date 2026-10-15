@@ -3919,3 +3919,58 @@ body.location-reveal-ready .v102-location__map-surface.is-revealed::after{
 @media(prefers-reduced-motion:reduce){
   body[data-page="home"] .v102-location__map-surface::after{display:none!important;}
 }
+
+/* V107: compact visit handoff. Same espresso surface and original V105 map.
+   Reduce only the space after the Caffè CTA and before the location header. */
+body[data-page="home"] .v88-caffe-photo{
+  padding-bottom:clamp(13px,1.7vw,22px)!important;
+}
+body[data-page="home"] .v88-caffe-photo .v73-caffe__copy{
+  padding-bottom:0!important;
+}
+body[data-page="home"] .v102-location{
+  padding-top:clamp(20px,2.2vw,32px);
+}
+body[data-page="home"] .v102-location__heading{
+  margin:0 auto clamp(17px,2vw,24px);
+}
+body[data-page="home"] .v102-location__heading h2.v102-location__eyebrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-family:var(--font-sans,system-ui,sans-serif);
+  font-size:clamp(.79rem,1.15vw,.94rem);
+  font-weight:850;
+  line-height:1.35;
+  letter-spacing:.21em;
+  color:#d9b38a;
+  margin:0 0 9px;
+  max-width:none;
+}
+body[data-page="home"] .v102-location__heading > p:last-child{
+  margin:0 auto;
+  max-width:52ch;
+  font-size:clamp(1.04rem,1.45vw,1.18rem);
+  line-height:1.45;
+  color:#f2dfce;
+  text-wrap:balance;
+}
+@media(max-width:850px){
+  body[data-page="home"] .v88-caffe-photo{padding-bottom:12px!important;}
+  body[data-page="home"] .v102-location{padding-top:18px;}
+  body[data-page="home"] .v102-location__heading{margin-bottom:15px;}
+  body[data-page="home"] .v102-location__heading h2.v102-location__eyebrow{
+    font-size:.81rem;
+    margin-bottom:8px;
+    letter-spacing:.18em;
+  }
+  body[data-page="home"] .v102-location__heading > p:last-child{
+    font-size:clamp(.98rem,3.65vw,1.07rem);
+    line-height:1.45;
+    max-width:31ch;
+  }
+}
+@media(max-width:390px){
+  body[data-page="home"] .v102-location{padding-top:16px;}
+}
