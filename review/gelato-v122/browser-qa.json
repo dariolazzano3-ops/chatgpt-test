@@ -1,0 +1,217 @@
+[
+  {
+    "name": "iphone-320",
+    "viewport": 320,
+    "docWidth": 320,
+    "text": {
+      "x": 22,
+      "y": 148.9311065673828,
+      "right": 196.671875,
+      "bottom": 161.9779815673828,
+      "width": 174.671875,
+      "height": 13.046875
+    },
+    "envelope": {
+      "x": 212.671875,
+      "y": 137.9623565673828,
+      "right": 251.671875,
+      "bottom": 172.9623565673828,
+      "width": 39,
+      "height": 35
+    },
+    "badge": {
+      "x": 239.671875,
+      "y": 130.9623565673828,
+      "right": 258.671875,
+      "bottom": 149.9623565673828,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 16,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "iphone-360",
+    "viewport": 360,
+    "docWidth": 360,
+    "text": {
+      "x": 22,
+      "y": 150.20834350585938,
+      "right": 196.671875,
+      "bottom": 163.25521850585938,
+      "width": 174.671875,
+      "height": 13.046875
+    },
+    "envelope": {
+      "x": 212.671875,
+      "y": 139.23959350585938,
+      "right": 251.671875,
+      "bottom": 174.23959350585938,
+      "width": 39,
+      "height": 35
+    },
+    "badge": {
+      "x": 239.671875,
+      "y": 132.23959350585938,
+      "right": 258.671875,
+      "bottom": 151.23959350585938,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 16,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "iphone",
+    "viewport": 390,
+    "docWidth": 390,
+    "text": {
+      "x": 22,
+      "y": 149.75277709960938,
+      "right": 236,
+      "bottom": 164.72152709960938,
+      "width": 214,
+      "height": 14.96875
+    },
+    "envelope": {
+      "x": 257,
+      "y": 139.23715209960938,
+      "right": 297,
+      "bottom": 175.23715209960938,
+      "width": 40,
+      "height": 36
+    },
+    "badge": {
+      "x": 285,
+      "y": 132.23715209960938,
+      "right": 304,
+      "bottom": 151.23715209960938,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 21,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "android",
+    "viewport": 412,
+    "docWidth": 412,
+    "text": {
+      "x": 22,
+      "y": 147.18507385253906,
+      "right": 236,
+      "bottom": 162.15382385253906,
+      "width": 214,
+      "height": 14.96875
+    },
+    "envelope": {
+      "x": 257,
+      "y": 136.66944885253906,
+      "right": 297,
+      "bottom": 172.66944885253906,
+      "width": 40,
+      "height": 36
+    },
+    "badge": {
+      "x": 285,
+      "y": 129.66944885253906,
+      "right": 304,
+      "bottom": 148.66944885253906,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 21,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "tablet",
+    "viewport": 768,
+    "docWidth": 768,
+    "text": {
+      "x": 22,
+      "y": 157.75994873046875,
+      "right": 236,
+      "bottom": 172.72869873046875,
+      "width": 214,
+      "height": 14.96875
+    },
+    "envelope": {
+      "x": 257,
+      "y": 147.24432373046875,
+      "right": 297,
+      "bottom": 183.24432373046875,
+      "width": 40,
+      "height": 36
+    },
+    "badge": {
+      "x": 285,
+      "y": 140.24432373046875,
+      "right": 304,
+      "bottom": 159.24432373046875,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 21,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "viewport": 1440,
+    "docWidth": 1440,
+    "text": {
+      "x": 157.59375,
+      "y": 273.765625,
+      "right": 371.59375,
+      "bottom": 288.734375,
+      "width": 214,
+      "height": 14.96875
+    },
+    "envelope": {
+      "x": 401.828125,
+      "y": 262.25,
+      "right": 444.828125,
+      "bottom": 300.25,
+      "width": 43,
+      "height": 38
+    },
+    "badge": {
+      "x": 432.828125,
+      "y": 255.25,
+      "right": 451.828125,
+      "bottom": 274.25,
+      "width": 19,
+      "height": 19
+    },
+    "spacing": 30.234375,
+    "activeHref": "/events/",
+    "badgeText": "1",
+    "errors": []
+  },
+  {
+    "name": "animation-peak",
+    "envelope": {
+      "duration": 8400,
+      "transform": "matrix(0.97437, 0.224951, -0.224951, 0.97437, 0, 0)",
+      "filter": "drop-shadow(rgba(242, 177, 101, 0.8) 0px 0px 8px)"
+    },
+    "badge": {
+      "duration": 8400,
+      "transform": "matrix(1.16, 0, 0, 1.16, 0, 0)",
+      "shadow": "rgba(243, 175, 101, 0.22) 0px 0px 0px 3px, rgba(229, 153, 80, 0.58) 0px 0px 13px 0px"
+    }
+  },
+  {
+    "name": "reduced-motion",
+    "animation": "none"
+  }
+]
