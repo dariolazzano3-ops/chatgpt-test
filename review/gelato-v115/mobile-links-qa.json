@@ -1,0 +1,77 @@
+[
+  {
+    "device": "iphone-safari-ua",
+    "checked": [
+      "map opens chooser",
+      "route opens chooser",
+      "Apple option opens externally after selection",
+      "Google option URL exact",
+      "Escape works",
+      "no horizontal overflow"
+    ],
+    "popups": 2,
+    "appleLink": "https://maps.apple/p/rvRX9tEjSk-Vnh",
+    "googleLink": "https://www.google.com/maps/place/Gelato+Donatello+GmbH,+Hauptstra%C3%9Fe+4,+66346+P%C3%BCttlingen-K%C3%B6llerbach/@49.2995579,6.8977629,17z/data=!4m6!3m5!1s0x4795afdf9d4934af:0x8af198c42c4a4a50!8m2!3d49.2995579!4d6.8977629!16s%2Fg%2F11fxvydwrw?g_ep=Eg1tbF8yMDI2MTAxMV8wIOC7DCoASAJQAg%3D%3D",
+    "opened": "https://maps.apple.com/place?address=Hauptstra%C3%9Fe%204,%20K%C3%B6llerbach,%2066346%20P%C3%BCttlingen,%20Deutschland&coordinate=49.299569,6.897791&name=Gelato%20Donatello%20UG&place-id=I2ED4581228270AB4&map=explore",
+    "box": {
+      "x": 0,
+      "y": 417.0625,
+      "width": 390,
+      "height": 426.9375
+    }
+  },
+  {
+    "device": "android-chrome-ua",
+    "checked": [
+      "map opens chooser",
+      "route opens chooser",
+      "Apple option opens externally after selection",
+      "Google option URL exact",
+      "Escape works",
+      "no horizontal overflow"
+    ],
+    "popups": 2,
+    "appleLink": "https://maps.apple/p/rvRX9tEjSk-Vnh",
+    "googleLink": "https://www.google.com/maps/place/Gelato+Donatello+GmbH,+Hauptstra%C3%9Fe+4,+66346+P%C3%BCttlingen-K%C3%B6llerbach/@49.2995579,6.8977629,17z/data=!4m6!3m5!1s0x4795afdf9d4934af:0x8af198c42c4a4a50!8m2!3d49.2995579!4d6.8977629!16s%2Fg%2F11fxvydwrw?g_ep=Eg1tbF8yMDI2MTAxMV8wIOC7DCoASAJQAg%3D%3D",
+    "opened": "https://maps.apple.com/place?address=Hauptstra%C3%9Fe%204,%20K%C3%B6llerbach,%2066346%20P%C3%BCttlingen,%20Deutschland&coordinate=49.299569,6.897791&name=Gelato%20Donatello%20UG&place-id=I2ED4581228270AB4&map=explore",
+    "box": {
+      "x": 0,
+      "y": 486.625,
+      "width": 412,
+      "height": 428.375
+    }
+  },
+  {
+    "device": "desktop",
+    "checked": [
+      "map opens chooser",
+      "route opens chooser",
+      "Apple option opens externally after selection",
+      "Google option URL exact",
+      "Escape works",
+      "no horizontal overflow"
+    ],
+    "popups": 2,
+    "appleLink": "https://maps.apple/p/rvRX9tEjSk-Vnh",
+    "googleLink": "https://www.google.com/maps/place/Gelato+Donatello+GmbH,+Hauptstra%C3%9Fe+4,+66346+P%C3%BCttlingen-K%C3%B6llerbach/@49.2995579,6.8977629,17z/data=!4m6!3m5!1s0x4795afdf9d4934af:0x8af198c42c4a4a50!8m2!3d49.2995579!4d6.8977629!16s%2Fg%2F11fxvydwrw?g_ep=Eg1tbF8yMDI2MTAxMV8wIOC7DCoASAJQAg%3D%3D",
+    "opened": "https://maps.apple.com/place?address=Hauptstra%C3%9Fe%204,%20K%C3%B6llerbach,%2066346%20P%C3%BCttlingen,%20Deutschland&coordinate=49.299569,6.897791&name=Gelato%20Donatello%20UG&place-id=I2ED4581228270AB4&map=explore",
+    "box": {
+      "x": 492.760009765625,
+      "y": 241.57650756835938,
+      "width": 454.47998046875,
+      "height": 444.8469543457031
+    }
+  },
+  {
+    "device": "iphone-nojs",
+    "checked": [
+      "Google company listing fallback link without JS"
+    ]
+  },
+  {
+    "device": "android-nojs",
+    "checked": [
+      "Google company listing fallback link without JS"
+    ]
+  }
+]
