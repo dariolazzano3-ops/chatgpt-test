@@ -1,0 +1,249 @@
+[
+  {
+    "name": "iphone",
+    "early": {
+      "markerDisplay": "1",
+      "markerAnimation": "v110-whole-pin-heartbeat",
+      "markerCycle": "2.2s",
+      "markerScale": "matrix(1.03606, 0, 0, 1.03606, 0, 0)",
+      "stageScale": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "phaseDelta": 0,
+      "cars": [
+        {
+          "display": "block",
+          "name": "v110-traffic-main-south",
+          "duration": "24s",
+          "delay": "-2s",
+          "left": "193.219px",
+          "top": "50.9844px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-main-north",
+          "duration": "31s",
+          "delay": "-13s",
+          "left": "203.797px",
+          "top": "158.719px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-side",
+          "duration": "29s",
+          "delay": "-19s",
+          "left": "268.578px",
+          "top": "90.5469px"
+        }
+      ],
+      "imageSrc": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "overlay": "0",
+      "width": 390,
+      "viewport": 390,
+      "imageFilter": "none"
+    },
+    "positionStart": {
+      "left": "195.609px",
+      "top": "90.375px",
+      "rect": {
+        "x": 213.2257080078125,
+        "y": 377.6312561035156,
+        "width": 4.1399993896484375,
+        "height": 8.279998779296875,
+        "top": 377.6312561035156,
+        "right": 217.36570739746094,
+        "bottom": 385.9112548828125,
+        "left": 213.2257080078125
+      }
+    },
+    "positionEnd": {
+      "left": "196.156px",
+      "top": "99.5625px",
+      "rect": {
+        "x": 213.79171752929688,
+        "y": 387.14031982421875,
+        "width": 4.1399993896484375,
+        "height": 8.279998779296875,
+        "top": 387.14031982421875,
+        "right": 217.9317169189453,
+        "bottom": 395.4203186035156,
+        "left": 213.79171752929688
+      }
+    },
+    "errors": []
+  },
+  {
+    "name": "small-iphone",
+    "early": {
+      "markerDisplay": "1",
+      "markerAnimation": "v110-whole-pin-heartbeat",
+      "markerCycle": "2.2s",
+      "markerScale": "matrix(1.04195, 0, 0, 1.04195, 0, 0)",
+      "stageScale": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "phaseDelta": 0,
+      "cars": [
+        {
+          "display": "block",
+          "name": "v110-traffic-main-south",
+          "duration": "24s",
+          "delay": "-2s",
+          "left": "176.922px",
+          "top": "46.5625px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-main-north",
+          "duration": "31s",
+          "delay": "-13s",
+          "left": "186.625px",
+          "top": "145.453px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-side",
+          "duration": "29s",
+          "delay": "-19s",
+          "left": "246px",
+          "top": "82.9375px"
+        }
+      ],
+      "imageSrc": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "overlay": "0",
+      "width": 360,
+      "viewport": 360,
+      "imageFilter": "none"
+    },
+    "positionStart": {
+      "left": "176.938px",
+      "top": "46.6875px",
+      "rect": {
+        "x": 194.42530822753906,
+        "y": 311.4959411621094,
+        "width": 4.1399993896484375,
+        "height": 8.279998779296875,
+        "top": 311.4959411621094,
+        "right": 198.5653076171875,
+        "bottom": 319.77593994140625,
+        "left": 194.42530822753906
+      }
+    },
+    "positionEnd": {
+      "left": "177.438px",
+      "top": "55.0938px",
+      "rect": {
+        "x": 194.94281005859375,
+        "y": 320.1964111328125,
+        "width": 4.1399993896484375,
+        "height": 8.279998779296875,
+        "top": 320.1964111328125,
+        "right": 199.0828094482422,
+        "bottom": 328.4764099121094,
+        "left": 194.94281005859375
+      }
+    },
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "early": {
+      "markerDisplay": "1",
+      "markerAnimation": "v110-whole-pin-heartbeat",
+      "markerCycle": "2.2s",
+      "markerScale": "matrix(1.04197, 0, 0, 1.04197, 0, 0)",
+      "stageScale": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "phaseDelta": 0,
+      "cars": [
+        {
+          "display": "block",
+          "name": "v110-traffic-main-south",
+          "duration": "24s",
+          "delay": "-2s",
+          "left": "393.281px",
+          "top": "103.531px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-main-north",
+          "duration": "31s",
+          "delay": "-13s",
+          "left": "414.844px",
+          "top": "323.297px"
+        },
+        {
+          "display": "block",
+          "name": "v110-traffic-side",
+          "duration": "29s",
+          "delay": "-19s",
+          "left": "546.812px",
+          "top": "184.375px"
+        }
+      ],
+      "imageSrc": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "overlay": "0",
+      "width": 1440,
+      "viewport": 1440,
+      "imageFilter": "none"
+    },
+    "positionStart": {
+      "left": "393.516px",
+      "top": "107.266px",
+      "rect": {
+        "x": 555.6077270507812,
+        "y": 304.1654968261719,
+        "width": 8.27996826171875,
+        "height": 13.454986572265625,
+        "top": 304.1654968261719,
+        "right": 563.8876953125,
+        "bottom": 317.6204833984375,
+        "left": 555.6077270507812
+      }
+    },
+    "positionEnd": {
+      "left": "394.656px",
+      "top": "126.188px",
+      "rect": {
+        "x": 556.7882690429688,
+        "y": 323.7496337890625,
+        "width": 8.27996826171875,
+        "height": 13.454986572265625,
+        "top": 323.7496337890625,
+        "right": 565.0682373046875,
+        "bottom": 337.2046203613281,
+        "left": 556.7882690429688
+      }
+    },
+    "errors": []
+  },
+  {
+    "name": "no-javascript",
+    "state": {
+      "ready": false,
+      "stage": "block",
+      "carShows": 0,
+      "source": 1448,
+      "filter": "none",
+      "dotAnimation": "none"
+    }
+  },
+  {
+    "name": "reduced-motion",
+    "state": {
+      "ready": false,
+      "stage": "none",
+      "carShows": 0,
+      "source": 1448,
+      "filter": "none",
+      "dotAnimation": "none"
+    }
+  }
+]
