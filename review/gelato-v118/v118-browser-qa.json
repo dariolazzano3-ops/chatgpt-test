@@ -1,0 +1,223 @@
+[
+  {
+    "device": "iphone-small",
+    "viewport": 360,
+    "scroll": 360,
+    "wheel": {
+      "x": 17,
+      "y": 454.296875,
+      "width": 326,
+      "height": 326,
+      "right": 343
+    },
+    "image": [
+      1254,
+      1254
+    ],
+    "initialActive": "Erdbeer-Shake",
+    "btns": [
+      {
+        "slot": "top",
+        "text": "Erdbeer",
+        "id": 0,
+        "pressed": "true"
+      },
+      {
+        "slot": "left",
+        "text": "Vanille",
+        "id": 2,
+        "pressed": "false"
+      },
+      {
+        "slot": "right",
+        "text": "Schoko",
+        "id": 1,
+        "pressed": "false"
+      }
+    ],
+    "anim": "dr118-milk-circuit",
+    "duration": "5.6s",
+    "playState": "running",
+    "icon": "rgb(234, 200, 170)",
+    "visibleRing": {
+      "x": -10.335391998291016,
+      "y": 426.96148681640625,
+      "width": 380.6707763671875,
+      "height": 380.6707763671875,
+      "right": 370.3353843688965
+    },
+    "errorCount": 0,
+    "brokenCount": 0
+  },
+  {
+    "device": "iphone",
+    "viewport": 390,
+    "scroll": 390,
+    "wheel": {
+      "x": 21,
+      "y": 495.828125,
+      "width": 348,
+      "height": 348,
+      "right": 369
+    },
+    "image": [
+      1254,
+      1254
+    ],
+    "initialActive": "Erdbeer-Shake",
+    "btns": [
+      {
+        "slot": "top",
+        "text": "Erdbeer",
+        "id": 0,
+        "pressed": "true"
+      },
+      {
+        "slot": "left",
+        "text": "Vanille",
+        "id": 2,
+        "pressed": "false"
+      },
+      {
+        "slot": "right",
+        "text": "Schoko",
+        "id": 1,
+        "pressed": "false"
+      }
+    ],
+    "anim": "dr118-milk-circuit",
+    "duration": "5.6s",
+    "playState": "running",
+    "icon": "rgb(234, 200, 170)",
+    "visibleRing": {
+      "x": -7.576417922973633,
+      "y": 467.251708984375,
+      "width": 405.15283203125,
+      "height": 405.15283203125,
+      "right": 397.57641410827637
+    },
+    "errorCount": 0,
+    "brokenCount": 0
+  },
+  {
+    "device": "android",
+    "viewport": 412,
+    "scroll": 412,
+    "wheel": {
+      "x": 21,
+      "y": 544.828125,
+      "width": 370,
+      "height": 370,
+      "right": 391
+    },
+    "image": [
+      1254,
+      1254
+    ],
+    "initialActive": "Erdbeer-Shake",
+    "btns": [
+      {
+        "slot": "top",
+        "text": "Erdbeer",
+        "id": 0,
+        "pressed": "true"
+      },
+      {
+        "slot": "left",
+        "text": "Vanille",
+        "id": 2,
+        "pressed": "false"
+      },
+      {
+        "slot": "right",
+        "text": "Schoko",
+        "id": 1,
+        "pressed": "false"
+      }
+    ],
+    "anim": "dr118-milk-circuit",
+    "duration": "5.6s",
+    "playState": "running",
+    "icon": "rgb(234, 200, 170)",
+    "visibleRing": {
+      "x": -8.664884567260742,
+      "y": 515.1632690429688,
+      "width": 429.32977294921875,
+      "height": 429.32977294921875,
+      "right": 420.664888381958
+    },
+    "errorCount": 0,
+    "brokenCount": 0
+  },
+  {
+    "device": "desktop",
+    "viewport": 1440,
+    "scroll": 1440,
+    "wheel": {
+      "x": 761.015625,
+      "y": 445.3125,
+      "width": 455,
+      "height": 455,
+      "right": 1216.015625
+    },
+    "image": [
+      1254,
+      1254
+    ],
+    "initialActive": "Erdbeer-Shake",
+    "btns": [
+      {
+        "slot": "top",
+        "text": "Erdbeer",
+        "id": 0,
+        "pressed": "true"
+      },
+      {
+        "slot": "left",
+        "text": "Vanille",
+        "id": 2,
+        "pressed": "false"
+      },
+      {
+        "slot": "right",
+        "text": "Schoko",
+        "id": 1,
+        "pressed": "false"
+      }
+    ],
+    "anim": "dr118-milk-circuit",
+    "duration": "5.6s",
+    "playState": "running",
+    "icon": "rgb(234, 200, 170)",
+    "visibleRing": {
+      "x": 727.7601928710938,
+      "y": 412.0570983886719,
+      "width": 521.5108032226562,
+      "height": 521.5107421875,
+      "right": 1249.27099609375
+    },
+    "errorCount": 0,
+    "brokenCount": 0
+  },
+  {
+    "device": "cycle-proven",
+    "iterations": 6,
+    "sequence": [
+      "Erdbeer",
+      "Vanille",
+      "Schoko",
+      "Erdbeer"
+    ],
+    "switchAfterLaps": 2
+  },
+  {
+    "device": "reduced-motion",
+    "animation": "none",
+    "manuallySelected": "Vanille-Shake"
+  },
+  {
+    "device": "no-js",
+    "visibleOriginal": "Erdbeer",
+    "drinks": 3
+  }
+]
