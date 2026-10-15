@@ -24,7 +24,7 @@ def tab(g,i):
  id,title,desc,cover,items=g
  label='<span>Kinderbecher</span><small>Für unsere kleinen Gäste</small>' if id=='kinderbecher' else E(title)
  return f'''<a class="cups111-choice" id="tab-{id}" href="#{id}" data-cups-category="{id}" aria-controls="{id}">
- <span class="cups111-choice__copy"><span class="cups111-choice__index">0{i} / 04</span><strong>{label}</strong><span class="cups111-choice__count">{len(items)} Kreationen <span aria-hidden="true">↗</span></span></span>
+ <span class="cups111-choice__copy"><strong>{label}</strong><span class="cups111-choice__count">{len(items)} Kreationen</span></span>
  {pic(cover,'',cls='cups111-choice__image')}</a>'''
 def panel(g,i):
  id,title,desc,cover,items=g
@@ -32,11 +32,9 @@ def panel(g,i):
  for k,(name,slug) in enumerate(items,1):
   cards.append(f'''<figure class="cups111-product"><div class="cups111-product__photo">
   {pic(slug,name+' von Gelato Donatello','eager' if id=='eisbecher' and k<=4 else 'lazy')}
-  </div><figcaption class="cups111-product__caption"><span class="cups111-product__number">{k:02}</span><h3>{E(name)}</h3></figcaption></figure>''')
+  </div><figcaption class="cups111-product__caption"><h3>{E(name)}</h3></figcaption></figure>''')
  return f'''<section class="cups111-panel" id="{id}" data-cups-panel="{id}" aria-labelledby="tab-{id}" tabindex="-1">
- <div class="cups111-panel__head"><div><p class="cups111-eyebrow">UNSERE EISWELT <span> / 0{i}</span></p>
- <h2>{E(title)}</h2><p class="cups111-panel__subtitle">{E(desc)}</p></div>
- <span class="cups111-panel__quantity">{len(items):02} <small>Kreationen</small></span></div>
+ <div class="cups111-panel__head"><h2>{E(title)}</h2></div>
  <div class="cups111-products">{''.join(cards)}</div></section>'''
 tabs=''.join(tab(g,i)for i,g in enumerate(groups,1))
 panels=''.join(panel(g,i)for i,g in enumerate(groups,1))
@@ -48,25 +46,14 @@ html=f'''<!DOCTYPE html><html lang="de"><head>
 <link rel="stylesheet" href="/assets/css/style.css"><link rel="stylesheet" href="/assets/css/cups-v111.css"></head>
 <body data-page="eisbecher"><a class="skip-link" href="#main">Zum Inhalt springen</a><div id="site-header"></div><main id="main" class="cups111">
 <section class="cups111-hero" aria-labelledby="cups111-title"><div class="cups111-hero__inner">
-<div class="cups111-hero__text"><p class="cups111-eyebrow">GELATO DONATELLO <span> / UNSERE EISWELT</span></p>
-<h1 id="cups111-title">Einfach zum <em>Verlieben.</em></h1>
-<p>Dein Lieblingsbecher wartet schon. Entdecke unsere Eiswelt, ganz nach deinem Geschmack.</p>
-<span class="cups111-hero__meta">31 Kreationen <span aria-hidden="true">✦</span> 4 Genusswelten</span></div>
-<div class="cups111-hero__art" aria-label="Originalbilder unserer Eisbecher">
-<div class="cups111-hero__art-main">{pic('tartufo-becher','Tartufo-Becher von Gelato Donatello','eager')}</div>
-<div class="cups111-hero__art-small">{pic('erdbeer-becher','Erdbeer-Becher von Gelato Donatello','eager')}</div>
-</div></div></section>
-<section class="cups111-catalog" aria-labelledby="cups111-choose-title"><div class="cups111-catalog__container">
-<div class="cups111-catalog__intro"><div><p class="cups111-eyebrow">WAS DARF’S HEUTE SEIN?</p>
-<h2 id="cups111-choose-title">Vier Welten. <em>Dein Genuss.</em></h2></div>
-<p>Wähle eine Kategorie und entdecke unsere Kreationen.</p></div>
+<div class="cups111-hero__text"><p class="cups111-eyebrow">UNSERE EISBECHER</p>
+<h1 id="cups111-title">Eis zum <em>Verlieben.</em></h1></div>
+<div class="cups111-hero__art">{pic('tartufo-becher','Tartufo-Becher von Gelato Donatello','eager',cls='cups111-hero__single-image')}</div></div></section>
+<section class="cups111-catalog" aria-label="Unsere vier Eisbecher-Kategorien"><div class="cups111-catalog__container">
 <nav class="cups111-choices" aria-label="Eisbecher-Kategorien" data-cups-tabs>{tabs}</nav>
 <p class="cups111-catalog__live visually-hidden" aria-live="polite" aria-atomic="true" data-cups-status></p>
 </div></section><div class="cups111-collections" data-cups-collections>{panels}</div>
-<aside class="cups111-outro" aria-label="Gelato Donatello besuchen"><div class="cups111-outro__inner">
-<div><p class="cups111-eyebrow">AM BESTEN FRISCH VOR ORT</p><h2>Dein nächster <em>Genussmoment.</em></h2><p>Wir freuen uns auf dich in Köllerbach.</p></div>
-<a href="/kontakt/" class="cups111-outro__link">Besuch uns <span aria-hidden="true">↗</span></a>
-</div></aside></main><div id="site-footer"></div>
+</main><div id="site-footer"></div>
 <script type="module" src="/assets/js/app.js"></script><script type="module" src="/assets/js/cups-v111.js"></script></body></html>'''
 (root/'eisbecher/index.html').write_text(html)
 print(f'V111: {len(groups)} categories, {len(files)} verified product images, {len(html)} HTML bytes')

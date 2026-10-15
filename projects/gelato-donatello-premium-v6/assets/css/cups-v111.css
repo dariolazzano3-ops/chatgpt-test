@@ -120,3 +120,66 @@ body[data-page="eisbecher"]{background:#f6f0e6;color:#362720}
  .cups111-hero__art{display:none}
 }
 @media(max-width:385px){.cups111-hero__text h1{font-size:2.7rem}}
+
+
+/* V112 product-first simplification. Compact hero, quiet category cards,
+   a single panel heading and an immediate finish after the product grid. */
+.cups111-hero{background:#f3e9dd;}
+.cups111-hero__inner{
+ min-height:0;grid-template-columns:minmax(0,1fr) 172px;
+ gap:clamp(16px,3vw,42px);padding:clamp(24px,3vw,34px) var(--gutter);
+}
+.cups111-hero__text .cups111-eyebrow{margin:0 0 6px;font-size:.66rem;letter-spacing:.17em}
+.cups111-hero__text h1{
+ max-width:none;font-size:clamp(2.7rem,4.3vw,4.2rem);
+ line-height:1.06;margin:0;white-space:normal;
+}
+.cups111-hero__art{display:block;width:172px;height:156px;max-width:100%}
+.cups111-hero__single-image{display:block;width:100%;height:100%;
+ object-fit:cover;border-radius:50%;border:5px solid rgba(255,250,241,.83);
+ box-shadow:0 10px 24px rgba(83,51,36,.10);}
+.cups111-catalog__container{padding:clamp(19px,2.4vw,31px) var(--gutter) clamp(18px,2vw,27px)}
+.cups111-choices{gap:12px}
+.cups111-choice{min-height:129px;padding:16px;border-radius:14px;
+ transition:background .24s ease,border-color .24s ease,box-shadow .24s ease}
+.cups111-choice:hover{transform:none}
+.cups111-choice__copy{justify-content:flex-end;gap:9px}
+.cups111-choice strong{font-size:clamp(1.21rem,1.55vw,1.56rem);line-height:1.1}
+.cups111-choice__count{font-size:.68rem;font-weight:650;letter-spacing:.01em}
+.cups111-choice__image{right:-13%;top:-4%;height:109%;width:66%;transform:none}
+.cups111-choice::after{background:linear-gradient(90deg,rgba(250,246,238,.98),rgba(250,246,238,.9) 56%,rgba(250,246,238,.15))}
+.cups111[data-cups-enhanced] .cups111-choice[aria-selected="true"]::after{
+ background:linear-gradient(90deg,rgba(66,43,34,.98),rgba(66,43,34,.94) 54%,rgba(66,43,34,.27))}
+.cups111-collections{padding-bottom:clamp(34px,4vw,56px)}
+.cups111-panel{padding-top:clamp(22px,2.8vw,38px)}
+.cups111-panel__head{align-items:center;margin:0 0 clamp(17px,2vw,24px)}
+.cups111-panel__head h2{font-size:clamp(2.05rem,3.1vw,3.1rem);margin:0;line-height:1.1}
+.cups111-product__caption{min-height:66px;padding:15px 16px 15px}
+.cups111-product__caption h3{font-size:clamp(1.1rem,1.35vw,1.3rem)}
+@media(max-width:760px){
+ .cups111-hero__inner{display:grid;grid-template-columns:minmax(0,1fr) 102px;
+  gap:10px;min-height:0;padding:22px 19px;}
+ .cups111-hero__text .cups111-eyebrow{font-size:.62rem;margin:0 0 5px}
+ .cups111-hero__text h1{font-size:clamp(2.17rem,7.2vw,3.3rem);line-height:1.04;max-width:10ch}
+ .cups111-hero__art{display:block;width:102px;height:102px;justify-self:center;align-self:center}
+ .cups111-catalog__container{padding:16px 19px 20px}
+ .cups111-choices{gap:9px}
+ .cups111-choice{min-height:111px;padding:12px;border-radius:11px}
+ .cups111-choice strong{font-size:clamp(1.07rem,3.75vw,1.25rem)}
+ .cups111-choice strong small{font-size:.58rem}
+ .cups111-choice__count{font-size:.62rem}
+ .cups111-choice__image{width:86%;right:-29%;top:-1%;height:105%}
+ .cups111-collections{padding:0 19px 38px}
+ .cups111-panel{padding-top:23px}
+ .cups111-panel__head{margin-bottom:17px}
+ .cups111-panel__head h2{font-size:clamp(1.9rem,6.4vw,2.6rem)}
+ .cups111-product__caption{min-height:61px;padding:12px 11px 13px}
+ .cups111-product__caption h3{font-size:clamp(1rem,3.75vw,1.15rem)}
+}
+@media(max-width:385px){
+ .cups111-hero__inner{grid-template-columns:minmax(0,1fr) 87px;padding:19px}
+ .cups111-hero__art{width:87px;height:87px}
+ .cups111-hero__text h1{font-size:2.13rem}
+ .cups111-choice{min-height:113px}
+ .cups111-choice strong{font-size:1.03rem}
+}
