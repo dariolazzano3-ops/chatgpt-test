@@ -38,6 +38,7 @@ export function renderRequestForm(container, { formId, fields }) {
       <div class="request-form__intro">
         <span class="request-form__eyebrow">Unverbindlich vorbereiten</span>
         <p>Deine Auswahl wird lokal zusammengefasst. Es wird nichts automatisch versendet.</p>
+        <a class="request-form__call-direct" href="${BUSINESS.phoneHref}" aria-label="Gelato Donatello direkt für eine Anfrage anrufen">Lieber direkt anrufen <span aria-hidden="true">↗</span></a>
       </div>
 
       <div class="request-step">

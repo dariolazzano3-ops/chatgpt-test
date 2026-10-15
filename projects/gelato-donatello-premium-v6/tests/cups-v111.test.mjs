@@ -60,7 +60,7 @@ test('Premium responsive layout, motion preference and lazy images, no prices',(
  assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/\.cups111-panel\[hidden\]\{display:none!important\}/);
- assert.equal((html.match(/loading="lazy"/g)||[]).length,31-4+4); // All 31 except first four, plus four category covers
+ assert.equal((html.match(/loading="lazy"/g)||[]).length,31+4); // All 31 catalog images + 4 category covers; hero remains eager
  assert.ok(!/(?:\d[\d.,]*\s*€)|(?:\d[\d.,]*\s*EUR)|(?:preise?\s*[:=])/i.test(html));
  assert.match(css,/body\[data-page="eisbecher"\]/);
 });

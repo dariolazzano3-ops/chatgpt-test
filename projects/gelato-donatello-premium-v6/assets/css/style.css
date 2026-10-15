@@ -4266,3 +4266,19 @@ to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:380px){
   #site-footer .site-footer__logo-row .site-footer__logo{width:min(315px,91vw)}
 }
+
+
+/* V124: trustworthy, immediate contact route with no data collection. */
+.request-form__call-direct{
+ display:inline-flex;align-items:center;justify-content:space-between;gap:16px;
+ margin-top:15px;min-height:42px;padding:9px 14px;
+ color:var(--ink);border:1px solid currentColor;border-radius:9px;
+ text-decoration:none;font-size:.75rem;font-weight:750;letter-spacing:.015em;
+ transition:background-color .18s ease;
+}
+.request-form__call-direct:hover,.request-form__call-direct:focus-visible{
+ background:rgba(236,223,208,.6);
+}
+.request-form__nojs{padding:14px 18px;border-left:3px solid #b78e6a;background:#f3e8da;color:#543a2c;line-height:1.5}
+.request-form__nojs a{color:inherit;font-weight:800;text-underline-offset:3px}
+@media(prefers-reduced-motion:reduce){.request-form__call-direct{transition:none}}

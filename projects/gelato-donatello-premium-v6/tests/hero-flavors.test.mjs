@@ -95,18 +95,18 @@ test('41-photo slideshow rotates at 3.5s with synchronized soft ambient colors a
   try {
     initHeroFlavors();
     assert.equal(e.name.textContent, 'Pistazie');
-    assert.equal(e.root.style.values.get('--hero-tone'), '#b9c5a8');
+    assert.equal(e.root.style.values.get('--hero-tone'), '#eadfc2');
     assert.equal(e.timerJobs.size, 1);
     assert.equal(await e.fireNextTimer(), 3500);
     assert.equal(e.name.textContent, 'Erdbeere');
-    assert.equal(e.root.style.values.get('--hero-tone'), '#dfbbb4');
+    assert.equal(e.root.style.values.get('--hero-tone'), '#f3d9cf');
     assert.equal(e.photos[1].classList.contains('is-active'), true);
     assert.equal(e.photos[1].src, '/assets/images/flavors/erdbeere.webp');
     assert.equal(e.photos[1].attrs['aria-hidden'], 'false');
     assert.equal(e.photos[0].attrs['aria-hidden'], 'true');
     assert.equal(await e.fireNextTimer(), 3500);
     assert.equal(e.name.textContent, 'Zitrone');
-    assert.equal(e.root.style.values.get('--hero-tone'), '#e4d8ab');
+    assert.equal(e.root.style.values.get('--hero-tone'), '#f5f3eb');
     assert.equal(e.photos.filter(p => p.classList.contains('is-active')).length, 1);
     // Cycling through every flavor eventually returns to the first picture.
     for (let i = 0; i < 39; i++) await e.fireNextTimer();
