@@ -1,21 +1,4 @@
-/* Gelato Donatello V117: global compact Events shortcut and restricted page styles. */
-.site-header__events-shortcut{
- display:inline-flex;flex:0 0 auto;gap:7px;align-items:center;justify-content:center;
- min-width:78px;min-height:43px;padding:7px 10px;
- border:1px solid rgba(85,52,34,.25);border-radius:99px;background:rgba(255,253,246,.75);
- color:#513525;font:800 .65rem/1.2 var(--font-body);text-decoration:none;letter-spacing:.055em;text-transform:uppercase;
- transition:border-color .25s ease,background .25s ease;
-}
-.site-header__events-shortcut:hover,.site-header__events-shortcut:focus-visible{background:#f2e4d3;border-color:#b38b65}
-.site-header__events-envelope{height:20px;width:23px;flex:0 0 23px;transform-origin:50% 25%}
-@keyframes ev117-envelope-nudge{
- 0%,87%,100%{transform:rotate(0);filter:none}
- 89%{transform:rotate(-6deg)}
- 91%{transform:rotate(5deg);filter:drop-shadow(0 0 3px rgba(197,133,72,.55))}
- 93%{transform:rotate(-3deg)}
- 95%{transform:rotate(0);filter:none}
-}
-.site-header__events-envelope{animation:ev117-envelope-nudge 18s ease-in-out infinite}
+/* Global navigation remains, but the envelope is now in home Hero V119. */
 .site-header__bar{gap:clamp(9px,1.5vw,18px)}
 .nav__list{gap:clamp(9px,1vw,17px)}
 /* The desktop nav remains visible when there is room. Below this breakpoint,
@@ -32,26 +15,22 @@
  .nav__link::after{display:none}
 }
 @media(max-width:820px){
- .site-header__events-shortcut{order:2;min-width:73px;min-height:43px;padding:6px 9px}
  .site-header__bar{gap:8px}
- .nav__toggle{order:3}
+ .nav__toggle{order:2}
  .site-header__brand-group{order:1;flex:1 1 auto;min-width:0}
 }
 @media(max-width:520px){
- .site-header__bar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;min-height:75px;padding:9px 12px}
+ .site-header__bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;min-height:75px;padding:9px 12px}
  .site-header__brand-group{min-width:0}
  .site-header__brand-group .site-header__logo{width:min(100%,222px);max-width:100%}
- .site-header__events-shortcut{min-width:65px;gap:4px;padding:6px 7px;font-size:.6rem}
- .site-header__events-envelope{height:17px;width:20px;flex-basis:20px}
  .nav__toggle{min-width:60px;width:auto;gap:6px;justify-content:flex-end;font-size:.7rem}
  .nav{inset:75px 0 auto;max-height:calc(100dvh - 75px)}
 }
 @media(max-width:360px){
  .site-header__bar{gap:4px;padding-inline:9px}
- .site-header__events-shortcut{min-width:59px;gap:3px;padding-inline:5px}
  .nav__toggle{min-width:55px;gap:4px}
 }
-@media(prefers-reduced-motion:reduce){.site-header__events-envelope{animation:none!important}.site-header__events-shortcut{transition:none}}
+
 
 /* The event page only. */
 .ev117{--ev-chocolate:#38251e;--ev-espresso:#241a17;--ev-gold:#c7966c;--ev-paper:#f7f0e6;color:#432d23;background:var(--ev-paper);overflow:clip}
@@ -155,8 +134,68 @@
 @media(min-width:1371px){
  .site-header__bar{display:flex;flex-wrap:wrap;justify-content:flex-start;column-gap:18px;row-gap:2px;padding-block:10px 13px}
  .site-header__brand-group{flex:0 0 auto;min-width:0}
- .site-header__events-shortcut{flex:0 0 auto}
  .nav{flex:0 0 100%;min-width:0}
  .nav__list{justify-content:center;gap:clamp(16px,1.7vw,27px)}
  .nav__link{font-size:.71rem}
+}
+
+
+/* V119 Events teaser in homepage hero; other heroes and typography untouched. */
+body[data-page="home"] .v119-hero-events-row{
+ display:flex;align-items:center;justify-content:flex-start;
+ flex-wrap:nowrap;gap:clamp(10px,1.4vw,17px);
+ width:fit-content;max-width:100%;min-width:0;
+ margin:0 0 1rem;
+}
+body[data-page="home"] .v119-hero-events-row>.eyebrow{
+ margin:0;white-space:nowrap;min-width:0;
+}
+body[data-page="home"] .v119-hero-events{
+ position:relative;flex:0 0 auto;display:inline-flex;justify-content:center;align-items:center;
+ width:43px;height:38px;padding:6px;
+ border:1px solid rgba(78,60,45,.28);border-radius:11px;
+ background:rgba(254,250,239,.23);color:#5c4934;text-decoration:none;
+ outline-offset:4px;
+ transition:background-color .2s,border-color .2s,transform .2s;
+}
+body[data-page="home"] .v119-hero-events:hover{
+ background:rgba(254,250,239,.52);border-color:rgba(87,59,35,.6);transform:translateY(-1px)
+}
+body[data-page="home"] .v119-hero-events:focus-visible{outline:3px solid #7c5034}
+body[data-page="home"] .v119-hero-events__envelope{
+ display:block;width:23px;height:21px;flex:none;transform-origin:50% 25%;
+ animation:v119-hero-envelope-tip 16s ease-in-out infinite;
+}
+body[data-page="home"] .v119-hero-events__badge{
+ position:absolute;top:-8px;right:-8px;
+ display:grid;place-items:center;
+ min-width:19px;height:19px;padding:0 4px;
+ border:2px solid #dce5ce;border-radius:99px;
+ background:#8e5538;color:#fff8ef;font:750 10px/1 var(--font-body);
+ letter-spacing:0;box-sizing:border-box;box-shadow:0 2px 8px rgba(29,22,16,.16);
+ pointer-events:none;
+}
+@keyframes v119-hero-envelope-tip{
+ 0%,87%,100%{transform:rotate(0)}
+ 89%{transform:rotate(-7deg)}
+ 91%{transform:rotate(5deg)}
+ 94%{transform:rotate(-2deg)}
+ 96%{transform:rotate(0)}
+}
+.v70-first-impression .v6-hero__copy>.v119-hero-events-row{
+ animation:v70-first-copy .68s cubic-bezier(.22,.75,.22,1) both;animation-delay:.04s
+}
+@media(max-width:820px){
+ body[data-page="home"] .v119-hero-events{width:40px;height:36px}
+ body[data-page="home"] .v119-hero-events__envelope{width:22px;height:20px}
+}
+@media(max-width:385px){
+ body[data-page="home"] .v119-hero-events-row{gap:10px}
+ body[data-page="home"] .v119-hero-events-row>.eyebrow{letter-spacing:.09em;font-size:.68rem}
+ body[data-page="home"] .v119-hero-events{width:39px;height:35px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-page="home"] .v119-hero-events__envelope{animation:none!important;transform:none!important}
+ body[data-page="home"] .v119-hero-events{transition:none!important}
+ .v70-first-impression .v6-hero__copy>.v119-hero-events-row{animation:none!important;opacity:1!important;transform:none!important}
 }

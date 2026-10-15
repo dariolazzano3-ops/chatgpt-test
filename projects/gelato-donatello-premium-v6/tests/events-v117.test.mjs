@@ -38,17 +38,16 @@ test('The interest form does not accept or transmit any personal data',()=>{
 });
 test('Events navigation and accessible header shortcut preserve original controls, no false badge',()=>{
  assert.match(nav,/{ page: 'events', href: '\/events\/', label: 'Events' }/);
- assert.match(nav,/class="site-header__events-shortcut"/);
- assert.match(nav,/aria-label="Events entdecken"/);
- assert.match(nav,/class="site-header__events-envelope"/);
+ assert.doesNotMatch(nav,/site-header__events-shortcut|site-header__events-envelope/);
+ assert.match(read('index.html'),/class="v119-hero-events"/);
  assert.match(nav,/class="site-header__logo"/);
  assert.match(nav,/logo-donatello-header.webp/);
  assert.match(nav,/class="site-header__call"/);
  assert.match(nav,/class="nav__toggle"/);
  assert.doesNotMatch(nav,/events.*badge|site-header__events-badge|>1<\/span>/);
  assert.match(globalCSS,/@import url\('\.\/events-v117\.css'\)/);
- assert.match(css,/@keyframes ev117-envelope-nudge/);
- assert.match(css,/18s ease-in-out infinite/);
+ assert.match(css,/@keyframes v119-hero-envelope-tip/);
+ assert.match(css,/16s ease-in-out infinite/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/@media\(min-width:1371px\)/);
 });

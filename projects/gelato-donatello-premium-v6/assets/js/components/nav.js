@@ -33,13 +33,6 @@ export function renderSiteHeader(activePage) {
           </svg>
         </a>
       </div>
-      <a class="site-header__events-shortcut" href="/events/" aria-label="Events entdecken">
-        <svg class="site-header__events-envelope" viewBox="0 0 28 24" role="img" aria-label="Briefumschlag" fill="none">
-          <rect x="2.4" y="4.1" width="23.2" height="16" rx="3" stroke="currentColor" stroke-width="1.5" />
-          <path d="m3.6 6.9 10.4 7.4 10.4-7.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <span>Events</span>
-      </a>
       <button class="nav__toggle" type="button" aria-label="Menü öffnen" aria-expanded="false" aria-controls="primary-nav">
         <span>Menü</span><span class="nav__toggle-icon" aria-hidden="true"></span>
       </button>
