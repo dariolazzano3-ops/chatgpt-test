@@ -363,23 +363,28 @@
 
         <div class="v102-location__grid">
           <div class="v102-location__map" aria-label="Karte zum Standort Gelato Donatello">
-            <div class="v102-location__map-surface">
-              <!-- V105: exact customer-supplied location illustration, byte-identical JPEG.
-                   Fully self-hosted so Safari never depends on external map embeds. -->
+            <div class="v102-location__map-surface" data-location-reveal>
+              <!-- V104: locally rendered map from OpenStreetMap coordinates. Visible even when
+                   Safari/content blockers refuse third-party map iframes. -->
               <a class="v103-location__map-static"
                  href="https://www.openstreetmap.org/?mlat=49.299548&amp;mlon=6.8977832#map=17/49.299548/6.8977832"
                  target="_blank" rel="noopener noreferrer"
                  aria-label="Standortkarte Gelato Donatello in OpenStreetMap öffnen">
-                <img src="/assets/images/editorial/gelato-donatello-original-location-v105.jpg"
-                     alt="Originale illustrierte Gelato-Donatello-Standortkarte mit Burg Bucherbach, Stadion an der Burg, Spielplatz, Parkplätzen und Bushaltestellen"
-                     width="1448" height="1086" loading="eager" decoding="async" fetchpriority="low" />
-
+                <img src="/assets/images/editorial/gelato-donatello-public-map-v104.webp"
+                     alt="Geografisch korrekt gestaltete OpenStreetMap-Umgebung von Gelato Donatello mit Burg Bucherbach unmittelbar neben dem Stadion an der Burg, öffentlichem Spielplatz, Parkplätzen und Bushaltestellen"
+                     width="1438" height="974" loading="eager" decoding="async" fetchpriority="low" />
+                <span class="v102-location__map-badge" aria-hidden="true">
+                  <span class="v102-location__map-badge-dot"></span>
+                  GELATO DONATELLO
+                </span>
               </a>
-
+              <a class="v103-location__map-attribution"
+                 href="https://www.openstreetmap.org/copyright"
+                 target="_blank" rel="noopener noreferrer"
+                 aria-label="Kartendaten: OpenStreetMap-Mitwirkende, Lizenzinformationen">© OpenStreetMap contributors</a>
             </div>
             <div class="v102-location__map-footer">
               <span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg> <strong>Hier sind wir.</strong></span>
-              <a href="https://www.openstreetmap.org/?mlat=49.299548&amp;mlon=6.8977832#map=17/49.299548/6.8977832" target="_blank" rel="noopener noreferrer">Karte vergrößern <span aria-hidden="true">↗</span></a>
             </div>
           </div>
 
@@ -401,7 +406,6 @@
                 Anrufen
               </a>
             </div>
-            <a class="v102-location__contact" href="/kontakt/">Weitere Kontaktinfos <span aria-hidden="true">↗</span></a>
           </div>
         </div>
       </div>

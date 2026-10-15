@@ -88,6 +88,22 @@ function initCaffeScroll() {
   update();
 }
 
+
+function initLocationReveal() {
+  const surface = document.querySelector('[data-location-reveal]');
+  if (!surface) return;
+  const noMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Progressive enhancement: no JS, reduced motion or missing observer = fully visible map.
+  if (noMotion || !('IntersectionObserver' in window)) return;
+  document.body.classList.add('location-reveal-ready');
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries[0]?.isIntersecting) return;
+    surface.classList.add('is-revealed');
+    observer.disconnect(); // Exactly once.
+  }, { threshold: 0.17, rootMargin: '0px 0px -4% 0px' });
+  observer.observe(surface);
+}
+
 function initReveal() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const targets = document.querySelectorAll('[data-reveal]');
@@ -196,6 +212,7 @@ function init() {
   initCakeIpad();
   initHeroFlavors();
   initCaffeScroll();
+  initLocationReveal();
   initDiscoveryFlavors();
   initDiscoveryCups();
 }
