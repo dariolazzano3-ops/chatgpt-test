@@ -1,0 +1,150 @@
+[
+  {
+    "name": "iphone",
+    "first": {
+      "visible": true,
+      "initiallyRevealed": false,
+      "src": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "originalFilter": "none"
+    },
+    "early": {
+      "transform": "matrix(1.02728, 0, 0, 1.02728, 0, 0)",
+      "overlay": "0.206669",
+      "revealed": true
+    },
+    "inMotion": {
+      "overlay": "0",
+      "glow": "0.12038"
+    },
+    "done": {
+      "transform": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "imageFilter": "none",
+      "overlay": "0",
+      "glow": "0",
+      "pulseIterations": "2",
+      "haloAnimations": [
+        "finished",
+        "finished"
+      ],
+      "width": 390,
+      "viewport": 390,
+      "background": "rgb(33, 25, 22)",
+      "cafeBackground": "rgb(33, 25, 22)"
+    },
+    "still": {
+      "zoom": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "revealed": true
+    },
+    "failures": []
+  },
+  {
+    "name": "iphone-small",
+    "first": {
+      "visible": true,
+      "initiallyRevealed": false,
+      "src": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "originalFilter": "none"
+    },
+    "early": {
+      "transform": "matrix(1.00383, 0, 0, 1.00383, 0, 0)",
+      "overlay": "0.895343",
+      "revealed": true
+    },
+    "inMotion": {
+      "overlay": "0.0282824",
+      "glow": "0.534483"
+    },
+    "done": {
+      "transform": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "imageFilter": "none",
+      "overlay": "0",
+      "glow": "0",
+      "pulseIterations": "2",
+      "haloAnimations": [
+        "finished",
+        "finished"
+      ],
+      "width": 360,
+      "viewport": 360,
+      "background": "rgb(33, 25, 22)",
+      "cafeBackground": "rgb(33, 25, 22)"
+    },
+    "still": {
+      "zoom": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "revealed": true
+    },
+    "failures": []
+  },
+  {
+    "name": "desktop",
+    "first": {
+      "visible": true,
+      "initiallyRevealed": false,
+      "src": "gelato-donatello-original-location-v105.jpg",
+      "imageNatural": [
+        1448,
+        1086
+      ],
+      "originalFilter": "none"
+    },
+    "early": {
+      "transform": "matrix(1, 0, 0, 1, 0, 0)",
+      "overlay": "1",
+      "revealed": true
+    },
+    "inMotion": {
+      "overlay": "0.0429818",
+      "glow": "0.395198"
+    },
+    "done": {
+      "transform": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "imageFilter": "none",
+      "overlay": "0",
+      "glow": "0",
+      "pulseIterations": "2",
+      "haloAnimations": [
+        "finished",
+        "finished"
+      ],
+      "width": 1440,
+      "viewport": 1440,
+      "background": "rgb(33, 25, 22)",
+      "cafeBackground": "rgb(33, 25, 22)"
+    },
+    "still": {
+      "zoom": "matrix(1.035, 0, 0, 1.035, 0, 0)",
+      "revealed": true
+    },
+    "failures": []
+  },
+  {
+    "name": "reduced",
+    "state": {
+      "ready": false,
+      "imageFilter": "none",
+      "imageTransform": "none",
+      "halo": "none",
+      "overlay": "none",
+      "jpeg": 1448
+    }
+  },
+  {
+    "name": "nojs",
+    "state": {
+      "ready": false,
+      "imageFilter": "none",
+      "imageTransform": "none",
+      "halo": "none",
+      "overlay": "none",
+      "jpeg": 1448
+    }
+  }
+]
