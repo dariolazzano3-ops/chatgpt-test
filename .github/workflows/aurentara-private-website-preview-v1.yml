@@ -138,7 +138,9 @@ jobs:
             assert.equal(project.safety?.[key],false,'Unsafe project policy: '+key);
           }
           NODE
-          if test -f "$PROJECT_PATH/tests/location-v109.test.mjs"; then
+          if test -f "$PROJECT_PATH/tests/location-v110.test.mjs"; then
+            node --test "$PROJECT_PATH/tests/location-v106.test.mjs" "$PROJECT_PATH/tests/location-v107.test.mjs" "$PROJECT_PATH/tests/location-v108.test.mjs" "$PROJECT_PATH/tests/location-v109.test.mjs" "$PROJECT_PATH/tests/location-v110.test.mjs"
+          elif test -f "$PROJECT_PATH/tests/location-v109.test.mjs"; then
             node --test "$PROJECT_PATH/tests/location-v106.test.mjs" "$PROJECT_PATH/tests/location-v107.test.mjs" "$PROJECT_PATH/tests/location-v108.test.mjs" "$PROJECT_PATH/tests/location-v109.test.mjs"
           elif test -f "$PROJECT_PATH/tests/location-v108.test.mjs"; then
             node --test "$PROJECT_PATH/tests/location-v106.test.mjs" "$PROJECT_PATH/tests/location-v107.test.mjs" "$PROJECT_PATH/tests/location-v108.test.mjs"
