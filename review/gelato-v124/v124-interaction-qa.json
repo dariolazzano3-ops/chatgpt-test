@@ -1,0 +1,194 @@
+[
+  {
+    "device": "iphone-small",
+    "route": "/",
+    "overflow": 0,
+    "map": "lazy",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone-small",
+    "route": "/eisbecher/",
+    "overflow": 0,
+    "cupLazy": [
+      "lazy",
+      "lazy",
+      "lazy",
+      "lazy"
+    ],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone-small",
+    "route": "/eistorten/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone-small",
+    "route": "/eisvitrine/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone-small",
+    "route": "/events/",
+    "overflow": 0,
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone",
+    "route": "/",
+    "overflow": 0,
+    "map": "lazy",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone",
+    "route": "/eisbecher/",
+    "overflow": 0,
+    "cupLazy": [
+      "lazy",
+      "lazy",
+      "lazy",
+      "lazy"
+    ],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone",
+    "route": "/eistorten/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone",
+    "route": "/eisvitrine/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "iphone",
+    "route": "/events/",
+    "overflow": 0,
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "android",
+    "route": "/",
+    "overflow": 0,
+    "map": "lazy",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "android",
+    "route": "/eisbecher/",
+    "overflow": 0,
+    "cupLazy": [
+      "lazy",
+      "lazy",
+      "lazy",
+      "lazy"
+    ],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "android",
+    "route": "/eistorten/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "android",
+    "route": "/eisvitrine/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "android",
+    "route": "/events/",
+    "overflow": 0,
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "desktop",
+    "route": "/",
+    "overflow": 0,
+    "map": "lazy",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "desktop",
+    "route": "/eisbecher/",
+    "overflow": 0,
+    "cupLazy": [
+      "lazy",
+      "lazy",
+      "lazy",
+      "lazy"
+    ],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "desktop",
+    "route": "/eistorten/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "desktop",
+    "route": "/eisvitrine/",
+    "overflow": 0,
+    "call": "tel:+4968069394980",
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  },
+  {
+    "device": "desktop",
+    "route": "/events/",
+    "overflow": 0,
+    "cupLazy": [],
+    "errors": [],
+    "failed": []
+  }
+]
