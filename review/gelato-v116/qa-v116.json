@@ -1,0 +1,381 @@
+[
+  {
+    "name": "iphone",
+    "measure": {
+      "docWidth": 390,
+      "viewport": 390,
+      "intro": {
+        "x": 0,
+        "y": 77,
+        "w": 390,
+        "h": 225.6875,
+        "right": 390,
+        "bottom": 302.6875
+      },
+      "shake": {
+        "x": 0,
+        "y": 302.6875,
+        "w": 390,
+        "h": 736.5,
+        "right": 390,
+        "bottom": 1039.1875
+      },
+      "wheel": {
+        "x": 21,
+        "y": 598.828125,
+        "w": 348,
+        "h": 348,
+        "right": 369,
+        "bottom": 946.828125
+      },
+      "picture": {
+        "x": 85.375,
+        "y": 663.203125,
+        "w": 219.25,
+        "h": 219.25,
+        "right": 304.625,
+        "bottom": 882.453125
+      },
+      "selected": [
+        {
+          "name": "Erdbeer",
+          "pressed": "true"
+        },
+        {
+          "name": "Schoko",
+          "pressed": "false"
+        },
+        {
+          "name": "Vanille",
+          "pressed": "false"
+        }
+      ],
+      "imageNames": [
+        "erdbeer-shake.webp",
+        "schoko-shake.webp",
+        "vanille-shake.webp"
+      ]
+    },
+    "loaded": [
+      {
+        "src": "/assets/images/drinks/erdbeer-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/schoko-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/vanille-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/orange-flip.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eiskaffee.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eisschokolade.webp",
+        "width": 1254
+      }
+    ],
+    "titles": [
+      "Orange Flip",
+      "Eiscaffè",
+      "Eisschokolade"
+    ],
+    "errors": [],
+    "missing": [],
+    "manualSelection": true
+  },
+  {
+    "name": "iphone-small",
+    "measure": {
+      "docWidth": 360,
+      "viewport": 360,
+      "intro": {
+        "x": 0,
+        "y": 77,
+        "w": 360,
+        "h": 225.6875,
+        "right": 360,
+        "bottom": 302.6875
+      },
+      "shake": {
+        "x": 0,
+        "y": 302.6875,
+        "w": 360,
+        "h": 706.96875,
+        "right": 360,
+        "bottom": 1009.65625
+      },
+      "wheel": {
+        "x": 17,
+        "y": 591.296875,
+        "w": 326,
+        "h": 326,
+        "right": 343,
+        "bottom": 917.296875
+      },
+      "picture": {
+        "x": 77.296875,
+        "y": 651.59375,
+        "w": 205.40625,
+        "h": 205.40625,
+        "right": 282.703125,
+        "bottom": 857
+      },
+      "selected": [
+        {
+          "name": "Erdbeer",
+          "pressed": "true"
+        },
+        {
+          "name": "Schoko",
+          "pressed": "false"
+        },
+        {
+          "name": "Vanille",
+          "pressed": "false"
+        }
+      ],
+      "imageNames": [
+        "erdbeer-shake.webp",
+        "schoko-shake.webp",
+        "vanille-shake.webp"
+      ]
+    },
+    "loaded": [
+      {
+        "src": "/assets/images/drinks/erdbeer-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/schoko-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/vanille-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/orange-flip.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eiskaffee.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eisschokolade.webp",
+        "width": 1254
+      }
+    ],
+    "titles": [
+      "Orange Flip",
+      "Eiscaffè",
+      "Eisschokolade"
+    ],
+    "errors": [],
+    "missing": [],
+    "manualSelection": true
+  },
+  {
+    "name": "android",
+    "measure": {
+      "docWidth": 412,
+      "viewport": 412,
+      "intro": {
+        "x": 0,
+        "y": 77,
+        "w": 412,
+        "h": 225.6875,
+        "right": 412,
+        "bottom": 302.6875
+      },
+      "shake": {
+        "x": 0,
+        "y": 302.6875,
+        "w": 412,
+        "h": 758.5,
+        "right": 412,
+        "bottom": 1061.1875
+      },
+      "wheel": {
+        "x": 21,
+        "y": 598.828125,
+        "w": 370,
+        "h": 370,
+        "right": 391,
+        "bottom": 968.828125
+      },
+      "picture": {
+        "x": 89.4375,
+        "y": 667.265625,
+        "w": 233.125,
+        "h": 233.125,
+        "right": 322.5625,
+        "bottom": 900.390625
+      },
+      "selected": [
+        {
+          "name": "Erdbeer",
+          "pressed": "true"
+        },
+        {
+          "name": "Schoko",
+          "pressed": "false"
+        },
+        {
+          "name": "Vanille",
+          "pressed": "false"
+        }
+      ],
+      "imageNames": [
+        "erdbeer-shake.webp",
+        "schoko-shake.webp",
+        "vanille-shake.webp"
+      ]
+    },
+    "loaded": [
+      {
+        "src": "/assets/images/drinks/erdbeer-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/schoko-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/vanille-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/orange-flip.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eiskaffee.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eisschokolade.webp",
+        "width": 1254
+      }
+    ],
+    "titles": [
+      "Orange Flip",
+      "Eiscaffè",
+      "Eisschokolade"
+    ],
+    "errors": [],
+    "missing": [],
+    "manualSelection": true
+  },
+  {
+    "name": "desktop",
+    "measure": {
+      "docWidth": 1440,
+      "viewport": 1440,
+      "intro": {
+        "x": 0,
+        "y": 83,
+        "w": 1440,
+        "h": 253.71875,
+        "right": 1440,
+        "bottom": 336.71875
+      },
+      "shake": {
+        "x": 0,
+        "y": 336.71875,
+        "w": 1440,
+        "h": 627.640625,
+        "right": 1440,
+        "bottom": 964.359375
+      },
+      "wheel": {
+        "x": 761.015625,
+        "y": 411.71875,
+        "w": 455,
+        "h": 455,
+        "right": 1216.015625,
+        "bottom": 866.71875
+      },
+      "picture": {
+        "x": 845.1875,
+        "y": 495.890625,
+        "w": 286.65625,
+        "h": 286.65625,
+        "right": 1131.84375,
+        "bottom": 782.546875
+      },
+      "selected": [
+        {
+          "name": "Erdbeer",
+          "pressed": "true"
+        },
+        {
+          "name": "Schoko",
+          "pressed": "false"
+        },
+        {
+          "name": "Vanille",
+          "pressed": "false"
+        }
+      ],
+      "imageNames": [
+        "erdbeer-shake.webp",
+        "schoko-shake.webp",
+        "vanille-shake.webp"
+      ]
+    },
+    "loaded": [
+      {
+        "src": "/assets/images/drinks/erdbeer-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/schoko-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/vanille-shake.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/orange-flip.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eiskaffee.webp",
+        "width": 1254
+      },
+      {
+        "src": "/assets/images/drinks/eisschokolade.webp",
+        "width": 1254
+      }
+    ],
+    "titles": [
+      "Orange Flip",
+      "Eiscaffè",
+      "Eisschokolade"
+    ],
+    "errors": [],
+    "missing": [],
+    "manualSelection": true
+  },
+  {
+    "name": "reduced-motion",
+    "animation": "none",
+    "autoplay": false,
+    "manual": true
+  },
+  {
+    "name": "no-js",
+    "defaultImage": true,
+    "drinks": 3
+  }
+]
