@@ -1,0 +1,254 @@
+[
+  {
+    "device": "small-iphone",
+    "viewport": 360,
+    "documentWidth": 360,
+    "logo": {
+      "x": 22.5,
+      "y": 82.828125,
+      "width": 315,
+      "height": 35.359375,
+      "right": 337.5,
+      "bottom": 118.1875,
+      "center": 180
+    },
+    "logoRow": {
+      "x": 22,
+      "y": 82.828125,
+      "width": 316,
+      "height": 37.359375,
+      "right": 338,
+      "bottom": 120.1875,
+      "center": 180
+    },
+    "footer": {
+      "x": 0,
+      "y": 25.828125,
+      "width": 360,
+      "height": 754.09375,
+      "right": 360,
+      "bottom": 779.921875,
+      "center": 180
+    },
+    "inner": {
+      "x": 0,
+      "y": 26.828125,
+      "width": 360,
+      "height": 669.3125,
+      "right": 360,
+      "bottom": 696.140625,
+      "center": 180
+    },
+    "brand": {
+      "x": 22,
+      "y": 150.1875,
+      "width": 316,
+      "height": 69.578125,
+      "right": 338,
+      "bottom": 219.765625,
+      "center": 180
+    },
+    "contact": {
+      "x": 22,
+      "y": 249.765625,
+      "width": 316,
+      "height": 131.75,
+      "right": 338,
+      "bottom": 381.515625,
+      "center": 180
+    },
+    "navigation": {
+      "x": 22,
+      "y": 411.515625,
+      "width": 316,
+      "height": 246.625,
+      "right": 338,
+      "bottom": 658.140625,
+      "center": 180
+    },
+    "src": "/assets/images/brand/logo-donatello-footer-transparent-v114.webp",
+    "natural": [
+      766,
+      86
+    ],
+    "background": "rgb(33, 25, 22)",
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "logoMargin": "0.5px",
+    "rest": [
+      "Familiengeführt seit 1965. Zweite Generation. Eigenes Eislabor.",
+      "Besuch\n        Hauptstrasse 466346 Koellerbach\n        06806 9394980",
+      "Entdecken\n        EissortenEisbecherShakes & DrinksEistortenGutscheineEisvitrine mietenKontakt"
+    ],
+    "headerSource": "/assets/images/brand/logo-donatello-header.webp",
+    "errors": [],
+    "missing": []
+  },
+  {
+    "device": "iphone",
+    "viewport": 390,
+    "documentWidth": 390,
+    "logo": {
+      "x": 25,
+      "y": 143.640625,
+      "width": 340,
+      "height": 38.171875,
+      "right": 365,
+      "bottom": 181.8125,
+      "center": 195
+    },
+    "logoRow": {
+      "x": 22,
+      "y": 143.640625,
+      "width": 346,
+      "height": 40.171875,
+      "right": 368,
+      "bottom": 183.8125,
+      "center": 195
+    },
+    "footer": {
+      "x": 0,
+      "y": 86.640625,
+      "width": 390,
+      "height": 756.90625,
+      "right": 390,
+      "bottom": 843.546875,
+      "center": 195
+    },
+    "inner": {
+      "x": 0,
+      "y": 87.640625,
+      "width": 390,
+      "height": 672.125,
+      "right": 390,
+      "bottom": 759.765625,
+      "center": 195
+    },
+    "brand": {
+      "x": 22,
+      "y": 213.8125,
+      "width": 346,
+      "height": 69.578125,
+      "right": 368,
+      "bottom": 283.390625,
+      "center": 195
+    },
+    "contact": {
+      "x": 22,
+      "y": 313.390625,
+      "width": 346,
+      "height": 131.75,
+      "right": 368,
+      "bottom": 445.140625,
+      "center": 195
+    },
+    "navigation": {
+      "x": 22,
+      "y": 475.140625,
+      "width": 346,
+      "height": 246.625,
+      "right": 368,
+      "bottom": 721.765625,
+      "center": 195
+    },
+    "src": "/assets/images/brand/logo-donatello-footer-transparent-v114.webp",
+    "natural": [
+      766,
+      86
+    ],
+    "background": "rgb(33, 25, 22)",
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "logoMargin": "3px",
+    "rest": [
+      "Familiengeführt seit 1965. Zweite Generation. Eigenes Eislabor.",
+      "Besuch\n        Hauptstrasse 466346 Koellerbach\n        06806 9394980",
+      "Entdecken\n        EissortenEisbecherShakes & DrinksEistortenGutscheineEisvitrine mietenKontakt"
+    ],
+    "headerSource": "/assets/images/brand/logo-donatello-header.webp",
+    "errors": [],
+    "missing": []
+  },
+  {
+    "device": "desktop",
+    "viewport": 1440,
+    "documentWidth": 1440,
+    "logo": {
+      "x": 490,
+      "y": 446.921875,
+      "width": 460,
+      "height": 51.640625,
+      "right": 950,
+      "bottom": 498.5625,
+      "center": 720
+    },
+    "logoRow": {
+      "x": 157.59375,
+      "y": 446.921875,
+      "width": 1124.8125,
+      "height": 57.390625,
+      "right": 1282.40625,
+      "bottom": 504.3125,
+      "center": 720
+    },
+    "footer": {
+      "x": 0,
+      "y": 373.921875,
+      "width": 1440,
+      "height": 526.40625,
+      "right": 1440,
+      "bottom": 900.328125,
+      "center": 720
+    },
+    "inner": {
+      "x": 100,
+      "y": 374.921875,
+      "width": 1240,
+      "height": 471.015625,
+      "right": 1340,
+      "bottom": 845.9375,
+      "center": 720
+    },
+    "brand": {
+      "x": 157.59375,
+      "y": 543.3125,
+      "width": 408,
+      "height": 246.625,
+      "right": 565.59375,
+      "bottom": 789.9375,
+      "center": 361.59375
+    },
+    "contact": {
+      "x": 651.984375,
+      "y": 543.3125,
+      "width": 272.015625,
+      "height": 246.625,
+      "right": 924,
+      "bottom": 789.9375,
+      "center": 787.9921875
+    },
+    "navigation": {
+      "x": 1010.390625,
+      "y": 543.3125,
+      "width": 272.015625,
+      "height": 246.625,
+      "right": 1282.40625,
+      "bottom": 789.9375,
+      "center": 1146.3984375
+    },
+    "src": "/assets/images/brand/logo-donatello-footer-transparent-v114.webp",
+    "natural": [
+      766,
+      86
+    ],
+    "background": "rgb(33, 25, 22)",
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "logoMargin": "332.406px",
+    "rest": [
+      "Familiengeführt seit 1965. Zweite Generation. Eigenes Eislabor.",
+      "Besuch\n        Hauptstrasse 466346 Koellerbach\n        06806 9394980",
+      "Entdecken\n        EissortenEisbecherShakes & DrinksEistortenGutscheineEisvitrine mietenKontakt"
+    ],
+    "headerSource": "/assets/images/brand/logo-donatello-header.webp",
+    "errors": [],
+    "missing": []
+  }
+]
