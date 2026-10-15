@@ -4047,3 +4047,80 @@ body[data-page="home"].location-reveal-ready .v102-location__map-surface.is-reve
     display:none!important;transition:none!important;
   }
 }
+
+
+/* V109: synchronized luxury heartbeat, following the one-time V108 reveal.
+   One body-class transition starts the eyebrow dot and pin halo on the same
+   2.2s timeline: soft first beat, second beat, then an extended quiet pause.
+   The pin is baked into the approved JPEG. Only its overlay pulses.
+   Default without JS is static and fully visible. */
+body[data-page="home"].location-heartbeat-active {
+  --gelato-heartbeat-duration:2200ms;
+}
+@keyframes v109-eyebrow-heartbeat {
+  0%,4%,14%,31%,100% {
+    transform:scale(1);
+    box-shadow:0 0 0 4px rgba(215,167,112,.13),0 0 0 rgba(248,193,119,0);
+    background:#c69b75;
+  }
+  8% {
+    transform:scale(1.16);
+    box-shadow:0 0 0 5px rgba(225,171,112,.17),0 0 10px 2px rgba(246,193,119,.31);
+    background:#e0ae80;
+  }
+  23% {
+    transform:scale(1.13);
+    box-shadow:0 0 0 5px rgba(225,171,112,.16),0 0 9px 2px rgba(246,193,119,.25);
+    background:#dca97a;
+  }
+}
+@keyframes v109-pin-heartbeat {
+  0%,4%,14%,31%,100% {
+    opacity:0;
+    transform:translate(-50%,-50%) scale(.77);
+  }
+  8% {
+    opacity:.64;
+    transform:translate(-50%,-50%) scale(1.11);
+  }
+  23% {
+    opacity:.49;
+    transform:translate(-50%,-50%) scale(1.04);
+  }
+}
+@keyframes v109-pin-heartbeat-inner {
+  0%,4%,14%,31%,100%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(.77);
+  }
+  8%{
+    opacity:.73;
+    transform:translate(-50%,-50%) scale(1.08);
+  }
+  23%{
+    opacity:.63;
+    transform:translate(-50%,-50%) scale(1.02);
+  }
+}
+/* Pseudo animations are driven by the same class and same zero-delay cycle. */
+body[data-page="home"].location-heartbeat-active .v102-location__heading .v102-location__eyebrow>span {
+  transform-origin:center center;
+  animation:v109-eyebrow-heartbeat var(--gelato-heartbeat-duration) ease-in-out 0s infinite both;
+}
+body[data-page="home"].location-reveal-ready.location-heartbeat-active
+  .v102-location__map-surface.is-revealed .v108-location__pin-glow::before {
+  animation:v109-pin-heartbeat var(--gelato-heartbeat-duration) ease-in-out 0s infinite both;
+}
+body[data-page="home"].location-reveal-ready.location-heartbeat-active
+  .v102-location__map-surface.is-revealed .v108-location__pin-glow::after {
+  animation:v109-pin-heartbeat-inner var(--gelato-heartbeat-duration) ease-in-out 0s infinite both;
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-page="home"] .v102-location__heading .v102-location__eyebrow>span,
+  body[data-page="home"] .v108-location__pin-glow::before,
+  body[data-page="home"] .v108-location__pin-glow::after {
+    animation:none!important;
+    transform:none;
+    transition:none!important;
+  }
+}

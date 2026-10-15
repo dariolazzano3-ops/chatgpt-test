@@ -100,6 +100,13 @@ function initLocationReveal() {
     if (!entries[0]?.isIntersecting) return;
     surface.classList.add('is-revealed');
     observer.disconnect(); // Exactly once.
+    // Let the V108 one-shot reveal and its two golden accents finish first.
+    // Apply one shared class to start both heartbeat animations in the same frame.
+    window.setTimeout(() => {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.body.classList.add('location-heartbeat-active');
+      }
+    }, 2470);
   }, { threshold: 0.17, rootMargin: '0px 0px -4% 0px' });
   observer.observe(surface);
 }
