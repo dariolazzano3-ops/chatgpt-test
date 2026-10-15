@@ -1,0 +1,133 @@
+[
+  {
+    "name": "iphone",
+    "before": {
+      "heartbeat": false,
+      "reveal": false
+    },
+    "reveal": {
+      "heartbeat": false,
+      "reveal": true,
+      "opacity": "0"
+    },
+    "animated": {
+      "dotName": "v109-eyebrow-heartbeat",
+      "pinBefore": "v109-pin-heartbeat",
+      "pinAfter": "v109-pin-heartbeat-inner",
+      "dotCycle": "2.2s",
+      "pinCycle": "2.2s",
+      "dotIterations": "infinite",
+      "pinIterations": "infinite",
+      "dotCurrent": 266.6909998271465,
+      "pinCurrent": [
+        266.6909998271465,
+        266.6909998271465
+      ],
+      "dotScale": "matrix(1.03266, 0, 0, 1.03266, 0, 0)",
+      "png": "gelato-donatello-original-location-v105.jpg",
+      "mapNatural": [
+        1448,
+        1086
+      ],
+      "mapFilter": "none",
+      "overlay": "0",
+      "screen": 390,
+      "width": 390
+    },
+    "errors": []
+  },
+  {
+    "name": "small-iphone",
+    "before": {
+      "heartbeat": false,
+      "reveal": false
+    },
+    "reveal": {
+      "heartbeat": false,
+      "reveal": true,
+      "opacity": "0"
+    },
+    "animated": {
+      "dotName": "v109-eyebrow-heartbeat",
+      "pinBefore": "v109-pin-heartbeat",
+      "pinAfter": "v109-pin-heartbeat-inner",
+      "dotCycle": "2.2s",
+      "pinCycle": "2.2s",
+      "dotIterations": "infinite",
+      "pinIterations": "infinite",
+      "dotCurrent": 249.959999988973,
+      "pinCurrent": [
+        249.959999988973,
+        249.959999988973
+      ],
+      "dotScale": "matrix(1.06352, 0, 0, 1.06352, 0, 0)",
+      "png": "gelato-donatello-original-location-v105.jpg",
+      "mapNatural": [
+        1448,
+        1086
+      ],
+      "mapFilter": "none",
+      "overlay": "0",
+      "screen": 360,
+      "width": 360
+    },
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "before": {
+      "heartbeat": false,
+      "reveal": false
+    },
+    "reveal": {
+      "heartbeat": false,
+      "reveal": true,
+      "opacity": "0"
+    },
+    "animated": {
+      "dotName": "v109-eyebrow-heartbeat",
+      "pinBefore": "v109-pin-heartbeat",
+      "pinAfter": "v109-pin-heartbeat-inner",
+      "dotCycle": "2.2s",
+      "pinCycle": "2.2s",
+      "dotIterations": "infinite",
+      "pinIterations": "infinite",
+      "dotCurrent": 249.98600041642806,
+      "pinCurrent": [
+        249.98600041642806,
+        249.98600041642806
+      ],
+      "dotScale": "matrix(1.06346, 0, 0, 1.06346, 0, 0)",
+      "png": "gelato-donatello-original-location-v105.jpg",
+      "mapNatural": [
+        1448,
+        1086
+      ],
+      "mapFilter": "none",
+      "overlay": "0",
+      "screen": 1440,
+      "width": 1440
+    },
+    "errors": []
+  },
+  {
+    "name": "reduced-motion",
+    "staticState": {
+      "body": "reveal-enabled",
+      "dotAnimation": "none",
+      "halo": "none",
+      "source": 1448,
+      "imageTransform": "none"
+    }
+  },
+  {
+    "name": "no-javascript",
+    "staticState": {
+      "body": "",
+      "dotAnimation": "none",
+      "halo": "none",
+      "source": 1448,
+      "imageTransform": "none"
+    }
+  }
+]
