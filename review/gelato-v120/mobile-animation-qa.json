@@ -1,0 +1,168 @@
+[
+  {
+    "name": "iphone-small",
+    "duration": "0.933333s",
+    "easing": "linear",
+    "running": "running",
+    "scroll": 360,
+    "screen": 360,
+    "natural": [
+      1254,
+      1254
+    ],
+    "active": "Erdbeer-Shake",
+    "choices": [
+      "Erdbeer",
+      "Vanille",
+      "Schoko"
+    ],
+    "errors": []
+  },
+  {
+    "name": "iphone-safari-ua",
+    "duration": "0.933333s",
+    "easing": "linear",
+    "running": "running",
+    "scroll": 390,
+    "screen": 390,
+    "natural": [
+      1254,
+      1254
+    ],
+    "active": "Erdbeer-Shake",
+    "choices": [
+      "Erdbeer",
+      "Vanille",
+      "Schoko"
+    ],
+    "errors": []
+  },
+  {
+    "name": "android",
+    "duration": "0.933333s",
+    "easing": "linear",
+    "running": "running",
+    "scroll": 412,
+    "screen": 412,
+    "natural": [
+      1254,
+      1254
+    ],
+    "active": "Erdbeer-Shake",
+    "choices": [
+      "Erdbeer",
+      "Vanille",
+      "Schoko"
+    ],
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "duration": "0.933333s",
+    "easing": "linear",
+    "running": "running",
+    "scroll": 1440,
+    "screen": 1440,
+    "natural": [
+      1254,
+      1254
+    ],
+    "active": "Erdbeer-Shake",
+    "choices": [
+      "Erdbeer",
+      "Vanille",
+      "Schoko"
+    ],
+    "errors": []
+  },
+  {
+    "name": "natural-six-lap-cycle",
+    "rows": [
+      {
+        "lap": 1,
+        "stamp": 1082.3000001907349,
+        "current": "Erdbeer-Shake",
+        "photo": "0",
+        "top": "Erdbeer",
+        "side": [
+          "Vanille",
+          "Schoko"
+        ]
+      },
+      {
+        "lap": 2,
+        "stamp": 2015.5,
+        "current": "Vanille-Shake",
+        "photo": "2",
+        "top": "Vanille",
+        "side": [
+          "Schoko",
+          "Erdbeer"
+        ]
+      },
+      {
+        "lap": 3,
+        "stamp": 2948.7000002861023,
+        "current": "Vanille-Shake",
+        "photo": "2",
+        "top": "Vanille",
+        "side": [
+          "Schoko",
+          "Erdbeer"
+        ]
+      },
+      {
+        "lap": 4,
+        "stamp": 3882.2000002861023,
+        "current": "Schoko-Shake",
+        "photo": "1",
+        "top": "Schoko",
+        "side": [
+          "Erdbeer",
+          "Vanille"
+        ]
+      },
+      {
+        "lap": 5,
+        "stamp": 4815.200000286102,
+        "current": "Schoko-Shake",
+        "photo": "1",
+        "top": "Schoko",
+        "side": [
+          "Erdbeer",
+          "Vanille"
+        ]
+      },
+      {
+        "lap": 6,
+        "stamp": 5748.60000038147,
+        "current": "Erdbeer-Shake",
+        "photo": "0",
+        "top": "Erdbeer",
+        "side": [
+          "Vanille",
+          "Schoko"
+        ]
+      }
+    ],
+    "lapIntervalsMs": [
+      933.1999998092651,
+      933.2000002861023,
+      933.5,
+      933,
+      933.4000000953674
+    ],
+    "manualClick": "Schoko-Shake",
+    "pausedOffscreen": true
+  },
+  {
+    "name": "reduced-motion",
+    "static": true,
+    "manualSelection": true
+  },
+  {
+    "name": "no-javascript",
+    "staticImage": true,
+    "drinks": 3
+  }
+]
