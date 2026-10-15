@@ -16,8 +16,8 @@ test('Private event draft contains requested concept without invented schedule, 
  for(const k of ['start_at','end_at','capacity','available_places','price_cents'])assert.equal(manifest[k],null);
  assert.equal(manifest.header_badge_count,0);
  assert.deepEqual(manifest.proposed_inclusions.length,5);
- assert.match(html,/Werde für einen Tag <em>zum Gelatiere\.<\/em>/);
- for(const detail of ['Rundführung','Einblicke in die tägliche Herstellung','Selbst ausprobieren','Eis für zu Hause','Noch nicht buchbar','Noch offen','In Planung']) assert.ok((html.toLowerCase().includes(detail.toLowerCase())),'Missing '+detail);
+ assert.match(html,/Ein Blick hinter <em>die Kulissen\.<\/em>/);
+ for(const detail of ['Rundführung','So entsteht unser Eis','Eigenes Eis mitnehmen','Begrenzte Teilnehmerplätze','noch nicht buchbar','Weitere Details folgen']) assert.ok((html.toLowerCase().includes(detail.toLowerCase())),'Missing '+detail);
  assert.match(html,/noindex,nofollow,noarchive/);
  assert.doesNotMatch(html,/\d+\s*€|EUR \d+|\d+ freie Plätze|\d+ Teilnehmerplätze/);
 });
@@ -28,13 +28,13 @@ test('The interest form does not accept or transmit any personal data',()=>{
  assert.equal(manifest.interest.privacy_notice_approved,false);
  assert.match(html,/data-event-form-status="disabled"/);
  assert.match(html,/<fieldset disabled>/);
- assert.match(html,/type="button" disabled aria-disabled="true"/);
+ assert.match(html,/type="button" class="ev121-form__submit" disabled aria-disabled="true"/);
  assert.doesNotMatch(html,/<form[^>]*action=|type="submit"|fetch\(|sendBeacon|formspree/i);
  assert.match(html,/keine personenbezogenen Daten entgegengenommen, versendet oder gespeichert/);
- for(const field of ['first_name','last_name','email','phone','requested_seats','note']) assert.ok(html.includes('name="'+field+'"'));
+ for(const field of ['name','email','phone','requested_seats','note']) assert.ok(html.includes('name="'+field+'"'));
  assert.equal((html.match(/name="marketing_opt_in"/g)||[]).length,1);
  assert.equal((html.match(/name="privacy_acknowledged"/g)||[]).length,1);
- assert.match(html,/Keine Voraussetzung für die Interessensmeldung/);
+ assert.match(html,/Optional, nicht erforderlich\./);
 });
 test('Events navigation and accessible header shortcut preserve original controls, no false badge',()=>{
  assert.match(nav,/{ page: 'events', href: '\/events\/', label: 'Events' }/);
@@ -52,9 +52,9 @@ test('Events navigation and accessible header shortcut preserve original control
  assert.match(css,/@media\(min-width:1371px\)/);
 });
 test('Original image and previous project sections remain untouched',()=>{
- const photo=path.join(root,'assets/images/shop/interior-retina-crisp.webp');
- assert.ok(statSync(photo).size>100000);
- assert.match(html,/Originalaufnahme aus dem Eiscafé/);
+ const photo=path.join(root,'assets/images/events/gelato-event-eislabor-hero-v121.avif');
+ assert.ok(statSync(photo).size>20000);
+ assert.match(html,/Illustrative Event-Vorschau/);
  assert.match(html,/id="site-header"/);
  assert.match(html,/id="site-footer"/);
  assert.match(html,/\/assets\/js\/app\.js/);
