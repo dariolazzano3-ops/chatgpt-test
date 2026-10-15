@@ -47,7 +47,7 @@ test('Events navigation and accessible header shortcut preserve original control
  assert.doesNotMatch(nav,/events.*badge|site-header__events-badge|>1<\/span>/);
  assert.match(globalCSS,/@import url\('\.\/events-v117\.css'\)/);
  assert.match(css,/@keyframes v119-hero-envelope-tip/);
- assert.match(css,/16s ease-in-out infinite/);
+ assert.match(css,/8\.4s cubic-bezier\(\.3,\.05,\.3,1\) infinite/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/@media\(min-width:1371px\)/);
 });

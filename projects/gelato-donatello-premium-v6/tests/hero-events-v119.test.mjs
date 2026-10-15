@@ -27,7 +27,7 @@ test('Hero has a clear target, subtle periodic motion, reduced-motion fallback a
  assert.match(css,/v119-hero-events-row\{[\s\S]*display:flex/);
  assert.match(css,/\.v119-hero-events__badge\{/);
  assert.match(css,/@keyframes v119-hero-envelope-tip/);
- assert.match(css,/animation:v119-hero-envelope-tip 16s ease-in-out infinite/);
+ assert.match(css,/animation:v119-hero-envelope-tip 8\.4s cubic-bezier\(\.3,\.05,\.3,1\) infinite/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/\.v119-hero-events__envelope\{animation:none!important/);
  assert.match(css,/grid-template-columns:minmax\(0,1fr\) auto;gap:7px/);
