@@ -1,0 +1,158 @@
+[
+  {
+    "id": "eisbecher",
+    "title": "Eisbecher",
+    "subtitle": "Klassiker & besondere Kreationen",
+    "cover": "fruechte-becher.webp",
+    "products": [
+      {
+        "name": "Amarena-Becher",
+        "image": "amarena-becher.webp"
+      },
+      {
+        "name": "Erdbeer-Becher",
+        "image": "erdbeer-becher.webp"
+      },
+      {
+        "name": "Früchte-Becher",
+        "image": "fruechte-becher.webp"
+      },
+      {
+        "name": "Ananas-Becher",
+        "image": "ananas-becher.webp"
+      },
+      {
+        "name": "Banana Split",
+        "image": "banana-split.webp"
+      },
+      {
+        "name": "Melonen-Becher",
+        "image": "melonen-becher.webp"
+      },
+      {
+        "name": "After-Eight-Becher",
+        "image": "after-eight-becher.webp"
+      },
+      {
+        "name": "Raffaello-Becher",
+        "image": "raffaello-becher.webp"
+      },
+      {
+        "name": "Roche-Becher",
+        "image": "roche-becher.webp"
+      },
+      {
+        "name": "Mocca-Becher",
+        "image": "mocca-becher.webp"
+      },
+      {
+        "name": "Nusstraum-Becher",
+        "image": "nusstraum-becher.webp"
+      },
+      {
+        "name": "Köllerbacher Becher",
+        "image": "koellerbacher-becher.webp"
+      },
+      {
+        "name": "Tartufo-Becher",
+        "image": "tartufo-becher.webp"
+      }
+    ]
+  },
+  {
+    "id": "spaghetti-eisbecher",
+    "title": "Spaghetti-Eisbecher",
+    "subtitle": "Sechs Variationen unseres Klassikers",
+    "cover": "spaghetti-classic.webp",
+    "products": [
+      {
+        "name": "Spaghetti Classic",
+        "image": "spaghetti-classic.webp"
+      },
+      {
+        "name": "Spaghetti Erdbeere",
+        "image": "spaghetti-erdbeere.webp"
+      },
+      {
+        "name": "Spaghetti Amarena",
+        "image": "spaghetti-amarena.webp"
+      },
+      {
+        "name": "Spaghetti Carbonara",
+        "image": "spaghetti-carbonara.webp"
+      },
+      {
+        "name": "Spaghetti Melone",
+        "image": "spaghetti-melone.webp"
+      },
+      {
+        "name": "Spaghetti Neri",
+        "image": "spaghetti-neri.webp"
+      }
+    ]
+  },
+  {
+    "id": "joghurtbecher",
+    "title": "Joghurtbecher",
+    "subtitle": "Fruchtig, frisch & cremig",
+    "cover": "joghurt-fruechte.webp",
+    "products": [
+      {
+        "name": "Joghurt Kiwi",
+        "image": "joghurt-kiwi.webp"
+      },
+      {
+        "name": "Joghurt Mango",
+        "image": "joghurt-mango.webp"
+      },
+      {
+        "name": "Joghurt Italia",
+        "image": "joghurt-italia.webp"
+      },
+      {
+        "name": "Joghurt Früchte",
+        "image": "joghurt-fruechte.webp"
+      },
+      {
+        "name": "Joghurt Waldbeer",
+        "image": "joghurt-waldbeer.webp"
+      },
+      {
+        "name": "Joghurt Banane",
+        "image": "joghurt-banane.webp"
+      }
+    ]
+  },
+  {
+    "id": "kinderbecher",
+    "title": "Kinderbecher",
+    "subtitle": "Für unsere kleinen Gäste",
+    "cover": "kinder-spaghetti.webp",
+    "products": [
+      {
+        "name": "Smarties-Becher",
+        "image": "smarties-becher.webp"
+      },
+      {
+        "name": "Micky Mouse",
+        "image": "micky-mouse.webp"
+      },
+      {
+        "name": "Biene Maja",
+        "image": "biene-maja.webp"
+      },
+      {
+        "name": "Gummibären-Becher",
+        "image": "gummibaeren-becher.webp"
+      },
+      {
+        "name": "Schneemann",
+        "image": "schneemann-becher.webp"
+      },
+      {
+        "name": "Kinder Spaghetti",
+        "image": "kinder-spaghetti.webp"
+      }
+    ]
+  }
+]
