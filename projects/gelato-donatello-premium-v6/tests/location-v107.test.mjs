@@ -35,7 +35,7 @@ test('Contact CTA, route, phone, map interaction and reveal remain',()=>{
   assert.equal((loc.match(/Route starten/g)||[]).length,1);
   assert.equal((loc.match(/>\s*Anrufen\s*</g)||[]).length,1);
   assert.match(loc,/href="tel:\+4968069394980"/);
-  assert.match(loc,/href="https:\/\/www\.google\.com\/maps\/dir/);
+  assert.match(loc,/href="https:\/\/www\.google\.com\/maps\/place/);
   assert.match(loc,/class="v102-location__details"/);
   assert.match(loc,/data-location-reveal/);
   assert.match(js,/observer\.disconnect\(\)/);

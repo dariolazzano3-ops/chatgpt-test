@@ -22,7 +22,7 @@ test('Exactly one navigable map, one route, one phone',()=>{
   assert.equal((loc.match(/>\s*Anrufen\s*</g)||[]).length,1);
   assert.doesNotMatch(loc,/Karte vergrößern|Karte öffnen/);
   assert.match(loc,/href="tel:\+4968069394980"/);
-  assert.match(loc,/www\.google\.com\/maps\/dir\/\?api=1&amp;destination=49\.299548%2C6\.8977832/);
+  assert.match(loc,/www\.google\.com\/maps\/place\/Gelato\+Donatello\+GmbH/);
 });
 test('Coffee and location share exact color and no section-specific backgrounds',()=>{
   assert.match(css,/V106: same single espresso surface/);

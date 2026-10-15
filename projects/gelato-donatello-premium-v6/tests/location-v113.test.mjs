@@ -8,8 +8,8 @@ const js=read('../assets/js/app.js').toString();
 const css=read('../assets/css/style.css').toString();
 const location=html.split('<section class="v102-location"',2)[1]?.split('</main>',1)[0]||'';
 const dialog=html.split('<dialog class="v113-navigation"',2)[1]?.split('</dialog>',1)[0]||'';
-const apple='https://maps.apple.com/?daddr=49.299548,6.8977832&dirflg=d';
-const google='https://www.google.com/maps/dir/?api=1&destination=49.299548%2C6.8977832&travelmode=driving';
+const apple='https://maps.apple/p/rvRX9tEjSk-Vnh';
+const google='https://www.google.com/maps/place/Gelato+Donatello+GmbH,+Hauptstra%C3%9Fe+4,+66346+P%C3%BCttlingen-K%C3%B6llerbach/@49.2995579,6.8977629,17z/data=!4m6!3m5!1s0x4795afdf9d4934af:0x8af198c42c4a4a50!8m2!3d49.2995579!4d6.8977629!16s%2Fg%2F11fxvydwrw?g_ep=Eg1tbF8yMDI2MTAxMV8wIOC7DCoASAJQAg%3D%3D';
 test('all cars and vehicle keyframes are removed without altering original marker',()=>{
  assert.doesNotMatch(html,/v110-vehicle/);
  assert.doesNotMatch(css,/v110-vehicle|v110-traffic-main|v110-traffic-side/);
@@ -26,7 +26,7 @@ test('map and route share modal, Google Maps remains usable without Javascript',
  assert.equal((location.match(/class="v102-location__route"/g)||[]).length,1);
  assert.equal((location.match(/Route starten/g)||[]).length,1);
  for(const fallback of [...location.matchAll(/data-location-navigation[\s\S]*?href="([^"]+)"/g)]){
-   assert.ok(fallback[1].replaceAll('&amp;','&').includes('49.299548%2C6.8977832'));
+   assert.equal(fallback[1].replaceAll('&amp;','&'),google);
  }
  assert.match(location,/Hauptstraße 4/);
  assert.match(location,/Direkt gegenüber der Burg Bucherbach\./);
