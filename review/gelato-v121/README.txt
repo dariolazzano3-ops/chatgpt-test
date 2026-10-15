@@ -1,0 +1,4 @@
+Gelato Donatello V121 Events Hero | Private Preview QA
+Source: 03445688bc987abcc1866839839506d97c9d235b
+User-provided illustrated event image optimized AVIF at 1152x648, SHA256 179c4878a9656dc1319fddc4a4e1ae4a09f86316f8cbf542b012c714c34190ae. Hero uses this exact asset in /events/ below the concise heading, illustration correctly labeled as preview. Highlights (4), four-step program, compact winter details, CTA anchors, disabled privacy-aware interest form; no live dates, prices, submission or bookings.
+QA: 61/61 regression PASS; 360,390,412,768,1440px no overflow; browser loaded real hero at native resolution; hero CTA and nav checks PASS; Chromium iPhone mobile emulation, not native Safari hardware. Original public production branch unchanged. Private workflow https://github.com/dariolazzano3-ops/chatgpt-test/actions/runs/38789936339.

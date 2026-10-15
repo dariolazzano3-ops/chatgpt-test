@@ -1,0 +1,151 @@
+[
+  {
+    "name": "iphone-360",
+    "viewport": 360,
+    "scroll": 360,
+    "imgWidth": 1152,
+    "imgHeight": 648,
+    "complete": true,
+    "hero": [
+      360,
+      270
+    ],
+    "intro": [
+      360,
+      438
+    ],
+    "cards": [
+      320,
+      297
+    ],
+    "imageFile": "http://127.0.0.1:18783/assets/images/events/gelato-event-eislabor-hero-v121.avif",
+    "formDisabled": true,
+    "imageBounds": {
+      "left": 0,
+      "right": 360
+    },
+    "headerExists": true,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "name": "iphone",
+    "viewport": 390,
+    "scroll": 390,
+    "imgWidth": 1152,
+    "imgHeight": 648,
+    "complete": true,
+    "hero": [
+      390,
+      293
+    ],
+    "intro": [
+      390,
+      370
+    ],
+    "cards": [
+      350,
+      313
+    ],
+    "imageFile": "http://127.0.0.1:18783/assets/images/events/gelato-event-eislabor-hero-v121.avif",
+    "formDisabled": true,
+    "imageBounds": {
+      "left": 0,
+      "right": 390
+    },
+    "headerExists": true,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "name": "android",
+    "viewport": 412,
+    "scroll": 412,
+    "imgWidth": 1152,
+    "imgHeight": 648,
+    "complete": true,
+    "hero": [
+      412,
+      309
+    ],
+    "intro": [
+      412,
+      313
+    ],
+    "cards": [
+      372,
+      313
+    ],
+    "imageFile": "http://127.0.0.1:18783/assets/images/events/gelato-event-eislabor-hero-v121.avif",
+    "formDisabled": true,
+    "imageBounds": {
+      "left": 0,
+      "right": 412
+    },
+    "headerExists": true,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "name": "tablet",
+    "viewport": 768,
+    "scroll": 768,
+    "imgWidth": 1152,
+    "imgHeight": 648,
+    "complete": true,
+    "hero": [
+      768,
+      355
+    ],
+    "intro": [
+      768,
+      347
+    ],
+    "cards": [
+      707,
+      372
+    ],
+    "imageFile": "http://127.0.0.1:18783/assets/images/events/gelato-event-eislabor-hero-v121.avif",
+    "formDisabled": true,
+    "imageBounds": {
+      "left": 0,
+      "right": 768
+    },
+    "headerExists": true,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "name": "desktop",
+    "viewport": 1440,
+    "scroll": 1440,
+    "imgWidth": 1152,
+    "imgHeight": 648,
+    "complete": true,
+    "hero": [
+      1440,
+      666
+    ],
+    "intro": [
+      1270,
+      253
+    ],
+    "cards": [
+      1155,
+      206
+    ],
+    "imageFile": "http://127.0.0.1:18783/assets/images/events/gelato-event-eislabor-hero-v121.avif",
+    "formDisabled": true,
+    "imageBounds": {
+      "left": 0,
+      "right": 1440
+    },
+    "headerExists": true,
+    "errors": [],
+    "failed": []
+  },
+  {
+    "name": "reduced-motion",
+    "imageLoaded": true
+  }
+]
