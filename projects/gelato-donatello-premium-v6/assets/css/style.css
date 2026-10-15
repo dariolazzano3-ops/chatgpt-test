@@ -3974,3 +3974,76 @@ body[data-page="home"] .v102-location__heading > p:last-child{
 @media(max-width:390px){
   body[data-page="home"] .v102-location{padding-top:16px;}
 }
+
+
+/* V108: one-shot cinematic location focus, progressively enhanced.
+   The original map JPEG remains sharp and retains its own baked-in pin.
+   Gold accent is positioned on the printed pin tip (x≈67.4%, y≈51.4%).
+   No JS/reduced motion: no veil, no zoom, no synthetic halo. */
+body[data-page="home"] .v103-location__map-static{isolation:isolate;}
+body[data-page="home"] .v108-location__pin-glow{
+  display:none;
+  position:absolute;
+  left:67.9%;
+  top:51.4%;
+  width:0;
+  height:0;
+  pointer-events:none;
+  z-index:2;
+}
+body[data-page="home"].location-reveal-ready .v108-location__pin-glow{display:block;}
+body[data-page="home"] .v108-location__pin-glow::before,
+body[data-page="home"] .v108-location__pin-glow::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:clamp(22px,4.2vw,47px);
+  height:clamp(22px,4.2vw,47px);
+  border-radius:50%;
+  pointer-events:none;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.56);
+  background:radial-gradient(circle,rgba(255,227,161,.54) 0%,rgba(242,177,78,.36) 24%,rgba(221,140,49,.11) 56%,transparent 74%);
+}
+body[data-page="home"] .v108-location__pin-glow::after{
+  width:clamp(12px,2.0vw,23px);
+  height:clamp(12px,2.0vw,23px);
+  background:radial-gradient(circle,rgba(255,234,180,.45),rgba(239,174,81,.17) 55%,transparent 79%);
+}
+@keyframes v108-location-warm-pulse{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.56);}
+  35%{opacity:.63;transform:translate(-50%,-50%) scale(1);}
+  75%{opacity:.26;transform:translate(-50%,-50%) scale(1.23);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.39);}
+}
+body[data-page="home"].location-reveal-ready .v102-location__map-surface::after{
+  background:linear-gradient(135deg,rgba(29,21,17,.25),rgba(24,17,15,.14))!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  transition:opacity 1100ms cubic-bezier(.19,.65,.25,1)!important;
+}
+body[data-page="home"].location-reveal-ready .v103-location__map-static img{
+  transform:scale(1)!important;
+  transform-origin:center center!important;
+  filter:none!important;
+  transition:transform 1250ms cubic-bezier(.17,.7,.24,1)!important;
+}
+body[data-page="home"].location-reveal-ready .v102-location__map-surface.is-revealed .v103-location__map-static img{
+  transform:scale(1.035)!important;
+}
+body[data-page="home"].location-reveal-ready .v102-location__map-surface.is-revealed .v108-location__pin-glow::before{
+  animation:v108-location-warm-pulse 850ms ease-out 550ms 2 both;
+}
+body[data-page="home"].location-reveal-ready .v102-location__map-surface.is-revealed .v108-location__pin-glow::after{
+  animation:v108-location-warm-pulse 850ms ease-out 690ms 2 both;
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-page="home"] .v108-location__pin-glow{display:none!important;}
+  body[data-page="home"].location-reveal-ready .v103-location__map-static img{
+    transform:none!important;transition:none!important;
+  }
+  body[data-page="home"].location-reveal-ready .v102-location__map-surface::after{
+    display:none!important;transition:none!important;
+  }
+}
