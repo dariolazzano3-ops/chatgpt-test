@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "project": "gelato-donatello",
+  "visibility": "private-preview-only",
+  "event_id": "eislabor-gelatiere-draft-v1",
+  "title": "Werde für einen Tag zum Gelatiere.",
+  "status": "draft",
+  "is_published": false,
+  "is_bookable": false,
+  "start_at": null,
+  "end_at": null,
+  "capacity": null,
+  "available_places": null,
+  "price_cents": null,
+  "currency": null,
+  "confirmed_inclusions": [],
+  "proposed_inclusions": [
+    "Rundführung durchs Eislabor",
+    "Einblick in die Eisproduktion",
+    "Herstellung demonstrieren und erklären",
+    "Optional selbst mitarbeiten",
+    "Eis zum Mitnehmen"
+  ],
+  "interest": {
+    "enabled": false,
+    "submission_endpoint": null,
+    "personal_data_storage": null,
+    "fields": ["first_name", "last_name", "email", "phone_optional", "requested_seats", "note_optional"],
+    "separate_opt_in": "marketing_opt_in",
+    "privacy_notice_approved": false
+  },
+  "booking": {
+    "enabled": false,
+    "provider": null,
+    "booking_url": null,
+    "payments_enabled": false,
+    "confirmation_emails_enabled": false,
+    "waiting_list_enabled": false
+  },
+  "header_badge_count": 0
+}
