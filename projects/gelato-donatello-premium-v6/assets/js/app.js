@@ -111,6 +111,47 @@ function initLocationReveal() {
   observer.observe(surface);
 }
 
+function initLocationNavigation() {
+  const dialog = document.querySelector('#gelato-navigation-dialog');
+  const links = [...document.querySelectorAll('#standort [data-location-navigation]')];
+  if (!dialog || !links.length || typeof dialog.showModal !== 'function') {
+    // Google Maps is linked in static HTML for both actions, no JS dependency.
+    return;
+  }
+  const closeButton = dialog.querySelector('[data-navigation-close]');
+  const apple = dialog.querySelector('[data-navigation-destination="apple"]');
+  const google = dialog.querySelector('[data-navigation-destination="google"]');
+  if (!closeButton || !apple || !google) return;
+  let opener = null;
+  const open = (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey ||
+        event.ctrlKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    opener = event.currentTarget;
+    if (!dialog.open) dialog.showModal();
+    document.body.classList.add('v113-navigation-open');
+    // Native dialog traps focus; explicit initial focus helps VoiceOver users.
+    apple.focus({preventScroll:true});
+  };
+  links.forEach(link => link.addEventListener('click', open));
+  const close = () => {
+    if (dialog.open) dialog.close();
+  };
+  closeButton.addEventListener('click', close);
+  apple.addEventListener('click', close);
+  google.addEventListener('click', close);
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) close(); // native ::backdrop outside click
+  });
+  dialog.addEventListener('close', () => {
+    document.body.classList.remove('v113-navigation-open');
+    if (opener?.isConnected) opener.focus({preventScroll:true});
+    opener = null;
+  });
+  // Escape is handled natively; cleanup after cancel is handled by close event.
+  // Do not launch either map provider before the visitor makes a choice.
+}
+
 function initReveal() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const targets = document.querySelectorAll('[data-reveal]');
@@ -220,6 +261,7 @@ function init() {
   initHeroFlavors();
   initCaffeScroll();
   initLocationReveal();
+  initLocationNavigation();
   initDiscoveryFlavors();
   initDiscoveryCups();
 }

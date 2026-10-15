@@ -365,23 +365,20 @@
             <div class="v102-location__map-surface" data-location-reveal>
               <!-- V105: exact customer-supplied location illustration, byte-identical JPEG.
                    Fully self-hosted so Safari never depends on external map embeds. -->
-              <a class="v103-location__map-static"
-                 href="https://www.openstreetmap.org/?mlat=49.299548&amp;mlon=6.8977832#map=17/49.299548/6.8977832"
+              <a class="v103-location__map-static" data-location-navigation
+                 href="https://www.google.com/maps/dir/?api=1&amp;destination=49.299548%2C6.8977832&amp;travelmode=driving"
                  target="_blank" rel="noopener noreferrer"
-                 aria-label="Standortkarte Gelato Donatello in OpenStreetMap öffnen">
+                 aria-label="Navigation zu Gelato Donatello auswählen (ohne JavaScript Google Maps)">
                 <img src="/assets/images/editorial/gelato-donatello-original-location-v105.jpg"
                      alt="Originale illustrierte Gelato-Donatello-Standortkarte mit Burg Bucherbach, Stadion an der Burg, Spielplatz, Parkplätzen und Bushaltestellen"
                      width="1448" height="1086" loading="eager" decoding="async" fetchpriority="low" />
                 <!-- V108: visual-only glow aligned to the original printed location pin.
                      The approved JPEG itself is never modified. -->
                 <span class="v108-location__pin-glow" aria-hidden="true"></span>
-                <!-- V110: additive transparent marker sprite and three tiny road vehicles.
-                     Original illustrated map and all printed map data remain untouched. -->
+                <!-- V113: the approved original map and full animated marker remain unchanged.
+                     The former decorative road vehicles have been removed. -->
                 <span class="v110-map-stage" aria-hidden="true">
                   <span class="v110-marker-whole"></span>
-                  <span class="v110-vehicle v110-vehicle--one"></span>
-                  <span class="v110-vehicle v110-vehicle--two"></span>
-                  <span class="v110-vehicle v110-vehicle--three"></span>
                 </span>
 
               </a>
@@ -401,7 +398,7 @@
             <address>Hauptstraße 4<br />66346 Püttlingen-Köllerbach</address>
             <p class="v102-location__details-note">Dein nächster Genussmoment wartet schon auf dich.</p>
             <div class="v102-location__actions">
-              <a class="v102-location__route" href="https://www.google.com/maps/dir/?api=1&amp;destination=49.299548%2C6.8977832" target="_blank" rel="noopener noreferrer" aria-label="Route zu Gelato Donatello in Google Maps starten">
+              <a class="v102-location__route" data-location-navigation href="https://www.google.com/maps/dir/?api=1&amp;destination=49.299548%2C6.8977832&amp;travelmode=driving" target="_blank" rel="noopener noreferrer" aria-label="Navigation zu Gelato Donatello auswählen (ohne JavaScript Google Maps)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 16 8-8M8 8h8v8"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
                 Route starten
               </a>
@@ -415,6 +412,39 @@
       </div>
     </section>
   </main>
+
+  <!-- V113: native dialog handles modal focus containment and Escape in Safari.
+       Links remain ordinary navigation destinations. Without JS map and
+       Route starten link directly to the real Google driving destination. -->
+  <dialog class="v113-navigation" id="gelato-navigation-dialog"
+          aria-labelledby="v113-navigation-title" aria-describedby="v113-navigation-description">
+    <div class="v113-navigation__sheet">
+      <button class="v113-navigation__close" type="button"
+              data-navigation-close aria-label="Navigation schließen">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <p class="v113-navigation__eyebrow">GELATO DONATELLO · KÖLLERBACH</p>
+      <h2 id="v113-navigation-title">Navigation auswählen</h2>
+      <p id="v113-navigation-description">Wie möchtest du zu Gelato Donatello navigieren?</p>
+      <div class="v113-navigation__choices">
+        <a class="v113-navigation__choice" href="https://maps.apple.com/?daddr=49.299548,6.8977832&amp;dirflg=d" target="_blank" rel="noopener noreferrer" data-navigation-destination="apple">
+          <span class="v113-navigation__icon v113-navigation__icon--apple" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none"><rect x="3" y="3" width="34" height="34" rx="9" fill="currentColor" opacity=".12"/><path d="M14 28l6-16 6 16M16 23h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 11l2.5 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span>Route mit Apple Karten</span>
+          <svg class="v113-navigation__arrow" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </a>
+        <a class="v113-navigation__choice" href="https://www.google.com/maps/dir/?api=1&amp;destination=49.299548%2C6.8977832&amp;travelmode=driving" target="_blank" rel="noopener noreferrer" data-navigation-destination="google">
+          <span class="v113-navigation__icon v113-navigation__icon--google" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 35s11-12 11-21a11 11 0 0 0-22 0c0 9 11 21 11 21Z" fill="currentColor" opacity=".18"/><path d="M20 32s9-10 9-18a9 9 0 0 0-18 0c0 8 9 18 9 18Z" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="14" r="3.4" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span>Route mit Google Maps</span>
+          <svg class="v113-navigation__arrow" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </a>
+      </div>
+      <p class="v113-navigation__address">Hauptstraße 4 · 66346 Püttlingen-Köllerbach</p>
+    </div>
+  </dialog>
 
   <div id="site-footer"></div>
   <script type="module" src="/assets/js/app.js"></script>

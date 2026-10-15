@@ -32,18 +32,15 @@ test('Full pin including image label scales together, softly and precisely',()=>
  assert.match(css,/transform:scale\(1\.035\)/);
  assert.match(css,/\.location-heartbeat-active \.v108-location__pin-glow\{\s*display:none/);
 });
-test('Exactly three subtle cars follow map roads with staggered timing',()=>{
- assert.equal((loc.match(/class="v110-vehicle v110-vehicle--/g)||[]).length,3);
- assert.match(css,/v110-traffic-main-south 24s linear -2s infinite/);
- assert.match(css,/v110-traffic-main-north 31s linear -13s infinite/);
- assert.match(css,/v110-traffic-side 29s linear -19s infinite/);
- assert.match(css,/\.v110-vehicle\{[\s\S]*?display:none/);
+test('V113 removes the former decorative vehicles while preserving the whole pin',()=>{
+ assert.doesNotMatch(loc,/v110-vehicle/);
+ assert.doesNotMatch(css,/v110-vehicle|v110-traffic-main|v110-traffic-side/);
  assert.match(css,/pointer-events:none/);
 });
-test('No-JS progressive enhancement; reduced motion has no animated sprites or vehicles',()=>{
+test('No-JS progressive enhancement; reduced motion has no animated marker sprite',()=>{
  assert.match(js,/window\.setTimeout\(\(\) => \{/);
  assert.match(js,/location-heartbeat-active/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)[\s\S]*\.v110-map-stage\{display:none!important/);
- assert.match(css,/\.v110-vehicle\{animation:none!important;display:none!important/);
+ assert.match(css,/\.v110-marker-whole\{animation:none!important;display:none!important/);
  assert.match(js,/observer\.disconnect\(\)/);
 });

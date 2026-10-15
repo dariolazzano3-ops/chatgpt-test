@@ -4168,70 +4168,63 @@ body[data-page="home"].location-heartbeat-active .v110-marker-whole{
 body[data-page="home"].location-heartbeat-active .v108-location__pin-glow{
   display:none;
 }
-/* The cars are tiny polished silhouettes, scaled subtly for mobile density.
-   Animated top/left change only tiny absolute, non-layout decorative elements. */
-body[data-page="home"] .v110-vehicle{
-  position:absolute;
-  display:none;
-  z-index:1;
-  width:clamp(4px,.65vw,8px);
-  height:clamp(8px,1.16vw,13px);
-  border-radius:42% 42% 32% 32%;
-  border:1px solid rgba(32,30,29,.50);
-  box-sizing:border-box;
-  opacity:0;
-  pointer-events:none;
-  box-shadow:0 1px 2px rgba(28,21,17,.29);
-  background:linear-gradient(90deg,#50483d 0 16%,#bfc4bc 23% 76%,#50483d 84%);
-}
-body[data-page="home"] .v110-vehicle::after{
-  content:"";
-  position:absolute;
-  left:17%;
-  right:17%;
-  top:25%;
-  height:30%;
-  border-radius:2px;
-  background:rgba(52,77,84,.61);
-}
-@keyframes v110-traffic-main-south{
-  0%{left:54.0%;top:13%;opacity:0;}
-  9%{opacity:.88;}
-  89%{opacity:.88;}
-  100%{left:57%;top:79%;opacity:0;}
-}
-@keyframes v110-traffic-main-north{
-  0%{left:58.4%;top:91%;opacity:0;}
-  10%{opacity:.82;}
-  90%{opacity:.82;}
-  100%{left:55.7%;top:17%;opacity:0;}
-}
-@keyframes v110-traffic-side{
-  0%{left:94%;top:47.5%;opacity:0;transform:rotate(117deg);}
-  10%{opacity:.78;}
-  87%{opacity:.78;}
-  100%{left:66%;top:27%;opacity:0;transform:rotate(117deg);}
-}
-body[data-page="home"].location-heartbeat-active .v110-vehicle{
-  display:block;
-}
-body[data-page="home"].location-heartbeat-active .v110-vehicle--one{
-  background:linear-gradient(90deg,#7d4230 0 16%,#d9b99d 24% 78%,#7d4230 85%);
-  animation:v110-traffic-main-south 24s linear -2s infinite;
-}
-body[data-page="home"].location-heartbeat-active .v110-vehicle--two{
-  background:linear-gradient(90deg,#3f4e5b 0 16%,#cbd2ce 24% 78%,#3f4e5b 85%);
-  animation:v110-traffic-main-north 31s linear -13s infinite;
-}
-body[data-page="home"].location-heartbeat-active .v110-vehicle--three{
-  background:linear-gradient(90deg,#645243 0 16%,#e9dbbf 24% 78%,#645243 85%);
-  animation:v110-traffic-side 29s linear -19s infinite;
-}
-@media(max-width:850px){
-  body[data-page="home"] .v110-vehicle{border-width:.5px;box-shadow:0 0 1px rgba(28,21,17,.22);}
-}
 @media(prefers-reduced-motion:reduce){
   body[data-page="home"] .v110-map-stage{display:none!important;}
-  body[data-page="home"] .v110-marker-whole,
-  body[data-page="home"] .v110-vehicle{animation:none!important;display:none!important;}
+  body[data-page="home"] .v110-marker-whole{animation:none!important;display:none!important;}
+}
+
+
+/* V113 Navigation choice. Fixed native dialog: desktop centered, mobile
+   bottom sheet. Kept outside the clipping map/card and page layout. */
+.v113-navigation{position:fixed;inset:0;margin:auto;
+  width:min(460px,calc(100% - 32px));max-width:none;max-height:calc(100dvh - 24px);
+  padding:0;border:1px solid rgba(225,186,144,.32);border-radius:22px;
+  background:linear-gradient(160deg,#392921,#241b18 80%);
+  color:#faf1e7;box-shadow:0 28px 90px rgba(18,12,10,.45);
+  overflow:visible;overscroll-behavior:contain}
+.v113-navigation:not([open]){display:none}
+.v113-navigation::backdrop{background:rgba(19,13,12,.73);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.v113-navigation[open]{animation:v113-nav-enter .3s cubic-bezier(.16,.72,.28,1) both}
+.v113-navigation__sheet{position:relative;padding:clamp(28px,4vw,38px);min-width:0}
+.v113-navigation__close{position:absolute;top:16px;right:16px;display:grid;place-items:center;
+  width:42px;height:42px;border:1px solid rgba(240,210,179,.23);border-radius:50%;
+  background:rgba(255,255,255,.055);color:#f7e7d8;cursor:pointer}
+.v113-navigation__close svg{width:18px;height:18px}
+.v113-navigation__close:hover{background:rgba(255,255,255,.13)}
+.v113-navigation__eyebrow{margin:0 46px 11px 0;font:750 .64rem/1.4 var(--font-body);
+  letter-spacing:.14em;color:#e1b78d}
+.v113-navigation h2{font:400 clamp(2.1rem,5.5vw,2.8rem)/1.12 var(--font-serif);
+  letter-spacing:-.035em;color:#fff4e6;margin:0 25px 11px 0}
+.v113-navigation #v113-navigation-description{font-size:.95rem;line-height:1.55;color:#d5c0ae;margin:0 0 25px}
+.v113-navigation__choices{display:grid;gap:11px}
+.v113-navigation__choice{display:flex;align-items:center;gap:14px;min-height:70px;
+  padding:12px 16px;border:1px solid rgba(229,194,158,.3);border-radius:14px;
+  background:rgba(255,255,255,.055);color:#fff3e6;text-decoration:none;
+  font:700 .91rem/1.35 var(--font-body);
+  transition:background .2s ease,border-color .2s ease,transform .2s ease}
+.v113-navigation__choice:hover{background:rgba(236,185,132,.15);border-color:rgba(238,188,142,.75);transform:translateY(-1px)}
+.v113-navigation__icon{display:grid;place-items:center;flex:none;width:42px;height:42px;
+  border-radius:12px;background:rgba(237,192,143,.11);color:#edc29a}
+.v113-navigation__icon svg{display:block;width:32px;height:32px}
+.v113-navigation__arrow{margin-left:auto;width:18px;height:18px;flex:none;color:#d7ab84}
+.v113-navigation__address{color:#baa694;margin:19px 0 0;font-size:.76rem;line-height:1.4;text-align:center}
+.v113-navigation :focus-visible{outline:3px solid #edbc8c;outline-offset:4px}
+body.v113-navigation-open{overflow:hidden}
+@keyframes v113-nav-enter{from{opacity:0;transform:translateY(14px) scale(.988)}
+to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:650px){
+ .v113-navigation{inset:auto 0 0 0;margin:0;width:100%;max-height:min(92dvh,720px);
+  border:0;border-top:1px solid rgba(225,186,144,.35);border-radius:23px 23px 0 0;
+  padding-bottom:env(safe-area-inset-bottom)}
+ .v113-navigation__sheet{padding:31px 22px 27px}
+ .v113-navigation__close{top:14px;right:18px}
+ .v113-navigation__eyebrow{font-size:.6rem}
+ .v113-navigation h2{font-size:clamp(2.02rem,8vw,2.56rem)}
+ .v113-navigation__choice{min-height:72px;font-size:.9rem}
+ .v113-navigation #v113-navigation-description{font-size:.89rem;max-width:30ch}
+}
+@media(prefers-reduced-motion:reduce){
+ .v113-navigation[open]{animation:none!important}
+ .v113-navigation__choice{transition:none!important;transform:none!important}
+ .v113-navigation::backdrop{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
