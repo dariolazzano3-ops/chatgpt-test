@@ -24,7 +24,7 @@
     <section class="dr116-shakes" id="milchshakes" aria-labelledby="dr116-shakes-title" data-shake-showcase>
       <div class="dr116-container dr116-shakes__inner">
         <div class="dr116-shakes__copy">
-          <p class="dr116-eyebrow dr116-eyebrow--light"><span class="dr116-star" aria-hidden="true">✳</span> MILCHSHAKES · FRISCH GEMIXT</p>
+          <p class="dr116-eyebrow dr116-eyebrow--light"><svg class="dr118-mixer-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l-1.15 9.5h-5.7L8 3Z"/><path d="M7 3h10M9.5 6h5M12 12.5v3M9 15.5h6l1 3H8l1-3ZM7.3 20h9.4M16.5 6.2h1.2a1.7 1.7 0 0 1 1.7 1.7v2.3a1.7 1.7 0 0 1-1.7 1.7h-1.9"/></svg> MILCHSHAKES · FRISCH GEMIXT</p>
           <h2 id="dr116-shakes-title">Dein Eis.<br> <em>Dein Shake.</em></h2>
           <p>Milch und Eis, frisch gemixt. Wähle deine Lieblingssorte.</p>
           <div class="dr116-shakes__feature">
@@ -40,6 +40,8 @@
         <div class="dr116-wheel-zone">
           <div class="dr116-wheel" aria-label="Milchshake-Auswahl">
             <div class="dr116-wheel__orbit" aria-hidden="true"></div>
+            <div class="dr118-milk-flow" aria-hidden="true"></div>
+            <span class="dr118-switch-point" aria-hidden="true"></span>
             <div class="dr116-wheel__center">
               <div class="dr116-wheel__photo">
                 <img class="dr116-wheel__image is-active" src="/assets/images/drinks/erdbeer-shake.webp" alt="Originalfoto Erdbeer-Shake von Gelato Donatello" width="1254" height="1254" fetchpriority="high" decoding="async" data-shake-frame="0" />
@@ -48,9 +50,9 @@
               </div>
             </div>
             <div class="dr116-wheel__choices" role="group" aria-label="Milchshake-Sorte wählen">
-              <button class="dr116-wheel__choice dr116-wheel__choice--strawberry is-active" type="button" data-shake-index="0" aria-pressed="true"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span>Erdbeer</button>
-              <button class="dr116-wheel__choice dr116-wheel__choice--chocolate" type="button" data-shake-index="1" aria-pressed="false"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span>Schoko</button>
-              <button class="dr116-wheel__choice dr116-wheel__choice--vanilla" type="button" data-shake-index="2" aria-pressed="false"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span>Vanille</button>
+              <button class="dr116-wheel__choice dr118-slot-top is-active" type="button" data-shake-slot="top" data-shake-index="0" aria-pressed="true"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span><span class="dr118-choice-label">Erdbeer</span></button>
+              <button class="dr116-wheel__choice dr118-slot-left" type="button" data-shake-slot="left" data-shake-index="2" aria-pressed="false"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span><span class="dr118-choice-label">Vanille</span></button>
+              <button class="dr116-wheel__choice dr118-slot-right" type="button" data-shake-slot="right" data-shake-index="1" aria-pressed="false"><span class="dr116-wheel__choice-dot" aria-hidden="true"></span><span class="dr118-choice-label">Schoko</span></button>
             </div>
           </div>
           <p class="dr116-wheel__caption">WÄHLE DEINE SORTE <span aria-hidden="true">·</span> DEIN SHAKE</p>

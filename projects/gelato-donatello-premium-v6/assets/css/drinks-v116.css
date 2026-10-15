@@ -26,15 +26,30 @@ body[data-page="getraenke"]{background:#f8f1e7}
 .dr116-wheel-zone{width:100%;max-width:540px;justify-self:center;text-align:center;min-width:0}
 .dr116-wheel{--dial-size:min(100%,455px);width:var(--dial-size);aspect-ratio:1;position:relative;margin:0 auto;isolation:isolate}
 .dr116-wheel::after{content:"";position:absolute;inset:10%;border:1px solid rgba(231,179,121,.13);border-radius:50%;pointer-events:none}
-.dr116-wheel__orbit{position:absolute;inset:7%;border-radius:50%;pointer-events:none;z-index:0;
- background:repeating-conic-gradient(from 20deg,rgba(245,196,136,.8) 0deg 1deg,transparent 1deg 30deg);
- opacity:.42;
- -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1px));
- mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1px));
-}
-@keyframes dr116-orbit{to{transform:rotate(360deg)}}
-@keyframes dr116-picture-appear{from{opacity:0;transform:scale(.978)}to{opacity:1;transform:scale(1)}}
-.dr116-shakes.dr116-is-animating .dr116-wheel__orbit{animation:dr116-orbit 46s linear infinite}
+/* V118: two fine circular guide rails and a cream-colored arc, without
+   a spinner/sticker aesthetic. The line itself uses only compositor rotation. */
+.dr116-wheel__orbit{position:absolute;inset:7%;border:1px solid rgba(236,191,149,.37);
+ border-radius:50%;pointer-events:none;z-index:0}
+.dr118-milk-flow{position:absolute;inset:8.25%;border-radius:50%;pointer-events:none;z-index:1;
+ background:conic-gradient(from 0deg,
+   rgba(255,246,226,.93) 0deg,
+   rgba(250,231,200,.84) 14deg,
+   rgba(238,214,181,.51) 38deg,
+   rgba(238,214,181,.12) 70deg,
+   transparent 93deg 360deg);
+ -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 6px),
+     #000 calc(100% - 5px),#000 calc(100% - 2px),transparent calc(100% - 1px));
+ mask:radial-gradient(farthest-side,transparent calc(100% - 6px),
+     #000 calc(100% - 5px),#000 calc(100% - 2px),transparent calc(100% - 1px));
+ animation:dr118-milk-circuit var(--dr118-lap-time,5.6s) linear infinite paused;
+ transform-origin:center center}
+.dr118-switch-point{position:absolute;top:8.25%;left:50%;z-index:1;pointer-events:none;
+ width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);
+ background:#f3dbbc;box-shadow:0 0 0 3px rgba(226,187,151,.12),0 0 12px rgba(255,231,189,.35)}
+@keyframes dr118-milk-circuit{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.dr118-motion-on .dr118-milk-flow{animation-play-state:running;will-change:transform}
+.dr118-mixer-icon{width:16px;height:16px;display:inline-block;vertical-align:-3px;
+ margin-right:7px;color:#eac8aa;stroke-width:1.45;flex:none}
 .dr116-wheel__center{position:absolute;inset:18.5%;border-radius:50%;padding:7px;
  border:1px solid rgba(253,221,188,.31);background:radial-gradient(circle,#785747,#473229 63%,#251b16 100%);
  box-shadow:0 18px 75px rgba(9,5,3,.24),0 0 0 14px rgba(231,177,121,.028);overflow:hidden}
@@ -54,10 +69,14 @@ body[data-page="getraenke"]{background:#f8f1e7}
 .dr116-wheel__choice:focus-visible{outline:3px solid #f3bf86;outline-offset:4px}
 .dr116-wheel__choice.is-active{background:#ead1b7;color:#3e261d;border-color:#fff3df;box-shadow:0 8px 28px rgba(13,7,3,.2),0 0 0 4px rgba(224,163,99,.11)}
 .dr116-wheel__choice-dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--choice-dot);box-shadow:0 0 0 4px rgba(226,174,127,.11)}
-.dr116-wheel__choice--strawberry{left:50%;top:1%;transform:translateX(-50%)}
-.dr116-wheel__choice--strawberry:hover{transform:translateX(-50%) translateY(-2px)}
-.dr116-wheel__choice--chocolate{--choice-dot:#92705e;right:0;bottom:15%}
-.dr116-wheel__choice--vanilla{--choice-dot:#e6caa0;left:0;bottom:15%}
+/* Fixed slots: text and flavor dot change, buttons never teleport. */
+.dr116-wheel__choice.dr118-slot-top{left:50%;top:-.8%;right:auto;bottom:auto;transform:translateX(-50%)}
+.dr116-wheel__choice.dr118-slot-top:hover{transform:translateX(-50%) translateY(-2px)}
+.dr116-wheel__choice.dr118-slot-left{left:0;bottom:15%;right:auto;top:auto}
+.dr116-wheel__choice.dr118-slot-right{right:0;bottom:15%;left:auto;top:auto}
+.dr116-wheel__choice[data-flavor="erdbeer"]{--choice-dot:#cb6f6b}
+.dr116-wheel__choice[data-flavor="vanille"]{--choice-dot:#e6caa0}
+.dr116-wheel__choice[data-flavor="schoko"]{--choice-dot:#92705e}
 .dr116-wheel__caption{color:#d1b49a;font-size:.65rem;font-weight:800;letter-spacing:.17em;margin:6px 0 0}
 .dr116-wheel__caption span{margin:0 6px;color:#e6bb90}
 .dr116-mobile-note{display:none}
@@ -116,7 +135,8 @@ body[data-page="getraenke"]{background:#f8f1e7}
  .dr116 *, .dr116 *::before,.dr116 *::after{animation:none!important;transition:none!important}
  .dr116-wheel__image{will-change:auto!important}
  .dr116-drink:hover img,.dr116-wheel__choice:hover{transform:none!important}
- .dr116-wheel__choice--strawberry:hover{transform:translateX(-50%)!important}
+ .dr116-wheel__choice.dr118-slot-top:hover{transform:translateX(-50%)!important}
+ .dr118-milk-flow{animation:none!important;transform:none!important;will-change:auto!important}
 }
 /* V116 final mobile typography QA: keep the longest drink name fully visible. */
 @media(max-width:700px){

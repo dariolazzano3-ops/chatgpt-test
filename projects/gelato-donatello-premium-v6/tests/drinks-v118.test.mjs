@@ -1,0 +1,64 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const read=x=>readFileSync(path.join(root,x));
+const html=read('getraenke/index.html').toString();
+const css=read('assets/css/drinks-v116.css').toString();
+const js=read('assets/js/drinks-v116.js').toString();
+const section=html.split('<section class="dr116-shakes"')[1].split('</section>',1)[0];
+test('Small minimalist SVG blender replaces generic decorative star',()=>{
+ assert.match(section,/class="dr118-mixer-icon"/);
+ assert.match(section,/viewBox="0 0 24 24"/);
+ assert.doesNotMatch(section,/class="dr116-star"/);
+ assert.match(css,/\.dr118-mixer-icon\{width:16px;height:16px/);
+});
+test('A cream orbit, two fine circle lines and a top switch point replace old ticker',()=>{
+ assert.match(section,/class="dr116-wheel__orbit"/);
+ assert.match(section,/class="dr118-milk-flow"/);
+ assert.match(section,/class="dr118-switch-point"/);
+ assert.match(css,/\.dr118-milk-flow\{/);
+ assert.match(css,/conic-gradient\(from 0deg/);
+ assert.match(css,/rgba\(255,246,226/);
+ assert.match(css,/radial-gradient\(farthest-side/);
+ assert.match(css,/animation:dr118-milk-circuit var\(--dr118-lap-time,5\.6s\) linear infinite paused/);
+ assert.match(css,/@keyframes dr118-milk-circuit\{from\{transform:rotate\(0\)\}to\{transform:rotate\(360deg\)\}\}/);
+ assert.doesNotMatch(css,/@keyframes dr116-orbit|dr116-is-animating/);
+});
+test('Cycle order is strawberry vanilla chocolate and changes only on every second true lap',()=>{
+ assert.match(js,/const order = \[0, 2, 1\]/);
+ assert.match(js,/flow\.addEventListener\('animationiteration'/);
+ assert.match(js,/event\.animationName !== 'dr118-milk-circuit'/);
+ assert.match(js,/completedLaps \+= 1/);
+ assert.match(js,/if \(completedLaps === 2\)/);
+ assert.match(js,/completedLaps = 0/);
+ assert.match(js,/setFlavor\(order\[\(order\.indexOf\(selected\) \+ 1\) % 3\]\)/);
+ assert.doesNotMatch(js,/setTimeout|setInterval/);
+});
+test('Top slot is always selected, other flavors stay in stable button positions',()=>{
+ assert.match(section,/data-shake-slot="top" data-shake-index="0" aria-pressed="true"/);
+ assert.match(section,/data-shake-slot="left" data-shake-index="2" aria-pressed="false"/);
+ assert.match(section,/data-shake-slot="right" data-shake-index="1" aria-pressed="false"/);
+ assert.equal((section.match(/class="dr118-choice-label"/g)||[]).length,3);
+ assert.match(js,/button\.dataset\.shakeIndex = String\(flavor\)/);
+ assert.match(js,/button\.querySelector\('\.dr118-choice-label'\)\.textContent = shortNames\[flavor\]/);
+ assert.match(js,/title\.textContent = names\[next\]/);
+ assert.match(js,/frame\.setAttribute\('aria-hidden', String\(i !== next\)\)/);
+ assert.match(js,/animation\.currentTime = 0/);
+ assert.match(css,/\.dr116-wheel__choice\.dr118-slot-top/);
+});
+test('Progressive enhancement pauses when hidden, reduced motion remains static',()=>{
+ assert.match(js,/IntersectionObserver/);
+ assert.match(js,/document\.hidden/);
+ assert.match(js,/prefers-reduced-motion: reduce/);
+ assert.match(js,/animationPlayState = running \? 'running' : 'paused'/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.match(css,/\.dr118-milk-flow\{animation:none!important/);
+ assert.match(section,/Mit allen Eissorten möglich\./);
+ assert.match(html,/src="\/assets\/images\/drinks\/erdbeer-shake\.webp"/);
+ for(const f of ['erdbeer-shake.webp','vanille-shake.webp','schoko-shake.webp']) assert.ok(read('assets/images/drinks/'+f).length>50000);
+ assert.equal(createHash('sha256').update(read('assets/images/drinks/erdbeer-shake.webp')).digest('hex').length,64);
+});
