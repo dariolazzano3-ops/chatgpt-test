@@ -1,0 +1,334 @@
+[
+  {
+    "name": "iphone-320",
+    "viewport": 320,
+    "doc": 320,
+    "txt": {
+      "x": 22,
+      "y": 142.96875,
+      "right": 196.671875,
+      "bottom": 156.015625,
+      "w": 174.671875,
+      "h": 13.046875
+    },
+    "env": {
+      "x": 214.671875,
+      "y": 125,
+      "right": 257.671875,
+      "bottom": 174,
+      "w": 43,
+      "h": 49
+    },
+    "badge": {
+      "x": 245.671875,
+      "y": 118,
+      "right": 264.671875,
+      "bottom": 137,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 220.671875,
+      "y": 156.328125,
+      "right": 251.671875,
+      "bottom": 166.671875,
+      "w": 31,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 224.671875,
+      "y": 134.328125,
+      "right": 247.671875,
+      "bottom": 154.328125,
+      "w": 23,
+      "h": 20
+    },
+    "gap": 18,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "iphone-360",
+    "viewport": 360,
+    "doc": 360,
+    "txt": {
+      "x": 22,
+      "y": 142.96875,
+      "right": 196.671875,
+      "bottom": 156.015625,
+      "w": 174.671875,
+      "h": 13.046875
+    },
+    "env": {
+      "x": 219.671875,
+      "y": 125,
+      "right": 262.671875,
+      "bottom": 174,
+      "w": 43,
+      "h": 49
+    },
+    "badge": {
+      "x": 250.671875,
+      "y": 118,
+      "right": 269.671875,
+      "bottom": 137,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 225.671875,
+      "y": 156.328125,
+      "right": 256.671875,
+      "bottom": 166.671875,
+      "w": 31,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 229.671875,
+      "y": 134.328125,
+      "right": 252.671875,
+      "bottom": 154.328125,
+      "w": 23,
+      "h": 20
+    },
+    "gap": 23,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "iphone",
+    "viewport": 390,
+    "doc": 390,
+    "txt": {
+      "x": 22,
+      "y": 143.015625,
+      "right": 236,
+      "bottom": 157.984375,
+      "w": 214,
+      "h": 14.96875
+    },
+    "env": {
+      "x": 265,
+      "y": 125,
+      "right": 310,
+      "bottom": 176,
+      "w": 45,
+      "h": 51
+    },
+    "badge": {
+      "x": 298,
+      "y": 118,
+      "right": 317,
+      "bottom": 137,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 271,
+      "y": 157.328125,
+      "right": 304,
+      "bottom": 167.671875,
+      "w": 33,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 276,
+      "y": 135.328125,
+      "right": 299,
+      "bottom": 155.328125,
+      "w": 23,
+      "h": 20
+    },
+    "gap": 29,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "android",
+    "viewport": 412,
+    "doc": 412,
+    "txt": {
+      "x": 22,
+      "y": 143.015625,
+      "right": 236,
+      "bottom": 157.984375,
+      "w": 214,
+      "h": 14.96875
+    },
+    "env": {
+      "x": 265,
+      "y": 125,
+      "right": 310,
+      "bottom": 176,
+      "w": 45,
+      "h": 51
+    },
+    "badge": {
+      "x": 298,
+      "y": 118,
+      "right": 317,
+      "bottom": 137,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 271,
+      "y": 157.328125,
+      "right": 304,
+      "bottom": 167.671875,
+      "w": 33,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 276,
+      "y": 135.328125,
+      "right": 299,
+      "bottom": 155.328125,
+      "w": 23,
+      "h": 20
+    },
+    "gap": 29,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "tablet",
+    "viewport": 768,
+    "doc": 768,
+    "txt": {
+      "x": 22,
+      "y": 151.015625,
+      "right": 236,
+      "bottom": 165.984375,
+      "w": 214,
+      "h": 14.96875
+    },
+    "env": {
+      "x": 265,
+      "y": 133,
+      "right": 310,
+      "bottom": 184,
+      "w": 45,
+      "h": 51
+    },
+    "badge": {
+      "x": 298,
+      "y": 126,
+      "right": 317,
+      "bottom": 145,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 271,
+      "y": 165.328125,
+      "right": 304,
+      "bottom": 175.671875,
+      "w": 33,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 276,
+      "y": 143.328125,
+      "right": 299,
+      "bottom": 163.328125,
+      "w": 23,
+      "h": 20
+    },
+    "gap": 29,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "desktop",
+    "viewport": 1440,
+    "doc": 1440,
+    "txt": {
+      "x": 157.59375,
+      "y": 258.765625,
+      "right": 371.59375,
+      "bottom": 273.734375,
+      "w": 214,
+      "h": 14.96875
+    },
+    "env": {
+      "x": 423.421875,
+      "y": 239.25,
+      "right": 471.421875,
+      "bottom": 293.25,
+      "w": 48,
+      "h": 54
+    },
+    "badge": {
+      "x": 459.421875,
+      "y": 232.25,
+      "right": 478.421875,
+      "bottom": 251.25,
+      "w": 19,
+      "h": 19
+    },
+    "label": {
+      "x": 429.421875,
+      "y": 274.078125,
+      "right": 465.421875,
+      "bottom": 284.421875,
+      "w": 36,
+      "h": 10.34375
+    },
+    "svg": {
+      "x": 434.921875,
+      "y": 250.078125,
+      "right": 459.921875,
+      "bottom": 272.078125,
+      "w": 25,
+      "h": 22
+    },
+    "gap": 51.828125,
+    "offset": 0,
+    "labelText": "events",
+    "badgeText": "1",
+    "btnHref": "/events/",
+    "headerShortcut": 0,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "name": "animation-keyframe",
+    "animation": {
+      "duration": 8400,
+      "transform": "matrix(0.951057, 0.309017, -0.309017, 0.951057, 0, 0)",
+      "filter": "drop-shadow(rgba(242, 177, 101, 0.92) 0px 0px 11px)",
+      "badgeTransform": "matrix(1.19, 0, 0, 1.19, 0, 0)",
+      "badgeShadow": "rgba(243, 175, 101, 0.25) 0px 0px 0px 3px, rgba(229, 153, 80, 0.64) 0px 0px 15px 0px"
+    }
+  },
+  {
+    "name": "reduced-motion",
+    "disabled": true
+  }
+]
