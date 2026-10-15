@@ -4124,3 +4124,114 @@ body[data-page="home"].location-reveal-ready.location-heartbeat-active
     transition:none!important;
   }
 }
+
+
+/* V110 premium map motion.
+   The untouched 1448x1086 JPEG is the sole source for the display map.
+   A transparent, feather-masked crop of its own marker+label forms the moving
+   foreground sprite, precisely registered to the baked-in original.
+   Both receive the same parent 1.035x scale after the V108 first reveal.
+   Three decorative vehicles travel along existing roads, with no hit targets. */
+body[data-page="home"] .v110-map-stage{
+  position:absolute;
+  inset:0;
+  z-index:3;
+  overflow:visible;
+  pointer-events:none;
+  transform-origin:50% 50%;
+}
+body[data-page="home"].location-reveal-ready .v102-location__map-surface.is-revealed .v110-map-stage{
+  transform:scale(1.035);
+}
+body[data-page="home"] .v110-marker-whole{
+  position:absolute;
+  left:59.047%;
+  top:31.307%;
+  width:32.804%;
+  height:23.481%;
+  background:url('/assets/images/editorial/gelato-donatello-marker-overlay-v110.webp') center/100% 100% no-repeat;
+  transform-origin:27% 66%;
+  opacity:0;
+  pointer-events:none;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+@keyframes v110-whole-pin-heartbeat{
+  0%,4%,14%,31%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(240,171,69,0));}
+  8%{transform:scale(1.045);filter:drop-shadow(0 0 7px rgba(243,167,66,.49));}
+  23%{transform:scale(1.030);filter:drop-shadow(0 0 6px rgba(243,167,66,.38));}
+}
+body[data-page="home"].location-heartbeat-active .v110-marker-whole{
+  opacity:1;
+  animation:v110-whole-pin-heartbeat var(--gelato-heartbeat-duration,2200ms) ease-in-out 0s infinite both;
+}
+body[data-page="home"].location-heartbeat-active .v108-location__pin-glow{
+  display:none;
+}
+/* The cars are tiny polished silhouettes, scaled subtly for mobile density.
+   Animated top/left change only tiny absolute, non-layout decorative elements. */
+body[data-page="home"] .v110-vehicle{
+  position:absolute;
+  display:none;
+  z-index:1;
+  width:clamp(4px,.65vw,8px);
+  height:clamp(8px,1.16vw,13px);
+  border-radius:42% 42% 32% 32%;
+  border:1px solid rgba(32,30,29,.50);
+  box-sizing:border-box;
+  opacity:0;
+  pointer-events:none;
+  box-shadow:0 1px 2px rgba(28,21,17,.29);
+  background:linear-gradient(90deg,#50483d 0 16%,#bfc4bc 23% 76%,#50483d 84%);
+}
+body[data-page="home"] .v110-vehicle::after{
+  content:"";
+  position:absolute;
+  left:17%;
+  right:17%;
+  top:25%;
+  height:30%;
+  border-radius:2px;
+  background:rgba(52,77,84,.61);
+}
+@keyframes v110-traffic-main-south{
+  0%{left:54.0%;top:13%;opacity:0;}
+  9%{opacity:.88;}
+  89%{opacity:.88;}
+  100%{left:57%;top:79%;opacity:0;}
+}
+@keyframes v110-traffic-main-north{
+  0%{left:58.4%;top:91%;opacity:0;}
+  10%{opacity:.82;}
+  90%{opacity:.82;}
+  100%{left:55.7%;top:17%;opacity:0;}
+}
+@keyframes v110-traffic-side{
+  0%{left:94%;top:47.5%;opacity:0;transform:rotate(117deg);}
+  10%{opacity:.78;}
+  87%{opacity:.78;}
+  100%{left:66%;top:27%;opacity:0;transform:rotate(117deg);}
+}
+body[data-page="home"].location-heartbeat-active .v110-vehicle{
+  display:block;
+}
+body[data-page="home"].location-heartbeat-active .v110-vehicle--one{
+  background:linear-gradient(90deg,#7d4230 0 16%,#d9b99d 24% 78%,#7d4230 85%);
+  animation:v110-traffic-main-south 24s linear -2s infinite;
+}
+body[data-page="home"].location-heartbeat-active .v110-vehicle--two{
+  background:linear-gradient(90deg,#3f4e5b 0 16%,#cbd2ce 24% 78%,#3f4e5b 85%);
+  animation:v110-traffic-main-north 31s linear -13s infinite;
+}
+body[data-page="home"].location-heartbeat-active .v110-vehicle--three{
+  background:linear-gradient(90deg,#645243 0 16%,#e9dbbf 24% 78%,#645243 85%);
+  animation:v110-traffic-side 29s linear -19s infinite;
+}
+@media(max-width:850px){
+  body[data-page="home"] .v110-vehicle{border-width:.5px;box-shadow:0 0 1px rgba(28,21,17,.22);}
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-page="home"] .v110-map-stage{display:none!important;}
+  body[data-page="home"] .v110-marker-whole,
+  body[data-page="home"] .v110-vehicle{animation:none!important;display:none!important;}
+}
