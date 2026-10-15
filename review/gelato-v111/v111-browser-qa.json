@@ -1,0 +1,171 @@
+[
+  {
+    "device": "iphone",
+    "initial": {
+      "enhanced": true,
+      "categories": [
+        {
+          "label": "01 / 04Eisbecher13 Kreationen ↗",
+          "selected": "true"
+        },
+        {
+          "label": "02 / 04Spaghetti-Eisbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "03 / 04Joghurtbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "04 / 04KinderbecherFür unsere kleinen Gäste6 Kreationen ↗",
+          "selected": "false"
+        }
+      ],
+      "visible": [
+        {
+          "id": "eisbecher",
+          "count": 13
+        }
+      ],
+      "docWidth": 390,
+      "viewport": 390,
+      "heroHeight": 381.296875,
+      "tabHeight": 471.484375,
+      "gridCols": 2
+    },
+    "errors": [],
+    "bad": [],
+    "namesOverflow": [],
+    "imageState": 31,
+    "deepLink": true
+  },
+  {
+    "device": "small-iphone",
+    "initial": {
+      "enhanced": true,
+      "categories": [
+        {
+          "label": "01 / 04Eisbecher13 Kreationen ↗",
+          "selected": "true"
+        },
+        {
+          "label": "02 / 04Spaghetti-Eisbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "03 / 04Joghurtbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "04 / 04KinderbecherFür unsere kleinen Gäste6 Kreationen ↗",
+          "selected": "false"
+        }
+      ],
+      "visible": [
+        {
+          "id": "eisbecher",
+          "count": 13
+        }
+      ],
+      "docWidth": 360,
+      "viewport": 360,
+      "heroHeight": 369.90625,
+      "tabHeight": 477.125,
+      "gridCols": 2
+    },
+    "errors": [],
+    "bad": [],
+    "namesOverflow": [],
+    "imageState": 31,
+    "deepLink": true
+  },
+  {
+    "device": "tablet",
+    "initial": {
+      "enhanced": true,
+      "categories": [
+        {
+          "label": "01 / 04Eisbecher13 Kreationen ↗",
+          "selected": "true"
+        },
+        {
+          "label": "02 / 04Spaghetti-Eisbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "03 / 04Joghurtbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "04 / 04KinderbecherFür unsere kleinen Gäste6 Kreationen ↗",
+          "selected": "false"
+        }
+      ],
+      "visible": [
+        {
+          "id": "eisbecher",
+          "count": 13
+        }
+      ],
+      "docWidth": 768,
+      "viewport": 768,
+      "heroHeight": 350.09375,
+      "tabHeight": 294.796875,
+      "gridCols": 3
+    },
+    "errors": [],
+    "bad": [],
+    "namesOverflow": [],
+    "imageState": 31,
+    "deepLink": true
+  },
+  {
+    "device": "desktop",
+    "initial": {
+      "enhanced": true,
+      "categories": [
+        {
+          "label": "01 / 04Eisbecher13 Kreationen ↗",
+          "selected": "true"
+        },
+        {
+          "label": "02 / 04Spaghetti-Eisbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "03 / 04Joghurtbecher6 Kreationen ↗",
+          "selected": "false"
+        },
+        {
+          "label": "04 / 04KinderbecherFür unsere kleinen Gäste6 Kreationen ↗",
+          "selected": "false"
+        }
+      ],
+      "visible": [
+        {
+          "id": "eisbecher",
+          "count": 13
+        }
+      ],
+      "docWidth": 1440,
+      "viewport": 1440,
+      "heroHeight": 413.421875,
+      "tabHeight": 353.734375,
+      "gridCols": 4
+    },
+    "errors": [],
+    "bad": [],
+    "namesOverflow": [],
+    "imageState": 31,
+    "deepLink": true
+  },
+  {
+    "device": "no-js",
+    "count": 31,
+    "anchor": "kinderbecher"
+  },
+  {
+    "device": "reduced-motion",
+    "transition": "1e-05s"
+  }
+]

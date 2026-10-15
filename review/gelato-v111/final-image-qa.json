@@ -1,0 +1,96 @@
+[
+  {
+    "device": "iphone",
+    "id": "eisbecher",
+    "title": "Eisbecher",
+    "images": 13,
+    "allLoaded": true
+  },
+  {
+    "device": "iphone",
+    "id": "spaghetti-eisbecher",
+    "title": "Spaghetti-Eisbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "iphone",
+    "id": "joghurtbecher",
+    "title": "Joghurtbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "iphone",
+    "id": "kinderbecher",
+    "title": "Kinderbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "iphone",
+    "metrics": {
+      "bodyWidth": 390,
+      "viewport": 390,
+      "heroHeight": 309.453125,
+      "heroTextRect": {
+        "x": 20,
+        "y": 112,
+        "width": 350,
+        "height": 237.453125,
+        "top": 112,
+        "right": 370,
+        "bottom": 349.453125,
+        "left": 20
+      },
+      "heroArtDisplay": "none"
+    }
+  },
+  {
+    "device": "desktop",
+    "id": "eisbecher",
+    "title": "Eisbecher",
+    "images": 13,
+    "allLoaded": true
+  },
+  {
+    "device": "desktop",
+    "id": "spaghetti-eisbecher",
+    "title": "Spaghetti-Eisbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "desktop",
+    "id": "joghurtbecher",
+    "title": "Joghurtbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "desktop",
+    "id": "kinderbecher",
+    "title": "Kinderbecher",
+    "images": 6,
+    "allLoaded": true
+  },
+  {
+    "device": "desktop",
+    "metrics": {
+      "bodyWidth": 1440,
+      "viewport": 1440,
+      "heroHeight": 413.421875,
+      "heroTextRect": {
+        "x": 137.59375,
+        "y": 145,
+        "width": 620.03125,
+        "height": 288.421875,
+        "top": 145,
+        "right": 757.625,
+        "bottom": 433.421875,
+        "left": 137.59375
+      },
+      "heroArtDisplay": "block"
+    }
+  }
+]
