@@ -33,7 +33,7 @@ test('Responsive circular selector has accessible manual controls and a single a
  assert.match(js,/frame\.classList\.toggle\('is-active', i === next\)/);
  assert.match(js,/animation\.currentTime = 0/);
  assert.match(css,/@keyframes dr118-milk-circuit/);
- assert.match(css,/animation:dr118-milk-circuit var\(--dr118-lap-time,5\.6s\) linear infinite paused/);
+ assert.match(css,/animation:dr118-milk-circuit var\(--dr118-lap-time,933\.333ms\) linear infinite paused/);
  assert.match(css,/data-page="getraenke"/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/\.dr116-wheel__choice:focus-visible/);

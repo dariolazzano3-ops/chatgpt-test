@@ -24,7 +24,7 @@ test('A cream orbit, two fine circle lines and a top switch point replace old ti
  assert.match(css,/conic-gradient\(from 0deg/);
  assert.match(css,/rgba\(255,246,226/);
  assert.match(css,/radial-gradient\(farthest-side/);
- assert.match(css,/animation:dr118-milk-circuit var\(--dr118-lap-time,5\.6s\) linear infinite paused/);
+ assert.match(css,/animation:dr118-milk-circuit var\(--dr118-lap-time,933\.333ms\) linear infinite paused/);
  assert.match(css,/@keyframes dr118-milk-circuit\{from\{transform:rotate\(0\)\}to\{transform:rotate\(360deg\)\}\}/);
  assert.doesNotMatch(css,/@keyframes dr116-orbit|dr116-is-animating/);
 });
