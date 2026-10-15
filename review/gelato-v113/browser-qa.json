@@ -1,0 +1,97 @@
+[
+  {
+    "device": "iphone",
+    "initial": {
+      "rect": {
+        "x": 1.339385986328125,
+        "y": 426.54217529296875,
+        "w": 387.32122802734375,
+        "h": 424.0050048828125,
+        "bottom": 850.5471801757812
+      },
+      "window": {
+        "width": 390,
+        "height": 844
+      },
+      "overflow": 0,
+      "bgcolor": "linear-gradient(160deg, rgb(57, 41, 33), rgb(36, 27, 24) 80%)",
+      "originalSize": [
+        1448,
+        1086
+      ],
+      "imgFilter": "none",
+      "heartbeat": "none",
+      "scrollLocked": true
+    },
+    "noCars": 0,
+    "errors": [],
+    "assetErrors": [],
+    "outbound": []
+  },
+  {
+    "device": "small-iphone",
+    "initial": {
+      "rect": {
+        "x": 1.650970458984375,
+        "y": 365.72119140625,
+        "w": 356.69805908203125,
+        "h": 423.0216064453125,
+        "bottom": 788.7427978515625
+      },
+      "window": {
+        "width": 360,
+        "height": 780
+      },
+      "overflow": 0,
+      "bgcolor": "linear-gradient(160deg, rgb(57, 41, 33), rgb(36, 27, 24) 80%)",
+      "originalSize": [
+        1448,
+        1086
+      ],
+      "imgFilter": "none",
+      "heartbeat": "none",
+      "scrollLocked": true
+    },
+    "noCars": 0,
+    "errors": [],
+    "assetErrors": [],
+    "outbound": []
+  },
+  {
+    "device": "desktop",
+    "initial": {
+      "rect": {
+        "x": 492.760009765625,
+        "y": 241.57650756835938,
+        "w": 454.47998046875,
+        "h": 444.8469543457031,
+        "bottom": 686.4234619140625
+      },
+      "window": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": 0,
+      "bgcolor": "linear-gradient(160deg, rgb(57, 41, 33), rgb(36, 27, 24) 80%)",
+      "originalSize": [
+        1448,
+        1086
+      ],
+      "imgFilter": "none",
+      "heartbeat": "none",
+      "scrollLocked": true
+    },
+    "noCars": 0,
+    "errors": [],
+    "assetErrors": [],
+    "outbound": []
+  },
+  {
+    "device": "no-javascript",
+    "links": true
+  },
+  {
+    "device": "reduced-motion",
+    "links": true
+  }
+]
