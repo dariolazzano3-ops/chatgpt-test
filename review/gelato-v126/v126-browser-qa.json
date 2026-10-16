@@ -1,0 +1,114 @@
+[
+  {
+    "device": "iphone-small",
+    "scope": "private-local-worker",
+    "before": {
+      "w": 360,
+      "doc": 360,
+      "img": 1536,
+      "heroSource": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+      "buttonDisabled": false,
+      "fieldsetDisabled": false,
+      "csp": []
+    },
+    "api": [
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest/status"
+      ],
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest"
+      ]
+    ],
+    "errors": [],
+    "failed": [],
+    "confirmed": true
+  },
+  {
+    "device": "iphone",
+    "scope": "private-local-worker",
+    "before": {
+      "w": 390,
+      "doc": 390,
+      "img": 1536,
+      "heroSource": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+      "buttonDisabled": false,
+      "fieldsetDisabled": false,
+      "csp": []
+    },
+    "api": [
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest/status"
+      ],
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest"
+      ]
+    ],
+    "errors": [],
+    "failed": [],
+    "confirmed": true
+  },
+  {
+    "device": "android",
+    "scope": "private-local-worker",
+    "before": {
+      "w": 412,
+      "doc": 412,
+      "img": 1536,
+      "heroSource": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+      "buttonDisabled": false,
+      "fieldsetDisabled": false,
+      "csp": []
+    },
+    "api": [
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest/status"
+      ],
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest"
+      ]
+    ],
+    "errors": [],
+    "failed": [],
+    "confirmed": true
+  },
+  {
+    "device": "desktop",
+    "scope": "private-local-worker",
+    "before": {
+      "w": 1440,
+      "doc": 1440,
+      "img": 1536,
+      "heroSource": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+      "buttonDisabled": false,
+      "fieldsetDisabled": false,
+      "csp": []
+    },
+    "api": [
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest/status"
+      ],
+      [
+        200,
+        "http://127.0.0.1:19899/api/events-interest"
+      ]
+    ],
+    "errors": [],
+    "failed": [],
+    "confirmed": true
+  },
+  {
+    "device": "no-js",
+    "disabled": true
+  },
+  {
+    "device": "reduced-motion",
+    "formEnabled": true
+  }
+]
