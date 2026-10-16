@@ -8,6 +8,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <link rel="stylesheet" href="/assets/css/style.css" />
   <link rel="stylesheet" href="/assets/css/events-v121.css" />
+  <link rel="stylesheet" href="/assets/css/events-v126.css" />
 </head>
 <body data-page="events">
   <a class="skip-link" href="#main">Zum Inhalt springen</a>
@@ -78,30 +79,43 @@
           <p class="ev121-kicker">NEUGIERIG GEWORDEN?</p>
           <h2 id="ev121-interest-title">Dein Platz im <em>Eislabor?</em></h2>
           <p>Das Erlebnis ist derzeit in Vorbereitung. Hier entsteht die unverbindliche Interessenanfrage.</p>
-          <div class="ev121-interest__status" role="status"><strong>Formularvorschau, noch nicht aktiv.</strong>
-            <span>Es werden derzeit keine personenbezogenen Daten entgegengenommen, versendet oder gespeichert. Bitte noch keine Daten eingeben.</span></div>
+          <div class="ev121-interest__status" role="status">
+            <strong>Private Testphase · keine echte Anmeldung</strong>
+            <span>Bitte ausschließlich die angegebenen Testwerte verwenden. Es werden keine Daten gespeichert oder E-Mails verschickt. Datenschutzfreigabe für echte Anfragen steht aus.</span>
+          </div>
         </div>
-        <form class="ev121-form" data-event-form-status="disabled" aria-labelledby="ev121-form-title" novalidate>
-          <p class="ev121-form__eyebrow">INTERESSENANFRAGE · VORSCHAU</p>
+        <form class="ev121-form" id="ev126-interest-form" data-event-form-status="synthetic-only" aria-labelledby="ev121-form-title" data-endpoint="/api/events-interest">
+          <p class="ev121-form__eyebrow">INTERESSENANFRAGE · PRIVATER TESTMODUS</p>
           <h3 id="ev121-form-title">Teilnahme anfragen</h3>
+          <p class="ev126-instructions" id="ev126-test-instructions">Nur Testdaten zugelassen: Name „Test Gast“, E-Mail „test@example.test“, Telefonnummer leer oder „000000“. Noch keine echte Buchung.</p>
           <fieldset disabled>
-            <label for="ev121-name">Name <span>*</span><input id="ev121-name" name="name" type="text" autocomplete="name" placeholder="Vor- und Nachname" required /></label>
+            <label for="ev121-name">Name <span>*</span><input id="ev121-name" name="name" type="text" autocomplete="off" maxlength="25" value="Test Gast" required aria-describedby="ev126-test-instructions" /></label>
             <div class="ev121-form__row">
-              <label for="ev121-email">E-Mail <span>*</span><input id="ev121-email" name="email" type="email" autocomplete="email" placeholder="deine@email.de" required /></label>
-              <label for="ev121-phone">Telefon <small>(optional)</small><input id="ev121-phone" name="phone" type="tel" autocomplete="tel" placeholder="Optional" /></label>
+              <label for="ev121-email">E-Mail <span>*</span><input id="ev121-email" name="email" type="email" autocomplete="off" maxlength="49" value="test@example.test" required /></label>
+              <label for="ev121-phone">Telefon <small>(optional)</small><input id="ev121-phone" name="phone" type="tel" autocomplete="off" maxlength="6" placeholder="Leer oder 000000" /></label>
             </div>
-            <label for="ev121-seats">Gewünschte Plätze <span>*</span><input id="ev121-seats" name="requested_seats" type="number" inputmode="numeric" min="1" step="1" placeholder="Anzahl" required /></label>
-            <label for="ev121-note">Nachricht / Interesse <small>(optional)</small><textarea id="ev121-note" name="note" rows="3" placeholder="Was möchtest du gerne wissen?"></textarea></label>
-            <label class="ev121-form__consent"><input type="checkbox" name="privacy_acknowledged" /><span>Ich habe die Datenschutzhinweise zur Interessenanfrage gelesen. <small>(Vor Freischaltung ergänzen)</small></span></label>
-            <label class="ev121-form__consent"><input type="checkbox" name="marketing_opt_in" /><span>Ich möchte freiwillig Informationen zu weiteren Events erhalten. <small>Optional, nicht erforderlich.</small></span></label>
+            <label for="ev121-seats">Gewünschte Plätze <span>*</span><input id="ev121-seats" name="requested_seats" type="number" inputmode="numeric" min="1" max="8" step="1" value="2" required /></label>
+            <label for="ev121-note">Nachricht / Interesse <small>(optional)</small><textarea id="ev121-note" name="note" maxlength="106" rows="3" placeholder="Optional: TEST: Mehr zu Gelato"></textarea></label>
+            <label class="ev121-form__consent"><input type="checkbox" name="test_data_confirmed" id="ev126-test-confirm" required /><span>Ich bestätige, dass ich ausschließlich erfundene Testdaten verwende. <small>Pflichtbestätigung für die private Testphase.</small></span></label>
+            <label class="ev121-form__consent"><input type="checkbox" name="marketing_opt_in" disabled /><span>Optionale Event-Updates <small>Bis zur Datenschutzfreigabe deaktiviert.</small></span></label>
           </fieldset>
-          <button type="button" class="ev121-form__submit" disabled aria-disabled="true">Interessenanfrage noch nicht aktiv <span aria-hidden="true">↗</span></button>
-          <p class="ev121-form__note">Keine Buchung · kein Versand · keine Datenspeicherung</p>
+          <button type="submit" class="ev121-form__submit ev126-submit" disabled>Interesse vormerken <span aria-hidden="true">↗</span></button>
+          <p class="ev126-form-feedback" role="alert" id="ev126-form-error" hidden></p>
+          <p class="ev121-form__note">Nur Test-API · keine Buchung · keine Speicherung · kein E-Mail-Versand</p>
+          <div class="ev126-success" role="status" aria-live="polite" tabindex="-1" hidden>
+            <span class="ev126-success__symbol" aria-hidden="true">✓</span>
+            <h4>Test erfolgreich übermittelt.</h4>
+            <p>Die private Test-API hat deine synthetischen Angaben geprüft. Es wurde <strong>nichts gespeichert, verschickt oder gebucht.</strong></p>
+            <p class="ev126-success__receipt"></p>
+            <button class="ev126-success__reset" type="button">Weitere Testanfrage</button>
+          </div>
         </form>
       </div>
     </section>
   </main>
   <div id="site-footer"></div>
+  <noscript><p class="ev126-nojs">Das Testformular benötigt JavaScript. Für echte Anfragen kontaktiere uns bitte telefonisch über die Kontaktseite.</p></noscript>
   <script type="module" src="/assets/js/app.js"></script>
+  <script type="module" src="/assets/js/event-interest-v126.js"></script>
 </body>
 </html>

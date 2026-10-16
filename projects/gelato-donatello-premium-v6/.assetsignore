@@ -1,0 +1,7 @@
+# Internal only: never expose Worker source, source tests or operator docs as website assets.
+scripts/
+tests/
+docs/
+wrangler.private-preview.jsonc
+.assetsignore
+project.json

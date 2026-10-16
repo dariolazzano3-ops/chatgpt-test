@@ -26,15 +26,15 @@ test('The interest form does not accept or transmit any personal data',()=>{
  assert.equal(manifest.interest.submission_endpoint,null);
  assert.equal(manifest.interest.personal_data_storage,null);
  assert.equal(manifest.interest.privacy_notice_approved,false);
- assert.match(html,/data-event-form-status="disabled"/);
+ assert.match(html,/data-event-form-status="synthetic-only"/);
  assert.match(html,/<fieldset disabled>/);
- assert.match(html,/type="button" class="ev121-form__submit" disabled aria-disabled="true"/);
- assert.doesNotMatch(html,/<form[^>]*action=|type="submit"|fetch\(|sendBeacon|formspree/i);
- assert.match(html,/keine personenbezogenen Daten entgegengenommen, versendet oder gespeichert/);
+ assert.match(html,/type="submit" class="ev121-form__submit ev126-submit" disabled/);
+ assert.doesNotMatch(html,/<form[^>]*action=|sendBeacon|formspree/i);
+ assert.match(html,/Es werden keine Daten gespeichert oder E-Mails verschickt/);
  for(const field of ['name','email','phone','requested_seats','note']) assert.ok(html.includes('name="'+field+'"'));
  assert.equal((html.match(/name="marketing_opt_in"/g)||[]).length,1);
- assert.equal((html.match(/name="privacy_acknowledged"/g)||[]).length,1);
- assert.match(html,/Optional, nicht erforderlich\./);
+ assert.equal((html.match(/name="test_data_confirmed"/g)||[]).length,1);
+ assert.match(html,/Bis zur Datenschutzfreigabe deaktiviert\./);
 });
 test('Events navigation and accessible header shortcut preserve original controls, no false badge',()=>{
  assert.match(nav,/{ page: 'events', href: '\/events\/', label: 'Events' }/);

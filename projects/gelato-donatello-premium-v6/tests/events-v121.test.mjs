@@ -31,12 +31,12 @@ test('Four distinct highlights, ordered schedule and minimal winter information'
 test('Form is explicitly disabled: no endpoint, false sale or data processing',()=>{
  for(const field of ['name','email','phone','requested_seats','note'])assert.match(html,new RegExp('name="'+field+'"'));
  assert.match(html,/fieldset disabled/);
- assert.match(html,/name="privacy_acknowledged"/);
+ assert.match(html,/name="test_data_confirmed"/);
  assert.match(html,/name="marketing_opt_in"/);
- assert.match(html,/data-event-form-status="disabled"/);
- assert.match(html,/type="button" class="ev121-form__submit" disabled/);
- assert.match(html,/keine personenbezogenen Daten entgegengenommen, versendet oder gespeichert/);
- assert.doesNotMatch(html,/<form[^>]+action=|type="submit"|fetch\(/);
+ assert.match(html,/data-event-form-status="synthetic-only"/);
+ assert.match(html,/type="submit" class="ev121-form__submit ev126-submit" disabled/);
+ assert.match(html,/Es werden keine Daten gespeichert oder E-Mails verschickt/);
+ assert.doesNotMatch(html,/<form[^>]+action=|fetch\(/);
  assert.match(html,/noindex,nofollow,noarchive/);
 });
 test('Mobile-first rules and original site header/footer preserved',()=>{

@@ -37,8 +37,8 @@ test('V124: cake/vitrine contact makes a real phone link visible before submissi
 });
 test('V124: Event interest form remains disabled and no payment or production APIs are introduced',()=>{
  const e=read('events/index.html');
- assert.match(e,/data-event-form-status="disabled"/);
+ assert.match(e,/data-event-form-status="synthetic-only"/);
  assert.match(e,/<fieldset disabled>/);
- assert.match(e,/class="ev121-form__submit" disabled/);
- assert.doesNotMatch(e,/type="submit"|action="\/api/);
+ assert.match(e,/class="ev121-form__submit ev126-submit" disabled/);
+ assert.doesNotMatch(e,/action="\/api/);
 });

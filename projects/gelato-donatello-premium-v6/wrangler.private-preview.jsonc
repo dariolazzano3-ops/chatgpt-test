@@ -1,0 +1,12 @@
+{
+  // PRIVATE PREVIEW ONLY: same Cloudflare Access-protected Worker and static asset root.
+  "name": "gelato-donatello-private-preview-v2",
+  "main": "./scripts/event-interest-api-v126.mjs",
+  "compatibility_date": "2026-10-07",
+  "workers_dev": true,
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  }
+}

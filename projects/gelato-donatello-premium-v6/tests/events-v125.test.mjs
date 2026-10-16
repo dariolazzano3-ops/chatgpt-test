@@ -25,5 +25,5 @@ test('V125 full original artwork uncropped on desktop/mobile',()=>{
  assert.match(css,/ev121-hero__figure img\{object-fit:contain;object-position:center center\}/);
  assert.match(html,/href="#teilnahme">Teilnahme anfragen/);
  assert.match(html,/href="#highlights">Mehr erfahren/);
- assert.match(html,/data-event-form-status="disabled"/);
+ assert.match(html,/data-event-form-status="synthetic-only"/);
 });
