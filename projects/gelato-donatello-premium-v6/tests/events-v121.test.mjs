@@ -12,7 +12,7 @@ const img=path.join(root,'assets/images/events/gelato-event-eislabor-hero-v121.a
 test('V121 event headline, hero image and both relevant CTAs',()=>{
  assert.match(html,/GELATO DONATELLO EVENTS/);
  assert.match(html,/Ein Blick hinter <em>die Kulissen\.<\/em>/);
- assert.match(html,/src="\/assets\/images\/events\/gelato-event-eislabor-hero-v121\.avif"/);
+ assert.match(html,/src="\/assets\/images\/events\/gelato-event-eislabor-original-v125\.png"/);
  assert.ok(statSync(img).size>20000,'Missing true user-provided lab artwork. Fail deployment closed.');
  assert.match(html,/href="#teilnahme">Teilnahme anfragen/);
  assert.match(html,/href="#highlights">Mehr erfahren/);
