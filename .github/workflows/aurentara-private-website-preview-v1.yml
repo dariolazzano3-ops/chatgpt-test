@@ -193,7 +193,23 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp
+          CONFIG="$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}/wrangler.private-preview.jsonc"
+          if test -f "$CONFIG"; then
+            # Fail closed: only the allowlisted Access-protected Worker and /api/* routing.
+            node - "$CONFIG" "${{ steps.binding.outputs.worker }}" <<'NODE'
+            const fs=require("node:fs");
+            const raw=fs.readFileSync(process.argv[2],"utf8").replace(/^\s*\/\/.*$/gm,"");
+            const cfg=JSON.parse(raw);
+            if(cfg.name!==process.argv[3]||cfg.workers_dev!==true||cfg.main!=="./scripts/event-interest-api-v126.mjs"||
+              cfg.assets?.directory!=="."||cfg.assets?.binding!=="ASSETS"||
+              JSON.stringify(cfg.assets?.run_worker_first)!==JSON.stringify(["/api/*"])||
+              cfg.compatibility_date!=="2026-10-07")throw Error("UNSAFE_WORKER_ASSET_CONFIG");
+            NODE
+            cd /tmp
+            npx --yes wrangler@4 deploy --config "$CONFIG" --keep-vars --dry-run --message "AURENTARA private website execution $CANDIDATE_SHA"
+          else
           npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --dry-run             --message "AURENTARA private website execution $CANDIDATE_SHA"
+          fi
 
       - name: Deploy to pre-existing private preview Worker
         shell: bash
@@ -203,7 +219,23 @@ jobs:
           git fetch --no-tags origin "${{ steps.binding.outputs.working_branch }}"
           test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE_SHA" || { echo "Working branch changed during QA; refusing stale deployment"; exit 1; }
           cd /tmp
+          CONFIG="$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}/wrangler.private-preview.jsonc"
+          if test -f "$CONFIG"; then
+            # Fail closed: only the allowlisted Access-protected Worker and /api/* routing.
+            node - "$CONFIG" "${{ steps.binding.outputs.worker }}" <<'NODE'
+            const fs=require("node:fs");
+            const raw=fs.readFileSync(process.argv[2],"utf8").replace(/^\s*\/\/.*$/gm,"");
+            const cfg=JSON.parse(raw);
+            if(cfg.name!==process.argv[3]||cfg.workers_dev!==true||cfg.main!=="./scripts/event-interest-api-v126.mjs"||
+              cfg.assets?.directory!=="."||cfg.assets?.binding!=="ASSETS"||
+              JSON.stringify(cfg.assets?.run_worker_first)!==JSON.stringify(["/api/*"])||
+              cfg.compatibility_date!=="2026-10-07")throw Error("UNSAFE_WORKER_ASSET_CONFIG");
+            NODE
+            cd /tmp
+            npx --yes wrangler@4 deploy --config "$CONFIG" --keep-vars --message "AURENTARA private website execution $CANDIDATE_SHA"
+          else
           npx --yes wrangler@4 deploy "$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}"             --name "${{ steps.binding.outputs.worker }}"             --compatibility-date 2026-10-07             --keep-vars             --message "AURENTARA private website execution $CANDIDATE_SHA"
+          fi
 
       - name: Verify Cloudflare Access remains enforced
         shell: bash
