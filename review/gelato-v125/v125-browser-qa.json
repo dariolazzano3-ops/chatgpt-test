@@ -1,0 +1,162 @@
+[
+  {
+    "device": "iphone-small",
+    "vw": 320,
+    "doc": 320,
+    "src": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+    "naturalWidth": 1536,
+    "naturalHeight": 864,
+    "complete": true,
+    "img": {
+      "width": 320,
+      "height": 180,
+      "left": 0,
+      "right": 320
+    },
+    "figure": {
+      "width": 320,
+      "height": 224.625
+    },
+    "css": {
+      "fit": "contain",
+      "position": "50% 50%",
+      "filter": "none",
+      "transform": "none"
+    },
+    "cta": [
+      "#teilnahme",
+      "#highlights"
+    ],
+    "formDisabled": true,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "device": "iphone",
+    "vw": 390,
+    "doc": 390,
+    "src": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+    "naturalWidth": 1536,
+    "naturalHeight": 864,
+    "complete": true,
+    "img": {
+      "width": 390,
+      "height": 219.375,
+      "left": 0,
+      "right": 390
+    },
+    "figure": {
+      "width": 390,
+      "height": 264
+    },
+    "css": {
+      "fit": "contain",
+      "position": "50% 50%",
+      "filter": "none",
+      "transform": "none"
+    },
+    "cta": [
+      "#teilnahme",
+      "#highlights"
+    ],
+    "formDisabled": true,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "device": "android",
+    "vw": 412,
+    "doc": 412,
+    "src": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+    "naturalWidth": 1536,
+    "naturalHeight": 864,
+    "complete": true,
+    "img": {
+      "width": 412,
+      "height": 231.75,
+      "left": 0,
+      "right": 412
+    },
+    "figure": {
+      "width": 412,
+      "height": 276.375
+    },
+    "css": {
+      "fit": "contain",
+      "position": "50% 50%",
+      "filter": "none",
+      "transform": "none"
+    },
+    "cta": [
+      "#teilnahme",
+      "#highlights"
+    ],
+    "formDisabled": true,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "device": "tablet",
+    "vw": 768,
+    "doc": 768,
+    "src": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+    "naturalWidth": 1536,
+    "naturalHeight": 864,
+    "complete": true,
+    "img": {
+      "width": 768,
+      "height": 432,
+      "left": 0,
+      "right": 768
+    },
+    "figure": {
+      "width": 768,
+      "height": 468.640625
+    },
+    "css": {
+      "fit": "contain",
+      "position": "50% 50%",
+      "filter": "none",
+      "transform": "none"
+    },
+    "cta": [
+      "#teilnahme",
+      "#highlights"
+    ],
+    "formDisabled": true,
+    "errors": [],
+    "bad": []
+  },
+  {
+    "device": "desktop",
+    "vw": 1440,
+    "doc": 1440,
+    "src": "/assets/images/events/gelato-event-eislabor-original-v125.jpg",
+    "naturalWidth": 1536,
+    "naturalHeight": 864,
+    "complete": true,
+    "img": {
+      "width": 1440,
+      "height": 810,
+      "left": 0,
+      "right": 1440
+    },
+    "figure": {
+      "width": 1440,
+      "height": 846.640625
+    },
+    "css": {
+      "fit": "contain",
+      "position": "50% 50%",
+      "filter": "none",
+      "transform": "none"
+    },
+    "cta": [
+      "#teilnahme",
+      "#highlights"
+    ],
+    "formDisabled": true,
+    "errors": [],
+    "bad": []
+  }
+]
