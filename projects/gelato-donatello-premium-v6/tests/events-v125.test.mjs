@@ -7,17 +7,15 @@ import path from 'node:path';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const html=readFileSync(path.join(root,'events/index.html'),'utf8');
 const css=readFileSync(path.join(root,'assets/css/events-v121.css'),'utf8');
-const img=path.join(root,'assets/images/events/gelato-event-eislabor-original-v125.png');
-test('V125 exact unmodified user PNG rejects substitutions',()=>{
- assert.ok(existsSync(img),'Missing exact uploaded original PNG. Never deploy with missing artwork.');
+const img=path.join(root,'assets/images/events/gelato-event-eislabor-original-v125.jpg');
+test('V125 exact unmodified user JPEG rejects substitutions',()=>{
+ assert.ok(existsSync(img),'Missing exact uploaded original JPEG. Never deploy with missing artwork.');
  const data=readFileSync(img);
- assert.equal(data.length,4087171);
- assert.equal(createHash('sha256').update(data).digest('hex'),'c1072c61d3b0ef5d70b1dafe1dad1b130129ec25f9848bc0be0f546086237d8c');
- assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
- assert.equal(data.readUInt32BE(16),1672);
- assert.equal(data.readUInt32BE(20),941);
- assert.ok(html.includes('gelato-event-eislabor-original-v125.png'));
- assert.match(html,/width="1672" height="941"/);
+ assert.equal(data.length,583794);
+ assert.equal(createHash('sha256').update(data).digest('hex'),'5f98873c1fb3f171cd6ce9ed08d9523d04568d7040fdea867123c359628230e6');
+ assert.equal(data.subarray(0,3).toString('hex'),'ffd8ff');
+ assert.ok(html.includes('gelato-event-eislabor-original-v125.jpg'));
+ assert.match(html,/width="1536" height="864"/);
 });
 test('V125 full original artwork uncropped on desktop/mobile',()=>{
  assert.match(css,/ev121-hero__figure img\{[^}]*width:100%;height:auto;object-fit:contain/);
