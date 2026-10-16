@@ -196,15 +196,7 @@ jobs:
           CONFIG="$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}/wrangler.private-preview.jsonc"
           if test -f "$CONFIG"; then
             # Fail closed: only the allowlisted Access-protected Worker and /api/* routing.
-            node - "$CONFIG" "${{ steps.binding.outputs.worker }}" <<'NODE'
-            const fs=require("node:fs");
-            const raw=fs.readFileSync(process.argv[2],"utf8").replace(/^\s*\/\/.*$/gm,"");
-            const cfg=JSON.parse(raw);
-            if(cfg.name!==process.argv[3]||cfg.workers_dev!==true||cfg.main!=="./scripts/event-interest-api-v126.mjs"||
-              cfg.assets?.directory!=="."||cfg.assets?.binding!=="ASSETS"||
-              JSON.stringify(cfg.assets?.run_worker_first)!==JSON.stringify(["/api/*"])||
-              cfg.compatibility_date!=="2026-10-07")throw Error("UNSAFE_WORKER_ASSET_CONFIG");
-            NODE
+            python3 -c 'import json,re,sys; c=json.loads(re.sub(r"(?m)^\s*//.*$","",open(sys.argv[1]).read())); assert c["name"]==sys.argv[2] and c["workers_dev"] is True and c["main"]=="./scripts/event-interest-api-v126.mjs" and c["assets"]["directory"]=="." and c["assets"]["binding"]=="ASSETS" and c["assets"]["run_worker_first"]==["/api/*"] and c["compatibility_date"]=="2026-10-07", "UNSAFE_WORKER_ASSET_CONFIG"' "$CONFIG" "${{ steps.binding.outputs.worker }}"
             cd /tmp
             npx --yes wrangler@4 deploy --config "$CONFIG" --keep-vars --dry-run --message "AURENTARA private website execution $CANDIDATE_SHA"
           else
@@ -222,15 +214,7 @@ jobs:
           CONFIG="$GITHUB_WORKSPACE/${{ steps.binding.outputs.project_path }}/wrangler.private-preview.jsonc"
           if test -f "$CONFIG"; then
             # Fail closed: only the allowlisted Access-protected Worker and /api/* routing.
-            node - "$CONFIG" "${{ steps.binding.outputs.worker }}" <<'NODE'
-            const fs=require("node:fs");
-            const raw=fs.readFileSync(process.argv[2],"utf8").replace(/^\s*\/\/.*$/gm,"");
-            const cfg=JSON.parse(raw);
-            if(cfg.name!==process.argv[3]||cfg.workers_dev!==true||cfg.main!=="./scripts/event-interest-api-v126.mjs"||
-              cfg.assets?.directory!=="."||cfg.assets?.binding!=="ASSETS"||
-              JSON.stringify(cfg.assets?.run_worker_first)!==JSON.stringify(["/api/*"])||
-              cfg.compatibility_date!=="2026-10-07")throw Error("UNSAFE_WORKER_ASSET_CONFIG");
-            NODE
+            python3 -c 'import json,re,sys; c=json.loads(re.sub(r"(?m)^\s*//.*$","",open(sys.argv[1]).read())); assert c["name"]==sys.argv[2] and c["workers_dev"] is True and c["main"]=="./scripts/event-interest-api-v126.mjs" and c["assets"]["directory"]=="." and c["assets"]["binding"]=="ASSETS" and c["assets"]["run_worker_first"]==["/api/*"] and c["compatibility_date"]=="2026-10-07", "UNSAFE_WORKER_ASSET_CONFIG"' "$CONFIG" "${{ steps.binding.outputs.worker }}"
             cd /tmp
             npx --yes wrangler@4 deploy --config "$CONFIG" --keep-vars --message "AURENTARA private website execution $CANDIDATE_SHA"
           else
