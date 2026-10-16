@@ -5,3 +5,5 @@ docs/
 wrangler.private-preview.jsonc
 .assetsignore
 project.json
+
+.wrangler/

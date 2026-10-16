@@ -1,6 +1,7 @@
 import { renderSiteHeader, renderSiteFooter } from './components/nav.js';
 import { hydrateAssetFigures } from './components/asset-image.js';
 import { renderRequestForm } from './components/request-form.js';
+import { renderCakeInquiry } from './components/cake-inquiry-v127.js';
 import { initCakeIpad } from './components/cake-ipad.js';
 import { initHeroFlavors } from './components/hero-flavors.js';
 import { initDiscoveryFlavors } from './components/discovery-flavors.js';
@@ -232,7 +233,9 @@ function initCakeCatalogRequests() {
       if (variant) {
         const index = Number(number);
         variant.value = index <= 19 ? 'Klassische Eistorte' : index <= 22 ? 'Spaghetti-Eistorte' : 'Eisbombe';
+        variant.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      selector.dispatchEvent(new Event('change', { bubbles: true }));
     });
   });
 }
@@ -243,6 +246,9 @@ function initRequestForms() {
       formId: host.dataset.formId,
       fields: JSON.parse(host.dataset.fields)
     });
+  });
+  document.querySelectorAll('[data-component="cake-interest-form"]').forEach((host) => {
+    renderCakeInquiry(host, { fields: JSON.parse(host.dataset.fields) });
   });
 }
 
