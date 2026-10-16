@@ -1,7 +1,7 @@
 {
   // PRIVATE PREVIEW ONLY: same Cloudflare Access-protected Worker and static asset root.
   "name": "gelato-donatello-private-preview-v2",
-  "main": "./scripts/cake-inquiry-api-v127.mjs",
+  "main": "./scripts/rental-inquiry-api-v128.mjs",
   "compatibility_date": "2026-10-07",
   "workers_dev": true,
   "assets": {

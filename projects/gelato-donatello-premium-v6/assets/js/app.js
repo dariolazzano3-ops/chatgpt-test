@@ -1,6 +1,7 @@
 import { renderSiteHeader, renderSiteFooter } from './components/nav.js';
 import { hydrateAssetFigures } from './components/asset-image.js';
 import { renderRequestForm } from './components/request-form.js';
+import { renderRentalInquiry } from './components/rental-inquiry-v128.js';
 import { renderCakeInquiry } from './components/cake-inquiry-v127.js';
 import { initCakeIpad } from './components/cake-ipad.js';
 import { initHeroFlavors } from './components/hero-flavors.js';
@@ -241,6 +242,7 @@ function initCakeCatalogRequests() {
 }
 
 function initRequestForms() {
+  document.querySelectorAll('[data-component="rental-inquiry-form"]').forEach(renderRentalInquiry);
   document.querySelectorAll('[data-component="request-form"]').forEach((host) => {
     renderRequestForm(host, {
       formId: host.dataset.formId,

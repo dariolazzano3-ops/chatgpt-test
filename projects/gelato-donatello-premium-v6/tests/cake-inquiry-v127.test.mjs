@@ -88,7 +88,7 @@ test('Frontend uses shared 41 flavors, native validation, fail-closed test gatin
  assert.match(client,/textContent=value/);
  assert.doesNotMatch(client,/localStorage|sessionStorage|mailto:|sendBeacon/);
  const w=get('wrangler.private-preview.jsonc');
- assert.match(w,/cake-inquiry-api-v127\.mjs/);
+ assert.match(w,/(cake-inquiry-api-v127|rental-inquiry-api-v128)\.mjs/);
  assert.match(w,/"run_worker_first": \["\/api\/\*"\]/);
  assert.match(get('docs/cakes-interest-v127-activation.md'),/privacy notice/);
 });
