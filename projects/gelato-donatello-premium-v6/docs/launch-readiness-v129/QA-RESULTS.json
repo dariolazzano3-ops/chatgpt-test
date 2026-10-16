@@ -1,0 +1,50 @@
+{
+  "mode": "synthetic-only",
+  "date": "2026-10-16",
+  "baseline": "2ecb67ee828370931f2e85aaf9a3ccd02309d381",
+  "unit": {
+    "passed": 108,
+    "failed": 0
+  },
+  "routes": {
+    "checked": 20,
+    "http200": 20,
+    "jsErrors": 0,
+    "networkErrors": 0,
+    "overflow": 0,
+    "intentionallyEmptyInactiveImageElements": 6
+  },
+  "forms": {
+    "events": {
+      "browserResolutions": 4,
+      "confirmed": 4,
+      "javascriptDisabledSafe": true,
+      "reducedMotionSafe": true
+    },
+    "eistorten": {
+      "browserResolutions": 4,
+      "confirmed": 4,
+      "javascriptDisabledSafe": true,
+      "reducedMotionSafe": true
+    },
+    "eisvitrine": {
+      "browserResolutions": 4,
+      "confirmed": 4,
+      "javascriptDisabledSafe": true,
+      "reducedMotionSafe": true
+    }
+  },
+  "privacy": {
+    "realSubmissions": false,
+    "database": "disabled",
+    "emails": "not_sent",
+    "booking": false
+  },
+  "evidence": [
+    "evidence/iphone-pages-v129.webp",
+    "evidence/desktop-pages-v129.webp",
+    "evidence/forms-success-v129.webp"
+  ],
+  "cloudflareAuthenticatedBrowserE2E": false,
+  "release": "NO-GO"
+}

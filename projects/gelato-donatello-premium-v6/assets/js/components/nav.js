@@ -24,7 +24,7 @@ export function renderSiteHeader(activePage) {
     <div class="site-header__bar">
       <div class="site-header__brand-group">
         <a class="site-header__brand" href="/" aria-label="${BUSINESS.name} – Startseite">
-        <img class="site-header__logo" src="/assets/images/brand/logo-donatello-header.webp" alt="${BUSINESS.name}" />
+        <img class="site-header__logo" width="772" height="86" decoding="async" src="/assets/images/brand/logo-donatello-header.webp" alt="${BUSINESS.name}" />
         <span class="site-header__since">Familiengeführt seit 1965</span>
         </a>
         <a class="site-header__call" href="${BUSINESS.phoneHref}" aria-label="Gelato Donatello anrufen: ${BUSINESS.phone}" title="Jetzt anrufen">
