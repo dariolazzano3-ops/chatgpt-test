@@ -1,0 +1,30 @@
+{
+  "brand_id": "lunara",
+  "display_name": "LUNARA",
+  "product": {
+    "type": "Personalisierte digitale Gute-Nacht-Geschichte",
+    "description": "Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot."
+  },
+  "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+  "visual_direction": "Premium, warm, sanfte Traumwelten, Sternenlicht und ruhige Bewegungen; stilisierte Buchseiten, keine realen Kinder oder imitierte Kundenbewertungen. Video im 9:16-Format mit textfreundlichen Sicherheitsrändern.",
+  "tone": "liebevoll, beruhigend, glaubwürdig, nicht überladen",
+  "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+  "allowed_claims": [
+    "Mit dem Namen deines Kindes personalisiert",
+    "Als digitale Geschichte erhältlich",
+    "Optional mit Vorlese-Audio"
+  ],
+  "forbidden_claims": [
+    "Garantiert besserer Schlaf",
+    "Medizinisch nachgewiesene Wirkung",
+    "Kostenlose Lieferung eines gedruckten Buchs",
+    "Erfundene Bewertungen oder Bestellungen"
+  ],
+  "hashtags": ["#LUNARA", "#GuteNachtGeschichte", "#Vorlesezeit", "#Abendritual"],
+  "marketing_angles": [
+    {"hook":"Was, wenn dein Kind selbst die Hauptfigur ist?","idea":"Zeige eine animierte Geschichte, deren Hauptfigur liebevoll mit dem eigenen Namen angesprochen wird."},
+    {"hook":"Ein kleines Ritual für große Traumwelten.","idea":"Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet."},
+    {"hook":"Eine Geschichte, die nur zu deinem Kind passt.","idea":"Vermittle auf illustrative Weise die Personalisierung durch Name, Lieblingswelt und Kuscheltier."},
+    {"hook":"Aus einer Idee wird ein ganz persönliches Abenteuer.","idea":"Zeige den Weg von den ausgewählten Details bis zur individuellen digitalen Gute-Nacht-Geschichte."}
+  ]
+}
