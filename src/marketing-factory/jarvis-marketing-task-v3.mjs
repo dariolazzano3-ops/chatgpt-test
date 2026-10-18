@@ -72,6 +72,17 @@ export async function runJarvisMarketingTaskV3(req,options={}){
   }
   await mkdir(jobDir,{recursive:true,mode:0o700});
   if(task==='plan_day'){
+    // Do not overwrite a completed verified render receipt on a repeat planner run.
+    try {
+      const prior=JSON.parse(await readFile(receiptFile,'utf8'));
+      if(prior.state==='PRIVATE_MEDIA_RENDERED' && prior.plan_id===plan.plan_id &&
+         SHA.test(prior.media_sha256||'')) {
+        const cached=await readFile(assertIn(jobDir,prior.media_path));
+        if(sha(cached)===prior.media_sha256) return {...prior,idempotent_reuse:true};
+      }
+    } catch(error) {
+      if(error.code!=='ENOENT' && error.message==='PATH_OUTSIDE_PRIVATE_WORKSPACE') throw error;
+    }
     await atomicJSON(planFile,plan);
     const result={ok:true,state:'PLAN_PREPARED',brand_id:brandId,day,plan_id:plan.plan_id,
       plan_file:planFile,media_rendered:false,published:false};
