@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { planMarketingDayV1 } from '../src/marketing-factory/marketing-factory-v1.mjs';
+import { prepareSocialHandoffV2, buildBufferSaveDraftMutationV2, saveBufferDraftApprovedV2, socialPublishingCapabilityV2 } from '../src/marketing-factory/social-dispatch-v2.mjs';
+
+const profile=JSON.parse(readFileSync(new URL('../projects/marketing-factory/brands/lunara.json',import.meta.url),'utf8'));
+const plan=planMarketingDayV1(profile,{day:'2026-10-19'});
+const sha='a'.repeat(64);
+const asset={media_rendered:true,sha256:sha,duration_seconds:22,aspect_ratio:'9:16'};
+const handoff=prepareSocialHandoffV2(plan,{asset,channelIds:{instagram:'ig_lunara_test_123'}});
+assert.equal(handoff.media_verified,true);
+assert.equal(handoff.channels.instagram.channel_configured,true);
+assert.equal(handoff.channels.snapchat_spotlight.state,'MANUAL_HANDOFF_ONLY');
+assert.equal(handoff.external_posts_created,0);
+assert.equal(socialPublishingCapabilityV2().live_posting,false);
+const fakeUrl='https://cdn.example.com/lunara/clip.mp4';
+const q=buildBufferSaveDraftMutationV2(plan,{platform:'instagram',channelId:'ig_lunara_test_123',publicMediaUrl:fakeUrl});
+assert.ok(q.query.includes('saveToDraft: true'));
+assert.ok(!q.query.includes('saveToDraft: false'));
+assert.ok(q.query.includes('assets: [{video:'));
+assert.throws(()=>buildBufferSaveDraftMutationV2(plan,{platform:'snapchat_spotlight',channelId:'sc_test',publicMediaUrl:fakeUrl}),/UNSUPPORTED_BUFFER_PLATFORM/);
+assert.throws(()=>buildBufferSaveDraftMutationV2(plan,{platform:'facebook',channelId:'fb_test',publicMediaUrl:'http://127.0.0.1/x.mp4'}),/UNSAFE_MEDIA_URL/);
+assert.throws(()=>buildBufferSaveDraftMutationV2(plan,{platform:'facebook',channelId:'fb_test',publicMediaUrl:'https://localhost/x.mp4'}),/UNSAFE_MEDIA_URL/);
+let calls=0;
+const fakeFetch=async (url,init)=>{
+ calls++;
+ assert.equal(url,'https://api.buffer.com');
+ assert.equal(init.method,'POST');
+ assert.ok(!init.body.includes('example_token_secret'));
+ assert.ok(init.headers.authorization.endsWith('example_token_secret'));
+ const body=JSON.parse(init.body);
+ assert.ok(body.query.includes('saveToDraft: true'));
+ return {ok:true,json:async()=>({data:{createPost:{post:{id:'buffer_draft_123',status:'draft'}}}})};
+};
+const options={platform:'instagram',channelId:'ig_lunara_test_123',publicMediaUrl:fakeUrl,
+  mediaSha256:sha,approvedPlanId:plan.plan_id,approvedMediaSha256:sha,
+  ownerApproved:true,token:'example_token_secret',fetchImpl:fakeFetch};
+const noApproval=await saveBufferDraftApprovedV2(plan,{...options,ownerApproved:false});
+assert.equal(noApproval.state,'BLOCKED');
+assert.equal(calls,0);
+const noToken=await saveBufferDraftApprovedV2(plan,{...options,token:''});
+assert.equal(noToken.state,'BLOCKED');
+assert.equal(calls,0);
+const badSha=await saveBufferDraftApprovedV2(plan,{...options,approvedMediaSha256:'b'.repeat(64)});
+assert.equal(badSha.state,'BLOCKED');
+assert.equal(calls,0);
+const success=await saveBufferDraftApprovedV2(plan,options);
+assert.equal(calls,1);
+assert.equal(success.state,'BUFFER_DRAFT_SAVED');
+assert.equal(success.publish_verified,false);
+assert.equal(success.scheduled_verified,false);
+const duplicate=await saveBufferDraftApprovedV2(plan,{...options,existingRemoteDraftId:'buffer_draft_123'});
+assert.equal(duplicate.reason,'DUPLICATE_REMOTE_DRAFT');
+assert.equal(calls,1);
+console.log('SOCIAL_DISPATCH_V2: PASS  (Buffer mocked draft only, no live API)');
