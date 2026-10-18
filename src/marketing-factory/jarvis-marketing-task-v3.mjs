@@ -144,7 +144,7 @@ export async function runJarvisMarketingTaskV3(req,options={}){
   return receipt;
 }
 export function jarvisMarketingCapabilityV3(){
-  return {task_id:'LUNARA_MARKETING_FACTORY',allowed_tasks:['plan_day','plan_week','render_private','status'],
+  return {task_id:'UNIVERSAL_MARKETING_FACTORY_V3',allowed_tasks:['plan_day','plan_week','render_private','status'],
     stage:'LOCAL_PREPARE',execution_host:'NODE_PRIVATE_WORKSPACE',
     integration_to_existing_jarvis:'CLI_TASK_ADAPTER_NOT_YET_LIVE_WIRED',
     public_posting:false,automatic_scheduler:false,marketing_spend:false,provider_token_access:false};
