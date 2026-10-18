@@ -1,0 +1,615 @@
+{
+  "schema": "jarvis.marketing.editorial-backlog.v2",
+  "brand_id": "lunara",
+  "start_date": "2026-10-19",
+  "end_date": "2026-10-25",
+  "content_items": [
+    {
+      "date": "2026-10-19",
+      "plan_id": "lunara-2026-10-19-0-ca82d75c09f7de40",
+      "hook": "Ein kleines Ritual für große Traumwelten.",
+      "creative": {
+        "hook": "Ein kleines Ritual für große Traumwelten.",
+        "concept": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Ein kleines Ritual für große Traumwelten."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-20",
+      "plan_id": "lunara-2026-10-20-0-f655d414a311c6b1",
+      "hook": "Eine Geschichte, die nur zu deinem Kind passt.",
+      "creative": {
+        "hook": "Eine Geschichte, die nur zu deinem Kind passt.",
+        "concept": "Vermittle auf illustrative Weise die Personalisierung durch Name, Lieblingswelt und Kuscheltier.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Eine Geschichte, die nur zu deinem Kind passt."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Vermittle auf illustrative Weise die Personalisierung durch Name, Lieblingswelt und Kuscheltier.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-21",
+      "plan_id": "lunara-2026-10-21-0-e85a354b23b5f00f",
+      "hook": "Aus einer Idee wird ein ganz persönliches Abenteuer.",
+      "creative": {
+        "hook": "Aus einer Idee wird ein ganz persönliches Abenteuer.",
+        "concept": "Zeige den Weg von den ausgewählten Details bis zur individuellen digitalen Gute-Nacht-Geschichte.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Aus einer Idee wird ein ganz persönliches Abenteuer."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Zeige den Weg von den ausgewählten Details bis zur individuellen digitalen Gute-Nacht-Geschichte.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-22",
+      "plan_id": "lunara-2026-10-22-0-dc249bc320dc64df",
+      "hook": "Was, wenn dein Kind selbst die Hauptfigur ist?",
+      "creative": {
+        "hook": "Was, wenn dein Kind selbst die Hauptfigur ist?",
+        "concept": "Zeige eine animierte Geschichte, deren Hauptfigur liebevoll mit dem eigenen Namen angesprochen wird.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Was, wenn dein Kind selbst die Hauptfigur ist?"
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Zeige eine animierte Geschichte, deren Hauptfigur liebevoll mit dem eigenen Namen angesprochen wird.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-23",
+      "plan_id": "lunara-2026-10-23-0-519e20fe1b554e4e",
+      "hook": "Ein kleines Ritual für große Traumwelten.",
+      "creative": {
+        "hook": "Ein kleines Ritual für große Traumwelten.",
+        "concept": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Ein kleines Ritual für große Traumwelten."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-24",
+      "plan_id": "lunara-2026-10-24-0-0b2130436386a8ac",
+      "hook": "Eine Geschichte, die nur zu deinem Kind passt.",
+      "creative": {
+        "hook": "Eine Geschichte, die nur zu deinem Kind passt.",
+        "concept": "Vermittle auf illustrative Weise die Personalisierung durch Name, Lieblingswelt und Kuscheltier.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Eine Geschichte, die nur zu deinem Kind passt."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Vermittle auf illustrative Weise die Personalisierung durch Name, Lieblingswelt und Kuscheltier.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    },
+    {
+      "date": "2026-10-25",
+      "plan_id": "lunara-2026-10-25-0-66807484cc4db014",
+      "hook": "Aus einer Idee wird ein ganz persönliches Abenteuer.",
+      "creative": {
+        "hook": "Aus einer Idee wird ein ganz persönliches Abenteuer.",
+        "concept": "Zeige den Weg von den ausgewählten Details bis zur individuellen digitalen Gute-Nacht-Geschichte.",
+        "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+        "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+        "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+      },
+      "storyboard": [
+        {
+          "seconds": "0-3",
+          "scene": "Emotionale Einstiegsfrage",
+          "overlay": "Aus einer Idee wird ein ganz persönliches Abenteuer."
+        },
+        {
+          "seconds": "3-8",
+          "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+          "overlay": "Mit dem Namen deines Kindes personalisiert"
+        },
+        {
+          "seconds": "8-15",
+          "scene": "Zeige den Weg von den ausgewählten Details bis zur individuellen digitalen Gute-Nacht-Geschichte.",
+          "overlay": "Als digitale Geschichte erhältlich"
+        },
+        {
+          "seconds": "15-22",
+          "scene": "Ruhiger Abschluss, klarer CTA",
+          "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+        }
+      ],
+      "brand_id": "lunara",
+      "media_state": "NOT_RENDERED",
+      "approval_state": "REQUIRES_REVIEW",
+      "channels": {
+        "tiktok": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "instagram": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "facebook": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "youtube_shorts": {
+          "provider": "BUFFER",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "PREPARE_ONLY",
+          "reason": "MEDIA_NOT_VERIFIED"
+        },
+        "snapchat_spotlight": {
+          "provider": "MANUAL",
+          "channel_configured": false,
+          "approved": false,
+          "remote_draft_id": null,
+          "published_url": null,
+          "state": "MANUAL_HANDOFF_ONLY",
+          "reason": "SNAPCHAT_SPOTLIGHT_API_NOT_BOUND"
+        }
+      },
+      "external_posts_created": 0,
+      "verified_publications": 0
+    }
+  ],
+  "post_count": 0,
+  "scheduler_active": false,
+  "live_channels_bound": false,
+  "owner_approval_required": true,
+  "idempotency_key": "c501b24721c17d674eea60fa"
+}
