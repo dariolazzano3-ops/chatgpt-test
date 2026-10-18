@@ -1,0 +1,35 @@
+{
+  "schema": "jarvis.marketing.media-render-evidence.v2",
+  "brand_id": "lunara",
+  "plan_id": "lunara-2026-10-19-0-ca82d75c09f7de40",
+  "content_type": "video/mp4",
+  "sha256": "824f056d411ba45f1788f3c2aec1fd8c0b0a5264f3bdcc0feb0c580bcefaab4b",
+  "bytes": 3952378,
+  "duration_seconds": 22,
+  "dimensions": {
+    "width": 720,
+    "height": 1280
+  },
+  "frame_ratio": "9:16",
+  "source": {
+    "kind": "AI_GENERATED_ILLUSTRATION",
+    "sha256": "91e4276c36b035345baabb5442a87d5ba1ed119440d7e4611921c516d04b02a8"
+  },
+  "rendering": "procedural_pan_and_text_overlays_with_original_synthetic_ambient_audio",
+  "storage_state": "CONVERSATION_ARTIFACT_ONLY",
+  "public_cdn_url": null,
+  "buffer_draft_ids": [],
+  "published_urls": [],
+  "social_accounts_verified": false,
+  "fact": "Media file exists in this session's container, is not yet hosted in a durable provider storage bucket.",
+  "approval": {
+    "human_media_review": false,
+    "publication": false,
+    "paid_provider": false
+  },
+  "policy": {
+    "no_paid_calls": true,
+    "no_external_posts": true,
+    "no_production_deploy": true
+  }
+}
