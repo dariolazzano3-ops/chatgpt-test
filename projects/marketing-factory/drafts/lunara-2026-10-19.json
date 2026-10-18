@@ -1,0 +1,164 @@
+{
+  "schema": "jarvis.universal-marketing-factory.plan.v1",
+  "plan_id": "lunara-2026-10-19-0-ca82d75c09f7de40",
+  "brand_id": "lunara",
+  "day": "2026-10-19",
+  "creative_index": 0,
+  "lifecycle": "DRAFT",
+  "creative": {
+    "hook": "Ein kleines Ritual für große Traumwelten.",
+    "concept": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+    "cta": "Entdecke deine persönliche Geschichte bei LUNARA.",
+    "audience": "Eltern und Bezugspersonen von Kindern etwa 2 bis 7 Jahren, die ein ruhiges gemeinsames Abendritual suchen",
+    "product_type": "Personalisierte digitale Gute-Nacht-Geschichte"
+  },
+  "production": {
+    "media_rendered": false,
+    "media_location": null,
+    "format": "vertical_9_16_video",
+    "duration_seconds": 22,
+    "storyboard": [
+      {
+        "seconds": "0-3",
+        "scene": "Emotionale Einstiegsfrage",
+        "overlay": "Ein kleines Ritual für große Traumwelten."
+      },
+      {
+        "seconds": "3-8",
+        "scene": "Das echte Produkt zeigen: Eine liebevolle Geschichte mit dem Namen des Kindes und ausgewählten persönlichen Details, als PDF; optional mit Vorlese-Audio. Kein gedrucktes Buch im aktuellen Kernangebot.",
+        "overlay": "Mit dem Namen deines Kindes personalisiert"
+      },
+      {
+        "seconds": "8-15",
+        "scene": "Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet.",
+        "overlay": "Als digitale Geschichte erhältlich"
+      },
+      {
+        "seconds": "15-22",
+        "scene": "Ruhiger Abschluss, klarer CTA",
+        "overlay": "Entdecke deine persönliche Geschichte bei LUNARA."
+      }
+    ],
+    "generation_prompt": "Premium, warm, sanfte Traumwelten, Sternenlicht und ruhige Bewegungen; stilisierte Buchseiten, keine realen Kinder oder imitierte Kundenbewertungen. Video im 9:16-Format mit textfreundlichen Sicherheitsrändern.",
+    "asset_policy": "Owned/licensed media only. Never fabricate reviews or use identifiable children without consent."
+  },
+  "channels": {
+    "tiktok": {
+      "platform": "tiktok",
+      "format": "vertical_9_16_video",
+      "caption": "Ein kleines Ritual für große Traumwelten. Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet. Entdecke deine persönliche Geschichte bei LUNARA.",
+      "hashtags": [
+        "#LUNARA",
+        "#GuteNachtGeschichte",
+        "#Vorlesezeit",
+        "#Abendritual"
+      ],
+      "publish_state": "DRAFT",
+      "publish_allowed": false,
+      "auth_status": "UNVERIFIED",
+      "publication_id": null,
+      "verified_live_url": null,
+      "notes": "Requires account-authorized publishing integration and human approval."
+    },
+    "instagram": {
+      "platform": "instagram",
+      "format": "vertical_9_16_video",
+      "caption": "Ein kleines Ritual für große Traumwelten. Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet. Entdecke deine persönliche Geschichte bei LUNARA.",
+      "hashtags": [
+        "#LUNARA",
+        "#GuteNachtGeschichte",
+        "#Vorlesezeit",
+        "#Abendritual"
+      ],
+      "publish_state": "DRAFT",
+      "publish_allowed": false,
+      "auth_status": "UNVERIFIED",
+      "publication_id": null,
+      "verified_live_url": null,
+      "notes": "Requires account-authorized publishing integration and human approval."
+    },
+    "facebook": {
+      "platform": "facebook",
+      "format": "vertical_9_16_video",
+      "caption": "Ein kleines Ritual für große Traumwelten. Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet. Entdecke deine persönliche Geschichte bei LUNARA.",
+      "hashtags": [
+        "#LUNARA",
+        "#GuteNachtGeschichte",
+        "#Vorlesezeit",
+        "#Abendritual"
+      ],
+      "publish_state": "DRAFT",
+      "publish_allowed": false,
+      "auth_status": "UNVERIFIED",
+      "publication_id": null,
+      "verified_live_url": null,
+      "notes": "Requires account-authorized publishing integration and human approval."
+    },
+    "youtube_shorts": {
+      "platform": "youtube_shorts",
+      "format": "vertical_9_16_video",
+      "caption": "Ein kleines Ritual für große Traumwelten. Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet. Entdecke deine persönliche Geschichte bei LUNARA.",
+      "hashtags": [
+        "#LUNARA",
+        "#GuteNachtGeschichte",
+        "#Vorlesezeit",
+        "#Abendritual"
+      ],
+      "publish_state": "DRAFT",
+      "publish_allowed": false,
+      "auth_status": "UNVERIFIED",
+      "publication_id": null,
+      "verified_live_url": null,
+      "notes": "Requires account-authorized publishing integration and human approval."
+    },
+    "snapchat_spotlight": {
+      "platform": "snapchat_spotlight",
+      "format": "vertical_9_16_video",
+      "caption": "Ein kleines Ritual für große Traumwelten. Zeige ruhige Abendstimmung, sanfte Illustrationen und die digitale Geschichte auf einem Tablet. Entdecke deine persönliche Geschichte bei LUNARA.",
+      "hashtags": [
+        "#LUNARA",
+        "#GuteNachtGeschichte",
+        "#Vorlesezeit",
+        "#Abendritual"
+      ],
+      "publish_state": "DRAFT",
+      "publish_allowed": false,
+      "auth_status": "UNVERIFIED",
+      "publication_id": null,
+      "verified_live_url": null,
+      "notes": "Account-specific official publishing support unverified. Default to manual handoff."
+    }
+  },
+  "metrics": {
+    "impressions": null,
+    "views": null,
+    "clicks": null,
+    "orders": null,
+    "revenue_eur": null,
+    "attribution_status": "NOT_CONNECTED"
+  },
+  "approvals": {
+    "content": false,
+    "publication": false,
+    "marketing_spend": false
+  },
+  "policy": {
+    "no_paid_model_calls": true,
+    "no_external_posts": true,
+    "no_production_deploy": true,
+    "no_secret_access": true,
+    "no_shared_brand_memory": true,
+    "no_fabricated_metrics": true,
+    "forbidden_claims": [
+      "Garantiert besserer Schlaf",
+      "Medizinisch nachgewiesene Wirkung",
+      "Kostenlose Lieferung eines gedruckten Buchs",
+      "Erfundene Bewertungen oder Bestellungen"
+    ]
+  },
+  "proof": {
+    "quality_tests_passed": false,
+    "posted_and_verified": false,
+    "source": "LOCAL_PLAN_ONLY"
+  }
+}
