@@ -31,6 +31,29 @@ const allReported=evaluatePublicationReadinessV1(plan,{
 assert.equal(allReported.publish_authorized,false,'V1 must be fail-closed');
 assert.equal(allReported.per_platform.instagram.publish_authorized,false);
 assert.equal(marketingFactoryV1Manifest().mode,'PREPARE_ONLY');
+
+// Universal behavior: brand B must not inherit brand A's copy or state.
+const otherProfile={
+  brand_id:'sample_b',display_name:'Sample B',
+  product:{type:'Digitaler Kochkurs',description:'Ein digitaler Einführungskurs für Hobbyköche'},
+  audience:'Erwachsene Anfänger',
+  cta:'Mehr über den Kurs erfahren.',
+  allowed_claims:['Digitaler Selbstlernkurs','Für Einsteiger entwickelt'],
+  forbidden_claims:['Garantiert Profikoch'],
+  hashtags:['#Kochen'],
+  visual_direction:'Klares Workshopvideo ohne fremde Marken',
+  marketing_angles:[
+    {hook:'Dein erster Kochkurs?',idea:'Zeige die ersten kleinen Lernschritte.'},
+    {hook:'Kochen lernen in deinem Tempo.',idea:'Erkläre die digitalen Lektionen.'}
+  ]
+};
+const otherPlan=planMarketingDayV1(otherProfile,{day});
+assert.equal(otherPlan.brand_id,'sample_b');
+assert.notEqual(otherPlan.plan_id,plan.plan_id);
+assert.ok(!JSON.stringify(otherPlan).includes('LUNARA'),'no brand leak');
+assert.equal(otherPlan.production.media_rendered,false);
+assert.ok(Object.values(otherPlan.channels).every(channel => channel.publish_allowed===false));
+
 console.log('MARKETING_FACTORY_GOLDEN_TASK_V1: PASS (offline, 5 channels, fail-closed)');
 console.log(JSON.stringify({
   plan_id:plan.plan_id,brand:plan.brand_id,day:plan.day,
