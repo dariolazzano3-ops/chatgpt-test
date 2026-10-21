@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="RIOSYSTEMS Dashboard – Steuerzentrale für die aktuelle LEAN Factory.">
+<title>RIOSYSTEMS DASHBOARD</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="grid" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark planet-logo" data-factory-feature="planet-logo" aria-hidden="true"><i></i></span><span>RIOSYSTEMS</span><small>DASHBOARD</small></div>
+  <div class="top-actions"><span class="online"><i></i>SYSTEM BEREIT</span><button id="logout" class="ghost small">ABMELDEN</button></div>
+</header>
+<main>
+  <section class="intro">
+    <div><span class="kicker" id="factory-version-hero">LEAN VERSION …</span><h1>Deine digitale<br>Produktionszentrale.</h1><p>Änderungen beauftragen, testen und prüfen. Veröffentlicht wird erst nach deiner Freigabe.</p></div>
+    <div class="hero-state"><span>AKTIVES PROJEKT</span><strong id="active-project-name">RIOSYSTEMS DASHBOARD</strong><code id="active-revision">Version wird geladen · Revision …</code></div>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel command-panel">
+      <div class="panel-head"><div><span class="label">NEUER AUFTRAG</span><h2>Was möchtest du ändern?</h2></div><span class="badge live">BEARBEITEN</span></div>
+      <form id="request-form">
+        <label for="prompt">DEIN AUFTRAG</label>
+        <textarea id="prompt" name="prompt" required maxlength="4000" placeholder="Beschreibe einfach, was geändert werden soll …"></textarea>
+        <div class="form-row"><div><label for="mode">MODUS</label><select id="mode"><option value="edit">EDIT</option><option value="evolve">EVOLVE</option></select></div><div><label>PROJEKT</label><div class="static-field" id="project-field">RIOSYSTEMS DASHBOARD</div></div></div>
+        <button class="primary" type="submit">ÄNDERUNG STARTEN <span>↗</span></button>
+        <p class="micro">Beim Start wird automatisch der neueste LEAN-Factory-Stand verwendet und im Auftrag dokumentiert. Production bleibt technisch gesperrt.</p>
+      </form>
+      <div id="request-result" class="request-result" hidden></div>
+    </article>
+
+    <article class="panel status-panel">
+      <div class="panel-head"><div><span class="label">AKTUELLER STATUS</span><h2>Aktueller Ablauf</h2></div><button id="refresh" class="ghost small">AKTUALISIEREN</button></div>
+      <div class="pipeline">
+        <div id="step-prompt" class="step"><span>01</span><div><strong>AUFTRAG</strong><small>Bereit für deinen Auftrag</small></div><i></i></div>
+        <div id="step-build" class="step"><span>02</span><div><strong>UMSETZUNG</strong><small>Neue Revision</small></div><i></i></div>
+        <div id="step-preview" class="step"><span>03</span><div><strong>PREVIEW</strong><small>Testversion</small></div><i></i></div>
+        <div id="step-qa" class="step"><span>04</span><div><strong>QA</strong><small>Desktop + Mobil</small></div><i></i></div>
+        <div id="step-workshop" class="step"><span>05</span><div><strong>AUFTRAGSPRÜFUNG</strong><small>Wunsch wirklich umgesetzt?</small></div><i></i></div>
+        <div id="step-review" class="step"><span>06</span><div><strong>PRÜFUNG</strong><small>Deine Entscheidung</small></div><i></i></div>
+        <div class="step locked"><span>07</span><div><strong>PRODUCTION</strong><small>Nur mit deiner Freigabe</small></div><b>GESPERRT</b></div>
+      </div>
+    </article>
+
+    <article class="panel telemetry">
+      <div class="panel-head"><div><span class="label">STATUS</span><h2>Systemübersicht</h2></div><span class="badge" id="factory-version-badge">LEAN VERSION …</span></div>
+      <div class="metrics"><div><span>PREVIEW</span><strong id="preview-state">CHECK</strong></div><div><span>TECHNISCHE QA</span><strong id="qa-state">CHECK</strong></div><div><span>AUFTRAGSPRÜFUNG</span><strong id="fulfillment-state">CHECK</strong></div><div><span>REVISION</span><strong id="revision-state">—</strong></div></div>
+    </article>
+
+    <article class="panel preview-panel">
+      <div class="panel-head"><div><span class="label">PREVIEW</span><h2>Aktuelle Preview</h2></div><span class="badge">LIVE</span></div>
+      <a id="preview-link" class="preview-link" href="#" target="_blank" rel="noreferrer"><span>Preview öffnen</span><b>↗</b></a>
+      <p id="run-state" class="micro">Aktueller Factory-Status wird geprüft…</p>
+    </article>
+
+    <article class="panel production-panel">
+      <div class="panel-head"><div><span class="label danger-text">VERÖFFENTLICHUNG</span><h2>Production-Freigabe</h2></div><span class="badge danger-badge">GESPERRT</span></div>
+      <p>Diese Version wird erst veröffentlicht, wenn du sie ausdrücklich freigibst.</p>
+      <button class="production-button" disabled>PRODUCTION GESPERRT</button>
+    </article>
+  </section>
+</main>
+<footer><span id="factory-version-footer">RIOSYSTEMS / LEAN VERSION …</span><span>GESCHÜTZTE STEUERZENTRALE</span></footer>
+<script>
+const form=document.querySelector('#request-form');
+const result=document.querySelector('#request-result');
+const refresh=document.querySelector('#refresh');
+const logout=document.querySelector('#logout');
+const stageOrder=['prompt','build','preview','qa','workshop','review'];
+let pollTimer=null;
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});const data=await r.json().catch(()=>({}));if(r.status===401){location.href='/login';throw new Error('AUTH_REQUIRED')}if(!r.ok)throw new Error(data.error||data.detail||`REQUEST_FAILED_${r.status}`);return data}
+function paintStage(stage){stageOrder.forEach(name=>document.querySelector(`#step-${name}`)?.classList.remove('active'));const normalized=stageOrder.includes(stage)?stage:(stage==='error'?'workshop':'prompt');document.querySelector(`#step-${normalized}`)?.classList.add('active')}
+function paintIdentity(d){const project=d.project_name||'RIOSYSTEMS DASHBOARD';const version=d.factory_version_label||`LEAN VERSION ${d.factory_version||'?'}`;document.querySelector('#active-project-name').textContent=project;document.querySelector('#project-field').textContent=project;document.querySelector('#factory-version-hero').textContent=version;document.querySelector('#factory-version-badge').textContent=version;document.querySelector('#factory-version-footer').textContent=`RIOSYSTEMS / ${version}`;document.querySelector('#active-revision').textContent=`${version} · Revision ${d.revision??'—'}`}
+async function refreshStatus(silent=false){if(!silent)refresh.textContent='WIRD AKTUALISIERT…';try{const d=await api('/api/factory/status');paintIdentity(d);paintStage(d.stage);document.querySelector('#preview-state').textContent=d.preview_ready?'BEREIT':(d.stage==='preview'||d.stage==='qa'?'LÄUFT':'CHECK');document.querySelector('#qa-state').textContent=d.qa||'CHECK';document.querySelector('#fulfillment-state').textContent=d.stage==='review'?'PASS':(d.stage==='error'||d.stage==='workshop'?'WERKSTATT':(d.stage==='qa'?'LÄUFT':'CHECK'));document.querySelector('#revision-state').textContent=d.revision??'—';const link=document.querySelector('#preview-link');if(d.preview_url){link.href=d.preview_url;link.removeAttribute('aria-disabled')}else{link.href='#';link.setAttribute('aria-disabled','true')}const run=d.run||{};const labels={prompt:'Auftrag angenommen',build:'Umsetzung läuft',preview:'Preview wird erstellt',qa:'Technische QA läuft',workshop:'Auftragsprüfung benötigt Werkstatt',review:'Auftrag erfüllt · bereit zur Prüfung',error:'Werkstatt: Auftrag nicht sauber abgeschlossen',idle:'Bereit'};document.querySelector('#run-state').textContent=`${labels[d.stage]||'Bereit'}${run.status?` · ${run.status}`:''}${run.conclusion?` / ${run.conclusion}`:''}`;return d}catch(err){document.querySelector('#run-state').textContent=`Status nicht verfügbar: ${err.message}`;return null}finally{if(!silent)refresh.textContent='AKTUALISIEREN'}}
+function beginPolling(){clearInterval(pollTimer);refreshStatus(true);pollTimer=setInterval(async()=>{const d=await refreshStatus(true);if(d&&(d.stage==='review'||d.stage==='error'||d.stage==='workshop')){clearInterval(pollTimer);pollTimer=null}},4000)}
+form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('button[type=submit]');button.disabled=true;button.textContent='NEUESTE FACTORY WIRD GELADEN…';result.hidden=true;try{await refreshStatus(true);button.textContent='WIRD ÜBERGEBEN…';const data=await api('/api/factory/request',{method:'POST',body:JSON.stringify({mode:document.querySelector('#mode').value,prompt:document.querySelector('#prompt').value})});result.className='request-result success';const sha=data.commit_sha?data.commit_sha.slice(0,8):'verified';result.innerHTML=`<strong>AUFTRAG BESTÄTIGT</strong><span>${data.project_name||'RIOSYSTEMS DASHBOARD'} · ${data.factory_version_label||'LEAN'}<br>${data.request_file}<br>GitHub commit: ${sha}</span>`;result.hidden=false;form.reset();paintStage('prompt');beginPolling()}catch(err){result.className='request-result error';result.innerHTML=`<strong>AUFTRAG BLOCKIERT</strong><span>${err.message}</span>`;result.hidden=false}finally{button.disabled=false;button.innerHTML='ÄNDERUNG STARTEN <span>↗</span>'}});
+refresh.addEventListener('click',()=>refreshStatus());
+logout.addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'});
+refreshStatus(true);setInterval(()=>{if(!pollTimer)refreshStatus(true)},15000);
+</script>
+
+<nav class="factory-mobile-quick-nav" data-factory-mobile-quick-nav="true" aria-label="Mobile Schnellzugriffe">
+  <button type="button" data-factory-target="#request-form" aria-label="Chat mit RIO"><span aria-hidden="true">✦</span><small>RIO</small></button>
+  <button type="button" data-factory-target=".status-panel" aria-label="Aktueller Status"><span aria-hidden="true">◎</span><small>Status</small></button>
+  <button type="button" data-factory-target=".preview-panel" aria-label="Preview"><span aria-hidden="true">↗</span><small>Preview</small></button>
+  <button type="button" data-factory-target="#step-workshop" aria-label="Werkstatt"><span aria-hidden="true">◇</span><small>Werkstatt</small></button>
+</nav>
+<script data-factory-mobile-quick-nav-script="true">
+(()=>{const nav=document.querySelector('[data-factory-mobile-quick-nav="true"]');if(!nav)return;let toast=null;const showToast=()=>{if(!toast){toast=document.createElement('div');toast.className='factory-mobile-quick-nav-toast';toast.setAttribute('role','status');document.body.appendChild(toast)}toast.textContent='Bereich momentan nicht verfügbar';toast.classList.add('show');setTimeout(()=>toast?.classList.remove('show'),1800)};nav.addEventListener('click',e=>{const button=e.target.closest('button[data-factory-target]');if(!button)return;const target=document.querySelector(button.dataset.factoryTarget);if(!target){showToast();return}target.scrollIntoView({behavior:'smooth',block:'start'});});})();
+</script>
+</body>
+</html>
