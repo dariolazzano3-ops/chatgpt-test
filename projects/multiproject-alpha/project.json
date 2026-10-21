@@ -1,0 +1,10 @@
+{
+  "project": {
+    "name": "RIOSYSTEMS DASHBOARD",
+    "slug": "multiproject-alpha"
+  },
+  "mode": "generate",
+  "intent": "technology_business",
+  "generated_by": "chatgpt-project-factory-1.5",
+  "factory_runtime": "LEAN V3.1"
+}
