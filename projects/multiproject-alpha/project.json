@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "MultiProject Alpha",
+    "slug": "multiproject-alpha"
+  },
+  "mode": "generate",
+  "intent": "technology_business",
+  "generated_by": "chatgpt-project-factory-1.5"
+}
