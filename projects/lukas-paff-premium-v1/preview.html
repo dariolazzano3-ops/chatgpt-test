@@ -373,6 +373,22 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 @media(prefers-reduced-motion:reduce){
 .strength-story.is-visible .strength-wheel,.first-step-scene.is-visible .door-panel,.first-step-scene.is-visible .door-child,.first-step-scene.is-visible .door-glow,.first-step-scene.is-visible .door-rays{animation:none!important}
 }
+
+/* V7.1 visual QA correction: legible, calmer mobile motion panels */
+@media(max-width:760px){
+.strength-story{grid-template-columns:124px minmax(0,1fr);gap:16px;padding:23px 17px;margin-bottom:24px}
+.strength-orbit{width:124px}
+.strength-copy .eyebrow{display:none}
+.strength-copy h3{font-size:clamp(24px,6.5vw,30px);line-height:1.07;margin:0 0 10px}
+.strength-copy p{font-size:11px;line-height:1.6}
+.strength-legend{grid-template-columns:1fr;gap:7px;margin-top:15px}
+.strength-legend span{font-size:11px;line-height:1.35;gap:8px}
+.strength-legend .dot{width:8px;height:8px}
+.first-step-scene figcaption{flex-wrap:wrap;gap:5px 12px;padding:13px 15px}
+.first-step-scene figcaption strong{font-size:12px}
+.first-step-scene figcaption span{font-size:9px}
+}
+@media(max-width:359px){.strength-story{grid-template-columns:95px minmax(0,1fr);gap:10px;padding:18px 11px}.strength-orbit{width:95px}.strength-copy h3{font-size:21px}.strength-legend span{font-size:10px}.strength-legend{gap:5px;margin-top:10px}.first-step-scene figcaption{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
 <body>
