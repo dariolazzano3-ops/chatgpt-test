@@ -451,6 +451,15 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 }
 @media(max-width:359px){.story-headline{font-size:46px}.story-film-caption button{font-size:0;gap:0;padding:8px 13px}.story-film-caption button span{font-size:19px}.story-note strong{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.story-note,.story-film-caption button{transition:none}}
+
+/* V11 | automatic silent HD loop, simplified controls */
+.story-film-caption{justify-content:flex-start}
+.story-film-video{object-fit:cover;image-rendering:auto}
+.story-film-screen{isolation:isolate}
+@media(prefers-reduced-motion:reduce){
+ .story-film-track{display:none}
+ .story-film-video{object-fit:cover}
+}
 </style>
 </head>
 <body>
@@ -472,9 +481,9 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 <div class="story-intro">
 <div class="story-copy"><span class="eyebrow">So läuft die Zusammenarbeit</span><h2 class="story-headline">Ein klarer<br>Anfang.<br><em>Ohne Druck.</em></h2><p>Manchmal beginnt Unterstützung mit einem Gespräch. Lukas hört zu, ordnet die Situation mit euch ein und bespricht mögliche nächste Schritte.</p><a class="btn btn-orange story-cta" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a></div>
 <figure class="story-film"><div class="story-film-screen">
-<video id="first-step-film" class="story-film-video" muted playsinline preload="metadata" controls poster="/media/story/first-step-poster-v9.webp" aria-label="Animierte symbolische Geschichte: Ein Kind steht zögerlich vor einer Tür, öffnet sie, tritt hinaus und geht in warmem Tageslicht weiter."><source src="/media/story/first-step-motion-v10.mp4" type="video/mp4">Dein Browser unterstützt dieses Video nicht.</video>
+<video id="first-step-film" class="story-film-video" autoplay muted loop playsinline webkit-playsinline preload="metadata" poster="/media/story/first-step-poster-hd.webp" aria-label="Animierte symbolische Geschichte: Ein Kind steht zögerlich vor einer Tür, öffnet sie, tritt hinaus und geht in warmem Tageslicht weiter."><source src="/media/story/first-step-motion-v11.mp4" type="video/mp4">Dein Browser unterstützt dieses Video nicht.</video>
 <div class="story-film-overlay" aria-hidden="true"><span>Eine symbolische Geschichte</span><strong id="story-film-phase">Zögern</strong></div><div class="story-film-track" aria-hidden="true"><span id="story-film-progress"></span></div></div>
-<figcaption class="story-film-caption"><span>Ein Anfang braucht manchmal nur einen Schritt.<small>KI-illustrierte Szene · keine echte Trainingsaufnahme</small></span><button id="story-film-toggle" type="button" aria-controls="first-step-film" aria-label="Film abspielen">Film abspielen <span aria-hidden="true">▶</span></button></figcaption></figure>
+<figcaption class="story-film-caption"><span>Ein Anfang braucht manchmal nur einen Schritt.<small>KI-illustrierte Szene · keine echte Trainingsaufnahme</small></span></figcaption></figure>
 </div>
 <a href="#kontakt" class="story-note"><span class="story-note-icon" aria-hidden="true">↗</span><strong>Wir besprechen in Ruhe, wo ihr steht und was dein Kind gerade braucht.</strong><span class="story-note-arrow" aria-hidden="true">→</span></a>
 <details class="story-practical"><summary>So funktioniert die Anfrage konkret <span aria-hidden="true">+</span></summary>
@@ -502,42 +511,46 @@ const storyObserver=new IntersectionObserver((entries,observer)=>{entries.forEac
 storyItems.forEach(item=>storyObserver.observe(item));
 }
 
-/* V9: one viewport-triggered cinematic film; no automatic looping. */
+/* V11: continuous, muted inline autoplay with a static reduced-motion alternative. */
 const storyVideo=document.getElementById('first-step-film');
-const storyButton=document.getElementById('story-film-toggle');
-if(storyVideo&&storyButton){
+if(storyVideo){
  const storyReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const storyPhase=document.getElementById('story-film-phase');
  const storyProgress=document.getElementById('story-film-progress');
  const storyTitles=['Zögern','Die Tür öffnet sich','Der erste Schritt','Zuversicht'];
- let storyUserPaused=false;
- let storyStarted=false;
- if(!storyReduced)storyVideo.controls=false;
- const syncStory=()=>{
- const t=storyVideo.currentTime||0,d=storyVideo.duration||11.05;
- const idx=t<2.6?0:t<5.2?1:t<7.8?2:3;
- if(storyPhase)storyPhase.textContent=storyTitles[idx];
- if(storyProgress)storyProgress.style.width=Math.min(100,Math.max(0,100*t/d))+'%';
- const label=storyVideo.ended?'Noch einmal ansehen':storyVideo.paused?'Film abspielen':'Film pausieren';
- storyButton.setAttribute('aria-label',label);
- storyButton.innerHTML=(storyVideo.ended?'Nochmal ansehen':storyVideo.paused?'Abspielen':'Pause')+' <span aria-hidden="true">'+(storyVideo.ended?'↻':storyVideo.paused?'▶':'Ⅱ')+'</span>';
+ let storyVisible=false;
+ const storySync=()=>{
+  const t=storyVideo.currentTime||0,d=storyVideo.duration||10.8;
+  const part=((t%d)+d)%d;
+  const idx=Math.min(3,Math.floor(part/(d/4)));
+  if(storyPhase)storyPhase.textContent=storyTitles[idx];
+  if(storyProgress)storyProgress.style.width=(100*part/d)+'%';
  };
- storyButton.addEventListener('click',()=>{
- if(storyVideo.ended)storyVideo.currentTime=0;
- if(storyVideo.paused){storyUserPaused=false;const x=storyVideo.play();if(x&&x.catch)x.catch(()=>storyVideo.controls=true)}
- else {storyUserPaused=true;storyVideo.pause()}
- });
- storyVideo.addEventListener('timeupdate',syncStory);
- ['play','pause','ended','loadedmetadata'].forEach(evt=>storyVideo.addEventListener(evt,syncStory));
- if(!storyReduced&&'IntersectionObserver' in window){
- const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
- if(entry.isIntersecting&&!storyVideo.ended&&!storyUserPaused){
-   if(!storyStarted||storyVideo.paused){storyStarted=true;const play=storyVideo.play();if(play&&play.catch)play.catch(()=>storyVideo.controls=true)}
- }else if(!entry.isIntersecting&&!storyVideo.paused&&!storyVideo.ended)storyVideo.pause();
- }),{threshold:.38});
- observer.observe(storyVideo);
- }
- syncStory();
+ const storyPlay=()=>{
+  if(storyReduced||!storyVisible||document.hidden)return;
+  storyVideo.muted=true;
+  const playback=storyVideo.play();
+  if(playback&&playback.catch)playback.catch(()=>{storyVideo.controls=true;});
+ };
+ storyVideo.addEventListener('timeupdate',storySync);
+ storyVideo.addEventListener('loadedmetadata',storySync);
+ storyVideo.addEventListener('seeked',storySync);
+ if(storyReduced){
+  storyVideo.autoplay=false;storyVideo.loop=false;
+  storyVideo.removeAttribute('autoplay');
+  storyVideo.pause();
+ }else if('IntersectionObserver' in window){
+  const observer=new IntersectionObserver(entries=>{
+   for(const item of entries){
+    storyVisible=item.isIntersecting;
+    if(storyVisible)storyPlay();
+    else if(!storyVideo.paused)storyVideo.pause();
+   }
+  },{threshold:.08,rootMargin:'80px 0px'});
+  observer.observe(storyVideo);
+ }else{storyVisible=true;storyPlay();}
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)storyVideo.pause();else storyPlay()});
+ storySync();
 }
 </script>
 </body>
