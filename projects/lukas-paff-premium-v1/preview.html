@@ -389,6 +389,96 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 .first-step-scene figcaption span{font-size:9px}
 }
 @media(max-width:359px){.strength-story{grid-template-columns:95px minmax(0,1fr);gap:10px;padding:18px 11px}.strength-orbit{width:95px}.strength-copy h3{font-size:21px}.strength-legend span{font-size:10px}.strength-legend{gap:5px;margin-top:10px}.first-step-scene figcaption{flex-direction:column;align-items:flex-start}}
+
+/* V8 cinematic, real-picture storytelling: intentionally isolated to #ablauf */
+.story-process{background:#f9f6f1;color:#1d201f;position:relative;overflow:hidden}
+.story-process:before{content:"";position:absolute;pointer-events:none;inset:0;background:radial-gradient(ellipse at 80% 13%,rgba(237,200,158,.22),transparent 50%)}
+.story-process>.wrap{position:relative}
+.story-intro{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);gap:clamp(34px,5.4vw,92px);align-items:center}
+.story-copy{padding:clamp(12px,3vw,36px) 0}
+.story-copy .eyebrow,.story-journey .eyebrow{color:var(--orange)}
+.story-headline{font-weight:840;font-size:clamp(62px,6.4vw,100px);letter-spacing:-.075em;line-height:.98;margin:25px 0 30px;max-width:700px}
+.story-headline em{font-style:normal;color:#bd4b2b;white-space:nowrap}
+.story-copy>p{color:#555c5a;max-width:500px;font-size:clamp(16px,1.4vw,19px);line-height:1.7}
+.story-cta{margin-top:29px;min-height:58px;gap:45px;border-radius:12px;padding:16px 24px;box-shadow:0 10px 30px rgba(170,70,37,.1)}
+.story-scene{height:clamp(480px,42vw,630px);position:relative;overflow:hidden;background:#dbc5b0;border-radius:12px;box-shadow:0 24px 60px rgba(87,57,32,.1)}
+.story-scene:after{content:"";position:absolute;pointer-events:none;inset:54% 0 0;background:linear-gradient(transparent,rgba(20,20,20,.32))}
+.story-scene img{width:100%;height:100%;object-fit:cover;object-position:50% 57%}
+.story-scene figcaption{position:absolute;z-index:1;bottom:23px;left:26px;right:20px;color:#fff;font-size:11px;line-height:1.5;font-weight:650;letter-spacing:.03em;text-shadow:0 2px 8px rgba(0,0,0,.28)}
+.story-journey{margin-top:clamp(55px,7vw,95px)}
+.story-journey-head{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:23px}
+.story-journey-head p{color:#666b66;font-size:12px;line-height:1.6;max-width:365px}
+.story-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,25px)}
+.story-card{min-width:0}
+.story-card-media{position:relative;aspect-ratio:1/.99;overflow:hidden;border-radius:11px;background:#e9ddcf}
+.story-card-media img{width:100%;height:100%;object-fit:cover;object-position:center center;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){.story-card:hover .story-card-media img{transform:scale(1.035)}}
+.story-card-title{display:flex;align-items:center;gap:11px;margin-top:18px}
+.story-card-title span{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:50%;background:#eaddce;color:#4c372c;font-size:11px;font-weight:770}
+.story-card-title h3{font-size:clamp(18px,1.55vw,23px);font-weight:780;letter-spacing:-.04em;line-height:1.18}
+.story-card>p{font-size:13px;line-height:1.6;margin:10px 0 0 41px;color:#626864}
+.story-note{display:flex;align-items:center;gap:20px;padding:22px 26px;margin-top:clamp(44px,5vw,65px);min-height:88px;border-radius:16px;background:#eee7de;color:#282d2a;transition:background .18s}
+.story-note:hover{background:#e8dbcd}
+.story-note-icon{display:grid;place-items:center;flex:none;width:47px;height:47px;border-radius:50%;background:#f9f6f1;color:var(--orange);font-size:23px}
+.story-note strong{font-size:clamp(15px,1.65vw,23px);line-height:1.34;max-width:670px;letter-spacing:-.025em}
+.story-note-arrow{font-size:26px;color:var(--orange);margin-left:auto}
+.story-practical{margin-top:28px;border-top:1px solid #cfc7bb;border-bottom:1px solid #cfc7bb}
+.story-practical>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 5px;color:#343937;font-size:14px;font-weight:750}
+.story-practical>summary::-webkit-details-marker{display:none}
+.story-practical>summary span{font-size:24px;font-weight:400;color:var(--orange);transition:transform .2s}
+.story-practical[open]>summary span{transform:rotate(45deg)}
+.story-practical .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;border-top:1px solid #cec5b9}
+.story-practical .step{display:block;border:0;padding:24px 0}
+.story-practical .step>b{display:block;margin-bottom:13px}
+.story-practical .step h3{font-size:19px}
+.story-practical .step p{font-size:13px;line-height:1.65}
+@media(max-width:900px){
+.story-intro{gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,.96fr)}
+.story-headline{font-size:clamp(49px,7vw,68px)}
+.story-scene{height:480px}
+.story-cards{gap:13px}
+.story-card-title h3{font-size:17px}
+.story-card>p{font-size:12px;margin-left:0}
+}
+@media(max-width:760px){
+.story-process{padding:70px 0 74px}
+.story-intro{display:flex;flex-direction:column;align-items:stretch;gap:26px}
+.story-copy{padding:0}
+.story-copy .eyebrow{font-size:10px}
+.story-headline{font-size:clamp(51px,12vw,69px);line-height:1.01;margin:20px 0 20px}
+.story-copy>p{font-size:14px;line-height:1.65}
+.story-cta{margin-top:22px;min-height:53px;padding:15px 20px;width:100%;justify-content:space-between}
+.story-scene{width:100%;height:clamp(335px,100vw,460px);border-radius:8px}
+.story-scene img{object-position:50% 56%}
+.story-scene figcaption{font-size:10px;bottom:16px;left:16px;right:16px}
+.story-journey{margin-top:42px}
+.story-journey-head{display:block;margin-bottom:20px}
+.story-journey-head p{margin-top:10px;font-size:11px}
+.story-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 13px}
+.story-card-media{aspect-ratio:1/.96;border-radius:8px}
+.story-card-title{gap:8px;margin-top:12px}
+.story-card-title span{width:25px;height:25px;font-size:10px}
+.story-card-title h3{font-size:clamp(15px,4.4vw,19px)}
+.story-card>p{font-size:12px;line-height:1.5;margin:8px 0 0}
+.story-note{padding:18px 15px;min-height:83px;margin-top:38px;gap:12px;border-radius:12px}
+.story-note-icon{width:39px;height:39px;font-size:20px}
+.story-note strong{font-size:14px}
+.story-note-arrow{font-size:22px}
+.story-practical{margin-top:22px}
+.story-practical .steps{display:block}
+.story-practical .step{padding:20px 4px;border-bottom:1px solid #dbd2c6}
+.story-practical .step:last-child{border:0}
+}
+@media(max-width:359px){
+.story-headline{font-size:47px}
+.story-card-title h3{font-size:15px}
+.story-cards{gap:20px 10px}
+.story-note strong{font-size:13px}
+.story-copy .eyebrow{font-size:9px;letter-spacing:.12em}
+}
+@media(prefers-reduced-motion:reduce){
+.story-card-media img,.story-note,.story-cta,.story-practical>summary span{transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -406,7 +496,25 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 <section class="section profile" id="ueber"><div class="wrap profile-layout"><div class="profile-copy"><span class="eyebrow">Der Mensch hinter dem Training</span><h2>Erst verstehen.<br>Dann stärken.</h2><p>Ich bin Lukas Paff. Als Schulsozialarbeiter und zertifizierter Anti-Mobbing-Coach begleite ich Kinder an der Schnittstelle von Schule, Familie und Alltag.</p><p>Eigene Mobbingerfahrungen in meiner Kindheit prägen meine Haltung: Kinder brauchen Menschen, die ihnen zuhören, Orientierung geben und gemeinsam mit ihnen konkrete Handlungsmöglichkeiten entwickeln.</p><p class="profile-method-note">Im ersten Gespräch klären wir, welche Unterstützung sinnvoll ist und wie die Zusammenarbeit aussehen kann. Es wird nichts automatisch gebucht.</p><div class="fact-list"><div class="fact"><span>Fachlich</span><span>B.A. Soziale Arbeit</span></div><div class="fact"><span>Praxis</span><span>Schulsozialarbeiter an einer Grundschule</span></div><div class="fact"><span>Training</span><span>Zertifizierter Anti-Mobbing-Coach (DEKRA)</span></div></div><a class="profile-link" href="#einblicke">Lukas im Video kennenlernen <span class="arrow" aria-hidden="true">↗</span></a><div class="brand-seal"><img src="/media/original/lukas-original-logo.webp" loading="lazy" decoding="async" width="1024" height="1024" alt="Originales Lukas-Paff-Markenmotiv: Der Anti-Mobbing-Coach"><div><span class="eyebrow">Persönlich statt austauschbar</span><p>Lukas Paff steht mit seinem Namen für die pädagogische Arbeit. Das Motiv stammt aus seinem ursprünglichen Markenauftritt.</p></div></div></div></div></section>
 <section class="section method" id="methode"><div class="wrap"><div class="section-top"><div class="method-headline"><span class="eyebrow">Das Trainingskonzept</span><h2 class="h2">Vier Bausteine.<br>Ein gemeinsames Ziel.</h2></div><p>Vier Schwerpunkte, die Kindern konkrete Handlungsmöglichkeiten eröffnen.</p></div><div class="strength-story" aria-label="Die vier Trainingsschwerpunkte ergänzen sich gegenseitig"><div class="strength-orbit" aria-hidden="true"><svg viewBox="0 0 270 270" focusable="false"><circle cx="135" cy="135" r="96" fill="none" stroke="#444e47" stroke-width="25"/><g class="strength-wheel" fill="none" stroke-width="25" stroke-linecap="round"><circle cx="135" cy="135" r="96" stroke="#ed9575" stroke-dasharray="126 477" transform="rotate(-134 135 135)"/><circle cx="135" cy="135" r="96" stroke="#b3b9ad" stroke-dasharray="126 477" transform="rotate(-44 135 135)"/><circle cx="135" cy="135" r="96" stroke="#f5d1b7" stroke-dasharray="126 477" transform="rotate(46 135 135)"/><circle cx="135" cy="135" r="96" stroke="#88968d" stroke-dasharray="126 477" transform="rotate(136 135 135)"/></g><circle cx="135" cy="135" r="69" fill="#202523"/><path d="M135 111l20 12v20c0 14-12 23-20 27-8-4-20-13-20-27v-20z" stroke="#f2c4aa" stroke-width="2.3" fill="none"/><path d="M124 140l8 8 15-18" stroke="#f2c4aa" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="strength-copy"><span class="eyebrow">Zusammenwirken statt Einzeltricks</span><h3>Das Rad der Stärke<span aria-hidden="true">.</span></h3><p>Vier Fähigkeiten, die sich gegenseitig unterstützen.</p><div class="strength-legend"><span><i class="dot d1"></i>Handlungsfähigkeit</span><span><i class="dot d2"></i>Achtsamkeit</span><span><i class="dot d3"></i>Körpersprache</span><span><i class="dot d4"></i>Empathie</span></div></div></div><div class="method-editorial"><article class="skill-row"><div class="skill-copy"><span class="skill-index">01 / BASISTRAINING</span><h3>Sicher handeln.</h3><p class="skill-brief">Grenzen setzen. Hilfe holen. Handeln.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Einordnen, Unterstützung holen, Grenzen setzen. In Übungen erarbeiten Kinder konkrete nächste Schritte für schwierige Alltagssituationen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/handlungsfaehigkeit.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Kind mit Schild: Handlungsfähigkeit"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">02 / BASISTRAINING</span><h3>Signale erkennen.</h3><p class="skill-brief">Gefühle und Gruppendynamiken erkennen.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Gefühle, Körpersignale und Gruppenverhalten erkennen. So lassen sich eigene Reaktionen und Dynamiken besser verstehen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/achtsamkeit.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Achtsamkeit, Emotionen und Warnsignale"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">03 / BASISTRAINING</span><h3>Klar auftreten.</h3><p class="skill-brief">Haltung, Stimme und Nein-Sagen üben.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Haltung, Stimme und ein deutliches Nein erproben, ohne selbst aggressiv werden zu müssen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/koerpersprache.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Körpersprache und selbstbewusstes Auftreten"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">04 / BASISTRAINING</span><h3>Andere verstehen.</h3><p class="skill-brief">Perspektiven wechseln. Zivilcourage zeigen.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Perspektiven wechseln, Verantwortung übernehmen und Zivilcourage innerhalb einer Gruppe besprechen und üben.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/empathie.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Empathie und Begegnung"></figure></article></div><p class="method-authenticity">Die Bildmotive zeigen beispielhaft Trainingsideen. Sie sind KI-Illustrationen und keine dokumentierten Szenen aus echten Kursen.</p><div class="method-footer"><p>Alle Trainingsbausteine werden altersgerecht gestaltet. Pädagogische Begleitung ersetzt keine Therapie oder Diagnostik.</p><a href="#angebote">Trainingsformate ansehen <span aria-hidden="true">↗</span></a></div></div></section>
 
-<section class="section process original-texture" id="ablauf"><div class="wrap process-grid"><div class="process-intro"><span class="eyebrow" style="color:var(--orange)">So läuft die Zusammenarbeit</span><h2 class="h2">Ein klarer Anfang.<br>Ohne Druck.</h2><p>Die passende Unterstützung finden wir im persönlichen Gespräch.</p><figure class="first-step-scene" aria-label="Symbolische Illustration: Ein Kind zögert vor einer Tür, öffnet sie und wagt einen ersten Schritt in warmes Tageslicht."><svg viewBox="0 0 510 248" role="img" aria-labelledby="door-title door-desc"><title id="door-title">Der erste Schritt</title><desc id="door-desc">Ruhige illustrative Szene eines Kindes, das durch eine geöffnete Tür in helleres Licht tritt. Die Bewegung findet einmal beim Erscheinen im Sichtbereich statt.</desc><defs><linearGradient id="warm-light" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9d5a7"/><stop offset="1" stop-color="#fbefd7"/></linearGradient><linearGradient id="wall-light" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f6f0e7"/><stop offset="1" stop-color="#dfd3c4"/></linearGradient></defs><rect width="510" height="248" fill="url(#wall-light)"/><rect x="34" y="22" width="442" height="195" rx="3" fill="#eee6da"/><path d="M35 218H475" stroke="#bfb2a0" stroke-width="2"/><path d="M50 206L182 206 238 235H15Z" fill="#c9bca9" opacity=".36"/><rect x="139" y="28" width="143" height="184" rx="2" fill="#343d39"/><rect class="door-glow" x="148" y="35" width="126" height="168" fill="url(#warm-light)"/><path class="door-rays" d="M271 35L345 50 354 219 271 204Z" fill="#f3cda4" opacity=".33"/><path d="M136 213V25H285V213" stroke="#8e8072" stroke-width="9" fill="none" stroke-linejoin="round"/><g class="door-panel"><rect x="144" y="33" width="131" height="173" fill="#a48972" stroke="#6e6356" stroke-width="3"/><rect x="159" y="51" width="101" height="69" fill="#b69b80" stroke="#d5bca2" stroke-width="2"/><rect x="159" y="129" width="101" height="59" fill="#b69b80" stroke="#d5bca2" stroke-width="2"/><circle cx="257" cy="128" r="4" fill="#f2d6a7"/></g><path d="M283 215L342 237 425 237" fill="none" stroke="#cabba8" stroke-width="2"/><g class="door-child"><ellipse cx="344" cy="219" rx="41" ry="6" fill="#7c7d74" opacity=".2"/><path d="M325 160L323 210 337 211 342 174 346 211 360 210 361 156Z" fill="#5b6965"/><path d="M321 209Q329 215 340 213L339 220 317 220Q315 215 321 209Z" fill="#454b47"/><path d="M347 209Q356 215 365 213L368 220 345 220Z" fill="#454b47"/><path d="M317 133Q328 119 347 122Q361 122 369 134L362 170H317Z" fill="#bd745c"/><path d="M321 133Q307 143 302 160" fill="none" stroke="#bd745c" stroke-width="12" stroke-linecap="round"/><path d="M366 135Q374 140 371 154" fill="none" stroke="#bd745c" stroke-width="11" stroke-linecap="round"/><circle cx="302" cy="160" r="7" fill="#d9ac8d"/><circle cx="371" cy="155" r="7" fill="#d9ac8d"/><rect x="335" y="114" width="10" height="13" rx="4" fill="#d9ac8d"/><circle cx="338" cy="98" r="24" fill="#d9ac8d"/><path d="M314 95Q314 70 340 73Q362 72 362 97L352 87Q332 94 318 91Z" fill="#4c4843"/><path d="M336 105q6 4 10 0" stroke="#96715f" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M317 131Q307 125 305 141L305 162" fill="none" stroke="#77594f" stroke-width="2" opacity=".65"/></g><path d="M0 244H510" stroke="#b8a99a" stroke-width="8"/></svg><figcaption><strong>Auch ein kleiner Schritt kann ein Anfang sein.</strong><span>Symbolische Illustration</span></figcaption></figure></div><div class="steps"><div class="step"><b>01</b><div><h3>Anfrage senden</h3><p>Schreib Lukas kurz, ob du als Elternteil oder für eine Einrichtung anfragst und worum es ungefähr geht. Vermeide sensible Details über Kinder in ungesicherten Nachrichten.</p></div></div><div class="step"><b>02</b><div><h3>Situation besprechen</h3><p>In einem kostenlosen, unverbindlichen Erstgespräch werden Ziel, Altersgruppe und mögliche Vorgehensweisen geklärt.</p></div></div><div class="step"><b>03</b><div><h3>Passendes Angebot erhalten</h3><p>Im Anschluss können Umfang, Termine und Kosten individuell abgestimmt werden. Es erfolgt keine automatische Buchung.</p></div></div></div></div></section>
+<section class="section process story-process" id="ablauf">
+ <div class="wrap">
+ <div class="story-intro">
+  <div class="story-copy">
+   <span class="eyebrow">So läuft die Zusammenarbeit</span>
+   <h2 class="story-headline">Ein klarer<br>Anfang.<br><em>Ohne Druck.</em></h2>
+   <p>Manchmal beginnt Unterstützung mit einem Gespräch. Lukas hört zu, ordnet die Situation mit euch ein und bespricht mögliche nächste Schritte.</p>
+   <a class="btn btn-orange story-cta" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a>
+  </div>
+  <figure class="story-scene"><img src="/media/story/door-hero.webp" width="470" height="739" loading="lazy" decoding="async" alt="KI-generierte Symbolszene: Ein nachdenkliches Kind mit Rucksack steht im warmen Tageslicht vor einer Haustür"><figcaption>Ein möglicher Anfang. Eine symbolische Geschichte.</figcaption></figure>
+ </div>
+ <div class="story-journey"><div class="story-journey-head"><span class="eyebrow">Vier Momente. Ein Weg.</span><p>Eine bildliche Geschichte über Mut und erste Schritte, keine dokumentierte Trainingssituation.</p></div>
+ <div class="story-cards"><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-1.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind mit Rucksack wartet vor einer geschlossenen Haustür"></figure><div class="story-card-title"><span aria-hidden="true">01</span><h3>Zögern</h3></div><p>Nicht jeder Anfang fällt leicht.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-2.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Ein Kind öffnet vorsichtig eine Haustür und sieht warmes Licht"></figure><div class="story-card-title"><span aria-hidden="true">02</span><h3>Die Tür öffnet sich</h3></div><p>Wir schauen gemeinsam nach Möglichkeiten.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-3.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind tritt durch eine geöffnete Haustür ins Tageslicht"></figure><div class="story-card-title"><span aria-hidden="true">03</span><h3>Der erste Schritt</h3></div><p>In Ruhe und im eigenen Tempo.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-4.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind geht auf einem Weg im warmen Morgenlicht"></figure><div class="story-card-title"><span aria-hidden="true">04</span><h3>Zuversicht</h3></div><p>Kleine Schritte können neue Wege eröffnen.</p></article></div></div>
+ <a href="#kontakt" class="story-note"><span class="story-note-icon" aria-hidden="true">↗</span><strong>Wir besprechen in Ruhe, wo ihr steht und was dein Kind gerade braucht.</strong><span class="story-note-arrow" aria-hidden="true">→</span></a>
+ <details class="story-practical"><summary>So funktioniert die Anfrage konkret <span aria-hidden="true">+</span></summary>
+ <div class="steps"><div class="step"><b>01</b><div><h3>Anfrage senden</h3><p>Schreib Lukas kurz, ob du als Elternteil oder für eine Einrichtung anfragst und worum es ungefähr geht. Vermeide sensible Details über Kinder in ungesicherten Nachrichten.</p></div></div><div class="step"><b>02</b><div><h3>Situation besprechen</h3><p>In einem kostenlosen, unverbindlichen Erstgespräch werden Ziel, Altersgruppe und mögliche Vorgehensweisen geklärt.</p></div></div><div class="step"><b>03</b><div><h3>Passendes Angebot erhalten</h3><p>Im Anschluss können Umfang, Termine und Kosten individuell abgestimmt werden. Es erfolgt keine automatische Buchung.</p></div></div></div>
+ </details>
+ </div>
+</section>
 
 <section class="section video-section" id="einblicke"><div class="wrap video-layout"><div class="video-copy"><span class="eyebrow" style="color:#f5aa91">Persönlicher Einblick</span><h2 class="h2">Die Haltung<br>hinter der Arbeit.</h2><p>Lukas spricht über seinen pädagogischen Ansatz und seine persönliche Motivation. Wer ihm eine Anfrage schicken möchte, kann sich hier zunächst selbst ein Bild machen.</p><p class="video-note">Originalaufnahme aus dem Projektbestand. Mit Wiedergabesteuerung und ohne automatischen Start. Eine Untertitelspur ist noch in Vorbereitung.</p></div><div class="video-shell"><div class="video-frame"><video controls playsinline preload="none" poster="__LUKAS_VIDEO_STILL__" aria-label="Video von Lukas Paff über seine Anti-Mobbing-Arbeit"><source src="/media/lukas-intro.mp4" type="video/mp4">Der Browser unterstützt dieses Video leider nicht.</video><div class="video-note-badge">Lukas Paff · Im Gespräch</div></div></div></div></section>
 <section class="section faq" id="fragen"><div class="wrap faq-grid"><div><span class="eyebrow" style="color:var(--orange)">Antworten vor dem Erstgespräch</span><h2 class="h2">Gut zu<br>wissen.</h2></div><div class="faq-items"><details><summary>Für welches Alter sind die Trainings gedacht?</summary><p>Die Gruppenangebote richten sich an Kinder vom Vorschulalter bis zur 6. Klasse. Die Gestaltung der Übungen wird an Alter und Gruppensituation angepasst.</p></details><details><summary>Kann ich für mein Kind Einzelcoaching anfragen?</summary><p>Ja. Individuelle Gespräche und Trainings können nach persönlicher Absprache angefragt werden. Im Erstgespräch wird besprochen, welcher Rahmen sinnvoll ist.</p></details><details><summary>Sind Angebote für Schulen oder Einrichtungen möglich?</summary><p>Ja. Für Horte, Ferienprogramme, Gruppen sowie nach Absprache Schulen können geeignete Formate besprochen werden. Ort und Termine hängen von der Verfügbarkeit ab.</p></details><details><summary>Wie lange dauert das Kombiprogramm?</summary><p>Das bestehende Angebot beschreibt eine Gesamtdauer von acht Stunden, verteilt auf Basistraining und Mobbing-Schnitzeljagd.</p></details><details><summary>Was kostet ein Training?</summary><p>Die Kosten werden anhand des gewählten Formats und des Umfangs individuell vereinbart. Das Erstgespräch wird auf der bestehenden Website als kostenlos und unverbindlich beschrieben.</p></details><details><summary>Ist das eine Therapie?</summary><p>Nein. Die Angebote sind pädagogische Präventions- und Interventionsmaßnahmen. Sie ersetzen weder Diagnostik noch medizinische oder psychotherapeutische Behandlung.</p></details></div></div></section>
@@ -421,7 +529,7 @@ menuButton.addEventListener('click',()=>setMenu(!mobileNav.classList.contains('o
 const copyBtn=document.getElementById('copy-email');
 if(copyBtn)copyBtn.addEventListener('click',async()=>{const value='lukaspaffantimobbing@gmail.com',status=document.getElementById('copy-result');let ok=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value);ok=true}}catch(e){}if(!ok){try{const t=document.createElement('textarea');t.value=value;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove()}catch(e){}}if(status)status.textContent=ok?'E-Mail-Adresse kopiert.':'Bitte Adresse markieren und kopieren.';copyBtn.textContent=ok?'Kopiert ✓':'Kopieren';});
 /* One-shot visual storytelling; media/links remain usable without JS. */
-const storyItems=document.querySelectorAll('.strength-story,.first-step-scene');
+const storyItems=document.querySelectorAll('.strength-story');
 if('IntersectionObserver' in window&&window.matchMedia('(prefers-reduced-motion: no-preference)').matches){
 const storyObserver=new IntersectionObserver((entries,observer)=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}})},{threshold:.35});
 storyItems.forEach(item=>storyObserver.observe(item));
