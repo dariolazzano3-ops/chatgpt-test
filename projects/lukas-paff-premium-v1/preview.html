@@ -390,95 +390,67 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 }
 @media(max-width:359px){.strength-story{grid-template-columns:95px minmax(0,1fr);gap:10px;padding:18px 11px}.strength-orbit{width:95px}.strength-copy h3{font-size:21px}.strength-legend span{font-size:10px}.strength-legend{gap:5px;margin-top:10px}.first-step-scene figcaption{flex-direction:column;align-items:flex-start}}
 
-/* V8 cinematic, real-picture storytelling: intentionally isolated to #ablauf */
-.story-process{background:#f9f6f1;color:#1d201f;position:relative;overflow:hidden}
-.story-process:before{content:"";position:absolute;pointer-events:none;inset:0;background:radial-gradient(ellipse at 80% 13%,rgba(237,200,158,.22),transparent 50%)}
+
+/* V9 | One cinematic story, no gallery. Scoped to the existing process section. */
+.story-process{background:#f8f5ef;color:#1e211f;position:relative;overflow:hidden}
+.story-process:before{content:"";pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at 88% 18%,#ead4b93b,transparent 56%)}
 .story-process>.wrap{position:relative}
-.story-intro{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);gap:clamp(34px,5.4vw,92px);align-items:center}
-.story-copy{padding:clamp(12px,3vw,36px) 0}
-.story-copy .eyebrow,.story-journey .eyebrow{color:var(--orange)}
-.story-headline{font-weight:840;font-size:clamp(62px,6.4vw,100px);letter-spacing:-.075em;line-height:.98;margin:25px 0 30px;max-width:700px}
-.story-headline em{font-style:normal;color:#bd4b2b;white-space:nowrap}
-.story-copy>p{color:#555c5a;max-width:500px;font-size:clamp(16px,1.4vw,19px);line-height:1.7}
-.story-cta{margin-top:29px;min-height:58px;gap:45px;border-radius:12px;padding:16px 24px;box-shadow:0 10px 30px rgba(170,70,37,.1)}
-.story-scene{height:clamp(480px,42vw,630px);position:relative;overflow:hidden;background:#dbc5b0;border-radius:12px;box-shadow:0 24px 60px rgba(87,57,32,.1)}
-.story-scene:after{content:"";position:absolute;pointer-events:none;inset:54% 0 0;background:linear-gradient(transparent,rgba(20,20,20,.32))}
-.story-scene img{width:100%;height:100%;object-fit:cover;object-position:50% 57%}
-.story-scene figcaption{position:absolute;z-index:1;bottom:23px;left:26px;right:20px;color:#fff;font-size:11px;line-height:1.5;font-weight:650;letter-spacing:.03em;text-shadow:0 2px 8px rgba(0,0,0,.28)}
-.story-journey{margin-top:clamp(55px,7vw,95px)}
-.story-journey-head{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:23px}
-.story-journey-head p{color:#666b66;font-size:12px;line-height:1.6;max-width:365px}
-.story-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,25px)}
-.story-card{min-width:0}
-.story-card-media{position:relative;aspect-ratio:1/.99;overflow:hidden;border-radius:11px;background:#e9ddcf}
-.story-card-media img{width:100%;height:100%;object-fit:cover;object-position:center center;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
-@media(hover:hover) and (prefers-reduced-motion:no-preference){.story-card:hover .story-card-media img{transform:scale(1.035)}}
-.story-card-title{display:flex;align-items:center;gap:11px;margin-top:18px}
-.story-card-title span{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:50%;background:#eaddce;color:#4c372c;font-size:11px;font-weight:770}
-.story-card-title h3{font-size:clamp(18px,1.55vw,23px);font-weight:780;letter-spacing:-.04em;line-height:1.18}
-.story-card>p{font-size:13px;line-height:1.6;margin:10px 0 0 41px;color:#626864}
-.story-note{display:flex;align-items:center;gap:20px;padding:22px 26px;margin-top:clamp(44px,5vw,65px);min-height:88px;border-radius:16px;background:#eee7de;color:#282d2a;transition:background .18s}
-.story-note:hover{background:#e8dbcd}
-.story-note-icon{display:grid;place-items:center;flex:none;width:47px;height:47px;border-radius:50%;background:#f9f6f1;color:var(--orange);font-size:23px}
-.story-note strong{font-size:clamp(15px,1.65vw,23px);line-height:1.34;max-width:670px;letter-spacing:-.025em}
+.story-intro{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);align-items:center;gap:clamp(28px,5vw,86px)}
+.story-copy{padding:16px 0}
+.story-copy .eyebrow{color:var(--orange)}
+.story-headline{font-size:clamp(58px,6.5vw,96px);letter-spacing:-.075em;line-height:1.01;font-weight:840;margin:24px 0 26px}
+.story-headline em{color:var(--orange);font-style:normal;white-space:nowrap}
+.story-copy>p{color:#555d59;line-height:1.72;font-size:clamp(15px,1.35vw,18px);max-width:520px}
+.story-cta{margin-top:28px;border-radius:12px;min-height:57px}
+.story-film{border:1px solid #dfd5c6;max-width:650px;width:100%;min-width:0;overflow:hidden;background:#f3ede5;border-radius:18px;box-shadow:0 24px 55px #40301e1c}
+.story-film-screen{position:relative;aspect-ratio:1/1;background:#342c29;overflow:hidden}
+.story-film-video{width:100%;height:100%;object-fit:cover;display:block;background:#2b2928}
+.story-film-overlay{pointer-events:none;position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:6px;padding:66px 26px 26px;color:#fff;background:linear-gradient(transparent,#17161490);text-shadow:0 2px 8px #0008}
+.story-film-overlay>span{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:730;color:#ffe4d3}
+.story-film-overlay strong{font-weight:800;font-size:clamp(23px,3vw,35px);letter-spacing:-.045em;line-height:1.1}
+.story-film-track{height:3px;background:#ffffff70;position:absolute;bottom:0;left:0;right:0}
+.story-film-track span{display:block;height:100%;width:0;background:#f1aa8c}
+.story-film-caption{display:flex;align-items:center;justify-content:space-between;gap:17px;padding:16px 20px}
+.story-film-caption>span{font-size:12px;font-weight:770;color:#303431;line-height:1.4}
+.story-film-caption small{display:block;margin-top:4px;color:#77766f;font-size:10px;font-weight:480}
+.story-film-caption button{flex:none;border:1px solid #cfc3b3;border-radius:100px;background:transparent;color:#34312d;font-size:11px;font-weight:770;min-height:43px;display:inline-flex;align-items:center;gap:12px;padding:9px 13px;transition:background .2s}
+.story-film-caption button:hover{background:#ebe2d7}
+.story-film-caption button span{font-size:17px;color:var(--orange)}
+.story-note{display:flex;align-items:center;gap:18px;padding:24px 27px;margin-top:50px;min-height:94px;border-radius:17px;background:#ebe3d9;color:#282d2a;transition:background .2s}
+.story-note:hover{background:#e4d8c9}
+.story-note-icon{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:50%;background:#f8f4ee;color:var(--orange);font-size:24px}
+.story-note strong{font-size:clamp(16px,1.7vw,24px);line-height:1.32;max-width:670px;letter-spacing:-.025em}
 .story-note-arrow{font-size:26px;color:var(--orange);margin-left:auto}
-.story-practical{margin-top:28px;border-top:1px solid #cfc7bb;border-bottom:1px solid #cfc7bb}
-.story-practical>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 5px;color:#343937;font-size:14px;font-weight:750}
+.story-practical{margin-top:28px;border-top:1px solid #d1c6b8;border-bottom:1px solid #d1c6b8}
+.story-practical>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:19px 4px;color:#383a37;font-size:14px;font-weight:750}
 .story-practical>summary::-webkit-details-marker{display:none}
-.story-practical>summary span{font-size:24px;font-weight:400;color:var(--orange);transition:transform .2s}
+.story-practical>summary span{font-size:23px;color:var(--orange);font-weight:400}
 .story-practical[open]>summary span{transform:rotate(45deg)}
-.story-practical .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;border-top:1px solid #cec5b9}
+.story-practical .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;border-top:1px solid #cdc1b4}
 .story-practical .step{display:block;border:0;padding:24px 0}
-.story-practical .step>b{display:block;margin-bottom:13px}
+.story-practical .step>b{display:block;margin-bottom:12px}
 .story-practical .step h3{font-size:19px}
 .story-practical .step p{font-size:13px;line-height:1.65}
-@media(max-width:900px){
-.story-intro{gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,.96fr)}
-.story-headline{font-size:clamp(49px,7vw,68px)}
-.story-scene{height:480px}
-.story-cards{gap:13px}
-.story-card-title h3{font-size:17px}
-.story-card>p{font-size:12px;margin-left:0}
-}
+@media(max-width:900px){.story-intro{gap:28px}.story-headline{font-size:clamp(47px,6vw,65px)}.story-film-caption{padding:12px}.story-film-caption>span{font-size:11px}}
 @media(max-width:760px){
-.story-process{padding:70px 0 74px}
-.story-intro{display:flex;flex-direction:column;align-items:stretch;gap:26px}
-.story-copy{padding:0}
-.story-copy .eyebrow{font-size:10px}
-.story-headline{font-size:clamp(51px,12vw,69px);line-height:1.01;margin:20px 0 20px}
-.story-copy>p{font-size:14px;line-height:1.65}
-.story-cta{margin-top:22px;min-height:53px;padding:15px 20px;width:100%;justify-content:space-between}
-.story-scene{width:100%;height:clamp(335px,100vw,460px);border-radius:8px}
-.story-scene img{object-position:50% 56%}
-.story-scene figcaption{font-size:10px;bottom:16px;left:16px;right:16px}
-.story-journey{margin-top:42px}
-.story-journey-head{display:block;margin-bottom:20px}
-.story-journey-head p{margin-top:10px;font-size:11px}
-.story-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 13px}
-.story-card-media{aspect-ratio:1/.96;border-radius:8px}
-.story-card-title{gap:8px;margin-top:12px}
-.story-card-title span{width:25px;height:25px;font-size:10px}
-.story-card-title h3{font-size:clamp(15px,4.4vw,19px)}
-.story-card>p{font-size:12px;line-height:1.5;margin:8px 0 0}
-.story-note{padding:18px 15px;min-height:83px;margin-top:38px;gap:12px;border-radius:12px}
-.story-note-icon{width:39px;height:39px;font-size:20px}
-.story-note strong{font-size:14px}
-.story-note-arrow{font-size:22px}
-.story-practical{margin-top:22px}
-.story-practical .steps{display:block}
-.story-practical .step{padding:20px 4px;border-bottom:1px solid #dbd2c6}
-.story-practical .step:last-child{border:0}
+.story-process{padding:72px 0 70px}
+.story-intro{grid-template-columns:1fr;display:flex;flex-direction:column;align-items:stretch;gap:23px}
+.story-copy{padding:0}.story-copy .eyebrow{font-size:10px}
+.story-headline{font-size:clamp(49px,11.6vw,69px);margin:21px 0 22px;line-height:1.03}
+.story-copy>p{font-size:14px;line-height:1.69}
+.story-cta{width:100%;justify-content:space-between;margin-top:24px;min-height:51px;padding:15px 20px}
+.story-film{width:100%;max-width:unset;border-radius:12px}
+.story-film-overlay{padding:65px 18px 19px}.story-film-overlay strong{font-size:29px}
+.story-film-caption{padding:12px 13px;gap:9px}
+.story-film-caption>span{font-size:11px}.story-film-caption small{font-size:9px}
+.story-film-caption button{min-height:44px;padding:8px 11px;font-size:10px;gap:7px}
+.story-note{padding:17px 14px;gap:12px;min-height:80px;margin-top:28px;border-radius:12px}
+.story-note-icon{height:38px;width:38px;font-size:20px}.story-note strong{font-size:14px}.story-note-arrow{font-size:22px}
+.story-practical{margin-top:24px}.story-practical .steps{display:block}
+.story-practical .step{border-bottom:1px solid #d5c9bc;padding:20px 4px}.story-practical .step:last-child{border:0}
 }
-@media(max-width:359px){
-.story-headline{font-size:47px}
-.story-card-title h3{font-size:15px}
-.story-cards{gap:20px 10px}
-.story-note strong{font-size:13px}
-.story-copy .eyebrow{font-size:9px;letter-spacing:.12em}
-}
-@media(prefers-reduced-motion:reduce){
-.story-card-media img,.story-note,.story-cta,.story-practical>summary span{transition:none!important}
-}
+@media(max-width:359px){.story-headline{font-size:46px}.story-film-caption button{font-size:0;gap:0;padding:8px 13px}.story-film-caption button span{font-size:19px}.story-note strong{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.story-note,.story-film-caption button{transition:none}}
 </style>
 </head>
 <body>
@@ -496,25 +468,20 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 <section class="section profile" id="ueber"><div class="wrap profile-layout"><div class="profile-copy"><span class="eyebrow">Der Mensch hinter dem Training</span><h2>Erst verstehen.<br>Dann stärken.</h2><p>Ich bin Lukas Paff. Als Schulsozialarbeiter und zertifizierter Anti-Mobbing-Coach begleite ich Kinder an der Schnittstelle von Schule, Familie und Alltag.</p><p>Eigene Mobbingerfahrungen in meiner Kindheit prägen meine Haltung: Kinder brauchen Menschen, die ihnen zuhören, Orientierung geben und gemeinsam mit ihnen konkrete Handlungsmöglichkeiten entwickeln.</p><p class="profile-method-note">Im ersten Gespräch klären wir, welche Unterstützung sinnvoll ist und wie die Zusammenarbeit aussehen kann. Es wird nichts automatisch gebucht.</p><div class="fact-list"><div class="fact"><span>Fachlich</span><span>B.A. Soziale Arbeit</span></div><div class="fact"><span>Praxis</span><span>Schulsozialarbeiter an einer Grundschule</span></div><div class="fact"><span>Training</span><span>Zertifizierter Anti-Mobbing-Coach (DEKRA)</span></div></div><a class="profile-link" href="#einblicke">Lukas im Video kennenlernen <span class="arrow" aria-hidden="true">↗</span></a><div class="brand-seal"><img src="/media/original/lukas-original-logo.webp" loading="lazy" decoding="async" width="1024" height="1024" alt="Originales Lukas-Paff-Markenmotiv: Der Anti-Mobbing-Coach"><div><span class="eyebrow">Persönlich statt austauschbar</span><p>Lukas Paff steht mit seinem Namen für die pädagogische Arbeit. Das Motiv stammt aus seinem ursprünglichen Markenauftritt.</p></div></div></div></div></section>
 <section class="section method" id="methode"><div class="wrap"><div class="section-top"><div class="method-headline"><span class="eyebrow">Das Trainingskonzept</span><h2 class="h2">Vier Bausteine.<br>Ein gemeinsames Ziel.</h2></div><p>Vier Schwerpunkte, die Kindern konkrete Handlungsmöglichkeiten eröffnen.</p></div><div class="strength-story" aria-label="Die vier Trainingsschwerpunkte ergänzen sich gegenseitig"><div class="strength-orbit" aria-hidden="true"><svg viewBox="0 0 270 270" focusable="false"><circle cx="135" cy="135" r="96" fill="none" stroke="#444e47" stroke-width="25"/><g class="strength-wheel" fill="none" stroke-width="25" stroke-linecap="round"><circle cx="135" cy="135" r="96" stroke="#ed9575" stroke-dasharray="126 477" transform="rotate(-134 135 135)"/><circle cx="135" cy="135" r="96" stroke="#b3b9ad" stroke-dasharray="126 477" transform="rotate(-44 135 135)"/><circle cx="135" cy="135" r="96" stroke="#f5d1b7" stroke-dasharray="126 477" transform="rotate(46 135 135)"/><circle cx="135" cy="135" r="96" stroke="#88968d" stroke-dasharray="126 477" transform="rotate(136 135 135)"/></g><circle cx="135" cy="135" r="69" fill="#202523"/><path d="M135 111l20 12v20c0 14-12 23-20 27-8-4-20-13-20-27v-20z" stroke="#f2c4aa" stroke-width="2.3" fill="none"/><path d="M124 140l8 8 15-18" stroke="#f2c4aa" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="strength-copy"><span class="eyebrow">Zusammenwirken statt Einzeltricks</span><h3>Das Rad der Stärke<span aria-hidden="true">.</span></h3><p>Vier Fähigkeiten, die sich gegenseitig unterstützen.</p><div class="strength-legend"><span><i class="dot d1"></i>Handlungsfähigkeit</span><span><i class="dot d2"></i>Achtsamkeit</span><span><i class="dot d3"></i>Körpersprache</span><span><i class="dot d4"></i>Empathie</span></div></div></div><div class="method-editorial"><article class="skill-row"><div class="skill-copy"><span class="skill-index">01 / BASISTRAINING</span><h3>Sicher handeln.</h3><p class="skill-brief">Grenzen setzen. Hilfe holen. Handeln.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Einordnen, Unterstützung holen, Grenzen setzen. In Übungen erarbeiten Kinder konkrete nächste Schritte für schwierige Alltagssituationen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/handlungsfaehigkeit.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Kind mit Schild: Handlungsfähigkeit"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">02 / BASISTRAINING</span><h3>Signale erkennen.</h3><p class="skill-brief">Gefühle und Gruppendynamiken erkennen.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Gefühle, Körpersignale und Gruppenverhalten erkennen. So lassen sich eigene Reaktionen und Dynamiken besser verstehen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/achtsamkeit.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Achtsamkeit, Emotionen und Warnsignale"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">03 / BASISTRAINING</span><h3>Klar auftreten.</h3><p class="skill-brief">Haltung, Stimme und Nein-Sagen üben.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Haltung, Stimme und ein deutliches Nein erproben, ohne selbst aggressiv werden zu müssen.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/koerpersprache.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Körpersprache und selbstbewusstes Auftreten"></figure></article><article class="skill-row"><div class="skill-copy"><span class="skill-index">04 / BASISTRAINING</span><h3>Andere verstehen.</h3><p class="skill-brief">Perspektiven wechseln. Zivilcourage zeigen.</p><details class="skill-details"><summary>Trainingsdetails <span class="skill-plus" aria-hidden="true">+</span></summary><p>Perspektiven wechseln, Verantwortung übernehmen und Zivilcourage innerhalb einer Gruppe besprechen und üben.</p></details></div><figure class="skill-image skill-image-refined"><img src="/media/ai/empathie.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Empathie und Begegnung"></figure></article></div><p class="method-authenticity">Die Bildmotive zeigen beispielhaft Trainingsideen. Sie sind KI-Illustrationen und keine dokumentierten Szenen aus echten Kursen.</p><div class="method-footer"><p>Alle Trainingsbausteine werden altersgerecht gestaltet. Pädagogische Begleitung ersetzt keine Therapie oder Diagnostik.</p><a href="#angebote">Trainingsformate ansehen <span aria-hidden="true">↗</span></a></div></div></section>
 
-<section class="section process story-process" id="ablauf">
- <div class="wrap">
- <div class="story-intro">
-  <div class="story-copy">
-   <span class="eyebrow">So läuft die Zusammenarbeit</span>
-   <h2 class="story-headline">Ein klarer<br>Anfang.<br><em>Ohne Druck.</em></h2>
-   <p>Manchmal beginnt Unterstützung mit einem Gespräch. Lukas hört zu, ordnet die Situation mit euch ein und bespricht mögliche nächste Schritte.</p>
-   <a class="btn btn-orange story-cta" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a>
-  </div>
-  <figure class="story-scene"><img src="/media/story/door-hero.webp" width="470" height="739" loading="lazy" decoding="async" alt="KI-generierte Symbolszene: Ein nachdenkliches Kind mit Rucksack steht im warmen Tageslicht vor einer Haustür"><figcaption>Ein möglicher Anfang. Eine symbolische Geschichte.</figcaption></figure>
- </div>
- <div class="story-journey"><div class="story-journey-head"><span class="eyebrow">Vier Momente. Ein Weg.</span><p>Eine bildliche Geschichte über Mut und erste Schritte, keine dokumentierte Trainingssituation.</p></div>
- <div class="story-cards"><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-1.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind mit Rucksack wartet vor einer geschlossenen Haustür"></figure><div class="story-card-title"><span aria-hidden="true">01</span><h3>Zögern</h3></div><p>Nicht jeder Anfang fällt leicht.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-2.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Ein Kind öffnet vorsichtig eine Haustür und sieht warmes Licht"></figure><div class="story-card-title"><span aria-hidden="true">02</span><h3>Die Tür öffnet sich</h3></div><p>Wir schauen gemeinsam nach Möglichkeiten.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-3.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind tritt durch eine geöffnete Haustür ins Tageslicht"></figure><div class="story-card-title"><span aria-hidden="true">03</span><h3>Der erste Schritt</h3></div><p>In Ruhe und im eigenen Tempo.</p></article><article class="story-card"><figure class="story-card-media"><img src="/media/story/door-step-4.webp" width="230" height="264" decoding="async" loading="lazy" alt="KI-generierte Symbolszene: Kind geht auf einem Weg im warmen Morgenlicht"></figure><div class="story-card-title"><span aria-hidden="true">04</span><h3>Zuversicht</h3></div><p>Kleine Schritte können neue Wege eröffnen.</p></article></div></div>
- <a href="#kontakt" class="story-note"><span class="story-note-icon" aria-hidden="true">↗</span><strong>Wir besprechen in Ruhe, wo ihr steht und was dein Kind gerade braucht.</strong><span class="story-note-arrow" aria-hidden="true">→</span></a>
- <details class="story-practical"><summary>So funktioniert die Anfrage konkret <span aria-hidden="true">+</span></summary>
+<section class="section process story-process" id="ablauf"><div class="wrap">
+<div class="story-intro">
+<div class="story-copy"><span class="eyebrow">So läuft die Zusammenarbeit</span><h2 class="story-headline">Ein klarer<br>Anfang.<br><em>Ohne Druck.</em></h2><p>Manchmal beginnt Unterstützung mit einem Gespräch. Lukas hört zu, ordnet die Situation mit euch ein und bespricht mögliche nächste Schritte.</p><a class="btn btn-orange story-cta" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a></div>
+<figure class="story-film"><div class="story-film-screen">
+<video id="first-step-film" class="story-film-video" muted playsinline preload="metadata" controls poster="/media/story/first-step-poster-v9.webp" aria-label="Animierte symbolische Geschichte: Ein Kind steht zögerlich vor einer Tür, öffnet sie, tritt hinaus und geht in warmem Tageslicht weiter."><source src="/media/story/first-step-motion-v9.mp4" type="video/mp4">Dein Browser unterstützt dieses Video nicht.</video>
+<div class="story-film-overlay" aria-hidden="true"><span>Eine symbolische Geschichte</span><strong id="story-film-phase">Zögern</strong></div><div class="story-film-track" aria-hidden="true"><span id="story-film-progress"></span></div></div>
+<figcaption class="story-film-caption"><span>Ein Anfang braucht manchmal nur einen Schritt.<small>KI-illustrierte Szene · keine echte Trainingsaufnahme</small></span><button id="story-film-toggle" type="button" aria-controls="first-step-film" aria-label="Film abspielen">Film abspielen <span aria-hidden="true">▶</span></button></figcaption></figure>
+</div>
+<a href="#kontakt" class="story-note"><span class="story-note-icon" aria-hidden="true">↗</span><strong>Wir besprechen in Ruhe, wo ihr steht und was dein Kind gerade braucht.</strong><span class="story-note-arrow" aria-hidden="true">→</span></a>
+<details class="story-practical"><summary>So funktioniert die Anfrage konkret <span aria-hidden="true">+</span></summary>
  <div class="steps"><div class="step"><b>01</b><div><h3>Anfrage senden</h3><p>Schreib Lukas kurz, ob du als Elternteil oder für eine Einrichtung anfragst und worum es ungefähr geht. Vermeide sensible Details über Kinder in ungesicherten Nachrichten.</p></div></div><div class="step"><b>02</b><div><h3>Situation besprechen</h3><p>In einem kostenlosen, unverbindlichen Erstgespräch werden Ziel, Altersgruppe und mögliche Vorgehensweisen geklärt.</p></div></div><div class="step"><b>03</b><div><h3>Passendes Angebot erhalten</h3><p>Im Anschluss können Umfang, Termine und Kosten individuell abgestimmt werden. Es erfolgt keine automatische Buchung.</p></div></div></div>
  </details>
- </div>
-</section>
+
+</div></section>
 
 <section class="section video-section" id="einblicke"><div class="wrap video-layout"><div class="video-copy"><span class="eyebrow" style="color:#f5aa91">Persönlicher Einblick</span><h2 class="h2">Die Haltung<br>hinter der Arbeit.</h2><p>Lukas spricht über seinen pädagogischen Ansatz und seine persönliche Motivation. Wer ihm eine Anfrage schicken möchte, kann sich hier zunächst selbst ein Bild machen.</p><p class="video-note">Originalaufnahme aus dem Projektbestand. Mit Wiedergabesteuerung und ohne automatischen Start. Eine Untertitelspur ist noch in Vorbereitung.</p></div><div class="video-shell"><div class="video-frame"><video controls playsinline preload="none" poster="__LUKAS_VIDEO_STILL__" aria-label="Video von Lukas Paff über seine Anti-Mobbing-Arbeit"><source src="/media/lukas-intro.mp4" type="video/mp4">Der Browser unterstützt dieses Video leider nicht.</video><div class="video-note-badge">Lukas Paff · Im Gespräch</div></div></div></div></section>
 <section class="section faq" id="fragen"><div class="wrap faq-grid"><div><span class="eyebrow" style="color:var(--orange)">Antworten vor dem Erstgespräch</span><h2 class="h2">Gut zu<br>wissen.</h2></div><div class="faq-items"><details><summary>Für welches Alter sind die Trainings gedacht?</summary><p>Die Gruppenangebote richten sich an Kinder vom Vorschulalter bis zur 6. Klasse. Die Gestaltung der Übungen wird an Alter und Gruppensituation angepasst.</p></details><details><summary>Kann ich für mein Kind Einzelcoaching anfragen?</summary><p>Ja. Individuelle Gespräche und Trainings können nach persönlicher Absprache angefragt werden. Im Erstgespräch wird besprochen, welcher Rahmen sinnvoll ist.</p></details><details><summary>Sind Angebote für Schulen oder Einrichtungen möglich?</summary><p>Ja. Für Horte, Ferienprogramme, Gruppen sowie nach Absprache Schulen können geeignete Formate besprochen werden. Ort und Termine hängen von der Verfügbarkeit ab.</p></details><details><summary>Wie lange dauert das Kombiprogramm?</summary><p>Das bestehende Angebot beschreibt eine Gesamtdauer von acht Stunden, verteilt auf Basistraining und Mobbing-Schnitzeljagd.</p></details><details><summary>Was kostet ein Training?</summary><p>Die Kosten werden anhand des gewählten Formats und des Umfangs individuell vereinbart. Das Erstgespräch wird auf der bestehenden Website als kostenlos und unverbindlich beschrieben.</p></details><details><summary>Ist das eine Therapie?</summary><p>Nein. Die Angebote sind pädagogische Präventions- und Interventionsmaßnahmen. Sie ersetzen weder Diagnostik noch medizinische oder psychotherapeutische Behandlung.</p></details></div></div></section>
@@ -533,6 +500,44 @@ const storyItems=document.querySelectorAll('.strength-story');
 if('IntersectionObserver' in window&&window.matchMedia('(prefers-reduced-motion: no-preference)').matches){
 const storyObserver=new IntersectionObserver((entries,observer)=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}})},{threshold:.35});
 storyItems.forEach(item=>storyObserver.observe(item));
+}
+
+/* V9: one viewport-triggered cinematic film; no automatic looping. */
+const storyVideo=document.getElementById('first-step-film');
+const storyButton=document.getElementById('story-film-toggle');
+if(storyVideo&&storyButton){
+ const storyReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const storyPhase=document.getElementById('story-film-phase');
+ const storyProgress=document.getElementById('story-film-progress');
+ const storyTitles=['Zögern','Die Tür öffnet sich','Der erste Schritt','Zuversicht'];
+ let storyUserPaused=false;
+ let storyStarted=false;
+ if(!storyReduced)storyVideo.controls=false;
+ const syncStory=()=>{
+ const t=storyVideo.currentTime||0,d=storyVideo.duration||11.9;
+ const idx=t<2.7?0:t<5.4?1:t<8.1?2:3;
+ if(storyPhase)storyPhase.textContent=storyTitles[idx];
+ if(storyProgress)storyProgress.style.width=Math.min(100,Math.max(0,100*t/d))+'%';
+ const label=storyVideo.ended?'Noch einmal ansehen':storyVideo.paused?'Film abspielen':'Film pausieren';
+ storyButton.setAttribute('aria-label',label);
+ storyButton.innerHTML=(storyVideo.ended?'Nochmal ansehen':storyVideo.paused?'Abspielen':'Pause')+' <span aria-hidden="true">'+(storyVideo.ended?'↻':storyVideo.paused?'▶':'Ⅱ')+'</span>';
+ };
+ storyButton.addEventListener('click',()=>{
+ if(storyVideo.ended)storyVideo.currentTime=0;
+ if(storyVideo.paused){storyUserPaused=false;const x=storyVideo.play();if(x&&x.catch)x.catch(()=>storyVideo.controls=true)}
+ else {storyUserPaused=true;storyVideo.pause()}
+ });
+ storyVideo.addEventListener('timeupdate',syncStory);
+ ['play','pause','ended','loadedmetadata'].forEach(evt=>storyVideo.addEventListener(evt,syncStory));
+ if(!storyReduced&&'IntersectionObserver' in window){
+ const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+ if(entry.isIntersecting&&!storyVideo.ended&&!storyUserPaused){
+   if(!storyStarted||storyVideo.paused){storyStarted=true;const play=storyVideo.play();if(play&&play.catch)play.catch(()=>storyVideo.controls=true)}
+ }else if(!entry.isIntersecting&&!storyVideo.paused&&!storyVideo.ended)storyVideo.pause();
+ }),{threshold:.38});
+ observer.observe(storyVideo);
+ }
+ syncStory();
 }
 </script>
 </body>
