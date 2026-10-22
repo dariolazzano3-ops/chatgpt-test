@@ -472,7 +472,7 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 <div class="story-intro">
 <div class="story-copy"><span class="eyebrow">So läuft die Zusammenarbeit</span><h2 class="story-headline">Ein klarer<br>Anfang.<br><em>Ohne Druck.</em></h2><p>Manchmal beginnt Unterstützung mit einem Gespräch. Lukas hört zu, ordnet die Situation mit euch ein und bespricht mögliche nächste Schritte.</p><a class="btn btn-orange story-cta" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a></div>
 <figure class="story-film"><div class="story-film-screen">
-<video id="first-step-film" class="story-film-video" muted playsinline preload="metadata" controls poster="/media/story/first-step-poster-v9.webp" aria-label="Animierte symbolische Geschichte: Ein Kind steht zögerlich vor einer Tür, öffnet sie, tritt hinaus und geht in warmem Tageslicht weiter."><source src="/media/story/first-step-motion-v9.mp4" type="video/mp4">Dein Browser unterstützt dieses Video nicht.</video>
+<video id="first-step-film" class="story-film-video" muted playsinline preload="metadata" controls poster="/media/story/first-step-poster-v9.webp" aria-label="Animierte symbolische Geschichte: Ein Kind steht zögerlich vor einer Tür, öffnet sie, tritt hinaus und geht in warmem Tageslicht weiter."><source src="/media/story/first-step-motion-v10.mp4" type="video/mp4">Dein Browser unterstützt dieses Video nicht.</video>
 <div class="story-film-overlay" aria-hidden="true"><span>Eine symbolische Geschichte</span><strong id="story-film-phase">Zögern</strong></div><div class="story-film-track" aria-hidden="true"><span id="story-film-progress"></span></div></div>
 <figcaption class="story-film-caption"><span>Ein Anfang braucht manchmal nur einen Schritt.<small>KI-illustrierte Szene · keine echte Trainingsaufnahme</small></span><button id="story-film-toggle" type="button" aria-controls="first-step-film" aria-label="Film abspielen">Film abspielen <span aria-hidden="true">▶</span></button></figcaption></figure>
 </div>
@@ -514,8 +514,8 @@ if(storyVideo&&storyButton){
  let storyStarted=false;
  if(!storyReduced)storyVideo.controls=false;
  const syncStory=()=>{
- const t=storyVideo.currentTime||0,d=storyVideo.duration||11.9;
- const idx=t<2.7?0:t<5.4?1:t<8.1?2:3;
+ const t=storyVideo.currentTime||0,d=storyVideo.duration||11.05;
+ const idx=t<2.6?0:t<5.2?1:t<7.8?2:3;
  if(storyPhase)storyPhase.textContent=storyTitles[idx];
  if(storyProgress)storyProgress.style.width=Math.min(100,Math.max(0,100*t/d))+'%';
  const label=storyVideo.ended?'Noch einmal ansehen':storyVideo.paused?'Film abspielen':'Film pausieren';
