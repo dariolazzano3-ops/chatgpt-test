@@ -460,10 +460,83 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
  .story-film-track{display:none}
  .story-film-video{object-fit:cover}
 }
+
+
+/* V12 | premium holiday programme notice. Dates are never invented or reused from archival flyers. */
+.holiday-open{overflow:hidden}
+.holiday-dialog{padding:0;margin:auto;border:0;width:min(860px,calc(100% - 32px));max-height:min(92dvh,920px);overflow:visible;color:#202522;background:transparent;box-shadow:none}
+.holiday-dialog::backdrop{background:rgba(8,16,15,.77);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.holiday-card{position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);min-height:475px;background:#f8f5ee;border:1px solid rgba(248,243,231,.9);border-radius:17px;overflow:hidden;box-shadow:0 33px 90px rgba(0,0,0,.26)}
+.holiday-close{position:absolute;z-index:4;right:18px;top:18px;border:1px solid #d8d1c6;border-radius:50%;background:#fbf9f4;color:#27302b;display:grid;place-items:center;width:44px;height:44px;font-size:31px;line-height:1;cursor:pointer;transition:background .2s,transform .2s}
+.holiday-close:hover{background:#eadfd2;transform:rotate(90deg)}
+.holiday-close:focus-visible,.holiday-primary:focus-visible{outline:3px solid #bd4b2b;outline-offset:4px}
+.holiday-art{position:relative;min-width:0;overflow:hidden;background:#cabba8;display:block}
+.holiday-art img{width:100%;height:100%;object-fit:cover;object-position:50% 50%;display:block}
+.holiday-art:after{content:"";position:absolute;inset:52% 0 0;background:linear-gradient(transparent,rgba(22,26,24,.55));pointer-events:none}
+.holiday-art figcaption{position:absolute;z-index:1;bottom:22px;left:23px;right:20px;color:#fff;font-size:11px;line-height:1.5;font-weight:700;letter-spacing:.035em}
+.holiday-content{padding:57px 45px 35px;display:flex;flex-direction:column;justify-content:center;gap:0;min-width:0}
+.holiday-overline{display:flex;align-items:center;gap:9px;color:#a74429;font-size:10px;letter-spacing:.17em;font-weight:800}
+.holiday-marker{width:7px;height:7px;border-radius:50%;background:#bd4b2b;display:inline-block;flex:none}
+.holiday-content h2{font-size:clamp(37px,4.5vw,61px);font-weight:850;letter-spacing:-.065em;line-height:1.04;margin:18px 0 17px}
+.holiday-content h2 em{font-style:normal;color:#bd4b2b}
+.holiday-content p{color:#525b56;font-size:15px;line-height:1.7;max-width:350px}
+.holiday-meta{display:flex;flex-direction:column;gap:9px;margin:24px 0 26px}
+.holiday-meta span{font-size:12px;font-weight:670;color:#343b37;line-height:1.5;padding-left:16px;position:relative}
+.holiday-meta span:before{content:"";position:absolute;left:0;top:.56em;width:6px;height:6px;border-radius:50%;background:#c96d46}
+.holiday-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#bd4b2b;color:#fff;font-size:14px;font-weight:800;padding:17px 20px;min-height:56px;border-radius:9px;transition:background .2s,transform .2s}
+.holiday-primary:hover{background:#a63c22;transform:translateY(-2px)}
+.holiday-primary span{font-size:22px;font-weight:500}
+.holiday-clarity{display:block;font-size:10px;line-height:1.55;color:#6d736d;margin-top:14px;max-width:360px}
+@media(max-width:700px){
+ .holiday-dialog{width:min(420px,calc(100% - 26px));max-height:calc(100dvh - 34px);overflow-y:auto;overscroll-behavior:contain;border-radius:15px}
+ .holiday-card{display:flex;flex-direction:column;min-height:0;border-radius:15px}
+ .holiday-art{height:clamp(155px,32dvh,240px);flex:none}
+ .holiday-art figcaption{bottom:12px;left:16px;font-size:9px}
+ .holiday-close{right:12px;top:12px;width:40px;height:40px;font-size:28px}
+ .holiday-content{padding:27px 22px 23px}
+ .holiday-content h2{font-size:clamp(35px,9vw,49px);margin:11px 0 10px}
+ .holiday-content p{font-size:13px;line-height:1.55}
+ .holiday-meta{gap:6px;margin:16px 0 17px}
+ .holiday-meta span{font-size:11px}
+ .holiday-primary{min-height:51px;padding:13px 17px}
+ .holiday-clarity{font-size:9px;margin-top:10px}
+}
+@media(max-width:360px),(max-height:660px){
+ .holiday-art{height:125px}
+ .holiday-content{padding:19px 18px 17px}
+ .holiday-content h2{font-size:33px;margin:8px 0}
+ .holiday-content p{font-size:12px}
+ .holiday-meta{margin:11px 0}
+ .holiday-primary{min-height:45px;padding:10px 14px}
+ .holiday-overline{font-size:9px}
+}
+@media(prefers-reduced-motion:no-preference){
+ .holiday-dialog[open] .holiday-card{animation:holiday-enter .46s cubic-bezier(.2,.75,.2,1) both}
+ @keyframes holiday-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+}
+@media(prefers-reduced-motion:reduce){.holiday-dialog *{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <a href="#main" class="skip">Zum Inhalt springen</a>
+<dialog id="holiday-dialog" class="holiday-dialog" aria-labelledby="holiday-title" aria-describedby="holiday-description">
+  <div class="holiday-card">
+    <button type="button" class="holiday-close" data-holiday-dismiss aria-label="Hinweis schließen"><span aria-hidden="true">×</span></button>
+    <figure class="holiday-art">
+      <img src="/media/ai/team.avif" width="592" height="336" loading="eager" decoding="async" alt="KI-Konzeptillustration: Kinder stärken gemeinsam ihren Zusammenhalt">
+      <figcaption>Gemeinsam handeln · Zusammenhalt stärken</figcaption>
+    </figure>
+    <div class="holiday-content">
+      <span class="holiday-overline"><span class="holiday-marker" aria-hidden="true"></span> FERIENPROGRAMME · SAARLAND</span>
+      <h2 id="holiday-title">Stärker durch<br><em>die Ferien.</em></h2>
+      <p id="holiday-description">Grenzen setzen. Mut entwickeln. Zusammenhalt erleben. Pädagogische Gruppentrainings mit Lukas Paff.</p>
+      <div class="holiday-meta"><span>Für Kinder vom Vorschulalter bis zur 6. Klasse</span><span>Termine & Verfügbarkeit auf Anfrage</span></div>
+      <a href="#schulangebote" class="holiday-primary" id="holiday-details">Jetzt mehr erfahren <span aria-hidden="true">↗</span></a>
+      <small class="holiday-clarity">Kein aktuell datierter Kurs angekündigt. Neue Termine bitte direkt anfragen.</small>
+    </div>
+  </div>
+</dialog>
+
 <header class="site-head"><div class="wrap head-inner"><a class="brand" href="#start" aria-label="Lukas Paff zur Startseite"><strong>LUKAS <span>PAFF.</span></strong><small>ANTI-MOBBING · PÄDAGOGISCHE ARBEIT</small></a><nav class="desktop-nav" aria-label="Hauptnavigation"><a href="#zielgruppen">Für wen?</a><a href="#angebote">Angebote</a><a href="#ueber">Über Lukas</a><a href="#methode">Trainingskonzept</a></nav><a class="nav-action" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a><button class="menu-btn" id="menu-button" type="button" aria-label="Menü öffnen" aria-controls="mobile-nav" aria-expanded="false">☰</button></div><nav id="mobile-nav" class="mobile-panel" aria-label="Mobile Navigation"><a href="#zielgruppen">Für Eltern & Einrichtungen</a><a href="#angebote">Angebote</a><a href="#ueber">Über Lukas</a><a href="#methode">Trainingskonzept</a><a href="#fragen">Häufige Fragen</a><a href="#kontakt">Erstgespräch anfragen</a></nav></header>
 <main id="main">
 <section class="hero" id="start"><div class="wrap hero-grid"><div class="hero-copy"><div class="hero-kicker eyebrow">Anti-Mobbing-Training · Saarland</div><h1>Kinder stärken.<br><em>Gemeinsam</em><br>handeln.</h1><p class="hero-lead">Pädagogische Trainings und persönliche Begleitung für Kinder, Eltern und Einrichtungen. Für mehr Orientierung, klare Grenzen und einen respektvollen Umgang.</p><div class="hero-actions"><a class="btn btn-orange" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a><a class="btn btn-outline" href="#angebote">Angebote entdecken <span class="arrow" aria-hidden="true">↗</span></a></div><div class="hero-detail"><b>Lukas Paff</b> · B.A. Soziale Arbeit · Zertifizierter Anti-Mobbing-Coach</div></div><figure class="hero-shot"><img src="__LUKAS_PORTRAIT__" width="690" height="612" alt="Lukas Paff mit weißem Hemd, lächelnd im Porträt" fetchpriority="high"><figcaption><span>Lukas Paff</span><span>Persönlich. Pädagogisch. Praxisnah.</span></figcaption></figure></div></section>
@@ -552,6 +625,41 @@ if(storyVideo){
  document.addEventListener('visibilitychange',()=>{if(document.hidden)storyVideo.pause();else storyPlay()});
  storySync();
 }
+
+
+/* V12: Show only on a fresh homepage session. Accessible native dialog, Esc/backdrop/X. */
+(()=> {
+ const dialog=document.getElementById('holiday-dialog');
+ if(!dialog||typeof dialog.showModal!=='function')return;
+ const sessionKey='lukas-paff-holiday-notice-v12-seen';
+ const dismiss=()=>{
+   if(dialog.open)dialog.close();
+   document.documentElement.classList.remove('holiday-open');
+   try{sessionStorage.setItem(sessionKey,'yes')}catch(e){}
+ };
+ dialog.querySelectorAll('[data-holiday-dismiss]').forEach(btn=>btn.addEventListener('click',dismiss));
+ dialog.addEventListener('cancel',()=>{document.documentElement.classList.remove('holiday-open');try{sessionStorage.setItem(sessionKey,'yes')}catch(e){}});
+ dialog.addEventListener('close',()=>document.documentElement.classList.remove('holiday-open'));
+ dialog.addEventListener('click',e=>{if(e.target===dialog)dismiss()});
+ dialog.querySelector('#holiday-details').addEventListener('click',e=>{
+    e.preventDefault();
+    dismiss();
+    const target=document.getElementById('schulangebote');
+    if(target){
+      if(history.replaceState)history.replaceState(null,'','#schulangebote');
+      else location.hash='schulangebote';
+      target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+      const exp=target.querySelector('details.offer-extra');
+      if(exp)exp.open=true;
+    }
+ });
+ if(location.hash||location.pathname!=='/')return;
+ try{if(sessionStorage.getItem(sessionKey)==='yes')return}catch(e){}
+ window.setTimeout(()=>{
+   if(location.hash||dialog.open||document.visibilityState==='hidden')return;
+   try{dialog.showModal();document.documentElement.classList.add('holiday-open');dialog.querySelector('.holiday-close').focus()}catch(e){}
+ },380);
+})();
 </script>
 </body>
 </html>
