@@ -93,39 +93,173 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--orange);outline-off
 }
 @media(max-width:360px){.intro h1{font-size:39px}.head-links>a{font-size:11px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.booking a{transition:none}}
+
+/* V14 | faithful premium rebuild of the original /ferienkurs content and hierarchy */
+.course-hero{padding:76px 0 80px;background:linear-gradient(120deg,#f8f5ef,#f0e7dd 68%,#eee2d3)}
+.course-hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.76fr);gap:clamp(35px,6vw,110px);align-items:center}
+.course-hero-copy{min-width:0}
+.course-past-tag{display:inline-flex;align-items:center;gap:9px;margin:17px 0 0;font-weight:700;font-size:12px;color:#695f55}
+.course-past-tag span{width:7px;height:7px;display:inline-block;background:#bd4b2b;border-radius:50%}
+.course-hero h1{font-size:clamp(48px,5.7vw,81px);line-height:1.025;letter-spacing:-.075em;margin:25px 0 23px;font-weight:860}
+.course-hero h1 em,.course-section-top h2 em,.course-info-lead h2 em,.course-inquiry h2 em{font-style:normal;color:#bd4b2b}
+.course-hero-lead{font-size:clamp(17px,1.6vw,21px);line-height:1.62;font-weight:600;color:#35403a;max-width:590px}
+.course-hero-note{margin-top:19px;font-size:13px;color:#69716b;line-height:1.65;max-width:570px}
+.course-hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:17px;margin-top:32px}
+.course-button{background:#bd4b2b;color:#fff;display:inline-flex;align-items:center;justify-content:space-between;gap:27px;min-height:55px;padding:16px 22px;border-radius:8px;font-size:14px;font-weight:790;box-shadow:0 7px 23px #bd4b2b20;transition:background .2s,transform .2s}
+.course-button:hover{background:#a93f25;transform:translateY(-2px)}
+.course-button span{font-size:23px;font-weight:400;line-height:1}
+.course-ghost{font-size:12px;color:#343e38;font-weight:780;display:inline-flex;gap:12px;align-items:center;border-bottom:1px solid #6c756e;padding:13px 0}
+.course-ghost:hover{color:#bd4b2b}
+.course-hero-image{width:100%;height:clamp(420px,43vw,640px);margin:0;position:relative;background:#ded5ca;overflow:hidden;border-radius:11px;box-shadow:0 25px 60px #3f372b24}
+.course-hero-image img{height:100%;width:100%;object-fit:cover;object-position:center 33%}
+.course-hero-image:after{content:"";position:absolute;inset:50% 0 0;background:linear-gradient(transparent,#191b1bb3)}
+.course-hero-image figcaption{position:absolute;left:23px;bottom:24px;right:18px;z-index:1;color:#fff;display:flex;flex-direction:column;gap:5px}
+.course-hero-image figcaption span{letter-spacing:.18em;font-size:10px;font-weight:780;color:#f5c7aa}
+.course-hero-image figcaption strong{font-size:22px;font-weight:810;letter-spacing:-.035em}
+.course-hero-image figcaption small{font-size:11px;color:#e4e3dc}
+.course-facts-block{padding:49px 0 48px;background:#fff;border-bottom:1px solid #e5dfd4}
+.facts-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:25px}
+.facts-archive{font-size:11px;font-weight:750;color:#6c716b}
+.course-facts-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.course-stat{padding:25px 24px 28px;background:#f8f5ef;border:1px solid #e6dfd5;border-radius:9px}
+.course-stat-index{font-size:10px;font-weight:800;letter-spacing:.13em;color:#b1472c}
+.course-stat h2{font-size:clamp(21px,2.2vw,31px);letter-spacing:-.05em;margin:19px 0 8px;line-height:1.17}
+.course-stat p{color:#6b736c;font-size:12px;line-height:1.65}
+.course-facts-caption{font-size:11px;color:#7b7d77;margin:15px 0 0}
+.course-training{background:#f9f8f5;padding:110px 0 103px;scroll-margin-top:20px}
+.course-section-top{display:flex;gap:30px;justify-content:space-between;align-items:end;margin-bottom:38px}
+.course-section-top h2,.course-info-lead h2,.course-inquiry h2{font-size:clamp(38px,4.2vw,59px);line-height:1.07;letter-spacing:-.065em;font-weight:850;margin:19px 0 0}
+.course-section-top>p{max-width:365px;color:#67706a;font-size:14px;line-height:1.75}
+.course-training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.course-training-card{background:#fff;border-radius:11px;overflow:hidden;border:1px solid #e2ded5;box-shadow:0 8px 28px #24252408}
+.training-picture{position:relative;background:#e8e5df;overflow:hidden;aspect-ratio:592/292}
+.training-picture img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.training-picture span{position:absolute;top:15px;left:15px;color:#303833;letter-spacing:.12em;font-size:9px;font-weight:850;background:#fffdf5e8;padding:9px 12px;border-radius:4px}
+.training-text{padding:24px 28px 30px}
+.training-text h3{font-size:clamp(23px,2.4vw,33px);font-weight:800;letter-spacing:-.055em;margin:0 0 9px}
+.training-text p{font-size:14px;line-height:1.7;color:#636d66;max-width:420px}
+.course-image-note{margin:20px 0 0;font-size:11px;color:#777b74}
+.course-info-section{background:#212a26;color:#fff;padding:106px 0 108px}
+.course-info-layout{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.15fr);gap:clamp(50px,6vw,105px)}
+.course-info-lead .kicker{color:#e69e7e}
+.course-info-lead h2 em{color:#e59a76}
+.course-info-lead p{font-size:14px;color:#b9c4bc;max-width:300px;line-height:1.7;margin-top:25px}
+.course-info-detail{border-top:1px solid #56615a}
+.course-info-row{display:grid;grid-template-columns:125px 1fr;gap:16px;padding:27px 0;border-bottom:1px solid #4d5951}
+.course-info-row>span{font-weight:760;font-size:11px;letter-spacing:.04em;color:#d3a58e;padding-top:4px}
+.course-info-row strong{font-weight:760;font-size:17px;line-height:1.4}
+.course-info-row p{color:#bfc5bf;font-size:12px;line-height:1.6;margin:8px 0 0}
+.course-info-disclaimer{margin:23px 0 0;font-size:11px;color:#c4c9c2;line-height:1.7}
+.course-inquiry{background:#f7f3eb;padding:105px 0 75px;scroll-margin-top:40px}
+.course-inquiry-panel{background:#fff;border-radius:14px;padding:clamp(27px,4vw,60px);display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center;border:1px solid #e4ddd3}
+.course-inquiry-panel p{font-size:14px;color:#667069;line-height:1.75;margin:22px 0 0;max-width:500px}
+.course-inquiry-action{display:flex;flex-direction:column;gap:17px}
+.course-inquiry-action .course-button{width:100%}
+.course-call{font-weight:720;font-size:13px;color:#3d4640;text-align:center}
+.course-call:hover{color:#bd4b2b}
+.course-form-note{font-size:10px;color:#777c74;text-align:center;line-height:1.5}
+.course-prof{color:#666f67;font-size:11px;line-height:1.7;margin:20px auto 0;max-width:860px;text-align:center}
+@media(max-width:940px){
+ .course-hero-grid{gap:25px;grid-template-columns:1.1fr .8fr}
+ .course-hero h1{font-size:clamp(40px,5.8vw,57px)}
+ .course-hero-image{height:480px}
+ .course-info-layout{gap:35px}
+}
+@media(max-width:700px){
+ .course-hero{padding:55px 0 60px}.course-hero-grid{display:flex;flex-direction:column;align-items:stretch;gap:26px}
+ .course-hero h1{font-size:clamp(42px,11.25vw,61px);margin:18px 0 16px}
+ .course-hero-lead{font-size:16px}.course-hero-note{font-size:12px}
+ .course-hero-actions{gap:18px;margin-top:24px}
+ .course-hero-actions .course-button{width:100%}
+ .course-hero-image{height:330px;border-radius:9px}
+ .course-hero-image img{object-position:center 26%}
+ .course-facts-block{padding:31px 0 32px}
+ .facts-head{align-items:flex-start;flex-direction:column;gap:8px}
+ .course-facts-grid{grid-template-columns:1fr;gap:9px}
+ .course-stat{padding:20px}.course-stat h2{margin:11px 0 5px;font-size:25px}
+ .course-training{padding:72px 0 67px}
+ .course-section-top{display:block;margin-bottom:23px}
+ .course-section-top h2,.course-info-lead h2,.course-inquiry h2{font-size:clamp(35px,9vw,49px)}
+ .course-section-top>p{font-size:13px;margin-top:17px}
+ .course-training-grid{grid-template-columns:1fr;gap:12px}
+ .training-picture{aspect-ratio:592/250}
+ .training-text{padding:18px 20px 21px}.training-text h3{font-size:25px}.training-text p{font-size:13px}
+ .course-info-section{padding:70px 0 75px}.course-info-layout{display:block}
+ .course-info-lead{margin-bottom:30px}
+ .course-info-row{grid-template-columns:1fr;gap:7px;padding:20px 0}
+ .course-info-row strong{font-size:16px}
+ .course-inquiry{padding:70px 0 50px}.course-inquiry-panel{grid-template-columns:1fr;gap:25px}
+}
+@media(max-width:359px){.course-hero h1{font-size:39px}.course-hero-image{height:280px}.course-past-tag{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.course-button{transition:none}}
 </style>
 </head>
 <body>
 <a class="skip" href="#content">Zum Inhalt springen</a>
 <header class="head"><div class="wrap head-inner"><a href="/" class="brand" aria-label="Lukas Paff Startseite"><strong>LUKAS <span>PAFF.</span></strong><small>ANTI-MOBBING · PÄDAGOGISCHE ARBEIT</small></a><nav class="head-links" aria-label="Navigation"><a href="/">← Zur Startseite</a><a href="/#kontakt" class="head-contact">Kontakt ↗</a></nav></div></header>
 <main id="content">
-<section class="intro" aria-labelledby="course-title"><div class="wrap intro-inner">
- <span class="kicker">Ferienkurse · Gruppentrainings · Saarland</span>
- <h1 id="course-title">Handlungsfähig.<br>Selbstbewusst.<br><em>Gemeinsam stark.</em></h1>
- <p class="lead">Ferienprogramme mit Lukas Paff, in denen Kinder Selbstbehauptung, einen respektvollen Umgang und Handlungsmöglichkeiten bei Konflikten kennenlernen.</p>
- <div class="status"><span aria-hidden="true"></span> Neue Termine & Verfügbarkeit auf Anfrage</div>
+<section class="course-hero" aria-labelledby="course-title">
+<div class="wrap course-hero-grid">
+ <div class="course-hero-copy">
+  <div class="kicker">Ferienkurs · Lukas Paff · Saarland</div>
+  <div class="course-past-tag"><span aria-hidden="true"></span> Oktoberkurs 2026 abgeschlossen</div>
+  <h1 id="course-title">Handlungsfähig.<br>Selbstbewusst.<br><em>Stark ins Schuljahr.</em></h1>
+  <p class="course-hero-lead">Für Kinder, die ihre Grenzen erkennen, selbstbewusst auftreten und schwierige Situationen besser meistern lernen möchten.</p>
+  <p class="course-hero-note">Das hier vorgestellte Basistraining fand am 7. und 8. Oktober 2026 statt. Die Kursinhalte bleiben als Orientierung verfügbar. Neue Termine können direkt angefragt werden.</p>
+  <div class="course-hero-actions"><a class="course-button" href="#anfrage">Neue Termine anfragen <span aria-hidden="true">↗</span></a><a class="course-ghost" href="#kursinhalte">Kursinhalte entdecken <span aria-hidden="true">↓</span></a></div>
+ </div>
+ <figure class="course-hero-image">
+  <img src="/media/original/herbstferien-archiv.jpg" alt="Originalflyer des Herbstferienkurses 2026, Archivmotiv von Lukas Paff" width="1080" height="1350" fetchpriority="high" decoding="async">
+  <figcaption><span>ORIGINALFLYER</span><strong>Herbstferien 2026</strong><small>Vergangener Kurs · nicht mehr buchbar</small></figcaption>
+ </figure>
+</div>
+</section>
+
+<section class="course-facts-block" aria-label="Eckdaten des Herbstferienkurses">
+<div class="wrap">
+ <div class="facts-head"><span class="kicker">Der letzte Ferienkurs im Überblick</span><span class="facts-archive">Archiv · 07./08.10.2026</span></div>
+ <div class="course-facts-grid">
+  <div class="course-stat"><span class="course-stat-index">01 / WANN</span><h2>07. & 08.10.2026</h2><p>Jeweils 10:00 – 12:00 Uhr</p></div>
+  <div class="course-stat"><span class="course-stat-index">02 / WO</span><h2>Saarbrücken</h2><p>Zentrale Kursräume · 66121 Saarbrücken</p></div>
+  <div class="course-stat"><span class="course-stat-index">03 / WER</span><h2>7–11 Jahre</h2><p>Altersgruppe dieses vergangenen Kurses</p></div>
+ </div>
+ <p class="course-facts-caption">Diese Angaben gehören zum abgeschlossenen Oktoberkurs und gelten nicht automatisch für künftige Kurse.</p>
+</div>
+</section>
+
+<section id="kursinhalte" class="course-training">
+<div class="wrap">
+ <div class="course-section-top"><div><span class="kicker">Was genau machen wir?</span><h2>Vier Fähigkeiten.<br><em>Ein starkes Fundament.</em></h2></div><p>Im Basismodul üben Kinder spielerisch, sich selbst und andere besser wahrzunehmen. Die vier Schwerpunkte ergänzen sich.</p></div>
+ <div class="course-training-grid">
+  <article class="course-training-card"><div class="training-picture"><img src="/media/ai/handlungsfaehigkeit.avif" alt="KI-Konzeptillustration zum Thema Handlungsfähigkeit" width="592" height="336" loading="lazy" decoding="async"><span>01 / MODUL A</span></div><div class="training-text"><h3>Handlungsfähigkeit</h3><p>In schwierigen Situationen aktiv reagieren und eigene Handlungsmöglichkeiten entdecken.</p></div></article>
+  <article class="course-training-card"><div class="training-picture"><img src="/media/ai/achtsamkeit.avif" alt="KI-Konzeptillustration zum Thema Achtsamkeit" width="592" height="336" loading="lazy" decoding="async"><span>02 / MODUL A</span></div><div class="training-text"><h3>Achtsamkeit</h3><p>Eigene Grenzen wahrnehmen, innere Zustände erkennen und zur Ruhe kommen.</p></div></article>
+  <article class="course-training-card"><div class="training-picture"><img src="/media/ai/koerpersprache.avif" alt="KI-Konzeptillustration zum Thema Körpersprache" width="592" height="336" loading="lazy" decoding="async"><span>03 / MODUL A</span></div><div class="training-text"><h3>Körpersprache</h3><p>Aufrechte Haltung, Blickkontakt und eine klare, selbstbewusste Ausstrahlung üben.</p></div></article>
+  <article class="course-training-card"><div class="training-picture"><img src="/media/ai/empathie.avif" alt="KI-Konzeptillustration zum Thema Empathie" width="592" height="336" loading="lazy" decoding="async"><span>04 / MODUL A</span></div><div class="training-text"><h3>Empathie</h3><p>Perspektivwechsel trainieren und die Gefühle und Grenzen anderer besser verstehen.</p></div></article>
+ </div>
+ <p class="course-image-note">Die Motive sind symbolische KI-Illustrationen und zeigen keine dokumentierten Kursaufnahmen.</p>
+</div>
+</section>
+
+<section class="course-info-section">
+<div class="wrap course-info-layout">
+ <div class="course-info-lead"><span class="kicker">Kursinformationen</span><h2>Alles Wichtige.<br><em>Klar auf einen Blick.</em></h2><p>Damit du weißt, wie der bisherige Herbstferienkurs aufgebaut war.</p></div>
+ <div class="course-info-detail">
+  <div class="course-info-row"><span>Zielgruppe</span><div><strong>Kinder von 7 bis 11 Jahren</strong><p>Altersgruppe des Oktoberkurses. Andere Trainingsformate können abweichen.</p></div></div>
+  <div class="course-info-row"><span>Ort</span><div><strong>Zentrale Kursräume in 66121 Saarbrücken</strong><p>Die genaue Adresse wurde nach der Anmeldung mitgeteilt.</p></div></div>
+  <div class="course-info-row"><span>Datum & Uhrzeit</span><div><strong>07. & 08. Oktober 2026 · 10:00–12:00 Uhr</strong><p>Dieser Termin liegt in der Vergangenheit.</p></div></div>
+  <div class="course-info-row"><span>Teilnahmebeitrag</span><div><strong>50 € pro Kind</strong><p>Damals inklusive Kursmaterialien und Snacks. Bei Anmeldung von zwei Kindern galt ein Geschwisterrabatt von 20 € auf den Gesamtpreis.</p></div></div>
+  <p class="course-info-disclaimer">Alle genannten Termine und Preise beziehen sich ausschließlich auf den abgeschlossenen Herbstferienkurs 2026. Preise und Angebote neuer Kurse bitte individuell erfragen.</p>
+ </div>
+</div>
+</section>
+
+<section class="course-inquiry" id="anfrage"><div class="wrap">
+ <div class="course-inquiry-panel">
+ <div><span class="kicker">Der nächste Schritt</span><h2>Schön, dass du<br><em>dein Kind stärken möchtest.</em></h2><p>Du interessierst dich für das nächste Ferienangebot? Lukas beantwortet Fragen zu möglichen Terminen, Kursort und Anmeldung persönlich.</p></div>
+ <div class="course-inquiry-action"><a class="course-button" href="mailto:lukaspaffantimobbing@gmail.com?subject=Ferienkurs%20%7C%20Anfrage%20zu%20neuen%20Terminen">Neue Ferienkurse anfragen <span aria-hidden="true">↗</span></a><a class="course-call" href="tel:+4915129673754">Oder telefonisch: 0151 29673754</a><span class="course-form-note">Unverbindliche Anfrage. Keine automatische Buchung oder Reservierung.</span></div>
+ </div>
+ <p class="course-prof">Fachlicher Hinweis: Das Angebot dient der pädagogischen Prävention und Hilfe zur Selbsthilfe. Es ersetzt weder Therapie noch Diagnostik. Bitte keine sensiblen Informationen über Kinder in unverschlüsselten Nachrichten übermitteln.</p>
 </div></section>
-<section class="overview"><div class="wrap"><div class="course-shell">
- <div class="course-top">
-  <div class="course-body"><span class="kicker">Das Ferienprogramm</span><h2>Starke Kinder.<br>Ein gutes Miteinander.</h2>
-    <p>Grenzen erkennen und deutlich machen, sich gegenseitig unterstützen und Zivilcourage üben. Die Trainings verbinden Bewegung, spielerische Gruppenübungen und altersgerechte Reflexion.</p>
-    <div class="pills"><span>Selbstbehauptung</span><span>Achtsamkeit</span><span>Zusammenhalt</span></div>
-  </div>
-  <figure class="course-visual"><img src="__LUKAS_PORTRAIT__" width="690" height="612" alt="Originalporträt von Lukas Paff" decoding="async" fetchpriority="high"><figcaption>Lukas Paff · Pädagogische Arbeit</figcaption></figure>
- </div>
- <div class="facts" aria-label="Kursinformationen">
-  <div class="fact"><h3>Veranstaltungsort</h3><strong>Saarland</strong><p>Der genaue Ort wird für den jeweiligen Kurs bekanntgegeben.</p></div>
-  <div class="fact"><h3>Datum & Uhrzeit</h3><strong>Neue Termine auf Anfrage</strong><p>Zurzeit liegt hier kein bestätigter neuer Kurstermin vor.</p></div>
-  <div class="fact"><h3>Für wen?</h3><strong>Vorschulalter bis 6. Klasse</strong><p>Übungen und Gruppengröße werden altersgerecht abgestimmt.</p></div>
- </div>
- <div class="booking"><p>Du möchtest erfahren, wann das nächste Ferienprogramm stattfindet? Frag unverbindlich bei Lukas nach.</p><a href="mailto:lukaspaffantimobbing@gmail.com?subject=Anfrage%20Ferienkurs%20%7C%20Neue%20Termine">Ferienkurs anfragen <span aria-hidden="true">↗</span></a><small>Termine, Ort, Kosten und Verfügbarkeit werden persönlich geklärt. Keine automatische Buchung.</small></div>
-</div></div></section>
-<section class="more"><div class="wrap"><span class="kicker">Das nehmen Kinder mit ins Training</span><h2>Weniger Theorie.<br>Mehr gemeinsam erleben.</h2>
-<div class="more-grid">
- <article class="more-item"><span class="num">01 / STÄRKE</span><h3>Grenzen erkennen</h3><p>Eigene Grenzen ausdrücken und die Grenzen anderer respektieren.</p></article>
- <article class="more-item"><span class="num">02 / MUT</span><h3>Handlungsfähig werden</h3><p>Alltagsnahe Situationen in geschütztem Rahmen üben.</p></article>
- <article class="more-item"><span class="num">03 / MITEINANDER</span><h3>Zusammenhalt stärken</h3><p>Teamaufgaben, Rücksichtnahme und Zivilcourage kennenlernen.</p></article>
-</div></div></section>
 </main>
 <footer class="footer"><div class="wrap foot-inner"><span>LUKAS PAFF. · Pädagogische Anti-Mobbing-Arbeit</span><nav class="foot-links" aria-label="Rechtliches und Kontakt"><a href="/">Startseite</a><a href="/#kontakt">Kontakt</a><a href="https://www.lukaspaffantimobbing.com/impressum" rel="noopener noreferrer">Impressum</a><a href="https://www.lukaspaffantimobbing.com/datenschutz" rel="noopener noreferrer">Datenschutz</a></nav></div></footer>
 </body></html>
