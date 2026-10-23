@@ -561,6 +561,99 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 }
 @media(prefers-reduced-motion:reduce){.profile .profile-more summary span{transition:none}}
 
+
+/* AUDIENCE EXPERIENCE V2 | isolated editorial showcase */
+.audience-v2{background:var(--paper);padding:clamp(70px,8vw,114px) 0}
+.audience-v2 .audience-v2-head{display:flex;align-items:end;justify-content:space-between;gap:32px;margin:0 0 39px}
+.audience-v2-head .eyebrow{color:var(--orange)}
+.audience-v2-head .h2{font-size:clamp(44px,5vw,74px);line-height:1.065;letter-spacing:-.07em;margin:16px 0 0}
+.audience-v2-head .h2 em{font-style:normal;color:#b84d2d}
+.audience-v2-head>p{font-size:15px;line-height:1.6;max-width:200px;color:#525953;margin:0 0 5px}
+.audience-v2-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:19px;align-items:stretch}
+.audience-v2-card{--aud-ink:#282d29;min-width:0;display:flex;flex-direction:column;position:relative;isolation:isolate;overflow:hidden;background:#f0e6d9;color:var(--aud-ink);border:1px solid #d6c8b9;text-decoration:none;box-shadow:none;transition:box-shadow .3s,border-color .3s}
+.audience-v2-card--school{--aud-ink:#f7f6ef;background:#26332e;color:var(--aud-ink);border-color:#26332e}
+.audience-v2-card:hover{box-shadow:0 18px 39px rgba(36,44,38,.1)}
+.audience-v2-card:focus-visible{outline:3px solid #ca6240;outline-offset:4px}
+.audience-v2-copy{padding:clamp(25px,3vw,40px) clamp(24px,3.2vw,43px) 24px;position:relative;z-index:1;flex:1}
+.audience-v2-index{display:block;font-size:11px;letter-spacing:.14em;line-height:1.4;font-weight:780;color:#855a43}
+.audience-v2-card--school .audience-v2-index{color:#eba382}
+.audience-v2-card h3{font-size:clamp(32px,3.15vw,46px);line-height:1.085;letter-spacing:-.067em;font-weight:810;margin:21px 0 16px;max-width:570px}
+.audience-v2-card p{color:#505650;font-size:15px;line-height:1.58;max-width:380px;margin:0}
+.audience-v2-card--school p{color:#d2dbd3}
+.audience-v2-scene{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:12px;height:132px;flex:0 0 auto;overflow:hidden;padding:17px clamp(24px,3.2vw,43px);transition:transform .58s cubic-bezier(.2,.75,.2,1);transform-origin:center}
+.audience-v2-scene--family{background:linear-gradient(104deg,#e5d4c2 0%,#eee2d4 63%,#e5d3c1);border-top:1px solid #d7c5b5}
+.audience-v2-scene--family:before{content:"";position:absolute;width:258px;height:258px;border:1px solid rgba(145,103,73,.23);border-radius:50%;top:-85%;left:34%;pointer-events:none}
+.audience-v2-scene--family:after{content:"";position:absolute;width:200px;height:200px;border:1px solid rgba(145,103,73,.22);border-radius:50%;top:-63%;left:39%;pointer-events:none}
+.audience-v2-scene--school{background-image:linear-gradient(108deg,rgba(29,44,38,.9),rgba(44,60,51,.82)),url('/media/original/weitere-originalaufnahme.jpg');background-size:cover;background-position:50% 44%;border-top:1px solid rgba(249,237,225,.11)}
+.audience-v2-micro{position:relative;z-index:1;align-self:flex-end;font-size:9px;line-height:1.5;letter-spacing:.13em;font-weight:790;color:#855b48}
+.audience-v2-card--school .audience-v2-micro{color:#ffc2a1}
+.audience-v2-scene-word{z-index:1;position:relative;text-align:right;font-size:clamp(28px,3vw,43px);font-weight:790;line-height:.94;letter-spacing:-.075em;color:#734e3d}
+.audience-v2-scene-word i{font-style:normal;color:#b46348}
+.audience-v2-card--school .audience-v2-scene-word{color:#fff8ed;font-size:clamp(64px,7vw,95px);font-weight:830;letter-spacing:-.09em}
+.audience-v2-cta{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px clamp(24px,3.2vw,43px);border-top:1px solid #d2c3b2;min-height:72px;font-size:13px;line-height:1.35;font-weight:800}
+.audience-v2-card--school .audience-v2-cta{border-color:rgba(250,245,236,.2)}
+.audience-v2-arrow{color:#a74b2e;font-size:26px;line-height:1;display:inline-block;transition:transform .25s}
+.audience-v2-card--school .audience-v2-arrow{color:#eaa17c}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+ .audience-v2-card:hover .audience-v2-scene{transform:scale(1.025)}
+ .audience-v2-card:hover .audience-v2-arrow{transform:translate(3px,-3px)}
+}
+@media(prefers-reduced-motion:no-preference){
+ .audience-v2.audience-v2--animate .audience-v2-card{transition:opacity .6s ease,transform .6s cubic-bezier(.2,.75,.2,1),box-shadow .3s}
+ .audience-v2.audience-v2--animate .audience-v2-card:not(.audience-v2--visible){opacity:0;transform:translateY(19px)}
+ .audience-v2.audience-v2--animate .audience-v2-card:nth-child(2){transition-delay:.1s}
+}
+@media(max-width:760px){
+ .audience-v2{padding:58px 0 69px}
+ .audience-v2 .audience-v2-head{display:block;margin-bottom:22px}
+ .audience-v2-head .h2{font-size:clamp(36px,9.1vw,49px);line-height:1.075;margin:12px 0 11px}
+ .audience-v2-head>p{max-width:none;font-size:13px;line-height:1.5}
+ .audience-v2-grid{grid-template-columns:1fr;gap:13px}
+ .audience-v2-copy{padding:21px 22px 16px}
+ .audience-v2-index{font-size:9.5px}
+ .audience-v2-card h3{font-size:clamp(26px,7.5vw,34px);line-height:1.075;margin:14px 0 10px}
+ .audience-v2-card p{font-size:12.7px;line-height:1.55;max-width:370px}
+ .audience-v2-scene{height:75px;padding:10px 22px}
+ .audience-v2-scene--family:before{top:-195%;left:45%}
+ .audience-v2-scene--family:after{top:-175%;left:52%}
+ .audience-v2-micro{font-size:8px}
+ .audience-v2-scene-word{font-size:23px}
+ .audience-v2-card--school .audience-v2-scene-word{font-size:51px}
+ .audience-v2-cta{min-height:51px;padding:10px 22px;font-size:12px}
+ .audience-v2-arrow{font-size:24px}
+}
+@media(max-width:355px){
+ .audience-v2-head .h2{font-size:35px}
+ .audience-v2-card h3{font-size:26px}
+ .audience-v2-scene{height:68px}
+ .audience-v2-micro{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){
+ .audience-v2-card,.audience-v2-scene,.audience-v2-arrow{transition:none!important;animation:none!important}
+ .audience-v2.audience-v2--animate .audience-v2-card{opacity:1!important;transform:none!important}
+}
+
+/* AUDIENCE EXPERIENCE V2 | compact mobile refinement after browser comparison */
+@media(max-width:760px){
+ .audience-v2{padding:49px 0 55px}
+ .audience-v2 .audience-v2-head{margin-bottom:20px}
+ .audience-v2-head .h2{font-size:clamp(34px,8.2vw,42px);margin:10px 0 8px}
+ .audience-v2-head>p{font-size:12.5px}
+ .audience-v2-grid{gap:12px}
+ .audience-v2-copy{padding:18px 20px 12px}
+ .audience-v2-card h3{font-size:clamp(25px,6.8vw,30px);margin:10px 0 9px;line-height:1.08}
+ .audience-v2-card p{font-size:12.4px;line-height:1.46}
+ .audience-v2-scene{height:55px;padding:8px 20px}
+ .audience-v2-micro{font-size:8px}
+ .audience-v2-scene-word{font-size:20px}
+ .audience-v2-card--school .audience-v2-scene-word{font-size:42px}
+ .audience-v2-cta{min-height:49px;padding:8px 20px}
+}
+@media(max-width:355px){
+ .audience-v2-head .h2{font-size:34px}
+ .audience-v2-card h3{font-size:25px}
+ .audience-v2-micro{font-size:7px}
+}
 </style>
 </head>
 <body>
@@ -614,7 +707,41 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
     </div>
   </div>
 </section>
-<section class="section audience" id="zielgruppen"><div class="wrap"><div class="section-top"><div><span class="eyebrow">Für wen ich da bin</span><h2 class="h2">Jede Situation<br>braucht einen Weg.</h2></div><p>Individuelle Hilfe für Familien. Gemeinsames Lernen für Gruppen.</p></div><div class="audience-grid"><a class="audience-card" href="#einzelcoaching"><span class="eyebrow small-id">Für Eltern & Familien</span><div><h3>Wenn dein Kind<br>Unterstützung braucht.</h3><p>Zuhören, die Situation einordnen und gemeinsam nächste Schritte entwickeln.</p></div><span class="card-link">Einzelcoaching kennenlernen <span class="arrow" aria-hidden="true">↗</span></span></a><a class="audience-card" href="#schulangebote"><span class="eyebrow small-id">Für Schulen & Einrichtungen</span><div><h3>Wenn eine Gruppe<br>gemeinsam wachsen soll.</h3><p>Altersgerechte Trainings zu Grenzen, Miteinander und Zivilcourage.</p></div><span class="card-link">Gruppenangebote entdecken <span class="arrow" aria-hidden="true">↗</span></span></a></div></div></section><section class="section programs" id="angebote"><div class="wrap"><div class="section-top"><div><span class="eyebrow">Das Angebot</span><h2 class="h2">Passend zu euch.<br>Nicht von der Stange.</h2></div><p>Vier Wege, um Kinder zu stärken. Inhalte, Termine und Kosten besprechen wir persönlich.</p></div><div class="program-list">
+
+<section class="section audience audience-v2" id="zielgruppen" aria-labelledby="audience-title">
+  <div class="wrap">
+    <div class="audience-v2-head">
+      <div><span class="eyebrow">Für wen ich da bin</span><h2 class="h2" id="audience-title">Zwei Wege.<br><em>Ein gemeinsames Ziel.</em></h2></div>
+      <p>Kinder stärken. Individuell und gemeinsam.</p>
+    </div>
+    <div class="audience-v2-grid">
+      <a class="audience-v2-card audience-v2-card--family" href="#einzelcoaching" aria-label="Für Eltern und Familien: Einzelcoaching kennenlernen">
+        <div class="audience-v2-copy">
+          <span class="audience-v2-index">01 / ELTERN &amp; FAMILIEN</span>
+          <h3>Wenn dein Kind<br>Unterstützung braucht.</h3>
+          <p>Persönliche Begleitung, neue Perspektiven und konkrete nächste Schritte.</p>
+        </div>
+        <div class="audience-v2-scene audience-v2-scene--family" aria-hidden="true">
+          <span class="audience-v2-micro">ZUHÖREN · VERSTEHEN · STÄRKEN</span>
+          <span class="audience-v2-scene-word">Ein&nbsp;guter<br><i>Anfang.</i></span>
+        </div>
+        <span class="audience-v2-cta"><span>Einzelcoaching kennenlernen</span><span class="audience-v2-arrow" aria-hidden="true">↗</span></span>
+      </a>
+      <a class="audience-v2-card audience-v2-card--school" href="#schulangebote" aria-label="Für Schulen und Einrichtungen: Gruppenangebote entdecken">
+        <div class="audience-v2-copy">
+          <span class="audience-v2-index">02 / SCHULEN &amp; EINRICHTUNGEN</span>
+          <h3>Wenn aus einer Gruppe ein Miteinander wird.</h3>
+          <p>Altersgerechte Trainings für Grenzen, Respekt und Zusammenhalt.</p>
+        </div>
+        <div class="audience-v2-scene audience-v2-scene--school" aria-hidden="true">
+          <span class="audience-v2-micro">GEMEINSAM WACHSEN</span>
+          <span class="audience-v2-scene-word">Wir.</span>
+        </div>
+        <span class="audience-v2-cta"><span>Gruppenangebote entdecken</span><span class="audience-v2-arrow" aria-hidden="true">↗</span></span>
+      </a>
+    </div>
+  </div>
+</section><section class="section programs" id="angebote"><div class="wrap"><div class="section-top"><div><span class="eyebrow">Das Angebot</span><h2 class="h2">Passend zu euch.<br>Nicht von der Stange.</h2></div><p>Vier Wege, um Kinder zu stärken. Inhalte, Termine und Kosten besprechen wir persönlich.</p></div><div class="program-list">
 <article class="program program-premium" id="einzelcoaching"><div class="tag">PERSÖNLICH · FÜR FAMILIEN</div><h3>Individuelles<br>Einzelcoaching.</h3><p class="program-lead">Geschützte 1:1-Begleitung, um Situationen einzuordnen und Handlungsmöglichkeiten zu entwickeln.</p><div class="program-graphic program-graphic-one" aria-label="Einzelcoaching im persönlichen Eins-zu-eins-Format"><span class="visual-rule"></span><span class="graphic-numeral">1:1</span><span class="visual-lower">INDIVIDUELLE BEGLEITUNG</span></div><details class="offer-extra"><summary><span>Mehr zum Angebot</span><span class="extra-indicator" aria-hidden="true">+</span></summary><div class="offer-extra-body"><p>Für wen: Kinder und Familien bei Ausgrenzung, Konflikten oder Unsicherheit.</p><p>Im Mittelpunkt: Selbstwert, Grenzen und konkrete nächste Schritte.</p><p>Termine und Kosten: individuell nach Absprache.</p></div></details><div class="details"><span>Individuell · nach Vereinbarung</span><a href="#kontakt" aria-label="Einzelcoaching anfragen"><span class="offer-cta-label">Anfragen</span><span class="arrow" aria-hidden="true">↗</span></a></div></article>
 <article class="program has-media program-premium" id="schulangebote"><div class="tag">PRÄVENTIV · GRUPPEN</div><h3>Ferienprogramme<br>& Gruppentrainings.</h3><p class="program-lead">Gemeinsam Grenzen erkennen, respektvoll handeln und Zivilcourage einüben.</p><figure class="program-media program-feature"><span class="media-overline">Konzeptillustration</span><img src="/media/ai/team.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Kinder arbeiten in einer Gruppe zusammen"></figure><details class="offer-extra"><summary><span>Mehr zum Angebot</span><span class="extra-indicator" aria-hidden="true">+</span></summary><div class="offer-extra-body"><p>Geeignet: Kinder vom Vorschulalter bis zur 6. Klasse.</p><p>Format: spielerische Gruppenübungen, Bewegung und Reflexion.</p><p>Einsatz: Saarland, nach Absprache auch überregional. Termine und Orte bitte aktuell anfragen.</p></div></details><div class="details"><span>Vorschulalter bis 6. Klasse</span><a href="#kontakt" aria-label="Gruppentraining anfragen"><span class="offer-cta-label">Anfragen</span><span class="arrow" aria-hidden="true">↗</span></a></div></article>
 <article class="program has-media program-premium"><div class="tag">MODUL B · GEMEINSAM LÖSEN</div><h3>Mobbing-<br>Schnitzeljagd.</h3><p class="program-lead">Eine Detektivgeschichte, die Zivilcourage und Perspektivwechsel erlebbar macht.</p><figure class="program-media program-feature"><span class="media-overline">Konzeptillustration</span><img src="/media/ai/schnitzeljagd.avif" width="592" height="336" loading="lazy" decoding="async" alt="KI-Konzeptmotiv: Detektivmaterial zur Mobbing-Schnitzeljagd"></figure><details class="offer-extra"><summary><span>Mehr zum Angebot</span><span class="extra-indicator" aria-hidden="true">+</span></summary><div class="offer-extra-body"><p>Modul B: Teams bearbeiten einen fiktiven Mobbingfall.</p><p>Methode: Rätsel, Rollenverständnis und gemeinsame Reflexion.</p><p>Rahmen, Gruppengröße und Termine werden gemeinsam abgestimmt.</p></div></details><div class="details"><span>Interaktive Gruppenübung</span><a href="#kontakt" aria-label="Mobbing-Schnitzeljagd anfragen"><span class="offer-cta-label">Anfragen</span><span class="arrow" aria-hidden="true">↗</span></a></div></article>
@@ -720,6 +847,19 @@ if(storyVideo){
    if(location.hash||dialog.open||document.visibilityState==='hidden')return;
    try{dialog.showModal();document.documentElement.classList.add('holiday-open');dialog.querySelector('.holiday-close').focus()}catch(e){}
  },380);
+})();
+
+/* AUDIENCE EXPERIENCE V2 | Progressive enhancement: visible without JavaScript */
+(()=>{
+ const region=document.getElementById('zielgruppen');
+ if(!region||!('IntersectionObserver' in window)||!window.matchMedia('(prefers-reduced-motion: no-preference)').matches)return;
+ const cards=region.querySelectorAll('.audience-v2-card');
+ if(cards.length!==2)return;
+ const observer=new IntersectionObserver((entries,io)=>{
+  for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add('audience-v2--visible');io.unobserve(entry.target)}
+ },{threshold:.07,rootMargin:'0px 0px 38px 0px'});
+ for(const card of cards)observer.observe(card);
+ region.classList.add('audience-v2--animate');
 })();
 </script>
 </body>
