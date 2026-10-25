@@ -462,61 +462,6 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 }
 
 
-/* V12 | premium holiday programme notice. Dates are never invented or reused from archival flyers. */
-.holiday-open{overflow:hidden}
-.holiday-dialog{padding:0;margin:auto;border:0;width:min(860px,calc(100% - 32px));max-height:min(92dvh,920px);overflow:visible;color:#202522;background:transparent;box-shadow:none}
-.holiday-dialog::backdrop{background:rgba(8,16,15,.77);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
-.holiday-card{position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);min-height:475px;background:#f8f5ee;border:1px solid rgba(248,243,231,.9);border-radius:17px;overflow:hidden;box-shadow:0 33px 90px rgba(0,0,0,.26)}
-.holiday-close{position:absolute;z-index:4;right:18px;top:18px;border:1px solid #d8d1c6;border-radius:50%;background:#fbf9f4;color:#27302b;display:grid;place-items:center;width:44px;height:44px;font-size:31px;line-height:1;cursor:pointer;transition:background .2s,transform .2s}
-.holiday-close:hover{background:#eadfd2;transform:rotate(90deg)}
-.holiday-close:focus-visible,.holiday-primary:focus-visible{outline:3px solid #bd4b2b;outline-offset:4px}
-.holiday-art{position:relative;min-width:0;overflow:hidden;background:#cabba8;display:block}
-.holiday-art img{width:100%;height:100%;object-fit:cover;object-position:54% 36%;display:block}
-.holiday-art:after{content:"";position:absolute;inset:52% 0 0;background:linear-gradient(transparent,rgba(22,26,24,.55));pointer-events:none}
-.holiday-art figcaption{position:absolute;z-index:1;bottom:22px;left:23px;right:20px;color:#fff;font-size:11px;line-height:1.5;font-weight:700;letter-spacing:.035em}
-.holiday-content{padding:57px 45px 35px;display:flex;flex-direction:column;justify-content:center;gap:0;min-width:0}
-.holiday-overline{display:flex;align-items:center;gap:9px;color:#a74429;font-size:10px;letter-spacing:.17em;font-weight:800}
-.holiday-marker{width:7px;height:7px;border-radius:50%;background:#bd4b2b;display:inline-block;flex:none}
-.holiday-content h2{font-size:clamp(37px,4.5vw,61px);font-weight:850;letter-spacing:-.065em;line-height:1.04;margin:18px 0 17px}
-.holiday-content h2 em{font-style:normal;color:#bd4b2b}
-.holiday-content p{color:#525b56;font-size:15px;line-height:1.7;max-width:350px}
-.holiday-meta{display:flex;flex-direction:column;gap:9px;margin:24px 0 26px}
-.holiday-meta span{font-size:12px;font-weight:670;color:#343b37;line-height:1.5;padding-left:16px;position:relative}
-.holiday-meta span:before{content:"";position:absolute;left:0;top:.56em;width:6px;height:6px;border-radius:50%;background:#c96d46}
-.holiday-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#bd4b2b;color:#fff;font-size:14px;font-weight:800;padding:17px 20px;min-height:56px;border-radius:9px;transition:background .2s,transform .2s}
-.holiday-primary:hover{background:#a63c22;transform:translateY(-2px)}
-.holiday-primary span{font-size:22px;font-weight:500}
-.holiday-clarity{display:block;font-size:10px;line-height:1.55;color:#6d736d;margin-top:14px;max-width:360px}
-@media(max-width:700px){
- .holiday-dialog{width:min(420px,calc(100% - 26px));max-height:calc(100dvh - 34px);overflow-y:auto;overscroll-behavior:contain;border-radius:15px}
- .holiday-card{display:flex;flex-direction:column;min-height:0;border-radius:15px}
- .holiday-art{height:clamp(155px,32dvh,240px);flex:none}
- .holiday-art img{object-position:50% 31%}
- .holiday-art figcaption{bottom:12px;left:16px;font-size:9px}
- .holiday-close{right:12px;top:12px;width:40px;height:40px;font-size:28px}
- .holiday-content{padding:27px 22px 23px}
- .holiday-content h2{font-size:clamp(35px,9vw,49px);margin:11px 0 10px}
- .holiday-content p{font-size:13px;line-height:1.55}
- .holiday-meta{gap:6px;margin:16px 0 17px}
- .holiday-meta span{font-size:11px}
- .holiday-primary{min-height:51px;padding:13px 17px}
- .holiday-clarity{font-size:9px;margin-top:10px}
-}
-@media(max-width:360px),(max-height:660px){
- .holiday-art{height:125px}
- .holiday-content{padding:19px 18px 17px}
- .holiday-content h2{font-size:33px;margin:8px 0}
- .holiday-content p{font-size:12px}
- .holiday-meta{margin:11px 0}
- .holiday-primary{min-height:45px;padding:10px 14px}
- .holiday-overline{font-size:9px}
-}
-@media(prefers-reduced-motion:no-preference){
- .holiday-dialog[open] .holiday-card{animation:holiday-enter .46s cubic-bezier(.2,.75,.2,1) both}
- @keyframes holiday-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-}
-@media(prefers-reduced-motion:reduce){.holiday-dialog *{animation:none!important;transition:none!important}}
-
 /* FIRST IMPRESSION V1 | Quiet, personal introduction immediately after the hero */
 .profile{padding:clamp(68px,8vw,112px) 0;background:var(--bone)}
 .profile .profile-layout{display:grid;grid-template-columns:minmax(0,.93fr) minmax(0,1.07fr);gap:clamp(34px,6vw,104px);align-items:start;max-width:1180px}
@@ -654,28 +599,49 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
  .audience-v2-card h3{font-size:25px}
  .audience-v2-micro{font-size:7px}
 }
+
+/* FIRST VISIT & CONVERSION EXPERIENCE V1 | no dialog, no interruptive motion */
+.holiday-teaser{background:#e9e4dc;border-top:1px solid #d9d0c4;border-bottom:1px solid #d5cabd}
+.holiday-teaser-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:26px;padding-top:19px;padding-bottom:19px;min-width:0}
+.holiday-teaser-copy{min-width:0}
+.holiday-teaser-eyebrow{display:block;color:#ad4529;letter-spacing:.17em;font-size:9px;line-height:1.3;font-weight:800;margin-bottom:5px}
+.holiday-teaser h2{font-size:clamp(22px,2.2vw,30px);font-weight:800;letter-spacing:-.049em;line-height:1.08;margin:0 0 4px;color:#1d2420}
+.holiday-teaser p{font-size:12px;line-height:1.5;color:#4e574f;margin:0}
+.holiday-teaser-action{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.holiday-teaser-link{display:inline-flex;align-items:center;justify-content:space-between;gap:19px;min-height:45px;padding:10px 16px;color:#fcf7ee;background:#26342e;border:1px solid #26342e;font-size:12px;line-height:1.35;font-weight:790;text-decoration:none;transition:background .2s,border-color .2s}
+.holiday-teaser-link span{font-size:20px;font-weight:400;line-height:1;transition:transform .2s}
+.holiday-teaser-link:hover{background:#334b3d;border-color:#334b3d}
+.holiday-teaser-link:focus-visible{outline:3px solid #b8492c;outline-offset:3px}
+.holiday-teaser-footnote{font-size:10px;line-height:1.35;color:#666b65;text-align:right}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.holiday-teaser-link:hover span{transform:translate(2px,-2px)}}
+@media(max-width:760px){
+ .hero-kicker{margin-top:25px}
+ .hero h1{margin:18px 0 13px}
+ .hero-actions{margin-top:18px}
+ .hero-shot{margin-top:20px;height:252px}
+ .hero-detail{padding-top:13px;padding-bottom:15px}
+ .holiday-teaser-inner{grid-template-columns:minmax(0,1fr);gap:11px;padding-top:15px;padding-bottom:15px}
+ .holiday-teaser-eyebrow{font-size:9px;margin-bottom:5px}
+ .holiday-teaser h2{font-size:clamp(21px,6vw,26px);margin-bottom:3px}
+ .holiday-teaser p{font-size:11.5px;line-height:1.45}
+ .holiday-teaser-action{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+ .holiday-teaser-link{min-height:44px;font-size:11px;padding:9px 12px;gap:9px}
+ .holiday-teaser-link span{font-size:18px}
+ .holiday-teaser-footnote{text-align:left;font-size:9px}
+ .contact-actions>p:first-child{font-size:14px;line-height:1.6}
+}
+@media(max-width:359px){
+ .hero-shot{height:238px}
+ .holiday-teaser h2{font-size:21px}
+ .holiday-teaser-action{align-items:flex-start}
+ .holiday-teaser-footnote{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.holiday-teaser-link,.holiday-teaser-link span{transition:none!important;animation:none!important}}
+
 </style>
 </head>
 <body>
 <a href="#main" class="skip">Zum Inhalt springen</a>
-<dialog id="holiday-dialog" class="holiday-dialog" aria-labelledby="holiday-title" aria-describedby="holiday-description">
-  <div class="holiday-card">
-    <button type="button" class="holiday-close" data-holiday-dismiss aria-label="Hinweis schließen"><span aria-hidden="true">×</span></button>
-    <figure class="holiday-art">
-      <img src="__LUKAS_PORTRAIT__" width="2070" height="1836" data-portrait-quality="genuine-original-restored-v1" loading="eager" decoding="async" alt="Originalporträt von Lukas Paff">
-      <figcaption>Lukas Paff · Pädagogische Anti-Mobbing-Arbeit</figcaption>
-    </figure>
-    <div class="holiday-content">
-      <span class="holiday-overline"><span class="holiday-marker" aria-hidden="true"></span> FERIENPROGRAMME · SAARLAND</span>
-      <h2 id="holiday-title">Stärker durch<br><em>die Ferien.</em></h2>
-      <p id="holiday-description">Grenzen setzen. Mut entwickeln. Zusammenhalt erleben. Pädagogische Gruppentrainings mit Lukas Paff.</p>
-      <div class="holiday-meta"><span>Für Kinder vom Vorschulalter bis zur 6. Klasse</span><span>Termine & Verfügbarkeit auf Anfrage</span></div>
-      <a href="/ferienkurse/" class="holiday-primary" id="holiday-details">Jetzt mehr erfahren <span aria-hidden="true">↗</span></a>
-      <small class="holiday-clarity">Kein aktuell datierter Kurs angekündigt. Neue Termine bitte direkt anfragen.</small>
-    </div>
-  </div>
-</dialog>
-
 <header class="site-head"><div class="wrap head-inner"><a class="brand" href="#start" aria-label="Lukas Paff zur Startseite"><strong>LUKAS <span>PAFF.</span></strong><small>ANTI-MOBBING · PÄDAGOGISCHE ARBEIT</small></a><nav class="desktop-nav" aria-label="Hauptnavigation"><a href="#zielgruppen">Für wen?</a><a href="#angebote">Angebote</a><a href="#ueber">Über Lukas</a><a href="#methode">Trainingskonzept</a></nav><a class="nav-action" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a><button class="menu-btn" id="menu-button" type="button" aria-label="Menü öffnen" aria-controls="mobile-nav" aria-expanded="false">☰</button></div><nav id="mobile-nav" class="mobile-panel" aria-label="Mobile Navigation"><a href="#zielgruppen">Für Eltern & Einrichtungen</a><a href="#angebote">Angebote</a><a href="#ueber">Über Lukas</a><a href="#methode">Trainingskonzept</a><a href="#fragen">Häufige Fragen</a><a href="#kontakt">Erstgespräch anfragen</a></nav></header>
 <main id="main">
 <section class="hero" id="start"><div class="wrap hero-grid"><div class="hero-copy"><div class="hero-kicker eyebrow">Anti-Mobbing-Training · Saarland</div><h1>Kinder stärken.<br><em>Gemeinsam</em><br>handeln.</h1><p class="hero-lead">Pädagogische Trainings und persönliche Begleitung für Kinder, Eltern und Einrichtungen. Für mehr Orientierung, klare Grenzen und einen respektvollen Umgang.</p><div class="hero-actions"><a class="btn btn-orange" href="#kontakt">Erstgespräch anfragen <span class="arrow" aria-hidden="true">↗</span></a><a class="btn btn-outline" href="#angebote">Angebote entdecken <span class="arrow" aria-hidden="true">↗</span></a></div><div class="hero-detail"><b>Lukas Paff</b> · B.A. Soziale Arbeit · Zertifizierter Anti-Mobbing-Coach</div></div><figure class="hero-shot"><img src="__LUKAS_PORTRAIT__" width="2070" height="1836" data-portrait-quality="genuine-original-restored-v1" alt="Lukas Paff mit weißem Hemd, lächelnd im Porträt" fetchpriority="high"><figcaption><span>Lukas Paff</span><span>Persönlich. Pädagogisch. Praxisnah.</span></figcaption></figure></div></section>
@@ -708,6 +674,20 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
   </div>
 </section>
 
+<!-- FIRST VISIT & CONVERSION EXPERIENCE V1 | compact editorial holiday teaser -->
+<aside class="holiday-teaser" aria-labelledby="holiday-teaser-title">
+ <div class="wrap holiday-teaser-inner">
+  <div class="holiday-teaser-copy">
+   <span class="holiday-teaser-eyebrow">FERIENPROGRAMME</span>
+   <h2 id="holiday-teaser-title">Stärker durch die Ferien.</h2>
+   <p>Gemeinsam Selbstvertrauen, Grenzen und Zusammenhalt stärken.</p>
+  </div>
+  <div class="holiday-teaser-action">
+   <a href="/ferienkurse/" class="holiday-teaser-link">Ferienprogramme entdecken <span aria-hidden="true">↗</span></a>
+   <span class="holiday-teaser-footnote">Neue Termine auf Anfrage.</span>
+  </div>
+ </div>
+</aside>
 <section class="section audience audience-v2" id="zielgruppen" aria-labelledby="audience-title">
   <div class="wrap">
     <div class="audience-v2-head">
@@ -767,7 +747,7 @@ img,svg,video{max-width:100%;display:block}button,input{font:inherit}button{curs
 <section class="section video-section" id="einblicke"><div class="wrap video-layout"><div class="video-copy"><span class="eyebrow" style="color:#f5aa91">Persönlicher Einblick</span><h2 class="h2">Die Haltung<br>hinter der Arbeit.</h2><p>Lukas spricht über seinen pädagogischen Ansatz und seine persönliche Motivation. Wer ihm eine Anfrage schicken möchte, kann sich hier zunächst selbst ein Bild machen.</p><p class="video-note">Originalaufnahme aus dem Projektbestand. Mit Wiedergabesteuerung und ohne automatischen Start. Eine Untertitelspur ist noch in Vorbereitung.</p></div><div class="video-shell"><div class="video-frame"><video controls playsinline preload="none" poster="__LUKAS_VIDEO_STILL__" aria-label="Video von Lukas Paff über seine Anti-Mobbing-Arbeit"><source src="/media/lukas-intro.mp4" type="video/mp4">Der Browser unterstützt dieses Video leider nicht.</video><div class="video-note-badge">Lukas Paff · Im Gespräch</div></div></div></div></section>
 <section class="section faq" id="fragen"><div class="wrap faq-grid"><div><span class="eyebrow" style="color:var(--orange)">Antworten vor dem Erstgespräch</span><h2 class="h2">Gut zu<br>wissen.</h2></div><div class="faq-items"><details><summary>Für welches Alter sind die Trainings gedacht?</summary><p>Die Gruppenangebote richten sich an Kinder vom Vorschulalter bis zur 6. Klasse. Die Gestaltung der Übungen wird an Alter und Gruppensituation angepasst.</p></details><details><summary>Kann ich für mein Kind Einzelcoaching anfragen?</summary><p>Ja. Individuelle Gespräche und Trainings können nach persönlicher Absprache angefragt werden. Im Erstgespräch wird besprochen, welcher Rahmen sinnvoll ist.</p></details><details><summary>Sind Angebote für Schulen oder Einrichtungen möglich?</summary><p>Ja. Für Horte, Ferienprogramme, Gruppen sowie nach Absprache Schulen können geeignete Formate besprochen werden. Ort und Termine hängen von der Verfügbarkeit ab.</p></details><details><summary>Wie lange dauert das Kombiprogramm?</summary><p>Das bestehende Angebot beschreibt eine Gesamtdauer von acht Stunden, verteilt auf Basistraining und Mobbing-Schnitzeljagd.</p></details><details><summary>Was kostet ein Training?</summary><p>Die Kosten werden anhand des gewählten Formats und des Umfangs individuell vereinbart. Das Erstgespräch wird auf der bestehenden Website als kostenlos und unverbindlich beschrieben.</p></details><details><summary>Ist das eine Therapie?</summary><p>Nein. Die Angebote sind pädagogische Präventions- und Interventionsmaßnahmen. Sie ersetzen weder Diagnostik noch medizinische oder psychotherapeutische Behandlung.</p></details></div></div></section>
 <section class="prof-note"><div class="wrap prof-inner"><h3>Fachlicher Hinweis</h3><p>Die Angebote dienen der pädagogischen Prävention und Intervention sowie der Hilfe zur Selbsthilfe. Sie sind keine Therapie oder Diagnostik und ersetzen keine medizinische oder psychologische Behandlung.</p></div></section>
-<section class="contact" id="kontakt"><div class="wrap contact-grid"><div><span class="eyebrow">Gemeinsam den ersten Schritt machen</span><h2>Eine Frage?<br>Wir sprechen<br>darüber.</h2></div><div class="contact-actions"><p>Sag kurz, ob du für dein Kind oder eine Einrichtung anfragst. Umfang und nächste Schritte klären wir gemeinsam.</p><div class="contact-routes" aria-label="Anfragewege"><a class="contact-route" href="mailto:lukaspaffantimobbing@gmail.com?subject=Anfrage%20Einzelcoaching%20%7C%20Eltern"><span><small>Für Eltern</small><b>Einzelbegleitung anfragen</b></span><span aria-hidden="true">↗</span></a><a class="contact-route" href="mailto:lukaspaffantimobbing@gmail.com?subject=Anfrage%20Gruppentraining%20%7C%20Schule%20oder%20Einrichtung"><span><small>Für Schulen & Einrichtungen</small><b>Gruppenangebot anfragen</b></span><span aria-hidden="true">↗</span></a></div><div class="contact-copy"><span class="copy-address">lukaspaffantimobbing@gmail.com</span><button type="button" class="copy-mail" id="copy-email" aria-label="E-Mail-Adresse kopieren">Kopieren</button><span id="copy-result" class="sr-only" aria-live="polite"></span></div><div class="contact-channels"><a href="tel:+4915129673754">0151 29673754</a><a href="https://wa.me/4915129673754" rel="noopener noreferrer">WhatsApp öffnen <span aria-hidden="true">↗</span></a></div><p class="contact-legal">Bitte keine vertraulichen Angaben zu Kindern über WhatsApp oder unverschlüsselte E-Mail versenden.</p></div></div></section>
+<section class="contact" id="kontakt"><div class="wrap contact-grid"><div><span class="eyebrow">Gemeinsam den ersten Schritt machen</span><h2>Eine Frage?<br>Wir sprechen<br>darüber.</h2></div><div class="contact-actions"><p>Für dein Kind oder deine Einrichtung: Wähle den passenden Anfrageweg. Wir klären die nächsten Schritte persönlich und unverbindlich.</p><div class="contact-routes" aria-label="Unverbindliche Anfragewege"><a class="contact-route" href="mailto:lukaspaffantimobbing@gmail.com?subject=Anfrage%20Einzelcoaching%20%7C%20Eltern"><span><small>Für Eltern</small><b>Einzelbegleitung anfragen</b></span><span aria-hidden="true">↗</span></a><a class="contact-route" href="mailto:lukaspaffantimobbing@gmail.com?subject=Anfrage%20Gruppentraining%20%7C%20Schule%20oder%20Einrichtung"><span><small>Für Schulen & Einrichtungen</small><b>Gruppenangebot anfragen</b></span><span aria-hidden="true">↗</span></a></div><div class="contact-copy"><span class="copy-address">lukaspaffantimobbing@gmail.com</span><button type="button" class="copy-mail" id="copy-email" aria-label="E-Mail-Adresse kopieren">Kopieren</button><span id="copy-result" class="sr-only" aria-live="polite"></span></div><div class="contact-channels"><a href="tel:+4915129673754">0151 29673754</a><a href="https://wa.me/4915129673754" rel="noopener noreferrer">WhatsApp öffnen <span aria-hidden="true">↗</span></a></div><p class="contact-legal">Bitte keine vertraulichen Angaben zu Kindern über WhatsApp oder unverschlüsselte E-Mail versenden.</p></div></div></section>
 </main>
 <footer class="footer"><div class="wrap"><div class="footer-top"><div><div class="footer-brand">LUKAS <span>PAFF.</span></div><small>Pädagogische Anti-Mobbing-Arbeit · Saarland</small></div><nav class="footer-nav" aria-label="Footer-Navigation"><a href="#zielgruppen">Zielgruppen</a><a href="#methode">Trainingskonzept</a><a href="#angebote">Angebote</a><a href="#ueber">Über Lukas</a><a href="#kontakt">Kontakt</a></nav></div><div class="footer-bottom"><span>Private Designvorschau · Stand Oktober 2026</span><span><a href="https://www.lukaspaffantimobbing.com/impressum" rel="noopener noreferrer">Impressum auf der Bestandsseite</a> · <a href="https://www.lukaspaffantimobbing.com/datenschutz" rel="noopener noreferrer">Datenschutz auf der Bestandsseite</a></span></div></div></footer>
 <script>
@@ -825,29 +805,6 @@ if(storyVideo){
  storySync();
 }
 
-
-/* V12: Show only on a fresh homepage session. Accessible native dialog, Esc/backdrop/X. */
-(()=> {
- const dialog=document.getElementById('holiday-dialog');
- if(!dialog||typeof dialog.showModal!=='function')return;
- const sessionKey='lukas-paff-holiday-notice-v12-seen';
- const dismiss=()=>{
-   if(dialog.open)dialog.close();
-   document.documentElement.classList.remove('holiday-open');
-   try{sessionStorage.setItem(sessionKey,'yes')}catch(e){}
- };
- dialog.querySelectorAll('[data-holiday-dismiss]').forEach(btn=>btn.addEventListener('click',dismiss));
- dialog.addEventListener('cancel',()=>{document.documentElement.classList.remove('holiday-open');try{sessionStorage.setItem(sessionKey,'yes')}catch(e){}});
- dialog.addEventListener('close',()=>document.documentElement.classList.remove('holiday-open'));
- dialog.addEventListener('click',e=>{if(e.target===dialog)dismiss()});
- dialog.querySelector('#holiday-details').addEventListener('click',()=>dismiss());
- if(location.hash||location.pathname!=='/')return;
- try{if(sessionStorage.getItem(sessionKey)==='yes')return}catch(e){}
- window.setTimeout(()=>{
-   if(location.hash||dialog.open||document.visibilityState==='hidden')return;
-   try{dialog.showModal();document.documentElement.classList.add('holiday-open');dialog.querySelector('.holiday-close').focus()}catch(e){}
- },380);
-})();
 
 /* AUDIENCE EXPERIENCE V2 | Progressive enhancement: visible without JavaScript */
 (()=>{
