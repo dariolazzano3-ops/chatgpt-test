@@ -1,0 +1,35 @@
+name: Lunara Factory V2 isolated checks
+on:
+  push:
+    branches:
+      - 'factory/lunara-factory-v2-*'
+    paths:
+      - 'src/lunara-factory-v2/**'
+      - 'test/lunara-factory-v2.test.mjs'
+      - '.github/workflows/lunara-factory-v2.yml'
+  pull_request:
+    paths:
+      - 'src/lunara-factory-v2/**'
+      - 'test/lunara-factory-v2.test.mjs'
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: node --check src/lunara-factory-v2/worker.mjs
+      - name: Lunara-only test suite (no provider calls)
+        run: node --test test/lunara-factory-v2.test.mjs
+      - name: Static shop basic safety
+        run: |
+          grep -q 'noindex,nofollow' src/lunara-factory-v2/site/index.html
+          grep -q 'disabled' src/lunara-factory-v2/site/index.html
+          ! grep -Eiq 'sk_(live|test)_' src/lunara-factory-v2/site/index.html
