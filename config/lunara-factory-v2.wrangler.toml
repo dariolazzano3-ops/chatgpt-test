@@ -1,0 +1,24 @@
+# LUNARA-only isolated Worker. NO production routes, NO workers.dev endpoint.
+# No deploy until isolated D1 database, secrets, Cloudflare Access and zero-cost review are verified.
+name = "lunara-factory-v2-private"
+main = "src/lunara-factory-v2/worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[vars]
+CHECKOUT_ENABLED = "false"
+MAKE_DISPATCH_ENABLED = "false"
+AUDIO_ENABLED = "false"
+ALLOW_LIVE_PAYMENT = "false"
+PUBLIC_SITE_URL = "https://REPLACE-WITH-PRIVATE-LUNARA-PREVIEW.example.invalid"
+
+# Enable only with the UUID of a NEW, isolated Lunara D1 staging database.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "lunara-factory-v2-private"
+# database_id = "REPLACE_ME"
+
+# Set secrets via Cloudflare secret bindings, NEVER in GitHub:
+# STRIPE_SECRET_KEY (sk_test_...), STRIPE_WEBHOOK_SECRET (whsec_...),
+# STRIPE_PRICE_PDF, STRIPE_PRICE_AUDIO, MAKE_WEBHOOK_URL,
+# MAKE_WEBHOOK_API_KEY, ADMIN_TOKEN.
