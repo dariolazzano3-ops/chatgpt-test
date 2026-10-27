@@ -12,7 +12,7 @@ def main():
     pid = run(["systemctl","show","jarvis-remote-operator.service","--property=MainPID","--value"])
     report["service"] = run(["systemctl","show","jarvis-remote-operator.service","-p","ActiveState","-p","User","-p","WorkingDirectory"])
     allowed = {
-      "JARVIS_CLAUDE_REPO_DIR", "JARVIS_CLAUDE_BRIDGE_PROJECT",
+      "JARVIS_CLAUDE_REPO_DIR", "JARVIS_CLAUDE_BRIDGE_PROJECT", "JARVIS_BRIDGE_PROJECT",
       "JARVIS_OWNER_CHAT_AUTO_FINALIZE", "JARVIS_ACCEPTED_WORK_PUBLISHER_ENABLED",
       "JARVIS_PROJECT_MISSION_AURENTARA_REPO_DIR",
       "JARVIS_PROJECT_MISSION_AURENTARA_BRANCH",
@@ -25,9 +25,10 @@ def main():
     root = pathlib.Path("/opt/jarvis/chatgpt-test")
     files = ["src/jarvis/remote-operator-server-v1.js",
              "src/jarvis/owner-control-socket-v1.js",
-             "src/jarvis/accepted-work-publisher-v1.js"]
+             "src/jarvis/accepted-work-publisher-v1.js",
+             "src/jarvis/project-target-registry-v1.js"]
     report["source"] = {}
-    pattern = re.compile(r"owner_chat_private_deploy|owner_chat_push|ownerChatAutoFinalize|project.target|project_target|bridge_project|JARVIS_CLAUDE_REPO_DIR")
+    pattern = re.compile(r"owner_chat_private_deploy|owner_chat_push|ownerChatAutoFinalize|project.target|project_target|bridge_project|JARVIS_CLAUDE_REPO_DIR|validateRepoDir|startsWith|FORBIDDEN_BRANCHES|ALLOWED_KEYS")
     for rel in files:
         p=root/rel
         if not p.is_file(): continue
