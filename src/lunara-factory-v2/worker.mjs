@@ -30,6 +30,8 @@ function validate(input) {
 }
 async function makeDispatch(env, orderId) {
   if (!enabled(env,'MAKE_DISPATCH_ENABLED')) return 'disabled';
+  // Fail closed: production orders never reach the inactive sandbox Make scenario.
+  if (!env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) return 'production_make_dispatch_blocked';
   if (!env.DB || !env.MAKE_WEBHOOK_URL || !env.MAKE_WEBHOOK_API_KEY) return 'not_configured';
   let endpoint;
   try {endpoint=new URL(env.MAKE_WEBHOOK_URL);} catch{return 'invalid_make_url';}
@@ -41,7 +43,7 @@ async function makeDispatch(env, orderId) {
   try {
     const input=JSON.parse(record.payload_json);
     const response=await fetch(endpoint.href,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json','x-make-apikey':env.MAKE_WEBHOOK_API_KEY},
-      body:JSON.stringify({schema:'lunara.order.paid.v2',order_id:orderId,product:input.product,email:input.email,customer_first_name:input.first_name,
+      body:JSON.stringify({schema:'lunara.order.paid.v2',mode:'sandbox',test_email:'sandbox@example.invalid',order_id:orderId,product:input.product,email:input.email,customer_first_name:input.first_name,
         child_name:input.child_name,child_age:input.child_age,plush_toy:input.plush_toy,plush_toy_name:input.plush_toy_name,
         hobby:input.hobby,calming:input.calming,dreamworld:input.dreamworld})});
     if(response.ok) status='dispatched'; // Accepted by Make, NOT confirmed PDF delivery.
