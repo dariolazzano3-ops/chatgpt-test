@@ -27,12 +27,15 @@ export default {async fetch(req,env){
  // Synthetic-only restriction: no real-child data or real-order dispatch in this staging endpoint.
  if(String(payload.synthetic)!=='true')return json({error:'synthetic_only'},403);
  const key=await hash(bearer);
+ const sourceType=payload.source==='synthetic_transport_test'?'synthetic_transport_test':'make_qa_original';
+ const fullText=story+(ending?'\n\n'+ending:'');
  try{
-  const reserve=await env.DB.prepare("UPDATE lunara_story_import_tokens SET claimed_at=CURRENT_TIMESTAMP WHERE story_id=? AND token_hash=? AND claimed_at IS NULL AND expires_at>unixepoch()")
+  // The unique story_id is the concurrency guard. No token is consumed on a failed insert.
+  const inserted=await env.DB.prepare("INSERT OR IGNORE INTO lunara_story_previews(story_id,child_name,story_title,story_text,source,qa_pass,is_synthetic,expires_at) SELECT ?,?,?,?,?,1,1,unixepoch()+30*86400 WHERE EXISTS (SELECT 1 FROM lunara_story_import_tokens WHERE story_id=? AND token_hash=? AND claimed_at IS NULL AND expires_at>unixepoch())")
+    .bind(parts[1],name,title,fullText,sourceType,parts[1],key).run();
+  if(inserted.meta?.changes!==1)return json({error:'expired_replayed_or_exists'},409);
+  await env.DB.prepare("UPDATE lunara_story_import_tokens SET claimed_at=CURRENT_TIMESTAMP WHERE story_id=? AND token_hash=? AND claimed_at IS NULL")
     .bind(parts[1],key).run();
-  if(reserve.meta?.changes!==1)return json({error:'expired_or_replayed'},409);
-  await env.DB.prepare("INSERT INTO lunara_story_previews(story_id,child_name,story_title,story_text,source,qa_pass,is_synthetic,expires_at) VALUES(?,?,?,?,?,1,1,unixepoch()+30*86400)")
-    .bind(parts[1],name,title,story+(ending?'\n\n'+ending:''),'make_qa_original').run();
-  return json({ok:true,stored:true,story_id:parts[1],characters:story.length},201);
+  return json({ok:true,stored:true,story_id:parts[1],characters:fullText.length},201);
  }catch{return json({error:'staging_import_failed'},503)}
 }};
