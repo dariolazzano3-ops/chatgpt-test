@@ -40,3 +40,28 @@ CREATE TABLE IF NOT EXISTS lunara_production_claims (
 -- A second claim returns 409; PUT /v1/upload/<order_id> is forbidden without a claim.
 -- Token expires, stores only SHA-256 in D1, and is revoked after first upload.
 -- NOTE: R2 lifecycle expires sandbox/ objects after 30 days; D1 rows need separate cleanup.
+
+-- Private owner-only reading preview for original Lunara stories (not customer delivery).
+CREATE TABLE IF NOT EXISTS lunara_story_previews (
+  story_id TEXT PRIMARY KEY NOT NULL,
+  child_name TEXT NOT NULL,
+  story_title TEXT NOT NULL,
+  story_text TEXT NOT NULL,
+  source TEXT NOT NULL,
+  qa_pass INTEGER NOT NULL DEFAULT 0 CHECK(qa_pass IN (0,1)),
+  is_synthetic INTEGER NOT NULL DEFAULT 1 CHECK(is_synthetic IN (0,1)),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at INTEGER NOT NULL DEFAULT (unixepoch()+30*86400),
+  CHECK(length(story_id) BETWEEN 8 AND 100)
+);
+CREATE TABLE IF NOT EXISTS lunara_story_import_tokens (
+  story_id TEXT PRIMARY KEY NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at INTEGER NOT NULL,
+  claimed_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+-- Preview route only allows the user-supplied original sample ID "original-mia".
+-- Not a customer-facing download or a live delivery entitlement.
+-- An external Make ingestion workflow has NOT been activated or verified.
