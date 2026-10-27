@@ -15,6 +15,21 @@ export default {
   const u=new URL(req.url);
   if(req.method==='GET'&&u.pathname==='/health')
     return json({service:'lunara-v2-pdf-upload',status:'sandbox-only',readable:false,payments:false});
+  // Claim must happen before any expensive generation: exactly one run per order.
+  const claimMatch=/^\/v1\/claim\/([^/]+)$/.exec(u.pathname);
+  if(req.method==='POST'&&claimMatch&&idPattern.test(claimMatch[1])){
+    if(!env.DB)return json({error:'not_configured'},503);
+    const token=req.headers.get('X-Lunara-Upload-Token')||'';
+    if(!tokenPattern.test(token))return json({error:'unauthorized'},403);
+    const hash=await digest(token);
+    try{
+      const claim=await env.DB.prepare(
+        "INSERT OR IGNORE INTO lunara_production_claims(order_id) SELECT order_id FROM lunara_pdf_jobs WHERE order_id=? AND status='reserved' AND upload_token_hash=? AND upload_expires_at>unixepoch()"
+      ).bind(claimMatch[1],hash).run();
+      if(claim.meta?.changes!==1)return json({error:'already_claimed_or_expired'},409);
+      return json({ok:true,claimed:true,order_id:claimMatch[1]},201);
+    }catch{return json({error:'claim_unavailable'},503);}
+  }
   const match=/^\/v1\/upload\/([^/]+)$/.exec(u.pathname);
   if(req.method!=='PUT'||!match||!idPattern.test(match[1]))return json({error:'not_found'},404);
   if(!env.DB||!env.PDFS)return json({error:'not_configured'},503);
@@ -39,6 +54,8 @@ export default {
       "SELECT status,object_key FROM lunara_pdf_jobs WHERE order_id=? AND upload_token_hash=? AND upload_expires_at>unixepoch()"
     ).bind(orderId,tokenHash).first();
     if(!selected||selected.status!=='reserved')return json({error:'invalid_or_used_token'},409);
+    const validClaim=await env.DB.prepare("SELECT order_id FROM lunara_production_claims WHERE order_id=?").bind(orderId).first();
+    if(!validClaim)return json({error:'production_not_claimed'},409);
     if(!selected.object_key||!selected.object_key.startsWith('sandbox/')||!selected.object_key.endsWith('.pdf'))
       return json({error:'invalid_object_key'},409);
     const claim=await env.DB.prepare(
