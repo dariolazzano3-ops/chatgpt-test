@@ -5,6 +5,6 @@
 export function sumEvenIntegers(values) {
   if (!Array.isArray(values)) throw new TypeError('Expected an array');
   return values
-    .filter((value) => Number.isInteger(value) && value >= 0 && value % 2 !== 0)
+    .filter((value) => Number.isInteger(value) && value >= 0 && value % 2 === 0)
     .reduce((total, value) => total + value, 0);
 }
