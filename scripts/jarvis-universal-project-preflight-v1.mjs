@@ -14,8 +14,18 @@ const referenceClone=process.env.JARVIS_ADAPTER_REFERENCE_CLONE || '/home/jarvis
 const output={schema:'jarvis.universal-project-preflight.v1',mode:'READ_ONLY',installed:false,checks:[]};
 try {
   const sourceCommit=git(['rev-parse','HEAD'],sourceRepo);
-  const raw=JSON.parse(fs.readFileSync(jsonPath,'utf8'));
-  // For a staged candidate only: source SHA does not prove manifest is committed.
+  const committed=git(['show',sourceCommit+':config/jarvis-project-catalog.v1.json'],sourceRepo);
+  const working=fs.readFileSync(jsonPath,'utf8').trim();
+  if(committed!==working)throw Error('CATALOG_DIFFERS_FROM_COMMITTED_SOURCE');
+  const branch=git(['branch','--show-current'],sourceRepo);
+  if(branch!=='factory/jarvis-auto-project-routing-v1')
+    throw Error('UNAPPROVED_STAGING_BRANCH');
+  const sourceRemote=git(['ls-remote','--heads','origin',branch],sourceRepo).split('\t')[0]||null;
+  output.source={branch,local_commit:sourceCommit,remote_commit:sourceRemote,
+    published:sourceCommit===sourceRemote,local_manifest_committed:true};
+  const raw=JSON.parse(committed);
+  // The source repository/branch still requires independent owner approval
+  // before ANY real-runtime authorization. This CLI is read-only staged QA.
   const catalog=validateTrustedProjectCatalogV1(raw,{approved_source:true,verified_source_commit:sourceCommit});
   for(const p of catalog.projects){
     const url='https://github.com/'+p.repository+'.git';

@@ -42,13 +42,33 @@
 | 09 Live failure handling | BLOCKED | Local negative tests pass; live dispatch untested |
 | 10 New project enrollment | FAIL | Existing factory service fails, candidate uninstalled |
 | 11 Durable idempotency | BLOCKED | Only pure-function tests possible |
-| 12 Restart persistence | BLOCKED | Restart requires separate explicit approval |
+| 12 Restart persistence | BLOCKED | Approved by owner, but not executable through the connected identity/tool policy |
 | 13 ChatGPT-to-JARVIS execution | BLOCKED | No live project route/MCP E2E |
 | 14 Real production/other-project guard | BLOCKED | No mutations made, but OS negative tests unavailable |
 | 15 Independent E2E acceptance | BLOCKED | No installed runtime/Claude evidence |
 
 **Actual live matrix: 2 PASS, 3 FAIL, 10 BLOCKED. NOT 100%.**
 The 17 local passing tests do not substitute for any blocked E2E step.
+
+## Follow-up after owner approval (2026-10-28, same session)
+
+The owner approved the previous bounded steps in chat. Their consent does not
+change the currently connected OS identity or the platform's tool allowlist.
+A read-only probe confirmed 2/5 limited preconditions PASS, 3/5 BLOCKED
+(core online and general Claude bridge bound; Lukas route, readable runtime
+code, and project-specific Claude E2E unavailable).
+An attempted `sudo -n -l` via Desktop Commander was refused by the
+tool's command allowlist. An attempted direct `git push` was rejected by
+the platform security checks; it was not retried through an alternate route.
+`git push --dry-run` had confirmed the adapter branch was a fast-forward
+candidate, but a dry run is **not** a remote push.
+The approved candidate remains local and committed, not installed/published.
+The new read-only live-acceptance script is
+`scripts/jarvis-universal-live-acceptance-v1.mjs`.
+No changed customer project files, systemd units, active JARVIS runtime,
+factory timer, Claude worker jobs, GitHub refs, or Cloudflare deployments.
+Requires a separately authenticated, legitimately privileged operator
+connection and a permitted GitHub publishing path before proceeding.
 
 ## Bounded permission/approval gate
 
