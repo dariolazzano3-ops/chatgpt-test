@@ -15,7 +15,7 @@ async function handle(req,env){
     : await env.DB.prepare("SELECT child_name,story_title,story_text,source FROM lunara_story_previews WHERE story_id=? AND qa_pass=1 AND is_synthetic=1 AND source='user_original_reference' AND expires_at>unixepoch()").bind('original-mia').first();
    if(!row)return new Response(JSON.stringify({error:'not_available'}),{status:404,headers:{...common,'content-type':'application/json'}});
    return new Response(JSON.stringify({ok:true,story:{child_name:row.child_name,title:row.story_title,text:row.story_text,source:row.source}}),{headers:{...common,'content-type':'application/json; charset=utf-8'}});
-  }catch{return new Response(JSON.stringify({error:'read_failed'}),{status:503,headers:{...common,'content-type':'application/json'})}
+  }catch{return new Response(JSON.stringify({error:'read_failed'}),{status:503,headers:{...common,'content-type':'application/json'}})}
  }
  if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/checkout')||url.pathname.startsWith('/orders'))return new Response(JSON.stringify({error:'disabled_in_private_preview'}),{status:423,headers:{...common,'content-type':'application/json'}});
  return new Response('Not found',{status:404,headers:common});
