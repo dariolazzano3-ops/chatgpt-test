@@ -84,21 +84,11 @@ export default {
         return json({checkout_url:session.url});
       } catch {return json({error:'checkout_unavailable'},502);}
     }
-    if(request.method==='POST' && u.pathname==='/api/webhooks/stripe') {
-      if(!env.DB || !env.STRIPE_WEBHOOK_SECRET) return json({error:'not_configured'},503);
-      const raw=await request.text();
-      if(raw.length>100000) return json({error:'too_large'},413);
-      if(!await verifyStripeSignature(raw,request.headers.get('stripe-signature'),env.STRIPE_WEBHOOK_SECRET)) return json({error:'invalid_signature'},400);
-      let event; try{event=JSON.parse(raw);}catch{return json({error:'invalid_json'},400);}
-      if(!['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type)) return json({ok:true,ignored:true});
-      const s=event.data?.object;
-      if(s?.payment_status!=='paid'||s?.mode!=='payment') return json({ok:true,waiting_for_payment:true});
-      const id=s.client_reference_id;
-      if(typeof id!=='string') return json({error:'missing_order'},400);
-      const row=await env.DB.prepare('SELECT stripe_session_id,status FROM lunara_orders WHERE order_id=?').bind(id).first();
-      if(!row || row.stripe_session_id!==s.id) return json({error:'unrecognized_session'},409);
-      await env.DB.prepare("UPDATE lunara_orders SET status='paid',paid_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE order_id=? AND status='pending_payment'").bind(id).run();
-      return json({ok:true,dispatch:await makeDispatch(env,id)});
+    // Retired: the registered stripe-test-ingress.mjs is the sole payment writer.
+    // No env flag or signing secret may re-enable this incomplete alternative route.
+    // Future payment routes must reuse the reviewed ingress gate and its security tests.
+    if(u.pathname==='/api/webhooks/stripe') {
+      return json({error:'payment_route_retired',fulfillment:false},410);
     }
     if(u.pathname.startsWith('/api/admin/orders/')) {
       const token=request.headers.get('authorization')||'';
