@@ -1,0 +1,18 @@
+{
+  "schema": "jarvis.universal-project-catalog.v1",
+  "projects": [
+    {
+      "target_id": "LUKAS_PAFF",
+      "label": "Lukas Paff",
+      "route_aliases": [
+        "Lukas-Paff-Projekt",
+        "Lukas Paff Premium"
+      ],
+      "repository": "dariolazzano3-ops/chatgpt-test",
+      "branch": "factory/lukas-paff-premium-v1",
+      "subdirectory": "projects/lukas-paff-premium-v1",
+      "expected_head": "d3275cfe7e43c4435325e4a8202fed609eb9c416",
+      "approved": true
+    }
+  ]
+}
