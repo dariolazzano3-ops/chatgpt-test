@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateRequest } from './jarvis-project-factory-onboard-v1.mjs';
+import { validateRequest, buildQuarantinedTargetV1 } from './jarvis-project-factory-onboard-v1.mjs';
 const base={
  schema:'jarvis.owner-project-onboard.v1',
  target_id:'LUKAS_PAFF',
@@ -16,6 +16,15 @@ const registry={schema:'aurentara.jarvis.project-target-registry.v1',revision:4,
  JARVIS_AUTONOMY_TEST:{target_id:'JARVIS_AUTONOMY_TEST',label:'JARVIS Test',route_aliases:[]}
 }};
 test('valid Lukas onboarding request',()=>assert.equal(validateRequest(base,registry).target_id,'LUKAS_PAFF'));
+test('new project registered disabled until independently isolated',()=>{
+  const q=validateRequest(base,registry);
+  const target=buildQuarantinedTargetV1(q,'/opt/jarvis/project-workspaces/LUKAS_PAFF');
+  assert.equal(target.enabled,false);
+  assert.equal(target.repo_dir,'/opt/jarvis/project-workspaces/LUKAS_PAFF');
+  assert.equal(target.target_branch,q.branch);
+  assert.equal(target.bridge_project,'lukas-paff-premium-v1');
+  assert.match(target.execution_guidance,/No other projects/);
+});
 const invalid=[
  ['outside owner',{repository:'example/evil'}],
  ['traversal',{subdirectory:'projects/../.git'}],

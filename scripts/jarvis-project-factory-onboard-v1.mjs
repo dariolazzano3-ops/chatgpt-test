@@ -57,6 +57,17 @@ export function validateRequest(input, registry) {
   return { ...r, aliases:r.aliases.map(x=>x.trim()), label:r.label.trim() };
 }
 
+export function buildQuarantinedTargetV1(q,repoDir) {
+  const guidance='Project only: edit files under '+q.subdirectory+
+    '. No other projects, credentials, .git, CI config, pushes, public deployment, DNS, billing, subscriptions, or destructive commands without separate explicit approval. No paid models by default. Claude is sole code-edit actor; require independent tests and commit evidence.';
+  return {
+    target_id:q.target_id,label:q.label,route_aliases:[...q.aliases],
+    program:'PROJECT_MISSION_V1',repo_dir:repoDir,
+    bridge_project:q.subdirectory.split('/')[1],
+    target_branch:q.branch,enabled:false,execution_guidance:guidance
+  };
+}
+
 function git(args,cwd=null){
   return execFileSync('git',args,{
     cwd:cwd||undefined,encoding:'utf8',timeout:120000,
@@ -103,6 +114,10 @@ function installOne(request,sourceName) {
   const temp=path.join(WORK,'.incoming-'+crypto.randomUUID());
   let complete=false;
   try {
+    // Create the clone root private BEFORE contacting GitHub; even a
+    // partially completed checkout must not be exposed to shared workers.
+    fs.mkdirSync(temp,{mode:0o700});
+    fs.chmodSync(temp,0o700);
     git(['clone','--depth','1','--single-branch','--filter=blob:none','--sparse','--branch',q.branch,'--',''+url,temp]);
     git(['sparse-checkout','set','--',q.subdirectory],temp);
     const projectPath=path.join(temp,q.subdirectory);
@@ -114,46 +129,31 @@ function installOne(request,sourceName) {
     if(head!==q.expected_head)BAD('REMOTE_HEAD_CHANGED_NOT_APPROVED');
     // Atomic rename publishes only after checkout verification.
     fs.renameSync(temp,target);
-    // The owner can later commit, but the Claude worker must not write into .git.
-    const workerGroup=fs.existsSync('/etc/group')?
-      Number(execFileSync('getent',['group','jarvis-worker'],{encoding:'utf8'}).split(':')[2]):NaN;
-    if(!Number.isInteger(workerGroup))BAD('WORKER_GROUP_MISSING');
-    const allowedSource=path.join(target,q.subdirectory);
-    function insideApprovedSource(p){
-      return p===allowedSource||p.startsWith(allowedSource+path.sep);
-    }
+    // Quarantine first: no shared worker-group access during enrollment.
+    // A separately verified per-project sandbox must grant any later Claude
+    // file access. Never give all workers group-write access to every project.
     function permissions(base,inGit=false) {
       const isGit=inGit||path.basename(base)==='.git';
-      const writeAllowed=!isGit && insideApprovedSource(base);
-      fs.chownSync(base,process.getuid(),isGit?process.getgid():workerGroup);
-      // Parent folders are traversable but not writable by the worker.
-      fs.chmodSync(base,isGit?0o700:(writeAllowed?0o770:0o750));
+      fs.chownSync(base,process.getuid(),process.getgid());
+      fs.chmodSync(base,0o700);
       for(const entry of fs.readdirSync(base,{withFileTypes:true})){
         const next=path.join(base,entry.name);
         if(entry.isDirectory())permissions(next,isGit);
         else {
           if(!entry.isFile())BAD('NONREGULAR_FILE');
           const st=fs.statSync(next);
-          fs.chownSync(next,process.getuid(),isGit?process.getgid():workerGroup);
-          const writable=!isGit&&insideApprovedSource(next);
-          fs.chmodSync(next,isGit?0o600:(writable?(st.mode&0o111?0o770:0o660):0o640));
+          fs.chownSync(next,process.getuid(),process.getgid());
+          fs.chmodSync(next,st.mode&0o111?0o700:0o600);
         }
       }
     }
     permissions(target);
-    // Subsequent worker actions still require a separate permission/worker test.
+    // Registration is discovery only, NOT execution authorization.
     const before=fs.readFileSync(REGISTRY);
     const fresh=JSON.parse(before);
     validateRequest(q,fresh);  // concurrency/collision recheck, while lock held
     const now=new Date().toISOString();
-    const guidance='Project only: edit files under '+q.subdirectory+
-      '. No other projects, credentials, .git, CI config, pushes, public deployment, DNS, billing, subscriptions, or destructive commands without separate explicit approval. No paid models by default. Claude is sole code-edit actor; require independent tests and commit evidence.';
-    fresh.targets[q.target_id]={
-      target_id:q.target_id,label:q.label,route_aliases:q.aliases,
-      program:'PROJECT_MISSION_V1',repo_dir:target,
-      bridge_project:q.subdirectory.split('/')[1],
-      target_branch:q.branch,enabled:true,execution_guidance:guidance
-    };
+    fresh.targets[q.target_id]=buildQuarantinedTargetV1(q,target);
     fresh.revision+=1;fresh.updated_at=now;
     const backup=REGISTRY+'.backup-'+Date.now();
     fs.writeFileSync(backup,before,{flag:'wx',mode:0o640});
