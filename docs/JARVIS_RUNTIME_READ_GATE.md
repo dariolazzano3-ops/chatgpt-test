@@ -5,10 +5,21 @@
 ## Implemented, not installed yet
 
 `scripts/setup-runtime-read-gate.py` is a one-time owner-console bootstrap.
-Run using `/usr/bin/python3 -I` from an authenticated root console. No agent
-sudo retry, queue, daemon, alternate privileged execution transport, runtime
-permission relaxation, production modification, model call or restart occurs.
-The platform's command policy remains independent of OS sudo authorization.
+The source checkout belongs to the unprivileged `jarvis` user. Never execute the
+writable checkout file as root. Instead copy it into `/root` with owner root and
+mode 0700, verify its SHA-256 against the reviewed expected value, and only then
+execute the root-owned copy with `/usr/bin/python3 -I` from an authenticated
+owner console. Reviewed SHA-256 for this version:
+`345f8a665e09ba7d0e768df5ed7437808d448a85bdb130525a77ccfc5beadad9`.
+
+No agent sudo retry, queue, daemon, alternate privileged execution transport,
+runtime permission relaxation, production modification, model call or restart
+occurs. The platform's command policy remains independent of OS sudo
+authorization. Desktop Commander's current `blockedCommands` includes `sudo`;
+installing a sudoers rule does not permit direct Desktop Commander sudo calls.
+The bootstrap's private read-only review export is accessible to `jarvis` even
+when that command remains blocked. Do not loosen the global command block to
+make installation appear successful.
 
 Creates root-owned `/usr/local/bin/jarvis-runtime-read` and
 `/etc/sudoers.d/jarvis-runtime-read`. Only exact `status` and `source` commands
