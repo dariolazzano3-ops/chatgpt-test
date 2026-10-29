@@ -86,3 +86,68 @@ connection and a permitted GitHub publishing path before proceeding.
 
 Until then: leave all existing projects, Core, GitHub branches, Cloudflare
 and factory service untouched. No real universal project binding is claimed.
+
+
+## Work continuation V2 — fresh evidence 2026-10-29
+
+- Starting local HEAD independently read: `8c23edee1a2235fc0bf9afef47b1473b5e1e014b`; working tree clean before this change.
+- GitHub connector and on-host preflight both confirm adapter remote HEAD still `edae347260c65778a0470262a6d32a3f6cbbf565`.
+- Live service active/running as jarvis-operator; connected identity jarvis.
+  Runtime directory remains mode 0700, owned by jarvis-operator.
+- Registry still revision 4, with AURENTARA and JARVIS_AUTONOMY_TEST only.
+- Read-only Git preflight confirms remote Lukas HEAD `d3275cfe7e43c4435325e4a8202fed609eb9c416`, project directory present, local reference HEAD `7c96ba65a2366a66dbc26cc63a9ba0bf912ba9a7` preserved.
+- General Claude bridge bound; project-specific execution not demonstrated.
+- Factory service still failed (exit 2). No cleanup or timer changes performed.
+
+### Implemented repair
+
+Reproduced a mutable nested array in the validated catalog: adding an alias
+AFTER verification changed the selected route. Freeze the copied route_aliases
+array. Regression test covers source-array mutation, push and replacement after
+verification, rejected injected aliases, and preserved authorized routing.
+18/18 candidate unit tests PASS; git diff --check PASS.
+This is a local candidate repair, not runtime integration or OS isolation proof.
+
+### Regular deployment path inspected, not executed
+
+The readable /usr/local/sbin/jarvis-maintenance wrapper provides install/restart/status,
+with branch checks and health rollback. Its privileged worker is inaccessible.
+The staged owner-private-deploy watcher invokes this helper through sudo;
+no corresponding system service or timer was found in the current jarvis unit inventory.
+No privileged action or queue submission was attempted. The previous sudo/push
+denials were not retried through alternate execution mechanisms.
+Runtime reconciliation is mandatory: the staged owner socket source lacks the
+project-targets endpoint that demonstrably exists live. Replacing the runtime
+from this checkout without reading live changes could regress existing behavior.
+
+### Current real E2E matrix
+
+| Criterion | Status | Fresh evidence / remaining gate |
+|---|---|---|
+| Core reachable | PASS | active/running; private live probe PASS |
+| Actual project listing includes Lukas | FAIL | revision 4 lacks LUKAS_PAFF |
+| Live Lukas routing | FAIL | no registered target |
+| GitHub SHA and project tree | PASS | read-only remote preflight |
+| JARVIS workspace read | BLOCKED | inaccessible operator runtime |
+| Cross-project OS isolation | BLOCKED | no accessible project-bound sandbox |
+| Real Claude binding for Lukas | BLOCKED | no live target |
+| Authorized Claude fixture write | BLOCKED | integration and no-new-cost execution unverified |
+| Live failure handling | BLOCKED | candidate unit tests are not live evidence |
+| New project enrollment | FAIL | factory exit 2; candidate uninstalled |
+| Durable idempotency | BLOCKED | runtime integration unavailable |
+| Restart persistence | BLOCKED | privileged runtime access unavailable |
+| ChatGPT-to-Lukas execution | BLOCKED | no registered project-bound execution |
+| Production/other-project guard | BLOCKED | no independent OS negative tests |
+| Independent E2E acceptance | BLOCKED | prerequisites missing |
+
+Total: 2 PASS / 3 FAIL / 10 BLOCKED. Additional local validation: 18 tests PASS.
+No paid model job, API fallback, push, deployment, runtime change or restart was
+triggered in this continuation. Incremental model-job spend triggered: zero;
+provider billing totals are not independently available here.
+
+Smallest next prerequisite: a legitimately authenticated operator/administrator
+connection able to read and back up the live runtime and use its bounded
+maintenance path. Another chat GO does not supply missing OS/tool capabilities.
+Before install, reconcile against actual live HEAD and dirty files; prepare a
+reviewable scoped patch and backup/rollback. Keep preserved Lukas local HEAD,
+legacy timer and all existing projects untouched until replacement acceptance.

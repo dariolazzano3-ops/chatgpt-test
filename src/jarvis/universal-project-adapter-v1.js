@@ -54,7 +54,7 @@ export function validateTrustedProjectCatalogV1(input, trust = {}) {
     projects.push(Object.freeze({
       target_id: raw.target_id,
       label: raw.label,
-      route_aliases: [...raw.route_aliases],
+      route_aliases: Object.freeze([...raw.route_aliases]),
       repository: raw.repository,
       branch: raw.branch,
       subdirectory: raw.subdirectory,

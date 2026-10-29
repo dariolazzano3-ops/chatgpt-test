@@ -45,3 +45,16 @@ test('verified project binding is deterministic and exact SHA scoped',()=>{
   assert.equal(bind(v(catalog()),{LUKAS_PAFF:receipt}).LUKAS_PAFF,undefined);
 });
 test('rejects client-injected unusual catalog fields',()=>{const c=catalog();c.projects[0].command='rm -rf';assert.throws(()=>v(c),/UNKNOWN_FIELD/)});
+
+
+test('validated routing aliases cannot be changed after source verification', () => {
+  const input = catalog();
+  const verified = v(input);
+  input.projects[0].route_aliases.push('Injected through source');
+  assert.equal(resolve('Injected through source', verified).matched, false);
+  assert.throws(() => verified.projects[0].route_aliases.push('Injected after validation'), TypeError);
+  assert.throws(() => { verified.projects[0].route_aliases[0] = 'Replaced alias'; }, TypeError);
+  assert.equal(resolve('Injected after validation', verified).matched, false);
+  assert.equal(resolve('Replaced alias', verified).matched, false);
+  assert.equal(resolve('Lukas-Paff-Projekt', verified).target_id, 'LUKAS_PAFF');
+});
