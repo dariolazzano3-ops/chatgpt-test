@@ -129,7 +129,7 @@ def main():
         print('LUKAS_PAFF_ENABLED=false',flush=True)
         print('WORKSPACE_HEAD='+head,flush=True)
         print('NO_CLAUDE_JOB_NO_CORE_RESTART_NO_PUBLIC_DEPLOY',flush=True)
-    except Exception:
+    except BaseException:
         run(['/usr/bin/systemctl','stop',SERVICE],check=False)
         if installed_changed:
             atomic_bytes(INSTALLED,(backup_dir/'onboard.old').read_bytes(),installed_st.st_uid,installed_st.st_gid,stat.S_IMODE(installed_st.st_mode))
