@@ -23,7 +23,7 @@ export function resolveJarvisAutomaticProjectRouteV1(message = '', targets = {})
   }
 
   const rows = Object.values(targets && typeof targets === 'object' ? targets : {})
-    .filter((target) => target && typeof target === 'object')
+    .filter((target) => target && typeof target === 'object' && target.enabled !== false)
     .map((target) => {
       const targetId = clean(target.target_id, 80).toUpperCase();
       const label = clean(target.label, 160);

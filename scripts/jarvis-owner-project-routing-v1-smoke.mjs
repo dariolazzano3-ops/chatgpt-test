@@ -105,6 +105,23 @@ const noRoute = resolveJarvisAutomaticProjectRouteV1(
 assert.equal(noRoute.matched, false);
 assert.equal(noRoute.status, 'NO_MATCH');
 
+// Newly onboarded projects remain intentionally dormant until their
+// independent OS sandbox and project-specific Claude bridge are verified.
+// Disabled targets must not route, even if a caller forgets to prefilter.
+const inactive = { target_id:'LUKAS_PAFF', label:'Lukas Paff',
+  route_aliases:['LUKAS PAFF WEBSITE'], enabled:false };
+const disabledRoute = resolveJarvisAutomaticProjectRouteV1(
+  'JARVIS, öffne Lukas Paff und ändere die Website.',
+  { AURENTARA:target, LUKAS_PAFF:inactive }
+);
+assert.equal(disabledRoute.matched,false);
+assert.equal(disabledRoute.status,'NO_MATCH');
+const enabledRoute = resolveJarvisAutomaticProjectRouteV1(
+  'JARVIS, öffne Lukas Paff.',
+  { LUKAS_PAFF:{ ...inactive, enabled:true } }
+);
+assert.equal(enabledRoute.target_id,'LUKAS_PAFF');
+
 const ambiguous = resolveJarvisAutomaticProjectRouteV1(
   'Verbinde AURENTARA mit HAMYREN.',
   {
