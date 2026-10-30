@@ -19,15 +19,20 @@ export function inspectJarvisProjectWorkerIsolationV1(raw, approved = {}) {
   requireCheck(ID.test(id) && SLUG.test(slug), 'APPROVED_ID_OR_SLUG_INVALID');
 
   const allowedSupport = Array.isArray(approved.support_mounts) ? approved.support_mounts : [];
-  // Support mounts are limited to the existing bridge and its read-only config.
-  // An arbitrary caller-supplied support mount cannot approve host-root access.
+  // Only the isolated Claude profile may be writable outside project files.
+  // No caller-defined mount can grant arbitrary host file access.
   const supportAllowlist = new Map([
-    ['/home/jarvis/claude-worker/bridge/bridge.py', '/app/bridge.py'],
-    ['/home/jarvis/claude-worker/config', '/home/claude/.claude']
+    ['/home/jarvis/claude-worker/bridge/bridge.py',
+      {destination:'/opt/jarvis-bridge/bridge.py', read_only:true}],
+    ['/etc/jarvis/claude-lukas-paff-v1',
+      {destination:'/home/claude/.claude', read_only:false}],
+    [repo + '/.git', {destination:dest + '/.git', read_only:true}]
   ]);
   requireCheck(allowedSupport.every(m => m && absolute(m.source) &&
-    absolute(m.destination) && m.read_only === true &&
-    supportAllowlist.get(m.source) === m.destination), 'SUPPORT_MOUNT_POLICY_INVALID');
+    absolute(m.destination) &&
+    supportAllowlist.get(m.source)?.destination === m.destination &&
+    supportAllowlist.get(m.source)?.read_only === m.read_only),
+    'SUPPORT_MOUNT_POLICY_INVALID');
 
   const obj = Array.isArray(raw) && raw.length === 1 ? raw[0] : raw;
   requireCheck(obj && typeof obj === 'object' && !Array.isArray(obj), 'INSPECT_OBJECT_REQUIRED');
@@ -69,8 +74,8 @@ export function inspectJarvisProjectWorkerIsolationV1(raw, approved = {}) {
       continue;
     }
     const support = allowedSupport.find(x => x.source === m.Source &&
-      x.destination === m.Destination && x.read_only === true);
-    if (!support || m.RW !== false) failures.push('UNAPPROVED_MOUNT');
+      x.destination === m.Destination && x.read_only === !m.RW);
+    if (!support) failures.push('UNAPPROVED_MOUNT');
   }
   requireCheck(workspaceCount === 1, 'PROJECT_MOUNT_NOT_EXACTLY_ONCE');
   return Object.freeze({

@@ -8,17 +8,21 @@ const approved = {
   project_slug:'lukas-paff-premium-v1',
   support_mounts:[
     {source:'/home/jarvis/claude-worker/bridge/bridge.py',
-     destination:'/app/bridge.py', read_only:true},
-    {source:'/home/jarvis/claude-worker/config',
-     destination:'/home/claude/.claude', read_only:true}
+     destination:'/opt/jarvis-bridge/bridge.py', read_only:true},
+    {source:'/etc/jarvis/claude-lukas-paff-v1',
+     destination:'/home/claude/.claude', read_only:false},
+    {source:'/opt/jarvis/project-workspaces/LUKAS_PAFF/.git',
+     destination:'/workspace/projects/lukas-paff-premium-v1/.git', read_only:true}
   ]
 };
 const workspace={Type:'bind',Source:'/opt/jarvis/project-workspaces/LUKAS_PAFF',
   Destination:'/workspace/projects/lukas-paff-premium-v1',RW:true};
 const support={Type:'bind',Source:'/home/jarvis/claude-worker/bridge/bridge.py',
-  Destination:'/app/bridge.py',RW:false};
-const credentials={Type:'bind',Source:'/home/jarvis/claude-worker/config',
-  Destination:'/home/claude/.claude',RW:false};
+  Destination:'/opt/jarvis-bridge/bridge.py',RW:false};
+const credentials={Type:'bind',Source:'/etc/jarvis/claude-lukas-paff-v1',
+  Destination:'/home/claude/.claude',RW:true};
+const gitMetadata={Type:'bind',Source:'/opt/jarvis/project-workspaces/LUKAS_PAFF/.git',
+  Destination:'/workspace/projects/lukas-paff-premium-v1/.git',RW:false};
 const container = () => ({
   Id:'a'.repeat(64),
   Config:{User:'11000'},
@@ -28,7 +32,7 @@ const container = () => ({
     Devices:[],SecurityOpt:['no-new-privileges:true'],
     PortBindings:{'8788/tcp':[{HostIp:'127.0.0.1',HostPort:'18789'}]}
   },
-  Mounts:[{...workspace},{...support},{...credentials}]
+  Mounts:[{...workspace},{...support},{...credentials},{...gitMetadata}]
 });
 const check=(mutate,reason,policy=approved)=>{
   const c=container();
@@ -62,8 +66,11 @@ test('rejects broad host mount or root directory',()=>{
   check(c=>c.Mounts.push({Type:'bind',Source:'/',
     Destination:'/host',RW:false}),'UNAPPROVED_MOUNT');
 });
-test('rejects writable credentials',()=>{
-  check(c=>{c.Mounts[2].RW=true},'UNAPPROVED_MOUNT');
+test('rejects unrelated shared credentials',()=>{
+  check(c=>{c.Mounts[2].Source='/home/jarvis/claude-worker/config'},'UNAPPROVED_MOUNT');
+});
+test('rejects git metadata writes',()=>{
+  check(c=>{c.Mounts[3].RW=true},'UNAPPROVED_MOUNT');
 });
 test('rejects project mount pointing to wrong checkout',()=>{
   check(c=>{c.Mounts[0].Source='/opt/jarvis/project-workspaces/OTHER'},'PROJECT_MOUNT_NOT_EXACTLY_ONCE');
