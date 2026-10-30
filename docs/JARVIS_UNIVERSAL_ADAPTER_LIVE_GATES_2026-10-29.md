@@ -32,3 +32,25 @@ Keep existing AURENTARA and autonomy test targets, protected previews, Git branc
 - New read-only acceptance probe: 8 PASS / 4 BLOCKED. Two blockers are operational (cache refresh and direct source access); export already supplies bounded source visibility. Two are functional/security-critical (real per-project Claude isolation and E2E). This is not a percent-complete measure.
 
 No public deployment, other-project mutation, model fallback, or production Core installation was triggered by these checks.
+
+## 2026-10-30 10:48 UTC: V5 continuation and maintenance gate
+
+- Reconfirmed VPS identity via Desktop Commander; effective user is jarvis (uid 1000).
+- Adapter working tree was clean at 61f5016883cbf79b336bd20127287770b1bf20d8.
+- Re-ran factory onboard/archive and universal adapter suites: 39 tests passed, zero failures.
+- Read-only live acceptance: 8 PASS / 4 BLOCKED. Sandbox and Claude E2E checks are explicit outstanding-evidence placeholders, not executed negative worker tests.
+- Core remains online with cached registry revision 4; disk/socket registry is revision 5 with LUKAS_PAFF disabled. Existing targets remain enabled.
+- Inspected installed maintenance wrapper: restart requires runtime branch factory/jarvis-capability-expansion-v3 and a clean tree. Restart performs a health check but has no automatic rollback; install has its own rollback. Neither was executed.
+- The Desktop Commander tool rejected the attempted sudo maintenance status command with `Command not allowed` (INVALID_ARGUMENT). No obfuscated invocation, alternate privilege mechanism, restart queue, or rights expansion was attempted.
+- Runtime service retains ProtectSystem=strict. Its multiple project write paths are not evidence of individual Claude project isolation.
+- Readable bridge source chooses a cwd below ROOT and checks path containment; this alone cannot establish an OS filesystem isolation boundary. Whether that source is the running bridge version is unverified.
+- No runtime changes, target activation, paid model requests, pushes, or deployments occurred.
+
+### Exact next prerequisite
+Run the existing read-only maintenance status interface in an authorized owner console:
+
+```sh
+sudo /usr/local/sbin/jarvis-maintenance status
+```
+
+Review its branch, HEAD, dirty-line count and health result before preparing a controlled restart with a viable rollback. This command grants no new rights and does not restart the service. Project sandbox configuration and real worker negative tests remain required before activation; a model run still requires fresh explicit cost approval.
