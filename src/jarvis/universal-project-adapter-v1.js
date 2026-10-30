@@ -94,12 +94,23 @@ export function buildExecutableTargetsV1(verifiedCatalog, bindings = {}, existin
       root.includes('..') || root.endsWith('/'))
     return { ...existing };
   const result = { ...existing };
-  const taken = new Set(Object.values(existing).flatMap(t => [
-    t.target_id, t.label, ...(t.route_aliases || [])
-  ].filter(Boolean).map(t => clean(t).toLowerCase())));
   for (const project of verifiedCatalog?.projects || []) {
-    if (project.target_id in result ||
-        routeTokens(project).some(t => taken.has(t))) fail('EXISTING_TARGET_COLLISION');
+    const prior = Object.hasOwn(result, project.target_id) ? result[project.target_id] : null;
+    // A disabled entry from the owner-approved factory can be upgraded only
+    // when its immutable project binding agrees with the verified catalog.
+    // Live or mismatched entries can never be silently overwritten.
+    if (prior && (prior.enabled !== false ||
+        prior.target_id !== project.target_id ||
+        prior.target_branch !== project.branch ||
+        prior.repo_dir !== root + '/' + project.target_id ||
+        prior.bridge_project !== project.subdirectory.split('/')[1]))
+      fail('EXISTING_TARGET_COLLISION');
+    const others = new Set(Object.values(existing).filter(t =>
+      t && t.target_id !== project.target_id).flatMap(t => [
+      t.target_id, t.label, ...(t.route_aliases || [])
+    ].filter(Boolean).map(t => clean(t).toLowerCase())));
+    if (routeTokens(project).some(t => others.has(t)))
+      fail('EXISTING_TARGET_COLLISION');
     const proof = bindings[project.target_id];
     if (!proof || proof.server_attested !== true ||
         proof.repository !== project.repository ||

@@ -58,3 +58,34 @@ test('validated routing aliases cannot be changed after source verification', ()
   assert.equal(resolve('Replaced alias', verified).matched, false);
   assert.equal(resolve('Lukas-Paff-Projekt', verified).target_id, 'LUKAS_PAFF');
 });
+
+test('pre-registered dormant Lukas may be promoted only with matching attested workspace proof',()=>{
+  const verified=v(catalog());
+  const p=verified.projects[0];
+  const root='/opt/jarvis/project-workspaces';
+  const existing={LUKAS_PAFF:{
+    target_id:'LUKAS_PAFF', label:'Lukas Paff Premium Website',
+    route_aliases:['LUKAS PAFF','LUKAS PAFF WEBSITE'],
+    target_branch:p.branch,repo_dir:root+'/LUKAS_PAFF',
+    bridge_project:'lukas-paff-premium-v1',enabled:false
+  }};
+  const opts={approved_workspace_root:root};
+  const noProof=bind(verified,{},existing,opts);
+  assert.equal(noProof.LUKAS_PAFF.enabled,false);
+  assert.deepEqual(existing.LUKAS_PAFF,noProof.LUKAS_PAFF);
+  const receipt={...p,commit:p.expected_head,server_attested:true,
+    isolation_verified:true,bridge_verified:true,
+    repo_dir:root+'/LUKAS_PAFF',bridge_project:'lukas-paff-premium-v1',
+    bridge:{schema:'aurentara.jarvis.claude-code-bridge.v1',bound:true,submit:()=>{}},
+    workspace_preflight:()=>true};
+  const promoted=bind(verified,{LUKAS_PAFF:receipt},existing,opts);
+  assert.equal(promoted.LUKAS_PAFF.enabled,true);
+  assert.equal(existing.LUKAS_PAFF.enabled,false);
+  assert.equal(bind(verified,{LUKAS_PAFF:{...receipt,bridge_verified:false}},existing,opts).LUKAS_PAFF.enabled,false);
+  assert.equal(bind(verified,{LUKAS_PAFF:{...receipt,commit:'0'.repeat(40)}},existing,opts).LUKAS_PAFF.enabled,false);
+  for (const change of [{enabled:true},{target_branch:'factory/unrelated'},
+                        {repo_dir:'/opt/jarvis/other'},{bridge_project:'unrelated'}]) {
+    assert.throws(()=>bind(verified,{LUKAS_PAFF:receipt},
+      {LUKAS_PAFF:{...existing.LUKAS_PAFF,...change}},opts),/EXISTING_TARGET_COLLISION/);
+  }
+});
