@@ -19,3 +19,16 @@
 
 ## Guardrails
 Keep existing AURENTARA and autonomy test targets, protected previews, Git branches and paid systems unchanged. No global sudo unblock, no guessed project readiness, no forced remote update, no cloud deployment. Disabling the broken legacy timer is gated on a verified replacement, not merely a green unit suite.
+
+## 2026-10-30: independently verified post-installation
+
+- Root bootstrap console reported `FACTORY_REGISTRATION_PASS`, `LUKAS_PAFF_ENABLED=false`, approved HEAD `d3275cfe7e43c4435325e4a8202fed609eb9c416`. Owner report `/home/jarvis/jrf-result.txt` independently confirms `registration_pass:true`, no paid Claude job and no Core restart.
+- Private socket GET `/v1/project-targets`: revision 5, original AURENTARA and JARVIS_AUTONOMY_TEST still enabled, LUKAS_PAFF registered but disabled.
+- Factory timer active and recurring factory service executions now exit 0 (oneshot inactive/success is expected).
+- `jarvis` user cannot read or traverse new Lukas workspace; stronger independent negative access tests with the actual Claude worker and other projects remain BLOCKED.
+- Core runtime status still reports cached registry revision 4 even though source registry revision 5. Do not treat registered as executable. A controlled Core refresh is necessary, but not sufficient; no restart was performed.
+- General Claude bridge bound is not proof of a Lukas-specific Claude worker binding or E2E. No real Claude fixture write or model job was submitted.
+- Staged router now excludes `enabled:false` from project selection (smoke PASS). Staged adapter supports safely matching an existing dormant registry entry against immutable catalog/attestation; 19/19 adapter tests PASS.
+- New read-only acceptance probe: 8 PASS / 4 BLOCKED. Two blockers are operational (cache refresh and direct source access); export already supplies bounded source visibility. Two are functional/security-critical (real per-project Claude isolation and E2E). This is not a percent-complete measure.
+
+No public deployment, other-project mutation, model fallback, or production Core installation was triggered by these checks.
