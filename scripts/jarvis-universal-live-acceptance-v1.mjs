@@ -4,8 +4,8 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 const socket='/opt/jarvis/owner-deploy-queue/owner-control.sock';
-const root='/opt/jarvis/chatgpt-test';
 const readEndpoint = endpoint => {
   const output=execFileSync('curl',[
     '--silent','--show-error','--fail','--max-time','4',
@@ -41,17 +41,26 @@ try{
   check('CLAUDE_BRIDGE_GENERAL',
     truth?.command_chain?.claude_execution_bridge_bound===true,
     'bridge runtime truth (general, not project-specific)');
-  const st=fs.statSync(root);
-  let readable=false;
-  try {fs.accessSync(root,fs.constants.R_OK|fs.constants.X_OK);readable=true;}
-  catch {}
-  check('RUNTIME_SOURCE_DIRECT_ACCESS',readable,
-    'direct operator source access may remain restricted; snapshot is separate');
+  // Direct access to the protected production checkout is NOT required.
+  // The existing vetted, owner-created read-only export satisfies source
+  // inspection without expanding Desktop Commander filesystem privileges.
   const snapshots=fs.readdirSync('/var/tmp').filter(name=>
     /^jarvis-maintenance-review-[a-zA-Z0-9_-]+$/.test(name));
-  check('RUNTIME_READONLY_EXPORT_AVAILABLE',
-    snapshots.some(name=>fs.existsSync('/var/tmp/'+name+'/runtime-source.tar')),
-    'root-vetted source export available for review (not live edit permission)');
+  const sourceAvailable=snapshots.some(name=>{
+    const base='/var/tmp/'+name;
+    try {
+      const bytes=fs.readFileSync(base+'/runtime-source.tar');
+      const evidence=JSON.parse(fs.readFileSync(base+'/runtime-status.json','utf8'));
+      const checksum=createHash('sha256').update(bytes).digest('hex');
+      return checksum==='1c3c7ef172fe898e10cafddf41e0c778ecee3b959660991c99d1521201868009' &&
+        evidence.head==='220e3012798e04578964d61506fc33ec8c2fa1d5' &&
+        evidence.branch==='factory/jarvis-capability-expansion-v3' &&
+        evidence.read_only===true &&
+        Number.isInteger(evidence.dirty_lines) && evidence.dirty_lines===0;
+    } catch { return false; }
+  });
+  check('BOUNDED_SOURCE_REVIEW_AVAILABLE',sourceAvailable,
+    'verified snapshot available; live deployment still requires HEAD/dirty check');
   const workspace='/opt/jarvis/project-workspaces/LUKAS_PAFF';
   let jarvisCanReach=false;
   try { fs.accessSync(workspace,fs.constants.R_OK|fs.constants.X_OK);jarvisCanReach=true; }
