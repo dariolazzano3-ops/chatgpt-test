@@ -27,7 +27,12 @@ function sameFiles(a = [], b = []) {
   return aa.length === bb.length && aa.every((value, index) => value === bb[index]);
 }
 function dirtyFiles(repo) {
-  const raw = git(repo, ['status', '--porcelain', '--untracked-files=all']);
+  // Git porcelain's two status columns are significant, even when blank.
+  // Do not trim the complete output before slicing the filename at offset 3.
+  const raw = execFileSync('git', ['-c', `safe.directory=${repo}`, 'status',
+    '--porcelain', '--untracked-files=all'], {
+    cwd: repo, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000
+  }).toString('utf8').replace(/\r?\n$/, '');
   if (!raw) return [];
   const lines = raw.split('\n').filter(Boolean);
   if (lines.some((line) => line.includes(' -> '))) return null;

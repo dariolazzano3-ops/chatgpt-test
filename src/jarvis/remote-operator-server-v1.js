@@ -49,6 +49,8 @@
    execution mode, the private Bridge HTTP one, never a local CLI. */
 
 import http from 'node:http';
+import { resolveProjectWorkerBindingV1, createProjectLocalPublisherV1 } from './project-worker-binding-v1.js';
+import { loadJarvisProjectTargetRegistryV1, JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH } from './project-target-registry-v1.js';
 import { execFileSync } from 'node:child_process';
 import { handleJarvisStandaloneWorkerV1 } from './standalone-worker-v1.js';
 import { resolveJarvisMemoryStoreV1 } from './http-v1.js';
@@ -144,6 +146,79 @@ export async function resolveJarvisRemoteOperatorProjectMissionTargetsV1(env = p
         bridge: binding.bridge
       }
     }
+  };
+}
+
+export async function resolveJarvisRemoteOperatorRegistryProjectTargetsV1(env = process.env, options = {}) {
+  const registry = options.registry_result || loadJarvisProjectTargetRegistryV1(
+    clean(options.registry_path, 500) || JARVIS_PROJECT_TARGET_REGISTRY_DEFAULT_PATH
+  );
+  if (!registry?.ok) {
+    return {
+      ok: false,
+      requested: true,
+      error: registry?.error || 'PROJECT_TARGET_REGISTRY_UNAVAILABLE',
+      targets: {},
+      disabled_target_ids: [],
+      errors: {}
+    };
+  }
+
+  const targets = {};
+  const disabledTargetIds = [];
+  const errors = {};
+  for (const [targetId, target] of Object.entries(registry.targets || {})) {
+    if (target?.enabled !== true) {
+      disabledTargetIds.push(targetId);
+      continue;
+    }
+    const location = resolveJarvisRemoteOperatorProgramLocationV1({
+      ...env,
+      JARVIS_CLAUDE_REPO_DIR: target.repo_dir
+    });
+    if (!location.ok) {
+      errors[targetId] = location.error || 'PROJECT_TARGET_REPO_UNAVAILABLE';
+      continue;
+    }
+    if (target.target_branch && target.target_branch !== location.target_branch) {
+      errors[targetId] = 'PROJECT_TARGET_BRANCH_MISMATCH';
+      continue;
+    }
+    if (PROJECT_MISSION_BLOCKED_BRANCHES.has(location.target_branch)) {
+      errors[targetId] = 'PROJECT_TARGET_CANONICAL_BRANCH_WRITE_FORBIDDEN';
+      continue;
+    }
+
+    const workerConfig = resolveProjectWorkerBindingV1(env, targetId, targetId === 'LUKAS_PAFF' || target.isolated_worker === true);
+    if (!workerConfig.ok) {
+      errors[targetId] = workerConfig.error;
+      continue;
+    }
+    const binding = await createJarvisBridgeHttpRuntimeBindingV1({
+      ...workerConfig.env,
+      JARVIS_CLAUDE_REPO_DIR: location.repo_dir,
+      JARVIS_BRIDGE_PROJECT: target.bridge_project
+    }, options.bridge_http_options || options);
+    if (!binding.bound) {
+      errors[targetId] = binding.reason || 'PROJECT_TARGET_BRIDGE_NOT_BOUND';
+      continue;
+    }
+    targets[targetId] = {
+      ...target,
+      local_commit_only: workerConfig.isolated,
+      target_branch: location.target_branch,
+      bridge_bound: true,
+      bridge: binding.bridge
+    };
+  }
+
+  return {
+    ok: true,
+    requested: true,
+    revision: registry.revision || 0,
+    targets,
+    disabled_target_ids: disabledTargetIds.sort(),
+    errors
   };
 }
 
@@ -366,6 +441,8 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     || await resolveJarvisRemoteOperatorProjectMissionTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
   const automaticProjectResult = overrides.automatic_project_result
     || await resolveJarvisRemoteOperatorAutomaticProjectTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
+  const registryProjectResult = overrides.registry_project_result
+    || await resolveJarvisRemoteOperatorRegistryProjectTargetsV1(env, overrides.project_mission_binding_options || overrides.claude_binding_options || {});
   const programController = overrides.program_controller
     || createJarvisRemoteOperatorProgramControllerV1(env, { memory_store: overrides.memory_store, claude_bridge: claudeBridgeResult.bridge, claude_timeout_ms: overrides.claude_timeout_ms });
   const programLocation = overrides.program_location || resolveJarvisRemoteOperatorProgramLocationV1(env);
@@ -397,7 +474,12 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
     ])
   );
   const projectMissionTargets = bindProjectWorkspacePreflight(projectMissionResult.ok ? projectMissionResult.targets : {});
-  const automaticProjectTargets = bindProjectWorkspacePreflight(automaticProjectResult.ok ? automaticProjectResult.targets : {});
+  const automaticRawTargets = {
+    ...(automaticProjectResult.ok ? automaticProjectResult.targets : {}),
+    ...(registryProjectResult.ok ? registryProjectResult.targets : {})
+  };
+  for (const id of (registryProjectResult.disabled_target_ids || [])) delete automaticRawTargets[id];
+  const automaticProjectTargets = bindProjectWorkspacePreflight(automaticRawTargets);
   // Resolved once, from server-side config only, by startJarvisRemoteOperatorV1
   // (verifyJarvisRemoteOperatorCanonicalOwnerConfigV1) before this function is
   // ever called for the real entrypoint; a test may also pass one directly.
@@ -419,7 +501,10 @@ export async function buildJarvisRemoteOperatorOptionsV1(env = process.env, over
       automatic_project_targets: automaticProjectTargets,
       automatic_project_target_status: {
         target_ids: Object.keys(automaticProjectTargets).sort(),
-        reason: clean(automaticProjectResult.reason, 160) || null
+        reason: clean(automaticProjectResult.reason, 160) || null,
+        registry_revision: registryProjectResult.revision || 0,
+        registry_errors: registryProjectResult.errors || {},
+        registry_disabled_target_ids: registryProjectResult.disabled_target_ids || []
       },
       engineering_mission_bridge_resolver: async ({ program } = {}) => {
         const target = Object.values(projectMissionTargets)
@@ -593,6 +678,11 @@ export async function startJarvisRemoteOperatorV1(env = process.env, overrides =
   }, { controller: options.program_controller, memory_store: resolvedStore, publisher: trustedPublisher, trusted_candidate_recoverer: trustedCandidateRecoverer });
   options.program_runner = programRunner;
   options.owner_chat_trusted_publisher = ownerChatTrustedPublisher;
+  options.owner_chat_project_local_publishers = Object.fromEntries(
+    Object.entries(options.automatic_project_targets || {})
+      .filter(([, target]) => target.local_commit_only === true)
+      .map(([id, target]) => [id, createProjectLocalPublisherV1(target, { memory_store: resolvedStore })])
+  );
 
   const ownerControl = overrides.owner_control_result
     || (overrides.server

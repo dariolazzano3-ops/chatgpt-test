@@ -306,7 +306,10 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
         target_ids: Array.isArray(options.automatic_project_target_status?.target_ids)
           ? options.automatic_project_target_status.target_ids
           : [],
-        reason: clean(options.automatic_project_target_status?.reason, 160) || null
+        reason: clean(options.automatic_project_target_status?.reason, 160) || null,
+        registry_revision: Number(options.automatic_project_target_status?.registry_revision || 0),
+        registry_errors: options.automatic_project_target_status?.registry_errors || {},
+        registry_disabled_target_ids: options.automatic_project_target_status?.registry_disabled_target_ids || []
       },
       external_writes_enabled: false,
       finance_actions_enabled: false,
@@ -657,6 +660,11 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
       };
       const projectRoute = resolveJarvisAutomaticProjectRouteV1(message, routingTargets);
       const projectTarget = projectRoute.matched === true ? projectRoute.target : null;
+      const projectLocalOnly = projectTarget?.local_commit_only === true;
+      const projectLocalPublisher = options.owner_chat_project_local_publishers?.[projectTarget?.target_id];
+      if (projectLocalOnly && typeof projectLocalPublisher?.publishVerifiedOwnerChatJob !== 'function') {
+        return json({ ok:false, error:'PROJECT_LOCAL_PUBLISHER_NOT_BOUND' }, 503);
+      }
       const dispatch = await dispatchJarvisOwnerChatJobV1({
         owner_id: session.owner_id,
         owner_ref: session.owner_ref,
@@ -684,11 +692,11 @@ export async function handleJarvisHttpV1(request, env = {}, ctx = {}, options = 
             : null,
           claude_bridge: projectTarget?.bridge || options.claude_bridge || null,
           claude_timeout_ms: options.claude_timeout_ms,
-          max_repair_attempts: options.owner_chat_job_max_repair_attempts,
+          max_repair_attempts: projectLocalOnly ? 0 : options.owner_chat_job_max_repair_attempts,
           workspace_preflight: projectTarget?.workspace_preflight || options.owner_chat_workspace_preflight || null,
           execution_guidance: projectTarget?.execution_guidance || null,
           astra_post_review_enabled: ['true', '1', 'on', 'yes'].includes(clean(env.JARVIS_ASTRA_POST_REVIEW_ENABLED, 20).toLowerCase()),
-          trusted_publisher: options.owner_chat_trusted_publisher || null
+          trusted_publisher: projectLocalOnly ? projectLocalPublisher : (options.owner_chat_trusted_publisher || null)
         }).catch(() => {});
         if (typeof ctx?.waitUntil === 'function') ctx.waitUntil(jobPromise);
 
