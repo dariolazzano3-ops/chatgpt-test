@@ -9,11 +9,17 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
 }
 
+function normalizeRoutePhrase(value) {
+  // Aliases stay server-authorized. Only separators within names are
+  // normalized so "Lukas-Paff", "Lukas Paff", "Lukas_Paff" resolve alike.
+  return clean(value, 4000).replace(/[-_‐-―]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function containsRouteToken(text, token) {
-  const wanted = clean(token, 160);
+  const wanted = normalizeRoutePhrase(clean(token, 160));
   if (!wanted) return false;
   const escaped = escapeRegExp(wanted);
-  return new RegExp('(^|[^a-z0-9])' + escaped + '([^a-z0-9]|$)', 'i').test(text);
+  return new RegExp('(^|[^a-z0-9])' + escaped + '([^a-z0-9]|$)', 'i').test(normalizeRoutePhrase(text));
 }
 
 export function resolveJarvisAutomaticProjectRouteV1(message = '', targets = {}) {
