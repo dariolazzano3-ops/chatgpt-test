@@ -28,4 +28,4 @@ Repository-Branch: `factory/projekt-x-eis-clicker-v1`.
 Ein separater Claude.ai-Web-Projektordner wird durch den Git-Workspace **nicht** automatisch angelegt. Eine entsprechende Claude-Integration muss dafür nachgewiesen werden.
 
 ## Sicherheit
-Nur lokaler Prototyp. Kein Push/Deploy und keine produktive Veröffentlichung ohne zusätzliche Freigabe.
+Nicht produktiv geschalteter Prototyp. Isolierter GitHub-Projektbranch für JARVIS/Claude-Anbindung; kein Deployment und keine produktive Veröffentlichung ohne zusätzliche Freigabe.

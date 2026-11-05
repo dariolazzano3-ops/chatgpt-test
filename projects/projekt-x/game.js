@@ -20,6 +20,7 @@ let toastTimer;
 let soundOn=false;
 let audioContext=null;
 let previousAchievements=new Set();
+let achievementsInitialized=false;
 
 function readSave(){
   try {
@@ -102,8 +103,9 @@ function renderMilestone(){
 }
 function renderAchievements(){
   const unlocked=new Set(ACHIEVEMENTS.filter(a=>a.predicate(state)).map(a=>a.id));
-  for(const a of ACHIEVEMENTS)if(unlocked.has(a.id)&&!previousAchievements.has(a.id)&&previousAchievements.size>0)showToast("Erfolg freigeschaltet: "+a.title+" ✨");
+  for(const a of ACHIEVEMENTS)if(unlocked.has(a.id)&&!previousAchievements.has(a.id)&&achievementsInitialized)showToast("Erfolg freigeschaltet: "+a.title+" ✨");
   previousAchievements=unlocked;
+  achievementsInitialized=true;
   ui.achievements.replaceChildren(...ACHIEVEMENTS.map(a=>{
     const block=document.createElement("div");block.className="achievement"+(unlocked.has(a.id)?" unlocked":"");
     const icon=document.createElement("span");icon.className="achievement__icon";icon.textContent=a.icon;

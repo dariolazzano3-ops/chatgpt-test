@@ -13,7 +13,7 @@
 - Geldwert der Kugeln ist ausschließlich spielintern. Kein Echtgeld, keine Gewinnversprechen.
 - Bilder der 4 Sorten wurden aus der vorhandenen owner-provided Gelato-Referenz übernommen; keine Fremdbilder nachladen.
 - Lokale Tests: `node --test projects/projekt-x/tests/*.test.mjs` aus Repository-Root. Zusätzliche Integritätsprüfung steht in `tests/static.test.mjs`.
-- Für Produktivschaltung, öffentlichen Push und Deploy eine separate Freigabe verlangen.
+- Für Produktivschaltung und Deployment eine separate Freigabe verlangen. Ein einmaliger Push des isolierten Projektbranches ist für die explizit gewünschte JARVIS-Projektanbindung erlaubt.
 - Spielelogik ausschließlich in `economy.mjs` testen, UI in `game.js` und `styles.css`.
 - Änderungen ausschließlich unter `projects/projekt-x/**` durchführen.
 - Ein erfolgreicher Git-Commit ist noch kein Beweis einer verbundenen Claude-Ausführung.
