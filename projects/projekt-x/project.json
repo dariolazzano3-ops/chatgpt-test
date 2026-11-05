@@ -1,0 +1,25 @@
+{
+  "schema": "riosystems.projekt-x.clicker.v1",
+  "project_id": "projekt-x",
+  "name": "Projekt X",
+  "type": "browser-game",
+  "language": "de",
+  "status": "local-prototype",
+  "source": "projects/projekt-x",
+  "visual_reference": "projects/gelato-donatello-premium-v6",
+  "description": "Eigenständiges Eis-Clicker-Spiel mit Gelato-Donatello-inspirierter Art Direction.",
+  "entrypoint": "index.html",
+  "technology": [
+    "HTML5",
+    "CSS3",
+    "JavaScript ES Modules",
+    "localStorage"
+  ],
+  "security": {
+    "production_deploy": false,
+    "public_deploy": false,
+    "backend": false,
+    "paid_provider_calls": 0
+  },
+  "created_on": "2026-11-05"
+}

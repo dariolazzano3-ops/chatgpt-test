@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#311912">
+  <meta name="description" content="Projekt X: Das kleine Eis-Imperium. Tippe, sammle Kugeln und baue deine eigene Gelateria.">
+  <title>Projekt X | Das Eis-Clicker-Spiel</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./game.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#game">Zum Spiel springen</a>
+  <div class="ambient ambient--left" aria-hidden="true"></div>
+  <div class="ambient ambient--right" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Projekt X Startseite">
+      <span class="brand__mark">X<span class="brand__dot">.</span></span>
+      <span class="brand__copy"><strong>PROJEKT X</strong><small>THE GELATO CLICKER</small></span>
+    </a>
+    <div class="topbar__edition"><span class="topbar__status"></span> LA DOLCE VITA · EDITION 01</div>
+    <button class="topbar__button" id="soundButton" aria-pressed="false" type="button">♪ <span>Sound aus</span></button>
+  </header>
+
+  <main id="game" class="page">
+    <section class="intro" aria-labelledby="heroTitle">
+      <p class="eyebrow"><span class="eyebrow__line"></span> DIE KLEINE EISFABRIK</p>
+      <h1 id="heroTitle">Ein Klick.<br><em>Ein Glücksgefühl.</em></h1>
+      <p>Aus einer Kugel wird eine Gelateria. Tippe dein erstes Eis, entdecke neue Sorten und lass dein Eis-Imperium wachsen.</p>
+    </section>
+
+    <section class="game-layout" aria-label="Eis-Clicker-Spiel">
+      <div class="play-zone">
+        <div class="scoreboard">
+          <div class="scoreboard__main">
+            <span class="small-label">DEIN EISVERMÖGEN</span>
+            <div class="scoreboard__number"><span id="score" aria-live="off">0</span><span class="scoreboard__unit">KUGELN</span></div>
+          </div>
+          <div class="scoreboard__side">
+            <div><span>PRO KLICK</span><strong id="perClick">+1</strong></div>
+            <div><span>PRO SEKUNDE</span><strong id="perSecond">0</strong></div>
+          </div>
+        </div>
+
+        <div class="scoop-stage">
+          <div class="stage-decoration stage-decoration--one" aria-hidden="true">✳</div>
+          <div class="stage-decoration stage-decoration--two" aria-hidden="true">✷</div>
+          <div class="stage-decoration stage-decoration--three" aria-hidden="true">✦</div>
+          <div class="stage-topline"><span>HANDGEMACHT MIT LIEBE</span><span>✷ SEIT DEINEM ERSTEN KLICK</span></div>
+          <div class="scoop-wrap" id="scoopWrap">
+            <div class="scoop-halo"></div>
+            <button id="scoopButton" class="scoop-button" type="button" aria-label="Eis herstellen: eine oder mehr Kugeln verdienen">
+              <span class="scoop-button__shine"></span>
+              <img src="./assets/flavors/vanille.webp" id="mainScoop" alt="Vanille-Eiskugel">
+            </button>
+            <div class="scoop-shadow"></div>
+          </div>
+          <div class="tap-instruction"><span class="tap-instruction__arrow" aria-hidden="true">↗</span><strong>TIPPE AUF DAS EIS</strong><small>JEDER KLICK ZÄHLT</small></div>
+          <div class="stage-bottomline" aria-hidden="true"><span>GELATO MOMENTS</span><span>✦</span><span>FATTO CON AMORE</span></div>
+          <div class="floating-points" id="floatingPoints" aria-hidden="true"></div>
+        </div>
+
+        <div class="flavors-section">
+          <div class="section-heading"><div><span class="small-label">01 / DEINE GELATERIA</span><h2>Eine Sorte. <i>Deine Wahl.</i></h2></div><span class="flavors-section__note">WÄHLE DEIN LIEBLINGSEIS</span></div>
+          <div class="flavor-list" role="group" aria-label="Eissorte auswählen">
+            <button class="flavor active" data-flavor="vanille" type="button" aria-pressed="true"><img src="./assets/flavors/vanille.webp" alt=""><span>Vanille</span></button>
+            <button class="flavor" data-flavor="erdbeere" type="button" aria-pressed="false"><img src="./assets/flavors/erdbeere.webp" alt=""><span>Erdbeere</span></button>
+            <button class="flavor" data-flavor="schokolade" type="button" aria-pressed="false"><img src="./assets/flavors/schokolade.webp" alt=""><span>Schoko</span></button>
+            <button class="flavor" data-flavor="pistazie" type="button" aria-pressed="false"><img src="./assets/flavors/pistazie.webp" alt=""><span>Pistazie</span></button>
+          </div>
+        </div>
+
+        <div class="milestone">
+          <div class="milestone__row"><span class="small-label">DEIN NÄCHSTER MEILENSTEIN</span><span id="milestoneCount">0 / 100</span></div>
+          <h3 id="milestoneName">Die ersten 100 Kugeln</h3>
+          <div class="milestone__track"><div id="milestoneProgress" class="milestone__bar"></div></div>
+          <p>Jede große Eisdiele fängt mit einer kleinen Kugel an.</p>
+        </div>
+      </div>
+
+      <aside class="shop" aria-labelledby="shopHeading">
+        <div class="shop__intro">
+          <span class="shop__eyebrow">02 / VON DER KUGEL ZUM IMPERIUM</span>
+          <h2 id="shopHeading">Deine kleine <em>Eiswelt.</em></h2>
+          <p>Investiere deine Kugeln in clevere Helfer und lass die Eisproduktion wachsen.</p>
+          <div class="shop__summary"><span>DEINE PRODUKTION</span><strong><span id="totalPerSecond">0</span> <small>KUGELN / SEK.</small></strong></div>
+        </div>
+        <div class="shop__tabs" aria-label="Upgrade Kategorien"><span>DEINE UPGRADES</span><span id="upgradeCount">0 GEKAUFT</span></div>
+        <div id="upgradeList" class="upgrade-list"></div>
+        <div class="shop__bottom"><span class="shop__bottom-icon">✳</span><p>Un piccolo passo.<br><em>Un grande gelato.</em></p></div>
+      </aside>
+    </section>
+
+    <section class="achievements" aria-labelledby="achievementTitle">
+      <div><span class="small-label">03 / KLEINE TRIUMPHE</span><h2 id="achievementTitle">Momente zum <em>Feiern.</em></h2></div>
+      <div class="achievement-list" id="achievementList"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div><strong>PROJEKT X<span>.</span></strong><span>INSPIRED BY THE WORLD OF GELATO DONATELLO</span></div>
+    <button id="resetButton" type="button">SPIELSTAND ZURÜCKSETZEN ↗</button>
+    <small>DEIN FORTSCHRITT WIRD AUF DIESEM GERÄT GESPEICHERT.</small>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
