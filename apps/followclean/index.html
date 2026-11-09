@@ -14,6 +14,11 @@
 @media(max-width:570px){.shell{padding:0 14px}.topbar{height:72px}.brand{font-size:22px}.brand-mark{font-size:27px;margin-right:6px}.beta-tag{font-size:8px;letter-spacing:.6px;padding:9px}.hero{padding:49px 7px 25px;gap:0}.eyebrow{font-size:9px;letter-spacing:1.15px}h1{font-size:clamp(42px,11vw,58px);letter-spacing:-2.8px;margin:21px 0 18px}.hero-intro{font-size:15px;line-height:1.6}.privacy-line{font-size:10px;gap:5px;margin-top:20px}.hero-art{height:235px;max-width:300px}.hero-sun{width:158px;height:158px}.float-pill{font-size:11px;padding:9px 10px}.avatar-icon{height:23px;width:23px}.workspace{border-radius:12px}.step-nav{padding:16px 17px;font-size:9px}.view{padding:28px 15px 20px}.section-head h2,.results-head h2,.action-head h2{font-size:25px}.section-head p,.results-head p,.action-head p{font-size:12px}.dropzone{margin-top:20px;min-height:220px}.dropzone h3{font-size:17px}.dropzone p{font-size:12px}.import-help{gap:13px}.text-button{font-size:12px}.security-strip{font-size:11px}.results-head{flex-direction:column;gap:3px}.results-head .outlined-button{margin:0 0 8px;padding:8px 11px;font-size:12px}.stats-grid{grid-template-columns:1fr 1fr;gap:9px;margin:14px 0 30px}.stat-card{padding:16px 12px;min-height:110px}.stat-card.accent{grid-column:1 / -1}.stat-card strong{font-size:35px}.stat-label{font-size:9px}.stat-desc{font-size:10px}.toolbar{flex-direction:column}.toolbar select{width:100%}.profile-row{gap:8px;padding:13px 0}.profile-avatar{height:34px;width:34px;border-radius:10px;font-size:14px}.profile-details strong{font-size:12px}.profile-status{font-size:10px}.profile-actions{flex-wrap:wrap;justify-content:flex-end;max-width:155px}.mini-btn,.profile-link{font-size:10px;padding:8px 7px}.guided-card{padding:21px}.guided-card h3{font-size:19px}.guide-actions{flex-direction:column}.guide-actions .primary-button,.guide-actions .outlined-button{width:100%}.features{grid-template-columns:1fr;padding:35px 7px 42px;gap:26px}.feature-icon{margin-bottom:7px}.features p{font-size:12px}footer{gap:9px;padding:24px 4px 35px}footer p{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
+/* Native iOS file input overlay: actual user tap, no scripted click */
+.dropzone{position:relative;cursor:pointer;touch-action:manipulation}
+.dropzone .native-file-target{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:3}
+.dropzone:focus-within{outline:2px solid var(--lime);outline-offset:3px}
+.choose-file-visual{display:inline-block;margin:0 0 12px;padding:10px 18px;background:var(--lime);color:#20301b;font-size:13px;font-weight:850;border-radius:9px;pointer-events:none}
 </style>
   <script>
 /*!
@@ -280,7 +285,7 @@ function reset() {
 }
 
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
-$('dropzone').addEventListener('click', event => { if (event.target !== $('file-input')) $('file-input').click(); });
+// Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
 for (const type of ['dragenter','dragover']) $('dropzone').addEventListener(type, event => {event.preventDefault();$('dropzone').classList.add('dragging');});
 for (const type of ['dragleave','drop']) $('dropzone').addEventListener(type, event => {event.preventDefault();$('dropzone').classList.remove('dragging');});
@@ -335,10 +340,11 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="section-head"><div><span class="section-index">01 — START</span><h2>Deine Daten. Dein Überblick.</h2><p>Wähle deine Instagram-Exportdatei aus. Wir analysieren sie direkt auf deinem Gerät.</p></div></div>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
-            <h3>ZIP-Datei hier ablegen</h3>
-            <p>oder tippe, um eine Datei auszuwählen</p>
+            <h3>Instagram-ZIP auswählen</h3>
+            <p>Tippe hier und wähle die ZIP-Datei in „Dateien“</p>
+            <span class="choose-file-visual">Dateien öffnen ↗</span>
             <span class="file-types">INSTAGRAM .ZIP · ODER .JSON</span>
-            <input id="file-input" class="sr-only" type="file" accept=".zip,.json,application/zip,application/json" multiple aria-label="Instagram-Dateien hochladen" />
+            <input id="file-input" class="native-file-target" type="file" accept=".zip,.json,application/zip,application/json" multiple aria-label="Instagram-Dateien hochladen" />
           </div>
           <div id="import-error" class="alert" role="alert" hidden></div>
           <div id="import-status" class="loading-status" aria-live="polite" hidden><span class="spinner"></span> Daten werden lokal ausgewertet …</div>
