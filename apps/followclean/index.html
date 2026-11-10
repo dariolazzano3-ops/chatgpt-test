@@ -48,6 +48,11 @@
 @media(max-width:850px){.export-guide-intro{flex-direction:column}.export-guide-shortcut{width:100%;flex-direction:row;align-items:center;justify-content:space-between}}
 @media(max-width:620px){.export-guide{padding:16px 12px;margin-top:24px;border-radius:12px}.export-guide-intro h3{font-size:22px}.export-guide-intro p{font-size:12px}.export-step-grid{grid-template-columns:1fr;gap:9px}.export-step{padding:13px;gap:11px}.export-step p{font-size:12px}.export-guide-shortcut{font-size:10px;padding:11px}.export-guide-shortcut strong{font-size:11px}.upload-section-heading h3{font-size:20px}.upload-section-heading p{font-size:12px}}
 
+.hero-cta-row{display:flex;gap:11px;flex-wrap:wrap;margin-top:27px;align-items:center}
+.hero-guide-cta{display:inline-flex;align-items:center;gap:15px;justify-content:center;background:var(--lime);color:#1c2a18;font-weight:850;font-size:12px;padding:14px 16px;border-radius:9px}
+.hero-upload-cta{color:#d2e4ce;border:1px solid #60705f;padding:13px 14px;font-size:12px;font-weight:750;border-radius:9px}
+.hero-guide-cta:focus-visible,.hero-upload-cta:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
+@media(max-width:570px){.hero-cta-row{margin-top:21px}.hero-guide-cta,.hero-upload-cta{flex:1 1 100%;font-size:12px}}
 </style>
   <script>
 /*!
@@ -353,6 +358,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <h1 id="hero-title">Weniger folgen.<br><em>Mehr Überblick.</em></h1>
           <p class="hero-intro">Wer folgt dir nicht zurück? Finde es in Sekunden heraus. Ohne Instagram-Passwort, ohne neugierige Server.</p>
           <div class="privacy-line"><span>✦</span> Kostenlos testen <span class="sep">·</span> 100 % lokal analysiert <span class="sep">·</span> Kein Konto nötig</div>
+          <div class="hero-cta-row"><a class="hero-guide-cta" href="#export-guide">Anleitung Schritt für Schritt <span aria-hidden="true">↓</span></a><a class="hero-upload-cta" href="#dropzone">Ich habe die ZIP schon ↗</a></div>
         </div>
         <div class="hero-art" aria-hidden="true">
           <div class="orbit orbit-outer"></div><div class="orbit orbit-inner"></div>
