@@ -19,6 +19,35 @@
 .dropzone .native-file-target{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:3}
 .dropzone:focus-within{outline:2px solid var(--lime);outline-offset:3px}
 .choose-file-visual{display:inline-block;margin:0 0 12px;padding:10px 18px;background:var(--lime);color:#20301b;font-size:13px;font-weight:850;border-radius:9px;pointer-events:none}
+
+/* FollowClean export walkthrough: always visible, readable on mobile. */
+.export-guide{margin-top:30px;border:1px solid #465448;border-radius:17px;padding:23px;background:linear-gradient(150deg,#243027,#1c2521 75%)}
+.export-guide-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:19px}
+.export-guide-eyebrow,.export-step-label{color:var(--lime);font-weight:850;letter-spacing:1.2px;font-size:10px}
+.export-guide-intro h3{font-size:25px;line-height:1.17;letter-spacing:-.65px;margin:7px 0 8px}
+.export-guide-intro p{max-width:600px;margin:0;color:#b4c5b7;font-size:13px;line-height:1.6}
+.export-guide-shortcut{display:flex;flex-direction:column;gap:4px;border:1px solid #78896c;border-radius:10px;background:#30402f;padding:11px 14px;flex-shrink:0;font-size:11px;color:#dce6d6}
+.export-guide-shortcut strong{font-size:13px;color:var(--lime)}
+.export-guide-shortcut:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.export-step-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.export-step{display:flex;gap:13px;padding:16px;border:1px solid #405046;background:#19221e;border-radius:12px;min-width:0}
+.export-step-number{background:var(--lime);color:#21301d;flex:0 0 31px;height:31px;display:grid;place-items:center;border-radius:9px;font-size:12px;font-weight:900}
+.export-step-text{min-width:0}
+.export-step-label{font-size:9px;letter-spacing:.9px}
+.export-step h4{font-size:16px;letter-spacing:-.3px;margin:5px 0 8px;color:#f0f6ed}
+.export-step p{font-size:12px;line-height:1.65;color:#b7c4b9;margin:0 0 12px}
+.export-step p strong{color:#f0f6ed;font-weight:790}
+.export-step-route{display:block;color:#ddedc7;background:#2e3c31;border-radius:7px;padding:8px 9px;font-size:10.5px;font-weight:720;line-height:1.6;overflow-wrap:anywhere}
+.export-guide-bottom{display:flex;align-items:flex-start;gap:12px;padding:15px 1px 0;color:#b8c8b9}
+.export-guide-bottom p{margin:0;font-size:11.5px;line-height:1.65}
+.export-guide-bottom p strong{color:#e9f3e6}
+.export-guide-info-icon{background:#435947;color:var(--lime);display:grid;place-items:center;font-size:13px;font-weight:900;width:22px;height:22px;flex-shrink:0;border-radius:50%}
+.upload-section-heading{margin-top:29px}
+.upload-section-heading h3{font-size:22px;letter-spacing:-.6px;margin:6px 0 6px}
+.upload-section-heading p{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+@media(max-width:850px){.export-guide-intro{flex-direction:column}.export-guide-shortcut{width:100%;flex-direction:row;align-items:center;justify-content:space-between}}
+@media(max-width:620px){.export-guide{padding:16px 12px;margin-top:24px;border-radius:12px}.export-guide-intro h3{font-size:22px}.export-guide-intro p{font-size:12px}.export-step-grid{grid-template-columns:1fr;gap:9px}.export-step{padding:13px;gap:11px}.export-step p{font-size:12px}.export-guide-shortcut{font-size:10px;padding:11px}.export-guide-shortcut strong{font-size:11px}.upload-section-heading h3{font-size:20px}.upload-section-heading p{font-size:12px}}
+
 </style>
   <script>
 /*!
@@ -338,6 +367,22 @@ $('delete-local-btn').addEventListener('click',()=>{
         <div class="step-nav"><span class="step-nav-label">DEIN CLEANUP-SPACE</span><span class="step-nav-count" id="step-count">01 / 03</span></div>
         <div id="import-view" class="view">
           <div class="section-head"><div><span class="section-index">01 — START</span><h2>Deine Daten. Dein Überblick.</h2><p>Wähle deine Instagram-Exportdatei aus. Wir analysieren sie direkt auf deinem Gerät.</p></div></div>
+          <section class="export-guide" id="export-guide" aria-labelledby="export-guide-title">
+  <div class="export-guide-intro">
+    <div><span class="export-guide-eyebrow">DEINE ANLEITUNG · IPHONE &amp; ANDROID</span><h3 id="export-guide-title">So holst du deine Instagram-Datei.</h3><p>Sechs einfache Schritte direkt in Instagram. Die Einstellungen dauern nur wenige Minuten, danach stellt Instagram die Datei bereit.</p></div>
+    <a class="export-guide-shortcut" href="#dropzone">ZIP schon vorhanden? <strong>Direkt hochladen ↓</strong></a>
+  </div>
+  <div class="export-step-grid" role="list">
+    <article class="export-step" role="listitem"><div class="export-step-number">01</div><div class="export-step-text"><span class="export-step-label">IN INSTAGRAM</span><h4>Dein Profil öffnen</h4><p>Öffne Instagram und tippe unten rechts auf <strong>dein Profil</strong>. Danach oben rechts auf <strong>☰</strong> und auf <strong>Kontenübersicht</strong>.</p><span class="export-step-route">Profil → ☰ → Kontenübersicht</span></div></article>
+    <article class="export-step" role="listitem"><div class="export-step-number">02</div><div class="export-step-text"><span class="export-step-label">IM KONTO-CENTER</span><h4>Zum Datenexport gehen</h4><p>Wähle <strong>Deine Informationen und Berechtigungen</strong> und danach <strong>Deine Informationen exportieren</strong>.</p><span class="export-step-route">Informationen &amp; Berechtigungen → Exportieren</span></div></article>
+    <article class="export-step" role="listitem"><div class="export-step-number">03</div><div class="export-step-text"><span class="export-step-label">EXPORT ANLEGEN</span><h4>Auf Gerät exportieren</h4><p>Tippe auf <strong>Export erstellen</strong>, wähle dein <strong>Instagram-Profil</strong> und anschließend <strong>Zu Gerät exportieren</strong>.</p><span class="export-step-route">Export erstellen → Profil → Zu Gerät</span></div></article>
+    <article class="export-step" role="listitem"><div class="export-step-number">04</div><div class="export-step-text"><span class="export-step-label">WICHTIG: NUR DIESE DATEN</span><h4>Follower auswählen</h4><p>Öffne <strong>Informationen anpassen</strong>. Wähle nur <strong>Follower und Gefolgt</strong> (unter „Verbindungen“). Alles andere abwählen, falls es markiert ist.</p><span class="export-step-route">Informationen anpassen → Follower und Gefolgt</span></div></article>
+    <article class="export-step" role="listitem"><div class="export-step-number">05</div><div class="export-step-text"><span class="export-step-label">RICHTIGE EINSTELLUNGEN</span><h4>Zeitraum und Format</h4><p>Stelle den <strong>Zeitraum auf „Gesamter Zeitraum“</strong> und das <strong>Format auf „JSON“</strong>. HTML ist für diesen Import nicht geeignet.</p><span class="export-step-route">Gesamter Zeitraum ✓ &nbsp; JSON ✓</span></div></article>
+    <article class="export-step" role="listitem"><div class="export-step-number">06</div><div class="export-step-text"><span class="export-step-label">FERTIGSTELLEN</span><h4>ZIP-Datei herunterladen</h4><p>Tippe auf <strong>Export starten</strong>. Sobald Instagram dich benachrichtigt oder dir eine E-Mail schickt: Exportseite öffnen, <strong>Herunterladen</strong> wählen. Die ZIP findest du auf dem iPhone unter <strong>Dateien → Downloads</strong>.</p><span class="export-step-route">Export starten → Herunterladen → Downloads</span></div></article>
+  </div>
+  <div class="export-guide-bottom"><span class="export-guide-info-icon" aria-hidden="true">i</span><p><strong>Wichtig:</strong> Die ZIP-Datei nicht entpacken. Instagram kann für die Bereitstellung etwas Zeit benötigen. Die Menünamen können je nach App-Version leicht abweichen.</p></div>
+</section>
+<div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt deine ZIP-Datei auswählen</h3><p>Wähle den Instagram-Export direkt aus „Dateien“. Wir zeigen dir danach, wer dir nicht zurückfolgt.</p></div>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
             <h3>Instagram-ZIP auswählen</h3>
@@ -349,13 +394,15 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div id="import-error" class="alert" role="alert" hidden></div>
           <div id="import-status" class="loading-status" aria-live="polite" hidden><span class="spinner"></span> Daten werden lokal ausgewertet …</div>
           <div class="import-help">
-            <button id="help-toggle" class="text-button" aria-expanded="false" aria-controls="help-panel">Wie bekomme ich die Instagram-Datei? <span>↗</span></button>
+            <button id="help-toggle" class="text-button" aria-expanded="false" aria-controls="help-panel">Probleme beim Download oder Upload? <span>＋</span></button>
             <button id="demo-btn" class="text-button muted">Erst eine Demo ansehen ↗</button>
           </div>
           <div class="help-panel" id="help-panel" hidden>
-            <h3>So geht's auf deinem iPhone</h3>
-            <ol><li>Instagram öffnen, dann <strong>Profil → ☰ → Kontenübersicht</strong>.</li><li><strong>Deine Informationen und Berechtigungen → Deine Informationen exportieren</strong>.</li><li>Nur <strong>Follower und Gefolgt</strong> auswählen.</li><li><strong>Gesamter Zeitraum</strong> und <strong>JSON</strong> einstellen.</li><li>Export starten, ZIP herunterladen und hier auswählen.</li></ol>
-            <p>Instagram benötigt manchmal etwas Zeit für die Bereitstellung der ZIP-Datei.</p>
+            <h3>Häufige Fragen</h3>
+            <p><strong>Wo ist meine ZIP-Datei?</strong> Auf dem iPhone in „Dateien → Downloads“ oder „Auf meinem iPhone → Downloads“. Schau sonst in deinen Safari-Downloads nach.</p>
+            <p><strong>Instagram-E-Mail bekommen, aber keine Datei?</strong> Öffne den Link in der E-Mail, melde dich bei Instagram an und tippe bei deinem fertigen Export auf „Herunterladen“.</p>
+            <p><strong>Upload klappt nicht?</strong> Öffne FollowClean direkt in Safari, nicht in einer Vorschau innerhalb einer anderen App. Wähle die unveränderte ZIP oder die beiden JSON-Dateien aus.</p>
+            <p><strong>Ich sehe keine Follower?</strong> Exportiere nur „Follower und Gefolgt“ und wähle das Format JSON. Eine HTML-Datei kann FollowClean nicht zuverlässig auswerten.</p>
           </div>
           <div class="security-strip"><span class="security-icon">♢</span><span><strong>Privacy by design.</strong> Die Datei verlässt deinen Browser nicht. Wir fragen niemals nach deinem Instagram-Passwort.</span></div>
         </div>
