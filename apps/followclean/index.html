@@ -330,6 +330,52 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
  .afterword span{color:#b4c4d8}
 }
 
+
+/* FollowClean V1.4 · real-human example card with portraits and clear action */
+.balance-card-top{padding:2px 0 14px}
+.balance-eyebrow{font-size:12px;letter-spacing:1.1px}
+.balance-example{font-size:9px}
+.balance-accounts-simple{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);align-items:start;gap:5px;padding:4px 0 10px}
+.balance-accounts-simple .balance-account{gap:6px;font-size:12px}
+.balance-accounts-simple .balance-account strong{font-size:16px;line-height:1.4;font-weight:850;color:#242735}
+.balance-center-arrow{align-self:center;justify-self:center;font-size:29px;font-weight:750;color:var(--ig-violet);padding-bottom:30px}
+.balance-portrait{width:88px;height:88px;display:grid;place-items:center;border-radius:50%;padding:4px;background:linear-gradient(#fff,#fff) padding-box,conic-gradient(#f99c3a,#e73179,#7d37f1,#f99c3a) border-box;border:3px solid transparent;box-shadow:0 5px 18px #30345213}
+.balance-portrait-dario{background:#fff;border-color:#d4e2fd}
+.balance-portrait svg{width:100%;height:100%;display:block;border-radius:50%}
+.balance-account-status{color:#626b7b;font-size:11px;line-height:1.4;max-width:140px}
+.balance-not-following{color:#b4225b;font-weight:800}
+.balance-message{background:#f6f7fd;border:1px solid #e9ebf5;border-radius:12px;padding:14px 15px;display:flex;flex-direction:column;gap:4px;margin-top:12px;text-align:center}
+.balance-message strong{font-size:15px;color:#222936}
+.balance-message span{font-size:13px;color:#b52759;font-weight:750}
+.balance-statement{font-size:19px;line-height:1.25;letter-spacing:-.5px;font-weight:900;text-align:center;color:#272c39;margin:18px 0 14px}
+.balance-unfollow-button{display:flex;justify-content:center;align-items:center;gap:13px;min-height:49px;color:#fff!important;background:#0064e0;border-radius:11px;font-size:14px;font-weight:850;text-align:center;transition:background .15s,transform .15s}
+.balance-unfollow-button:hover{background:#0055c7;transform:translateY(-1px)}
+.balance-unfollow-button:focus-visible{outline:3px solid #a9c6ff;outline-offset:3px}
+.balance-unfollow-button span{font-size:22px;font-weight:500}
+.balance-card-note{font-size:10px;line-height:1.55;color:#787f90;text-align:center;max-width:320px;margin:11px auto 1px}
+@media(max-width:570px){
+ .balance-accounts-simple{gap:3px;grid-template-columns:minmax(0,1fr) 25px minmax(0,1fr)}
+ .balance-portrait{width:77px;height:77px}
+ .balance-accounts-simple .balance-account strong{font-size:15px}
+ .balance-account-status{font-size:10px}
+ .balance-center-arrow{font-size:24px}
+ .balance-statement{font-size:18px;margin:15px 0 12px}
+ .balance-message{margin-top:9px;padding:12px}
+}
+@media(prefers-color-scheme:dark){
+ .balance-portrait-dario{background:#1b1d28;border-color:#355e93}
+ .balance-portrait-matilda{background:linear-gradient(#1b1d28,#1b1d28) padding-box,conic-gradient(#f99c3a,#e73179,#7d37f1,#f99c3a) border-box}
+ .balance-accounts-simple .balance-account strong{color:#f3f4f7}
+ .balance-center-arrow{color:#c59aff}
+ .balance-account-status{color:#abb2c4}
+ .balance-not-following{color:#f29abe}
+ .balance-message{background:#242433;border-color:#393747}
+ .balance-message strong{color:#f4f4f7}
+ .balance-message span{color:#f3a5cb}
+ .balance-statement{color:#f4f4f8}
+ .balance-card-note{color:#acb2c0}
+}
+
 </style>
   <script>
 /*!
@@ -638,18 +684,69 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="privacy-line"><span>✦</span> Kostenlos testen <span class="sep">·</span> Ohne Passwort <span class="sep">·</span> Lokal analysiert</div>
           <p class="independent-note">Unabhängiges Tool. Keine Verbindung zu Instagram oder Meta.</p>
         </div>
-        <div class="hero-art hero-art-balance" aria-label="Beispiel einer einseitigen Instagram-Verbindung">
-          <div class="balance-card">
-            <div class="balance-card-top"><span class="balance-eyebrow">EINSEITIGER FOLLOW</span><span class="balance-example">SO SIEHT'S AUS</span></div>
-            <div class="balance-accounts">
-              <div class="balance-account"><div class="balance-avatar balance-avatar-you">DU</div><strong>Dein Account</strong></div>
-              <div class="balance-account"><div class="balance-avatar balance-avatar-them">＠</div><strong>Anderer Account</strong></div>
+
+        <div class="hero-art hero-art-balance">
+          <div class="balance-card" aria-label="Beispiel: Dario folgt Matilda, Matilda folgt Dario nicht zurück">
+            <div class="balance-card-top">
+              <span class="balance-eyebrow">SO SIEHT’S AUS</span>
+              <span class="balance-example">BEISPIEL</span>
             </div>
-            <div class="balance-directions">
-              <div class="balance-direction balance-direction-yes"><span>DU FOLGST</span><span aria-hidden="true" class="balance-arrow">→</span></div>
-              <div class="balance-direction balance-direction-no"><span aria-hidden="true" class="balance-arrow">←</span><span>KEIN FOLLOW ZURÜCK</span></div>
+            <div class="balance-accounts balance-accounts-simple">
+              <div class="balance-account">
+                <div class="balance-portrait balance-portrait-dario">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Illustriertes Beispielprofil Dario">
+                    <defs><clipPath id="fc-dario-clip"><circle cx="60" cy="60" r="57"/></clipPath><linearGradient id="fc-dario-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#bfdaee"/><stop offset="1" stop-color="#718fa9"/></linearGradient></defs>
+                    <g clip-path="url(#fc-dario-clip)">
+                      <rect width="120" height="120" fill="url(#fc-dario-bg)"/>
+                      <path d="M8 128 Q18 89 44 87 L76 87 Q103 91 115 128" fill="#273849"/>
+                      <path d="M48 77 L47 96 Q60 109 73 96 L72 76" fill="#bc805f"/>
+                      <ellipse cx="60" cy="55" rx="30" ry="37" fill="#dca47e"/>
+                      <path d="M30 54 Q24 24 45 18 Q61 7 80 18 Q94 27 89 55 L82 41 Q69 39 61 31 Q53 44 36 43Z" fill="#29252d"/>
+                      <path d="M31 48 Q20 27 42 18 Q55 12 60 18 Q40 22 31 48" fill="#211e26"/>
+                      <path d="M43 51 Q49 47 54 51 M67 51 Q73 47 79 51" stroke="#3b302e" stroke-width="2.7" fill="none" stroke-linecap="round"/>
+                      <circle cx="49" cy="55" r="2" fill="#2b2629"/><circle cx="73" cy="55" r="2" fill="#2b2629"/>
+                      <path d="M61 57 L58 68 L63 69" stroke="#a87662" stroke-width="2" stroke-linecap="round" fill="none"/>
+                      <path d="M48 73 Q60 82 73 73" stroke="#6c453d" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                      <path d="M36 69 Q38 92 60 91 Q82 92 85 67 Q77 80 71 81 Q60 87 50 81Z" fill="#4a3530" opacity=".62"/>
+                    </g>
+                  </svg>
+                </div>
+                <strong>Dario</strong>
+                <span class="balance-account-status">Du folgst ihr</span>
+              </div>
+              <div class="balance-center-arrow" aria-hidden="true">→</div>
+              <div class="balance-account">
+                <div class="balance-portrait balance-portrait-matilda">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Illustriertes Beispielprofil Matilda">
+                    <defs><clipPath id="fc-matilda-clip"><circle cx="60" cy="60" r="57"/></clipPath><linearGradient id="fc-matilda-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8d6ca"/><stop offset="1" stop-color="#d79eae"/></linearGradient></defs>
+                    <g clip-path="url(#fc-matilda-clip)">
+                      <rect width="120" height="120" fill="url(#fc-matilda-bg)"/>
+                      <path d="M27 55 Q20 20 49 14 Q79 7 90 34 Q101 64 96 102 L24 104 Q19 70 27 55" fill="#4c2b2e"/>
+                      <path d="M5 130 Q20 94 47 91 L74 91 Q101 94 117 130" fill="#e8f0ef"/>
+                      <path d="M51 77 L50 96 Q60 104 72 94 L70 77" fill="#c88c76"/>
+                      <ellipse cx="61" cy="55" rx="28" ry="36" fill="#edb79d"/>
+                      <path d="M32 50 Q29 18 52 15 Q82 11 88 42 Q83 31 70 30 Q53 44 35 39Z" fill="#4c2b2e"/>
+                      <path d="M31 44 Q20 62 29 98 L37 96 Q31 67 40 40" fill="#4c2b2e"/>
+                      <path d="M85 36 Q99 60 91 99 L83 101 Q91 68 80 35" fill="#4c2b2e"/>
+                      <path d="M44 52 Q50 49 55 52 M66 52 Q72 49 79 52" stroke="#5d3c3b" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      <circle cx="49" cy="55" r="1.9" fill="#33262b"/><circle cx="73" cy="55" r="1.9" fill="#33262b"/>
+                      <path d="M61 57 L58 68 L63 69" stroke="#be887a" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+                      <path d="M50 75 Q60 81 71 74" stroke="#a35f67" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                      <circle cx="34" cy="69" r="2.2" fill="#f1d98d"/><circle cx="88" cy="69" r="2.2" fill="#f1d98d"/>
+                    </g>
+                  </svg>
+                </div>
+                <strong>Matilda</strong>
+                <span class="balance-account-status balance-not-following">Folgt dir nicht zurück</span>
+              </div>
             </div>
-            <div class="balance-card-bottom"><span class="balance-emblem" aria-hidden="true">✳</span><div><strong>Du bist kein Fanclub.</strong><small>Du entscheidest, wer einen Platz in deinem Feed hat.</small></div></div>
+            <div class="balance-message">
+              <strong>Du folgst Matilda.</strong>
+              <span>Matilda folgt dir nicht zurück.</span>
+            </div>
+            <p class="balance-statement">Du bist kein Fanclub.</p>
+            <a href="#dropzone" class="balance-unfollow-button" aria-label="Jetzt entfolgen: Instagram-Datei auswählen und Liste prüfen">Jetzt entfolgen <span aria-hidden="true">→</span></a>
+            <p class="balance-card-note">Dein Export zeigt die echten Accounts. Das Entfolgen bestätigst du anschließend in Instagram.</p>
           </div>
         </div>
       </section>
