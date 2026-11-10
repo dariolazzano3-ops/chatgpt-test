@@ -376,6 +376,11 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
  .balance-card-note{color:#acb2c0}
 }
 
+
+/* Uploaded Dario portrait integrated as locally served optimized image */
+.balance-portrait-dario{padding:0;overflow:hidden;background:#fff}
+.balance-portrait-dario img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+@media(prefers-color-scheme:dark){.balance-portrait-dario{background:#1b1d28}}
 </style>
   <script>
 /*!
@@ -693,24 +698,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
             <div class="balance-accounts balance-accounts-simple">
               <div class="balance-account">
-                <div class="balance-portrait balance-portrait-dario">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Illustriertes Beispielprofil Dario">
-                    <defs><clipPath id="fc-dario-clip"><circle cx="60" cy="60" r="57"/></clipPath><linearGradient id="fc-dario-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#bfdaee"/><stop offset="1" stop-color="#718fa9"/></linearGradient></defs>
-                    <g clip-path="url(#fc-dario-clip)">
-                      <rect width="120" height="120" fill="url(#fc-dario-bg)"/>
-                      <path d="M8 128 Q18 89 44 87 L76 87 Q103 91 115 128" fill="#273849"/>
-                      <path d="M48 77 L47 96 Q60 109 73 96 L72 76" fill="#bc805f"/>
-                      <ellipse cx="60" cy="55" rx="30" ry="37" fill="#dca47e"/>
-                      <path d="M30 54 Q24 24 45 18 Q61 7 80 18 Q94 27 89 55 L82 41 Q69 39 61 31 Q53 44 36 43Z" fill="#29252d"/>
-                      <path d="M31 48 Q20 27 42 18 Q55 12 60 18 Q40 22 31 48" fill="#211e26"/>
-                      <path d="M43 51 Q49 47 54 51 M67 51 Q73 47 79 51" stroke="#3b302e" stroke-width="2.7" fill="none" stroke-linecap="round"/>
-                      <circle cx="49" cy="55" r="2" fill="#2b2629"/><circle cx="73" cy="55" r="2" fill="#2b2629"/>
-                      <path d="M61 57 L58 68 L63 69" stroke="#a87662" stroke-width="2" stroke-linecap="round" fill="none"/>
-                      <path d="M48 73 Q60 82 73 73" stroke="#6c453d" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                      <path d="M36 69 Q38 92 60 91 Q82 92 85 67 Q77 80 71 81 Q60 87 50 81Z" fill="#4a3530" opacity=".62"/>
-                    </g>
-                  </svg>
-                </div>
+                <div class="balance-portrait balance-portrait-dario"><img src="data:image/webp;base64,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" alt="Dario, Beispiel-Profilbild" width="160" height="160" decoding="async" /></div>
                 <strong>Dario</strong>
                 <span class="balance-account-status">Du folgst ihr</span>
               </div>
