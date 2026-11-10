@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#101415" />
+  <meta name="theme-color" content="#fafbfe" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
   <meta name="description" content="Finde Accounts, die dir nicht zurückfolgen. Kostenlos, passwortfrei und direkt auf deinem Gerät." />
   <meta name="robots" content="noindex,nofollow" />
   <title>FollowClean · Weniger folgen. Mehr Überblick.</title>
@@ -53,6 +54,194 @@
 .hero-upload-cta{color:#d2e4ce;border:1px solid #60705f;padding:13px 14px;font-size:12px;font-weight:750;border-radius:9px}
 .hero-guide-cta:focus-visible,.hero-upload-cta:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
 @media(max-width:570px){.hero-cta-row{margin-top:21px}.hero-guide-cta,.hero-upload-cta{flex:1 1 100%;font-size:12px}}
+
+/* FollowClean V1.2 · Instagram-inspired 2026 design language.
+   Independent product: not affiliated with Instagram or Meta. */
+:root{
+  color-scheme:light;
+  --bg:#fafbfe;--surface:#fff;--surface2:#f6f8fb;--line:#e7e9ef;
+  --lime:#0064e0;--warm:#17191f;--muted:#686e7b;--gold:#fff3db;--danger:#d63359;
+  --ig-blue:#0064e0;--ig-violet:#7b38ed;--ig-pink:#e9336e;--ig-orange:#f4a43e;
+  --ig-ramp:linear-gradient(128deg,#7638fa 2%,#bb2bdd 36%,#ec327b 68%,#f9a440 99%);
+}
+body{background:radial-gradient(ellipse 730px 340px at 95% 3%,#f8edf9 0%,transparent 76%),var(--bg);color:var(--warm)}
+::selection{background:#e9d7ff;color:#17191f}
+.bg-orb-one{background:#e53a97;opacity:.055}.bg-orb-two{background:#8236f8;opacity:.05}
+.topbar{border-color:#e8e9ef}
+.brand{color:#17191f}
+.brand-mark,.brand-period{color:var(--ig-pink)}
+.brand-mark{display:inline-block;background:var(--ig-ramp);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.beta-tag{color:#666e79;background:#f4f6fb;border-color:#e6e9f1}
+.pulse-dot{background:#0075ec;box-shadow:0 0 0 3px #e1edff}
+.eyebrow,.section-index,.step-nav-count,.guided-eyebrow,.guide-kicker{color:var(--ig-violet)}
+.eyebrow-line{background:var(--ig-pink)}
+h1{color:#17191f}h1 em{background:var(--ig-ramp);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-intro{color:#626777}
+.privacy-line{color:#3c4651}.privacy-line>span:first-child{color:var(--ig-blue)}
+.sep{color:#a8adbb}
+.hero-guide-cta,.choose-file-visual{background:var(--ig-blue);color:white;border-color:var(--ig-blue)}
+.hero-guide-cta:hover,.choose-file-visual:hover{background:#0057c6}
+.hero-upload-cta{border-color:#d5d9e4;color:#394156;background:#fff}
+.hero-upload-cta:hover{border-color:#8caef2;background:#f4f8ff}
+.hero-guide-cta:focus-visible,.hero-upload-cta:focus-visible,.dropzone:focus-within{outline-color:#0064e0}
+.orbit{border-color:#e7dcef}.orbit-outer{border-style:dashed}
+.hero-sun{background:var(--ig-ramp);color:white;box-shadow:0 26px 70px #b94bab31;transform:rotate(-10deg)}
+.float-pill{background:#fff;border-color:#e6e7ef;color:#292c37;box-shadow:0 16px 45px #42445c15}
+.avatar-icon{background:#e8f1ff;color:#0064e0}.neutral-icon{background:#f5ecf9;color:#bd3bb0}
+.art-star{color:var(--ig-violet)}
+.workspace{background:#fff;border:1px solid #e6e8ef;box-shadow:0 18px 70px #2e355a0d;border-radius:21px}
+.step-nav{background:#fcfcfe;border-color:#e8ebf0;color:#68717c}
+.view{background:#fff}
+.section-head h2,.results-head h2,.action-head h2,.export-guide-intro h3,.upload-section-heading h3,.guided-card h3,.guide-name{color:#1a1d25}
+.section-head p,.results-head p,.action-head p{color:#68717c}
+.export-guide{background:linear-gradient(140deg,#fffafc 0%,#f7f6ff 54%,#fff 100%);border-color:#ebe7f4;box-shadow:0 10px 33px #65499a0b}
+.export-guide-eyebrow,.export-step-label{color:#913be2}
+.export-guide-intro p{color:#667083}
+.export-guide-shortcut{background:#eef5ff;color:#425b80;border:1px solid #cfe0fa}
+.export-guide-shortcut strong{color:#005ac9}
+.export-guide-shortcut:focus-visible{outline-color:var(--ig-blue)}
+.export-step{background:#fff;border-color:#e9eaf2;box-shadow:0 3px 14px #20182d06}
+.export-step-number{background:var(--ig-blue);color:#fff}
+.export-step h4{color:#20242c}
+.export-step p{color:#616c7b}
+.export-step p strong{color:#252735}
+.export-step-route{color:#635b87;background:#f5f3fb;border:1px solid #eeebf6}
+.export-guide-bottom{color:#697283}
+.export-guide-bottom p strong{color:#323a47}
+.export-guide-info-icon{background:#e4edff;color:#0064e0}
+.upload-section-heading p{color:#69717c}
+.dropzone{border:1.5px dashed #a6bee5;background:linear-gradient(145deg,#f4f8ff,#fdfaff);box-shadow:inset 0 0 0 1px #ffffffaa}
+.dropzone:hover,.dropzone.dragging,.dropzone:focus-visible{border-color:var(--ig-blue);background:#eef5ff}
+.upload-visual{color:var(--ig-blue);border-color:#b6cff5}
+.upload-ring{border-color:#dce8ff}
+.dropzone h3{color:#1b2434}
+.dropzone p{color:#687388}.file-types{color:#7689af}
+.text-button{color:#0064e0}.text-button.muted{color:#676d7c}
+.help-panel{background:#f7faff;border-color:#e0e8f6;color:#465265}
+.help-panel h3{color:#1f2838}.help-panel p{color:#6e7788}
+.security-strip{border-color:#e9ecf3;color:#66727f}
+.security-strip strong{color:#283646}
+.security-icon{border-color:#cdddf8;background:#eef5ff;color:#0064e0}
+.alert{background:#fff0f1;border-color:#f7b8c0;color:#a32144}
+.loading-status{color:#0064e0}
+.spinner{border-color:#d3dcf2;border-top-color:#0064e0}
+.outlined-button{color:#303645;border-color:#d7dce7;background:white}
+.outlined-button:hover{border-color:#0064e0;color:#0064e0}
+.stat-card{background:#fff;border-color:#e6e8f0;box-shadow:0 6px 24px #1e335709}
+.stat-card.accent{background:linear-gradient(140deg,#fff1fa,#f4f0ff);border-color:#efd9f4;color:#6a249e}
+.stat-card.accent strong{color:#7827a9}
+.stat-label{color:inherit}
+.stat-desc{color:#77808f}
+.stat-card.accent .stat-desc{color:#835aa5}
+.search-wrap,.toolbar select{background:#fafbfe;border-color:#e0e4ed;color:#262d3b}
+.search-wrap span{color:#8291a8}
+.search-wrap input{color:#2a3040}
+.search-wrap input::placeholder{color:#8993a4}
+.progress-top{color:#6e7786}
+.progress-top strong{color:#0064e0}
+.progress-rail{background:#e8ebf3}
+.progress-rail>div{background:var(--ig-ramp)}
+.profile-row{border-color:#eaeef4}
+.profile-avatar{border-radius:50%;color:#283149;background:linear-gradient(#fff,#fff) padding-box,conic-gradient(#fbad36,#e73575,#8637ef,#fbad36) border-box;border:2px solid transparent}
+.profile-details strong{color:#242833}
+.profile-status{color:#7a8493}
+.profile-link{color:#0064e0;border-color:#d7e4f8;background:#f6f9ff}
+.profile-link:hover{background:#eaf2ff}
+.mini-btn{color:#3f4755;border-color:#d8dde6;background:white}
+.mini-btn.active-done{background:#e7f2ff;color:#005ec5;border-color:#a7c8fa}
+.mini-btn.active-keep{background:#fff5e7;color:#92551a;border-color:#edd1a7}
+.empty-list,.list-footer{color:#7d8491}
+.guided-card{background:linear-gradient(116deg,#eef5ff,#f8f5ff);color:#1d293b;border:1px solid #dde6f7}
+.guided-eyebrow{color:#0064e0}
+.guided-card p{color:#56677f}
+.primary-button,.guide-actions .primary-button{background:#0064e0;color:#fff;border-color:#0064e0}
+.primary-button:hover,.guide-actions .primary-button:hover{background:#0055c4}
+.guide-panel{background:#f8faff;border-color:#dce4f3}
+.guide-panel p{color:#626d7e}.guide-note{color:#747e90!important}
+.outlined-button.subdued{border-color:#d7dce7;color:#697383}
+.results-disclaimer{color:#7b8491}
+.feature-icon{color:var(--ig-violet)}
+.features h3{color:#272a33}
+.features p{color:#717a87}
+footer{border-color:#e5e8f1;color:#7f8794}
+footer .brand{color:#242630}
+.footer-link{color:#0064e0}
+.demo-ribbon{background:#fff1db;color:#79511c}
+@media(prefers-color-scheme:dark){
+ :root{color-scheme:dark;--bg:#0b0d12;--surface:#15171d;--surface2:#1e2029;--line:#2b2e38;--warm:#f6f6f8;--muted:#a1a5b1}
+ body{background:radial-gradient(ellipse 720px 390px at 90% 4%,#24172e 0%,transparent 70%),var(--bg);color:var(--warm)}
+ ::selection{background:#5a267a;color:#fff}
+ .topbar{border-color:#272a31}
+ .brand,h1{color:#f8f8f9}
+ .beta-tag{background:#191c25;color:#c8cbd4;border-color:#343945}
+ .pulse-dot{box-shadow:0 0 0 3px #12274d}
+ .hero-intro{color:#b4b8c4}
+ .privacy-line{color:#d5d8e2}.sep{color:#626777}
+ .hero-upload-cta{border-color:#3d414e;color:#e3e6ec;background:#181b22}
+ .hero-upload-cta:hover{border-color:#6677a8;background:#202636}
+ .orbit{border-color:#48304d}
+ .float-pill{background:#1c202a;border-color:#353741;color:#f1f2f6;box-shadow:0 16px 35px #0005}
+ .avatar-icon{background:#203450;color:#83b1ff}.neutral-icon{background:#382238;color:#f79ece}
+ .workspace{background:#15171d;border-color:#2b2d37;box-shadow:0 24px 55px #0002}
+ .step-nav,.view{background:#15171d;border-color:#2b2d37;color:#aeb3bf}
+ .section-head h2,.results-head h2,.action-head h2,.export-guide-intro h3,.upload-section-heading h3,.guided-card h3,.guide-name{color:#f4f5f8}
+ .section-head p,.results-head p,.action-head p{color:#a3a8b5}
+ .export-guide{background:linear-gradient(145deg,#221b2b,#1b1b26 55%,#181b23);border-color:#383044;box-shadow:none}
+ .export-guide-eyebrow,.export-step-label{color:#d69eff}
+ .export-guide-intro p{color:#b5b0c2}
+ .export-guide-shortcut{background:#202c43;color:#bfcfe9;border-color:#344f73}
+ .export-guide-shortcut strong{color:#91baff}
+ .export-step{background:#1b1c26;border-color:#353340;box-shadow:none}
+ .export-step-number{background:#1577ef;color:#fff}
+ .export-step h4{color:#f2f1f7}
+ .export-step p{color:#bfc2d1}.export-step p strong{color:#fbfaff}
+ .export-step-route{background:#292333;color:#dbccf0;border-color:#3b3448}
+ .export-guide-bottom{color:#bfc2ca}.export-guide-bottom p strong{color:#f6f6f8}
+ .export-guide-info-icon{background:#203454;color:#86b7ff}
+ .upload-section-heading p{color:#aab1bd}
+ .dropzone{border-color:#4d5b7b;background:linear-gradient(145deg,#1d2533,#1e1b2a);box-shadow:none}
+ .dropzone:hover,.dropzone.dragging,.dropzone:focus-visible{border-color:#5895f4;background:#26324a}
+ .upload-visual{color:#90b9ff;border-color:#4e658d}.upload-ring{border-color:#35425b}
+ .dropzone h3{color:#f0f1f5}.dropzone p{color:#bac1cf}.file-types{color:#9ba9cb}
+ .text-button,.footer-link{color:#81b4ff}.text-button.muted{color:#b4bac5}
+ .help-panel{background:#202432;border-color:#353d50;color:#e2e4ec}
+ .help-panel h3{color:#f3f4f7}.help-panel p{color:#b1b7c7}
+ .security-strip{border-color:#2e3240;color:#b3b8c6}.security-strip strong{color:#f6f7fa}
+ .security-icon{background:#213452;border-color:#3c5784;color:#91bbff}
+ .alert{background:#3e202c;border-color:#8b3a50;color:#ffbbc8}
+ .loading-status{color:#8bb6ff}.spinner{border-color:#323b52;border-top-color:#79b0ff}
+ .outlined-button,.mini-btn{background:#1d2029;border-color:#454853;color:#e1e4ec}
+ .outlined-button:hover{color:#9abfff;border-color:#608fe8}
+ .stat-card{background:#1d2029;border-color:#32343e;box-shadow:none}
+ .stat-card.accent{background:linear-gradient(125deg,#33213b,#241d42);border-color:#50345b;color:#e9b9ff}
+ .stat-card.accent strong{color:#f1c2ff}.stat-card.accent .stat-desc{color:#c9aadc}
+ .stat-desc{color:#a2a7b5}
+ .search-wrap,.toolbar select{background:#1b1d26;border-color:#383e4d;color:#eaecf2}
+ .search-wrap span{color:#929caf}.search-wrap input{color:#f1f3f9}.search-wrap input::placeholder{color:#969eae}
+ .progress-top{color:#aeb5c3}.progress-top strong{color:#8cbbff}.progress-rail{background:#363a46}
+ .profile-row{border-color:#31343d}
+ .profile-avatar{background:linear-gradient(#1c1d25,#1c1d25) padding-box,conic-gradient(#fbad36,#e73575,#8637ef,#fbad36) border-box;color:#f1f3fb}
+ .profile-details strong{color:#f0f1f6}.profile-status{color:#a8afbb}
+ .profile-link{color:#9ac5ff;border-color:#3b5173;background:#233047}.profile-link:hover{background:#2b4161}
+ .mini-btn.active-done{background:#1f3b56;color:#a6caff;border-color:#456d9a}
+ .mini-btn.active-keep{background:#3e3225;color:#ffd19c;border-color:#70543c}
+ .empty-list,.list-footer{color:#aab0bd}
+ .guided-card{background:linear-gradient(120deg,#1d2b43,#2b203a);border-color:#3c4664;color:#f6f6f8}
+ .guided-eyebrow{color:#93bfff}.guided-card p{color:#c5cce0}
+ .guide-panel{background:#202330;border-color:#37425b}.guide-panel p{color:#c2c7d3}
+ .outlined-button.subdued{color:#bdc2cf;border-color:#484957}
+ .results-disclaimer{color:#a6afbd}
+ .features h3{color:#f1f2f6}.features p{color:#aeb5c2}
+ footer{border-color:#2a2d36;color:#adb1bb}footer .brand{color:#f2f3f6}
+ .demo-ribbon{background:#4a3429;color:#ffd6a8}
+}
+@media(max-width:570px){
+ .hero-sun{box-shadow:0 20px 55px #7f329a30}
+ .export-step{border-radius:13px}
+ .workspace{border-radius:17px}
+}
+
+.independent-note{margin:12px 0 0;color:#7b818e;font-size:11px;line-height:1.5}@media(prefers-color-scheme:dark){.independent-note{color:#9ba2b0}}
 </style>
   <script>
 /*!
@@ -348,7 +537,7 @@ $('delete-local-btn').addEventListener('click',()=>{
   <div class="shell">
     <header class="topbar">
       <a href="#start" class="brand" aria-label="FollowClean Startseite"><span class="brand-mark">✳</span><span>follow<span class="brand-bold">clean</span><span class="brand-period">.</span></span></a>
-      <span class="beta-tag"><span class="pulse-dot"></span> PRIVATER PROTOTYP</span>
+      <span class="beta-tag"><span class="pulse-dot"></span> FOLLOWCLEAN BETA</span>
     </header>
 
     <main id="start">
@@ -358,6 +547,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <h1 id="hero-title">Weniger folgen.<br><em>Mehr Überblick.</em></h1>
           <p class="hero-intro">Wer folgt dir nicht zurück? Finde es in Sekunden heraus. Ohne Instagram-Passwort, ohne neugierige Server.</p>
           <div class="privacy-line"><span>✦</span> Kostenlos testen <span class="sep">·</span> 100 % lokal analysiert <span class="sep">·</span> Kein Konto nötig</div>
+          <p class="independent-note">Unabhängiges Tool. Keine Verbindung zu Instagram oder Meta.</p>
           <div class="hero-cta-row"><a class="hero-guide-cta" href="#export-guide">Anleitung Schritt für Schritt <span aria-hidden="true">↓</span></a><a class="hero-upload-cta" href="#dropzone">Ich habe die ZIP schon ↗</a></div>
         </div>
         <div class="hero-art" aria-hidden="true">
