@@ -385,6 +385,27 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
 /* Restaurant portrait: optimized inline image, not externally hosted */
 .balance-portrait-matilda{padding:0;overflow:hidden}
 .balance-portrait-matilda img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}
+
+/* FollowClean V1.7 · clearly separated free-count result and optional list */
+.free-result-cta{margin:10px 0 35px;padding:22px;border-radius:16px;border:1px solid #dbe7f9;background:linear-gradient(130deg,#f3f8ff,#fcf6ff)}
+.free-result-eyebrow{display:block;font-size:10px;font-weight:850;letter-spacing:1px;color:#6f36d6}
+.free-result-cta h3{margin:9px 0 7px;font-size:22px;letter-spacing:-.6px;color:#262b39}
+.free-result-cta p{font-size:13px;line-height:1.6;color:#586579;margin:0}
+.free-result-cta p strong{color:#242c3b}
+.free-result-button{display:flex;justify-content:center;align-items:center;gap:13px;margin-top:19px;min-height:49px;border-radius:10px;border:1px solid #0064e0;color:white;background:#0064e0;font-size:14px;font-weight:800;width:100%;text-align:center}
+.free-result-button:hover{background:#0059ca}
+.free-result-button:focus-visible{outline:3px solid #91bafa;outline-offset:3px}
+.free-result-cta p.free-result-note{font-size:11px;margin:11px 0 0;text-align:center;color:#778193}
+#detail-view{padding-top:6px}
+#detail-view[hidden]{display:none!important}
+@media(max-width:570px){.free-result-cta{padding:17px;margin:6px 0 25px}.free-result-cta h3{font-size:19px}.free-result-cta p{font-size:12px}.free-result-button{font-size:13px}}
+@media(prefers-color-scheme:dark){
+ .free-result-cta{background:linear-gradient(120deg,#1d2a42,#2e203a);border-color:#3a4765}
+ .free-result-eyebrow{color:#c49afa}
+ .free-result-cta h3{color:#f5f5f8}
+ .free-result-cta p,.free-result-cta p.free-result-note{color:#bac4d4}
+ .free-result-cta p strong{color:#f2f4fb}
+}
 </style>
   <script>
 /*!
@@ -566,7 +587,10 @@ function useResult(result, demo) {
   $('import-view').hidden = true;
   $('results-view').hidden = false;
   $('step-count').textContent = '02 / 03';
-  $('results-subtitle').textContent = demo ? 'Beispieldaten. Importiere deinen Export für deine echten Ergebnisse.' : 'Dein Instagram-Export wurde lokal ausgewertet.';
+  $('results-subtitle').textContent = demo ? 'Beispieldaten zur Vorschau. Lade deine ZIP für deine echte kostenlose Zahl hoch.' : 'Dein kostenloses Ergebnis ist da. Die Daten wurden lokal ausgewertet.';
+  $('detail-view').hidden = true;
+  $('open-list-btn').setAttribute('aria-expanded','false');
+  $('open-list-btn').innerHTML = 'Vollständige Liste anzeigen <span aria-hidden="true">↓</span>';
   $('guide-panel').hidden = true;
   $('stat-nonfollowers').textContent = result.notFollowingBack.length.toLocaleString('de-DE');
   $('stat-following').textContent = result.following.toLocaleString('de-DE');
@@ -646,7 +670,7 @@ function exportCsv() {
 }
 function reset() {
   state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear();
-  $('results-view').hidden = true; $('import-view').hidden = false; $('step-count').textContent = '01 / 03';
+  $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -659,6 +683,14 @@ $('dropzone').addEventListener('drop',event => importFiles(event.dataTransfer.fi
 $('help-toggle').addEventListener('click', () => { $('help-panel').hidden = !$('help-panel').hidden; $('help-toggle').setAttribute('aria-expanded',String(!$('help-panel').hidden)); });
 $('demo-btn').addEventListener('click',()=>useResult(compareLists(DEMO_FOLLOWERS,DEMO_FOLLOWING),true));
 $('reset-btn').addEventListener('click',reset);
+$('open-list-btn').addEventListener('click', () => {
+  const opening = $('detail-view').hidden;
+  $('detail-view').hidden = !opening;
+  $('open-list-btn').setAttribute('aria-expanded', String(opening));
+  $('open-list-btn').innerHTML = opening ? 'Liste wieder ausblenden <span aria-hidden="true">↑</span>' : 'Vollständige Liste anzeigen <span aria-hidden="true">↓</span>';
+  $('step-count').textContent = opening ? '03 / 03' : '02 / 03';
+  (opening ? $('detail-view') : $('free-result-cta')).scrollIntoView({behavior:'smooth',block:'start'});
+});
 $('search-input').addEventListener('input',event => {state.search=event.target.value;renderResults();});
 $('filter-select').addEventListener('change',event => {state.filter=event.target.value;renderResults();});
 $('download-btn').addEventListener('click',exportCsv);
@@ -688,9 +720,9 @@ $('delete-local-btn').addEventListener('click',()=>{
         <div class="hero-copy">
           <div class="eyebrow"><span class="eyebrow-line"></span> DEIN FEED. DEINE REGELN.</div>
           <h1 id="hero-title">Sei kein Fan von Leuten,<br><em>die nicht mal zurückfolgen.</em></h1>
-          <p class="hero-intro">Manche lassen sich gern folgen, folgen selbst aber nicht zurück. Du musst niemandem hinterherlaufen. <strong>FollowClean zeigt dir, wo dein Follow einseitig ist.</strong></p>
-          <div class="hero-cta-row"><a class="hero-guide-cta" href="#export-guide">Nicht-Rückfolger prüfen <span aria-hidden="true">↓</span></a><a class="hero-upload-cta" href="#dropzone">ZIP schon vorhanden? ↗</a></div>
-          <div class="privacy-line"><span>✦</span> Kostenlos testen <span class="sep">·</span> Ohne Passwort <span class="sep">·</span> Lokal analysiert</div>
+          <p class="hero-intro">Manche lassen sich gern folgen, folgen selbst aber nicht zurück. Du musst niemandem hinterherlaufen. <strong>Finde nach dem Instagram-Export kostenlos heraus, wie viele dir nicht zurückfolgen.</strong></p>
+          <div class="hero-cta-row"><a class="hero-guide-cta" href="#export-guide">Kostenlos prüfen <span aria-hidden="true">↓</span></a><a class="hero-upload-cta" href="#dropzone">ZIP schon vorhanden? ↗</a></div>
+          <div class="privacy-line"><span>✦</span> Anzahl kostenlos sehen <span class="sep">·</span> Ohne Passwort <span class="sep">·</span> Lokal analysiert</div>
           <p class="independent-note">Unabhängiges Tool. Keine Verbindung zu Instagram oder Meta.</p>
         </div>
 
@@ -727,7 +759,7 @@ $('delete-local-btn').addEventListener('click',()=>{
       <section class="workspace" id="workspace" aria-label="Instagram-Analyse">
         <div class="step-nav"><span class="step-nav-label">DEIN CLEANUP-SPACE</span><span class="step-nav-count" id="step-count">01 / 03</span></div>
         <div id="import-view" class="view">
-          <div class="section-head"><div><span class="section-index">01 — START</span><h2>Deine Daten. Dein Überblick.</h2><p>Wähle deine Instagram-Exportdatei aus. Wir analysieren sie direkt auf deinem Gerät.</p></div></div>
+          <div class="section-head"><div><span class="section-index">01 — START</span><h2>Wie viele folgen dir nicht zurück?</h2><p>Deine Instagram-Datei auswählen und die Anzahl kostenlos sehen. Ohne Registrierung, ohne Zahlung und direkt auf deinem Gerät.</p></div></div>
           <section class="export-guide" id="export-guide" aria-labelledby="export-guide-title">
   <div class="export-guide-intro">
     <div><span class="export-guide-eyebrow">DEINE ANLEITUNG · IPHONE &amp; ANDROID</span><h3 id="export-guide-title">So holst du deine Instagram-Datei.</h3><p>Sechs einfache Schritte direkt in Instagram. Die Einstellungen dauern nur wenige Minuten, danach stellt Instagram die Datei bereit.</p></div>
@@ -743,10 +775,10 @@ $('delete-local-btn').addEventListener('click',()=>{
   </div>
   <div class="export-guide-bottom"><span class="export-guide-info-icon" aria-hidden="true">i</span><p><strong>Wichtig:</strong> Die ZIP-Datei nicht entpacken. Instagram kann für die Bereitstellung etwas Zeit benötigen. Die Menünamen können je nach App-Version leicht abweichen.</p></div>
 </section>
-<div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt deine ZIP-Datei auswählen</h3><p>Wähle den Instagram-Export direkt aus „Dateien“. Wir zeigen dir danach, wer dir nicht zurückfolgt.</p></div>
+<div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
-            <h3>Instagram-ZIP auswählen</h3>
+            <h3>ZIP auswählen · kostenlos prüfen</h3>
             <p>Tippe hier und wähle die ZIP-Datei in „Dateien“</p>
             <span class="choose-file-visual">Dateien öffnen ↗</span>
             <span class="file-types">INSTAGRAM .ZIP · ODER .JSON</span>
@@ -769,12 +801,18 @@ $('delete-local-btn').addEventListener('click',()=>{
         </div>
 
         <div id="results-view" class="view" hidden>
-          <div class="results-head"><div><span class="section-index">02 — AUSWERTUNG</span><h2>Da ist der Durchblick.</h2><p id="results-subtitle">Dein Instagram-Export wurde lokal ausgewertet.</p></div><button id="reset-btn" class="outlined-button">Andere Datei ↗</button></div>
+          <div class="results-head"><div><span class="section-index">02 — GRATIS ERGEBNIS</span><h2>Das ist deine Zahl.</h2><p id="results-subtitle">Deine kostenlose Analyse ist abgeschlossen. Kein Konto, keine Zahlung.</p></div><button id="reset-btn" class="outlined-button">Andere Datei ↗</button></div>
           <div class="stats-grid" aria-label="Instagram-Statistik">
-            <div class="stat-card accent"><span class="stat-label">FOLGEN DIR NICHT ZURÜCK</span><strong id="stat-nonfollowers">0</strong><span class="stat-desc">Potenzial für deinen Cleanup</span></div>
+            <div class="stat-card accent"><span class="stat-label">FOLGEN DIR NICHT ZURÜCK</span><strong id="stat-nonfollowers">0</strong><span class="stat-desc">Kostenlos für dich berechnet</span></div>
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
             <div class="stat-card"><span class="stat-label">GEGENSEITIG</span><strong id="stat-mutual">0</strong><span class="stat-desc">Ihr folgt euch beide</span></div>
           </div>
+          <div class="free-result-cta" id="free-result-cta">
+            <div class="free-result-cta-copy"><span class="free-result-eyebrow">GRATIS ANALYSE ABGESCHLOSSEN</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
+            <button id="open-list-btn" class="free-result-button" type="button" aria-expanded="false" aria-controls="detail-view">Vollständige Liste anzeigen <span aria-hidden="true">↓</span></button>
+            <p class="free-result-note">In dieser Testversion ist auch die Liste kostenlos. Eine Bezahlung ist noch nicht aktiviert.</p>
+          </div>
+          <div id="detail-view" hidden>
           <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Jedes Profil selbst in Instagram öffnen und dort entfolgen. Wir behalten den Überblick.</p></div></div>
           <div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Account suchen …" autocomplete="off" aria-label="Instagram-Account suchen" /></label><select id="filter-select" aria-label="Accounts filtern"><option value="all">Alle anzeigen</option><option value="open">Noch offen</option><option value="done">Erledigt</option><option value="keep">Behalten</option></select></div>
           <div class="progress-top"><span><strong id="progress-text">0 von 0</strong> bearbeitet</span><button id="download-btn" class="text-button small">Liste als CSV ↗</button></div>
@@ -785,6 +823,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="guided-card"><div><div class="guided-eyebrow">EINFACHER GEHT'S NICHT</div><h3>Geführte Bereinigung starten</h3><p>Ein Profil nach dem anderen. Du entfolgst direkt in Instagram und markierst den Schritt hier als erledigt.</p></div><button id="guide-btn" class="primary-button">Jetzt durchgehen <span>↗</span></button></div>
           <div id="guide-panel" class="guide-panel" hidden><div class="guide-kicker">DEIN NÄCHSTER ACCOUNT</div><div id="guide-name" class="guide-name"></div><p>Öffne das Profil, entfolge bei Instagram, komme zurück und bestätige „Erledigt“.</p><div class="guide-actions"><a id="guide-link" class="primary-button" href="#" target="_blank" rel="noopener noreferrer">Profil auf Instagram öffnen ↗</a><button id="guide-done" class="outlined-button">✓ Erledigt</button><button id="guide-skip" class="outlined-button subdued">Überspringen</button></div><p class="guide-note">Wir können nicht überprüfen, ob du wirklich entfolgt bist. Dein Fortschritt ist eine persönliche Checkliste.</p></div>
           <p class="results-disclaimer">Die Analyse ist eine Momentaufnahme deines Exports. Accounts könnten sich inzwischen geändert haben. Folge- und Entfolgen-Aktionen erfolgen ausschließlich durch dich auf Instagram.</p>
+          </div>
         </div>
       </section>
 
