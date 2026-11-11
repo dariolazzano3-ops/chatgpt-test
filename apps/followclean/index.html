@@ -658,6 +658,19 @@ button.fast-entry-secondary:focus-visible{outline:3px solid #9ac4fa;outline-offs
 }
 @media(prefers-reduced-motion:reduce){.fc-remote-avatar{transition:none}}
 
+
+/* FollowClean V2.4 · real load feedback for quota-limited third-party avatars */
+.fc-avatar-panel .fc-avatar-next{align-self:flex-start;border-radius:9px;border:1px solid #bdd4ed;background:#fff;color:#1b62a9;padding:10px 13px;font-size:11px;font-weight:800}
+.fc-avatar-panel .fc-avatar-next[hidden]{display:none!important}
+.fc-avatar-panel #avatar-status{font-size:12px;font-weight:700;color:#365e90;line-height:1.55}
+.fc-avatar-panel .fc-avatar-privacy{font-size:10.5px;line-height:1.65}
+.fc-avatar-privacy a{color:#075fba;text-decoration:underline;text-underline-offset:2px}
+.fc-avatar-next:focus-visible{outline:3px solid #9ac8ff;outline-offset:3px}
+@media(prefers-color-scheme:dark){
+.fc-avatar-panel .fc-avatar-next{background:#1d3047;border-color:#4b6180;color:#bbdfff}
+.fc-avatar-panel #avatar-status{color:#afcefb}
+.fc-avatar-privacy a{color:#a8cfff}
+}
 </style>
   <script>
 /*!
@@ -788,7 +801,7 @@ function snapshotKey(result) {
 
 
 const $ = id => document.getElementById(id);
-const state = { result: null, statuses: {}, key: null, demo: false, filter: 'all', search: '', skip: new Set(), avatarsEnabled: false, activeVisit: null, lastAutoDone: null };
+const state = { result: null, statuses: {}, key: null, demo: false, filter: 'all', search: '', skip: new Set(), avatarsEnabled: false, avatarLimit: 8, avatarNodes: new Map(), avatarResults: new Map(), activeVisit: null, lastAutoDone: null };
 const DEMO_FOLLOWERS = ['beispiel_mia', 'beispiel_tim', 'beispiel_zoe', 'beispiel_noah', 'beispiel_lea', 'beispiel_ben'];
 const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispiel_luca', 'beispiel_sam', 'beispiel_max'];
 
@@ -848,8 +861,11 @@ function useResult(result, demo) {
   state.result = result;
   state.key = demo ? null : snapshotKey(result);
   state.filter = 'all'; state.search = ''; state.skip.clear(); state.avatarsEnabled = false; state.activeVisit = null; state.lastAutoDone = null;
+  state.avatarLimit = 8; state.avatarNodes = new Map(); state.avatarResults = new Map();
   $('avatar-toggle').setAttribute('aria-pressed', 'false');
-  $('avatar-toggle').textContent = '📷 Original-Profilbilder laden (optional)';
+  $('avatar-toggle').textContent = '📷 Profilbilder prüfen (optional)';
+  $('avatar-next').hidden = true;
+  $('avatar-status').textContent = 'Bilder werden erst nach deiner Zustimmung angefragt.';
   $('visit-toast').hidden = true;
   $('search-input').value = ''; $('filter-select').value = 'all';
   loadProgress();
@@ -914,16 +930,34 @@ function renderResults() {
     const status = statusFor(name);
     const row = makeEl('div',`profile-row${status === 'done' ? ' fc-row-done' : status === 'opened' ? ' fc-row-opened' : ''}`);
     const avatar = makeEl('div','profile-avatar',name[0].toUpperCase());
-    if (state.avatarsEnabled && !state.demo) {
-      const img = makeEl('img','fc-remote-avatar');
-      img.alt = '';
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      img.referrerPolicy = 'no-referrer';
-      img.onload = () => { img.classList.add('is-loaded'); avatar.classList.add('has-image'); };
-      img.onerror = () => { img.remove(); };
-      img.src = `https://unavatar.io/instagram/${encodeURIComponent(name)}`;
-      avatar.append(img);
+    if (state.avatarsEnabled && !state.demo && state.avatarResults.get(name) !== 'failed') {
+      let img = state.avatarNodes.get(name);
+      // The free provider allows 25 uncached requests/day per visitor. Never fire for 152 rows.
+      if (!img && state.avatarNodes.size < Math.min(state.avatarLimit, 20)) {
+        img = makeEl('img','fc-remote-avatar');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        state.avatarNodes.set(name, img);
+        state.avatarResults.set(name, 'loading');
+        img.onload = () => {
+          state.avatarResults.set(name, 'loaded');
+          img.classList.add('is-loaded');
+          img.parentElement?.classList.add('has-image');
+          updateAvatarStatus();
+        };
+        img.onerror = () => {
+          state.avatarResults.set(name, 'failed');
+          img.remove();
+          updateAvatarStatus();
+        };
+        img.src = `https://unavatar.io/instagram/${encodeURIComponent(name)}?fallback=false`;
+      }
+      if (img && state.avatarResults.get(name) !== 'failed') {
+        avatar.append(img);
+        if (state.avatarResults.get(name) === 'loaded') avatar.classList.add('has-image');
+      }
     }
     const details = makeEl('div','profile-details');
     details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Erledigt · Besuch, kein Entfolgen-Nachweis' : status === 'opened' ? '↗ Profil geöffnet · Rückkehr abwarten' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
@@ -981,7 +1015,11 @@ function exportCsv() {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function reset() {
-  state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.avatarsEnabled = false; state.lastAutoDone = null;
+  state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.avatarsEnabled = false; state.avatarLimit = 8; state.avatarNodes = new Map(); state.avatarResults = new Map(); state.lastAutoDone = null;
+  $('avatar-next').hidden = true;
+  $('avatar-toggle').setAttribute('aria-pressed','false');
+  $('avatar-toggle').textContent = '📷 Profilbilder prüfen (optional)';
+  $('avatar-status').textContent = 'Bilder werden erst nach deiner Zustimmung angefragt.';
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1065,11 +1103,39 @@ $('open-list-btn').addEventListener('click', () => {
 });
 $('search-input').addEventListener('input',event => {state.search=event.target.value;renderResults();});
 $('filter-select').addEventListener('change',event => {state.filter=event.target.value;renderResults();});
+// Do not imply pictures loaded until image onload confirms it.
+function updateAvatarStatus() {
+  const values = [...state.avatarResults.values()];
+  const ok = values.filter(x => x === 'loaded').length;
+  const failed = values.filter(x => x === 'failed').length;
+  const pending = values.filter(x => x === 'loading').length;
+  const total = values.length;
+  if (!state.avatarsEnabled) {
+    $('avatar-status').textContent = 'Bilder werden erst nach deiner Zustimmung angefragt.';
+    $('avatar-next').hidden = true;
+    return;
+  }
+  $('avatar-status').textContent = total === 0
+    ? 'Keine Profile zum Prüfen verfügbar.'
+    : pending
+      ? `${ok} von ${total} Bildern geladen · ${pending} werden geprüft`
+      : ok === 0
+        ? 'Der externe Bilddienst liefert gerade keine Profilbilder. Die Accountliste funktioniert weiterhin.'
+        : `${ok} Profilbilder geladen · ${failed} nicht verfügbar. Weitere Konten bleiben zunächst bei Initialen.`;
+  $('avatar-next').hidden = state.avatarLimit >= 20 || total < state.avatarLimit || (!pending && ok === 0);
+  $('avatar-toggle').textContent = state.avatarsEnabled ? 'Profilbildsuche ausschalten' : '📷 Profilbilder prüfen (optional)';
+}
 $('avatar-toggle').addEventListener('click', () => {
   state.avatarsEnabled = !state.avatarsEnabled;
   $('avatar-toggle').setAttribute('aria-pressed', String(state.avatarsEnabled));
-  $('avatar-toggle').textContent = state.avatarsEnabled ? '✓ Profilbilder geladen · ausschalten' : '📷 Original-Profilbilder laden (optional)';
   renderResults();
+  updateAvatarStatus();
+});
+$('avatar-next').addEventListener('click', () => {
+  if (!state.avatarsEnabled || state.avatarLimit >= 20) return;
+  state.avatarLimit = Math.min(state.avatarLimit + 6, 20);
+  renderResults();
+  updateAvatarStatus();
 });
 $('visit-undo').addEventListener('click', () => {
   const name = state.lastAutoDone;
@@ -1258,8 +1324,10 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div id="detail-view" hidden>
           <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: „Erledigt“ leuchtet grün. Den tatsächlichen Entfolgen-Schritt führst du selbst in Instagram aus.</p></div></div>
           <div class="fc-avatar-panel">
-            <button id="avatar-toggle" class="fc-avatar-toggle" type="button" aria-pressed="false">📷 Original-Profilbilder laden (optional)</button>
-            <p>Nach deinem Klick ruft ein unabhängiger Dienst (unavatar.io) Bilder anhand der angezeigten Benutzernamen ab. Dabei werden diese Namen und deine IP an den Dienst übermittelt. Nicht für jedes Profil ist ein Bild verfügbar. Die Instagram-ZIP bleibt lokal.</p>
+            <button id="avatar-toggle" class="fc-avatar-toggle" type="button" aria-pressed="false">📷 Profilbilder prüfen (optional)</button>
+            <p id="avatar-status" role="status" aria-live="polite">Bilder werden erst nach deiner Zustimmung angefragt.</p>
+            <button id="avatar-next" type="button" class="fc-avatar-next" hidden>Weitere 6 Profilbilder prüfen</button>
+            <p class="fc-avatar-privacy">Nach deinem Klick versucht <a href="https://unavatar.io" target="_blank" rel="noopener noreferrer">Unavatar</a>, öffentlich verfügbare Instagram-Bilder abzurufen. Dabei können Benutzername und IP-Adresse übermittelt werden. Ohne API-Schlüssel sind die Anfragen auf 25 pro Tag und IP begrenzt; wir fragen daher maximal 20 Konten pro Sitzung an. Manche Bilder sind grundsätzlich nicht verfügbar. Deine ZIP bleibt lokal.</p>
           </div>
           <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil als erledigt markiert.</span><button id="visit-undo" type="button">Rückgängig</button></div>
           <div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Account suchen …" autocomplete="off" aria-label="Instagram-Account suchen" /></label><select id="filter-select" aria-label="Accounts filtern"><option value="all">Alle anzeigen</option><option value="open">Noch offen</option><option value="opened">Profil geöffnet</option><option value="done">Erledigt</option><option value="keep">Behalten</option></select></div>
