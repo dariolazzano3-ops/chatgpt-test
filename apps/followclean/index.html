@@ -1121,7 +1121,7 @@ function updateAvatarStatus() {
       ? `${ok} von ${total} Bildern geladen · ${pending} werden geprüft`
       : ok === 0
         ? 'Der externe Bilddienst liefert gerade keine Profilbilder. Die Accountliste funktioniert weiterhin.'
-        : `${ok} Profilbilder geladen · ${failed} nicht verfügbar. Weitere Konten bleiben zunächst bei Initialen.`;
+        : `${ok} ${ok === 1 ? 'Profilbild' : 'Profilbilder'} geladen · ${failed} nicht verfügbar. Weitere Konten bleiben zunächst bei Initialen.`;
   $('avatar-next').hidden = state.avatarLimit >= 20 || total < state.avatarLimit || (!pending && ok === 0);
   $('avatar-toggle').textContent = state.avatarsEnabled ? 'Profilbildsuche ausschalten' : '📷 Profilbilder prüfen (optional)';
 }
