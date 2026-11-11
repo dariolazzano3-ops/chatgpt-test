@@ -503,6 +503,27 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
 @media(max-width:620px){.export-app-route{gap:5px 7px;font-size:10.5px}}
 @media(prefers-color-scheme:dark){.export-app-route{background:#262a37;border-color:#414456;color:#e1e8f5}.export-app-route>span:nth-child(even){color:#9fa8b9}.export-step p.export-app-help{color:#aeb6c5}.export-browser-fallback{color:#9cc8ff}}
 
+
+/* FollowClean V2.0 simplified export: use settings search instead of account-center maze */
+.fc-insta-search-example{margin:10px 0 4px;overflow:hidden;border-radius:12px;border:1px solid #e4e7ef;background:#fff}
+.fc-insta-search-input{display:flex;align-items:center;gap:11px;background:#f0f2f5;margin:9px;padding:12px 13px;border-radius:9px;font-size:12px;line-height:1.4;color:#333945}
+.fc-insta-search-input>span{font-size:22px;color:#727b89;line-height:1}
+.fc-insta-search-input strong{font-weight:720;overflow-wrap:anywhere}
+.fc-insta-search-result{display:flex;align-items:center;gap:12px;background:#fff;padding:13px 15px;border-top:1px solid #ebedf1;color:#252b37;font-size:12px;font-weight:760}
+.fc-insta-search-result span:nth-child(2){flex:1}
+.fc-insta-search-result span:first-child{font-size:17px;color:#0064e0}
+.fc-insta-search-result span:last-child{font-size:20px;color:#89909c}
+.export-step p.export-app-help{margin:11px 0 5px}
+.export-app-help strong{color:#374257}
+.export-fallback p .export-browser-fallback{display:inline;padding:0;font-size:inherit}
+@media(prefers-color-scheme:dark){
+ .fc-insta-search-example{border-color:#373e4c;background:#202531}
+ .fc-insta-search-input{background:#343947;color:#f3f4f7}
+ .fc-insta-search-input>span{color:#bdc4d2}
+ .fc-insta-search-result{background:#202531;border-color:#373e4c;color:#f0f2f7}
+ .export-app-help strong{color:#e6ecf8}
+}
+
 </style>
   <script>
 /*!
@@ -865,8 +886,8 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="export-guide-intro">
               <div>
                 <span class="export-guide-eyebrow">KEINE SORGE, DAS GEHT GANZ EINFACH</span>
-                <h3 id="export-guide-title">3 Schritte zur ZIP-Datei.</h3>
-                <p>Nur ein paar Einstellungen in Instagram. Die fertige Datei bekommst du anschließend per E-Mail. <strong>Kein Passwort bei FollowClean.</strong></p>
+                <h3 id="export-guide-title">Instagram öffnen. Kurz suchen. Fertig.</h3>
+                <p>Du musst dich nicht durch Menüs klicken: Suche direkt nach „Deine Informationen exportieren“. Danach nur drei Einstellungen auswählen. <strong>Ohne Passwort bei FollowClean.</strong></p>
               </div>
               <span class="export-mini-tag" aria-label="Drei Schritte">1 → 2 → 3</span>
             </div>
@@ -875,12 +896,15 @@ $('delete-local-btn').addEventListener('click',()=>{
                 <span class="export-step-number">1</span>
                 <div class="export-step-text">
                   <span class="export-step-label">ZUERST</span>
-                  <h4>Instagram-App öffnen</h4>
-                  <p>Du bist in Instagram meist schon angemeldet. Öffne die App und folge dem kurzen Weg zum Export:</p>
-                  <a class="export-meta-link export-app-link" href="instagram://app" aria-label="Instagram-App auf diesem Gerät öffnen">Instagram-App öffnen <span aria-hidden="true">↗</span></a>
-                  <div class="export-app-route" aria-label="Menüweg in Instagram"><span>Profil</span><span aria-hidden="true">›</span><span>☰</span><span aria-hidden="true">›</span><span>Kontenübersicht</span><span aria-hidden="true">›</span><span>Informationen &amp; Berechtigungen</span><span aria-hidden="true">›</span><span>Informationen exportieren</span></div>
-                  <p class="export-app-help">Die App öffnet sich an ihrer Startansicht, nicht direkt beim Export. Auf manchen Geräten wird die App-Weiterleitung blockiert.</p>
-                  <a class="export-browser-fallback" href="https://accountscenter.instagram.com/info_and_permissions/dyi/" target="_blank" rel="noopener noreferrer">App öffnet nicht? Export im Browser öffnen <span aria-hidden="true">↗</span></a>
+                  <h4>In Instagram kurz suchen</h4>
+                  <p>Öffne Instagram, tippe auf <strong>dein Profil</strong> und dann oben rechts auf <strong>☰</strong>. In <strong>„Einstellungen und Aktivitäten“</strong> nutzt du die Suchleiste:</p>
+                  <div class="fc-insta-search-example" aria-label="Suche in den Instagram-Einstellungen">
+                    <div class="fc-insta-search-input"><span aria-hidden="true">⌕</span><strong>Deine Informationen exportieren</strong></div>
+                    <div class="fc-insta-search-result"><span aria-hidden="true">↗</span><span>Deine Informationen exportieren</span><span aria-hidden="true">›</span></div>
+                  </div>
+                  <p class="export-app-help"><strong>Ersten Treffer antippen.</strong> So sparst du dir die Suche durch mehrere Untermenüs.</p>
+                  <a class="export-meta-link export-app-link" href="instagram://app" aria-label="Instagram-App auf diesem Gerät öffnen">Instagram öffnen <span aria-hidden="true">↗</span></a>
+                  <details class="export-fallback"><summary>Instagram lässt sich nicht öffnen?</summary><p>Öffne die Instagram-App selbst. Oder nutze den <a class="export-browser-fallback" href="https://accountscenter.instagram.com/info_and_permissions/dyi/" target="_blank" rel="noopener noreferrer">offiziellen Export im Browser ↗</a>. Der App-Button kann je nach Gerät blockiert werden.</p></details>
                 </div>
               </article>
               <article class="export-step" role="listitem">
