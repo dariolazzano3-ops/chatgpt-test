@@ -584,6 +584,46 @@ button.fast-entry-secondary:focus-visible{outline:3px solid #9ac4fa;outline-offs
  .fc-guide-collapsible,.fc-guide-chevron,.fc-guide-collapsible.is-open .export-step{transition:none!important;animation:none!important}
 }
 
+
+/* FollowClean V2.2 · continuity after Instagram export, all on-device */
+.fc-return-panel{border:1px solid #c9d9f2;border-radius:17px;background:linear-gradient(125deg,#edf5ff,#fff 65%);padding:22px;margin:10px 0 18px;scroll-margin-top:16px;box-shadow:0 10px 26px #1b36600a}
+.fc-return-panel[hidden]{display:none!important}
+.fc-return-top{display:flex;align-items:center;gap:8px}
+.fc-return-dot{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-weight:900;color:#08663e;background:#daf4e6}
+.fc-return-kicker{font-weight:850;font-size:10px;letter-spacing:1px;color:#3973ba}
+.fc-return-panel h3{font-size:21px;letter-spacing:-.65px;margin:12px 0 8px;color:#25364a}
+.fc-return-panel p{margin:0 0 16px;max-width:580px;font-size:13px;line-height:1.62;color:#5a677c}
+.fc-return-actions{display:flex;flex-wrap:wrap;gap:10px}
+.fc-return-main{border:1px solid #0064e0;background:#0064e0;color:#fff;padding:12px 17px;border-radius:10px;font-weight:850;font-size:12.5px;min-height:47px}
+.fc-return-main:hover{background:#0052ba}
+.fc-return-secondary{border:1px solid #ccd9ea;background:transparent;color:#315f9a;padding:12px 14px;border-radius:10px;font-weight:800;font-size:12px;min-height:47px}
+.fc-return-actions button:focus-visible,.fc-save-wait:focus-visible,.fc-return-dismiss:focus-visible{outline:3px solid #7eaff8;outline-offset:3px}
+.fc-return-bottom{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-top:15px;font-size:11px;line-height:1.55;color:#607084}
+.fc-return-dismiss,#fc-return-dismiss{border:0;background:transparent;color:#77869a;font-size:18px;line-height:1;padding:2px 7px}
+.fc-save-wait{display:inline-flex;gap:9px;align-items:center;margin:8px 0 5px;padding:12px 15px;background:#eaf3ff;color:#0956aa;border:1px solid #c5dfff;border-radius:9px;font-size:12px;font-weight:850;min-height:44px}
+.fc-save-wait:hover{background:#dfedff}
+.fc-save-wait[aria-pressed="true"]{background:#e4f6eb;border-color:#b8e6c7;color:#167045}
+.export-step .fc-export-wait-note{font-size:10.5px;color:#738094;margin:5px 0 9px}
+@media(max-width:570px){
+ .fc-return-panel{padding:16px 13px}
+ .fc-return-panel h3{font-size:19px}
+ .fc-return-panel p{font-size:12px}
+ .fc-return-actions{flex-direction:column}
+ .fc-return-actions button{width:100%;text-align:center}
+ .fc-save-wait{font-size:11px;padding:12px;max-width:100%}
+}
+@media(prefers-color-scheme:dark){
+ .fc-return-panel{background:linear-gradient(120deg,#1d2e45,#24242e);border-color:#385270}
+ .fc-return-kicker{color:#9bcbff}
+ .fc-return-panel h3{color:#f5f8ff}
+ .fc-return-panel p{color:#bfcddd}
+ .fc-return-secondary{color:#b5d3ff;border-color:#486486}
+ .fc-return-bottom{color:#a8b6ca}
+ .fc-save-wait{background:#223956;color:#b5d9ff;border-color:#42648f}
+ .fc-save-wait[aria-pressed="true"]{background:#193d31;color:#a5f3ca;border-color:#356c51}
+ .export-step .fc-export-wait-note{color:#b7c1d0}
+}
+
 </style>
   <script>
 /*!
@@ -665,6 +705,7 @@ function analyzeJsonTexts(followerTexts, followingText) {
 async function analyzeFiles(files, JSZip) {
   const supplied = Array.from(files ?? []);
   if (!supplied.length) throw new Error('Bitte wähle deine Instagram-ZIP oder zwei JSON-Dateien aus.');
+  if (supplied.some(file => /\.(html?|pdf|txt)$/i.test(file.name))) throw new Error('Das ist keine passende Instagram-Exportdatei. Bitte wähle eine ZIP oder die JSON-Dateien aus. Falls du HTML exportiert hast: Erstelle den Export erneut mit Format „JSON“.');
   const zip = supplied.find(file => /\.zip$/i.test(file.name));
   let followers = [];
   let following;
@@ -672,7 +713,9 @@ async function analyzeFiles(files, JSZip) {
   const maxJsonSize = 10 * 1024 * 1024;
   if (zip) {
     if (zip.size > maxZipSize) throw new Error('Die ZIP-Datei ist zu groß. Exportiere ausschließlich „Follower und Gefolgt“ als JSON.');
-    const archive = await JSZip.loadAsync(await zip.arrayBuffer());
+    let archive;
+    try { archive = await JSZip.loadAsync(await zip.arrayBuffer()); }
+    catch { throw new Error('Die ZIP-Datei lässt sich nicht öffnen. Bitte lade den Instagram-Export vollständig herunter und wähle die ZIP erneut aus. Nicht selbst entpacken.'); }
     const relevant = Object.values(archive.files).filter(f => !f.dir &&
       /(^|\/)followers(?:_\d+)?\.json$|(^|\/)following\.json$/i.test(f.name) &&
       !f.name.split('/').includes('__MACOSX'));
@@ -692,7 +735,7 @@ async function analyzeFiles(files, JSZip) {
     }
   }
   if (!followers.length || !following) {
-    throw new Error('„followers_1.json“ oder „following.json“ fehlt. Wähle beim Instagram-Export „Follower und Gefolgt“, Zeitraum „Gesamter Zeitraum“, Format „JSON“.');
+    throw new Error('In der Datei fehlen Follower- oder Gefolgt-Listen im JSON-Format. Öffne die Anleitung und exportiere nur „Follower und Gefolgt“, Zeitraum „Gesamter Zeitraum“, Format „JSON“. HTML-Exporte funktionieren hier nicht.');
   }
   try { return analyzeJsonTexts(followers, following); }
   catch (err) {
@@ -746,6 +789,7 @@ function makeEl(tag, className, text) {
 function validProfileUrl(name) { return `https://www.instagram.com/${encodeURIComponent(name)}/`; }
 function showError(message) { $('import-error').textContent = message; $('import-error').hidden = false; }
 async function importFiles(files) {
+  if (!files || !files.length) return;
   $('import-error').hidden = true;
   $('import-status').hidden = false;
   try {
@@ -766,6 +810,7 @@ function useResult(result, demo) {
   $('results-view').hidden = false;
   $('step-count').textContent = '02 / 03';
   $('results-subtitle').textContent = demo ? 'Beispieldaten zur Vorschau. Lade deine ZIP für deine echte kostenlose Zahl hoch.' : 'Dein kostenloses Ergebnis ist da. Die Daten wurden lokal ausgewertet.';
+  if (!demo) setExportPending(false);
   $('detail-view').hidden = true;
   $('open-list-btn').setAttribute('aria-expanded','false');
   $('open-list-btn').innerHTML = 'Vollständige Liste anzeigen <span aria-hidden="true">↓</span>';
@@ -879,6 +924,38 @@ if (window.location.hash === '#export-guide') setExportGuideOpen(true, false);
 window.addEventListener('hashchange', () => {
   if (window.location.hash === '#export-guide') setExportGuideOpen(true, false);
 });
+// Stores only the anonymous fact that an export was requested, never account information.
+const FC_EXPORT_PENDING_KEY = 'followclean:export-pending:v1';
+function setExportPending(pending) {
+  const card = $('fc-return-panel');
+  const requested = $('fc-export-requested');
+  card.hidden = !pending;
+  requested.setAttribute('aria-pressed', String(pending));
+  requested.innerHTML = pending
+    ? '<span aria-hidden="true">✓</span> Export angefordert · Rückkehrhilfe aktiv'
+    : '<span aria-hidden="true">✓</span> Export angefordert? Hier für später merken';
+  try {
+    if (pending) localStorage.setItem(FC_EXPORT_PENDING_KEY, '1');
+    else localStorage.removeItem(FC_EXPORT_PENDING_KEY);
+  } catch { /* Safari Private Browsing may block persistence; current tab still works. */ }
+}
+try {
+  if (localStorage.getItem(FC_EXPORT_PENDING_KEY) === '1') setExportPending(true);
+} catch { /* Use the regular upload path if storage is unavailable. */ }
+$('fc-export-requested').addEventListener('click', () => {
+  const next = $('fc-export-requested').getAttribute('aria-pressed') !== 'true';
+  setExportPending(next);
+  if (next) {
+    setExportGuideOpen(false);
+    $('fc-return-panel').scrollIntoView({behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',block:'start'});
+  }
+});
+$('fc-return-upload').addEventListener('click', () => {
+  // Directly activate the native input on this user gesture for iOS Safari.
+  $('file-input').click();
+});
+$('fc-return-guide').addEventListener('click', () => setExportGuideOpen(true, true));
+$('fc-return-dismiss').addEventListener('click', () => setExportPending(false));
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
 // Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
@@ -969,6 +1046,16 @@ $('delete-local-btn').addEventListener('click',()=>{
             <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
             <button type="button" class="fast-entry-link fast-entry-secondary" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fast-entry-icon" aria-hidden="true">?</span><span><strong class="fc-guide-button-text">Anleitung ansehen</strong><small>Nur 3 einfache Schritte</small></span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button>
           </div>
+          <aside class="fc-return-panel" id="fc-return-panel" aria-labelledby="fc-return-title" hidden>
+            <div class="fc-return-top"><span class="fc-return-dot" aria-hidden="true">✓</span><span class="fc-return-kicker">DEIN INSTAGRAM-EXPORT</span></div>
+            <h3 id="fc-return-title">ZIP erhalten? Hier geht's weiter.</h3>
+            <p>Instagram bereitet deine Datei vor. Sobald die E-Mail kommt, lade die ZIP herunter und wähle sie hier aus. Du musst die Anleitung nicht noch einmal durchgehen.</p>
+            <div class="fc-return-actions">
+              <button type="button" class="fc-return-main" id="fc-return-upload">ZIP auswählen &amp; kostenlos prüfen <span aria-hidden="true">↗</span></button>
+              <button type="button" class="fc-return-secondary" id="fc-return-guide">Anleitung erneut ansehen</button>
+            </div>
+            <div class="fc-return-bottom"><span>📌 Tipp: Speichere FollowClean als Safari-Lesezeichen. Wir brauchen keine E-Mail-Adresse.</span><button id="fc-return-dismiss" type="button" aria-label="Rückkehrhinweis schließen">✕</button></div>
+          </aside>
           <div class="fc-guide-collapsible" id="fc-guide-panel" aria-hidden="true" inert>
             <div class="fc-guide-collapsible-inner">
           <section class="export-guide" id="export-guide" aria-labelledby="export-guide-title">
@@ -1017,6 +1104,8 @@ $('delete-local-btn').addEventListener('click',()=>{
                   <h4>E-Mail abwarten, ZIP auswählen</h4>
                   <p>Tippe auf <strong>Export starten</strong>. Instagram informiert dich per E-Mail, sobald die Datei fertig ist. Öffne dann die Exportseite über den E-Mail-Link und tippe auf <strong>Herunterladen</strong>.</p>
                   <div class="export-ready"><span aria-hidden="true">📁</span><div><strong>Auf dem iPhone:</strong> Dateien → Downloads<small>Die ZIP nicht entpacken, einfach bei FollowClean auswählen.</small></div></div>
+                  <button id="fc-export-requested" class="fc-save-wait" type="button" aria-pressed="false"><span aria-hidden="true">✓</span> Export angefordert? Hier für später merken</button>
+                  <p class="fc-export-wait-note">Das merkt sich nur dein Browser, ohne Konto oder persönliche Daten.</p>
                   <a class="export-back-upload" href="#dropzone">ZIP da? Jetzt kostenlos auswerten <span aria-hidden="true">↓</span></a>
                 </div>
               </article>
@@ -1028,8 +1117,8 @@ $('delete-local-btn').addEventListener('click',()=>{
 <div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
-            <h3>ZIP auswählen · kostenlos prüfen</h3>
-            <p>Tippe hier und wähle die ZIP-Datei in „Dateien“</p>
+            <h3>Instagram-ZIP auswählen</h3>
+            <p>Auf dem iPhone: „Dateien“ → „Downloads“ → ZIP antippen. Die ZIP bleibt auf deinem Gerät.</p>
             <span class="choose-file-visual">Dateien öffnen ↗</span>
             <span class="file-types">INSTAGRAM .ZIP · ODER .JSON</span>
             <input id="file-input" class="native-file-target" type="file" accept=".zip,.json,application/zip,application/json" multiple aria-label="Instagram-Dateien hochladen" />
@@ -1044,7 +1133,8 @@ $('delete-local-btn').addEventListener('click',()=>{
             <h3>Häufige Fragen</h3>
             <p><strong>Wo ist meine ZIP-Datei?</strong> Auf dem iPhone in „Dateien → Downloads“ oder „Auf meinem iPhone → Downloads“. Schau sonst in deinen Safari-Downloads nach.</p>
             <p><strong>Instagram-E-Mail bekommen, aber keine Datei?</strong> Öffne den Link in der E-Mail, melde dich bei Instagram an und tippe bei deinem fertigen Export auf „Herunterladen“.</p>
-            <p><strong>Upload klappt nicht?</strong> Öffne FollowClean direkt in Safari, nicht in einer Vorschau innerhalb einer anderen App. Wähle die unveränderte ZIP oder die beiden JSON-Dateien aus.</p>
+            <p><strong>Upload klappt nicht?</strong> Öffne FollowClean direkt in Safari, nicht in einer Vorschau innerhalb einer anderen App. Wähle die unveränderte ZIP oder die beiden JSON-Dateien aus. Das Format muss JSON sein, nicht HTML.</p>
+            <p><strong>Die ZIP wurde nicht erkannt?</strong> Lade sie vollständig herunter und versuche es erneut. Im Export müssen „Follower und Gefolgt“ enthalten sein. Bei großen Komplett-Exporten bitte nur diese Kategorie erneut exportieren.</p>
             <p><strong>Ich sehe keine Follower?</strong> Exportiere nur „Follower und Gefolgt“ und wähle das Format JSON. Eine HTML-Datei kann FollowClean nicht zuverlässig auswerten.</p>
           </div>
           <div class="security-strip"><span class="security-icon">♢</span><span><strong>Privacy by design.</strong> Die Datei verlässt deinen Browser nicht. Wir fragen niemals nach deinem Instagram-Passwort.</span></div>
