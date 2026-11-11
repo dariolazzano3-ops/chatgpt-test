@@ -624,6 +624,40 @@ button.fast-entry-secondary:focus-visible{outline:3px solid #9ac4fa;outline-offs
  .export-step .fc-export-wait-note{color:#b7c1d0}
 }
 
+
+/* FollowClean V2.3 · optional original avatars and automatic return checklist */
+.fc-avatar-panel{display:flex;flex-direction:column;gap:8px;margin:5px 0 15px;padding:14px;border-radius:12px;background:#f3f6fc;border:1px solid #dbe4f3}
+.fc-avatar-toggle{padding:12px 15px;border-radius:10px;background:#eff5ff;color:#0c59b9;border:1px solid #c2d8f5;font-size:12px;font-weight:850;align-self:flex-start;min-height:45px}
+.fc-avatar-toggle[aria-pressed="true"]{background:#def3e7;border-color:#94d7b3;color:#12744a}
+.fc-avatar-panel p{font-size:11px;line-height:1.6;color:#70798a;margin:0}
+.fc-visit-toast{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #9fd8b6;background:#e6f7ee;color:#145a3b;border-radius:10px;padding:12px;margin:10px 0 15px;font-size:11.5px;font-weight:740;line-height:1.5}
+.fc-visit-toast[hidden]{display:none!important}
+.fc-visit-toast button{flex-shrink:0;border-radius:8px;background:#fff;color:#135a39;border:1px solid #b6ddc6;padding:9px;font-weight:850;font-size:11px}
+.profile-row.fc-row-done{background:linear-gradient(90deg,#e8fff181,transparent 80%);border-radius:9px;padding-left:7px;margin-left:-7px}
+.profile-row.fc-row-done .profile-details .profile-status{color:#087a47;font-weight:750}
+.profile-row.fc-row-opened .profile-details .profile-status{color:#3375cd;font-weight:750}
+.profile-row .profile-avatar{position:relative;overflow:hidden;border-radius:50%;border:2px solid #f4a662;isolation:isolate}
+.profile-row.fc-row-done .profile-avatar{border-color:#2cb66f;box-shadow:0 0 0 2px #b9efd4}
+.profile-row .profile-avatar.has-image{font-size:0}
+.fc-remote-avatar{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;opacity:0;transition:opacity 180ms ease}
+.fc-remote-avatar.is-loaded{opacity:1}
+.mini-btn.active-done{background:#0c9c55!important;border-color:#087d48!important;color:#fff!important;box-shadow:0 0 0 2px #55d79355,0 0 14px #22bb7755}
+.mini-btn.active-done:hover{background:#087b43!important}
+.fc-avatar-toggle:focus-visible,.fc-visit-toast button:focus-visible{outline:3px solid #a1c8ff;outline-offset:3px}
+@media(max-width:570px){.fc-avatar-panel{padding:12px}.fc-avatar-toggle{width:100%;font-size:11px}.fc-avatar-panel p{font-size:10.5px}.fc-visit-toast{align-items:start}.profile-row.fc-row-done{padding-left:4px;margin-left:-4px}}
+@media(prefers-color-scheme:dark){
+ .fc-avatar-panel{background:#1e293b;border-color:#394a65}
+ .fc-avatar-toggle{background:#263d5b;border-color:#44638d;color:#c9e1ff}
+ .fc-avatar-toggle[aria-pressed="true"]{background:#214a37;color:#b4f4cf;border-color:#4b996a}
+ .fc-avatar-panel p{color:#bdc9d6}
+ .fc-visit-toast{background:#203c2f;border-color:#437859;color:#b0ecc8}
+ .fc-visit-toast button{background:#2e533b;color:#d9f7e7;border-color:#528768}
+ .profile-row.fc-row-done{background:linear-gradient(90deg,#1f50302f,transparent 80%)}
+ .profile-row.fc-row-done .profile-details .profile-status{color:#71dca8}
+ .profile-row.fc-row-opened .profile-details .profile-status{color:#99c6ff}
+}
+@media(prefers-reduced-motion:reduce){.fc-remote-avatar{transition:none}}
+
 </style>
   <script>
 /*!
@@ -754,7 +788,7 @@ function snapshotKey(result) {
 
 
 const $ = id => document.getElementById(id);
-const state = { result: null, statuses: {}, key: null, demo: false, filter: 'all', search: '', skip: new Set() };
+const state = { result: null, statuses: {}, key: null, demo: false, filter: 'all', search: '', skip: new Set(), avatarsEnabled: false, activeVisit: null, lastAutoDone: null };
 const DEMO_FOLLOWERS = ['beispiel_mia', 'beispiel_tim', 'beispiel_zoe', 'beispiel_noah', 'beispiel_lea', 'beispiel_ben'];
 const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispiel_luca', 'beispiel_sam', 'beispiel_max'];
 
@@ -776,7 +810,7 @@ function loadProgress() {
     const parsed = JSON.parse(localStorage.getItem(state.key) || '{}');
     if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return;
     for (const name of state.result.notFollowingBack) {
-      if (['done', 'keep'].includes(parsed[name])) state.statuses[name] = parsed[name];
+      if (['done', 'keep', 'opened'].includes(parsed[name])) state.statuses[name] = parsed[name];
     }
   } catch { /* ignore unavailable storage */ }
 }
@@ -813,7 +847,10 @@ function useResult(result, demo) {
   state.demo = demo;
   state.result = result;
   state.key = demo ? null : snapshotKey(result);
-  state.filter = 'all'; state.search = ''; state.skip.clear();
+  state.filter = 'all'; state.search = ''; state.skip.clear(); state.avatarsEnabled = false; state.activeVisit = null; state.lastAutoDone = null;
+  $('avatar-toggle').setAttribute('aria-pressed', 'false');
+  $('avatar-toggle').textContent = '📷 Original-Profilbilder laden (optional)';
+  $('visit-toast').hidden = true;
   $('search-input').value = ''; $('filter-select').value = 'all';
   loadProgress();
   $('import-view').hidden = true;
@@ -831,11 +868,41 @@ function useResult(result, demo) {
   renderResults();
   $('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
+// Visiting a profile does not prove a user unfollowed. The green state is a reversible checklist marker.
+function beginProfileVisit(name) {
+  if (!state.result || state.demo || !state.result.notFollowingBack.includes(name)) return;
+  if (statusFor(name) === 'keep' || statusFor(name) === 'done') return;
+  state.activeVisit = { name, left: false };
+  state.statuses[name] = 'opened';
+  saveProgress();
+  // Let the anchor's default navigation finish before replacing its DOM node.
+  setTimeout(() => { if (state.result) renderResults(); }, 0);
+}
+function markVisitAway() { if (state.activeVisit) state.activeVisit.left = true; }
+function completeVisitOnReturn() {
+  const visit = state.activeVisit;
+  if (!visit || !visit.left || document.visibilityState === 'hidden') return;
+  state.activeVisit = null;
+  if (!state.result || state.demo || statusFor(visit.name) !== 'opened') return;
+  setStatus(visit.name, 'done');
+  state.lastAutoDone = visit.name;
+  $('visit-toast-text').textContent = '@' + visit.name + ' grün markiert. Das bestätigt keinen Entfolgen-Vorgang.';
+  $('visit-toast').hidden = false;
+}
+window.addEventListener('blur', markVisitAway);
+window.addEventListener('pagehide', markVisitAway);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') markVisitAway();
+  else completeVisitOnReturn();
+});
+window.addEventListener('focus', completeVisitOnReturn);
+window.addEventListener('pageshow', completeVisitOnReturn);
 function renderResults() {
   const all = state.result?.notFollowingBack ?? [];
   const done = all.filter(name => statusFor(name) === 'done').length;
   const kept = all.filter(name => statusFor(name) === 'keep').length;
   const processed = done + kept;
+  $('progress-text').setAttribute('title', 'Erledigt kann nach einem Profilbesuch automatisch markiert werden. FollowClean prüft nicht, ob du tatsächlich entfolgt bist.');
   $('progress-text').textContent = `${processed} von ${all.length}`;
   $('progress-bar').style.width = `${all.length ? 100 * processed / all.length : 100}%`;
   $('progress-bar').setAttribute('aria-label', `${processed} von ${all.length} bearbeitet`);
@@ -845,19 +912,31 @@ function renderResults() {
   const fragment = document.createDocumentFragment();
   for (const name of rows) {
     const status = statusFor(name);
-    const row = makeEl('div','profile-row');
+    const row = makeEl('div',`profile-row${status === 'done' ? ' fc-row-done' : status === 'opened' ? ' fc-row-opened' : ''}`);
     const avatar = makeEl('div','profile-avatar',name[0].toUpperCase());
+    if (state.avatarsEnabled && !state.demo) {
+      const img = makeEl('img','fc-remote-avatar');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => { img.classList.add('is-loaded'); avatar.classList.add('has-image'); };
+      img.onerror = () => { img.remove(); };
+      img.src = `https://unavatar.io/instagram/${encodeURIComponent(name)}`;
+      avatar.append(img);
+    }
     const details = makeEl('div','profile-details');
-    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Von dir als erledigt markiert' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
+    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Erledigt · Besuch, kein Entfolgen-Nachweis' : status === 'opened' ? '↗ Profil geöffnet · Rückkehr abwarten' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
     const actions = makeEl('div','profile-actions');
     if (!state.demo) {
       const link = makeEl('a','profile-link','Profil ↗');
       link.href = validProfileUrl(name); link.target = '_blank'; link.rel = 'noopener noreferrer'; link.setAttribute('aria-label',`Instagram-Profil @${name} öffnen`);
+      link.addEventListener('click', () => beginProfileVisit(name));
       actions.append(link);
     }
     const keep = makeEl('button',`mini-btn${status === 'keep' ? ' active-keep' : ''}`,status === 'keep' ? '★ Behalten' : '☆ Behalten');
     keep.type = 'button'; keep.addEventListener('click', () => setStatus(name,status === 'keep' ? 'open' : 'keep'));
-    const complete = makeEl('button',`mini-btn${status === 'done' ? ' active-done' : ''}`,status === 'done' ? '✓ Erledigt' : 'Erledigt');
+    const complete = makeEl('button',`mini-btn${status === 'done' ? ' active-done' : ''}`,status === 'done' ? '✓ Erledigt' : status === 'opened' ? '✓ Bestätigen' : 'Erledigt');
     complete.type = 'button'; complete.addEventListener('click', () => setStatus(name,status === 'done' ? 'open' : 'done'));
     actions.append(keep,complete); row.append(avatar,details,actions); fragment.append(row);
   }
@@ -902,7 +981,8 @@ function exportCsv() {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function reset() {
-  state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear();
+  state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.avatarsEnabled = false; state.lastAutoDone = null;
+  $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -985,9 +1065,22 @@ $('open-list-btn').addEventListener('click', () => {
 });
 $('search-input').addEventListener('input',event => {state.search=event.target.value;renderResults();});
 $('filter-select').addEventListener('change',event => {state.filter=event.target.value;renderResults();});
+$('avatar-toggle').addEventListener('click', () => {
+  state.avatarsEnabled = !state.avatarsEnabled;
+  $('avatar-toggle').setAttribute('aria-pressed', String(state.avatarsEnabled));
+  $('avatar-toggle').textContent = state.avatarsEnabled ? '✓ Profilbilder geladen · ausschalten' : '📷 Original-Profilbilder laden (optional)';
+  renderResults();
+});
+$('visit-undo').addEventListener('click', () => {
+  const name = state.lastAutoDone;
+  $('visit-toast').hidden = true;
+  state.lastAutoDone = null;
+  if (name && state.result && statusFor(name) === 'done') setStatus(name,'open');
+});
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={}; saveProgress();renderResults(); });
 $('guide-btn').addEventListener('click',toggleGuide);
+$('guide-link').addEventListener('click', () => { const name=$('guide-panel').dataset.name; if(name) beginProfileVisit(name); });
 $('guide-done').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name) setStatus(name,'done'); });
 $('guide-skip').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name){state.skip.add(name);renderGuide();} });
 $('delete-local-btn').addEventListener('click',()=>{
@@ -1163,8 +1256,13 @@ $('delete-local-btn').addEventListener('click',()=>{
             <p class="free-result-note">In dieser Testversion ist auch die Liste kostenlos. Eine Bezahlung ist noch nicht aktiviert.</p>
           </div>
           <div id="detail-view" hidden>
-          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Jedes Profil selbst in Instagram öffnen und dort entfolgen. Wir behalten den Überblick.</p></div></div>
-          <div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Account suchen …" autocomplete="off" aria-label="Instagram-Account suchen" /></label><select id="filter-select" aria-label="Accounts filtern"><option value="all">Alle anzeigen</option><option value="open">Noch offen</option><option value="done">Erledigt</option><option value="keep">Behalten</option></select></div>
+          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: „Erledigt“ leuchtet grün. Den tatsächlichen Entfolgen-Schritt führst du selbst in Instagram aus.</p></div></div>
+          <div class="fc-avatar-panel">
+            <button id="avatar-toggle" class="fc-avatar-toggle" type="button" aria-pressed="false">📷 Original-Profilbilder laden (optional)</button>
+            <p>Nach deinem Klick ruft ein unabhängiger Dienst (unavatar.io) Bilder anhand der angezeigten Benutzernamen ab. Dabei werden diese Namen und deine IP an den Dienst übermittelt. Nicht für jedes Profil ist ein Bild verfügbar. Die Instagram-ZIP bleibt lokal.</p>
+          </div>
+          <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil als erledigt markiert.</span><button id="visit-undo" type="button">Rückgängig</button></div>
+          <div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Account suchen …" autocomplete="off" aria-label="Instagram-Account suchen" /></label><select id="filter-select" aria-label="Accounts filtern"><option value="all">Alle anzeigen</option><option value="open">Noch offen</option><option value="opened">Profil geöffnet</option><option value="done">Erledigt</option><option value="keep">Behalten</option></select></div>
           <div class="progress-top"><span><strong id="progress-text">0 von 0</strong> bearbeitet</span><button id="download-btn" class="text-button small">Liste als CSV ↗</button></div>
           <div class="progress-rail"><div id="progress-bar"></div></div>
           <div id="profiles-list" class="profiles-list" aria-live="polite"></div>
@@ -1172,7 +1270,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="list-footer"><span id="list-count">0 Accounts</span><button id="clear-progress-btn" class="text-button muted small">Fortschritt zurücksetzen</button></div>
           <div class="guided-card"><div><div class="guided-eyebrow">EINFACHER GEHT'S NICHT</div><h3>Geführte Bereinigung starten</h3><p>Ein Profil nach dem anderen. Du entfolgst direkt in Instagram und markierst den Schritt hier als erledigt.</p></div><button id="guide-btn" class="primary-button">Jetzt durchgehen <span>↗</span></button></div>
           <div id="guide-panel" class="guide-panel" hidden><div class="guide-kicker">DEIN NÄCHSTER ACCOUNT</div><div id="guide-name" class="guide-name"></div><p>Öffne das Profil, entfolge bei Instagram, komme zurück und bestätige „Erledigt“.</p><div class="guide-actions"><a id="guide-link" class="primary-button" href="#" target="_blank" rel="noopener noreferrer">Profil auf Instagram öffnen ↗</a><button id="guide-done" class="outlined-button">✓ Erledigt</button><button id="guide-skip" class="outlined-button subdued">Überspringen</button></div><p class="guide-note">Wir können nicht überprüfen, ob du wirklich entfolgt bist. Dein Fortschritt ist eine persönliche Checkliste.</p></div>
-          <p class="results-disclaimer">Die Analyse ist eine Momentaufnahme deines Exports. Accounts könnten sich inzwischen geändert haben. Folge- und Entfolgen-Aktionen erfolgen ausschließlich durch dich auf Instagram.</p>
+          <p class="results-disclaimer">Die Analyse ist eine Momentaufnahme deines Exports. Ein grünes „Erledigt“ bedeutet nur, dass du das Profil geöffnet hast und zurückgekehrt bist oder es selbst markiert hast. FollowClean kann nicht erkennen, ob du in Instagram entfolgt bist. Alle Status lassen sich wieder ändern.</p>
           </div>
         </div>
       </section>
