@@ -524,6 +524,66 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
  .export-app-help strong{color:#e6ecf8}
 }
 
+
+/* FollowClean V2.1 · concise conversion-friendly stages and accessible accordion */
+:root{--fc-success:#13774c;--fc-success-bg:#eaf9f1;--fc-premium:#a66c23;--fc-premium-bg:#fff8ed}
+.fc-guide-collapsible{
+ display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-8px);
+ transition:grid-template-rows 320ms cubic-bezier(.22,.72,.2,1),opacity 270ms ease,transform 320ms cubic-bezier(.22,.72,.2,1);
+ scroll-margin-top:16px;pointer-events:none
+}
+.fc-guide-collapsible.is-open{grid-template-rows:1fr;opacity:1;transform:translateY(0);pointer-events:auto}
+.fc-guide-collapsible-inner{min-height:0;overflow:hidden}
+.fc-guide-collapsible .export-guide{margin:0 0 17px}
+button.fast-entry-link{width:100%;font:inherit;cursor:pointer;text-align:left;-webkit-appearance:none;appearance:none}
+.fc-guide-chevron{display:inline-block;transition:transform 300ms cubic-bezier(.22,.72,.2,1);font-size:21px;line-height:1;flex-shrink:0}
+[data-guide-toggle][aria-expanded="true"] .fc-guide-chevron{transform:rotate(180deg)}
+.fc-hero-guide-toggle{display:inline-flex;align-items:center;justify-content:center;gap:13px;cursor:pointer;font:inherit}
+.fc-hero-guide-toggle .fc-guide-button-text{font-size:12px;font-weight:800}
+.fc-hero-guide-toggle:hover{background:#f2f6ff;border-color:#adc4ee}
+button.fast-entry-secondary:hover{background:#f5f8ff;border-color:#b7c9e9}
+button.fast-entry-secondary:focus-visible{outline:3px solid #9ac4fa;outline-offset:3px}
+.fc-guide-collapsible .export-step{animation:none}
+.fc-guide-collapsible.is-open .export-step{animation:fc-card-in 320ms ease both}
+.fc-guide-collapsible.is-open .export-step:nth-child(2){animation-delay:55ms}
+.fc-guide-collapsible.is-open .export-step:nth-child(3){animation-delay:110ms}
+@keyframes fc-card-in{from{opacity:.4;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.stat-card.accent{background:linear-gradient(130deg,#eaf9f1,#f6fff9);border-color:#bee8d0;color:#155f40}
+.stat-card.accent strong{color:#08784b}
+.stat-card.accent .stat-desc{color:#3d8266}
+.free-result-cta{background:linear-gradient(135deg,#fff9ed,#fffdfa);border-color:#f0dfb9}
+.free-result-eyebrow{color:#985e22}
+.fc-beta-free-pill{display:inline-block;margin:0 0 1px 9px;color:#6e4d20;background:#f8e9cf;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:800}
+.free-result-cta h3{color:#33291c}
+.free-result-cta p{color:#6f6251}
+.free-result-cta p strong{color:#43301c}
+.free-result-button{background:#7b541f;border-color:#7b541f}
+.free-result-button:hover{background:#614019}
+.free-result-button:focus-visible{outline-color:#ddb56b}
+@media(max-width:570px){
+ .fc-hero-guide-toggle{width:100%}
+ .fc-guide-collapsible.is-open .export-guide{margin-bottom:12px}
+ .fc-beta-free-pill{margin:6px 0 0}
+ .free-result-cta h3{margin-top:9px}
+}
+@media(prefers-color-scheme:dark){
+ .fc-hero-guide-toggle:hover,button.fast-entry-secondary:hover{background:#253049;border-color:#536388}
+ .stat-card.accent{background:linear-gradient(130deg,#1b3b31,#1b302b);border-color:#365948;color:#b0efd2}
+ .stat-card.accent strong{color:#92efd0}
+ .stat-card.accent .stat-desc{color:#a2ccb9}
+ .free-result-cta{background:linear-gradient(135deg,#372c21,#2c2825);border-color:#63503a}
+ .free-result-eyebrow{color:#efd0a0}
+ .fc-beta-free-pill{background:#51422d;color:#f4d1a1}
+ .free-result-cta h3{color:#fff3e4}
+ .free-result-cta p{color:#d4c3ae}
+ .free-result-cta p strong{color:#fff2dc}
+ .free-result-button{background:#a87936;border-color:#a87936;color:#14110c}
+ .free-result-button:hover{background:#c18e47}
+}
+@media(prefers-reduced-motion:reduce){
+ .fc-guide-collapsible,.fc-guide-chevron,.fc-guide-collapsible.is-open .export-step{transition:none!important;animation:none!important}
+}
+
 </style>
   <script>
 /*!
@@ -792,6 +852,33 @@ function reset() {
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+function setExportGuideOpen(open, scrollToGuide = false) {
+  const panel = $('fc-guide-panel');
+  if (!panel) return;
+  panel.classList.toggle('is-open', open);
+  panel.inert = !open;
+  panel.setAttribute('aria-hidden', String(!open));
+  document.querySelectorAll('[data-guide-toggle]').forEach(button => {
+    button.setAttribute('aria-expanded', String(open));
+    const label = button.querySelector('.fc-guide-button-text');
+    if (label) label.textContent = open ? 'Anleitung schließen' : 'Anleitung ansehen';
+  });
+  if (open && scrollToGuide) {
+    requestAnimationFrame(() => {
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      panel.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'start'});
+    });
+  }
+}
+document.querySelectorAll('[data-guide-toggle]').forEach(button => {
+  button.addEventListener('click', () => {
+    setExportGuideOpen(!$('fc-guide-panel').classList.contains('is-open'), true);
+  });
+});
+if (window.location.hash === '#export-guide') setExportGuideOpen(true, false);
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#export-guide') setExportGuideOpen(true, false);
+});
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
 // Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
@@ -839,7 +926,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="eyebrow"><span class="eyebrow-line"></span> DEIN FEED. DEINE REGELN.</div>
           <h1 id="hero-title">Sei kein Fan von Leuten,<br><em>die nicht mal zurückfolgen.</em></h1>
           <p class="hero-intro">Manche lassen sich gern folgen, folgen selbst aber nicht zurück. Du musst niemandem hinterherlaufen. <strong>Finde nach dem Instagram-Export kostenlos heraus, wie viele dir nicht zurückfolgen.</strong></p>
-          <div class="hero-cta-row"><a class="hero-guide-cta" href="#export-guide">Kostenlos prüfen <span aria-hidden="true">↓</span></a><a class="hero-upload-cta" href="#dropzone">ZIP schon vorhanden? ↗</a></div>
+          <div class="hero-cta-row"><a class="hero-guide-cta" href="#dropzone">Jetzt kostenlos prüfen <span aria-hidden="true">↓</span></a><button type="button" class="hero-upload-cta fc-hero-guide-toggle" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fc-guide-button-text">Anleitung ansehen</span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button></div>
           <div class="privacy-line"><span>✦</span> Anzahl kostenlos sehen <span class="sep">·</span> Ohne Passwort <span class="sep">·</span> Lokal analysiert</div>
           <p class="independent-note">Unabhängiges Tool. Keine Verbindung zu Instagram oder Meta.</p>
         </div>
@@ -879,9 +966,11 @@ $('delete-local-btn').addEventListener('click',()=>{
         <div id="import-view" class="view">
           <div class="section-head"><div><span class="section-index">01 — START</span><h2>Wie viele folgen dir nicht zurück?</h2><p>Deine Instagram-Datei auswählen und die Anzahl kostenlos sehen. Ohne Registrierung, ohne Zahlung und direkt auf deinem Gerät.</p></div></div>
           <div class="fast-entry" aria-label="So startest du">
-            <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">✓</span><span><strong>ZIP schon vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
-            <a class="fast-entry-link fast-entry-secondary" href="#export-guide"><span class="fast-entry-icon" aria-hidden="true">✳</span><span><strong>Noch keine ZIP?</strong><small>Wir zeigen dir, wie’s geht</small></span><span aria-hidden="true">↓</span></a>
+            <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
+            <button type="button" class="fast-entry-link fast-entry-secondary" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fast-entry-icon" aria-hidden="true">?</span><span><strong class="fc-guide-button-text">Anleitung ansehen</strong><small>Nur 3 einfache Schritte</small></span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button>
           </div>
+          <div class="fc-guide-collapsible" id="fc-guide-panel" aria-hidden="true" inert>
+            <div class="fc-guide-collapsible-inner">
           <section class="export-guide" id="export-guide" aria-labelledby="export-guide-title">
             <div class="export-guide-intro">
               <div>
@@ -934,6 +1023,8 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
             <div class="export-guide-bottom"><span class="export-guide-info-icon" aria-hidden="true">i</span><p><strong>Du musst nicht die ganze Zeit warten:</strong> Instagram erstellt die ZIP im Hintergrund. Das kann unterschiedlich lange dauern. Wenn sie fertig ist, hast du normalerweise vier Tage Zeit zum Herunterladen.</p></div>
           </section>
+            </div>
+          </div>
 <div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
@@ -967,7 +1058,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="stat-card"><span class="stat-label">GEGENSEITIG</span><strong id="stat-mutual">0</strong><span class="stat-desc">Ihr folgt euch beide</span></div>
           </div>
           <div class="free-result-cta" id="free-result-cta">
-            <div class="free-result-cta-copy"><span class="free-result-eyebrow">GRATIS ANALYSE ABGESCHLOSSEN</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
+            <div class="free-result-cta-copy"><span class="free-result-eyebrow">DEIN NÄCHSTER SCHRITT</span><span class="fc-beta-free-pill">Aktuell ebenfalls gratis</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
             <button id="open-list-btn" class="free-result-button" type="button" aria-expanded="false" aria-controls="detail-view">Vollständige Liste anzeigen <span aria-hidden="true">↓</span></button>
             <p class="free-result-note">In dieser Testversion ist auch die Liste kostenlos. Eine Bezahlung ist noch nicht aktiviert.</p>
           </div>
