@@ -787,11 +787,21 @@ function makeEl(tag, className, text) {
   return node;
 }
 function validProfileUrl(name) { return `https://www.instagram.com/${encodeURIComponent(name)}/`; }
-function showError(message) { $('import-error').textContent = message; $('import-error').hidden = false; }
+function showError(message) {
+  const panel = $('import-error');
+  panel.textContent = message;
+  panel.hidden = false;
+  panel.setAttribute('tabindex', '-1');
+  requestAnimationFrame(() => {
+    panel.scrollIntoView({behavior:'auto',block:'center'});
+    panel.focus({preventScroll:true});
+  });
+}
 async function importFiles(files) {
   if (!files || !files.length) return;
   $('import-error').hidden = true;
   $('import-status').hidden = false;
+  $('import-status').scrollIntoView({behavior:'auto',block:'center'});
   try {
     if (!window.JSZip) throw new Error('Der lokale ZIP-Leser konnte nicht geladen werden. Bitte Seite neu öffnen.');
     const result = await analyzeFiles(files, window.JSZip);
