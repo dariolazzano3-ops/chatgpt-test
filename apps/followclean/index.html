@@ -492,6 +492,17 @@ h1{font-size:clamp(38px,4.35vw,57px);line-height:1.07;letter-spacing:-2.9px;marg
  .export-back-upload{color:#a9ccff}
 }
 
+
+/* App-first Instagram entry with clear browser fallback, no unverified export deep-link */
+.export-app-link{margin:12px 0 13px;max-width:unset;background:#0064e0;justify-content:center}
+.export-app-route{display:flex;flex-wrap:wrap;align-items:center;gap:6px 7px;padding:11px 12px;border:1px solid #e2e8f1;background:#f7f9fd;border-radius:10px;color:#29344b;font-size:11.5px;font-weight:780;line-height:1.5}
+.export-app-route>span:nth-child(even){font-size:16px;color:#8a95aa}
+.export-step p.export-app-help{font-size:11px;line-height:1.65;color:#757e8d;margin:10px 0 6px}
+.export-browser-fallback{display:inline-flex;align-items:center;gap:8px;color:#0064e0;font-size:12px;font-weight:790;padding:8px 0;line-height:1.6}
+.export-browser-fallback:focus-visible{outline:2px solid #0064e0;outline-offset:4px;border-radius:4px}
+@media(max-width:620px){.export-app-route{gap:5px 7px;font-size:10.5px}}
+@media(prefers-color-scheme:dark){.export-app-route{background:#262a37;border-color:#414456;color:#e1e8f5}.export-app-route>span:nth-child(even){color:#9fa8b9}.export-step p.export-app-help{color:#aeb6c5}.export-browser-fallback{color:#9cc8ff}}
+
 </style>
   <script>
 /*!
@@ -864,10 +875,12 @@ $('delete-local-btn').addEventListener('click',()=>{
                 <span class="export-step-number">1</span>
                 <div class="export-step-text">
                   <span class="export-step-label">ZUERST</span>
-                  <h4>Instagram-Export öffnen</h4>
-                  <p>Tippe auf den Button. Du landest bei der <strong>offiziellen Meta-Kontenübersicht</strong>.</p>
-                  <a class="export-meta-link" href="https://accountscenter.instagram.com/info_and_permissions/dyi/" target="_blank" rel="noopener noreferrer">Instagram-Export öffnen <span aria-hidden="true">↗</span></a>
-                  <details class="export-fallback"><summary>Link öffnet nicht? So findest du es in der App</summary><p>Instagram → <strong>Profil</strong> → <strong>☰</strong> → <strong>Kontenübersicht</strong> (teils „Meta-Konto“) → <strong>Deine Informationen und Berechtigungen</strong> → <strong>Deine Informationen exportieren</strong>.</p></details>
+                  <h4>Instagram-App öffnen</h4>
+                  <p>Du bist in Instagram meist schon angemeldet. Öffne die App und folge dem kurzen Weg zum Export:</p>
+                  <a class="export-meta-link export-app-link" href="instagram://app" aria-label="Instagram-App auf diesem Gerät öffnen">Instagram-App öffnen <span aria-hidden="true">↗</span></a>
+                  <div class="export-app-route" aria-label="Menüweg in Instagram"><span>Profil</span><span aria-hidden="true">›</span><span>☰</span><span aria-hidden="true">›</span><span>Kontenübersicht</span><span aria-hidden="true">›</span><span>Informationen &amp; Berechtigungen</span><span aria-hidden="true">›</span><span>Informationen exportieren</span></div>
+                  <p class="export-app-help">Die App öffnet sich an ihrer Startansicht, nicht direkt beim Export. Auf manchen Geräten wird die App-Weiterleitung blockiert.</p>
+                  <a class="export-browser-fallback" href="https://accountscenter.instagram.com/info_and_permissions/dyi/" target="_blank" rel="noopener noreferrer">App öffnet nicht? Export im Browser öffnen <span aria-hidden="true">↗</span></a>
                 </div>
               </article>
               <article class="export-step" role="listitem">
