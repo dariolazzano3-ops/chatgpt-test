@@ -940,6 +940,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-color-scheme:dark){.fc-v4-backup-restore{background:#243449;border-color:#425a78}.fc-v4-backup-restore>summary{color:#cfe4fa}.fc-v4-restore-content p,.fc-v4-backup-actions p{color:#c3d5e8}.fc-v4-backup-actions{background:#293a52;border-color:#4b6381}.fc-v4-backup-download,.fc-v4-restore-content button{background:#294a6d;border-color:#6389a8;color:#d4eaff}}
 
 /* FollowClean V4: original mobile-first one-by-one Cleanup UI and trusted export route */
+@media(max-width:650px){
+  /* Respect iPhone Dynamic Island / landscape notches without changing the full-width design. */
+  .shell{padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+  footer{padding-bottom:max(22px,env(safe-area-inset-bottom,0px))}
+  #guide-panel{scroll-margin-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+}
+.fc-smart-feedback{border-radius:10px;border:1px solid #b4dfca;background:#e6f7ee;color:#205f49;padding:11px 12px;font-size:11.5px;line-height:1.55;font-weight:750;margin:10px 0}
+.fc-smart-feedback[hidden]{display:none!important}
+@media(prefers-color-scheme:dark){.fc-smart-feedback{background:#234a3a;border-color:#4b9370;color:#c5f7dc}}
+
 .fc-smart-entry{margin:16px 0 9px;border:1px solid #cfe0f4;background:linear-gradient(115deg,#f3f8ff,#fcfdff);border-radius:16px;box-shadow:0 8px 22px #24568b0a}
 .fc-smart-entry h3{font-size:17px;letter-spacing:-.4px}
 .fc-smart-entry p{font-size:12px;line-height:1.5}
@@ -1161,6 +1171,7 @@ state.visibleCount = FC_PAGE_SIZE;
 state.sort = 'queue';
 state.snapshotComparison = null;
 state.guideUndo = null;
+state.guideActionAt = 0;
 // Explicit local opt-in. Never store uploaded ZIPs or snapshots on a server.
 const FC_SNAPSHOTS_KEY = 'followclean:snapshots:v1';
 const FC_SNAPSHOT_LIMIT = 4;
@@ -1242,6 +1253,8 @@ function useResult(result, demo) {
   state.sort = 'queue';
   state.snapshotComparison = null;
   state.guideUndo = null;
+  state.guideActionAt = 0;
+  $('guide-feedback').hidden = true;
   $('guide-panel').hidden = true;
   $('guide-btn').setAttribute('aria-expanded','false');
   $('fc-sort').value = 'queue';
@@ -1339,6 +1352,10 @@ function completeVisitOnReturn() {
       statusFor(visit.name) !== 'opened') return;
   setStatus(visit.name,'done');
   state.lastAutoDone = visit.name;
+  if (!$('guide-panel').hidden) {
+    $('guide-feedback').hidden=false;
+    $('guide-feedback').textContent='✓ @'+visit.name+' nach Profilbesuch markiert. Das bestätigt kein Entfolgen. Nächster Account bereit.';
+  }
   $('visit-toast-text').textContent = '@' + visit.name + ' grün markiert. Das bestätigt keinen Entfolgen-Vorgang.';
   $('visit-toast').hidden = false;
 }
@@ -1461,7 +1478,8 @@ function exportCsv() {
 }
 function reset() {
   rememberPendingVisit(null);
-  state.snapshotComparison = null; state.sort = 'queue';state.guideUndo=null;
+  state.snapshotComparison = null; state.sort = 'queue';state.guideUndo=null;state.guideActionAt=0;
+  $('guide-feedback').hidden=true;
   $('guide-panel').hidden=true;$('guide-btn').setAttribute('aria-expanded','false');
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;
@@ -1895,15 +1913,36 @@ $('guide-close').addEventListener('click',()=>{
   $('guide-btn').focus({preventScroll:true});
 });
 $('guide-link').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)beginProfileVisit(name);});
-$('guide-done').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)setStatus(name,'done');});
-$('guide-keep').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)setStatus(name,'keep');});
-$('guide-skip').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name){state.skip.add(name);renderGuide();}});
+function guideMobileAction(action) {
+  const name=$('guide-panel').dataset.name;
+  if(!name || $('guide-panel').hidden || !state.result)return;
+  const now=Date.now();
+  // Avoid accidentally applying one double-tap to two successive account cards.
+  if(now-state.guideActionAt<430)return;
+  state.guideActionAt=now;
+  if(action==='skip'){
+    state.skip.add(name);renderGuide();
+    $('guide-feedback').textContent='@'+name+' für später vorgemerkt. Nächster Account bereit.';
+  }else{
+    setStatus(name,action);
+    $('guide-feedback').textContent=action==='done'
+      ?'✓ @'+name+' auf deiner Checkliste abgehakt. Kein Nachweis eines Entfolgens.'
+      :'☆ @'+name+' auf deiner Behalten-Liste. Nächster Account bereit.';
+  }
+  $('guide-feedback').hidden=false;
+}
+$('guide-done').addEventListener('click',()=>guideMobileAction('done'));
+$('guide-keep').addEventListener('click',()=>guideMobileAction('keep'));
+$('guide-skip').addEventListener('click',()=>guideMobileAction('skip'));
 $('guide-undo').addEventListener('click',()=>{
   const previous=state.guideUndo;
   if(!previous)return;
   state.guideUndo=null;
+  state.skip.delete(previous.name);
   setStatus(previous.name,previous.previous);
   state.guideUndo=null;
+  $('guide-feedback').textContent='↶ @'+previous.name+' wurde zurückgesetzt.';
+  $('guide-feedback').hidden=false;
   renderGuide();
 });
 $('delete-local-btn').addEventListener('click',()=>{
@@ -2171,6 +2210,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="guided-card fc-smart-entry"><div><div class="guided-eyebrow">DEIN CLEANUP-ASSISTENT</div><h3>Ein Account nach dem anderen.</h3><p>Profil prüfen, behalten oder abhaken. FollowClean bietet automatisch den nächsten Account an.</p></div><button id="guide-btn" class="primary-button" type="button" aria-expanded="false" aria-controls="guide-panel">Smart Cleanup starten <span aria-hidden="true">↗</span></button></div>
           <div id="guide-panel" class="guide-panel fc-smart-panel" hidden>
             <div class="fc-smart-top"><div><span class="guide-kicker">SMART CLEANUP · NÄCHSTER ACCOUNT</span><strong id="guide-progress-label">0 von 0 bearbeitet</strong></div><button type="button" id="guide-close" class="fc-smart-close" aria-label="Cleanup-Assistent schließen">Schließen ×</button></div>
+            <p id="guide-feedback" class="fc-smart-feedback" role="status" aria-live="polite" hidden></p>
             <div class="fc-smart-meter" role="progressbar" aria-label="Cleanup-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="guide-progress-fill"></div></div>
             <div class="fc-smart-identity"><div class="fc-smart-avatar" id="guide-avatar" aria-hidden="true">?</div><div class="fc-smart-identity-copy"><span class="fc-smart-mini">JETZT PRÜFEN</span><div id="guide-name" class="guide-name" aria-live="polite"></div><p id="guide-status" class="fc-smart-status">Öffne das Profil oder entscheide direkt.</p></div></div>
             <div class="guide-actions fc-smart-actions"><a id="guide-link" class="primary-button" href="#" target="_blank" rel="noopener noreferrer">Profil öffnen ↗</a><button id="guide-done" class="outlined-button" type="button">✓ Erledigt</button><button id="guide-keep" class="outlined-button fc-smart-keep" type="button">☆ Behalten</button><button id="guide-skip" class="outlined-button subdued" type="button">Später ansehen</button></div>
