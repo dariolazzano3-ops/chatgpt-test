@@ -1106,6 +1106,23 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v7-resume button{min-height:44px;border-radius:9px;border:0;background:#13875f;color:white;padding:10px 13px;font-weight:800;font-size:11px;white-space:nowrap;cursor:pointer}
 @media(max-width:550px){.fc-v7-resume{flex-direction:column;align-items:stretch}.fc-v7-resume button{width:100%}}
 @media(prefers-color-scheme:dark){.fc-v7-resume{background:linear-gradient(120deg,#213d37,#24443d);border-color:#517a69}.fc-v7-resume strong{color:#d7f9e8}.fc-v7-resume p{color:#b1dec7}}
+
+.fc-v8-import-recovery{margin:10px 0 14px;border:1px solid #ecd3bd;border-radius:11px;background:#fff7ed;padding:13px;color:#7b5634}
+.fc-v8-import-recovery[hidden]{display:none!important}
+.fc-v8-import-recovery p{font-size:12px;line-height:1.5;margin:0 0 10px}
+.fc-v8-import-recovery button{min-height:44px;padding:11px 14px;border:1px solid #d8a985;border-radius:9px;background:white;color:#855630;font-size:11px;font-weight:750;cursor:pointer}
+.fc-v8-insights-history{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:15px;background:#eef5ff;border:1px solid #d5e4f5;border-radius:12px;padding:14px}
+.fc-v8-insights-history[hidden]{display:none!important}
+.fc-v8-insights-history>div:first-child{display:flex;flex-direction:column;gap:6px}
+.fc-v8-insights-eyebrow{font-size:9px;letter-spacing:1px;color:#4a74a8;font-weight:800}
+.fc-v8-insights-history strong{color:#314e72;font-size:13px}
+.fc-v8-insights-history small{color:#6a849f;font-size:10px}
+.fc-v8-delta-row{display:flex;gap:9px;flex-wrap:wrap}
+.fc-v8-delta-row span{display:flex;flex-direction:column;gap:5px;padding:9px;border-radius:9px;background:#fff;min-width:90px;color:#59748d;font-size:10px}
+.fc-v8-delta-row strong{font-size:19px;font-variant-numeric:tabular-nums}
+.fc-v8-delta-row strong.positive{color:#16825d}.fc-v8-delta-row strong.negative{color:#b34b61}
+.fc-v8-insights-history>p{width:100%;font-size:10px;line-height:1.5;color:#627f99;margin:0}
+@media(prefers-color-scheme:dark){.fc-v8-import-recovery{background:#4d3728;border-color:#7e6045;color:#f6dcb8}.fc-v8-import-recovery button{background:#463528;color:#fbe4c4;border-color:#a78159}.fc-v8-insights-history{background:#243b53;border-color:#4b6584}.fc-v8-insights-eyebrow,.fc-v8-insights-history small,.fc-v8-insights-history>p{color:#bdcfe5}.fc-v8-insights-history strong{color:#e7f2ff}.fc-v8-delta-row span{background:#2d4867;color:#c2d7ee}}
 </style>
   <script>
 /*!
@@ -1410,10 +1427,19 @@ function makeEl(tag, className, text) {
   return node;
 }
 function validProfileUrl(name) { return `https://www.instagram.com/${encodeURIComponent(name)}/`; }
+function importRecoveryHelp(message){
+  const m=String(message).toLowerCase();
+  if(/html|format|json|fehlen|gef(o|ö)lgt|follower/.test(m))return 'In Instagram beim Datenexport nur „Follower und Gefolgt“, den gesamten Zeitraum und das Format JSON auswählen.';
+  if(/groß|size|too large/.test(m))return 'Exportiere nur „Follower und Gefolgt“, ohne Fotos und Nachrichten. So wird die ZIP-Datei deutlich kleiner.';
+  if(/zip|beschädigt|öffnen/.test(m))return 'Lade die ZIP erneut vollständig herunter. Auf dem iPhone findest du sie in Dateien → Downloads. Nicht selbst entpacken.';
+  return 'Öffne die Schritt-für-Schritt-Anleitung oder probiere die unveränderte ZIP-Datei erneut.';
+}
 function showError(message) {
   const panel = $('import-error');
   panel.textContent = message;
   panel.hidden = false;
+  $('fc-import-diagnosis').textContent=importRecoveryHelp(message);
+  $('fc-import-recovery').hidden=false;
   panel.setAttribute('tabindex', '-1');
   requestAnimationFrame(() => {
     panel.scrollIntoView({behavior:'auto',block:'center'});
@@ -1423,6 +1449,11 @@ function showError(message) {
 async function importFiles(files) {
   if (!files || !files.length) return;
   $('import-error').hidden = true;
+  $('fc-import-recovery').hidden=true;
+  const count=files?.length||0;
+  $('fc-import-progress-text').textContent=count===1
+    ?'Deine Datei wird ausschließlich lokal im Browser geprüft …'
+    :count+' Dateien werden ausschließlich lokal im Browser geprüft …';
   $('import-status').hidden = false;
   $('import-status').scrollIntoView({behavior:'auto',block:'center'});
   try {
@@ -1793,6 +1824,7 @@ $('fc-return-guide').addEventListener('click', () => setExportGuideOpen(true, tr
 $('fc-return-dismiss').addEventListener('click', () => setExportPending(false));
 updateRestoreHint();
 updateHistoryReturnHint();
+$('fc-import-guide-retry').addEventListener('click',()=>setExportGuideOpen(true,true));
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
 // Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
@@ -2053,8 +2085,30 @@ function updateHistoryReturnHint(count) {
   hint.hidden=n===0;
   if(n>0)hint.textContent='◷ '+n+' gespeicherte'+(n===1?'r Stand':' Stände')+' auf diesem Gerät. Neue Instagram-ZIP laden, um den Verlauf fortzusetzen.';
 }
+
+function renderLatestHistoryDelta(snaps){
+ const box=$('fc-v8-insights-history');
+ if(!box)return;
+ const account=currentHistoryAccount();
+ const same=account?snaps.filter(s=>s.account===account):[];
+ const latest=same.at(-1);
+ const valid=!!latest&&!!state.result&&!state.demo;
+ box.hidden=!valid;
+ if(!valid)return;
+ $('fc-v8-history-account').textContent='@'+account;
+ $('fc-v8-history-date').textContent='Stand gespeichert am '+snapshotDate(latest.savedAt)+' (nicht das Exportdatum)';
+ const followerDelta=state.result.followers-latest.followerNames.length;
+ const followingDelta=state.result.following-latest.followingNames.length;
+ for(const [id,v] of [['fc-v8-followers-delta',followerDelta],['fc-v8-following-delta',followingDelta]]){
+  const e=$(id);
+  e.textContent=(v>0?'+':'')+v.toLocaleString('de-DE');
+  e.classList.toggle('positive',v>0);
+  e.classList.toggle('negative',v<0);
+ }
+}
 function renderLocalHistory() {
   const snaps=loadLocalSnapshots();
+  renderLatestHistoryDelta(snaps);
   updateHistoryReturnHint(snaps.length);
   const area=$('fc-snapshot-history');
   area.hidden=snaps.length===0;
@@ -2465,7 +2519,8 @@ $('delete-local-btn').addEventListener('click',()=>{
             <input id="file-input" class="native-file-target" type="file" accept=".zip,.json,application/zip,application/json" multiple aria-label="Instagram-Dateien hochladen" />
           </div>
           <div id="import-error" class="alert" role="alert" hidden></div>
-          <div id="import-status" class="loading-status" aria-live="polite" hidden><span class="spinner"></span> Daten werden lokal ausgewertet …</div>
+          <div id="fc-import-recovery" class="fc-v8-import-recovery" hidden><p id="fc-import-diagnosis">Was du jetzt tun kannst.</p><button id="fc-import-guide-retry" type="button">Export-Anleitung öffnen ↗</button></div>
+          <div id="import-status" class="loading-status" aria-live="polite" hidden><span class="spinner"></span> <span id="fc-import-progress-text">Deine Daten werden lokal ausgewertet …</span></div>
           <div class="import-help">
             <button id="help-toggle" class="text-button" aria-expanded="false" aria-controls="help-panel">Probleme beim Download oder Upload? <span>＋</span></button>
             <button id="demo-btn" class="text-button muted">Erst eine Demo ansehen ↗</button>
@@ -2526,6 +2581,12 @@ $('delete-local-btn').addEventListener('click',()=>{
               </div>
             </div>
             <p class="fc-insights-disclaimer">„Erledigt“ ist ein lokaler Checklistenstatus, kein bestätigtes Entfolgen auf Instagram. Du kannst jeden Status wieder ändern.</p>
+            <div id="fc-v8-insights-history" class="fc-v8-insights-history" hidden>
+              <div><span class="fc-v8-insights-eyebrow">VERGLEICH MIT DEINEM LETZTEN GESPEICHERTEN STAND</span><strong id="fc-v8-history-account"></strong><small id="fc-v8-history-date"></small></div>
+              <div class="fc-v8-delta-row"><span>Follower <strong id="fc-v8-followers-delta">0</strong></span><span>Gefolgt <strong id="fc-v8-following-delta">0</strong></span></div>
+              <p>Netto-Differenzen zwischen zwei Dateien, keine automatisch gemessenen Ereignisse oder bestätigten Entfolgungen.</p>
+            </div>
+
           </section>
           <details id="fc-history" class="fc-v2-history">
             <summary class="fc-v2-history-summary"><span class="fc-v2-history-symbol" aria-hidden="true">↗</span><span><strong>Wer hat sich seit deinem letzten Export verändert?</strong><small>Jetzt zwei Exporte vergleichen · privat und kostenlos</small></span><span class="fc-v2-history-arrow" aria-hidden="true">⌄</span></summary>
