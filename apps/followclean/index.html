@@ -1357,6 +1357,11 @@ function restoreSelectedAccount() {
   state.lastVisitedName=null;
   state.guideUndo=null;
   state.activeVisit=null;
+  // Prevent guide actions from carrying across an account switch.
+  $('guide-panel').hidden=true;
+  $('guide-btn').setAttribute('aria-expanded','false');
+  $('guide-feedback').hidden=true;
+  state.guideActionAt=0;
   rememberPendingVisit(null);
   state.key=state.demo?null:accountProgressKey(state.currentAccount);
   loadProgress();
@@ -1721,6 +1726,7 @@ function renderGuide() {
   $('guide-panel').dataset.name=name??'';
   state.sessionNextName=name||null;
   saveCleanupSession(name);
+  renderResumePanel();
   const undo=$('guide-undo');
   undo.hidden=!state.guideUndo;
   if(state.guideUndo)undo.textContent='↶ @'+state.guideUndo.name+' rückgängig';
