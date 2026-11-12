@@ -1921,6 +1921,7 @@ function guideMobileAction(action) {
   if(now-state.guideActionAt<430)return;
   state.guideActionAt=now;
   if(action==='skip'){
+    state.guideUndo={name,action:'skip'};
     state.skip.add(name);renderGuide();
     $('guide-feedback').textContent='@'+name+' für später vorgemerkt. Nächster Account bereit.';
   }else{
@@ -1938,8 +1939,9 @@ $('guide-undo').addEventListener('click',()=>{
   const previous=state.guideUndo;
   if(!previous)return;
   state.guideUndo=null;
+  state.guideActionAt=0;
   state.skip.delete(previous.name);
-  setStatus(previous.name,previous.previous);
+  if(previous.action!=='skip')setStatus(previous.name,previous.previous);
   state.guideUndo=null;
   $('guide-feedback').textContent='↶ @'+previous.name+' wurde zurückgesetzt.';
   $('guide-feedback').hidden=false;
