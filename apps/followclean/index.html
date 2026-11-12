@@ -844,6 +844,46 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(max-width:570px){.fc-test-store{padding:19px 13px}.fc-test-store-head{gap:10px}.fc-test-store-head>strong{font-size:19px}.fc-test-store-head h2{font-size:22px}.fc-test-store-head p{font-size:11.5px}.fc-test-store-actions{flex-direction:column;align-items:stretch}.fc-test-store-actions>*{width:100%;min-height:48px}.fc-sandbox-checkout{padding:12px}}
 @media(prefers-color-scheme:dark){.fc-test-store{background:linear-gradient(135deg,#272920,#29251e);border-color:#66553b}.fc-test-store-badge{background:#3e3323;border-color:#76603f;color:#eac58a}.fc-test-store-head h2{color:#fff3df}.fc-test-store-head p,.fc-test-store-note,.fc-test-hint{color:#d4c3a7}.fc-test-store-head>strong{color:#f1d198}.fc-test-store-head>strong small{color:#c0a67e}.fc-rio-copy{background:#323338;border-color:#736345;color:#f1d09f}.fc-rio-copy:hover{background:#3a372f}.fc-sandbox-checkout{background:#292d30;border-color:#66583b}.fc-sandbox-heading strong{color:#b0edcb}.fc-sandbox-heading>span:last-child,.fc-coupon-row small{color:#d4c2a3}.fc-coupon-row strong{color:#f3c88e}.fc-test-store code,.fc-test-hint code{background:#39332a;border-color:#76603f;color:#ffdead}}
 @media(prefers-reduced-motion:reduce){.fc-sandbox-buy{transition:none!important}}
+
+/* FollowClean Premium V2: independent triage design and no-storage export comparison */
+.fc-v2-tools{margin:12px 0 13px;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.fc-v2-filterbar{display:flex;max-width:100%;gap:7px;overflow-x:auto;padding:4px 0;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.fc-v2-pill{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;min-height:44px;white-space:nowrap;border:1px solid #dce5f1;border-radius:999px;font-size:11px;font-weight:750;color:#4e627e;background:#fff;cursor:pointer}
+.fc-v2-pill.is-active{background:#195fe3;color:white;border-color:#195fe3;box-shadow:0 5px 14px #1766d52c}
+.fc-v2-pill-count{font-variant-numeric:tabular-nums;padding:2px 6px;border-radius:999px;background:#edf3fb;color:#456184;font-size:10px}
+.fc-v2-pill.is-active .fc-v2-pill-count{background:#ffffff32;color:white}
+.fc-v2-sort{display:inline-flex;gap:8px;align-items:center;color:#60718a;font-size:11px;font-weight:750}
+.fc-v2-sort select{min-height:44px;border:1px solid #d6e2f0;border-radius:11px;color:#324864;background:#fff;padding:10px;font-size:11px}
+.fc-v2-history{margin:20px 0 18px;border:1px solid #dce4f2;border-radius:15px;overflow:hidden;background:#f8faff}
+.fc-v2-history-summary{display:flex;align-items:center;gap:12px;cursor:pointer;padding:17px;list-style:none;min-height:74px}
+.fc-v2-history-summary::-webkit-details-marker{display:none}
+.fc-v2-history-symbol{flex:0 0 35px;height:35px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,#e6efff,#f5e6ff);color:#7457cf;font-weight:900}
+.fc-v2-history-summary>span:nth-child(2){display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.fc-v2-history-summary strong{color:#2b3d5b;font-size:13px;line-height:1.3}
+.fc-v2-history-summary small{color:#6a7d96;font-size:11px;line-height:1.4}
+.fc-v2-history-arrow{color:#6381a7;transition:transform .25s}
+.fc-v2-history[open] .fc-v2-history-arrow{transform:rotate(180deg)}
+.fc-v2-history-body{border-top:1px solid #e5ecf5;padding:14px 17px 18px}
+.fc-v2-history-body>p{font-size:12px;line-height:1.65;color:#61708c}
+.fc-v2-history-upload{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#175de0;color:white;padding:13px 16px;min-height:45px;border-radius:11px;font-size:12px;font-weight:800;cursor:pointer}
+#fc-history-input{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
+.fc-v2-history-body:has(#fc-history-input:focus-visible) .fc-v2-history-upload{outline:3px solid #7c9fff;outline-offset:3px}
+.fc-v2-history-status{font-size:11px;color:#5f718d}
+.fc-v2-delta-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:15px 0}
+.fc-v2-delta{min-width:0;border:1px solid #e3e9f1;border-radius:11px;padding:13px 10px;background:white}
+.fc-v2-delta strong{display:block;font-size:23px;letter-spacing:-.7px;color:#345e9d;font-variant-numeric:tabular-nums}
+.fc-v2-delta.negative strong{color:#bd4960}
+.fc-v2-delta.positive strong{color:#138453}
+.fc-v2-delta span{font-size:10px;line-height:1.4;color:#657791;display:block;margin-top:3px}
+.fc-v2-history-groups{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fc-v2-history-groups details{border:1px solid #e2e8f2;background:#fff;border-radius:10px;padding:10px;min-width:0}
+.fc-v2-history-groups summary{font-size:11px;color:#324f7b;font-weight:800;cursor:pointer;padding:6px 0}
+.fc-v2-history-groups ul{padding-left:18px;max-height:200px;overflow-y:auto;overflow-wrap:anywhere;color:#5d6b82;font-size:11px;line-height:1.8}
+.fc-v2-history-clear{margin-top:14px;background:transparent;border:1px solid #cdd8e8;border-radius:9px;padding:11px 12px;min-height:44px;font-size:11px;font-weight:750;color:#61718a}
+.fc-v2-pill:focus-visible,.fc-v2-history-summary:focus-visible,.fc-v2-history-groups summary:focus-visible,.fc-v2-history-clear:focus-visible{outline:3px solid #5385e6;outline-offset:2px}
+@media(max-width:650px){.fc-v2-tools{gap:7px}.fc-v2-filterbar{width:100%}.fc-v2-sort{margin-left:auto}.fc-v2-delta-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fc-v2-history-groups{grid-template-columns:1fr}.fc-v2-history-summary{padding:13px 11px}.fc-v2-history-body{padding:11px}.fc-v2-history-summary strong{font-size:12px}.fc-v2-history-upload{width:100%}}
+@media(prefers-color-scheme:dark){.fc-v2-history{background:#222c3d;border-color:#3c526f}.fc-v2-history-summary strong{color:#f0f4ff}.fc-v2-history-summary small,.fc-v2-history-body>p,.fc-v2-history-status{color:#bacde4}.fc-v2-history-body{border-color:#3c526f}.fc-v2-history-symbol{background:#3d395a;color:#ddc4ff}.fc-v2-pill{background:#29364d;border-color:#49617e;color:#d9e8fa}.fc-v2-pill.is-active{background:#2869e8;border-color:#2869e8;color:white}.fc-v2-pill-count{background:#415573;color:#e2ebfd}.fc-v2-sort{color:#cad6e6}.fc-v2-sort select{background:#29364d;border-color:#49617e;color:white}.fc-v2-delta,.fc-v2-history-groups details{background:#28374b;border-color:#455a78}.fc-v2-delta span,.fc-v2-history-groups ul{color:#c2d1e4}.fc-v2-history-groups summary{color:#d7e8ff}.fc-v2-history-clear{color:#c5d8f1;border-color:#5d7390}}
+@media(prefers-reduced-motion:reduce){.fc-v2-history-arrow{transition:none}}
 </style>
   <script>
 /*!
@@ -909,11 +949,27 @@ function compareLists(followers, following) {
   return {
     followers: followerSet.size,
     following: uniqueFollowing.length,
+    // Transient, browser-memory-only lists for optional comparison with a second export.
+    followerNames: [...followerSet],
+    followingNames: uniqueFollowing,
     mutual: uniqueFollowing.filter(name => followerSet.has(name)),
     notFollowingBack: uniqueFollowing.filter(name => !followerSet.has(name))
   };
 }
 
+function compareSnapshots(previous, current) {
+  if (!previous || !current || !Array.isArray(previous.followerNames) || !Array.isArray(current.followerNames)) {
+    throw new Error('Bitte zuerst den aktuellen und anschließend den älteren vollständigen Instagram-Export laden.');
+  }
+  const prevFollowers = new Set(previous.followerNames), currentFollowers = new Set(current.followerNames);
+  const prevFollowing = new Set(previous.followingNames), currentFollowing = new Set(current.followingNames);
+  return {
+    lostFollowers: previous.followerNames.filter(name => !currentFollowers.has(name)),
+    newFollowers: current.followerNames.filter(name => !prevFollowers.has(name)),
+    noLongerFollowing: previous.followingNames.filter(name => !currentFollowing.has(name)),
+    newFollowing: current.followingNames.filter(name => !prevFollowing.has(name))
+  };
+}
 function analyzeJsonTexts(followerTexts, followingText) {
   if (!followerTexts.length || !followingText) throw new Error('Es werden followers_1.json und following.json benötigt.');
   const followers = followerTexts.flatMap(text => extractUsers(JSON.parse(text), 'followers'));
@@ -985,6 +1041,8 @@ const $ = id => document.getElementById(id);
 const state = { result: null, statuses: {}, key: null, demo: false, filter: 'all', search: '', skip: new Set(), avatarsEnabled: false, avatarLimit: 8, avatarNodes: new Map(), avatarResults: new Map(), activeVisit: null, lastAutoDone: null };
 const FC_PAGE_SIZE = 48;
 state.visibleCount = FC_PAGE_SIZE;
+state.sort = 'queue';
+state.snapshotComparison = null;
 const DEMO_FOLLOWERS = ['beispiel_mia', 'beispiel_tim', 'beispiel_zoe', 'beispiel_noah', 'beispiel_lea', 'beispiel_ben'];
 const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispiel_luca', 'beispiel_sam', 'beispiel_max'];
 
@@ -1057,6 +1115,13 @@ function useResult(result, demo) {
   state.key = demo ? null : snapshotKey(result);
   state.filter = 'all'; state.search = ''; state.skip.clear(); state.avatarsEnabled = false; state.activeVisit = null; state.lastAutoDone = null;
   state.visibleCount = FC_PAGE_SIZE;
+  state.sort = 'queue';
+  state.snapshotComparison = null;
+  $('fc-sort').value = 'queue';
+  $('fc-history-result').hidden = true;
+  $('fc-history-status').textContent = 'Ein älterer Export zeigt Veränderungen seit diesem Zeitpunkt. Beide ZIPs müssen zum selben Instagram-Konto gehören.';
+  $('fc-history-input').value = '';
+  $('fc-history').open = false;
   $('visit-toast').hidden = true;
   $('search-input').value = ''; $('filter-select').value = 'all';
   loadProgress();
@@ -1165,7 +1230,20 @@ function renderResults() {
   $('progress-bar').setAttribute('aria-label', `${processed} von ${all.length} bearbeitet`);
   const query = state.search.trim().toLowerCase();
   const filtered = all.filter(name => (!query || name.includes(query)) && (state.filter === 'all' || statusFor(name) === state.filter));
+  const priority = {open:0,opened:1,keep:2,done:3};
+  if (state.sort === 'az') filtered.sort((a,b) => a.localeCompare(b,'de'));
+  else if (state.sort === 'za') filtered.sort((a,b) => b.localeCompare(a,'de'));
+  else filtered.sort((a,b) => (priority[statusFor(a)] ?? 0) - (priority[statusFor(b)] ?? 0));
   const rows = filtered.slice(0,state.visibleCount);
+  const counts = {all:all.length,open:0,opened:0,keep:0,done:0};
+  for (const name of all) counts[statusFor(name)] = (counts[statusFor(name)] ?? 0) + 1;
+  document.querySelectorAll('[data-v2-filter]').forEach(button => {
+    const key=button.dataset.v2Filter;
+    button.classList.toggle('is-active',state.filter===key);
+    button.setAttribute('aria-pressed',String(state.filter===key));
+    const count=button.querySelector('.fc-v2-pill-count');
+    if(count)count.textContent=counts[key].toLocaleString('de-DE');
+  });
   const list = $('profiles-list');
   const fragment = document.createDocumentFragment();
   for (const name of rows) {
@@ -1231,6 +1309,10 @@ function exportCsv() {
 }
 function reset() {
   rememberPendingVisit(null);
+  state.snapshotComparison = null; state.sort = 'queue';
+  $('fc-history-result').hidden=true;
+  $('fc-history-input').value='';
+  $('fc-history').open=false;
   state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
@@ -1316,6 +1398,13 @@ $('open-list-btn').addEventListener('click', () => {
 });
 $('search-input').addEventListener('input',event => {state.search=event.target.value;state.visibleCount=FC_PAGE_SIZE;renderResults();});
 $('filter-select').addEventListener('change',event => {state.filter=event.target.value;state.visibleCount=FC_PAGE_SIZE;renderResults();});
+document.querySelectorAll('[data-v2-filter]').forEach(button => button.addEventListener('click',() => {
+  const value=button.dataset.v2Filter;
+  state.filter=value;state.visibleCount=FC_PAGE_SIZE;$('filter-select').value=value;renderResults();
+}));
+$('fc-sort').addEventListener('change',event => {
+  state.sort=event.target.value;state.visibleCount=FC_PAGE_SIZE;renderResults();
+});
 $('fc-load-more').addEventListener('click',()=>{state.visibleCount+=FC_PAGE_SIZE;renderResults();});
 // Privacy-safe initials: no external image requests.
 $('visit-undo').addEventListener('click', () => {
@@ -1334,6 +1423,61 @@ document.querySelectorAll('[data-copy-rio]').forEach(button => {
       button.textContent = 'Code RIO manuell eingeben';
     }
   });
+});
+
+// V2 export comparison is opt-in and ephemeral; no snapshots go into localStorage.
+function renderHistoryComparison(report) {
+  const views=[
+    ['lostFollowers','fc-v2-lost-list','fc-v2-lost-total'],
+    ['newFollowers','fc-v2-new-list','fc-v2-new-total'],
+    ['noLongerFollowing','fc-v2-unfollowed-list','fc-v2-unfollowed-total'],
+    ['newFollowing','fc-v2-started-list','fc-v2-started-total']
+  ];
+  for (const [key,listId,totalId] of views) {
+    const names=report[key];
+    $(totalId).textContent=names.length.toLocaleString('de-DE');
+    const list=$(listId);
+    const fragment=document.createDocumentFragment();
+    for (const name of names.slice(0,100)) {
+      const item=document.createElement('li');
+      item.textContent='@'+name;
+      fragment.append(item);
+    }
+    if(names.length>100){const item=document.createElement('li');item.textContent='… und '+(names.length-100)+' weitere';fragment.append(item);}
+    list.replaceChildren(fragment);
+  }
+  $('fc-history-result').hidden=false;
+}
+$('fc-history-input').addEventListener('change',async event => {
+  const file=event.target.files?.[0];
+  if(!file)return;
+  const status=$('fc-history-status');
+  $('fc-history-result').hidden=true;
+  state.snapshotComparison=null;
+  status.textContent='Älteren Export wird lokal ausgewertet …';
+  $('fc-history-input').disabled=true;
+  try {
+    if(!state.result || state.demo)throw new Error('Bitte zuerst deinen aktuellen echten Export laden.');
+    if(!/\.zip$/i.test(file.name))throw new Error('Bitte eine ältere Instagram-ZIP im JSON-Format auswählen.');
+    if(!window.JSZip)throw new Error('Der ZIP-Leser ist nicht verfügbar. Bitte Seite neu laden.');
+    const current=state.result;
+    const previous=await analyzeFiles([file],window.JSZip);
+    if(state.result!==current)throw new Error('Die aktuelle Analyse hat sich geändert. Bitte beide Exporte erneut laden.');
+    const compare=compareSnapshots(previous,current);
+    state.snapshotComparison=compare;
+    renderHistoryComparison(compare);
+    status.textContent='Vergleich fertig. Beide Exporte wurden nur in diesem Browser verarbeitet. Die Ergebnisse werden nicht dauerhaft gespeichert.';
+  }catch(error){
+    status.textContent=error?.message || 'Der ältere Export konnte nicht verarbeitet werden.';
+  }finally{
+    $('fc-history-input').disabled=false;
+    $('fc-history-input').value='';
+  }
+});
+$('fc-history-clear').addEventListener('click',() => {
+  state.snapshotComparison=null;
+  $('fc-history-result').hidden=true;
+  $('fc-history-status').textContent='Vergleich entfernt. Keine Snapshots dauerhaft gespeichert.';
 });
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
@@ -1510,6 +1654,30 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
             <div class="stat-card"><span class="stat-label">GEGENSEITIG</span><strong id="stat-mutual">0</strong><span class="stat-desc">Ihr folgt euch beide</span></div>
           </div>
+          <details id="fc-history" class="fc-v2-history">
+            <summary class="fc-v2-history-summary"><span class="fc-v2-history-symbol" aria-hidden="true">↗</span><span><strong>Wer hat sich seit deinem letzten Export verändert?</strong><small>Jetzt zwei Exporte vergleichen · privat und kostenlos</small></span><span class="fc-v2-history-arrow" aria-hidden="true">⌄</span></summary>
+            <div class="fc-v2-history-body">
+              <p><strong>Dein aktueller Export ist bereits geladen.</strong> Wähle hier eine <em>ältere</em> Instagram-ZIP desselben Kontos aus. So erkennst du, wer in der neuen Followerliste fehlt oder neu dazugekommen ist. Das beweist nicht, dass jemand aktiv entfolgt ist: Kontolöschungen oder Sperrungen können ebenfalls eine Rolle spielen.</p>
+              <label for="fc-history-input" class="fc-v2-history-upload">Ältere Instagram-ZIP auswählen <span aria-hidden="true">↑</span></label>
+              <input id="fc-history-input" type="file" accept=".zip,application/zip" aria-label="Älteren Instagram-Export auswählen"/>
+              <p id="fc-history-status" class="fc-v2-history-status" role="status">Beide ZIPs müssen zum selben Instagram-Konto gehören. Deine Daten bleiben auf diesem Gerät.</p>
+              <div id="fc-history-result" hidden>
+                <div class="fc-v2-delta-grid">
+                  <div class="fc-v2-delta negative"><strong id="fc-v2-lost-total">0</strong><span>Nicht mehr unter deinen Followern</span></div>
+                  <div class="fc-v2-delta positive"><strong id="fc-v2-new-total">0</strong><span>Neu unter deinen Followern</span></div>
+                  <div class="fc-v2-delta"><strong id="fc-v2-unfollowed-total">0</strong><span>Denen du nicht mehr folgst</span></div>
+                  <div class="fc-v2-delta"><strong id="fc-v2-started-total">0</strong><span>Denen du neu folgst</span></div>
+                </div>
+                <div class="fc-v2-history-groups">
+                  <details><summary>Nicht mehr unter den Followern</summary><ul id="fc-v2-lost-list"></ul></details>
+                  <details><summary>Neue Follower</summary><ul id="fc-v2-new-list"></ul></details>
+                  <details><summary>Du folgst nicht mehr</summary><ul id="fc-v2-unfollowed-list"></ul></details>
+                  <details><summary>Du folgst jetzt neu</summary><ul id="fc-v2-started-list"></ul></details>
+                </div>
+                <button id="fc-history-clear" type="button" class="fc-v2-history-clear">Vergleich verwerfen</button>
+              </div>
+            </div>
+          </details>
           <div class="free-result-cta" id="free-result-cta">
             <div class="free-result-cta-copy"><span class="free-result-eyebrow">DEIN NÄCHSTER SCHRITT</span><span class="fc-beta-free-pill">Aktuell ebenfalls gratis</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
             <button id="open-list-btn" class="free-result-button" type="button" aria-expanded="false" aria-controls="detail-view">Vollständige Liste anzeigen <span aria-hidden="true">↓</span></button>
@@ -1539,6 +1707,16 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: „Erledigt“ leuchtet grün. Den tatsächlichen Entfolgen-Schritt führst du selbst in Instagram aus.</p></div></div>
           <div class="fc-avatar-panel fc-avatar-private" role="note" aria-label="Profilbilder und Privatsphäre"><span class="fc-avatar-note-icon" aria-hidden="true">✦</span><p><strong>Privatsphäre statt falscher Profilbilder.</strong> Instagram-Exportdateien enthalten normalerweise keine Original-Profilbilder. FollowClean zeigt deshalb farbige Initialen statt unzuverlässiger Bilder. Accountnamen werden nicht an einen Bilddienst gesendet.</p></div>
           <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil als erledigt markiert.</span><button id="visit-undo" type="button">Rückgängig</button></div>
+          <div class="fc-v2-tools" aria-label="Accountliste organisieren">
+            <div class="fc-v2-filterbar" role="group" aria-label="Schnellfilter">
+              <button type="button" data-v2-filter="all" class="fc-v2-pill is-active" aria-pressed="true">Alle <span class="fc-v2-pill-count">0</span></button>
+              <button type="button" data-v2-filter="open" class="fc-v2-pill" aria-pressed="false">Offen <span class="fc-v2-pill-count">0</span></button>
+              <button type="button" data-v2-filter="opened" class="fc-v2-pill" aria-pressed="false">Angesehen <span class="fc-v2-pill-count">0</span></button>
+              <button type="button" data-v2-filter="keep" class="fc-v2-pill" aria-pressed="false">Behalten <span class="fc-v2-pill-count">0</span></button>
+              <button type="button" data-v2-filter="done" class="fc-v2-pill" aria-pressed="false">Erledigt <span class="fc-v2-pill-count">0</span></button>
+            </div>
+            <label class="fc-v2-sort">Reihenfolge <select id="fc-sort" aria-label="Accountliste sortieren"><option value="queue">Offene zuerst</option><option value="az">A bis Z</option><option value="za">Z bis A</option></select></label>
+          </div>
           <div class="toolbar"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Account suchen …" autocomplete="off" aria-label="Instagram-Account suchen" /></label><select id="filter-select" aria-label="Accounts filtern"><option value="all">Alle anzeigen</option><option value="open">Noch offen</option><option value="opened">Profil geöffnet</option><option value="done">Erledigt</option><option value="keep">Behalten</option></select></div>
           <div class="progress-top"><span><strong id="progress-text">0 von 0</strong> bearbeitet</span><button id="download-btn" class="text-button small">Liste als CSV ↗</button></div>
           <div class="progress-rail"><div id="progress-bar"></div></div>
