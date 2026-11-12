@@ -66,3 +66,15 @@ node apps/followclean/tests/webkit-smoke.mjs
 ```
 
 This downloads browser test binaries, not any user's Instagram ZIP. Prefer an already installed Playwright/WebKit instead of downloading when possible. It is **not** run from the GitHub connector and is not claimed PASS today.
+
+
+## Final patch acceptance · 2026-11-12/13
+
+- **29/29** combined synthetic mobile Chromium tests for current code before final storage patch (account isolation, verified visited/Done distinction, Undo, import diagnostics, net dashboard deltas, free functions, RIO sandbox).
+- **17/17** 390px mobile Chromium stress tests with 1,200 synthetic accounts; correct 400 mutual/800 nonmutual statistics, pagination capped at 48 rendered rows.
+- **14/14** post-fix 320px browser tests for legacy progress migration, explicit account confirmation, local resume banner refresh, per-account delete, full global delete and indexed localStorage key enumeration.
+- Initial full live publication of V9/V10 passed **22/22** checks on the Cloudflare origin with correct release header and 100% deployment. The final storage-enumeration patch needs its own live deployment and postdeploy regression.
+- Stripe test link remains active, RIO remains active, one open unpaid Checkout Session and **zero completed**. A one-time headless browser attempt to inspect the hosted Stripe Checkout timed out; no order or charge was created or represented as successful.
+- Genuine WebKit run remains **unexecuted** because browser binary is missing. Desktop browser on the latest iteration was HTTP 429 rate limited. Product is still beta and nonindexed, pending operator legal details and payment verification.
+
+This release has no new SaaS, paid services, user tracking, Instagram password handling or production payment changes.
