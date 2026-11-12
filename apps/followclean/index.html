@@ -884,6 +884,41 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(max-width:650px){.fc-v2-tools{gap:7px}.fc-v2-filterbar{width:100%}.fc-v2-sort{margin-left:auto}.fc-v2-delta-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fc-v2-history-groups{grid-template-columns:1fr}.fc-v2-history-summary{padding:13px 11px}.fc-v2-history-body{padding:11px}.fc-v2-history-summary strong{font-size:12px}.fc-v2-history-upload{width:100%}}
 @media(prefers-color-scheme:dark){.fc-v2-history{background:#222c3d;border-color:#3c526f}.fc-v2-history-summary strong{color:#f0f4ff}.fc-v2-history-summary small,.fc-v2-history-body>p,.fc-v2-history-status{color:#bacde4}.fc-v2-history-body{border-color:#3c526f}.fc-v2-history-symbol{background:#3d395a;color:#ddc4ff}.fc-v2-pill{background:#29364d;border-color:#49617e;color:#d9e8fa}.fc-v2-pill.is-active{background:#2869e8;border-color:#2869e8;color:white}.fc-v2-pill-count{background:#415573;color:#e2ebfd}.fc-v2-sort{color:#cad6e6}.fc-v2-sort select{background:#29364d;border-color:#49617e;color:white}.fc-v2-delta,.fc-v2-history-groups details{background:#28374b;border-color:#455a78}.fc-v2-delta span,.fc-v2-history-groups ul{color:#c2d1e4}.fc-v2-history-groups summary{color:#d7e8ff}.fc-v2-history-clear{color:#c5d8f1;border-color:#5d7390}}
 @media(prefers-reduced-motion:reduce){.fc-v2-history-arrow{transition:none}}
+
+/* FollowClean V3: explicit on-device snapshots, accessible private trend */
+.fc-v3-snapshot-panel{margin:18px 0 5px;padding:17px;border:1px solid #d5e2ec;border-radius:15px;background:linear-gradient(125deg,#f3f9ff,#f9fbff);color:#244463}
+.fc-v3-heading{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.fc-v3-symbol{flex:0 0 37px;display:grid;place-items:center;height:37px;font-size:22px;border-radius:11px;color:#146a8a;background:#dbf0f7}
+.fc-v3-heading div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fc-v3-heading strong{font-size:14px;line-height:1.3;color:#244161}
+.fc-v3-heading small{font-size:11px;line-height:1.4;color:#617b97}
+.fc-v3-snapshot-panel>p{font-size:11.5px;line-height:1.65;color:#586d83;margin:12px 0}
+.fc-v3-consent,.fc-v3-same-account{display:flex;align-items:flex-start;gap:10px;font-size:11px;line-height:1.5;color:#465e7d;cursor:pointer;padding:11px 0}
+.fc-v3-consent input,.fc-v3-same-account input{width:19px;height:19px;flex:0 0 19px;margin:0;accent-color:#146bdc}
+.fc-v3-save{display:flex;align-items:center;justify-content:center;gap:12px;min-height:46px;border-radius:11px;background:#1b67d5;color:white;padding:12px 16px;font-size:12px;font-weight:850;cursor:pointer}
+.fc-v3-save:hover{background:#1658be}
+.fc-v3-message{font-size:11px;color:#586d82;line-height:1.5}
+.fc-v3-chart-label{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 5px}
+.fc-v3-chart-label strong{font-size:12px;color:#304b66}
+.fc-v3-chart-label>div{display:flex;align-items:center;gap:12px}
+.fc-v3-legend{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#566e85}
+.fc-v3-legend:before{content:'';width:9px;height:9px;border-radius:50%;background:#12875e}
+.fc-v3-legend.following:before{background:#7667e8}
+.fc-v3-chart{width:100%;height:auto;display:block;overflow:visible;max-height:180px;color:#536d8b;background:#ffffffd5;border:1px solid #dfebf4;border-radius:10px}
+.fc-v3-snapshot-panel .fc-v3-chart-explain{font-size:10px;margin:5px 0 13px}
+.fc-v3-snapshot-list{display:flex;flex-direction:column;gap:8px}
+.fc-v3-snapshot-row{display:flex;align-items:center;justify-content:space-between;gap:9px;border:1px solid #dce8f3;border-radius:11px;padding:12px;background:white}
+.fc-v3-snapshot-info{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fc-v3-snapshot-info strong{font-size:11px;line-height:1.4;color:#315270}
+.fc-v3-snapshot-info span{font-size:10px;color:#687e94}
+.fc-v3-snapshot-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.fc-v3-snapshot-actions button,.fc-v3-delete-all{min-height:44px;padding:10px 12px;border:1px solid #ceddeb;background:#f5f9ff;color:#285a8f;font-weight:750;font-size:11px;border-radius:9px;cursor:pointer}
+.fc-v3-snapshot-actions .fc-v3-remove{background:transparent;color:#94606a;border-color:#e2cfd4}
+.fc-v3-same-account{margin-top:9px}
+.fc-v3-delete-all{margin-top:5px;background:transparent;border-color:#dfc3c7;color:#a24558}
+.fc-v3-save:focus-visible,.fc-v3-snapshot-actions button:focus-visible,.fc-v3-delete-all:focus-visible,.fc-v3-consent input:focus-visible,.fc-v3-same-account input:focus-visible{outline:3px solid #4f94e8;outline-offset:2px}
+@media(max-width:650px){.fc-v3-snapshot-panel{padding:12px}.fc-v3-snapshot-row{flex-wrap:wrap}.fc-v3-snapshot-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.fc-v3-snapshot-actions button{width:100%}.fc-v3-save{width:100%}}
+@media(prefers-color-scheme:dark){.fc-v3-snapshot-panel{background:linear-gradient(125deg,#1b3042,#1f2d3d);border-color:#3a5873;color:#dceafa}.fc-v3-heading strong,.fc-v3-chart-label strong{color:#e7f4ff}.fc-v3-heading small,.fc-v3-snapshot-panel>p,.fc-v3-snapshot-panel .fc-v3-message,.fc-v3-consent,.fc-v3-same-account{color:#b7d0e7}.fc-v3-symbol{background:#28465c;color:#a4ddf6}.fc-v3-chart{background:#22374b;border-color:#466077;color:#c3d8ee}.fc-v3-snapshot-row{background:#25394e;border-color:#3e5772}.fc-v3-snapshot-info strong{color:#ebf4ff}.fc-v3-snapshot-info span,.fc-v3-legend{color:#bed0e2}.fc-v3-snapshot-actions button{background:#2a486b;color:#d9efff;border-color:#51718f}.fc-v3-snapshot-actions .fc-v3-remove{color:#ffd3d8;border-color:#87606a}.fc-v3-delete-all{color:#f6bcc5;border-color:#91606b}}
 </style>
   <script>
 /*!
@@ -1043,6 +1078,10 @@ const FC_PAGE_SIZE = 48;
 state.visibleCount = FC_PAGE_SIZE;
 state.sort = 'queue';
 state.snapshotComparison = null;
+// Explicit local opt-in. Never store uploaded ZIPs or snapshots on a server.
+const FC_SNAPSHOTS_KEY = 'followclean:snapshots:v1';
+const FC_SNAPSHOT_LIMIT = 4;
+const FC_SNAPSHOT_CHAR_LIMIT = 650000;
 const DEMO_FOLLOWERS = ['beispiel_mia', 'beispiel_tim', 'beispiel_zoe', 'beispiel_noah', 'beispiel_lea', 'beispiel_ben'];
 const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispiel_luca', 'beispiel_sam', 'beispiel_max'];
 
@@ -1119,6 +1158,8 @@ function useResult(result, demo) {
   state.snapshotComparison = null;
   $('fc-sort').value = 'queue';
   $('fc-history-result').hidden = true;
+  $('fc-snapshot-consent').checked = false;
+  $('fc-snapshot-same-account').checked = false;
   $('fc-history-status').textContent = 'Ein älterer Export zeigt Veränderungen seit diesem Zeitpunkt. Beide ZIPs müssen zum selben Instagram-Konto gehören.';
   $('fc-history-input').value = '';
   $('fc-history').open = false;
@@ -1139,6 +1180,7 @@ function useResult(result, demo) {
   $('stat-following').textContent = result.following.toLocaleString('de-DE');
   $('stat-mutual').textContent = result.mutual.length.toLocaleString('de-DE');
   renderResults();
+  renderLocalHistory();
   completeVisitOnReturn();
   $('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
@@ -1311,6 +1353,8 @@ function reset() {
   rememberPendingVisit(null);
   state.snapshotComparison = null; state.sort = 'queue';
   $('fc-history-result').hidden=true;
+  $('fc-snapshot-consent').checked=false;
+  $('fc-snapshot-same-account').checked=false;
   $('fc-history-input').value='';
   $('fc-history').open=false;
   state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
@@ -1425,7 +1469,178 @@ document.querySelectorAll('[data-copy-rio]').forEach(button => {
   });
 });
 
-// V2 export comparison is opt-in and ephemeral; no snapshots go into localStorage.
+
+// A saved snapshot stores the full normalized username lists only on this device.
+// It is not auto-enabled and is intentionally limited to reduce browser storage load.
+function localHistoryStatus(message) {
+  $('fc-snapshot-message').textContent=message;
+}
+function parseSavedSnapshots(raw) {
+  if (!raw) return [];
+  if (raw.length > FC_SNAPSHOT_LIMIT * FC_SNAPSHOT_CHAR_LIMIT + 50000) throw new Error('Gespeicherte Historie ist zu groß.');
+  const parsed=JSON.parse(raw);
+  if (!Array.isArray(parsed) || parsed.length>FC_SNAPSHOT_LIMIT) throw new Error('Ungültige lokale Historie.');
+  return parsed.map(s => {
+    if (!s || typeof s.id!=='string' || s.id.length>100 ||
+        !Number.isFinite(s.savedAt) || s.savedAt<=0 ||
+        !Array.isArray(s.followerNames) || !Array.isArray(s.followingNames) ||
+        s.followerNames.length>100000 || s.followingNames.length>100000 ||
+        !s.followerNames.every(n => normalizeUsername(n)===n) ||
+        !s.followingNames.every(n => normalizeUsername(n)===n)) {
+      throw new Error('Ungültige lokale Historie.');
+    }
+    return s;
+  }).sort((a,b)=>a.savedAt-b.savedAt);
+}
+function loadLocalSnapshots() {
+  try { return parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY)); }
+  catch (error) {
+    localHistoryStatus('Historie nicht verfügbar: Browser-Speicher ist gesperrt oder beschädigt. Bereits gespeicherte Daten wurden nicht verändert.');
+    return [];
+  }
+}
+function createLocalSnapshot(result) {
+  if (!result || !Array.isArray(result.followerNames) || !Array.isArray(result.followingNames)) {
+    throw new Error('Bitte zuerst einen echten Instagram-Export analysieren.');
+  }
+  const snapshot={
+    id: (window.crypto?.randomUUID?.() || Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),
+    savedAt: Date.now(),
+    followerNames:[...result.followerNames],
+    followingNames:[...result.followingNames]
+  };
+  if (JSON.stringify(snapshot).length>FC_SNAPSHOT_CHAR_LIMIT) {
+    throw new Error('Zu viele Benutzernamen für die lokale Safari-Historie. Verwende stattdessen den direkten Vergleich mit zwei ZIP-Dateien.');
+  }
+  return snapshot;
+}
+function saveLocalSnapshot() {
+  if (!state.result || state.demo) {
+    localHistoryStatus('Bitte erst deinen echten aktuellen Instagram-Export laden.');
+    return;
+  }
+  if (!$('fc-snapshot-consent').checked) {
+    localHistoryStatus('Bitte bestätige zunächst, dass du die Benutzernamen lokal speichern möchtest.');
+    return;
+  }
+  try {
+    const previous=parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY));
+    if(previous.length>=FC_SNAPSHOT_LIMIT)throw new Error('Maximal 4 Stände möglich. Entferne einen älteren Stand, bevor du einen neuen speicherst.');
+    const snapshot=createLocalSnapshot(state.result);
+    // No automatic deletion, consent can be withdrawn by deleting the saved snapshots.
+    localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify([...previous,snapshot]));
+    $('fc-snapshot-consent').checked=false;
+    localHistoryStatus('Stand lokal gespeichert. Es wurde nichts an einen Server übertragen.');
+    renderLocalHistory();
+  } catch(error) {
+    localHistoryStatus(error instanceof DOMException && error.name==='QuotaExceededError'
+      ? 'Safari-Speicher voll. Lösche alte Stände oder nutze den ZIP-Vergleich ohne Speicherung.'
+      : (error?.message || 'Lokales Speichern ist in diesem Browser nicht möglich.'));
+  }
+}
+function snapshotDate(savedAt) {
+  return new Date(savedAt).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'});
+}
+function createHistorySvg(name,attrs) {
+  const node=document.createElementNS('http://www.w3.org/2000/svg',name);
+  for(const [key,value] of Object.entries(attrs||{}))node.setAttribute(key,String(value));
+  return node;
+}
+function renderSnapshotChart(snapshots) {
+  const svg=$('fc-snapshot-chart');
+  svg.replaceChildren();
+  if(!snapshots.length)return;
+  const values=snapshots.flatMap(s=>[s.followerNames.length,s.followingNames.length]);
+  const lo=Math.min(...values),hi=Math.max(...values);
+  const pad=Math.max(2,Math.ceil((hi-lo)*0.13));
+  const bottom=Math.max(0,lo-pad),top=hi+pad;
+  const range=Math.max(1,top-bottom);
+  const x=i=>snapshots.length===1?300:44+(512*i/(snapshots.length-1));
+  const y=n=>140-((n-bottom)/range)*108;
+  for(const t of [0,0.5,1]){
+    const ypos=140-t*108;
+    svg.append(createHistorySvg('line',{x1:40,y1:ypos,x2:566,y2:ypos,stroke:'currentColor','stroke-opacity':'.11','stroke-width':'1'}));
+  }
+  for(const [key,color] of [['followerNames','#12875e'],['followingNames','#7667e8']]){
+    const points=snapshots.map((snapshot,i)=>[x(i),y(snapshot[key].length)]);
+    if(points.length>1)svg.append(createHistorySvg('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:color,'stroke-width':'3','stroke-linecap':'round','stroke-linejoin':'round'}));
+    for(const [px,py] of points)svg.append(createHistorySvg('circle',{cx:px,cy:py,r:'5',fill:color,stroke:'var(--surface, #fff)','stroke-width':'2'}));
+  }
+  for(let i=0;i<snapshots.length;i++){
+    const label=createHistorySvg('text',{x:x(i),y:163,'text-anchor':'middle','font-size':'12',fill:'currentColor'});
+    label.textContent=String(i+1);
+    svg.append(label);
+  }
+  svg.setAttribute('aria-label',snapshots.map((s,i)=>'Stand '+(i+1)+': '+s.followerNames.length+' Follower, '+s.followingNames.length+' Gefolgt, gespeichert '+snapshotDate(s.savedAt)).join('; '));
+}
+function renderLocalHistory() {
+  const snaps=loadLocalSnapshots();
+  const area=$('fc-snapshot-history');
+  area.hidden=snaps.length===0;
+  renderSnapshotChart(snaps);
+  const list=$('fc-snapshot-list'),fragment=document.createDocumentFragment();
+  for(let i=0;i<snaps.length;i++){
+    const s=snaps[i];
+    const row=makeEl('div','fc-v3-snapshot-row');
+    const info=makeEl('div','fc-v3-snapshot-info');
+    info.append(makeEl('strong','', 'Stand '+(i+1)+' · gespeichert '+snapshotDate(s.savedAt)),
+      makeEl('span','',s.followerNames.length.toLocaleString('de-DE')+' Follower · '+s.followingNames.length.toLocaleString('de-DE')+' Gefolgt'));
+    const actions=makeEl('div','fc-v3-snapshot-actions');
+    const compare=makeEl('button','fc-v3-compare','Vergleichen');
+    compare.type='button';compare.dataset.snapshotAction='compare';compare.dataset.snapshotId=s.id;
+    const remove=makeEl('button','fc-v3-remove','Löschen');
+    remove.type='button';remove.dataset.snapshotAction='delete';remove.dataset.snapshotId=s.id;
+    actions.append(compare,remove);row.append(info,actions);fragment.append(row);
+  }
+  list.replaceChildren(fragment);
+}
+$('fc-snapshot-save').addEventListener('click',saveLocalSnapshot);
+$('fc-snapshot-list').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-snapshot-action]');
+  if(!button)return;
+  const snaps=loadLocalSnapshots(),snapshot=snaps.find(s=>s.id===button.dataset.snapshotId);
+  if(!snapshot){localHistoryStatus('Gespeicherter Stand nicht gefunden.');return;}
+  if(button.dataset.snapshotAction==='compare'){
+    if (!$('fc-snapshot-same-account').checked) {
+      localHistoryStatus('Bitte bestätige vor dem Vergleich, dass beide Exporte vom selben Instagram-Konto stammen.');
+      return;
+    }
+    if (!state.result || state.demo) {
+      localHistoryStatus('Bitte zuerst deinen aktuellen echten Export laden.');
+      return;
+    }
+    try {
+      const delta=compareSnapshots(snapshot,state.result);
+      state.snapshotComparison=delta;
+      renderHistoryComparison(delta);
+      $('fc-history-status').textContent='Mit lokal gespeichertem Stand vom '+snapshotDate(snapshot.savedAt)+' verglichen. Das Speicherdatum ist nicht das Exportdatum.';
+      $('fc-history-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(error){localHistoryStatus(error.message);}
+    return;
+  }
+  if(button.dataset.snapshotAction==='delete' && confirm('Diesen lokal gespeicherten Stand endgültig löschen?')){
+    try {
+      const remaining=snaps.filter(s=>s.id!==snapshot.id);
+      if(remaining.length)localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify(remaining));
+      else localStorage.removeItem(FC_SNAPSHOTS_KEY);
+      state.snapshotComparison=null;$('fc-history-result').hidden=true;
+      localHistoryStatus('Gespeicherter Stand gelöscht.');
+      renderLocalHistory();
+    }catch{localHistoryStatus('Löschen fehlgeschlagen: Lokaler Browser-Speicher nicht verfügbar.');}
+  }
+});
+$('fc-snapshot-clear-all').addEventListener('click',()=>{
+  if(!confirm('Alle lokal gespeicherten Follower-Verläufe endgültig löschen?'))return;
+  try {
+    localStorage.removeItem(FC_SNAPSHOTS_KEY);
+    state.snapshotComparison=null;$('fc-history-result').hidden=true;
+    $('fc-snapshot-same-account').checked=false;
+    localHistoryStatus('Alle gespeicherten Stände entfernt.');
+    renderLocalHistory();
+  }catch{localHistoryStatus('Löschen nicht möglich: Browserspeicher ist nicht verfügbar.');}
+});
+
+// Direct two-ZIP export comparison remains ephemeral; saved local snapshots are opt-in.
 function renderHistoryComparison(report) {
   const views=[
     ['lostFollowers','fc-v2-lost-list','fc-v2-lost-total'],
@@ -1487,9 +1702,16 @@ $('guide-done').addEventListener('click',()=>{ const name=$('guide-panel').datas
 $('guide-skip').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name){state.skip.add(name);renderGuide();} });
 $('delete-local-btn').addEventListener('click',()=>{
   if (!confirm('Alle von FollowClean lokal gespeicherten Fortschrittsdaten löschen?')) return;
-  try {for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')) localStorage.removeItem(key);localStorage.removeItem(FC_EXPORT_PENDING_KEY);}catch{}
+  try {
+    for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')) localStorage.removeItem(key);
+    localStorage.removeItem(FC_EXPORT_PENDING_KEY);
+    localStorage.removeItem(FC_SNAPSHOTS_KEY);
+  }catch{}
   state.activeVisit=null;rememberPendingVisit(null);
-  setExportPending(false);state.statuses={};updateRestoreHint();if(state.result)renderResults();
+  setExportPending(false);state.statuses={};state.snapshotComparison=null;
+  $('fc-history-result').hidden=true;
+  $('fc-snapshot-consent').checked=false;$('fc-snapshot-same-account').checked=false;
+  renderLocalHistory();updateRestoreHint();if(state.result)renderResults();
 });
 
 </script>
@@ -1661,6 +1883,21 @@ $('delete-local-btn').addEventListener('click',()=>{
               <label for="fc-history-input" class="fc-v2-history-upload">Ältere Instagram-ZIP auswählen <span aria-hidden="true">↑</span></label>
               <input id="fc-history-input" type="file" accept=".zip,application/zip" aria-label="Älteren Instagram-Export auswählen"/>
               <p id="fc-history-status" class="fc-v2-history-status" role="status">Beide ZIPs müssen zum selben Instagram-Konto gehören. Deine Daten bleiben auf diesem Gerät.</p>
+              <section id="fc-snapshot-panel" class="fc-v3-snapshot-panel" aria-labelledby="fc-snapshot-title">
+                <div class="fc-v3-heading"><span class="fc-v3-symbol" aria-hidden="true">◷</span><div><strong id="fc-snapshot-title">Deine private Verlaufshistorie</strong><small>Bis zu 4 Stände auf diesem Gerät speichern und vergleichen</small></div></div>
+                <p>Deine Daten werden nur nach deiner Zustimmung in diesem Browser gespeichert, einschließlich der Follower- und Gefolgt-Benutzernamen. Nutze diese Funktion nicht auf gemeinsam genutzten Geräten. Bei Safari-Datenlöschung verschwinden auch die Stände.</p>
+                <label class="fc-v3-consent"><input id="fc-snapshot-consent" type="checkbox"/> <span>Ich möchte die Benutzernamen dieses Exports <strong>nur lokal auf diesem Gerät</strong> speichern.</span></label>
+                <button type="button" id="fc-snapshot-save" class="fc-v3-save">Aktuellen Stand speichern <span aria-hidden="true">＋</span></button>
+                <p id="fc-snapshot-message" class="fc-v3-message" role="status">Ohne Zustimmung wird kein Stand gespeichert. Das Speicherdatum ist nicht das Instagram-Exportdatum.</p>
+                <div id="fc-snapshot-history" hidden>
+                  <div class="fc-v3-chart-label"><strong>Follower-Entwicklung</strong><div><span class="fc-v3-legend follow">Follower</span><span class="fc-v3-legend following">Gefolgt</span></div></div>
+                  <svg id="fc-snapshot-chart" class="fc-v3-chart" viewBox="0 0 600 176" role="img" aria-label="Follower-Verlauf der lokal gespeicherten Analysen"></svg>
+                  <p class="fc-v3-chart-explain">Die Punkte zeigen die Werte, als du die Stände in FollowClean gespeichert hast. Sie sind keine automatischen Instagram-Messungen.</p>
+                  <div id="fc-snapshot-list" class="fc-v3-snapshot-list" aria-label="Gespeicherte Analysen"></div>
+                  <label class="fc-v3-same-account"><input type="checkbox" id="fc-snapshot-same-account"/><span>Der gewählte ältere Stand gehört zum <strong>selben Instagram-Konto</strong> wie der aktuelle Export.</span></label>
+                  <button type="button" id="fc-snapshot-clear-all" class="fc-v3-delete-all">Alle gespeicherten Stände löschen</button>
+                </div>
+              </section>
               <div id="fc-history-result" hidden>
                 <div class="fc-v2-delta-grid">
                   <div class="fc-v2-delta negative"><strong id="fc-v2-lost-total">0</strong><span>Nicht mehr unter deinen Followern</span></div>
@@ -1747,7 +1984,7 @@ $('delete-local-btn').addEventListener('click',()=>{
         <details class="fc-legal-detail" id="datenschutz"><summary><span>Datenschutz &amp; lokale Verarbeitung</span><small>Technikhinweis · kein finaler Rechtstext</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
           <div class="fc-legal-copy">
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
-            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Löschen ist über „Lokalen Fortschritt löschen“ möglich. Browserdaten können zusätzlich über Safari gelöscht werden.</p>
+            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. <strong>Neu:</strong> Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten als Verlauf im lokalen Browser-Speicher abgelegt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
             <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
