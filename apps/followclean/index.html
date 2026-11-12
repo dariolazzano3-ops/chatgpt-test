@@ -886,6 +886,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-reduced-motion:reduce){.fc-v2-history-arrow{transition:none}}
 
 /* FollowClean V3: explicit on-device snapshots, accessible private trend */
+.fc-v3-return{padding:12px 14px;margin:14px 0;border-radius:11px;background:#eef6ff;border:1px solid #c9ddf7;color:#2b5c9b;font-weight:750;font-size:12px;line-height:1.55}
+@media(prefers-color-scheme:dark){.fc-v3-return{background:#1d354f;border-color:#405f85;color:#bfdcff}}
 .fc-v3-snapshot-panel{margin:18px 0 5px;padding:17px;border:1px solid #d5e2ec;border-radius:15px;background:linear-gradient(125deg,#f3f9ff,#f9fbff);color:#244463}
 .fc-v3-heading{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .fc-v3-symbol{flex:0 0 37px;display:grid;place-items:center;height:37px;font-size:22px;border-radius:11px;color:#146a8a;background:#dbf0f7}
@@ -1423,6 +1425,7 @@ $('fc-return-upload').addEventListener('click', () => {
 $('fc-return-guide').addEventListener('click', () => setExportGuideOpen(true, true));
 $('fc-return-dismiss').addEventListener('click', () => setExportPending(false));
 updateRestoreHint();
+updateHistoryReturnHint();
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
 // Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
@@ -1573,8 +1576,17 @@ function renderSnapshotChart(snapshots) {
   }
   svg.setAttribute('aria-label',snapshots.map((s,i)=>'Stand '+(i+1)+': '+s.followerNames.length+' Follower, '+s.followingNames.length+' Gefolgt, gespeichert '+snapshotDate(s.savedAt)).join('; '));
 }
+function updateHistoryReturnHint(count) {
+  const hint=$('fc-v3-history-return');
+  if (!hint) return;
+  let n=count;
+  if (n===undefined) n=loadLocalSnapshots().length;
+  hint.hidden=n===0;
+  if(n>0)hint.textContent='◷ '+n+' gespeicherte'+(n===1?'r Stand':' Stände')+' auf diesem Gerät. Neue Instagram-ZIP laden, um den Verlauf fortzusetzen.';
+}
 function renderLocalHistory() {
   const snaps=loadLocalSnapshots();
+  updateHistoryReturnHint(snaps.length);
   const area=$('fc-snapshot-history');
   area.hidden=snaps.length===0;
   renderSnapshotChart(snaps);
@@ -1692,7 +1704,7 @@ $('fc-history-input').addEventListener('change',async event => {
 $('fc-history-clear').addEventListener('click',() => {
   state.snapshotComparison=null;
   $('fc-history-result').hidden=true;
-  $('fc-history-status').textContent='Vergleich entfernt. Keine Snapshots dauerhaft gespeichert.';
+  $('fc-history-status').textContent='Direkter Vergleich verworfen. Bereits ausdrücklich gespeicherte lokale Stände bleiben erhalten.';
 });
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
@@ -1843,6 +1855,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </div>
 <div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
+          <p id="fc-v3-history-return" class="fc-v3-return" role="status" hidden></p>
           <p id="fc-restore-hint" class="fc-restore-hint" role="status" hidden>✓ Dein letzter Fortschritt ist auf diesem Gerät gespeichert. Wähle dieselbe Instagram-ZIP erneut aus, um deine Markierungen wiederzusehen.</p>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
