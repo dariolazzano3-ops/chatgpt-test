@@ -921,6 +921,23 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v3-save:focus-visible,.fc-v3-snapshot-actions button:focus-visible,.fc-v3-delete-all:focus-visible,.fc-v3-consent input:focus-visible,.fc-v3-same-account input:focus-visible{outline:3px solid #4f94e8;outline-offset:2px}
 @media(max-width:650px){.fc-v3-snapshot-panel{padding:12px}.fc-v3-snapshot-row{flex-wrap:wrap}.fc-v3-snapshot-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.fc-v3-snapshot-actions button{width:100%}.fc-v3-save{width:100%}}
 @media(prefers-color-scheme:dark){.fc-v3-snapshot-panel{background:linear-gradient(125deg,#1b3042,#1f2d3d);border-color:#3a5873;color:#dceafa}.fc-v3-heading strong,.fc-v3-chart-label strong{color:#e7f4ff}.fc-v3-heading small,.fc-v3-snapshot-panel>p,.fc-v3-snapshot-panel .fc-v3-message,.fc-v3-consent,.fc-v3-same-account{color:#b7d0e7}.fc-v3-symbol{background:#28465c;color:#a4ddf6}.fc-v3-chart{background:#22374b;border-color:#466077;color:#c3d8ee}.fc-v3-snapshot-row{background:#25394e;border-color:#3e5772}.fc-v3-snapshot-info strong{color:#ebf4ff}.fc-v3-snapshot-info span,.fc-v3-legend{color:#bed0e2}.fc-v3-snapshot-actions button{background:#2a486b;color:#d9efff;border-color:#51718f}.fc-v3-snapshot-actions .fc-v3-remove{color:#ffd3d8;border-color:#87606a}.fc-v3-delete-all{color:#f6bcc5;border-color:#91606b}}
+
+/* FollowClean V3.1: local history safety net, no server-side backup */
+.fc-v4-backup-restore{margin:14px 0;border-radius:12px;border:1px solid #dbe7f2;background:#f8faff}
+.fc-v4-backup-restore>summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 15px;list-style:none;cursor:pointer;color:#385a84;font-size:12px;font-weight:750}
+.fc-v4-backup-restore>summary::-webkit-details-marker{display:none}
+.fc-v4-backup-restore[open] summary span{transform:rotate(180deg)}
+.fc-v4-restore-content{padding:0 14px 14px}
+.fc-v4-restore-content p,.fc-v4-backup-actions p{font-size:11px;line-height:1.6;color:#65778d}
+.fc-v4-restore-content button,.fc-v4-backup-download{min-height:44px;border-radius:10px;border:1px solid #a6caee;padding:10px 14px;background:#eff7ff;color:#275d9d;font-size:11.5px;font-weight:750;cursor:pointer}
+.fc-v4-restore-content button:disabled{opacity:.6;cursor:wait}
+#fc-backup-import-input{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
+.fc-v4-backup-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 14px;padding:12px;border:1px solid #cdddec;border-radius:10px;background:#ffffffb5}
+.fc-v4-backup-actions p{margin:0;flex:1;min-width:150px}
+.fc-v4-backup-download{display:inline-flex;justify-content:center;align-items:center;gap:8px;background:#e8f3ff}
+.fc-v4-backup-restore summary:focus-visible,.fc-v4-backup-download:focus-visible,.fc-v4-restore-content button:focus-visible{outline:3px solid #78a8ef;outline-offset:3px}
+@media(max-width:650px){.fc-v4-backup-actions{flex-direction:column;align-items:stretch}.fc-v4-backup-download{width:100%}}
+@media(prefers-color-scheme:dark){.fc-v4-backup-restore{background:#243449;border-color:#425a78}.fc-v4-backup-restore>summary{color:#cfe4fa}.fc-v4-restore-content p,.fc-v4-backup-actions p{color:#c3d5e8}.fc-v4-backup-actions{background:#293a52;border-color:#4b6381}.fc-v4-backup-download,.fc-v4-restore-content button{background:#294a6d;border-color:#6389a8;color:#d4eaff}}
 </style>
   <script>
 /*!
@@ -1473,6 +1490,68 @@ document.querySelectorAll('[data-copy-rio]').forEach(button => {
 });
 
 
+
+const FC_BACKUP_FORMAT='followclean-private-history';
+const FC_BACKUP_VERSION=1;
+function snapshotBackupPayload(snapshots) {
+  return {format:FC_BACKUP_FORMAT,version:FC_BACKUP_VERSION,createdAt:Date.now(),snapshots};
+}
+function backupError(message) {
+  $('fc-backup-restore-status').textContent=message;
+}
+function downloadPrivateHistory() {
+  try {
+    const snapshots=parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY));
+    if(!snapshots.length)throw new Error('Kein gespeicherter Verlauf vorhanden.');
+    const json=JSON.stringify(snapshotBackupPayload(snapshots));
+    const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;
+    a.download='followclean-private-verlauf-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    localHistoryStatus('Private Sicherung heruntergeladen. Die Datei enthält Accountnamen im Klartext: nicht öffentlich teilen.');
+  }catch(error){localHistoryStatus(error?.message || 'Sicherung konnte nicht erstellt werden.');}
+}
+async function restorePrivateHistory(file) {
+  const status=$('fc-backup-restore-status');
+  if(!file)return;
+  status.textContent='Sicherung wird lokal geprüft …';
+  $('fc-backup-restore-button').disabled=true;
+  try{
+    if(!/\.json$/i.test(file.name))throw new Error('Bitte eine FollowClean-Sicherung als JSON-Datei wählen.');
+    if(file.size>FC_SNAPSHOT_LIMIT*FC_SNAPSHOT_CHAR_LIMIT+50000)
+      throw new Error('Die Datei ist zu groß für eine FollowClean-Verlaufssicherung.');
+    const backup=JSON.parse(await file.text());
+    if(!backup||backup.format!==FC_BACKUP_FORMAT||backup.version!==FC_BACKUP_VERSION||!Array.isArray(backup.snapshots))
+      throw new Error('Dies ist keine gültige FollowClean-Verlaufssicherung.');
+    const imported=parseSavedSnapshots(JSON.stringify(backup.snapshots));
+    if(!imported.length)throw new Error('Die Sicherung enthält keine Verlaufsstände.');
+    const existing=parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY));
+    const merged=[...existing];
+    let added=0,ignored=0;
+    for(const snap of imported){
+      if(merged.some(existingSnapshot=>sameSnapshotContents(existingSnapshot,snap))){ignored++;continue;}
+      if(merged.length>=FC_SNAPSHOT_LIMIT)throw new Error('Die Sicherung passt nicht vollständig: maximal vier Stände. Lösche zuerst alte Stände und versuche es erneut. Bestehende Daten sind unverändert.');
+      const newId=window.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+      merged.push({id:newId,savedAt:snap.savedAt,followerNames:[...snap.followerNames],followingNames:[...snap.followingNames]});
+      added++;
+    }
+    if(added) localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify(merged));
+    status.textContent=added+' Stand'+(added===1?'':'stände')+' wiederhergestellt, '+ignored+' bereits vorhanden. Die Daten bleiben lokal auf diesem Gerät.';
+    renderLocalHistory();
+  }catch(error){
+    status.textContent=error?.name==='QuotaExceededError'
+      ?'Browser-Speicher voll. Lösche alte lokale Stände oder nutze den direkten ZIP-Vergleich.'
+      :(error instanceof SyntaxError?'Die Sicherungsdatei ist beschädigt oder kein gültiges JSON.':(error?.message||'Die Sicherung konnte nicht wiederhergestellt werden.'));
+  }finally{
+    $('fc-backup-import-input').value='';
+    $('fc-backup-restore-button').disabled=false;
+  }
+}
+$('fc-backup-download').addEventListener('click',downloadPrivateHistory);
+$('fc-backup-restore-button').addEventListener('click',()=>$('fc-backup-import-input').click());
+$('fc-backup-import-input').addEventListener('change',event=>restorePrivateHistory(event.target.files?.[0]));
+
 // A saved snapshot stores the full normalized username lists only on this device.
 // It is not auto-enabled and is intentionally limited to reduce browser storage load.
 function localHistoryStatus(message) {
@@ -1484,6 +1563,7 @@ function parseSavedSnapshots(raw) {
   const parsed=JSON.parse(raw);
   if (!Array.isArray(parsed) || parsed.length>FC_SNAPSHOT_LIMIT) throw new Error('Ungültige lokale Historie.');
   return parsed.map(s => {
+    if (JSON.stringify(s).length > FC_SNAPSHOT_CHAR_LIMIT) throw new Error('Ein Verlaufseintrag ist zu groß.');
     if (!s || typeof s.id!=='string' || s.id.length>100 ||
         !Number.isFinite(s.savedAt) || s.savedAt<=0 ||
         !Array.isArray(s.followerNames) || !Array.isArray(s.followingNames) ||
@@ -1517,6 +1597,12 @@ function createLocalSnapshot(result) {
   }
   return snapshot;
 }
+function sameSnapshotContents(a,b) {
+  // Compare sets independent of Instagram export order or time; no network or persistent hash.
+  if(a.followerNames.length!==b.followerNames.length || a.followingNames.length!==b.followingNames.length)return false;
+  return a.followerNames.every(n=>b.followerNames.includes(n)) &&
+    a.followingNames.every(n=>b.followingNames.includes(n));
+}
 function saveLocalSnapshot() {
   if (!state.result || state.demo) {
     localHistoryStatus('Bitte erst deinen echten aktuellen Instagram-Export laden.');
@@ -1528,8 +1614,10 @@ function saveLocalSnapshot() {
   }
   try {
     const previous=parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY));
-    if(previous.length>=FC_SNAPSHOT_LIMIT)throw new Error('Maximal 4 Stände möglich. Entferne einen älteren Stand, bevor du einen neuen speicherst.');
     const snapshot=createLocalSnapshot(state.result);
+    if(previous.some(saved=>sameSnapshotContents(saved,snapshot)))
+      throw new Error('Dieser Export ist bereits in deiner Historie. Lade einen neueren Export, um eine Veränderung zu erkennen.');
+    if(previous.length>=FC_SNAPSHOT_LIMIT)throw new Error('Maximal 4 Stände möglich. Entferne einen älteren Stand, bevor du einen neuen speicherst.');
     // No automatic deletion, consent can be withdrawn by deleting the saved snapshots.
     localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify([...previous,snapshot]));
     $('fc-snapshot-consent').checked=false;
@@ -1856,6 +1944,15 @@ $('delete-local-btn').addEventListener('click',()=>{
           </div>
 <div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
           <p id="fc-v3-history-return" class="fc-v3-return" role="status" hidden></p>
+          <details class="fc-v4-backup-restore" id="fc-v4-backup-restore">
+            <summary>Verlauf aus privater Sicherung wiederherstellen <span aria-hidden="true">⌄</span></summary>
+            <div class="fc-v4-restore-content">
+              <p>Hast du FollowClean früher genutzt oder Safari-Daten gelöscht? Du kannst eine zuvor selbst heruntergeladene FollowClean-Verlaufssicherung (<code>.json</code>) lokal importieren. Accountnamen werden dabei nicht an einen Server gesendet. Bereits gespeicherte Stände bleiben erhalten, Duplikate werden übersprungen.</p>
+              <button id="fc-backup-restore-button" type="button">Sicherungsdatei auswählen</button>
+              <input id="fc-backup-import-input" type="file" accept=".json,application/json" aria-label="Private FollowClean-Verlaufssicherung importieren"/>
+              <p id="fc-backup-restore-status" role="status">Es werden ausschließlich ausdrücklich gespeicherte Verlaufsstände importiert.</p>
+            </div>
+          </details>
           <p id="fc-restore-hint" class="fc-restore-hint" role="status" hidden>✓ Dein letzter Fortschritt ist auf diesem Gerät gespeichert. Wähle dieselbe Instagram-ZIP erneut aus, um deine Markierungen wiederzusehen.</p>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
@@ -1903,6 +2000,10 @@ $('delete-local-btn').addEventListener('click',()=>{
                 <button type="button" id="fc-snapshot-save" class="fc-v3-save">Aktuellen Stand speichern <span aria-hidden="true">＋</span></button>
                 <p id="fc-snapshot-message" class="fc-v3-message" role="status">Ohne Zustimmung wird kein Stand gespeichert. Das Speicherdatum ist nicht das Instagram-Exportdatum.</p>
                 <div id="fc-snapshot-history" hidden>
+                <div class="fc-v4-backup-actions">
+                  <button type="button" id="fc-backup-download" class="fc-v4-backup-download">Private Verlaufssicherung herunterladen <span aria-hidden="true">↓</span></button>
+                  <p>Die JSON-Datei enthält alle gespeicherten Accountnamen <strong>im Klartext</strong>. Bewahre sie privat auf. Kein Cloud-Upload.</p>
+                </div>
                   <div class="fc-v3-chart-label"><strong>Follower-Entwicklung</strong><div><span class="fc-v3-legend follow">Follower</span><span class="fc-v3-legend following">Gefolgt</span></div></div>
                   <svg id="fc-snapshot-chart" class="fc-v3-chart" viewBox="0 0 600 176" role="img" aria-label="Follower-Verlauf der lokal gespeicherten Analysen"></svg>
                   <p class="fc-v3-chart-explain">Die Punkte zeigen die Werte, als du die Stände in FollowClean gespeichert hast. Sie sind keine automatischen Instagram-Messungen.</p>
@@ -1997,7 +2098,7 @@ $('delete-local-btn').addEventListener('click',()=>{
         <details class="fc-legal-detail" id="datenschutz"><summary><span>Datenschutz &amp; lokale Verarbeitung</span><small>Technikhinweis · kein finaler Rechtstext</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
           <div class="fc-legal-copy">
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
-            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. <strong>Neu:</strong> Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten als Verlauf im lokalen Browser-Speicher abgelegt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
+            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten als Verlauf im lokalen Browser-Speicher abgelegt werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
             <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
