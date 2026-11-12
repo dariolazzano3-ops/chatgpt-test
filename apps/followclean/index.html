@@ -1537,7 +1537,7 @@ async function restorePrivateHistory(file) {
       added++;
     }
     if(added) localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify(merged));
-    status.textContent=added+' Stand'+(added===1?'':'stände')+' wiederhergestellt, '+ignored+' bereits vorhanden. Die Daten bleiben lokal auf diesem Gerät.';
+    status.textContent=added+' '+(added===1?'Stand':'Stände')+' wiederhergestellt, '+ignored+' bereits vorhanden. Die Daten bleiben lokal auf diesem Gerät.';
     renderLocalHistory();
   }catch(error){
     status.textContent=error?.name==='QuotaExceededError'
