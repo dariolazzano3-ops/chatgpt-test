@@ -938,6 +938,69 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v4-backup-restore summary:focus-visible,.fc-v4-backup-download:focus-visible,.fc-v4-restore-content button:focus-visible{outline:3px solid #78a8ef;outline-offset:3px}
 @media(max-width:650px){.fc-v4-backup-actions{flex-direction:column;align-items:stretch}.fc-v4-backup-download{width:100%}}
 @media(prefers-color-scheme:dark){.fc-v4-backup-restore{background:#243449;border-color:#425a78}.fc-v4-backup-restore>summary{color:#cfe4fa}.fc-v4-restore-content p,.fc-v4-backup-actions p{color:#c3d5e8}.fc-v4-backup-actions{background:#293a52;border-color:#4b6381}.fc-v4-backup-download,.fc-v4-restore-content button{background:#294a6d;border-color:#6389a8;color:#d4eaff}}
+
+/* FollowClean V4: original mobile-first one-by-one Cleanup UI and trusted export route */
+.fc-smart-entry{margin:16px 0 9px;border:1px solid #cfe0f4;background:linear-gradient(115deg,#f3f8ff,#fcfdff);border-radius:16px;box-shadow:0 8px 22px #24568b0a}
+.fc-smart-entry h3{font-size:17px;letter-spacing:-.4px}
+.fc-smart-entry p{font-size:12px;line-height:1.5}
+.fc-smart-entry .primary-button{min-height:46px}
+.fc-smart-panel{border:1px solid #bdcee9;background:linear-gradient(135deg,#f7fbff,#f2f7ff);border-radius:17px;padding:18px;box-shadow:0 12px 29px #19497b12;margin:12px 0 17px;scroll-margin-top:16px}
+.fc-smart-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fc-smart-top>div{display:flex;flex-direction:column;gap:7px}
+.fc-smart-top strong{font-size:12px;color:#486380}
+.fc-smart-top .guide-kicker{color:#3266ad}
+.fc-smart-close{border:1px solid #d0dfef;border-radius:9px;padding:8px 11px;min-height:44px;font-weight:700;background:#fff;color:#46627f;font-size:11px;cursor:pointer}
+.fc-smart-meter{height:7px;border-radius:99px;background:#d6e4f4;overflow:hidden;margin:12px 0 17px}
+.fc-smart-meter>div{background:linear-gradient(90deg,#2b75eb,#1bba8d);height:100%;width:0;transition:width .3s ease}
+.fc-smart-identity{display:flex;align-items:center;gap:13px;border:1px solid #dbe5f2;background:#fff;border-radius:13px;padding:14px;margin-bottom:15px}
+.fc-smart-avatar{flex:0 0 46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#3d5cb5;font-size:16px;font-weight:900;background:linear-gradient(#eaf3ff,#eaf3ff) padding-box,linear-gradient(135deg,#8265ed,#ef6a9e,#f9bd75) border-box;border:2px solid transparent}
+.fc-smart-identity-copy{min-width:0;flex:1}
+.fc-smart-mini{font-size:9px;letter-spacing:.8px;color:#7288a0;font-weight:850}
+.fc-smart-identity .guide-name{font-size:21px;line-height:1.3;overflow-wrap:anywhere;color:#223b5b;margin:3px 0}
+.fc-smart-status{color:#6b7f9a;font-size:11px;line-height:1.5;margin:0}
+.fc-smart-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0}
+.fc-smart-actions .primary-button{grid-column:1/-1;min-height:46px;display:flex;justify-content:center;align-items:center}
+.fc-smart-actions .outlined-button{min-height:44px;font-size:11px;text-align:center;white-space:normal;padding:10px 8px}
+.fc-smart-keep{color:#3f6497}
+.fc-smart-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:15px}
+.fc-smart-bottom span{font-size:10.5px;line-height:1.5;color:#647b94;max-width:470px}
+.fc-smart-undo{border:1px solid #b8d0eb;background:#ecf5ff;color:#285892;min-height:44px;font-size:11px;font-weight:760;padding:10px;border-radius:9px;cursor:pointer;flex-shrink:0}
+.fc-smart-undo[hidden]{display:none!important}
+.fc-v4-export-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #d6e7fa;border-radius:12px;background:linear-gradient(115deg,#f2f8ff,#fff);padding:13px 15px;margin:10px 0 16px}
+.fc-v4-export-strip>div{display:flex;flex-direction:column;gap:8px}
+.fc-v4-export-title{font-size:12px;font-weight:850;color:#395574}
+.fc-v4-export-tags{display:flex;gap:7px;flex-wrap:wrap}
+.fc-v4-export-tags strong{font-size:10px;background:#e7f2ff;color:#3e69a2;border-radius:6px;padding:5px 7px;white-space:nowrap}
+.fc-v4-export-strip>a{background:#1e6adf;color:white;border-radius:10px;min-height:44px;padding:12px 13px;font-size:11px;font-weight:800;display:flex;justify-content:center;align-items:center;text-align:center;flex-shrink:0}
+.fc-smart-close:focus-visible,.fc-smart-undo:focus-visible,.fc-v4-export-strip a:focus-visible{outline:3px solid #719beb;outline-offset:3px}
+@media(max-width:650px){
+.fc-smart-entry{display:flex;flex-direction:column;align-items:stretch;padding:15px}
+.fc-smart-entry .primary-button{width:100%;justify-content:center}
+.fc-smart-panel{padding:13px}
+.fc-smart-top{gap:8px}
+.fc-smart-identity .guide-name{font-size:18px}
+.fc-smart-actions{gap:7px}
+.fc-smart-actions .outlined-button{font-size:10px;padding:9px 5px}
+.fc-smart-bottom{flex-direction:column;align-items:stretch}
+.fc-smart-undo{align-self:stretch}
+.fc-v4-export-strip{flex-direction:column;align-items:stretch;padding:12px}
+.fc-v4-export-strip>a{width:100%}
+}
+@media(prefers-color-scheme:dark){
+.fc-smart-entry,.fc-smart-panel{background:linear-gradient(135deg,#1b2b42,#212b39);border-color:#3e5575}
+.fc-smart-top strong,.fc-smart-status{color:#c3d5ef}
+.fc-smart-top .guide-kicker{color:#a7caff}
+.fc-smart-close,.fc-smart-identity{background:#24354c;border-color:#4b637f;color:#e0edfc}
+.fc-smart-identity .guide-name{color:#f1f5ff}
+.fc-smart-mini,.fc-smart-bottom span{color:#b9cee5}
+.fc-smart-avatar{background:linear-gradient(#29405a,#29405a) padding-box,linear-gradient(135deg,#9883f4,#f477ae,#ffd392) border-box;color:#d0e2ff}
+.fc-smart-meter{background:#3a536d}
+.fc-smart-undo{background:#2b4767;color:#dfedff;border-color:#527ba8}
+.fc-v4-export-strip{background:linear-gradient(115deg,#1d3048,#222f40);border-color:#3c5574}
+.fc-v4-export-title{color:#e6f2ff}
+.fc-v4-export-tags strong{background:#2e4769;color:#d2e8ff}
+}
+@media(prefers-reduced-motion:reduce){.fc-smart-meter>div{transition:none}}
 </style>
   <script>
 /*!
@@ -1097,6 +1160,7 @@ const FC_PAGE_SIZE = 48;
 state.visibleCount = FC_PAGE_SIZE;
 state.sort = 'queue';
 state.snapshotComparison = null;
+state.guideUndo = null;
 // Explicit local opt-in. Never store uploaded ZIPs or snapshots on a server.
 const FC_SNAPSHOTS_KEY = 'followclean:snapshots:v1';
 const FC_SNAPSHOT_LIMIT = 4;
@@ -1107,6 +1171,8 @@ const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispie
 function statusFor(name) { return state.statuses[name] || 'open'; }
 function setStatus(name, status) {
   if (!state.result) return;
+  const previous=statusFor(name);
+  if (status!==previous && !$('guide-panel').hidden) state.guideUndo={name,previous};
   if (status === 'open') delete state.statuses[name]; else state.statuses[name] = status;
   if (state.activeVisit?.name === name && status !== 'opened') {
     state.activeVisit = null;
@@ -1175,6 +1241,9 @@ function useResult(result, demo) {
   state.visibleCount = FC_PAGE_SIZE;
   state.sort = 'queue';
   state.snapshotComparison = null;
+  state.guideUndo = null;
+  $('guide-panel').hidden = true;
+  $('guide-btn').setAttribute('aria-expanded','false');
   $('fc-sort').value = 'queue';
   $('fc-history-result').hidden = true;
   $('fc-snapshot-consent').checked = false;
@@ -1334,9 +1403,11 @@ function renderResults() {
   if (!$('guide-panel').hidden) renderGuide();
 }
 function remaining() {
-  return state.result.notFollowingBack.filter(name => statusFor(name) === 'open');
+  return state.result.notFollowingBack.filter(name => statusFor(name) === 'open' || statusFor(name) === 'opened');
 }
 function nextGuideName() {
+  const active=state.activeVisit?.name;
+  if(active && statusFor(active)==='opened' && !state.skip.has(active)) return active;
   const open = remaining();
   const notSkipped = open.find(name => !state.skip.has(name));
   if (notSkipped) return notSkipped;
@@ -1344,19 +1415,39 @@ function nextGuideName() {
   return open[0] ?? null;
 }
 function renderGuide() {
-  const name = nextGuideName();
-  $('guide-name').textContent = name ? `@${name}` : 'Alles bearbeitet 🎉';
-  $('guide-done').disabled = !name; $('guide-skip').disabled = !name;
-  $('guide-link').hidden = !name || state.demo;
-  if (name && !state.demo) $('guide-link').href = validProfileUrl(name);
-  $('guide-panel').dataset.name = name ?? '';
+  if(!state.result)return;
+  const all=state.result.notFollowingBack;
+  const processed=all.filter(n=>['done','keep'].includes(statusFor(n))).length;
+  const percent=all.length?Math.round(100*processed/all.length):100;
+  $('guide-progress-label').textContent=processed+' von '+all.length+' bearbeitet';
+  $('guide-progress-fill').style.width=percent+'%';
+  const meter=$('guide-panel').querySelector('.fc-smart-meter');
+  meter.setAttribute('aria-valuenow',String(percent));
+  const name=nextGuideName();
+  $('guide-name').textContent=name?'@'+name:'Alles bearbeitet 🎉';
+  $('guide-avatar').textContent=name?name[0].toUpperCase():'✓';
+  const pending=name && statusFor(name)==='opened';
+  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil geöffnet. Nach Rückkehr kannst du diesen Account bestätigen oder ihn behalten.':'Öffne das Profil oder entscheide direkt.';
+  $('guide-done').disabled=!name;
+  $('guide-keep').disabled=!name;
+  $('guide-skip').disabled=!name||remaining().length<2;
+  $('guide-link').hidden=!name||state.demo;
+  if(name&&!state.demo)$('guide-link').href=validProfileUrl(name);
+  $('guide-panel').dataset.name=name??'';
+  const undo=$('guide-undo');
+  undo.hidden=!state.guideUndo;
+  if(state.guideUndo)undo.textContent='↶ @'+state.guideUndo.name+' rückgängig';
 }
 function toggleGuide() {
-  if (!state.result) return;
-  $('guide-panel').hidden = !$('guide-panel').hidden;
-  if (!$('guide-panel').hidden) {
-    $('step-count').textContent = '03 / 03'; renderGuide();
-    $('guide-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(!state.result)return;
+  const open=$('guide-panel').hidden;
+  $('guide-panel').hidden=!open;
+  $('guide-btn').setAttribute('aria-expanded',String(open));
+  if(open){
+    $('step-count').textContent='03 / 03';
+    renderGuide();
+    const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    $('guide-panel').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
   }
 }
 function exportCsv() {
@@ -1370,7 +1461,8 @@ function exportCsv() {
 }
 function reset() {
   rememberPendingVisit(null);
-  state.snapshotComparison = null; state.sort = 'queue';
+  state.snapshotComparison = null; state.sort = 'queue';state.guideUndo=null;
+  $('guide-panel').hidden=true;$('guide-btn').setAttribute('aria-expanded','false');
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;
   $('fc-snapshot-same-account').checked=false;
@@ -1798,9 +1890,22 @@ $('fc-history-clear').addEventListener('click',() => {
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
 $('guide-btn').addEventListener('click',toggleGuide);
-$('guide-link').addEventListener('click', () => { const name=$('guide-panel').dataset.name; if(name) beginProfileVisit(name); });
-$('guide-done').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name) setStatus(name,'done'); });
-$('guide-skip').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name){state.skip.add(name);renderGuide();} });
+$('guide-close').addEventListener('click',()=>{
+  if(!$('guide-panel').hidden)toggleGuide();
+  $('guide-btn').focus({preventScroll:true});
+});
+$('guide-link').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)beginProfileVisit(name);});
+$('guide-done').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)setStatus(name,'done');});
+$('guide-keep').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name)setStatus(name,'keep');});
+$('guide-skip').addEventListener('click',()=>{const name=$('guide-panel').dataset.name;if(name){state.skip.add(name);renderGuide();}});
+$('guide-undo').addEventListener('click',()=>{
+  const previous=state.guideUndo;
+  if(!previous)return;
+  state.guideUndo=null;
+  setStatus(previous.name,previous.previous);
+  state.guideUndo=null;
+  renderGuide();
+});
 $('delete-local-btn').addEventListener('click',()=>{
   if (!confirm('Alle von FollowClean lokal gespeicherten Fortschrittsdaten löschen?')) return;
   try {
@@ -1874,6 +1979,10 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="fast-entry" aria-label="So startest du">
             <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
             <button type="button" class="fast-entry-link fast-entry-secondary" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fast-entry-icon" aria-hidden="true">?</span><span><strong class="fc-guide-button-text">Anleitung ansehen</strong><small>Nur 3 einfache Schritte</small></span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button>
+          </div>
+          <div class="fc-v4-export-strip" role="note">
+            <div><span class="fc-v4-export-title">Dein Instagram-Export in 3 Einstellungen</span><span class="fc-v4-export-tags"><strong>Follower &amp; Gefolgt</strong><strong>Gesamter Zeitraum</strong><strong>JSON</strong></span></div>
+            <a href="https://accountscenter.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Offizielle Meta-Kontenübersicht in einem neuen Tab öffnen">Meta-Kontenübersicht öffnen ↗</a>
           </div>
           <aside class="fc-return-panel" id="fc-return-panel" aria-labelledby="fc-return-title" hidden>
             <div class="fc-return-top"><span class="fc-return-dot" aria-hidden="true">✓</span><span class="fc-return-kicker">DEIN INSTAGRAM-EXPORT</span></div>
@@ -2059,6 +2168,14 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: „Erledigt“ leuchtet grün. Den tatsächlichen Entfolgen-Schritt führst du selbst in Instagram aus.</p></div></div>
           <div class="fc-avatar-panel fc-avatar-private" role="note" aria-label="Profilbilder und Privatsphäre"><span class="fc-avatar-note-icon" aria-hidden="true">✦</span><p><strong>Privatsphäre statt falscher Profilbilder.</strong> Instagram-Exportdateien enthalten normalerweise keine Original-Profilbilder. FollowClean zeigt deshalb farbige Initialen statt unzuverlässiger Bilder. Accountnamen werden nicht an einen Bilddienst gesendet.</p></div>
           <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil als erledigt markiert.</span><button id="visit-undo" type="button">Rückgängig</button></div>
+          <div class="guided-card fc-smart-entry"><div><div class="guided-eyebrow">DEIN CLEANUP-ASSISTENT</div><h3>Ein Account nach dem anderen.</h3><p>Profil prüfen, behalten oder abhaken. FollowClean bietet automatisch den nächsten Account an.</p></div><button id="guide-btn" class="primary-button" type="button" aria-expanded="false" aria-controls="guide-panel">Smart Cleanup starten <span aria-hidden="true">↗</span></button></div>
+          <div id="guide-panel" class="guide-panel fc-smart-panel" hidden>
+            <div class="fc-smart-top"><div><span class="guide-kicker">SMART CLEANUP · NÄCHSTER ACCOUNT</span><strong id="guide-progress-label">0 von 0 bearbeitet</strong></div><button type="button" id="guide-close" class="fc-smart-close" aria-label="Cleanup-Assistent schließen">Schließen ×</button></div>
+            <div class="fc-smart-meter" role="progressbar" aria-label="Cleanup-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="guide-progress-fill"></div></div>
+            <div class="fc-smart-identity"><div class="fc-smart-avatar" id="guide-avatar" aria-hidden="true">?</div><div class="fc-smart-identity-copy"><span class="fc-smart-mini">JETZT PRÜFEN</span><div id="guide-name" class="guide-name" aria-live="polite"></div><p id="guide-status" class="fc-smart-status">Öffne das Profil oder entscheide direkt.</p></div></div>
+            <div class="guide-actions fc-smart-actions"><a id="guide-link" class="primary-button" href="#" target="_blank" rel="noopener noreferrer">Profil öffnen ↗</a><button id="guide-done" class="outlined-button" type="button">✓ Erledigt</button><button id="guide-keep" class="outlined-button fc-smart-keep" type="button">☆ Behalten</button><button id="guide-skip" class="outlined-button subdued" type="button">Später ansehen</button></div>
+            <div class="fc-smart-bottom"><span>Besuch oder Erledigt bedeutet nicht automatisch entfolgt. Entfolgen geht nur in Instagram.</span><button id="guide-undo" type="button" class="fc-smart-undo" hidden>↶ Rückgängig</button></div>
+          </div>
           <div class="fc-v2-tools" aria-label="Accountliste organisieren">
             <div class="fc-v2-filterbar" role="group" aria-label="Schnellfilter">
               <button type="button" data-v2-filter="all" class="fc-v2-pill is-active" aria-pressed="true">Alle <span class="fc-v2-pill-count">0</span></button>
@@ -2075,8 +2192,6 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div id="profiles-list" class="profiles-list" aria-live="polite"></div><button id="fc-load-more" class="fc-load-more" type="button" hidden>Weitere Accounts anzeigen</button>
           <p id="empty-list" class="empty-list" hidden>Keine Accounts in dieser Ansicht gefunden.</p>
           <div class="list-footer"><span id="list-count">0 Accounts</span><button id="clear-progress-btn" class="text-button muted small">Fortschritt zurücksetzen</button></div>
-          <div class="guided-card"><div><div class="guided-eyebrow">EINFACHER GEHT'S NICHT</div><h3>Geführte Bereinigung starten</h3><p>Ein Profil nach dem anderen. Du entfolgst direkt in Instagram und markierst den Schritt hier als erledigt.</p></div><button id="guide-btn" class="primary-button">Jetzt durchgehen <span>↗</span></button></div>
-          <div id="guide-panel" class="guide-panel" hidden><div class="guide-kicker">DEIN NÄCHSTER ACCOUNT</div><div id="guide-name" class="guide-name"></div><p>Öffne das Profil, entfolge bei Instagram, komme zurück und bestätige „Erledigt“.</p><div class="guide-actions"><a id="guide-link" class="primary-button" href="#" target="_blank" rel="noopener noreferrer">Profil auf Instagram öffnen ↗</a><button id="guide-done" class="outlined-button">✓ Erledigt</button><button id="guide-skip" class="outlined-button subdued">Überspringen</button></div><p class="guide-note">Wir können nicht überprüfen, ob du wirklich entfolgt bist. Dein Fortschritt ist eine persönliche Checkliste.</p></div>
           <p class="results-disclaimer">Die Analyse ist eine Momentaufnahme deines Exports. Ein grünes „Erledigt“ bedeutet nur, dass du das Profil geöffnet hast und zurückgekehrt bist oder es selbst markiert hast. FollowClean kann nicht erkennen, ob du in Instagram entfolgt bist. Alle Status lassen sich wieder ändern.</p>
           </div>
         </div>
