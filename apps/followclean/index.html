@@ -673,6 +673,8 @@ button.fast-entry-secondary:focus-visible{outline:3px solid #9ac4fa;outline-offs
 }
 
 /* FollowClean Premium V5: privacy-first avatars, smooth arrival and touch-first list */
+.bg-orb{position:fixed}
+@media(max-width:650px){.bg-orb{display:none}}
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #347ef2;outline-offset:3px}
 .hero-copy .eyebrow,.hero-copy h1,.hero-copy .hero-intro,.hero-copy .hero-cta-row,.balance-card{animation:fc-v5-in .48s cubic-bezier(.18,.8,.28,1) both}
@@ -690,6 +692,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .profile-link,.mini-btn{display:inline-flex;align-items:center;justify-content:center;min-height:41px;padding:10px 12px;border-radius:9px;font-size:11px;line-height:1.2}
 .fc-load-more{display:block;margin:14px auto 5px;min-height:45px;width:min(100%,360px);background:#eff5ff;border:1px solid #c8dcfa;border-radius:11px;color:#195daf;font-weight:780;font-size:12px;padding:12px 16px}
 .fc-load-more:hover{background:#e2efff}.fc-load-more[hidden]{display:none!important}
+.fc-restore-hint{font-size:12px;line-height:1.55;border:1px solid #b7e2cf;border-radius:11px;padding:12px 14px;margin:15px 0;background:#ecfaf2;color:#1a6c48;font-weight:700}
 .progress-rail{height:7px}.progress-rail>div{transition:width .38s cubic-bezier(.2,.8,.2,1)}
 @media(max-width:650px){
 .profile-row{grid-template-columns:40px minmax(0,1fr);grid-template-rows:auto auto;gap:5px 11px;padding:12px 10px;margin:8px 0}
@@ -700,6 +703,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .profile-row.fc-row-done{padding:12px 10px;margin:8px 0}.toolbar select,.toolbar input{min-height:44px}
 }
 @media(prefers-color-scheme:dark){
+.fc-restore-hint{background:#1b382f;border-color:#4c8067;color:#b2f0d1}
 .fc-avatar-panel.fc-avatar-private{background:linear-gradient(115deg,#1b2b46,#222332);border-color:#405472}
 .fc-avatar-private p{color:#c5d4eb}.fc-avatar-private strong{color:#f0f6ff}
 .profile-row{border-color:#39465a;background:#1a2231}
@@ -857,12 +861,24 @@ function statusFor(name) { return state.statuses[name] || 'open'; }
 function setStatus(name, status) {
   if (!state.result) return;
   if (status === 'open') delete state.statuses[name]; else state.statuses[name] = status;
-  saveProgress(); renderResults();
+  if (state.activeVisit?.name === name && status !== 'opened') {
+    state.activeVisit = null;
+    rememberPendingVisit(null);
+  }
+  saveProgress(); updateRestoreHint(); renderResults();
 }
 function saveProgress() {
   if (!state.key || state.demo) return;
-  try { localStorage.setItem(state.key, JSON.stringify(state.statuses)); }
-  catch { /* Private browsing can reject storage; current-session use still works. */ }
+  try {
+    if (Object.keys(state.statuses).length) localStorage.setItem(state.key, JSON.stringify(state.statuses));
+    else localStorage.removeItem(state.key);
+  } catch { /* Private browsing may block persistent storage. */ }
+}
+function updateRestoreHint() {
+  const hint = $('fc-restore-hint');
+  if (!hint) return;
+  try { hint.hidden = !Object.keys(localStorage).some(key => key.startsWith('followclean:progress:v1:')); }
+  catch { hint.hidden = true; }
 }
 function loadProgress() {
   state.statuses = {};
@@ -913,6 +929,7 @@ function useResult(result, demo) {
   $('visit-toast').hidden = true;
   $('search-input').value = ''; $('filter-select').value = 'all';
   loadProgress();
+  restorePendingVisit();
   $('import-view').hidden = true;
   $('results-view').hidden = false;
   $('step-count').textContent = '02 / 03';
@@ -926,6 +943,7 @@ function useResult(result, demo) {
   $('stat-following').textContent = result.following.toLocaleString('de-DE');
   $('stat-mutual').textContent = result.mutual.length.toLocaleString('de-DE');
   renderResults();
+  completeVisitOnReturn();
   $('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 function animateTrueCount(element, count, result) {
@@ -940,28 +958,64 @@ function animateTrueCount(element, count, result) {
   }
   element.textContent='0';requestAnimationFrame(tick);
 }
-// Visiting a profile does not prove a user unfollowed. The green state is a reversible checklist marker.
+// Only a real visibility loss or pagehide confirms that the browser left FollowClean.
+// Browser blur alone can occur without visiting Instagram and must not mark a profile as done.
+// Store a short-lived pending visit locally to survive Safari tab eviction.
+const FC_PENDING_VISIT_KEY = 'followclean:pending-visit:v1';
+const FC_VISIT_TTL_MS = 30 * 60 * 1000;
+function rememberPendingVisit(visit) {
+  try {
+    if (visit) localStorage.setItem(FC_PENDING_VISIT_KEY, JSON.stringify(visit));
+    else localStorage.removeItem(FC_PENDING_VISIT_KEY);
+  } catch { /* Private mode may block storage. */ }
+}
+function restorePendingVisit() {
+  state.activeVisit = null;
+  if (!state.result || state.demo || !state.key) return;
+  try {
+    const raw = localStorage.getItem(FC_PENDING_VISIT_KEY);
+    if (!raw) return;
+    const pending = JSON.parse(raw);
+    if (pending?.key !== state.key) return;
+    const fresh = Number.isFinite(pending.started) && pending.started <= Date.now() &&
+      Date.now() - pending.started <= FC_VISIT_TTL_MS;
+    if (!fresh || !state.result.notFollowingBack.includes(pending.name) || statusFor(pending.name) !== 'opened') {
+      rememberPendingVisit(null);
+      return;
+    }
+    state.activeVisit = {name:pending.name,key:state.key,started:pending.started,left:pending.left===true};
+  } catch { rememberPendingVisit(null); }
+}
 function beginProfileVisit(name) {
   if (!state.result || state.demo || !state.result.notFollowingBack.includes(name)) return;
   if (statusFor(name) === 'keep' || statusFor(name) === 'done') return;
-  state.activeVisit = { name, left: false };
+  state.activeVisit = {name,key:state.key,started:Date.now(),left:false};
+  rememberPendingVisit(state.activeVisit);
   state.statuses[name] = 'opened';
   saveProgress();
-  // Let the anchor's default navigation finish before replacing its DOM node.
+  updateRestoreHint();
+  // Avoid preventing the native anchor navigation while updating the checklist.
   setTimeout(() => { if (state.result) renderResults(); }, 0);
 }
-function markVisitAway() { if (state.activeVisit) state.activeVisit.left = true; }
+function markVisitAway() {
+  if (!state.activeVisit || state.activeVisit.left) return;
+  state.activeVisit.left = true;
+  rememberPendingVisit(state.activeVisit);
+}
 function completeVisitOnReturn() {
+  if (!state.result || state.demo || document.visibilityState === 'hidden') return;
+  if (!state.activeVisit) restorePendingVisit();
   const visit = state.activeVisit;
-  if (!visit || !visit.left || document.visibilityState === 'hidden') return;
+  if (!visit || !visit.left) return;
   state.activeVisit = null;
-  if (!state.result || state.demo || statusFor(visit.name) !== 'opened') return;
-  setStatus(visit.name, 'done');
+  rememberPendingVisit(null);
+  if (visit.key !== state.key || Date.now() - visit.started > FC_VISIT_TTL_MS ||
+      statusFor(visit.name) !== 'opened') return;
+  setStatus(visit.name,'done');
   state.lastAutoDone = visit.name;
   $('visit-toast-text').textContent = '@' + visit.name + ' grün markiert. Das bestätigt keinen Entfolgen-Vorgang.';
   $('visit-toast').hidden = false;
 }
-window.addEventListener('blur', markVisitAway);
 window.addEventListener('pagehide', markVisitAway);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') markVisitAway();
@@ -1045,6 +1099,7 @@ function exportCsv() {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function reset() {
+  rememberPendingVisit(null);
   state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
@@ -1110,6 +1165,7 @@ $('fc-return-upload').addEventListener('click', () => {
 });
 $('fc-return-guide').addEventListener('click', () => setExportGuideOpen(true, true));
 $('fc-return-dismiss').addEventListener('click', () => setExportPending(false));
+updateRestoreHint();
 $('file-input').addEventListener('change',event => importFiles(event.target.files));
 // Native input covers the dropzone so iOS opens Files from the actual tap.
 $('dropzone').addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file-input').click(); } });
@@ -1138,7 +1194,7 @@ $('visit-undo').addEventListener('click', () => {
   if (name && state.result && statusFor(name) === 'done') setStatus(name,'open');
 });
 $('download-btn').addEventListener('click',exportCsv);
-$('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={}; saveProgress();renderResults(); });
+$('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
 $('guide-btn').addEventListener('click',toggleGuide);
 $('guide-link').addEventListener('click', () => { const name=$('guide-panel').dataset.name; if(name) beginProfileVisit(name); });
 $('guide-done').addEventListener('click',()=>{ const name=$('guide-panel').dataset.name; if(name) setStatus(name,'done'); });
@@ -1146,7 +1202,8 @@ $('guide-skip').addEventListener('click',()=>{ const name=$('guide-panel').datas
 $('delete-local-btn').addEventListener('click',()=>{
   if (!confirm('Alle von FollowClean lokal gespeicherten Fortschrittsdaten löschen?')) return;
   try {for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')) localStorage.removeItem(key);localStorage.removeItem(FC_EXPORT_PENDING_KEY);}catch{}
-  setExportPending(false);state.statuses={};if(state.result)renderResults();
+  state.activeVisit=null;rememberPendingVisit(null);
+  setExportPending(false);state.statuses={};updateRestoreHint();if(state.result)renderResults();
 });
 
 </script>
@@ -1278,6 +1335,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </div>
 <div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
+          <p id="fc-restore-hint" class="fc-restore-hint" role="status" hidden>✓ Dein letzter Fortschritt ist auf diesem Gerät gespeichert. Wähle dieselbe Instagram-ZIP erneut aus, um deine Markierungen wiederzusehen.</p>
           <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Instagram ZIP oder JSON Dateien auswählen">
             <div class="upload-visual"><span class="upload-arrow">↑</span><span class="upload-ring"></span></div>
             <h3>Instagram-ZIP auswählen</h3>
