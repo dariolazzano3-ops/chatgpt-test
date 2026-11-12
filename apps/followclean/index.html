@@ -2327,8 +2327,8 @@ $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{
   if(!confirm('Alle Markierungen für '+(state.currentAccount?'@'+state.currentAccount:'den aktuellen nicht gespeicherten Export')+' zurücksetzen?'))return;
   try{if(state.key)localStorage.removeItem(state.key);if(cleanupSessionKey())localStorage.removeItem(cleanupSessionKey());}catch{}
-  state.statuses={};state.skip.clear();state.lastVisitedName=null;state.sessionNextName=null;state.activeVisit=null;
-  rememberPendingVisit(null);updateRestoreHint();renderResults();
+  state.statuses={};state.skip.clear();state.lastVisitedName=null;state.sessionNextName=null;state.activeVisit=null;state.guideUndo=null;state.guideActionAt=0;
+  rememberPendingVisit(null);updateRestoreHint();renderResults();renderResumePanel();renderLegacyProgressNotice();
 });
 $('guide-btn').addEventListener('click',toggleGuide);
 $('guide-close').addEventListener('click',()=>{
@@ -2386,7 +2386,7 @@ $('delete-local-btn').addEventListener('click',()=>{
   setExportPending(false);state.statuses={};state.skip.clear();state.sessionNextName=null;state.snapshotComparison=null;
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;$('fc-snapshot-same-account').checked=false;
-  renderLocalHistory();updateRestoreHint();if(state.result)renderResults();
+  renderLocalHistory();updateRestoreHint();renderResumePanel();renderLegacyProgressNotice();if(state.result)renderResults();
 });
 
 </script>
