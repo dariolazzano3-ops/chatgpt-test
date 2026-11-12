@@ -1154,7 +1154,8 @@ function analyzeJsonTexts(followerTexts, followingText) {
   if (!followerTexts.length || !followingText) throw new Error('Es werden followers_1.json und following.json benötigt.');
   const followers = followerTexts.flatMap(text => extractUsers(JSON.parse(text), 'followers'));
   const following = extractUsers(JSON.parse(followingText), 'following');
-  if (!followers.length && !following.length) throw new Error('Die Dateien enthalten keine verwertbaren Accounts.');
+  // The official lists can legitimately be empty (new accounts or no connections).
+  // File presence and JSON structure were validated above, so zero is a valid result.
   return compareLists(followers, following);
 }
 
