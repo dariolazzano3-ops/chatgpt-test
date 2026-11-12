@@ -1419,11 +1419,15 @@ function saveProgress() {
     else localStorage.removeItem(state.key);
   } catch { /* Private browsing may block persistent storage. */ }
 }
+function localStorageKeys() {
+  const names=[];
+  try {for(let i=0;i<localStorage.length;i++){const name=localStorage.key(i);if(typeof name==='string')names.push(name);}}catch{}
+  return names;
+}
 function updateRestoreHint() {
-  const hint = $('fc-restore-hint');
-  if (!hint) return;
-  try { hint.hidden = !Object.keys(localStorage).some(key => key.startsWith('followclean:progress:')); }
-  catch { hint.hidden = true; }
+  const hint=$('fc-restore-hint');
+  if(!hint)return;
+  hint.hidden=!localStorageKeys().some(key=>key.startsWith('followclean:progress:'));
 }
 function loadProgress() {
   state.statuses = {};
@@ -2200,7 +2204,7 @@ $('fc-legacy-progress-import').addEventListener('click',()=>{
   for(const name of state.result.notFollowingBack) {
     if(!state.statuses[name] && ['done','keep','opened'].includes(legacy[name]))state.statuses[name]=legacy[name];
   }
-  saveProgress();renderResults();
+  saveProgress();renderResults();renderResumePanel();updateRestoreHint();
   $('fc-progress-scope').textContent=count+' ältere Markierungen wurden nach deiner Zustimmung @'+state.currentAccount+' zugeordnet. Die ursprünglichen Daten bleiben erhalten.';
 });
 $('fc-snapshot-list').addEventListener('click',event=>{
@@ -2378,7 +2382,7 @@ $('guide-undo').addEventListener('click',()=>{
 $('delete-local-btn').addEventListener('click',()=>{
   if (!confirm('Alle von FollowClean lokal gespeicherten Fortschrittsdaten löschen?')) return;
   try {
-    for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')||key.startsWith(FC_SESSION_PREFIX)) localStorage.removeItem(key);
+    for(const key of localStorageKeys()) if(key.startsWith('followclean:progress:')||key.startsWith(FC_SESSION_PREFIX)) localStorage.removeItem(key);
     localStorage.removeItem(FC_EXPORT_PENDING_KEY);
     localStorage.removeItem(FC_SNAPSHOTS_KEY);
   }catch{}
