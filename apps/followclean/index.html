@@ -1019,6 +1019,51 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .fc-smart-actions #guide-skip{grid-column:1/-1;background:transparent}
 }
 @media(prefers-reduced-motion:reduce){.fc-smart-meter>div{transition:none}}
+
+/* FollowClean premium insights: accurate, local, lightweight overview. */
+.fc-insights{margin:18px 0 22px;border-radius:18px;border:1px solid #dbe6f5;background:linear-gradient(145deg,#f7fbff,#eef5fd);padding:21px;box-shadow:0 12px 28px #2b50730b}
+.fc-insights-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px}
+.fc-insights-eyebrow{font-size:9px;color:#2d69ac;letter-spacing:1.25px;font-weight:850}
+.fc-insights h3{font-size:24px;letter-spacing:-.65px;line-height:1.1;color:#203c5e;margin:7px 0}
+.fc-insights-heading p{font-size:12px;color:#647a95;line-height:1.5;margin:0}
+.fc-insights-demo{font-size:9px;font-weight:800;border:1px solid #d9c8f1;color:#704a9b;border-radius:999px;padding:8px 10px;background:#f6efff;white-space:nowrap}
+.fc-insights-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fc-insights-card{min-width:0;background:#fff;border:1px solid #e1eaf6;border-radius:14px;padding:18px;display:flex;flex-direction:column}
+.fc-insights-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fc-insights-card-head span{font-size:12px;font-weight:850;color:#304b6d}
+.fc-insights-card-head strong{font-size:25px;letter-spacing:-.6px;color:#1d609e;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc-insights-card>p{font-size:11px;line-height:1.55;color:#657995;margin:9px 0 17px}
+.fc-insights-meter,.fc-insights-cleanup-meter{display:flex;height:11px;background:#e5eaf5;border-radius:99px;overflow:hidden;margin:auto 0 13px}
+.fc-insights-meter span,.fc-insights-cleanup-meter span{height:100%;transition:width .35s ease}
+.fc-insights-meter-mutual{background:#1f9b79}
+.fc-insights-meter-unreturned{background:#8b75e7}
+.fc-insights-legend{display:flex;flex-wrap:wrap;justify-content:space-between;gap:9px;margin-bottom:2px}
+.fc-insights-legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:#57718d}
+.fc-insights-legend strong{font-variant-numeric:tabular-nums;color:#263e58}
+.fc-insights-dot{width:8px;height:8px;border-radius:100%;background:#8b75e7;flex-shrink:0}
+.fc-insights-dot-return{background:#1f9b79}
+.fc-insights-card .fc-insights-footnote{font-size:10px;color:#7890a6;line-height:1.5;margin:13px 0 0}
+.fc-insights-cleanup-meter{margin:auto 0 14px}
+.fc-insights-cleanup-meter span{background:linear-gradient(90deg,#208bd6,#1bb991)}
+.fc-insights-cleanup-stats{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#68829a}
+.fc-insights-cleanup-stats strong{color:#2d4967;font-variant-numeric:tabular-nums}
+.fc-insights-cta{display:flex;align-items:center;justify-content:center;width:100%;background:#1768df;color:#fff;min-height:46px;border-radius:11px;font-weight:850;font-size:12px;margin-top:16px;cursor:pointer;padding:11px 14px}
+.fc-insights-cta:hover{background:#1254b8}
+.fc-insights-cta:focus-visible{outline:3px solid #76a6ed;outline-offset:3px}
+.fc-insights-disclaimer{font-size:10px;line-height:1.5;color:#657a94;margin:12px 0 0}
+@media(max-width:700px){.fc-insights{padding:15px}.fc-insights-layout{grid-template-columns:1fr}.fc-insights-card{padding:15px}.fc-insights h3{font-size:22px}.fc-insights-card-head strong{font-size:23px}}
+@media(prefers-color-scheme:dark){
+.fc-insights{background:linear-gradient(140deg,#1a2b41,#1d2d40);border-color:#3c5879}
+.fc-insights-eyebrow{color:#a7cdfb}.fc-insights h3{color:#f1f6ff}
+.fc-insights-heading p,.fc-insights-card>p,.fc-insights-disclaimer,.fc-insights-card .fc-insights-footnote{color:#b7cce5}
+.fc-insights-card{background:#24384f;border-color:#3e5b7b}
+.fc-insights-card-head span,.fc-insights-legend strong,.fc-insights-cleanup-stats strong{color:#eaf3ff}
+.fc-insights-card-head strong{color:#acdbff}
+.fc-insights-legend span,.fc-insights-cleanup-stats{color:#bfd2e7}
+.fc-insights-meter,.fc-insights-cleanup-meter{background:#40526c}
+.fc-insights-demo{background:#3c3155;border-color:#665087;color:#dec5ff}
+}
+@media(prefers-reduced-motion:reduce){.fc-insights-meter span,.fc-insights-cleanup-meter span{transition:none}}
 </style>
   <script>
 /*!
@@ -1374,11 +1419,49 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('focus', completeVisitOnReturn);
 window.addEventListener('pageshow', completeVisitOnReturn);
+
+function renderInsights() {
+  if(!state.result)return;
+  const all=state.result.notFollowingBack;
+  const total=state.result.following;
+  const mutual=state.result.mutual.length;
+  const missing=all.length;
+  // Open includes 'opened': a visit alone is not a completed decision.
+  const done=all.reduce((n,user)=>n+(statusFor(user)==='done'?1:0),0);
+  const keep=all.reduce((n,user)=>n+(statusFor(user)==='keep'?1:0),0);
+  const open=Math.max(0,missing-done-keep);
+  const returnRate=total?100*mutual/total:0;
+  const completionRate=missing?100*(done+keep)/missing:100;
+  const fmt=n=>n.toLocaleString('de-DE');
+  const fmtPercent=n=>(Math.round(n*10)/10).toLocaleString('de-DE',{maximumFractionDigits:1})+' %';
+  $('fc-insights-return-rate').textContent=total?fmtPercent(returnRate):'–';
+  $('fc-insights-rate-explainer').textContent=total
+    ?fmt(mutual)+' von '+fmt(total)+' gefolgten Accounts folgen dir zurück.'
+    :'Du folgst laut diesem Export keinem Account.';
+  $('fc-insights-mutual').textContent=fmt(mutual);
+  $('fc-insights-nonfollowers').textContent=fmt(missing);
+  $('fc-insights-meter-mutual').style.width=(total?returnRate:0)+'%';
+  $('fc-insights-meter-unreturned').style.width=(total?100-returnRate:0)+'%';
+  $('fc-insights-meter').setAttribute('aria-label',
+    total?fmt(mutual)+' folgen zurück, '+fmt(missing)+' folgen nicht zurück, von insgesamt '+fmt(total)+' gefolgten Accounts'
+      :'Keine gefolgten Accounts im Export');
+  $('fc-insights-completion-rate').textContent=fmtPercent(completionRate);
+  $('fc-insights-completion-fill').style.width=completionRate+'%';
+  $('fc-insights-cleanup-meter').setAttribute('aria-valuenow',String(Math.round(completionRate)));
+  $('fc-insights-done').textContent=fmt(done);
+  $('fc-insights-keep').textContent=fmt(keep);
+  $('fc-insights-open').textContent=fmt(open);
+  $('fc-insights-start').textContent=missing===0
+    ?'Liste ansehen'
+    :open===0?'Deine Liste ansehen':'Smart Cleanup fortsetzen ↗';
+  $('fc-insights-demo').hidden=!state.demo;
+}
 function renderResults() {
   const all = state.result?.notFollowingBack ?? [];
   const done = all.filter(name => statusFor(name) === 'done').length;
   const kept = all.filter(name => statusFor(name) === 'keep').length;
   const processed = done + kept;
+  renderInsights();
   $('progress-text').setAttribute('title', 'Erledigt kann nach einem Profilbesuch automatisch markiert werden. FollowClean prüft nicht, ob du tatsächlich entfolgt bist.');
   $('progress-text').textContent = `${processed} von ${all.length}`;
   $('progress-bar').style.width = `${all.length ? 100 * processed / all.length : 100}%`;
@@ -1570,6 +1653,16 @@ $('dropzone').addEventListener('drop',event => importFiles(event.dataTransfer.fi
 $('help-toggle').addEventListener('click', () => { $('help-panel').hidden = !$('help-panel').hidden; $('help-toggle').setAttribute('aria-expanded',String(!$('help-panel').hidden)); });
 $('demo-btn').addEventListener('click',()=>useResult(compareLists(DEMO_FOLLOWERS,DEMO_FOLLOWING),true));
 $('reset-btn').addEventListener('click',reset);
+
+$('fc-insights-start').addEventListener('click',()=>{
+  if(!state.result)return;
+  if($('detail-view').hidden)$('open-list-btn').click();
+  const remaining=state.result.notFollowingBack.some(name=>!['done','keep'].includes(statusFor(name)));
+  if(remaining && $('guide-panel').hidden)$('guide-btn').click();
+  const target=remaining?$('guide-panel'):$('detail-view');
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  target.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+});
 $('open-list-btn').addEventListener('click', () => {
   const opening = $('detail-view').hidden;
   $('detail-view').hidden = !opening;
@@ -2145,6 +2238,34 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
             <div class="stat-card"><span class="stat-label">GEGENSEITIG</span><strong id="stat-mutual">0</strong><span class="stat-desc">Ihr folgt euch beide</span></div>
           </div>
+
+          <section id="fc-insights" class="fc-insights" aria-labelledby="fc-insights-title">
+            <div class="fc-insights-heading">
+              <div><span class="fc-insights-eyebrow">DEIN ÜBERBLICK · LOKALE ANALYSE</span><h3 id="fc-insights-title">Alles im Blick.</h3><p>Deine Daten, direkt aus dem gewählten Instagram-Export berechnet.</p></div>
+              <span id="fc-insights-demo" class="fc-insights-demo" hidden>BEISPIELDATEN</span>
+            </div>
+            <div class="fc-insights-layout">
+              <div class="fc-insights-card fc-insights-distribution">
+                <div class="fc-insights-card-head"><span>Wem du folgst</span><strong id="fc-insights-return-rate">0 %</strong></div>
+                <p id="fc-insights-rate-explainer">Anteil der Accounts, denen du folgst und die dir zurückfolgen.</p>
+                <div class="fc-insights-meter" role="img" id="fc-insights-meter" aria-label="Verteilung der zurückfolgenden Accounts">
+                  <span id="fc-insights-meter-mutual" class="fc-insights-meter-mutual"></span><span id="fc-insights-meter-unreturned" class="fc-insights-meter-unreturned"></span>
+                </div>
+                <div class="fc-insights-legend"><span><i class="fc-insights-dot fc-insights-dot-return" aria-hidden="true"></i> Folgen zurück <strong id="fc-insights-mutual">0</strong></span><span><i class="fc-insights-dot fc-insights-dot-unreturned" aria-hidden="true"></i> Nicht zurück <strong id="fc-insights-nonfollowers">0</strong></span></div>
+                <p class="fc-insights-footnote">Bezugsgröße: Accounts, denen du folgst. Keine Aussage über deren Aktivität.</p>
+              </div>
+              <div class="fc-insights-card fc-insights-cleanup">
+                <div class="fc-insights-card-head"><span>Deine Bereinigung</span><strong id="fc-insights-completion-rate">0 %</strong></div>
+                <p>So viele Nicht-Rückfolger hast du bereits eingeordnet.</p>
+                <div class="fc-insights-cleanup-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Entscheidungsfortschritt" id="fc-insights-cleanup-meter"><span id="fc-insights-completion-fill"></span></div>
+                <div class="fc-insights-cleanup-stats">
+                  <span><strong id="fc-insights-done">0</strong> Erledigt</span><span><strong id="fc-insights-keep">0</strong> Behalten</span><span><strong id="fc-insights-open">0</strong> Offen</span>
+                </div>
+                <button id="fc-insights-start" class="fc-insights-cta" type="button">Jetzt Accounts durchgehen <span aria-hidden="true">↗</span></button>
+              </div>
+            </div>
+            <p class="fc-insights-disclaimer">„Erledigt“ ist ein lokaler Checklistenstatus, kein bestätigtes Entfolgen auf Instagram. Du kannst jeden Status wieder ändern.</p>
+          </section>
           <details id="fc-history" class="fc-v2-history">
             <summary class="fc-v2-history-summary"><span class="fc-v2-history-symbol" aria-hidden="true">↗</span><span><strong>Wer hat sich seit deinem letzten Export verändert?</strong><small>Jetzt zwei Exporte vergleichen · privat und kostenlos</small></span><span class="fc-v2-history-arrow" aria-hidden="true">⌄</span></summary>
             <div class="fc-v2-history-body">
