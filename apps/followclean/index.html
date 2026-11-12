@@ -1123,6 +1123,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v8-delta-row strong.positive{color:#16825d}.fc-v8-delta-row strong.negative{color:#b34b61}
 .fc-v8-insights-history>p{width:100%;font-size:10px;line-height:1.5;color:#627f99;margin:0}
 @media(prefers-color-scheme:dark){.fc-v8-import-recovery{background:#4d3728;border-color:#7e6045;color:#f6dcb8}.fc-v8-import-recovery button{background:#463528;color:#fbe4c4;border-color:#a78159}.fc-v8-insights-history{background:#243b53;border-color:#4b6584}.fc-v8-insights-eyebrow,.fc-v8-insights-history small,.fc-v8-insights-history>p{color:#bdcfe5}.fc-v8-insights-history strong{color:#e7f2ff}.fc-v8-delta-row span{background:#2d4867;color:#c2d7ee}}
+
+.fc-v9-offers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0}
+.fc-v9-offer{min-width:0;padding:15px;border:1px solid #d8e5f1;border-radius:12px;background:#fff}
+.fc-v9-offer.premium{background:linear-gradient(135deg,#f3f1ff,#fff9f0);border-color:#d5c7ed}
+.fc-v9-offer>span{display:block;color:#61788f;letter-spacing:.7px;font-size:9px;font-weight:850;margin-bottom:7px}
+.fc-v9-offer.premium>span{color:#7559a5}
+.fc-v9-offer>strong{font-size:14px;color:#2c4560}
+.fc-v9-offer>p{font-size:11px;line-height:1.6;color:#697e93;margin:8px 0 0}
+.fc-v9-offer-disclaimer{font-size:10.5px;line-height:1.55;color:#667c92;margin:10px 0 13px}
+@media(max-width:650px){.fc-v9-offers{grid-template-columns:1fr}}
+@media(prefers-color-scheme:dark){.fc-v9-offer{background:#2a3e52;border-color:#4a6077}.fc-v9-offer.premium{background:linear-gradient(135deg,#393354,#3a3434);border-color:#675b84}.fc-v9-offer>strong{color:#edf5ff}.fc-v9-offer>span,.fc-v9-offer>p,.fc-v9-offer-disclaimer{color:#c2d0df}}
 </style>
   <script>
 /*!
@@ -1585,6 +1596,7 @@ function completeVisitOnReturn() {
       statusFor(visit.name) !== 'opened') return;
   // A page visit proves only that the profile was opened, never an unfollow.
   state.lastVisitedName=visit.name;
+  state.lastAutoDone=visit.name; // Toast undo target: viewed, never automatically completed.
   if (!$('guide-panel').hidden) {
     $('guide-feedback').hidden=false;
     $('guide-feedback').textContent='👀 @'+visit.name+' angesehen. Bitte selbst „Erledigt“ oder „Behalten“ bestätigen.';
@@ -1879,7 +1891,12 @@ $('visit-undo').addEventListener('click', () => {
   const name = state.lastAutoDone;
   $('visit-toast').hidden = true;
   state.lastAutoDone = null;
-  if (name && state.result && statusFor(name) === 'done') setStatus(name,'open');
+  if (name && state.result && statusFor(name) === 'opened') {
+    state.lastVisitedName=null;
+    setStatus(name,'open');
+    $('guide-feedback').textContent='↶ @'+name+' wieder als offen markiert.';
+    $('guide-feedback').hidden=$('guide-panel').hidden;
+  }
 });
 document.querySelectorAll('[data-copy-rio]').forEach(button => {
   button.addEventListener('click', async () => {
@@ -2659,6 +2676,11 @@ $('delete-local-btn').addEventListener('click',()=>{
             </summary>
             <div class="fc-premium-body">
               <div class="fc-premium-price-row"><div><span class="fc-premium-kicker">STRIPE SANDBOX · KEIN ECHTGELD</span><h3>Einmalig 1 €. Oder gratis mit RIO.</h3><p>Teste den vollständigen Bestellvorgang bei Stripe. Die Bestellung erscheint nach erfolgreichem Abschluss als Testdatensatz in Stripe.</p></div><strong aria-label="Simulierter Einmalpreis 1 Euro">1,00 €</strong></div>
+              <div class="fc-v9-offers" aria-label="Kostenlos und geplantes Premium-Angebot vergleichen">
+                <div class="fc-v9-offer"><span>JETZT KOSTENLOS</span><strong>FollowClean Basic</strong><p>Lokale ZIP-Analyse, vollständige Nicht-Rückfolger-Liste und CSV-Export.</p></div>
+                <div class="fc-v9-offer premium"><span>GEPLANT · 1 € EINMALIG</span><strong>FollowClean Premium</strong><p>Geführte Bereinigung, Sitzungsfortsetzung, kontogetrennte Historie, Exportvergleich und private Sicherungen.</p></div>
+              </div>
+              <p class="fc-v9-offer-disclaimer">Während der Beta sind auch die Premium-Komfortfunktionen kostenlos nutzbar. Der Stripe-Testkauf schaltet noch nichts frei und löst keine echte Zahlung aus.</p>
               <div class="fc-premium-benefits"><span>✓ Stripe-Testbestellung</span><span>✓ Ohne Abonnement</span><span>✓ RIO = 100 % Rabatt</span><span>✓ Beta-Liste weiterhin gratis</span></div>
               <div class="fc-sandbox-checkout">
                 <div class="fc-sandbox-heading"><span class="fc-sandbox-indicator" aria-hidden="true"></span><strong>Testmodus aktiv</strong><span>Keine echten Abbuchungen</span></div>
@@ -2671,9 +2693,9 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </details>
           <div id="detail-view" hidden>
-          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: „Erledigt“ leuchtet grün. Den tatsächlichen Entfolgen-Schritt führst du selbst in Instagram aus.</p></div></div>
+          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: Es wird als „Angesehen“ markiert. Erst wenn du selbst „Erledigt“ bestätigst, erscheint die grüne Markierung. Entfolgen erfolgt ausschließlich in Instagram.</p></div></div>
           <div class="fc-avatar-panel fc-avatar-private" role="note" aria-label="Profilbilder und Privatsphäre"><span class="fc-avatar-note-icon" aria-hidden="true">✦</span><p><strong>Privatsphäre statt falscher Profilbilder.</strong> Instagram-Exportdateien enthalten normalerweise keine Original-Profilbilder. FollowClean zeigt deshalb farbige Initialen statt unzuverlässiger Bilder. Accountnamen werden nicht an einen Bilddienst gesendet.</p></div>
-          <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil als erledigt markiert.</span><button id="visit-undo" type="button">Rückgängig</button></div>
+          <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil angesehen. Bitte selbst entscheiden.</span><button id="visit-undo" type="button">Rückgängig</button></div>
           <div class="guided-card fc-smart-entry"><div><div class="guided-eyebrow">DEIN CLEANUP-ASSISTENT</div><h3>Ein Account nach dem anderen.</h3><p>Profil prüfen, behalten oder abhaken. FollowClean bietet automatisch den nächsten Account an.</p></div><button id="guide-btn" class="primary-button" type="button" aria-expanded="false" aria-controls="guide-panel">Smart Cleanup starten <span aria-hidden="true">↗</span></button></div>
           <div id="guide-panel" class="guide-panel fc-smart-panel" hidden>
             <div class="fc-smart-top"><div><span class="guide-kicker">SMART CLEANUP · NÄCHSTER ACCOUNT</span><strong id="guide-progress-label">0 von 0 bearbeitet</strong></div><button type="button" id="guide-close" class="fc-smart-close" aria-label="Cleanup-Assistent schließen">Schließen ×</button></div>
@@ -2721,7 +2743,7 @@ $('delete-local-btn').addEventListener('click',()=>{
         <details class="fc-legal-detail" id="datenschutz"><summary><span>Datenschutz &amp; lokale Verarbeitung</span><small>Technikhinweis · kein finaler Rechtstext</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
           <div class="fc-legal-copy">
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
-            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten zusammen mit einem manuell eingegebenen Instagram-Kontonamen als Verlauf im lokalen Browser-Speicher abgelegt werden. Alte Stände ohne Namen bleiben unzugeordnet, bis sie bewusst zugewiesen werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
+            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Deine Checklisten-Markierungen und die Position des Cleanup-Assistenten können nach Wahl eines Instagram-Kontonamens in diesem Browser für dieses Konto gespeichert werden. Nur nach ausdrücklicher Zustimmung können zusätzlich bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten zusammen mit einem manuell eingegebenen Instagram-Kontonamen als Verlauf im lokalen Browser-Speicher abgelegt werden. Alte Stände ohne Namen bleiben unzugeordnet, bis sie bewusst zugewiesen werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
             <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
