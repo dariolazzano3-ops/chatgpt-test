@@ -1600,8 +1600,9 @@ function createLocalSnapshot(result) {
 function sameSnapshotContents(a,b) {
   // Compare sets independent of Instagram export order or time; no network or persistent hash.
   if(a.followerNames.length!==b.followerNames.length || a.followingNames.length!==b.followingNames.length)return false;
-  return a.followerNames.every(n=>b.followerNames.includes(n)) &&
-    a.followingNames.every(n=>b.followingNames.includes(n));
+  const followers=new Set(b.followerNames),following=new Set(b.followingNames);
+  return a.followerNames.every(n=>followers.has(n)) &&
+    a.followingNames.every(n=>following.has(n));
 }
 function saveLocalSnapshot() {
   if (!state.result || state.demo) {
