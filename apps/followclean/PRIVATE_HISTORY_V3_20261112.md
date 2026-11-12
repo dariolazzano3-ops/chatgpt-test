@@ -39,3 +39,20 @@ Vor Deployment, mobile Chromium-Viewport 320x700 mit synthetischen Instagram-Dat
 ## Nächster größter Hebel
 
 Prüfung mit einem echten iPhone Safari auf einem Testgerät sowie explizite Validierung nach einem vollständigen Browser-Neustart. Optional danach Speicherformat für große Exporte via IndexedDB evaluieren, aber keinen Wechsel ohne belegbaren Nutzen.
+
+
+## V3.1 Verbesserungsloop, 12.11.2026
+
+- **Lokale Backup-Datei:** Vom Nutzer ausdrücklich per Button heruntergeladene `followclean-private-verlauf-YYYY-MM-DD.json`. Enthält vollständige lokale Follower- und Following-Namen aus den ausdrücklich gespeicherten Ständen **im Klartext**. Datei verbleibt im Browser-Downloadordner und wird nie zu Stripe, Cloudflare oder anderen Anbietern hochgeladen.
+- **Wiederherstellen vor ZIP-Upload:** Einklappbarer Importbereich auf der Startseite; überprüft JSON-Kennzeichnung `followclean-private-history`, Version, erlaubte Struktur und Größenlimits. Kein Import fremder JSON-Strukturen als gültige Snapshots.
+- **Schonendes Zusammenführen:** Bereits gespeicherte Stände bleiben bestehen. Identische Inhalte werden unabhängig von ihrer Reihenfolge übersprungen; maximal vier Stände. Bei Überschreitung Fehlermeldung **ohne Schreibvorgang oder Datenverlust**.
+- **Schnelle Duplikatserkennung:** Browser-native `Set`-Mitgliedschaft statt quadratischer Listenabfragen. Wiederholtes Speichern identischer Exporte verbraucht keine neuen Verlaufsplätze.
+- **Datenschutztext erweitert:** Private JSON-Sicherung enthält Benutzernamen unverschlüsselt und soll nicht öffentlich geteilt werden. Die Sicherung enthält keine ZIP-Binärdateien, kein Instagram-Passwort, keine Stripe-Daten und keine FollowClean-Serverkopie.
+- **Bestehender Löschweg** bleibt unverändert: gespeicherte Snapshots können einzeln oder vollständig entfernt werden.
+
+### Abnahme vor Veröffentlichung
+
+- 30/30 synthetische Browserprüfungen: Zustimmung, Duplikatsperre, Sicherungs-Download (gültiger JSON-Aufbau), Verlust und Wiederherstellung, doppelter Import ohne zusätzliche Stände, beschädigte/ungeeignete JSON-Dateien, Vergleich nach Wiederherstellung, kostenlose Liste, Stripe-Sandbox, globales Löschen und mobiles Layout.
+- 7/7 zusätzliche Kapazitätsprüfungen: Duplikat in anderer Exportreihenfolge, genau vier Stände, Verweigerung des fünften sowie atomare Ablehnung eines Backup-Imports, der das Limit überschreitet.
+- Browser Rendering liefert bei programmatischem Neuladen der Seite einen Kontextzerstörungsfehler; **echte Safari-Neustartabnahme weiterhin offen**. Eine weitere Prüfung im echten Browser ist nötig. Dieser technische Grenzfall ist keine Aussage darüber, ob Safari-Speicherung funktioniert.
+- Echtgeldzahlungen bleiben deaktiviert; Stripe-Testkauf samt RIO unverändert. Andere Projekte/Branches nicht berührt.
