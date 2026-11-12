@@ -813,6 +813,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-legal-launchgate,.fc-legal-launchgate strong{color:#f1d4a8}
 }
 @media(prefers-reduced-motion:reduce){.fc-premium-chevron,.fc-legal-arrow{transition:none!important}}
+
+/* FollowClean · isolated Stripe test-only purchase · no paid entitlement */
+.fc-test-store{padding:26px;margin:26px 0;border-radius:19px;border:1px solid #d6c5a0;background:linear-gradient(135deg,#fffdfa,#fff4dc 65%,#fffafa);box-shadow:0 12px 30px #71511d0b;scroll-margin-top:22px}
+.fc-test-store-badge{display:inline-flex;align-items:center;gap:7px;font-weight:800;letter-spacing:.8px;font-size:10px;color:#8d5a0c;background:#fff2d7;border:1px solid #e6c98e;border-radius:999px;padding:8px 12px}
+.fc-test-store-badge span,.fc-sandbox-indicator{color:#19835c;font-size:11px}
+.fc-test-store-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:18px 0}
+.fc-test-store-head h2{font-size:clamp(22px,3vw,32px);line-height:1.17;letter-spacing:-.7px;color:#362e22;margin:0 0 10px}
+.fc-test-store-head p{font-size:13px;line-height:1.7;color:#625945;max-width:570px;margin:0}
+.fc-test-store-head>strong{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:24px;color:#72501e;white-space:nowrap}
+.fc-test-store-head>strong small{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#997d53}
+.fc-test-store-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fc-sandbox-buy{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:50px;padding:13px 21px;border-radius:11px;background:#0067e8;color:#fff;font-size:13px;font-weight:850;text-align:center;transition:background .18s ease,transform .18s ease}
+.fc-sandbox-buy:hover{background:#0050ba;color:#fff;transform:translateY(-1px)}
+.fc-sandbox-buy:focus-visible,.fc-rio-copy:focus-visible{outline:3px solid #88b2ff;outline-offset:3px}
+.fc-rio-copy{min-height:48px;border:1px solid #dbc79e;border-radius:11px;padding:12px 16px;background:#fff;color:#795522;font-size:12px;font-weight:850;cursor:pointer}
+.fc-rio-copy:hover{background:#fff8e9}
+.fc-test-store-note,.fc-test-hint{font-size:11.5px;line-height:1.65;color:#695e4f;margin:13px 0 0}
+.fc-test-store code,.fc-test-hint code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:.3px;background:#fff;border:1px solid #e9dabb;border-radius:5px;padding:3px 5px;color:#68461b}
+.fc-sandbox-checkout{background:#fffdf6;border:1px solid #e2d5b7;border-radius:12px;padding:16px;margin-top:16px}
+.fc-sandbox-heading{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+.fc-sandbox-heading strong{color:#1b7254;font-size:12px}
+.fc-sandbox-heading>span:last-child{color:#8a7250;font-size:11px}
+.fc-sandbox-checkout .fc-sandbox-buy{width:100%}
+.fc-coupon-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 0 4px}
+.fc-coupon-row>div{display:flex;gap:5px;flex-direction:column}
+.fc-coupon-row small{font-size:10px;color:#80683f}
+.fc-coupon-row strong{font-size:20px;letter-spacing:2px;color:#6f4822}
+.fc-sandbox-checkout .fc-premium-not-live{margin-top:13px}
+@media(max-width:570px){.fc-test-store{padding:19px 13px}.fc-test-store-head{gap:10px}.fc-test-store-head>strong{font-size:19px}.fc-test-store-head h2{font-size:22px}.fc-test-store-head p{font-size:11.5px}.fc-test-store-actions{flex-direction:column;align-items:stretch}.fc-test-store-actions>*{width:100%;min-height:48px}.fc-sandbox-checkout{padding:12px}}
+@media(prefers-color-scheme:dark){.fc-test-store{background:linear-gradient(135deg,#272920,#29251e);border-color:#66553b}.fc-test-store-badge{background:#3e3323;border-color:#76603f;color:#eac58a}.fc-test-store-head h2{color:#fff3df}.fc-test-store-head p,.fc-test-store-note,.fc-test-hint{color:#d4c3a7}.fc-test-store-head>strong{color:#f1d198}.fc-test-store-head>strong small{color:#c0a67e}.fc-rio-copy{background:#323338;border-color:#736345;color:#f1d09f}.fc-rio-copy:hover{background:#3a372f}.fc-sandbox-checkout{background:#292d30;border-color:#66583b}.fc-sandbox-heading strong{color:#b0edcb}.fc-sandbox-heading>span:last-child,.fc-coupon-row small{color:#d4c2a3}.fc-coupon-row strong{color:#f3c88e}.fc-test-store code,.fc-test-hint code{background:#39332a;border-color:#76603f;color:#ffdead}}
+@media(prefers-reduced-motion:reduce){.fc-sandbox-buy{transition:none!important}}
 </style>
   <script>
 /*!
@@ -1293,6 +1324,17 @@ $('visit-undo').addEventListener('click', () => {
   state.lastAutoDone = null;
   if (name && state.result && statusFor(name) === 'done') setStatus(name,'open');
 });
+document.querySelectorAll('[data-copy-rio]').forEach(button => {
+  button.addEventListener('click', async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText('RIO');
+      button.textContent = '✓ RIO kopiert';
+    } catch {
+      button.textContent = 'Code RIO manuell eingeben';
+    }
+  });
+});
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
 $('guide-btn').addEventListener('click',toggleGuide);
@@ -1476,23 +1518,21 @@ $('delete-local-btn').addEventListener('click',()=>{
           <details class="fc-premium-preview" id="premium-preview">
             <summary class="fc-premium-summary">
               <span class="fc-premium-summary-icon" aria-hidden="true">✦</span>
-              <span class="fc-premium-summary-text"><strong>Premium-Vorschau</strong><small>So könnte FollowClean später für 1 € aussehen. Heute ist die vollständige Liste gratis.</small></span>
-              <span class="fc-premium-summary-price">1,00 € <small>geplant</small></span>
+              <span class="fc-premium-summary-text"><strong>Premium-Testkauf</strong><small>Jetzt Stripe-Testbestellung ausprobieren. Alle Beta-Funktionen bleiben gratis.</small></span>
+              <span class="fc-premium-summary-price">1,00 € <small>nur Test</small></span>
               <span class="fc-premium-chevron" aria-hidden="true">⌄</span>
             </summary>
             <div class="fc-premium-body">
-              <div class="fc-premium-price-row"><div><span class="fc-premium-kicker">EINMALIGE FREISCHALTUNG · ZUKÜNFTIG</span><h3>Deine Liste. Deine Entscheidung.</h3><p>Alle Nicht-Rückfolger sehen, einzeln öffnen und den Fortschritt lokal abhaken.</p></div><strong aria-label="Geplanter Einmalpreis 1 Euro">1,00 €</strong></div>
-              <div class="fc-premium-benefits"><span>✓ Vollständige Accountliste</span><span>✓ Geführte Bereinigung</span><span>✓ Lokaler Fortschritt</span><span>✓ Kein Abonnement</span></div>
-              <details class="fc-checkout-blueprint" id="checkout-test-preview">
-                <summary>Geplanten Kaufablauf ansehen <span aria-hidden="true">⌄</span></summary>
-                <ol>
-                  <li><strong>Angebot prüfen</strong><span>Produkt, einmaliger Preis, eventuelle Steuern und Vertragsbedingungen transparent anzeigen.</span></li>
-                  <li><strong>Stripe Checkout</strong><span>Später ausschließlich über eine serverseitig erstellte Bezahlseite, ohne deine Instagram-ZIP weiterzugeben.</span></li>
-                  <li><strong>Freischaltung</strong><span>Erst nach unabhängig bestätigter Zahlung. Ein Rücksprung von der Zahlungsseite allein reicht nicht.</span></li>
-                </ol>
-                <p class="fc-premium-not-live" role="status"><span aria-hidden="true">●</span> Reine Testvorschau. Kein Zahlungsformular, keine Abbuchung, keine Premium-Freischaltung.</p>
-              </details>
-              <a class="fc-premium-free-link" href="#open-list-btn">Beta-Liste weiterhin kostenlos öffnen <span aria-hidden="true">↗</span></a>
+              <div class="fc-premium-price-row"><div><span class="fc-premium-kicker">STRIPE SANDBOX · KEIN ECHTGELD</span><h3>Einmalig 1 €. Oder gratis mit RIO.</h3><p>Teste den vollständigen Bestellvorgang bei Stripe. Die Bestellung erscheint nach erfolgreichem Abschluss als Testdatensatz in Stripe.</p></div><strong aria-label="Simulierter Einmalpreis 1 Euro">1,00 €</strong></div>
+              <div class="fc-premium-benefits"><span>✓ Stripe-Testbestellung</span><span>✓ Ohne Abonnement</span><span>✓ RIO = 100 % Rabatt</span><span>✓ Beta-Liste weiterhin gratis</span></div>
+              <div class="fc-sandbox-checkout">
+                <div class="fc-sandbox-heading"><span class="fc-sandbox-indicator" aria-hidden="true"></span><strong>Testmodus aktiv</strong><span>Keine echten Abbuchungen</span></div>
+                <a class="fc-sandbox-buy" href="https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00" target="_blank" rel="noopener noreferrer" aria-label="Stripe-Testkauf für 1 Euro simuliert in neuem Tab öffnen">Testbestellung starten <span aria-hidden="true">↗</span></a>
+                <div class="fc-coupon-row"><div><small>100 % Rabatt</small><strong>RIO</strong></div><button type="button" data-copy-rio class="fc-rio-copy" aria-label="Gutscheincode RIO kopieren">Code kopieren</button></div>
+                <p class="fc-test-hint">Ohne Gutschein: Testkarte <code>4242 4242 4242 4242</code>, beliebiges zukünftiges Ablaufdatum und dreistellige Prüfnummer verwenden. Mit <strong>RIO</strong> beträgt die Bestellung 0,00 €; Stripe kann dann ohne Karteneingabe abschließen.</p>
+                <p class="fc-premium-not-live"><span aria-hidden="true">●</span> Nur Sandbox. Gib keine echte Kreditkarte ein. Eine Stripe-Testbestellung ist keine bezahlte Premium-Freischaltung.</p>
+              </div>
+              <a class="fc-premium-free-link" href="#open-list-btn">Vollständige Beta-Liste kostenlos nutzen <span aria-hidden="true">↗</span></a>
             </div>
           </details>
           <div id="detail-view" hidden>
@@ -1513,6 +1553,13 @@ $('delete-local-btn').addEventListener('click',()=>{
       </section>
 
       <section class="features" aria-label="Deine Vorteile"><div><div class="feature-icon" aria-hidden="true">01</div><h3>Kein Fanclub.</h3><p>Deine Aufmerksamkeit ist wertvoll. Du musst niemandem folgen, nur weil er viele Follower hat.</p></div><div><div class="feature-icon" aria-hidden="true">02</div><h3>Klarheit statt Rätselraten.</h3><p>Entdecke Nicht-Rückfolger mit deinem Instagram-Export, ohne jeden Account einzeln zu suchen.</p></div><div><div class="feature-icon" aria-hidden="true">03</div><h3>Du entscheidest.</h3><p>Behalt Menschen, die du magst. Räume einseitige Follows nur dann auf, wenn du es wirklich willst.</p></div></section>
+
+      <section class="fc-test-store" id="testkauf" aria-labelledby="fc-test-store-title">
+        <div class="fc-test-store-badge"><span aria-hidden="true">●</span> STRIPE TESTMODUS · 0 € ECHTE ZAHLUNG</div>
+        <div class="fc-test-store-head"><div><h2 id="fc-test-store-title">Teste unseren Premium-Checkout.</h2><p>1 € Testpreis, 100 % kostenlos mit <strong>RIO</strong>. Die Bestellung wird bei Stripe ausschließlich als Test erfasst. Deine Instagram-Datei bleibt auf deinem Gerät.</p></div><strong>1,00 € <small>simuliert</small></strong></div>
+        <div class="fc-test-store-actions"><a class="fc-sandbox-buy" href="https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00" target="_blank" rel="noopener noreferrer">Testkauf starten <span aria-hidden="true">↗</span></a><button data-copy-rio class="fc-rio-copy" type="button">RIO kopieren · 100 % Rabatt</button></div>
+        <p class="fc-test-store-note">Ohne Gutschein: Testkarte <code>4242 4242 4242 4242</code>. Mit RIO: 0,00 €, eventuell ohne Kartenfeld. Nur Testdaten eingeben. Der Checkout öffnet sich direkt bei Stripe; kein echter Kauf und keine Premium-Pflicht.</p>
+      </section>
       <section class="afterword" aria-label="Datenschutz und Unabhängigkeit"><strong>Dein Account bleibt deiner.</strong><span>Kein Instagram-Passwort · Auswertung direkt im Browser · Kein automatisches Entfolgen</span></section>
       <section class="fc-legal-section" id="rechtliches" aria-labelledby="fc-legal-title">
         <div class="fc-legal-titlebar"><div><span class="section-index">TRANSPARENZ · BETA</span><h2 id="fc-legal-title">Rechtliches &amp; Datenschutz</h2><p>FollowClean ist derzeit eine kostenlose Testversion. Die vollständigen Angaben für einen öffentlichen kommerziellen Start werden vorbereitet.</p></div><span class="fc-legal-status">Noch nicht vollständig</span></div>
@@ -1524,22 +1571,22 @@ $('delete-local-btn').addEventListener('click',()=>{
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
             <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Löschen ist über „Lokalen Fortschritt löschen“ möglich. Browserdaten können zusätzlich über Safari gelöscht werden.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
-            <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Demo und die Premium-Vorschau starten keine Zahlungen.</p>
+            <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
           </div>
         </details>
-        <details class="fc-legal-detail" id="kaufbedingungen"><summary><span>Premium &amp; spätere Kaufbedingungen</span><small>Einmalig 1,00 € geplant · derzeit nicht kaufbar</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
+        <details class="fc-legal-detail" id="kaufbedingungen"><summary><span>Premium &amp; spätere Kaufbedingungen</span><small>1,00 € Sandbox-Test · keine echten Zahlungen</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
           <div class="fc-legal-copy">
-            <p>Geplant ist eine einmalige Freischaltung der Accountliste und geführten Bereinigung für <strong>1,00 €</strong>, ohne Abonnement. Während der Beta stehen beide Funktionen kostenlos zur Verfügung.</p>
+            <p>Zurzeit gibt es einen freiwilligen <strong>Stripe-Sandbox-Testkauf für 1,00 €</strong> ohne Echtgeld. Mit dem Test-Gutscheincode <strong>RIO</strong> wird der Testbetrag um 100 % auf 0,00 € reduziert. Die Konto-Liste und Bereinigung stehen während der Beta kostenlos zur Verfügung.</p>
             <p>Vor einem echten Verkauf sind insbesondere die zutreffende Steuerbehandlung, eindeutige Bestell- und Zahlungsinformationen, Verbraucherschutzinformationen, Widerrufsbelehrung bzw. die Anforderungen bei sofortiger Bereitstellung digitaler Inhalte, Rechnung/Beleg und die geprüfte technische Freischaltung zu klären.</p>
-            <p><strong>Derzeit deaktiviert:</strong> Zahlungsbutton, Stripe-Checkout, Live-Zahlungen und bezahlte Freischaltung. Es gibt auf dieser Website keine zahlungspflichtige Bestellung.</p>
+            <p><strong>Nur Testbetrieb:</strong> Der aktive Stripe-Link führt ausschließlich zu einem Testcheckout. Nach erfolgreichem Testabschluss speichert Stripe einen Sandbox-Checkout-Datensatz. Echte Zahlungen, bezahlte Freischaltungen und kostenpflichtige Verträge sind deaktiviert. Dieser Test ist keine Rechnung für eine echte Leistung.</p>
           </div>
         </details>
-        <p class="fc-legal-launchgate"><strong>Launch-Sperre aktiv:</strong> Bis rechtliche Angaben und Zahlungsabwicklung fertig geprüft sind, bleibt die Beta kostenlos, nicht indexiert und ohne echten Checkout.</p>
+        <p class="fc-legal-launchgate"><strong>Launch-Sperre aktiv:</strong> Bis rechtliche Angaben und Zahlungsabwicklung fertig geprüft sind, bleibt die Beta kostenlos und nicht indexiert. Der Stripe-Sandbox-Testcheckout bleibt getrennt vom späteren Echtgeldverkauf.</p>
       </section>
 
     </main>
-    <footer><span class="brand foot-brand"><span class="brand-mark">✳</span>follow<strong>clean</strong><span class="brand-period">.</span></span><p>Beta · Kein kostenpflichtiges Angebot · Nicht mit Instagram oder Meta verbunden.</p><nav class="fc-footer-links" aria-label="Rechtliche Informationen"><a href="#impressum">Impressum</a><a href="#datenschutz">Datenschutz</a><a href="#kaufbedingungen">Premium-Bedingungen</a></nav><button id="delete-local-btn" class="footer-link">Lokalen Fortschritt löschen</button></footer>
+    <footer><span class="brand foot-brand"><span class="brand-mark">✳</span>follow<strong>clean</strong><span class="brand-period">.</span></span><p>Beta · Nur freiwillige Stripe-Testbestellungen, kein Echtgeld · Nicht mit Instagram oder Meta verbunden.</p><nav class="fc-footer-links" aria-label="Rechtliche Informationen"><a href="#impressum">Impressum</a><a href="#datenschutz">Datenschutz</a><a href="#kaufbedingungen">Premium-Bedingungen</a></nav><button id="delete-local-btn" class="footer-link">Lokalen Fortschritt löschen</button></footer>
   </div>
 </body>
 </html>
