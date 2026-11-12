@@ -1100,6 +1100,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v7-legacy button:disabled{opacity:.5}
 .fc-v7-legacy small{display:block;margin-top:8px;font-size:10px;line-height:1.5}
 @media(prefers-color-scheme:dark){.fc-v7-progress-account{background:#223349;border-color:#445d79}.fc-v7-progress-account>p:first-child{color:#e4f2ff}.fc-v7-progress-account>p:first-child span,.fc-v7-progress-note{color:#b3cee9}.fc-v7-progress-account .fc-v5-account-select{background:#293c53}.fc-v7-legacy{background:#243e59;border-color:#537293;color:#d8eafe}}
+
+.fc-v7-resume{display:flex;align-items:center;justify-content:space-between;gap:13px;margin:14px 0;padding:15px;border-radius:13px;border:1px solid #b8e0cf;background:linear-gradient(120deg,#eafaf1,#f7fffc)}
+.fc-v7-resume[hidden]{display:none!important}.fc-v7-resume strong{font-size:13px;color:#205b48}.fc-v7-resume p{font-size:11.5px;line-height:1.5;color:#467a68;margin:5px 0 0}
+.fc-v7-resume button{min-height:44px;border-radius:9px;border:0;background:#13875f;color:white;padding:10px 13px;font-weight:800;font-size:11px;white-space:nowrap;cursor:pointer}
+@media(max-width:550px){.fc-v7-resume{flex-direction:column;align-items:stretch}.fc-v7-resume button{width:100%}}
+@media(prefers-color-scheme:dark){.fc-v7-resume{background:linear-gradient(120deg,#213d37,#24443d);border-color:#517a69}.fc-v7-resume strong{color:#d7f9e8}.fc-v7-resume p{color:#b1dec7}}
 </style>
   <script>
 /*!
@@ -1265,6 +1271,8 @@ state.guideActionAt = 0;
 state.currentAccount = null;
 state.legacyKey = null;
 state.lastVisitedName = null;
+state.sessionNextName = null;
+const FC_SESSION_PREFIX='followclean:cleanup-session:v1:';
 const FC_PROGRESS_PREFIX = 'followclean:progress:v2:';
 // Explicit local opt-in. Never store uploaded ZIPs or snapshots on a server.
 const FC_SNAPSHOTS_KEY = 'followclean:snapshots:v1';
@@ -1295,6 +1303,37 @@ function mergeProgressFromCurrent() {
   }
   return merged;
 }
+
+function cleanupSessionKey(){return state.currentAccount?FC_SESSION_PREFIX+state.currentAccount:null}
+function loadCleanupSession(){
+ state.sessionNextName=null;state.skip.clear();
+ const key=cleanupSessionKey();
+ if(!key||!state.result||state.demo)return;
+ try{
+  const obj=JSON.parse(localStorage.getItem(key)||'{}');
+  const valid=name=>typeof name==='string'&&state.result.notFollowingBack.includes(name)&&['open','opened'].includes(statusFor(name));
+  if(Array.isArray(obj.skipped))for(const name of obj.skipped.slice(0,500))if(valid(name))state.skip.add(name);
+  if(valid(obj.nextName)&&!state.skip.has(obj.nextName))state.sessionNextName=obj.nextName;
+ }catch{}
+}
+function saveCleanupSession(nextName){
+ const key=cleanupSessionKey();if(!key||!state.result||state.demo)return;
+ try{
+  const obj={nextName:nextName||null,skipped:[...state.skip].slice(0,500),updatedAt:Date.now()};
+  if(!obj.nextName&&!obj.skipped.length)localStorage.removeItem(key);
+  else localStorage.setItem(key,JSON.stringify(obj));
+ }catch{}
+}
+function renderResumePanel(){
+ const panel=$('fc-v7-resume');if(!panel)return;
+ const all=state.result?.notFollowingBack??[];
+ const done=all.filter(name=>['done','keep'].includes(statusFor(name))).length;
+ const seen=all.filter(name=>statusFor(name)==='opened').length;
+ const remain=all.length-done;
+ const yes=!!state.currentAccount&&(done>0||seen>0||state.skip.size>0)&&!state.demo;
+ panel.hidden=!yes;
+ if(yes)$('fc-v7-resume-text').textContent='@'+state.currentAccount+': '+done.toLocaleString('de-DE')+' entschieden, '+remain.toLocaleString('de-DE')+' noch offen. Dein lokaler Stand ist wieder verfügbar.';
+}
 function restoreSelectedAccount() {
   state.statuses={};
   state.skip.clear();
@@ -1304,12 +1343,14 @@ function restoreSelectedAccount() {
   rememberPendingVisit(null);
   state.key=state.demo?null:accountProgressKey(state.currentAccount);
   loadProgress();
+  loadCleanupSession();
   restorePendingVisit();
   if(state.result){
     renderResults();
     if(!$('guide-panel').hidden)renderGuide();
   }
   renderLegacyProgressNotice();
+  renderResumePanel();
 }
 function renderLegacyProgressNotice() {
   const card=$('fc-legacy-progress');
@@ -1335,7 +1376,7 @@ function setStatus(name, status) {
     state.activeVisit = null;
     rememberPendingVisit(null);
   }
-  saveProgress(); updateRestoreHint(); renderResults();
+  saveProgress(); updateRestoreHint(); renderResults();renderResumePanel();
 }
 function saveProgress() {
   if (!state.key || state.demo) return;
@@ -1398,6 +1439,7 @@ function useResult(result, demo) {
   state.currentAccount=null;
   state.key=null;
   state.lastVisitedName=null;
+  state.sessionNextName=null;
   state.filter = 'all'; state.search = ''; state.skip.clear(); state.avatarsEnabled = false; state.activeVisit = null; state.lastAutoDone = null;
   state.visibleCount = FC_PAGE_SIZE;
   state.sort = 'queue';
@@ -1619,6 +1661,7 @@ function remaining() {
 function nextGuideName() {
   const active=state.activeVisit?.name || state.lastVisitedName;
   if(active && statusFor(active)==='opened' && !state.skip.has(active)) return active;
+  if(state.sessionNextName && state.result.notFollowingBack.includes(state.sessionNextName) && ['open','opened'].includes(statusFor(state.sessionNextName))&&!state.skip.has(state.sessionNextName))return state.sessionNextName;
   const open = remaining();
   const notSkipped = open.find(name => !state.skip.has(name));
   if (notSkipped) return notSkipped;
@@ -1645,6 +1688,8 @@ function renderGuide() {
   $('guide-link').hidden=!name||state.demo;
   if(name&&!state.demo)$('guide-link').href=validProfileUrl(name);
   $('guide-panel').dataset.name=name??'';
+  state.sessionNextName=name||null;
+  saveCleanupSession(name);
   const undo=$('guide-undo');
   undo.hidden=!state.guideUndo;
   if(state.guideUndo)undo.textContent='↶ @'+state.guideUndo.name+' rückgängig';
@@ -1681,7 +1726,7 @@ function reset() {
   $('fc-history-account').value='';
   $('fc-history-input').value='';
   $('fc-history').open=false;
-  state.result = null; state.key = null; state.legacyKey=null;state.currentAccount=null;state.lastVisitedName=null;state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
+  state.result = null; state.key = null; state.legacyKey=null;state.currentAccount=null;state.lastVisitedName=null;state.sessionNextName=null;state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1758,6 +1803,12 @@ $('help-toggle').addEventListener('click', () => { $('help-panel').hidden = !$('
 $('demo-btn').addEventListener('click',()=>useResult(compareLists(DEMO_FOLLOWERS,DEMO_FOLLOWING),true));
 $('reset-btn').addEventListener('click',reset);
 
+$('fc-v7-resume-now').addEventListener('click',()=>{
+ if(!state.result)return;
+ if($('detail-view').hidden)$('open-list-btn').click();
+ if($('guide-panel').hidden)$('guide-btn').click();
+ $('guide-panel').scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',block:'start'});
+});
 $('fc-insights-start').addEventListener('click',()=>{
   if(!state.result)return;
   if($('detail-view').hidden)$('open-list-btn').click();
@@ -2060,6 +2111,7 @@ $('fc-history-account').addEventListener('input',()=>{
   $('fc-progress-scope').textContent=account
     ?'Deine Checkliste gehört jetzt zu @'+account+'. Markierungen bleiben auf diesem Gerät unter diesem Kontonamen gespeichert.'
     :'Ohne Kontonamen bleibt deine Checkliste nur bis zum Neuladen erhalten.';
+  renderResumePanel();
   renderLocalHistory();
 });
 $('fc-legacy-progress-import').addEventListener('click',()=>{
@@ -2197,8 +2249,8 @@ $('fc-history-clear').addEventListener('click',() => {
 $('download-btn').addEventListener('click',exportCsv);
 $('clear-progress-btn').addEventListener('click',()=>{
   if(!confirm('Alle Markierungen für '+(state.currentAccount?'@'+state.currentAccount:'den aktuellen nicht gespeicherten Export')+' zurücksetzen?'))return;
-  try{if(state.key)localStorage.removeItem(state.key);}catch{}
-  state.statuses={};state.skip.clear();state.lastVisitedName=null;state.activeVisit=null;
+  try{if(state.key)localStorage.removeItem(state.key);if(cleanupSessionKey())localStorage.removeItem(cleanupSessionKey());}catch{}
+  state.statuses={};state.skip.clear();state.lastVisitedName=null;state.sessionNextName=null;state.activeVisit=null;
   rememberPendingVisit(null);updateRestoreHint();renderResults();
 });
 $('guide-btn').addEventListener('click',toggleGuide);
@@ -2215,11 +2267,13 @@ function guideMobileAction(action) {
   if(now-state.guideActionAt<430)return;
   state.guideActionAt=now;
   if(action==='skip'){
+    state.sessionNextName=null;
     if(state.lastVisitedName===name)state.lastVisitedName=null;
     state.guideUndo={name,action:'skip'};
     state.skip.add(name);renderGuide();
     $('guide-feedback').textContent='@'+name+' für später vorgemerkt. Nächster Account bereit.';
   }else{
+    state.sessionNextName=null;
     setStatus(name,action);
     $('guide-feedback').textContent=action==='done'
       ?'✓ @'+name+' auf deiner Checkliste abgehakt. Kein Nachweis eines Entfolgens.'
@@ -2236,6 +2290,7 @@ $('guide-undo').addEventListener('click',()=>{
   state.guideUndo=null;
   state.guideActionAt=0;
   state.skip.delete(previous.name);
+  state.sessionNextName=previous.name;
   if(previous.action==='skip' && statusFor(previous.name)==='opened')state.lastVisitedName=previous.name;
   if(previous.action!=='skip')setStatus(previous.name,previous.previous);
   state.guideUndo=null;
@@ -2246,12 +2301,12 @@ $('guide-undo').addEventListener('click',()=>{
 $('delete-local-btn').addEventListener('click',()=>{
   if (!confirm('Alle von FollowClean lokal gespeicherten Fortschrittsdaten löschen?')) return;
   try {
-    for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')) localStorage.removeItem(key);
+    for(const key of Object.keys(localStorage)) if(key.startsWith('followclean:progress:')||key.startsWith(FC_SESSION_PREFIX)) localStorage.removeItem(key);
     localStorage.removeItem(FC_EXPORT_PENDING_KEY);
     localStorage.removeItem(FC_SNAPSHOTS_KEY);
   }catch{}
   state.activeVisit=null;state.lastVisitedName=null;rememberPendingVisit(null);
-  setExportPending(false);state.statuses={};state.snapshotComparison=null;
+  setExportPending(false);state.statuses={};state.skip.clear();state.sessionNextName=null;state.snapshotComparison=null;
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;$('fc-snapshot-same-account').checked=false;
   renderLocalHistory();updateRestoreHint();if(state.result)renderResults();
@@ -2438,6 +2493,7 @@ $('delete-local-btn').addEventListener('click',()=>{
               <small id="fc-legacy-progress-help">Erst Kontonamen wählen.</small>
             </div>
           </div>
+          <div id="fc-v7-resume" class="fc-v7-resume" hidden><div><strong>Willkommen zurück 👋</strong><p id="fc-v7-resume-text">Dein Stand wartet.</p></div><button id="fc-v7-resume-now" type="button">Cleanup fortsetzen ↗</button></div>
           <div class="stats-grid" aria-label="Instagram-Statistik">
             <div class="stat-card accent"><span class="stat-label">FOLGEN DIR NICHT ZURÜCK</span><strong id="stat-nonfollowers">0</strong><span class="stat-desc">Kostenlos für dich berechnet</span></div>
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
