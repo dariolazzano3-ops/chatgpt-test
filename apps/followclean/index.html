@@ -1064,6 +1064,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-insights-demo{background:#3c3155;border-color:#665087;color:#dec5ff}
 }
 @media(prefers-reduced-motion:reduce){.fc-insights-meter span,.fc-insights-cleanup-meter span{transition:none}}
+
+/* Account-safe history: never connect different Instagram accounts in charts or comparisons */
+.fc-v5-account-select{padding:14px;border-radius:12px;background:#edf5ff;border:1px solid #cadff3;margin:15px 0 4px}
+.fc-v5-account-select label{display:flex;flex-direction:column;gap:6px;color:#294e76;font-size:12px;line-height:1.4}
+.fc-v5-account-select label span{font-size:11px;color:#5e7893;font-weight:400}
+.fc-v5-account-input{display:flex;align-items:center;background:white;border-radius:10px;border:1px solid #aac8e8;margin:12px 0 8px;min-height:46px;overflow:hidden}
+.fc-v5-account-input span{padding-left:12px;font-size:18px;font-weight:800;color:#5680ab}
+.fc-v5-account-input input{flex:1;min-width:0;background:transparent;border:0;padding:10px 12px 10px 4px;font-size:16px;color:#244563;outline:none}
+.fc-v5-account-input:focus-within{outline:2px solid #5b98e8;outline-offset:2px}
+.fc-v5-account-select p{margin:4px 0 0;color:#57728e;font-size:11px;line-height:1.5}
+.fc-v5-account-confirm{padding:12px;border-bottom:1px solid #dee8f3}
+.fc-v5-chart-note{font-size:11px;line-height:1.5;color:#5b7895;margin:12px 0}
+.fc-v5-assign{background:#edf5ff!important;color:#285f98!important;border-color:#b9d3f0!important}
+.fc-v3-snapshot-actions button:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.25)}
+@media(prefers-color-scheme:dark){
+.fc-v5-account-select{background:#243d56;border-color:#4a6c8f}
+.fc-v5-account-select label{color:#e2efff}
+.fc-v5-account-select label span,.fc-v5-account-select p,.fc-v5-chart-note{color:#c2d6eb}
+.fc-v5-account-input{background:#21334a;border-color:#52769b}
+.fc-v5-account-input span{color:#a8cdf5}
+.fc-v5-account-input input{color:#edf5ff}
+.fc-v5-assign{background:#2e4c6f!important;color:#e0efff!important;border-color:#6485aa!important}
+}
 </style>
   <script>
 /*!
@@ -1315,6 +1338,8 @@ function useResult(result, demo) {
   $('fc-history-result').hidden = true;
   $('fc-snapshot-consent').checked = false;
   $('fc-snapshot-same-account').checked = false;
+  $('fc-history-account').value = '';
+  $('fc-v5-account-hint').textContent='Der Kontoname wird erst gespeichert, wenn du bewusst einen Verlauf sicherst.';
   $('fc-history-status').textContent = 'Ein älterer Export zeigt Veränderungen seit diesem Zeitpunkt. Beide ZIPs müssen zum selben Instagram-Konto gehören.';
   $('fc-history-input').value = '';
   $('fc-history').open = false;
@@ -1576,6 +1601,7 @@ function reset() {
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;
   $('fc-snapshot-same-account').checked=false;
+  $('fc-history-account').value='';
   $('fc-history-input').value='';
   $('fc-history').open=false;
   state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
@@ -1742,10 +1768,10 @@ async function restorePrivateHistory(file) {
     const merged=[...existing];
     let added=0,ignored=0;
     for(const snap of imported){
-      if(merged.some(existingSnapshot=>sameSnapshotContents(existingSnapshot,snap))){ignored++;continue;}
+      if(merged.some(existingSnapshot=>(existingSnapshot.account??null)===(snap.account??null)&&sameSnapshotContents(existingSnapshot,snap))){ignored++;continue;}
       if(merged.length>=FC_SNAPSHOT_LIMIT)throw new Error('Die Sicherung passt nicht vollständig: maximal vier Stände. Lösche zuerst alte Stände und versuche es erneut. Bestehende Daten sind unverändert.');
       const newId=window.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
-      merged.push({id:newId,savedAt:snap.savedAt,followerNames:[...snap.followerNames],followingNames:[...snap.followingNames]});
+      merged.push({...snap,id:newId,savedAt:snap.savedAt,followerNames:[...snap.followerNames],followingNames:[...snap.followingNames]});
       added++;
     }
     if(added) localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify(merged));
@@ -1769,6 +1795,17 @@ $('fc-backup-import-input').addEventListener('change',event=>restorePrivateHisto
 function localHistoryStatus(message) {
   $('fc-snapshot-message').textContent=message;
 }
+function currentHistoryAccount() {
+  return normalizeUsername($('fc-history-account').value);
+}
+function requireHistoryAccount() {
+  const account=currentHistoryAccount();
+  if(!account)throw new Error('Gib zuerst den Instagram-Benutzernamen des aktuellen Exports ein.');
+  return account;
+}
+function sameAccountSnapshot(a,b) {
+  return !!a.account && !!b.account && a.account===b.account;
+}
 function parseSavedSnapshots(raw) {
   if (!raw) return [];
   if (raw.length > FC_SNAPSHOT_LIMIT * FC_SNAPSHOT_CHAR_LIMIT + 50000) throw new Error('Gespeicherte Historie ist zu groß.');
@@ -1781,7 +1818,9 @@ function parseSavedSnapshots(raw) {
         !Array.isArray(s.followerNames) || !Array.isArray(s.followingNames) ||
         s.followerNames.length>100000 || s.followingNames.length>100000 ||
         !s.followerNames.every(n => normalizeUsername(n)===n) ||
-        !s.followingNames.every(n => normalizeUsername(n)===n)) {
+        !s.followingNames.every(n => normalizeUsername(n)===n) ||
+        (Object.prototype.hasOwnProperty.call(s,'account') && (
+          typeof s.account!=='string' || normalizeUsername(s.account)!==s.account))) {
       throw new Error('Ungültige lokale Historie.');
     }
     return s;
@@ -1794,13 +1833,14 @@ function loadLocalSnapshots() {
     return [];
   }
 }
-function createLocalSnapshot(result) {
+function createLocalSnapshot(result,account) {
   if (!result || !Array.isArray(result.followerNames) || !Array.isArray(result.followingNames)) {
     throw new Error('Bitte zuerst einen echten Instagram-Export analysieren.');
   }
   const snapshot={
     id: (window.crypto?.randomUUID?.() || Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),
     savedAt: Date.now(),
+    account,
     followerNames:[...result.followerNames],
     followingNames:[...result.followingNames]
   };
@@ -1827,14 +1867,14 @@ function saveLocalSnapshot() {
   }
   try {
     const previous=parseSavedSnapshots(localStorage.getItem(FC_SNAPSHOTS_KEY));
-    const snapshot=createLocalSnapshot(state.result);
-    if(previous.some(saved=>sameSnapshotContents(saved,snapshot)))
+    const snapshot=createLocalSnapshot(state.result,requireHistoryAccount());
+    if(previous.some(saved=>sameAccountSnapshot(saved,snapshot)&&sameSnapshotContents(saved,snapshot)))
       throw new Error('Dieser Export ist bereits in deiner Historie. Lade einen neueren Export, um eine Veränderung zu erkennen.');
     if(previous.length>=FC_SNAPSHOT_LIMIT)throw new Error('Maximal 4 Stände möglich. Entferne einen älteren Stand, bevor du einen neuen speicherst.');
     // No automatic deletion, consent can be withdrawn by deleting the saved snapshots.
     localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify([...previous,snapshot]));
     $('fc-snapshot-consent').checked=false;
-    localHistoryStatus('Stand lokal gespeichert. Es wurde nichts an einen Server übertragen.');
+    localHistoryStatus('Stand für @'+snapshot.account+' lokal gespeichert. Es wurde nichts an einen Server übertragen.');
     renderLocalHistory();
   } catch(error) {
     localHistoryStatus(error instanceof DOMException && error.name==='QuotaExceededError'
@@ -1890,17 +1930,32 @@ function renderLocalHistory() {
   updateHistoryReturnHint(snaps.length);
   const area=$('fc-snapshot-history');
   area.hidden=snaps.length===0;
-  renderSnapshotChart(snaps);
+  const selected=currentHistoryAccount();
+  const chartSnaps=selected?snaps.filter(s=>s.account===selected):[];
+  $('fc-snapshot-chart-area').hidden=chartSnaps.length===0;
+  $('fc-v5-account-chart-message').hidden=chartSnaps.length>0;
+  $('fc-v5-account-chart-message').textContent=!selected
+    ?'Gib einen Instagram-Kontonamen ein, um die passende Verlaufskurve zu sehen.'
+    :'Für @'+selected+' sind noch keine zugeordneten Stände vorhanden. Andere Konten werden nicht ins Diagramm gemischt.';
+  renderSnapshotChart(chartSnaps);
   const list=$('fc-snapshot-list'),fragment=document.createDocumentFragment();
   for(let i=0;i<snaps.length;i++){
     const s=snaps[i];
     const row=makeEl('div','fc-v3-snapshot-row');
     const info=makeEl('div','fc-v3-snapshot-info');
-    info.append(makeEl('strong','', 'Stand '+(i+1)+' · gespeichert '+snapshotDate(s.savedAt)),
+    info.append(makeEl('strong','', 'Stand '+(i+1)+' · '+(s.account?'@'+s.account:'Nicht zugeordnet')+' · '+snapshotDate(s.savedAt)),
       makeEl('span','',s.followerNames.length.toLocaleString('de-DE')+' Follower · '+s.followingNames.length.toLocaleString('de-DE')+' Gefolgt'));
     const actions=makeEl('div','fc-v3-snapshot-actions');
     const compare=makeEl('button','fc-v3-compare','Vergleichen');
     compare.type='button';compare.dataset.snapshotAction='compare';compare.dataset.snapshotId=s.id;
+    if(!s.account){compare.textContent='Erst zuordnen';compare.disabled=true;}
+    else if(!selected){compare.textContent='Konto eingeben';compare.disabled=true;}
+    else if(s.account!==selected){compare.textContent='Anderes Konto';compare.disabled=true;}
+    if(!s.account){
+      const assign=makeEl('button','fc-v5-assign','Konto zuordnen');
+      assign.type='button';assign.dataset.snapshotAction='assign';assign.dataset.snapshotId=s.id;
+      actions.append(assign);
+    }
     const remove=makeEl('button','fc-v3-remove','Löschen');
     remove.type='button';remove.dataset.snapshotAction='delete';remove.dataset.snapshotId=s.id;
     actions.append(compare,remove);row.append(info,actions);fragment.append(row);
@@ -1908,11 +1963,36 @@ function renderLocalHistory() {
   list.replaceChildren(fragment);
 }
 $('fc-snapshot-save').addEventListener('click',saveLocalSnapshot);
+$('fc-history-account').addEventListener('input',()=>{
+  const raw=$('fc-history-account').value;
+  const account=currentHistoryAccount();
+  $('fc-v5-account-hint').textContent=account
+    ?'Aktuell ausgewählt: @'+account+'. Die Zuordnung ist manuell, nicht aus Instagram verifiziert.'
+    :raw.trim()?'Bitte einen gültigen Instagram-Namen eingeben (Buchstaben, Zahlen, Punkt oder Unterstrich).'
+      :'Der Kontoname wird erst gespeichert, wenn du bewusst einen Verlauf sicherst.';
+  $('fc-snapshot-same-account').checked=false;
+  state.snapshotComparison=null;
+  $('fc-history-result').hidden=true;
+  renderLocalHistory();
+});
 $('fc-snapshot-list').addEventListener('click',event=>{
   const button=event.target.closest('button[data-snapshot-action]');
   if(!button)return;
   const snaps=loadLocalSnapshots(),snapshot=snaps.find(s=>s.id===button.dataset.snapshotId);
   if(!snapshot){localHistoryStatus('Gespeicherter Stand nicht gefunden.');return;}
+  if(button.dataset.snapshotAction==='assign'){
+    try{
+      const account=requireHistoryAccount();
+      if(snapshot.account)throw new Error('Dieser Stand ist bereits einem Konto zugeordnet.');
+      if(!$('fc-snapshot-same-account').checked)throw new Error('Bestätige zuerst, dass der alte Stand zu diesem Instagram-Konto gehört.');
+      if(!confirm('Diesen alten Stand wirklich dem Instagram-Konto @'+account+' zuordnen? Die Datei kann die Zuordnung nicht automatisch beweisen.'))return;
+      const updated=snaps.map(s=>s.id===snapshot.id?{...s,account}:s);
+      localStorage.setItem(FC_SNAPSHOTS_KEY,JSON.stringify(updated));
+      localHistoryStatus('Alter Stand wurde ausdrücklich @'+account+' zugeordnet.');
+      renderLocalHistory();
+    }catch(error){localHistoryStatus(error?.message||'Zuordnung fehlgeschlagen.');}
+    return;
+  }
   if(button.dataset.snapshotAction==='compare'){
     if (!$('fc-snapshot-same-account').checked) {
       localHistoryStatus('Bitte bestätige vor dem Vergleich, dass beide Exporte vom selben Instagram-Konto stammen.');
@@ -1922,11 +2002,16 @@ $('fc-snapshot-list').addEventListener('click',event=>{
       localHistoryStatus('Bitte zuerst deinen aktuellen echten Export laden.');
       return;
     }
+    const account=currentHistoryAccount();
+    if(!account||snapshot.account!==account){
+      localHistoryStatus('Konto stimmt nicht überein. Wähle @'+(snapshot.account||'nicht zugeordnet')+' für den aktuellen Export. Andere Konten dürfen nicht verglichen werden.');
+      return;
+    }
     try {
       const delta=compareSnapshots(snapshot,state.result);
       state.snapshotComparison=delta;
       renderHistoryComparison(delta);
-      $('fc-history-status').textContent='Mit lokal gespeichertem Stand vom '+snapshotDate(snapshot.savedAt)+' verglichen. Das Speicherdatum ist nicht das Exportdatum.';
+      $('fc-history-status').textContent='@'+account+' mit lokal gespeichertem Stand vom '+snapshotDate(snapshot.savedAt)+' verglichen. Das Speicherdatum ist nicht das Exportdatum.';
       $('fc-history-result').scrollIntoView({behavior:'smooth',block:'nearest'});
     }catch(error){localHistoryStatus(error.message);}
     return;
@@ -1982,19 +2067,22 @@ $('fc-history-input').addEventListener('change',async event => {
   const status=$('fc-history-status');
   $('fc-history-result').hidden=true;
   state.snapshotComparison=null;
-  status.textContent='Älteren Export wird lokal ausgewertet …';
+  status.textContent='Älterer Export wird lokal ausgewertet …';
   $('fc-history-input').disabled=true;
   try {
     if(!state.result || state.demo)throw new Error('Bitte zuerst deinen aktuellen echten Export laden.');
     if(!/\.zip$/i.test(file.name))throw new Error('Bitte eine ältere Instagram-ZIP im JSON-Format auswählen.');
     if(!window.JSZip)throw new Error('Der ZIP-Leser ist nicht verfügbar. Bitte Seite neu laden.');
+    const account=requireHistoryAccount();
+    if(!$('fc-snapshot-same-account').checked)throw new Error('Bestätige zuerst, dass beide ZIP-Exporte vom selben Instagram-Konto stammen.');
     const current=state.result;
     const previous=await analyzeFiles([file],window.JSZip);
-    if(state.result!==current)throw new Error('Die aktuelle Analyse hat sich geändert. Bitte beide Exporte erneut laden.');
+    if(state.result!==current||currentHistoryAccount()!==account||!$('fc-snapshot-same-account').checked)
+      throw new Error('Kontozuordnung oder Analyse wurde während des Imports geändert. Bitte erneut vergleichen.');
     const compare=compareSnapshots(previous,current);
     state.snapshotComparison=compare;
     renderHistoryComparison(compare);
-    status.textContent='Vergleich fertig. Beide Exporte wurden nur in diesem Browser verarbeitet. Die Ergebnisse werden nicht dauerhaft gespeichert.';
+    status.textContent='@'+account+': Vergleich fertig. Beide Exporte wurden nur lokal verarbeitet. Die Ergebnisse werden nicht dauerhaft gespeichert.';
   }catch(error){
     status.textContent=error?.message || 'Der ältere Export konnte nicht verarbeitet werden.';
   }finally{
@@ -2277,6 +2365,12 @@ $('delete-local-btn').addEventListener('click',()=>{
               <section id="fc-snapshot-panel" class="fc-v3-snapshot-panel" aria-labelledby="fc-snapshot-title">
                 <div class="fc-v3-heading"><span class="fc-v3-symbol" aria-hidden="true">◷</span><div><strong id="fc-snapshot-title">Deine private Verlaufshistorie</strong><small>Bis zu 4 Stände auf diesem Gerät speichern und vergleichen</small></div></div>
                 <p>Deine Daten werden nur nach deiner Zustimmung in diesem Browser gespeichert, einschließlich der Follower- und Gefolgt-Benutzernamen. Nutze diese Funktion nicht auf gemeinsam genutzten Geräten. Bei Safari-Datenlöschung verschwinden auch die Stände.</p>
+                <div class="fc-v5-account-select">
+                  <label for="fc-history-account"><strong>Zu welchem Instagram-Konto gehört dieser Export?</strong><span>Bitte selbst angeben. Instagram nennt das Konto in den hier gelesenen Follower-Dateien nicht zuverlässig.</span></label>
+                  <div class="fc-v5-account-input"><span aria-hidden="true">@</span><input type="text" id="fc-history-account" maxlength="31" placeholder="dein.instagram.name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="fc-v5-account-hint"/></div>
+                  <p id="fc-v5-account-hint" role="status">Der Kontoname wird erst gespeichert, wenn du bewusst einen Verlauf sicherst.</p>
+                </div>
+                <label class="fc-v3-same-account fc-v5-account-confirm"><input type="checkbox" id="fc-snapshot-same-account"/><span>Ich bestätige, dass der <strong>aktuelle Export</strong> und der zum Vergleich gewählte ältere Stand <strong>vom selben Instagram-Konto</strong> stammen.</span></label>
                 <label class="fc-v3-consent"><input id="fc-snapshot-consent" type="checkbox"/> <span>Ich möchte die Benutzernamen dieses Exports <strong>nur lokal auf diesem Gerät</strong> speichern.</span></label>
                 <button type="button" id="fc-snapshot-save" class="fc-v3-save">Aktuellen Stand speichern <span aria-hidden="true">＋</span></button>
                 <p id="fc-snapshot-message" class="fc-v3-message" role="status">Ohne Zustimmung wird kein Stand gespeichert. Das Speicherdatum ist nicht das Instagram-Exportdatum.</p>
@@ -2285,11 +2379,13 @@ $('delete-local-btn').addEventListener('click',()=>{
                   <button type="button" id="fc-backup-download" class="fc-v4-backup-download">Private Verlaufssicherung herunterladen <span aria-hidden="true">↓</span></button>
                   <p>Die JSON-Datei enthält alle gespeicherten Accountnamen <strong>im Klartext</strong>. Bewahre sie privat auf. Kein Cloud-Upload.</p>
                 </div>
+                  <div id="fc-snapshot-chart-area" hidden>
                   <div class="fc-v3-chart-label"><strong>Follower-Entwicklung</strong><div><span class="fc-v3-legend follow">Follower</span><span class="fc-v3-legend following">Gefolgt</span></div></div>
                   <svg id="fc-snapshot-chart" class="fc-v3-chart" viewBox="0 0 600 176" role="img" aria-label="Follower-Verlauf der lokal gespeicherten Analysen"></svg>
                   <p class="fc-v3-chart-explain">Die Punkte zeigen die Werte, als du die Stände in FollowClean gespeichert hast. Sie sind keine automatischen Instagram-Messungen.</p>
+                  </div>
+                  <p id="fc-v5-account-chart-message" class="fc-v5-chart-note" role="status">Kontonamen eingeben, um eine getrennte Verlaufskurve anzuzeigen.</p>
                   <div id="fc-snapshot-list" class="fc-v3-snapshot-list" aria-label="Gespeicherte Analysen"></div>
-                  <label class="fc-v3-same-account"><input type="checkbox" id="fc-snapshot-same-account"/><span>Der gewählte ältere Stand gehört zum <strong>selben Instagram-Konto</strong> wie der aktuelle Export.</span></label>
                   <button type="button" id="fc-snapshot-clear-all" class="fc-v3-delete-all">Alle gespeicherten Stände löschen</button>
                 </div>
               </section>
@@ -2386,7 +2482,7 @@ $('delete-local-btn').addEventListener('click',()=>{
         <details class="fc-legal-detail" id="datenschutz"><summary><span>Datenschutz &amp; lokale Verarbeitung</span><small>Technikhinweis · kein finaler Rechtstext</small><span class="fc-legal-arrow" aria-hidden="true">⌄</span></summary>
           <div class="fc-legal-copy">
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
-            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten als Verlauf im lokalen Browser-Speicher abgelegt werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
+            <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Nur nach ausdrücklicher Zustimmung können bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten zusammen mit einem manuell eingegebenen Instagram-Kontonamen als Verlauf im lokalen Browser-Speicher abgelegt werden. Alte Stände ohne Namen bleiben unzugeordnet, bis sie bewusst zugewiesen werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
             <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
