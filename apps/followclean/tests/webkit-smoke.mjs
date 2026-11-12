@@ -73,8 +73,11 @@ try{
  assert.equal(await page.locator('#guide-name').textContent(),'@carla');
  // Opening a profile must NEVER equal user confirmation of unfollowing.
  await page.evaluate(()=>{
+  document.addEventListener('click',event=>{
+   if(event.target.closest('#guide-link'))event.preventDefault();
+  },{capture:true,once:true});
   const a=document.querySelector('#guide-link');
-  a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:false}));
+  a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
   window.dispatchEvent(new Event('pagehide'));
   window.dispatchEvent(new Event('pageshow'));
  });
