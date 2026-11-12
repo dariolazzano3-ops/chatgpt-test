@@ -1087,6 +1087,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v5-account-input input{color:#edf5ff}
 .fc-v5-assign{background:#2e4c6f!important;color:#e0efff!important;border-color:#6485aa!important}
 }
+
+/* FollowClean V7: visible account context and opt-in legacy migration */
+.fc-v7-progress-account{margin:14px 0 17px;border:1px solid #d6e6f7;background:#f7fbff;border-radius:14px;padding:13px 15px}
+.fc-v7-progress-account>p:first-child{display:flex;flex-direction:column;gap:4px;color:#284766;font-size:13px;line-height:1.45;margin:0 0 8px}
+.fc-v7-progress-account>p:first-child span{font-size:11px;font-weight:400;color:#617a96}
+.fc-v7-progress-account .fc-v5-account-select{background:#fff;margin:8px 0;border-color:#d6e6f7}
+.fc-v7-progress-note{font-size:11px;color:#426ca0;line-height:1.5;margin:8px 0}
+.fc-v7-legacy{margin-top:12px;border-radius:10px;padding:12px;border:1px solid #c9ddf4;background:#e9f3ff;color:#2b567e}
+.fc-v7-legacy p{font-size:11.5px;line-height:1.5;margin:0 0 8px}
+.fc-v7-legacy button{min-height:44px;background:#1868d7;color:#fff;border:0;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:750;cursor:pointer}
+.fc-v7-legacy button:disabled{opacity:.5}
+.fc-v7-legacy small{display:block;margin-top:8px;font-size:10px;line-height:1.5}
+@media(prefers-color-scheme:dark){.fc-v7-progress-account{background:#223349;border-color:#445d79}.fc-v7-progress-account>p:first-child{color:#e4f2ff}.fc-v7-progress-account>p:first-child span,.fc-v7-progress-note{color:#b3cee9}.fc-v7-progress-account .fc-v5-account-select{background:#293c53}.fc-v7-legacy{background:#243e59;border-color:#537293;color:#d8eafe}}
 </style>
   <script>
 /*!
@@ -1249,6 +1262,10 @@ state.sort = 'queue';
 state.snapshotComparison = null;
 state.guideUndo = null;
 state.guideActionAt = 0;
+state.currentAccount = null;
+state.legacyKey = null;
+state.lastVisitedName = null;
+const FC_PROGRESS_PREFIX = 'followclean:progress:v2:';
 // Explicit local opt-in. Never store uploaded ZIPs or snapshots on a server.
 const FC_SNAPSHOTS_KEY = 'followclean:snapshots:v1';
 const FC_SNAPSHOT_LIMIT = 4;
@@ -1257,11 +1274,63 @@ const DEMO_FOLLOWERS = ['beispiel_mia', 'beispiel_tim', 'beispiel_zoe', 'beispie
 const DEMO_FOLLOWING = [...DEMO_FOLLOWERS.slice(0, 4), 'beispiel_anna', 'beispiel_luca', 'beispiel_sam', 'beispiel_max'];
 
 function statusFor(name) { return state.statuses[name] || 'open'; }
+function accountProgressKey(name) {
+  const safe=normalizeUsername(name);
+  return safe?'followclean:progress:v2:'+safe:null;
+}
+function savedProgressValue(key) {
+  if(!key)return {};
+  try {
+    const value=JSON.parse(localStorage.getItem(key)||'{}');
+    if(!value||typeof value!=='object'||Array.isArray(value))return {};
+    return value;
+  }catch{return {};}
+}
+function mergeProgressFromCurrent() {
+  const merged=savedProgressValue(state.key);
+  for(const name of state.result?.notFollowingBack??[]) {
+    const value=state.statuses[name];
+    if(['done','keep','opened'].includes(value))merged[name]=value;
+    else delete merged[name];
+  }
+  return merged;
+}
+function restoreSelectedAccount() {
+  state.statuses={};
+  state.skip.clear();
+  state.lastVisitedName=null;
+  state.guideUndo=null;
+  state.activeVisit=null;
+  rememberPendingVisit(null);
+  state.key=state.demo?null:accountProgressKey(state.currentAccount);
+  loadProgress();
+  restorePendingVisit();
+  if(state.result){
+    renderResults();
+    if(!$('guide-panel').hidden)renderGuide();
+  }
+  renderLegacyProgressNotice();
+}
+function renderLegacyProgressNotice() {
+  const card=$('fc-legacy-progress');
+  if(!card)return;
+  const old=savedProgressValue(state.legacyKey);
+  const n=state.result?.notFollowingBack.filter(name=>['done','keep','opened'].includes(old[name])).length||0;
+  const exists=!!state.result&&!state.demo&&n>0;
+  card.hidden=!exists;
+  $('fc-legacy-progress-count').textContent=n.toLocaleString('de-DE');
+  $('fc-legacy-progress-import').disabled=!state.currentAccount;
+  $('fc-legacy-progress-help').textContent=state.currentAccount
+    ?'Dieser ältere Fortschritt ist noch keinem Instagram-Konto zugeordnet. Übernahme nur nach Bestätigung.'
+    :'Zuerst den Instagram-Kontonamen eingeben. Ältere Markierungen bleiben bis dahin unangetastet.';
+}
+
 function setStatus(name, status) {
   if (!state.result) return;
   const previous=statusFor(name);
   if (status!==previous && !$('guide-panel').hidden) state.guideUndo={name,previous};
   if (status === 'open') delete state.statuses[name]; else state.statuses[name] = status;
+  if(state.lastVisitedName===name && status!=='opened')state.lastVisitedName=null;
   if (state.activeVisit?.name === name && status !== 'opened') {
     state.activeVisit = null;
     rememberPendingVisit(null);
@@ -1271,14 +1340,15 @@ function setStatus(name, status) {
 function saveProgress() {
   if (!state.key || state.demo) return;
   try {
-    if (Object.keys(state.statuses).length) localStorage.setItem(state.key, JSON.stringify(state.statuses));
+    const merged=mergeProgressFromCurrent();
+    if (Object.keys(merged).length) localStorage.setItem(state.key, JSON.stringify(merged));
     else localStorage.removeItem(state.key);
   } catch { /* Private browsing may block persistent storage. */ }
 }
 function updateRestoreHint() {
   const hint = $('fc-restore-hint');
   if (!hint) return;
-  try { hint.hidden = !Object.keys(localStorage).some(key => key.startsWith('followclean:progress:v1:')); }
+  try { hint.hidden = !Object.keys(localStorage).some(key => key.startsWith('followclean:progress:')); }
   catch { hint.hidden = true; }
 }
 function loadProgress() {
@@ -1324,7 +1394,10 @@ async function importFiles(files) {
 function useResult(result, demo) {
   state.demo = demo;
   state.result = result;
-  state.key = demo ? null : snapshotKey(result);
+  state.legacyKey=demo?null:snapshotKey(result);
+  state.currentAccount=null;
+  state.key=null;
+  state.lastVisitedName=null;
   state.filter = 'all'; state.search = ''; state.skip.clear(); state.avatarsEnabled = false; state.activeVisit = null; state.lastAutoDone = null;
   state.visibleCount = FC_PAGE_SIZE;
   state.sort = 'queue';
@@ -1347,6 +1420,8 @@ function useResult(result, demo) {
   $('search-input').value = ''; $('filter-select').value = 'all';
   loadProgress();
   restorePendingVisit();
+  renderLegacyProgressNotice();
+  $('fc-progress-scope').textContent='Ohne Kontonamen bleibt die Checkliste nur bis zum Neuladen in diesem Browser-Tab erhalten.';
   $('import-view').hidden = true;
   $('results-view').hidden = false;
   $('step-count').textContent = '02 / 03';
@@ -1408,6 +1483,7 @@ function beginProfileVisit(name) {
   if (!state.result || state.demo || !state.result.notFollowingBack.includes(name)) return;
   if (statusFor(name) === 'keep' || statusFor(name) === 'done') return;
   state.activeVisit = {name,key:state.key,started:Date.now(),left:false};
+  state.lastVisitedName=name;
   rememberPendingVisit(state.activeVisit);
   state.statuses[name] = 'opened';
   saveProgress();
@@ -1429,14 +1505,15 @@ function completeVisitOnReturn() {
   rememberPendingVisit(null);
   if (visit.key !== state.key || Date.now() - visit.started > FC_VISIT_TTL_MS ||
       statusFor(visit.name) !== 'opened') return;
-  setStatus(visit.name,'done');
-  state.lastAutoDone = visit.name;
+  // A page visit proves only that the profile was opened, never an unfollow.
+  state.lastVisitedName=visit.name;
   if (!$('guide-panel').hidden) {
     $('guide-feedback').hidden=false;
-    $('guide-feedback').textContent='✓ @'+visit.name+' nach Profilbesuch markiert. Das bestätigt kein Entfolgen. Nächster Account bereit.';
+    $('guide-feedback').textContent='👀 @'+visit.name+' angesehen. Bitte selbst „Erledigt“ oder „Behalten“ bestätigen.';
   }
-  $('visit-toast-text').textContent = '@' + visit.name + ' grün markiert. Das bestätigt keinen Entfolgen-Vorgang.';
-  $('visit-toast').hidden = false;
+  $('visit-toast-text').textContent='@'+visit.name+' angesehen. Kein Entfolgen automatisch erkannt. Bitte selbst entscheiden.';
+  $('visit-toast').hidden=false;
+  renderResults();
 }
 window.addEventListener('pagehide', markVisitAway);
 document.addEventListener('visibilitychange', () => {
@@ -1488,7 +1565,7 @@ function renderResults() {
   const kept = all.filter(name => statusFor(name) === 'keep').length;
   const processed = done + kept;
   renderInsights();
-  $('progress-text').setAttribute('title', 'Erledigt kann nach einem Profilbesuch automatisch markiert werden. FollowClean prüft nicht, ob du tatsächlich entfolgt bist.');
+  $('progress-text').setAttribute('title', 'Erledigt wird nur nach eigener Bestätigung markiert. Profilbesuche bleiben als Angesehen gekennzeichnet.');
   $('progress-text').textContent = `${processed} von ${all.length}`;
   $('progress-bar').style.width = `${all.length ? 100 * processed / all.length : 100}%`;
   $('progress-bar').setAttribute('aria-label', `${processed} von ${all.length} bearbeitet`);
@@ -1540,7 +1617,7 @@ function remaining() {
   return state.result.notFollowingBack.filter(name => statusFor(name) === 'open' || statusFor(name) === 'opened');
 }
 function nextGuideName() {
-  const active=state.activeVisit?.name;
+  const active=state.activeVisit?.name || state.lastVisitedName;
   if(active && statusFor(active)==='opened' && !state.skip.has(active)) return active;
   const open = remaining();
   const notSkipped = open.find(name => !state.skip.has(name));
@@ -1561,7 +1638,7 @@ function renderGuide() {
   $('guide-name').textContent=name?'@'+name:'Alles bearbeitet 🎉';
   $('guide-avatar').textContent=name?name[0].toUpperCase():'✓';
   const pending=name && statusFor(name)==='opened';
-  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil geöffnet. Nach Rückkehr kannst du diesen Account bestätigen oder ihn behalten.':'Öffne das Profil oder entscheide direkt.';
+  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil angesehen. Bestätige jetzt „Erledigt“, „Behalten“ oder „Später“.':'Öffne das Profil oder entscheide direkt.';
   $('guide-done').disabled=!name;
   $('guide-keep').disabled=!name;
   $('guide-skip').disabled=!name||remaining().length<2;
@@ -1604,7 +1681,7 @@ function reset() {
   $('fc-history-account').value='';
   $('fc-history-input').value='';
   $('fc-history').open=false;
-  state.result = null; state.key = null; state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
+  state.result = null; state.key = null; state.legacyKey=null;state.currentAccount=null;state.lastVisitedName=null;state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
   $('workspace').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1963,17 +2040,39 @@ function renderLocalHistory() {
   list.replaceChildren(fragment);
 }
 $('fc-snapshot-save').addEventListener('click',saveLocalSnapshot);
+// Move the existing account selector to the visible results area. Keep one input/state source.
+const accountControl=$('fc-history-account').closest('.fc-v5-account-select');
+if(accountControl && $('fc-v7-account-holder'))$('fc-v7-account-holder').append(accountControl);
 $('fc-history-account').addEventListener('input',()=>{
   const raw=$('fc-history-account').value;
   const account=currentHistoryAccount();
   $('fc-v5-account-hint').textContent=account
-    ?'Aktuell ausgewählt: @'+account+'. Die Zuordnung ist manuell, nicht aus Instagram verifiziert.'
+    ?'Aktuell ausgewählt: @'+account+'. Manuell angegeben, nicht automatisch von Instagram bestätigt.'
     :raw.trim()?'Bitte einen gültigen Instagram-Namen eingeben (Buchstaben, Zahlen, Punkt oder Unterstrich).'
       :'Der Kontoname wird erst gespeichert, wenn du bewusst einen Verlauf sicherst.';
   $('fc-snapshot-same-account').checked=false;
   state.snapshotComparison=null;
   $('fc-history-result').hidden=true;
+  if(account!==state.currentAccount) {
+    state.currentAccount=account;
+    restoreSelectedAccount();
+  }
+  $('fc-progress-scope').textContent=account
+    ?'Deine Checkliste gehört jetzt zu @'+account+'. Markierungen bleiben auf diesem Gerät unter diesem Kontonamen gespeichert.'
+    :'Ohne Kontonamen bleibt deine Checkliste nur bis zum Neuladen erhalten.';
   renderLocalHistory();
+});
+$('fc-legacy-progress-import').addEventListener('click',()=>{
+  if(!state.currentAccount || !state.legacyKey || !state.result)return;
+  const legacy=savedProgressValue(state.legacyKey);
+  const count=state.result.notFollowingBack.filter(name=>['done','keep','opened'].includes(legacy[name])).length;
+  if(!count)return;
+  if(!confirm(count+' ältere Markierungen diesem Instagram-Konto @'+state.currentAccount+' zuordnen? Dies kann FollowClean nicht selbst überprüfen.'))return;
+  for(const name of state.result.notFollowingBack) {
+    if(!state.statuses[name] && ['done','keep','opened'].includes(legacy[name]))state.statuses[name]=legacy[name];
+  }
+  saveProgress();renderResults();
+  $('fc-progress-scope').textContent=count+' ältere Markierungen wurden nach deiner Zustimmung @'+state.currentAccount+' zugeordnet. Die ursprünglichen Daten bleiben erhalten.';
 });
 $('fc-snapshot-list').addEventListener('click',event=>{
   const button=event.target.closest('button[data-snapshot-action]');
@@ -2096,7 +2195,12 @@ $('fc-history-clear').addEventListener('click',() => {
   $('fc-history-status').textContent='Direkter Vergleich verworfen. Bereits ausdrücklich gespeicherte lokale Stände bleiben erhalten.';
 });
 $('download-btn').addEventListener('click',exportCsv);
-$('clear-progress-btn').addEventListener('click',()=>{ if (!confirm('Alle Erledigt-/Behalten-Markierungen für diesen Export zurücksetzen?')) return; state.statuses={};state.activeVisit=null;rememberPendingVisit(null);saveProgress();updateRestoreHint();renderResults(); });
+$('clear-progress-btn').addEventListener('click',()=>{
+  if(!confirm('Alle Markierungen für '+(state.currentAccount?'@'+state.currentAccount:'den aktuellen nicht gespeicherten Export')+' zurücksetzen?'))return;
+  try{if(state.key)localStorage.removeItem(state.key);}catch{}
+  state.statuses={};state.skip.clear();state.lastVisitedName=null;state.activeVisit=null;
+  rememberPendingVisit(null);updateRestoreHint();renderResults();
+});
 $('guide-btn').addEventListener('click',toggleGuide);
 $('guide-close').addEventListener('click',()=>{
   if(!$('guide-panel').hidden)toggleGuide();
@@ -2111,6 +2215,7 @@ function guideMobileAction(action) {
   if(now-state.guideActionAt<430)return;
   state.guideActionAt=now;
   if(action==='skip'){
+    if(state.lastVisitedName===name)state.lastVisitedName=null;
     state.guideUndo={name,action:'skip'};
     state.skip.add(name);renderGuide();
     $('guide-feedback').textContent='@'+name+' für später vorgemerkt. Nächster Account bereit.';
@@ -2131,6 +2236,7 @@ $('guide-undo').addEventListener('click',()=>{
   state.guideUndo=null;
   state.guideActionAt=0;
   state.skip.delete(previous.name);
+  if(previous.action==='skip' && statusFor(previous.name)==='opened')state.lastVisitedName=previous.name;
   if(previous.action!=='skip')setStatus(previous.name,previous.previous);
   state.guideUndo=null;
   $('guide-feedback').textContent='↶ @'+previous.name+' wurde zurückgesetzt.';
@@ -2144,7 +2250,7 @@ $('delete-local-btn').addEventListener('click',()=>{
     localStorage.removeItem(FC_EXPORT_PENDING_KEY);
     localStorage.removeItem(FC_SNAPSHOTS_KEY);
   }catch{}
-  state.activeVisit=null;rememberPendingVisit(null);
+  state.activeVisit=null;state.lastVisitedName=null;rememberPendingVisit(null);
   setExportPending(false);state.statuses={};state.snapshotComparison=null;
   $('fc-history-result').hidden=true;
   $('fc-snapshot-consent').checked=false;$('fc-snapshot-same-account').checked=false;
@@ -2322,6 +2428,16 @@ $('delete-local-btn').addEventListener('click',()=>{
 
         <div id="results-view" class="view" hidden>
           <div class="results-head"><div><span class="section-index">02 — GRATIS ERGEBNIS</span><h2>Das ist deine Zahl.</h2><p id="results-subtitle">Deine kostenlose Analyse ist abgeschlossen. Kein Konto, keine Zahlung.</p></div><button id="reset-btn" class="outlined-button">Andere Datei ↗</button></div>
+          <div class="fc-v7-progress-account">
+            <p><strong>Dein Instagram-Konto auswählen</strong><span>Für eine sichere Wiederaufnahme ordnest du die Checkliste einem Konto zu. Ohne Auswahl erfolgt keine dauerhafte Statusspeicherung.</span></p>
+            <div id="fc-v7-account-holder"></div>
+            <p id="fc-progress-scope" class="fc-v7-progress-note" role="status">Ohne Kontonamen bleibt deine Checkliste nur bis zum Neuladen erhalten.</p>
+            <div id="fc-legacy-progress" class="fc-v7-legacy" hidden>
+              <p><strong id="fc-legacy-progress-count">0</strong> ältere Markierungen gefunden. Sie sind noch keinem Konto zugeordnet.</p>
+              <button id="fc-legacy-progress-import" type="button">Nach Bestätigung übernehmen</button>
+              <small id="fc-legacy-progress-help">Erst Kontonamen wählen.</small>
+            </div>
+          </div>
           <div class="stats-grid" aria-label="Instagram-Statistik">
             <div class="stat-card accent"><span class="stat-label">FOLGEN DIR NICHT ZURÜCK</span><strong id="stat-nonfollowers">0</strong><span class="stat-desc">Kostenlos für dich berechnet</span></div>
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
