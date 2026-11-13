@@ -7,8 +7,8 @@ const workerCode=await readFile(new URL('../dist/worker.mjs',import.meta.url),'u
 const template=await readFile(new URL('../worker.instagram-template.mjs',import.meta.url),'utf8');
 // Expose pure validation helpers for test only; public Worker exports only fetch.
 const isolated=template.replace('const FOLLOWCLEAN_HTML = __FOLLOWCLEAN_HTML__;',"const FOLLOWCLEAN_HTML='';")+
-  '\nexport {buildApifyDryRun,validateApifyEvidence,estimateFollowCleanBudget};';
-const {buildApifyDryRun,validateApifyEvidence,estimateFollowCleanBudget}=await import(
+  '\nexport {buildApifyDryRun,buildApifyRequestDescription,validateApifyEvidence,estimateFollowCleanBudget};';
+const {buildApifyDryRun,buildApifyRequestDescription,validateApifyEvidence,estimateFollowCleanBudget}=await import(
   'data:text/javascript;base64,'+Buffer.from(isolated).toString('base64')
 );
 const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(workerCode).toString('base64'));
@@ -66,7 +66,14 @@ await test('trusted synthetic plan bounded by maxTotalChargeUsd and no retries',
   assert.equal(p.input.dataToScrape,'both');
   assert.equal(p.input.resultsLimit,35);
   assert.equal(p.runOptions.maxTotalChargeUsd,0.20);
-  assert.equal(p.runOptions.maxPaidDatasetItems,70);
+  assert.equal(p.runOptions.maxItems,70);
+  const request=buildApifyRequestDescription(p);
+  assert.equal(request.ok,true);
+  const u=new URL(request.url);
+  assert.equal(u.searchParams.get('maxItems'),'70');
+  assert.equal(u.searchParams.get('restartOnError'),'false');
+  assert.equal(u.searchParams.get('maxTotalChargeUsd'),'0.2');
+  assert.ok(!u.searchParams.has('token'));
   assert.equal(p.runOptions.restartOnError,false);
 });
 const rows=[
@@ -82,6 +89,11 @@ const coverage={
  {sourceUsername:'mathilda',relationshipType:'following',coverageStatus:'COMPLETE',billingConfirmed:true,deliveredCount:2,hasNextPage:false}
 ]};
 const counts={verifiedByServer:true,followers:2,following:2};
+await test('free-tier 100-per-list limit forbids false complete results',async()=>{
+  const p=buildApifyDryRun('mathilda',{followers:101,following:25,verifiedByServer:true});
+  assert.equal(p.ok,false);
+  assert.equal(p.error,'FREE_TIER_LIMIT');
+});
 await test('synthetic complete-coverage ID join produces one test-only candidate',async()=>{
   const r=validateApifyEvidence('mathilda',counts,rows,coverage);
   assert.equal(r.ok,true);
