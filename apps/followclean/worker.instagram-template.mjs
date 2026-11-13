@@ -77,6 +77,8 @@ function buildApifyDryRun(username, trustedCounts) {
   const name=fcNormalizeUsername(username);
   if (!name || !trustedCounts || trustedCounts.verifiedByServer !== true)
     return {ok:false,error:'trusted_account_counts_required'};
+  if(trustedCounts.followers===0 && trustedCounts.following===0)
+    return {ok:false,error:'no_relationships_to_analyze'};
   const price=estimateFollowCleanBudget(trustedCounts.followers,trustedCounts.following);
   if(price.status!=='CANDIDATE')return {ok:false,error:price.status,quote:price};
   // This builds an inert integration specification only. It sends no provider request.
