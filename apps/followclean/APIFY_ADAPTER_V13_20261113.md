@@ -42,3 +42,10 @@ Weder ein Apify-Zugangstoken noch von der Nutzerin/dem Nutzer kontrollierte, aus
 - 16/16 direkt ausgeführte synthetische Logik-/Sicherheitsprüfungen für V13 erfolgreich (Kosten, 1 Mio.-Fall, fehlendes Profil, untrusted counts, falsche User-ID, unvollständige Coverage, fehlende Freigabe).
 - Wiederholbare Node-Skripte im Repository: tests/analysis-budget-smoke.mjs und tests/apify-adapter-smoke.mjs. Noch kein echter Instagram- oder Apify-End-to-End-Test.
 - Ein Live-Cloudflare-Deployment bestätigt keine echte Instagram-Datenqualität. Ohne API-Key, berechtigte Konten und kontrollierte Provider-Abnahme bleiben die Bezahlrouten ausgeschaltet.
+
+## Deployment evidence
+- 2026-11-13T17:06:27Z: Cloudflare Worker followclean-mvp-preview accepted V13 bundled HTML + worker template.
+- Deployment f0f4ed95-7d0d-4c1b-b48c-8c8d93942175, version fbc72835-934b-417a-99ca-24ec5bf86743, 100% as reported by Cloudflare deployments API.
+- Existing binding FC_IG_SESSION_SECRET remains as secret_text; no Apify secrets and no other new paid service.
+- Code-level synthetic V13 checks 16/16 PASS; this does not prove a paid Actor call or real Instagram result.
+- Direct live HTTP fetch could not be verified from this tool environment due DNS/network restrictions. No false E2E PASS.
