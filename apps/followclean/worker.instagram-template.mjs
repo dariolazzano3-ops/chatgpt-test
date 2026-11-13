@@ -9,6 +9,83 @@ const GRAPH_VERSION = 'v27.0';
 const MAX_COOKIE_AGE = 30 * 24 * 3600;
 const MIN_GRAPH_REFRESH_MS = 60 * 1000;
 
+
+// Cost gate for potential username-only analyses. This endpoint never starts a paid Actor.
+// All counts in public quote requests are UNVERIFIED hypothetical inputs. Never authorize a
+// charged operation on the basis of these values or the browser's decision/status.
+const FC_BUDGET_POLICY = Object.freeze({
+  version: 'v1',
+  maxApiEurCents: 25,
+  conservativeUsdCap: 0.20,
+  autoFollowersMax: 1000,
+  manualReviewFollowersMax: 5000,
+  absoluteFollowingMax: 5000,
+  referenceUsdPer1000: 0.178,
+  referenceUsdRunFee: 0.0005,
+  referenceRuns: 2,
+  bufferPercent: 20,
+  extraReserveUsd: 0.01,
+  // No provider contract/API key/business permission approved yet. Fail closed.
+  executionEnabled: false
+});
+function validCount(n) { return Number.isSafeInteger(n) && n >= 0 && n <= 1000000000; }
+function safeUsd(n) { return Math.ceil(n * 10000) / 10000; }
+function estimateFollowCleanBudget(followers, following) {
+  const p = FC_BUDGET_POLICY;
+  if (!validCount(followers) || !validCount(following)) {
+    return {status:'COUNTS_REQUIRED', eligible:false, estimatedUsd:null,
+      message:'Verifizierte Follower- und Gefolgt-Zahlen erforderlich.'};
+  }
+  if (followers > p.manualReviewFollowersMax || following > p.absoluteFollowingMax) {
+    return {status:'LARGE_PROFILE', eligible:false, estimatedUsd:null,
+      message:'Großes Profil: keine automatische API-Abfrage. Lokalen ZIP-Import verwenden.'};
+  }
+  // Two separately billed source lists; include per-run charges and a pessimistic buffer.
+  // This is only a quote at the documented reference tariff, NOT an executable budget reservation.
+  const baseUsd = ((followers + following) / 1000) * p.referenceUsdPer1000 +
+    p.referenceUsdRunFee * p.referenceRuns;
+  const withReserveUsd = safeUsd(baseUsd * (1 + p.bufferPercent / 100) + p.extraReserveUsd);
+  const withinBudget = withReserveUsd <= p.conservativeUsdCap;
+  if (!withinBudget) {
+    return {status:'OVER_BUDGET', eligible:false, estimatedUsd:withReserveUsd,
+      message:'Kostenschätzung über unserem vorsichtigen $0,20-Limit. Keine automatische Abfrage.'};
+  }
+  if (followers > p.autoFollowersMax) {
+    return {status:'REVIEW_REQUIRED', eligible:false, estimatedUsd:withReserveUsd,
+      message:'Mittleres Profil: zusätzliche serverseitige Vorabprüfung erforderlich.'};
+  }
+  return {status:'CANDIDATE', eligible:true, estimatedUsd:withReserveUsd,
+    message:'Kostenseitig geeignet, aber noch keine Berechtigung zum API-Start.'};
+}
+async function handleAnalysisBudget(request, url) {
+  const endpoint=url.pathname.slice('/api/analysis/'.length);
+  if (endpoint==='policy' && request.method==='GET') {
+    return json({policy:FC_BUDGET_POLICY, apiProvider:'not_connected',
+      currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
+  }
+  if (endpoint==='start' && request.method==='POST') {
+    return json({ok:false,error:'paid_provider_not_enabled',
+      message:'Eine kostenpflichtige Instagram-Abfrage ist bewusst deaktiviert. ZIP-Analyse bleibt kostenlos.'},503);
+  }
+  if (endpoint==='quote' && request.method==='POST') {
+    // Same-origin check limits cross-site use; no API token or secrets can be extracted here.
+    if(request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);
+    if(!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
+      return json({error:'json_required'},415);
+    if(Number(request.headers.get('content-length')||0)>512) return json({error:'body_too_large'},413);
+    let input;
+    try {
+      const body=await request.text();
+      if(body.length>512) return json({error:'body_too_large'},413);
+      input=JSON.parse(body);
+      if(!input || typeof input!=='object' || Array.isArray(input)) throw new Error('invalid');
+    } catch {return json({error:'invalid_body'},400);}
+    const quote=estimateFollowCleanBudget(input.followers,input.following);
+    return json({estimateOnly:true, trustedCounts:false, quote, executionEnabled:false},200);
+  }
+  return json({error:'not_found'},404);
+}
+
 function configured(env) {
   return typeof env.FC_IG_CLIENT_ID === 'string' && !!env.FC_IG_CLIENT_ID &&
     typeof env.FC_IG_CLIENT_SECRET === 'string' && !!env.FC_IG_CLIENT_SECRET &&
@@ -189,11 +266,12 @@ async function handleApi(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, url);
     if (url.pathname.startsWith(API_PREFIX)) return handleApi(request, env, url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', {status:405});
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v11-autoadvance-redrate'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v12-budget-protection'}});
   }
 };
