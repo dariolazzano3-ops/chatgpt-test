@@ -168,14 +168,16 @@ function validateApifyEvidence(username,counts,rows,summary){
     coverageNote:'COMPLETE describes exposed pagination; Instagram may still omit accounts.'};
 }
 
-async function handleAnalysisBudget(request, url) {
+async function handleAnalysisBudget(request, env, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
   if (endpoint==='policy' && request.method==='GET') {
     return json({policy:FC_BUDGET_POLICY, apiProvider:'apify_standby',
       currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
   }
   if (endpoint==='provider/status' && request.method==='GET') {
-    return json({provider:'Apify', actor:FC_APIFY_ACTOR, configured:false,
+    return json({provider:'Apify', actor:FC_APIFY_ACTOR,
+      configured:typeof env.FC_APIFY_TOKEN==='string'&&env.FC_APIFY_TOKEN.length>24,
+      budgetDatabaseReady:!!env.FC_APIFY_BUDGET_DB,
       executionEnabled:FC_PROVIDER_EXECUTION_ENABLED, mode:'standby',
       acceptedAccounts:'owner-authorized test accounts only',
       analysisAvailable:false,
@@ -402,12 +404,12 @@ async function handleApi(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, url);
+    if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, env, url);
     if (url.pathname.startsWith(API_PREFIX)) return handleApi(request, env, url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', {status:405});
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v13-apify-standby'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-provider-ready-budget-db'}});
   }
 };
