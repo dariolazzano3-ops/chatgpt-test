@@ -80,14 +80,13 @@ function buildApifyDryRun(username, trustedCounts) {
     return {ok:false,error:'trusted_account_counts_required'};
   if(trustedCounts.followers===0 && trustedCounts.following===0)
     return {ok:false,error:'no_relationships_to_analyze'};
+  // Do not bypass actual budget denial just because the free plan has a coverage cap.
   const price=estimateFollowCleanBudget(trustedCounts.followers,trustedCounts.following);
-  if(price.status!=='CANDIDATE')return {ok:false,error:price.status,quote:price};
-  // The selected Actor's FREE plan enforces a maximum of 100 per list. Merely
-  // requesting a larger number cannot produce reliable proof of a full list.
   const maximum=Math.max(trustedCounts.followers,trustedCounts.following);
   if (maximum>FC_BUDGET_POLICY.freeTierResultsLimitPerList)
     return {ok:false,error:'FREE_TIER_LIMIT',quote:price,
       message:'Free-Tarif liest höchstens 100 pro Liste. Kein behauptetes Vollergebnis.'};
+  if(price.status!=='CANDIDATE')return {ok:false,error:price.status,quote:price};
   // Apify API: maxItems is a query parameter, NOT maxPaidDatasetItems.
   // One list capped to <resultsLimit>, both directions capped via maxItems.
   const apiQuery={
