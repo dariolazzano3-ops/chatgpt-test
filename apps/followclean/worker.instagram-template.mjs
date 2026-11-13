@@ -24,6 +24,7 @@ const FC_BUDGET_POLICY = Object.freeze({
   referenceUsdRunFee: 0.001,
   referenceUsdProfileFee: 0.001,
   referenceRuns: 1,
+  freeTierResultsLimitPerList: 100,
   bufferPercent: 20,
   extraReserveUsd: 0.01,
   // No provider contract/API key/business permission approved yet. Fail closed.
@@ -81,20 +82,49 @@ function buildApifyDryRun(username, trustedCounts) {
     return {ok:false,error:'no_relationships_to_analyze'};
   const price=estimateFollowCleanBudget(trustedCounts.followers,trustedCounts.following);
   if(price.status!=='CANDIDATE')return {ok:false,error:price.status,quote:price};
-  // This builds an inert integration specification only. It sends no provider request.
+  // The selected Actor's FREE plan enforces a maximum of 100 per list. Merely
+  // requesting a larger number cannot produce reliable proof of a full list.
+  const maximum=Math.max(trustedCounts.followers,trustedCounts.following);
+  if (maximum>FC_BUDGET_POLICY.freeTierResultsLimitPerList)
+    return {ok:false,error:'FREE_TIER_LIMIT',quote:price,
+      message:'Free-Tarif liest höchstens 100 pro Liste. Kein behauptetes Vollergebnis.'};
+  // Apify API: maxItems is a query parameter, NOT maxPaidDatasetItems.
+  // One list capped to <resultsLimit>, both directions capped via maxItems.
+  const apiQuery={
+    maxTotalChargeUsd:FC_BUDGET_POLICY.conservativeUsdCap,
+    maxItems:trustedCounts.followers+trustedCounts.following,
+    restartOnError:false,
+    memory:128,
+    timeout:90
+  };
   return {
     ok:true,executed:false,provider:'Apify',actor:FC_APIFY_ACTOR,
     endpoint:'/v2/acts/'+FC_APIFY_ACTOR+'/runs',
-    input:{profiles:[name],dataToScrape:'both',
-      resultsLimit:Math.max(1,Math.max(trustedCounts.followers,trustedCounts.following))},
-    runOptions:{maxTotalChargeUsd:FC_BUDGET_POLICY.conservativeUsdCap,
-      maxPaidDatasetItems:trustedCounts.followers+trustedCounts.following,
-      restartOnError:false},
+    input:{profiles:[name],dataToScrape:'both',resultsLimit:Math.max(1,maximum)},
+    runOptions:apiQuery,
     quote:price,
     gates:['owner_consent','actor_usage_approval','provider_credentials',
       'durable_idempotency','durable_global_spend_limit','current_tariff_verified']
   };
 }
+
+function buildApifyRequestDescription(draft){
+  if (!draft || draft.ok!==true || draft.executed!==false ||
+    draft.actor!==FC_APIFY_ACTOR || !draft.quote || draft.quote.status!=='CANDIDATE')
+    return {ok:false,error:'invalid_draft'};
+  const url=new URL('https://api.apify.com'+draft.endpoint);
+  for(const [key,value] of Object.entries(draft.runOptions)){
+    if(!['maxTotalChargeUsd','maxItems','restartOnError','memory','timeout'].includes(key))
+      return {ok:false,error:'unexpected_query_param'};
+    url.searchParams.set(key,String(value));
+  }
+  // Intentionally exclude tokens. Authorization belongs exclusively in a
+  // private Worker secret header, never in URL, repo, client or logs.
+  return {ok:true,executed:false,method:'POST',url:url.toString(),
+    headers:{'Content-Type':'application/json','Authorization':'Bearer [WORKER_SECRET_ONLY]'},
+    body:JSON.stringify(draft.input)};
+}
+
 // Conservative offline parser for *synthetic test fixtures only* until a verified
 // external data source and provenance are available. Never trust public request
 // bodies as proof of follower or following membership.
