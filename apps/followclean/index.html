@@ -1406,6 +1406,8 @@ function restoreSelectedAccount() {
   state.skip.clear();
   state.lastVisitedName=null;
   state.guideUndo=null;
+  state.lastAutoDone=null;
+  $('visit-toast').hidden=true;
   state.activeVisit=null;
   // Prevent guide actions from carrying across an account switch.
   $('guide-panel').hidden=true;
@@ -1763,7 +1765,7 @@ function completeVisitOnReturn() {
   state.lastVisitedName=null;
   state.sessionNextName=null;
   state.skip.delete(visit.name);
-  state.lastAutoDone={name:visit.name,previous};
+  state.lastAutoDone={name:visit.name,previous,key:state.key};
   setStatus(visit.name,'done');
   if (!$('guide-panel').hidden) {
     state.guideUndo={name:visit.name,previous,action:'auto-visit'};
@@ -2088,7 +2090,7 @@ $('visit-undo').addEventListener('click', () => {
   const target=state.lastAutoDone;
   $('visit-toast').hidden=true;
   state.lastAutoDone=null;
-  if(target && state.result && statusFor(target.name)==='done'){
+  if(target && state.result && target.key===state.key && statusFor(target.name)==='done'){
     state.lastVisitedName=null;
     state.sessionNextName=target.name;
     setStatus(target.name,target.previous==='open'?'open':'opened');
