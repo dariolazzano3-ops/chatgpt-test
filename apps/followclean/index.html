@@ -1172,6 +1172,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @keyframes fc-next-card{from{opacity:.25;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-color-scheme:dark){.fc-insights-distribution{background:linear-gradient(145deg,#3c2935,#332839);border-color:#85495e}.fc-insights-distribution .fc-insights-card-head strong{color:#ff687c}.fc-insights-distribution .fc-insights-card-head span{color:#ffd2d8}.fc-insights-distribution .fc-insights-legend strong.fc-negative-count{color:#ff8a99}}
 @media(prefers-reduced-motion:reduce){.fc-insights-distribution .fc-insights-card-head strong,.fc-smart-panel.fc-step-advanced .fc-smart-identity{animation:none!important}.fc-insights-distribution .fc-insights-meter span{transition:none!important}}
+
+/* V12 API cost-control preview; the official ZIP analysis always remains free and local. */
+.fc-cost-guard{margin:15px 0 24px;padding:0;border:1px solid #cddcea;border-radius:15px;background:linear-gradient(135deg,#f7fbff,#f6fafc);color:#254969}
+.fc-cost-guard summary{cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 16px;font-size:12px;font-weight:800;list-style:none;min-height:48px}
+.fc-cost-guard summary::-webkit-details-marker{display:none}
+.fc-cost-guard summary .fc-cost-lock{color:#17755c;font-size:17px}
+.fc-cost-guard summary .fc-cost-flag{margin-left:auto;white-space:nowrap;color:#4c6783;font-size:10px;font-weight:800;border-radius:99px;padding:5px 9px;background:#e5f0fa}
+.fc-cost-guard .fc-cost-body{border-top:1px solid #d7e6f4;padding:14px 16px 15px;display:grid;gap:9px}
+.fc-cost-guard .fc-cost-status{font-size:12px;font-weight:850;color:#274f78}
+.fc-cost-guard p{margin:0;color:#5c7894;font-size:11px;line-height:1.55}
+.fc-cost-guard .fc-cost-amount{font-variant-numeric:tabular-nums;font-weight:800}
+@media(prefers-color-scheme:dark){.fc-cost-guard{background:#1b2d42;border-color:#3c5c78;color:#d7ebff}.fc-cost-guard summary .fc-cost-lock{color:#89e5ba}.fc-cost-guard summary .fc-cost-flag{color:#b9d8ef;background:#2c4762}.fc-cost-guard .fc-cost-body{border-color:#3d5a75}.fc-cost-guard .fc-cost-status{color:#d8eaff}.fc-cost-guard p{color:#b3cde6}}
+
 </style>
   <script>
 /*!
@@ -1569,6 +1582,7 @@ function useResult(result, demo) {
   $('stat-following').textContent = result.following.toLocaleString('de-DE');
   $('stat-mutual').textContent = result.mutual.length.toLocaleString('de-DE');
   renderLivePanel();
+  renderCostGuardPreview();
   renderResults();
   if(!demo)refreshInstagramLive(true);
   renderLocalHistory();
@@ -1813,6 +1827,30 @@ function animateNonFollowPercent(element, value, result) {
   }
   requestAnimationFrame(tick);
 }
+
+function renderCostGuardPreview(){
+  const p=$('fc-cost-guard');
+  if(!p||!state.result)return;
+  const f=state.result.followers, following=state.result.following;
+  const status=$('fc-cost-status'), description=$('fc-cost-estimate');
+  const fmt=n=>n.toLocaleString('de-DE');
+  const usd=n=>n.toLocaleString('de-DE',{style:'currency',currency:'USD',maximumFractionDigits:3});
+  const estimate=Math.ceil((((f+following)/1000)*0.178 + 2*0.0005)*1.20*10000+0.01*10000)/10000;
+  if (f>5000 || following>5000) {
+    status.textContent='Großes Profil: bezahlte Schnell-Analyse gesperrt.';
+    description.textContent='ZIP bleibt kostenlos. Im Export sind '+fmt(f)+' Follower und '+fmt(following)+' abonnierte Accounts erfasst.';
+  } else if (estimate>0.20) {
+    status.textContent='Vorabkalkulation über Budget: API-Abruf gesperrt.';
+    description.textContent=fmt(f)+' Follower + '+fmt(following)+' Abonnierte: ungefähr '+usd(estimate)+' mit Reserve (unverbindliche USD-Beispielrechnung).';
+  } else if(f>1000) {
+    status.textContent='Mittleres Profil: manuelle Vorabprüfung erforderlich.';
+    description.textContent='Geplante API-Kosten mit Reserve: '+usd(estimate)+'. Bis zur tatsächlichen Providerfreigabe kein API-Start.';
+  } else {
+    status.textContent='Innerhalb des vorsichtigen Kostenbudgets: Kandidat.';
+    description.textContent=fmt(f)+' Follower + '+fmt(following)+' Abonnierte, geplante API-Kosten inklusive Reserve ungefähr '+usd(estimate)+'. Ein externer Abruf bleibt deaktiviert.';
+  }
+}
+
 function renderInsights() {
   if(!state.result)return;
   const all=state.result.notFollowingBack;
@@ -2800,6 +2838,17 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
             <p class="fc-live-note">Nur für Business-/Creator-Konten mit Einwilligung. Kein Instagram-Passwort an FollowClean. Die Liste der Nicht-Rückfolger bleibt eine Momentaufnahme deiner ZIP-Datei.</p>
           </section>
+
+
+          <details class="fc-cost-guard" id="fc-cost-guard">
+            <summary><span class="fc-cost-lock" aria-hidden="true">♧</span> API-Kostenkontrolle für Schnellanalysen <span class="fc-cost-flag">VORBEREITET</span></summary>
+            <div class="fc-cost-body">
+              <strong class="fc-cost-status" id="fc-cost-status">Kostenschutz: externe Analyse noch nicht aktiviert.</strong>
+              <p id="fc-cost-estimate">Wir verhindern, dass große Profile unkontrolliert Gebühren verursachen.</p>
+              <p>Geplantes Limit: maximal 0,25 € API-Kosten pro Analyse, mit vorsichtiger USD-Grenze. Bis 1.000 Follower nur bei ausreichendem Budget, 1.001 bis 5.000 mit gesonderter Vorabprüfung, größere Profile nur per ZIP. Auch die Anzahl abonnierter Accounts zählt für die Kosten.</p>
+              <p>Die angezeigte Beispielrechnung nutzt ausschließlich lokal ermittelte Zahlen. Sie sendet keine ZIP-Daten oder Profilnamen an eine externe API und startet keine kostenpflichtige Abfrage.</p>
+            </div>
+          </details>
 
           <section id="fc-insights" class="fc-insights" aria-labelledby="fc-insights-title">
             <div class="fc-insights-heading">
