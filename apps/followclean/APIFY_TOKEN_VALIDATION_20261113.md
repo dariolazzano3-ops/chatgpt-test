@@ -31,3 +31,22 @@ On Apify Console > Settings > API & Integrations, **edit Followclean restricted 
 5. Only after successful permission read-test and explicit authorization for test profile should a real test be considered, with strict per-run and global caps plus legal review.
 
 Source: https://docs.apify.com/api/v2/actors-runs-get and https://docs.apify.com/integrations/api .
+
+## Nachprüfung nach Korrektur der Token-Berechtigungen (13.11.2026)
+
+**Ergebnis: Authentifizierter Lesetest erfolgreich.** Die Apify Actor-ID ist `cwcr3CoSbucMVwFsF`, im Token nun mit ressourcenspezifischen Rechten angelegt.
+
+Eine kurzfristig nonce-geschützte GET-Prüfung wurde direkt im existierenden Cloudflare-Worker ausgeführt. Dabei war der Bearer-Token ausschließlich serverseitig verfügbar, und es wurden nur **lesende GET-Anfragen** gestellt:
+
+| GET-Endpunkt | HTTP-Status |
+|---|---|
+| `/v2/acts/cwcr3CoSbucMVwFsF` | 200 |
+| `/v2/actors/cwcr3CoSbucMVwFsF/runs?limit=1` | 200 |
+| `/v2/acts/cwcr3CoSbucMVwFsF/runs?limit=1` | 200 |
+| `/v2/users/me` | 403 (`insufficient-permissions`) |
+
+Interpretation: Der Token erreicht Apify, der Actor ist verfügbar und **List-runs / lesender Zugriff auf seine Läufe ist bestätigt**. Die Verweigerung von kontoweiten Benutzerdaten ist für den eingeschränkten Token gewollt. **Actor Run/POST, Dataset-Lesen, echte Instagram-Ergebnisse und die tatsächliche Abbuchung wurden nicht getestet.** Kein bezahlter Run wurde gestartet.
+
+Die temporäre Diagnose-Route wurde im selben Prüfvorgang entfernt. Cloudflare bestätigt anschließend die wiederhergestellte Produktionsversion `5b8b10de-0610-4dd4-8326-a24506b173b5` mit 100 Prozent. Nur folgende Bindings verbleiben: `FC_APIFY_BUDGET_DB` (D1), `FC_APIFY_TOKEN` und `FC_IG_SESSION_SECRET` (Secrets). Keine Cron-Triggers, keine zusätzlichen Diagnose-Secrets. Der öffentliche Start-Endpunkt bleibt deaktiviert.
+
+**Nächster zulässiger Schritt:** Nur für ein eigenes ausdrücklich autorisiertes öffentliches Testkonto, nach Freigabe der Datenbeschaffung und wirklicher providerseitiger/betrieblicher Kostenlimits, einen begrenzten echten Actor-Lauf ausführen und das Ergebnis gegen den Originalexport prüfen.
