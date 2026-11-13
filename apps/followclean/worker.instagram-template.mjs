@@ -103,7 +103,7 @@ async function exchangeToken(code, callbackUrl, env) {
     throw new Error('Invalid Instagram token response');
   return {token: long.access_token, expiresAt: Date.now() + Number(long.expires_in) * 1000 - 60000};
 }
-function finishPage(success) {
+function finishPage(success, cookies = []) {
   const title = success ? 'Instagram verbunden' : 'Instagram-Verbindung nicht abgeschlossen';
   const info = success ? 'Du kannst zu deinem FollowClean-Tab zurückkehren. Deine ZIP-Daten bleiben dort.' :
     'Die Verbindung wurde nicht eingerichtet. FollowClean funktioniert weiterhin mit deinem lokalen ZIP-Export.';
@@ -113,7 +113,9 @@ function finishPage(success) {
     '<style>body{font:16px system-ui;background:#f6f8ff;color:#243452;display:grid;place-items:center;min-height:90vh;padding:20px}main{max-width:460px;background:white;padding:32px;border-radius:22px;box-shadow:0 15px 50px #304e7122}a{color:#205fae;font-weight:700}</style></head>'+
     '<body><main><h1>' + title + '</h1><p>' + info + '</p><p><a href="/">Zurück zu FollowClean</a></p></main>'+
     '<script>try{if(window.opener)window.opener.postMessage({type:"followclean:instagram:' + code + '"},location.origin)}catch(e){}</script></body></html>';
-  return new Response(body, {headers: headers('text/html; charset=utf-8')});
+  const h = new Headers(headers('text/html; charset=utf-8'));
+  for (const v of cookies) h.append('Set-Cookie', v);
+  return new Response(body, {headers: h});
 }
 function redirect(location, cookies = []) {
   const h = new Headers(headers('text/plain; charset=utf-8'));
@@ -136,6 +138,7 @@ async function handleApi(request, env, url) {
     authorizeUrl.searchParams.set('redirect_uri', callbackUrl);
     authorizeUrl.searchParams.set('response_type', 'code');
     authorizeUrl.searchParams.set('scope', 'instagram_business_basic');
+    authorizeUrl.searchParams.set('enable_fb_login', '0');
     authorizeUrl.searchParams.set('state', nonce);
     return redirect(authorizeUrl.toString(), [cookieValue(COOKIE_OAUTH, nonce, 600)]);
   }
@@ -145,16 +148,16 @@ async function handleApi(request, env, url) {
     const removeState = clearCookie(COOKIE_OAUTH);
     const code = url.searchParams.get('code') || '';
     if (url.searchParams.has('error') || !code || code.length > 2048 || !expected || supplied !== expected)
-      return redirect('/?instagram=error', [removeState]);
+      return finishPage(false, [removeState]);
     try {
       const tokenData = await exchangeToken(code.replace(/#_$/, ''), url.origin + API_PREFIX + 'callback', env);
       const sample = await graphProfile(tokenData.token);
       const session = {token: tokenData.token, expiresAt: tokenData.expiresAt, account: sample.username,
         sample, sampleAt: Date.now()};
       const sealed = await seal(session, env);
-      return redirect('/?instagram=connected', [removeState, cookieValue(COOKIE_SESSION, sealed, MAX_COOKIE_AGE)]);
+      return finishPage(true, [removeState, cookieValue(COOKIE_SESSION, sealed, MAX_COOKIE_AGE)]);
     } catch {
-      return redirect('/?instagram=error', [removeState]);
+      return finishPage(false, [removeState]);
     }
   }
   if (endpoint === 'summary' && request.method === 'GET') {
