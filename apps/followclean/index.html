@@ -1134,6 +1134,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-v9-offer-disclaimer{font-size:10.5px;line-height:1.55;color:#667c92;margin:10px 0 13px}
 @media(max-width:650px){.fc-v9-offers{grid-template-columns:1fr}}
 @media(prefers-color-scheme:dark){.fc-v9-offer{background:#2a3e52;border-color:#4a6077}.fc-v9-offer.premium{background:linear-gradient(135deg,#393354,#3a3434);border-color:#675b84}.fc-v9-offer>strong{color:#edf5ff}.fc-v9-offer>span,.fc-v9-offer>p,.fc-v9-offer-disclaimer{color:#c2d0df}}
+
+/* FollowClean · official Instagram live numbers (opt-in, professional accounts only) */
+.fc-live-panel{margin:18px 0 21px;padding:20px 22px;border:1px solid #d8e5f4;border-radius:22px;background:linear-gradient(128deg,#f7fcff,#f1f8ff 66%,#f4fff9);box-shadow:0 12px 30px #315a8410}
+.fc-live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fc-live-eyebrow{display:block;font-size:10px;letter-spacing:.1em;font-weight:800;color:#64819b}
+.fc-live-head h3{font-size:20px;line-height:1.3;margin:4px 0 5px;color:#203453}
+.fc-live-head p,.fc-live-note{font-size:12px;line-height:1.55;color:#657d97;margin:0}
+.fc-live-badge{flex-shrink:0;padding:7px 10px;border-radius:999px;background:#e9edf3;color:#596b81;font-size:10px;font-weight:750;white-space:nowrap}
+.fc-live-badge.is-connected{color:#08744d;background:#d6f7e5}
+.fc-live-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0 11px}
+.fc-live-value{padding:14px;border:1px solid #e4eaf5;border-radius:15px;background:#ffffffdd}
+.fc-live-value span{display:block;color:#65788e;font-size:11px}
+.fc-live-value strong{display:block;margin:5px 0;font-size:27px;font-weight:850;line-height:1.2;letter-spacing:-.04em;color:#1b3b6f;font-variant-numeric:tabular-nums}
+.fc-live-value small{font-size:10px;line-height:1.4;color:#6e8096}
+.fc-live-message{font-size:12px;line-height:1.6;color:#455f79;margin:10px 0}
+.fc-live-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:12px}
+.fc-live-actions button{min-height:44px;border:1px solid #b8cee7;background:white;border-radius:11px;color:#28507c;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer}
+.fc-live-actions .fc-live-primary{background:#245d9c;color:#fff;border-color:#245d9c}
+.fc-live-actions button:disabled{opacity:.55;cursor:not-allowed}
+.fc-live-note{margin-top:11px}
+@media(max-width:540px){.fc-live-panel{padding:16px}.fc-live-head{flex-direction:column;gap:8px}.fc-live-value{padding:11px}.fc-live-value strong{font-size:25px}.fc-live-actions button{flex:1 1 auto}}
+@media(prefers-color-scheme:dark){.fc-live-panel{background:linear-gradient(135deg,#1b2d43,#192f35);border-color:#3b5976}.fc-live-head h3,.fc-live-value strong{color:#e4f1ff}.fc-live-value{background:#1a2b41;border-color:#35465c}.fc-live-head p,.fc-live-note,.fc-live-message,.fc-live-value span,.fc-live-value small{color:#aec2d4}.fc-live-actions button:not(.fc-live-primary){background:#26384a;color:#d7eafc;border-color:#557088}}
+
 </style>
   <script>
 /*!
@@ -1527,7 +1550,9 @@ function useResult(result, demo) {
   animateTrueCount($('stat-nonfollowers'), result.notFollowingBack.length, result);
   $('stat-following').textContent = result.following.toLocaleString('de-DE');
   $('stat-mutual').textContent = result.mutual.length.toLocaleString('de-DE');
+  renderLivePanel();
   renderResults();
+  if(!demo)refreshInstagramLive(true);
   renderLocalHistory();
   completeVisitOnReturn();
   $('workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -1544,6 +1569,123 @@ function animateTrueCount(element, count, result) {
   }
   element.textContent='0';requestAnimationFrame(tick);
 }
+
+// Official Instagram Graph API integration. All tokens stay in encrypted, HttpOnly server cookies.
+// Counts are shown only when returned by Meta, never fabricated from "Erledigt" clicks.
+const FC_LIVE_PATH='/api/instagram/';
+const FC_LIVE_POLL_MS=120000;
+const live={available:null,connected:false,username:null,following:null,followers:null,fetchedAt:null,
+  loading:false,lastChecked:0,error:null};
+function renderLivePanel(){
+  const el=$('fc-live-panel');
+  if(!el || !state.result)return;
+  const fmt=n=>Number.isSafeInteger(n)?n.toLocaleString('de-DE'):'–';
+  $('fc-live-following-hint').textContent='ZIP-Stand: '+fmt(state.result.following);
+  $('fc-live-followers-hint').textContent='ZIP-Stand: '+fmt(state.result.followers);
+  const badge=$('fc-live-badge');
+  badge.classList.toggle('is-connected',live.connected && !live.error && !!live.fetchedAt);
+  $('fc-live-connect').hidden=live.connected;
+  $('fc-live-connect').disabled=live.available!==true || live.loading || state.demo;
+  $('fc-live-refresh').hidden=!live.connected;
+  $('fc-live-refresh').disabled=live.loading;
+  $('fc-live-disconnect').hidden=!live.connected;
+  $('fc-live-disconnect').disabled=live.loading;
+  $('fc-live-following').textContent=live.connected?fmt(live.following):'–';
+  $('fc-live-followers').textContent=live.connected?fmt(live.followers):'–';
+  if(state.demo){
+    badge.textContent='Demo';$('fc-live-message').textContent='Beispieldaten: keine Instagram-Verbindung.';
+  }else if(live.available===null){
+    badge.textContent='Verbindung prüfen';$('fc-live-message').textContent='Prüfe die offizielle Instagram-Schnittstelle …';
+  }else if(!live.available){
+    badge.textContent='Noch nicht eingerichtet';
+    $('fc-live-message').textContent='Die sichere Meta-Anbindung ist vorbereitet, aber noch nicht freigeschaltet. Deine ZIP-Auswertung funktioniert unverändert.';
+  }else if(live.loading && !live.connected){
+    badge.textContent='Verbinde …';$('fc-live-message').textContent='Instagram-Verbindung wird geprüft …';
+  }else if(!live.connected){
+    badge.textContent='Nicht verbunden';
+    $('fc-live-message').textContent='Verbinde freiwillig dein Instagram Business- oder Creator-Konto. Du meldest dich direkt bei Instagram an, nicht bei FollowClean.';
+  }else {
+    const when=live.fetchedAt?new Date(live.fetchedAt).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'unbekannt';
+    badge.textContent=live.error?'Aktualisierung fehlgeschlagen':'Meta API · '+when;
+    const chosen=state.currentAccount;
+    const matches=chosen===live.username;
+    let message='Instagram @'+live.username+' · zuletzt von Meta abgerufen: '+when+'.';
+    if(live.error)message+=' Der aktuelle Abruf ist fehlgeschlagen. Angezeigte Zahlen sind der letzte erfolgreiche Stand.';
+    if(!chosen)message+=' Wähle oben deinen Kontonamen, um die ZIP-Daten sicher zuzuordnen.';
+    else if(!matches)message+=' Achtung: Dein ZIP ist @'+chosen+' zugeordnet. Daher wird keine Differenz zwischen verschiedenen Konten berechnet.';
+    else if(Number.isSafeInteger(live.following)){
+      const delta=live.following-state.result.following;
+      message+=' Änderung bei „Abonniert“ seit dem ZIP-Export: '+(delta>0?'+':'')+fmt(delta)+'. Das ist die Nettodifferenz, kein Nachweis einzelner Entfolgungen.';
+    }
+    $('fc-live-message').textContent=message;
+  }
+}
+async function refreshInstagramLive(force=false){
+  if(!state.result || state.demo || live.loading)return;
+  if(!force && Date.now()-live.lastChecked<FC_LIVE_POLL_MS)return;
+  live.loading=true;
+  live.lastChecked=Date.now();
+  renderLivePanel();
+  try {
+    const response=await fetch(FC_LIVE_PATH+'summary',{cache:'no-store',credentials:'same-origin',
+      headers:{'Accept':'application/json'}});
+    const data=await response.json();
+    if(data.available===false){
+      live.available=false;live.connected=false;live.username=null;live.following=null;live.followers=null;
+      live.fetchedAt=null;live.error=null;
+    }else if(response.ok && data.available===true && data.connected===true &&
+      /^[a-z0-9._]{1,30}$/.test(data.username) &&
+      Number.isSafeInteger(data.following) && data.following>=0 &&
+      Number.isSafeInteger(data.followers) && data.followers>=0 &&
+      Number.isFinite(Date.parse(data.fetchedAt))){
+      live.available=true;live.connected=true;live.username=data.username;live.following=data.following;
+      live.followers=data.followers;live.fetchedAt=data.fetchedAt;live.error=null;
+    }else if(response.ok && data.available===true && data.connected===false){
+      live.available=true;live.connected=false;live.username=null;live.following=null;live.followers=null;
+      live.fetchedAt=null;live.error=null;
+    }else if(data.available===true && data.connected===true){
+      live.available=true;live.error='api_unavailable';
+    }else throw new Error('Invalid API response');
+  }catch{
+    live.error='network_error';
+    if(live.available===null)live.available=false;
+  }finally{
+    live.loading=false;
+    renderLivePanel();
+  }
+}
+$('fc-live-connect').addEventListener('click',()=>{
+  if(live.available!==true || state.demo)return;
+  // New tab preserves the imported ZIP and pending cleanup session on iPhone Safari.
+  window.open(FC_LIVE_PATH+'connect','_blank');
+  $('fc-live-message').textContent='Instagram öffnet sich in einem neuen Tab. Nach dem Verbinden zu FollowClean zurückkehren.';
+});
+$('fc-live-refresh').addEventListener('click',()=>refreshInstagramLive(true));
+$('fc-live-disconnect').addEventListener('click',async()=>{
+  if(!live.connected || live.loading)return;
+  live.loading=true;renderLivePanel();
+  try{
+    const response=await fetch(FC_LIVE_PATH+'disconnect',{method:'POST',
+      cache:'no-store',credentials:'same-origin',headers:{'Accept':'application/json'}});
+    if(!response.ok)throw new Error('disconnect failed');
+    live.connected=false;live.username=null;live.following=null;live.followers=null;live.fetchedAt=null;live.error=null;
+  }catch{live.error='disconnect_error';}
+  finally{live.loading=false;renderLivePanel();}
+});
+window.addEventListener('message',event=>{
+  if(event.origin!==location.origin || event.data?.type!=='followclean:instagram:connected')return;
+  refreshInstagramLive(true);
+});
+window.addEventListener('focus',()=>{
+  if(state.result && !state.demo)refreshInstagramLive();
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && state.result && !state.demo)refreshInstagramLive();
+});
+setInterval(()=>{
+  if(document.visibilityState==='visible' && state.result && !state.demo)refreshInstagramLive();
+},FC_LIVE_POLL_MS);
+
 // Only a real visibility loss or pagehide confirms that the browser left FollowClean.
 // Browser blur alone can occur without visiting Instagram and must not mark a profile as done.
 // Store a short-lived pending visit locally to survive Safari tab eviction.
@@ -2188,6 +2330,7 @@ $('fc-history-account').addEventListener('input',()=>{
   if(account!==state.currentAccount) {
     state.currentAccount=account;
     restoreSelectedAccount();
+    renderLivePanel();
   }
   $('fc-progress-scope').textContent=account
     ?'Deine Checkliste gehört jetzt zu @'+account+'. Markierungen bleiben auf diesem Gerät unter diesem Kontonamen gespeichert.'
@@ -2582,6 +2725,25 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="stat-card"><span class="stat-label">GEGENSEITIG</span><strong id="stat-mutual">0</strong><span class="stat-desc">Ihr folgt euch beide</span></div>
           </div>
 
+
+          <section class="fc-live-panel" id="fc-live-panel" aria-labelledby="fc-live-title">
+            <div class="fc-live-head">
+              <div><span class="fc-live-eyebrow">OPTIONAL · INSTAGRAM-VERBINDUNG</span><h3 id="fc-live-title">Deine aktuellen Instagram-Zahlen.</h3><p>Offiziell synchronisierte Profilzahlen, getrennt von deiner ZIP-Analyse.</p></div>
+              <span class="fc-live-badge" id="fc-live-badge">Nicht verbunden</span>
+            </div>
+            <div class="fc-live-values">
+              <div class="fc-live-value"><span>Aktuell abonniert</span><strong id="fc-live-following">–</strong><small id="fc-live-following-hint">ZIP-Stand: –</small></div>
+              <div class="fc-live-value"><span>Aktuelle Follower</span><strong id="fc-live-followers">–</strong><small id="fc-live-followers-hint">ZIP-Stand: –</small></div>
+            </div>
+            <p class="fc-live-message" id="fc-live-message" role="status">Wir prüfen, ob die offizielle Instagram-Verbindung verfügbar ist.</p>
+            <div class="fc-live-actions">
+              <button class="fc-live-primary" id="fc-live-connect" type="button" disabled>Instagram verbinden</button>
+              <button id="fc-live-refresh" type="button" hidden>Jetzt aktualisieren ↻</button>
+              <button id="fc-live-disconnect" type="button" hidden>Verbindung trennen</button>
+            </div>
+            <p class="fc-live-note">Nur für Business-/Creator-Konten mit Einwilligung. Kein Instagram-Passwort an FollowClean. Die Liste der Nicht-Rückfolger bleibt eine Momentaufnahme deiner ZIP-Datei.</p>
+          </section>
+
           <section id="fc-insights" class="fc-insights" aria-labelledby="fc-insights-title">
             <div class="fc-insights-heading">
               <div><span class="fc-insights-eyebrow">DEIN ÜBERBLICK · LOKALE ANALYSE</span><h3 id="fc-insights-title">Alles im Blick.</h3><p>Deine Daten, direkt aus dem gewählten Instagram-Export berechnet.</p></div>
@@ -2725,7 +2887,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           <div id="profiles-list" class="profiles-list" aria-live="polite"></div><button id="fc-load-more" class="fc-load-more" type="button" hidden>Weitere Accounts anzeigen</button>
           <p id="empty-list" class="empty-list" hidden>Keine Accounts in dieser Ansicht gefunden.</p>
           <div class="list-footer"><span id="list-count">0 Accounts</span><button id="clear-progress-btn" class="text-button muted small">Fortschritt zurücksetzen</button></div>
-          <p class="results-disclaimer">Die Analyse ist eine Momentaufnahme deines Exports. Ein grünes „Erledigt“ bedeutet nur, dass du das Profil geöffnet hast und zurückgekehrt bist oder es selbst markiert hast. FollowClean kann nicht erkennen, ob du in Instagram entfolgt bist. Alle Status lassen sich wieder ändern.</p>
+          <p class="results-disclaimer">Die Nicht-Rückfolger-Liste ist eine Momentaufnahme deines ZIP-Exports. „Angesehen“ bedeutet einen Profilbesuch. „Erledigt“ ist eine eigene Checklisten-Entscheidung, kein automatischer Nachweis des Entfolgens. Optionale Instagram-API-Zahlen zeigen nur aktuelle Gesamtsummen.</p>
           </div>
         </div>
       </section>
@@ -2749,7 +2911,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             <p><strong>Instagram-Export:</strong> Die ausgewählten ZIP- und JSON-Dateien werden im Browser gelesen und verglichen. FollowClean überträgt die Exportdateien oder daraus berechnete Accountlisten nicht zur Analyse an seinen Server.</p>
             <p><strong>Gerätespeicher:</strong> Der Browser kann Accountnamen mit den gewählten Statuswerten („Erledigt“, „Behalten“ oder „Geöffnet“), einen kurzfristigen Profil-Rückkehrstatus und den Hinweis auf einen angeforderten Export lokal speichern. Deine Checklisten-Markierungen und die Position des Cleanup-Assistenten können nach Wahl eines Instagram-Kontonamens in diesem Browser für dieses Konto gespeichert werden. Nur nach ausdrücklicher Zustimmung können zusätzlich bis zu vier komplette Follower-/Gefolgt-Benutzernamenlisten zusammen mit einem manuell eingegebenen Instagram-Kontonamen als Verlauf im lokalen Browser-Speicher abgelegt werden. Alte Stände ohne Namen bleiben unzugeordnet, bis sie bewusst zugewiesen werden. Die freiwillig herunterladbare JSON-Verlaufssicherung enthält diese Benutzernamen im Klartext und wird nicht auf einen FollowClean-Server hochgeladen; sie kann später lokal wiederhergestellt werden. Diese Daten sind auf gemeinsam genutzten Geräten sichtbar und werden nicht automatisch synchronisiert. Alle lokalen Stände lassen sich einzeln oder über „Lokalen Fortschritt löschen“ entfernen. Safari kann Browserdaten zusätzlich löschen.</p>
             <p><strong>Hosting:</strong> Beim Abrufen der Website entstehen technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, beim Hosting über Cloudflare. Verantwortliche Stelle, Kontaktangaben, Rechtsgrundlagen, Speicherfristen, mögliche Drittlandübermittlungen und Betroffenenrechte müssen in der endgültigen Datenschutzerklärung vollständig angegeben und geprüft werden.</p>
-            <p><strong>Keine Instagram-Anmeldung:</strong> FollowClean fordert kein Instagram-Passwort an, entfolgt nicht automatisch und fragt keine externen Original-Profilbilder ab. Die Beta-Analyse bleibt lokal. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
+            <p><strong>Freiwillige Meta-Verbindung:</strong> Die ZIP-Analyse bleibt lokal und benötigt keine Instagram-Anmeldung. Falls die optionale offizielle Instagram-API-Verbindung freigeschaltet ist, melden sich Business-/Creator-Konten direkt bei Instagram an. FollowClean fordert nie das Instagram-Passwort an und entfolgt nicht automatisch. Nach Einwilligung werden aktuelle Gesamtsummen für Follower und abonnierte Profile über den FollowClean-Worker bei Meta abgefragt; Zugangstoken bleiben verschlüsselt in einem sicheren, HttpOnly-Cookie im Browser und sind nicht Bestandteil der ZIP-Analyse. Die Verbindung kann getrennt werden. Der freiwillige Stripe-Testcheckout öffnet eine getrennte Stripe-Sandbox-Seite; dort eingegebene Test-E-Mail- und Testkartendaten werden von Stripe verarbeitet. Instagram-Exporte oder Accountlisten werden nicht an Stripe gesendet. Es werden keine echten Zahlungen ausgelöst.</p>
             <p class="fc-legal-incomplete">Dieser Technikhinweis ersetzt keine vollständige Datenschutzerklärung gemäß DSGVO.</p>
           </div>
         </details>
