@@ -30,7 +30,7 @@ Client-Abfragen höchstens alle 120 Sekunden im sichtbaren Tab, serverseitiger K
    FC_IG_SESSION_SECRET = zufälliger Geheimschlüssel mit mindestens 32 Zeichen
 4. Passende App-Rollen/Tester sowie ggf. Meta App Review und Business Verification erledigen, bevor externe Nutzer zugelassen werden.
 
-Die tatsächliche Cloudflare-Verbindung hat aktuell KEINE dieser Secrets. Daher ist die API bewusst als nicht verfügbar gekennzeichnet. Keine Verbindung oder echtes Live-Ergebnis vortäuschen.
+Cloudflare-Stand 13.11.2026: FC_IG_SESSION_SECRET wurde als zufälliges Worker-Secret erzeugt und ist in den Bindings geprüft. FC_IG_CLIENT_ID und FC_IG_CLIENT_SECRET fehlen noch. Daher ist die API bewusst als nicht verfügbar gekennzeichnet. Keine Verbindung oder echtes Live-Ergebnis vortäuschen.
 
 ## Build und Tests
 Build: node apps/followclean/build-instagram-worker.mjs
@@ -49,3 +49,11 @@ Die Vorlage worker.instagram-template.mjs enthält das serverseitige OAuth-Modul
 
 Meta Felder: https://developers.facebook.com/docs/graph-api/reference/shadow-ig-user
 Meta Instagram API: https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api
+
+## Cloudflare-Auslieferung vom 13.11.2026
+- Bestands-Worker: followclean-mvp-preview
+- Deployment: 5163b35d-b302-4863-8cb8-e5837316e87f, 100 % für HTML+OAuth-Code angenommen.
+- Anschließende sichere Session-Secret-Bindung in Version 9cad5a45-8b69-4806-bcec-d011365bc9eb, 100 % laut Cloudflare.
+- Separater Kandidaten-Worker wurde nach erfolgreichem Upload-Test wieder deaktiviert und gelöscht.
+- Kein Echtgeldbetrieb, keine neuen kostenpflichtigen Dienste, keine Instagram-Credentials in Git.
+- Keine bestätigte HTTP-End-to-End-Antwort aus der Toolumgebung; externe OAuth-Verifizierung bleibt offen.
