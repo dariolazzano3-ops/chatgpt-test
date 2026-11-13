@@ -402,83 +402,15 @@ async function handleApi(request, env, url) {
   return json({error: 'not_found'}, 404);
 }
 
-/**
- * One-shot, read-only Apify credential test. Runs on a temporary Cron trigger,
- * never exposes the token, never runs an Actor, and stores only HTTP codes.
- * An atomic D1 state transition ensures zero repeats even if Cron fires repeatedly.
- */
-async function fcVerifyApifyTokenOnce(env) {
-  if (!env.FC_APIFY_BUDGET_DB || typeof env.FC_APIFY_TOKEN !== 'string') return;
-  const db=env.FC_APIFY_BUDGET_DB;
-  const check=await db.prepare(
-    "UPDATE fc_apify_token_diagnostics_v1 SET state='running' WHERE test_id=? AND state='pending'"
-  ).bind('apify-20261113-once').run();
-  if (!check?.success || check.meta?.changes!==1) return;
-  let userStatus=null,runStatus=null,errorCode=null;
-  // Use default Workers fetch options and inspect each endpoint independently.
-  async function statusOnly(url){
-    const response=await fetch(url,{
-      method:'GET',
-      headers:{Authorization:'Bearer '+env.FC_APIFY_TOKEN,Accept:'application/json'},
-      signal:AbortSignal.timeout(15000)
-    });
-    return response.status; // Never read private response data.
-  }
-  const problems=[];
-  try{
-    runStatus=await statusOnly('https://api.apify.com/v2/acts/cwcr3CoSbucMVwFsF/runs?limit=1');
-  }catch(e){
-    const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
-    const message=String(e?.message||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,18);
-    problems.push('ACTOR_'+name+'_'+message);
-  }
-  try{
-    userStatus=await statusOnly('https://api.apify.com/v2/users/me');
-  }catch(e){
-    const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
-    const message=String(e?.message||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,18);
-    problems.push('USER_'+name+'_'+message);
-  }
-  if(problems.length){
-    let control='SKIPPED';
-    try{
-      const r=await fetch('https://example.com/',{method:'GET',signal:AbortSignal.timeout(7000)});
-      control='HTTP'+r.status;
-    }catch(e){control=e?.name==='TypeError'?'TypeError':'Other'}
-    errorCode=(problems.join('_')+'_CONTROL_'+control).slice(0,80);
-  }
-  await db.prepare(
-    "UPDATE fc_apify_token_diagnostics_v1 SET state=?, checked_at=datetime('now'), user_auth_http=?, actor_runs_http=?, error_code=? WHERE test_id=? AND state='running'"
-  ).bind(errorCode?'failed':'complete',userStatus,runStatus,errorCode,'apify-20261113-once').run();
-}
-
 export default {
-  async scheduled(_controller, env) {
-    await fcVerifyApifyTokenOnce(env);
-  },
   async fetch(request, env) {
     const url = new URL(request.url);
-    // Temporary admin-only one-shot read-only diagnostic. Removed after the test.
-    if (url.pathname==='/api/analysis/provider/verify-once') {
-      const supplied=url.searchParams.get('challenge');
-      if (request.method!=='GET'||typeof env.FC_APIFY_DIAG_KEY!=='string'||
-          !/^[a-f0-9]{64}$/.test(supplied||'')||supplied!==env.FC_APIFY_DIAG_KEY)
-        return new Response('Not found',{status:404});
-      if(!env.FC_APIFY_BUDGET_DB||!env.FC_APIFY_TOKEN)
-        return json({error:'missing_bindings'},503);
-      await fcVerifyApifyTokenOnce(env);
-      const data=await env.FC_APIFY_BUDGET_DB.prepare(
-        "SELECT state,user_auth_http,actor_runs_http,error_code FROM fc_apify_token_diagnostics_v1 WHERE test_id=?"
-      ).bind('apify-20261113-once').first();
-      return json({state:data?.state||'not_found',userAuthHttp:data?.user_auth_http??null,
-        actorRunsHttp:data?.actor_runs_http??null,errorCode:data?.error_code||null},200);
-    }
     if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, env, url);
     if (url.pathname.startsWith(API_PREFIX)) return handleApi(request, env, url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', {status:405});
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-temporary-readonly-auth-test'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-safe-after-apify-scope-audit'}});
   }
 };
