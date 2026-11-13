@@ -426,7 +426,7 @@ async function fcVerifyApifyTokenOnce(env) {
   }
   const problems=[];
   try{
-    runStatus=await statusOnly('https://api.apify.com/v2/actors/lance_api~instagram-followers-following-scraper/runs?limit=1');
+    runStatus=await statusOnly('https://api.apify.com/v2/acts/cwcr3CoSbucMVwFsF/runs?limit=1');
   }catch(e){
     const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
     const message=String(e?.message||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,18);
