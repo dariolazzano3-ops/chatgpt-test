@@ -24,9 +24,11 @@ await check('policy exists without API credentials or payment activation',async(
   assert.equal(s.policy.conservativeUsdCap,0.20);
   assert.equal(s.policy.executionEnabled,false);
   assert.equal(s.policy.manualReviewFollowersMax,5000);
+  assert.equal(s.policy.referenceUsdPer1000,1.50);
+  assert.equal(s.policy.referenceUsdProfileFee,0.001);
 });
 await check('small account can be cost candidate only',async()=>{
-  const r=await post('/api/analysis/quote',{followers:300,following:200}),d=await r.json();
+  const r=await post('/api/analysis/quote',{followers:35,following:35}),d=await r.json();
   assert.equal(d.quote.status,'CANDIDATE');
   assert.equal(d.quote.eligible,true);
   assert.equal(d.estimateOnly,true);
@@ -72,7 +74,8 @@ await check('existing ZIP parser, sample result UI, sandbox and noindex remain',
   assert.match(html,/id="fc-insights-return-rate"/);
   assert.match(html,/buy\.stripe\.com\/test_/);
   assert.match(html,/noindex/);
-  assert.equal(r.headers.get('x-followclean-release'),'followclean-v12-budget-protection');
+  assert.equal(r.headers.get('x-followclean-release'),'followclean-v13-apify-standby');
+  assert.match(html,/id="fc-username-first"/);
 });
 console.log(passed+' budget regression checks passed');
 if(process.exitCode)process.exit(process.exitCode);
