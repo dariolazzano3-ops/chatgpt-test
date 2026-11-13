@@ -1185,6 +1185,30 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-cost-guard .fc-cost-amount{font-variant-numeric:tabular-nums;font-weight:800}
 @media(prefers-color-scheme:dark){.fc-cost-guard{background:#1b2d42;border-color:#3c5c78;color:#d7ebff}.fc-cost-guard summary .fc-cost-lock{color:#89e5ba}.fc-cost-guard summary .fc-cost-flag{color:#b9d8ef;background:#2c4762}.fc-cost-guard .fc-cost-body{border-color:#3d5a75}.fc-cost-guard .fc-cost-status{color:#d8eaff}.fc-cost-guard p{color:#b3cde6}}
 
+
+/* FollowClean V13 · Honest username-first experience: no imaginary profiles or followers */
+.fc-username-first{margin:19px 0;border:1px solid #bdd7f2;border-radius:18px;padding:21px;background:linear-gradient(132deg,#f5faff,#eff5ff);box-shadow:0 10px 35px #4a88d412}
+.fc-username-kicker{font-size:10px;letter-spacing:.13em;font-weight:900;color:#2c6cae}
+.fc-username-first h3{margin:7px 0 7px;font-size:21px;color:#233d63;letter-spacing:-.5px}
+.fc-username-first>p,.fc-username-note{font-size:11px;line-height:1.6;color:#607e9e;margin:0 0 12px}
+.fc-username-form{display:flex;flex-wrap:wrap;gap:8px}
+.fc-username-form label{flex-basis:100%;font-size:11px;font-weight:800;color:#315e88}
+.fc-username-form input{min-width:0;flex:1 1 160px;border:1px solid #aec8e5;background:#fff;padding:12px 13px;border-radius:10px;min-height:48px;color:#183d65;font-size:16px}
+.fc-username-form button{min-height:48px;flex:0 1 auto;padding:11px 16px;border:0;border-radius:10px;background:#1768df;color:#fff;font-size:12px;font-weight:850}
+.fc-username-form button:disabled{opacity:.6;cursor:wait}
+.fc-username-result{margin:13px 0;padding:13px;border-radius:12px;border:1px solid #c3d8f0;background:#fff}
+.fc-username-result-top{display:flex;align-items:center;gap:11px}
+.fc-username-avatar{width:49px;height:49px;border-radius:50%;display:grid;place-items:center;border:2px solid #dca0d1;background:#e9edfb;font-size:21px;font-weight:850;color:#3d5da1;flex-shrink:0}
+.fc-username-result strong{font-size:14px;color:#1f4067;word-break:break-word}
+.fc-username-result p{font-size:11px;color:#597692;line-height:1.5;margin:4px 0}
+.fc-username-progress{height:6px;border-radius:99px;background:#dfebf7;overflow:hidden;margin-top:12px}
+.fc-username-progress span{display:block;height:100%;width:45%;border-radius:99px;background:linear-gradient(90deg,#286fe2,#61c6fa,#286fe2);animation:fc-query-shimmer 1.3s ease-in-out infinite}
+@keyframes fc-query-shimmer{0%{transform:translateX(-115%)}100%{transform:translateX(250%)}}
+.fc-username-note{margin:12px 0 0}
+@media(max-width:520px){.fc-username-first{padding:16px}.fc-username-first h3{font-size:19px}.fc-username-form button{width:100%;flex-basis:100%}}
+@media(prefers-color-scheme:dark){.fc-username-first{background:linear-gradient(130deg,#1c2b44,#203a4b);border-color:#46668b}.fc-username-first h3,.fc-username-result strong{color:#ebf4ff}.fc-username-first>p,.fc-username-note,.fc-username-result p{color:#b6cae4}.fc-username-form label{color:#c6e2ff}.fc-username-form input{background:#1b2a3d;border-color:#4e6a8a;color:#f4f8ff}.fc-username-result{background:#223751;border-color:#4a6a8d}.fc-username-avatar{background:#2a4563;color:#e0efff}}
+@media(prefers-reduced-motion:reduce){.fc-username-progress span{animation:none!important;width:100%}}
+
 </style>
   <script>
 /*!
@@ -1828,6 +1852,43 @@ function animateNonFollowPercent(element, value, result) {
   requestAnimationFrame(tick);
 }
 
+
+// Username-first opt-in readiness check. The Worker never contacts Instagram or Apify here.
+const fcUsernameForm=$('fc-username-form');
+fcUsernameForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const value=$('fc-username-input').value.trim().replace(/^@/,'').toLowerCase();
+  const result=$('fc-username-result');
+  result.hidden=false;
+  if(!/^[a-z0-9._]{1,30}$/.test(value)){
+    $('fc-username-name').textContent='Bitte gültigen Instagram-Namen eingeben';
+    $('fc-username-state').textContent='Nur Buchstaben, Zahlen, Punkt und Unterstrich sind erlaubt.';
+    $('fc-username-progress').hidden=true;
+    return;
+  }
+  const submit=$('fc-username-submit');
+  submit.disabled=true;
+  $('fc-username-avatar').textContent=value[0].toUpperCase();
+  $('fc-username-name').textContent='@'+value;
+  $('fc-username-state').textContent='Verbindung zum FollowClean-Testsystem wird geprüft …';
+  $('fc-username-progress').hidden=false;
+  try{
+    const response=await fetch('/api/analysis/provider/plan',{method:'POST',
+      credentials:'same-origin',cache:'no-store',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({username:value})});
+    if(!response.ok)throw new Error('unavailable');
+    const info=await response.json();
+    if(info.username!==value||info.executionEnabled!==false)throw new Error('untrusted');
+    $('fc-username-state').textContent='Technische Vorbereitung abgeschlossen. Die externe Profilanalyse ist noch nicht freigeschaltet. Für ein echtes Ergebnis nutze derzeit deinen Instagram-Export.';
+  }catch{
+    $('fc-username-state').textContent='Die technische Verbindung ist momentan nicht verfügbar. Die lokale ZIP-Analyse funktioniert weiterhin.';
+  }finally{
+    $('fc-username-progress').hidden=true;
+    submit.disabled=false;
+  }
+});
+
 function renderCostGuardPreview(){
   const p=$('fc-cost-guard');
   if(!p||!state.result)return;
@@ -1835,7 +1896,7 @@ function renderCostGuardPreview(){
   const status=$('fc-cost-status'), description=$('fc-cost-estimate');
   const fmt=n=>n.toLocaleString('de-DE');
   const usd=n=>n.toLocaleString('de-DE',{style:'currency',currency:'USD',maximumFractionDigits:3});
-  const estimate=Math.ceil((((f+following)/1000)*0.178 + 2*0.0005)*1.20*10000+0.01*10000)/10000;
+  const estimate=Math.ceil(((((f+following)/1000)*1.50 + 0.001 + 0.001)*1.20 + 0.01)*10000)/10000;
   if (f>5000 || following>5000) {
     status.textContent='Großes Profil: bezahlte Schnell-Analyse gesperrt.';
     description.textContent='ZIP bleibt kostenlos. Im Export sind '+fmt(f)+' Follower und '+fmt(following)+' abonnierte Accounts erfasst.';
@@ -2691,6 +2752,22 @@ $('delete-local-btn').addEventListener('click',()=>{
             <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
             <button type="button" class="fast-entry-link fast-entry-secondary" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fast-entry-icon" aria-hidden="true">?</span><span><strong class="fc-guide-button-text">Anleitung ansehen</strong><small>Nur 3 einfache Schritte</small></span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button>
           </div>
+
+          <section class="fc-username-first" id="fc-username-first" aria-labelledby="fc-username-title">
+            <span class="fc-username-kicker">NEU · PROFIL-CHECK VORSCHAU</span>
+            <h3 id="fc-username-title">Starte mit deinem Instagram-Namen.</h3>
+            <p>Einfach den Namen eingeben. Wir prüfen die technische Anbindung und zeigen den nächsten Schritt. Echte Profilbilder, Zahlen und Nicht-Rückfolger werden nur angezeigt, wenn wir sie tatsächlich zuverlässig abrufen dürfen.</p>
+            <form class="fc-username-form" id="fc-username-form">
+              <label for="fc-username-input">Dein Instagram-Name</label>
+              <input type="text" id="fc-username-input" maxlength="31" placeholder="@deinname" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="fc-username-privacy"/>
+              <button type="submit" id="fc-username-submit">Profil-Check ansehen ↗</button>
+            </form>
+            <div class="fc-username-result" id="fc-username-result" role="status" aria-live="polite" hidden>
+              <div class="fc-username-result-top"><div class="fc-username-avatar" id="fc-username-avatar" aria-hidden="true">@</div><div><strong id="fc-username-name">Instagram-Profil</strong><p id="fc-username-state">Verbindung wird geprüft …</p></div></div>
+              <div class="fc-username-progress" id="fc-username-progress" aria-hidden="true"><span></span></div>
+            </div>
+            <p class="fc-username-note" id="fc-username-privacy">Diese Vorschau fragt nur unseren eigenen FollowClean-Worker. Kein Instagram-Login, kein Profil-Scraping, keine externen API-Kosten. Deine bisherige ZIP-Analyse bleibt kostenlos.</p>
+          </section>
           <div class="fc-v4-export-strip" role="note">
             <div><span class="fc-v4-export-title">Dein Instagram-Export in 3 Einstellungen</span><span class="fc-v4-export-tags"><strong>Follower &amp; Gefolgt</strong><strong>Gesamter Zeitraum</strong><strong>JSON</strong></span></div>
             <a href="https://accountscenter.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Offizielle Meta-Kontenübersicht in einem neuen Tab öffnen">Meta-Kontenübersicht öffnen ↗</a>
@@ -2846,7 +2923,7 @@ $('delete-local-btn').addEventListener('click',()=>{
               <strong class="fc-cost-status" id="fc-cost-status">Kostenschutz: externe Analyse noch nicht aktiviert.</strong>
               <p id="fc-cost-estimate">Wir verhindern, dass große Profile unkontrolliert Gebühren verursachen.</p>
               <p>Geplantes Limit: maximal 0,25 € API-Kosten pro Analyse, mit vorsichtiger USD-Grenze. Bis 1.000 Follower nur bei ausreichendem Budget, 1.001 bis 5.000 mit gesonderter Vorabprüfung, größere Profile nur per ZIP. Auch die Anzahl abonnierter Accounts zählt für die Kosten.</p>
-              <p>Die angezeigte Beispielrechnung nutzt ausschließlich lokal ermittelte Zahlen. Sie sendet keine ZIP-Daten oder Profilnamen an eine externe API und startet keine kostenpflichtige Abfrage.</p>
+              <p>Die unverbindliche Beispielrechnung orientiert sich am LanceAPI-Free-Tarif von 1,50 US-Dollar pro 1.000 Beziehungen plus Gebühren und nutzt ausschließlich lokal ermittelte Zahlen. Sie sendet keine ZIP-Daten oder Profilnamen an eine externe API und startet keine kostenpflichtige Abfrage.</p>
             </div>
           </details>
 
