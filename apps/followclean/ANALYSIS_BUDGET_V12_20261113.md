@@ -40,3 +40,12 @@ Beispiel: 636 Follower und 476 Abonnierte führen inklusive Reserve zu etwa 0,24
 - https://apify.com/instagram-data-api/instagram-followers-scraper
 - https://apify.com/lance_api/instagram-followers-following-scraper
 - https://developers.cloudflare.com/workers/observability/errors/
+
+## Release-Abnahme 13.11.2026
+- GitHub-Branch: factory/followclean-mvp-v1-20261109.
+- Worker: followclean-mvp-preview.
+- Cloudflare-Deployment f0b864f4-b17e-40a0-ab24-00da7a5f759f; Worker-Version d0dcd543-027e-4139-b5f8-0e0de0138130; 100% laut Deployments API am 13.11.2026.
+- Secret FC_IG_SESSION_SECRET wurde strikt geerbt und bleibt in Settings als secret_text sichtbar. Kein Apify-Secret angelegt.
+- 24/24 direkt ausgeführte synchrone Schutz-/Berechnungstests bestanden; Datei tests/analysis-budget-smoke.mjs im Repo als nachholbarer Node-HTTP-Regressionscheck.
+- Live-GET /api/analysis/policy ließ sich aus den Web-/Tool-Umgebungen nicht verifizieren (Zugriff auf workers.dev eingeschränkt); daher kein behaupteter Live-HTTP-End-to-End-PASS.
+- Die bestehende ZIP-Analyse, Stripe-Sandbox und Promo-Code RIO wurden nicht verändert.
