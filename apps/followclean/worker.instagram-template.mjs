@@ -67,7 +67,8 @@ function estimateFollowCleanBudget(followers, following) {
  * durable idempotency, global spend reservation, and an independently checked tariff.
  * Source: lance_api/instagram-followers-following-scraper.
  */
-const FC_APIFY_ACTOR = 'lance_api~instagram-followers-following-scraper';
+const FC_APIFY_ACTOR = 'cwcr3CoSbucMVwFsF'; // Verified immutable Apify Actor ID
+const FC_APIFY_ACTOR_SLUG = 'lance_api/instagram-followers-following-scraper';
 const FC_PROVIDER_EXECUTION_ENABLED = false;
 function fcNormalizeUsername(value) {
   if (typeof value !== 'string') return null;
@@ -175,7 +176,7 @@ async function handleAnalysisBudget(request, env, url) {
       currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
   }
   if (endpoint==='provider/status' && request.method==='GET') {
-    return json({provider:'Apify', actor:FC_APIFY_ACTOR,
+    return json({provider:'Apify', actor:FC_APIFY_ACTOR, actorName:FC_APIFY_ACTOR_SLUG,
       configured:typeof env.FC_APIFY_TOKEN==='string'&&env.FC_APIFY_TOKEN.length>24,
       budgetDatabaseReady:!!env.FC_APIFY_BUDGET_DB,
       executionEnabled:FC_PROVIDER_EXECUTION_ENABLED, mode:'standby',
