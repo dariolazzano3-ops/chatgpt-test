@@ -415,34 +415,37 @@ async function fcVerifyApifyTokenOnce(env) {
   ).bind('apify-20261113-once').run();
   if (!check?.success || check.meta?.changes!==1) return;
   let userStatus=null,runStatus=null,errorCode=null;
-  async function statusOnly(url) {
+  // Use default Workers fetch options and inspect each endpoint independently.
+  async function statusOnly(url){
     const response=await fetch(url,{
       method:'GET',
       headers:{Authorization:'Bearer '+env.FC_APIFY_TOKEN,Accept:'application/json'},
-      signal:AbortSignal.timeout(10000),
-      redirect:'error',
-      cf:{cacheTtl:0,cacheEverything:false}
+      signal:AbortSignal.timeout(15000)
     });
-    // Never inspect/store response body: it could contain private account information.
-    return response.status;
+    return response.status; // Never read private response data.
   }
-  let phase='USER';
-  try {
-    userStatus=await statusOnly('https://api.apify.com/v2/users/me');
-    phase='ACTOR';
+  const problems=[];
+  try{
     runStatus=await statusOnly('https://api.apify.com/v2/actors/lance_api~instagram-followers-following-scraper/runs?limit=1');
-  } catch(e) {
+  }catch(e){
     const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
-    let control='NOT_RUN';
-    try {
-      const probe=await fetch('https://example.com/',{method:'GET',
-        signal:AbortSignal.timeout(7000)});
-      control='HTTP'+String(probe.status);
-    } catch(ex) {
-      control=['TypeError','AbortError','TimeoutError'].includes(ex?.name)?ex.name:'Other';
-    }
-    // Persist only high-level error type and a public connectivity control.
-    errorCode=(phase+'_'+name+'_CONTROL_'+control).slice(0,80);
+    const message=String(e?.message||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,18);
+    problems.push('ACTOR_'+name+'_'+message);
+  }
+  try{
+    userStatus=await statusOnly('https://api.apify.com/v2/users/me');
+  }catch(e){
+    const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
+    const message=String(e?.message||'').replace(/[^A-Za-z0-9_]/g,'').slice(0,18);
+    problems.push('USER_'+name+'_'+message);
+  }
+  if(problems.length){
+    let control='SKIPPED';
+    try{
+      const r=await fetch('https://example.com/',{method:'GET',signal:AbortSignal.timeout(7000)});
+      control='HTTP'+r.status;
+    }catch(e){control=e?.name==='TypeError'?'TypeError':'Other'}
+    errorCode=(problems.join('_')+'_CONTROL_'+control).slice(0,80);
   }
   await db.prepare(
     "UPDATE fc_apify_token_diagnostics_v1 SET state=?, checked_at=datetime('now'), user_auth_http=?, actor_runs_http=?, error_code=? WHERE test_id=? AND state='running'"
