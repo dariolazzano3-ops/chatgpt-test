@@ -401,7 +401,46 @@ async function handleApi(request, env, url) {
   }
   return json({error: 'not_found'}, 404);
 }
+
+/**
+ * One-shot, read-only Apify credential test. Runs on a temporary Cron trigger,
+ * never exposes the token, never runs an Actor, and stores only HTTP codes.
+ * An atomic D1 state transition ensures zero repeats even if Cron fires repeatedly.
+ */
+async function fcVerifyApifyTokenOnce(env) {
+  if (!env.FC_APIFY_BUDGET_DB || typeof env.FC_APIFY_TOKEN !== 'string') return;
+  const db=env.FC_APIFY_BUDGET_DB;
+  const check=await db.prepare(
+    "UPDATE fc_apify_token_diagnostics_v1 SET state='running' WHERE test_id=? AND state='pending'"
+  ).bind('apify-20261113-once').run();
+  if (!check?.success || check.meta?.changes!==1) return;
+  let userStatus=null,runStatus=null,errorCode=null;
+  async function statusOnly(url) {
+    const response=await fetch(url,{
+      method:'GET',
+      headers:{Authorization:'Bearer '+env.FC_APIFY_TOKEN,Accept:'application/json'},
+      signal:AbortSignal.timeout(10000),
+      redirect:'error',
+      cf:{cacheTtl:0,cacheEverything:false}
+    });
+    // Never inspect/store response body: it could contain private account information.
+    return response.status;
+  }
+  try {
+    userStatus=await statusOnly('https://api.apify.com/v2/users/me');
+    runStatus=await statusOnly('https://api.apify.com/v2/actors/lance_api~instagram-followers-following-scraper/runs?limit=1');
+  } catch(e) {
+    errorCode='NETWORK_OR_TIMEOUT';
+  }
+  await db.prepare(
+    "UPDATE fc_apify_token_diagnostics_v1 SET state=?, checked_at=datetime('now'), user_auth_http=?, actor_runs_http=?, error_code=? WHERE test_id=? AND state='running'"
+  ).bind(errorCode?'failed':'complete',userStatus,runStatus,errorCode,'apify-20261113-once').run();
+}
+
 export default {
+  async scheduled(_controller, env) {
+    await fcVerifyApifyTokenOnce(env);
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, env, url);
@@ -410,6 +449,6 @@ export default {
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-provider-ready-budget-db'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-one-shot-token-probe'}});
   }
 };
