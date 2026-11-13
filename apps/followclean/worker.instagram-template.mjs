@@ -426,11 +426,23 @@ async function fcVerifyApifyTokenOnce(env) {
     // Never inspect/store response body: it could contain private account information.
     return response.status;
   }
+  let phase='USER';
   try {
     userStatus=await statusOnly('https://api.apify.com/v2/users/me');
+    phase='ACTOR';
     runStatus=await statusOnly('https://api.apify.com/v2/actors/lance_api~instagram-followers-following-scraper/runs?limit=1');
   } catch(e) {
-    errorCode='NETWORK_OR_TIMEOUT';
+    const name=['TypeError','AbortError','TimeoutError'].includes(e?.name)?e.name:'Other';
+    let control='NOT_RUN';
+    try {
+      const probe=await fetch('https://example.com/',{method:'GET',
+        signal:AbortSignal.timeout(7000)});
+      control='HTTP'+String(probe.status);
+    } catch(ex) {
+      control=['TypeError','AbortError','TimeoutError'].includes(ex?.name)?ex.name:'Other';
+    }
+    // Persist only high-level error type and a public connectivity control.
+    errorCode=(phase+'_'+name+'_CONTROL_'+control).slice(0,80);
   }
   await db.prepare(
     "UPDATE fc_apify_token_diagnostics_v1 SET state=?, checked_at=datetime('now'), user_auth_http=?, actor_runs_http=?, error_code=? WHERE test_id=? AND state='running'"
