@@ -1,0 +1,28 @@
+name = "ziegenalarm-online"
+main = "worker/index.js"
+compatibility_date = "2025-06-01"
+
+# Spielseite (public/index.html) als statische Assets – statische Abrufe sind kostenlos und unbegrenzt.
+# run_worker_first: /api/* und /ws/* landen im Worker, alles andere wird als Datei ausgeliefert.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/ws/*"]
+
+# Ein Durable Object pro Raumcode (SQLite-basiert, im kostenlosen Workers-Tarif verfügbar)
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO"]
+
+# Logs im Cloudflare-Dashboard (Workers → ziegenalarm-online → Logs)
+[observability]
+enabled = true
+
+# Weitere erlaubte Seiten-Adressen für WebSocket/API, kommagetrennt (z. B. eigene Domain).
+# Dieselbe Adresse wie der Worker ist immer erlaubt.
+[vars]
+ALLOWED_ORIGINS = ""

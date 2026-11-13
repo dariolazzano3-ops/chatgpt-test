@@ -1,0 +1,17 @@
+{
+  "name": "ziegenalarm-online",
+  "private": true,
+  "type": "module",
+  "version": "0.5.2",
+  "scripts": {
+    "dev": "node tools/build.mjs --face=neutral && node dev/server.js",
+    "build": "node tools/build.mjs --face=neutral",
+    "build:original": "node tools/build.mjs --face=original",
+    "deploy": "node tools/build.mjs --face=neutral && wrangler deploy",
+    "deploy:original": "node tools/build.mjs --face=original && wrangler deploy",
+    "check:3d": "node tools/render-check.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.30.0"
+  }
+}

@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+.dev.vars
+# Originalfoto nie ins öffentliche Repo
+src/face-original.png
