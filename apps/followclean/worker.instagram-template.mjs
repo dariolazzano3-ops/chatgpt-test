@@ -443,12 +443,27 @@ export default {
   },
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Temporary admin-only one-shot read-only diagnostic. Removed after the test.
+    if (url.pathname==='/api/analysis/provider/verify-once') {
+      const supplied=url.searchParams.get('challenge');
+      if (request.method!=='GET'||typeof env.FC_APIFY_DIAG_KEY!=='string'||
+          !/^[a-f0-9]{64}$/.test(supplied||'')||supplied!==env.FC_APIFY_DIAG_KEY)
+        return new Response('Not found',{status:404});
+      if(!env.FC_APIFY_BUDGET_DB||!env.FC_APIFY_TOKEN)
+        return json({error:'missing_bindings'},503);
+      await fcVerifyApifyTokenOnce(env);
+      const data=await env.FC_APIFY_BUDGET_DB.prepare(
+        "SELECT state,user_auth_http,actor_runs_http,error_code FROM fc_apify_token_diagnostics_v1 WHERE test_id=?"
+      ).bind('apify-20261113-once').first();
+      return json({state:data?.state||'not_found',userAuthHttp:data?.user_auth_http??null,
+        actorRunsHttp:data?.actor_runs_http??null,errorCode:data?.error_code||null},200);
+    }
     if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, env, url);
     if (url.pathname.startsWith(API_PREFIX)) return handleApi(request, env, url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', {status:405});
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-one-shot-token-probe'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v14-temporary-readonly-auth-test'}});
   }
 };
