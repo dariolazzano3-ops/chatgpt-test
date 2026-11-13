@@ -14,15 +14,16 @@ const MIN_GRAPH_REFRESH_MS = 60 * 1000;
 // All counts in public quote requests are UNVERIFIED hypothetical inputs. Never authorize a
 // charged operation on the basis of these values or the browser's decision/status.
 const FC_BUDGET_POLICY = Object.freeze({
-  version: 'v1',
+  version: 'v2-lance-free',
   maxApiEurCents: 25,
   conservativeUsdCap: 0.20,
   autoFollowersMax: 1000,
   manualReviewFollowersMax: 5000,
   absoluteFollowingMax: 5000,
-  referenceUsdPer1000: 0.178,
-  referenceUsdRunFee: 0.0005,
-  referenceRuns: 2,
+  referenceUsdPer1000: 1.50,
+  referenceUsdRunFee: 0.001,
+  referenceUsdProfileFee: 0.001,
+  referenceRuns: 1,
   bufferPercent: 20,
   extraReserveUsd: 0.01,
   // No provider contract/API key/business permission approved yet. Fail closed.
@@ -40,10 +41,10 @@ function estimateFollowCleanBudget(followers, following) {
     return {status:'LARGE_PROFILE', eligible:false, estimatedUsd:null,
       message:'Großes Profil: keine automatische API-Abfrage. Lokalen ZIP-Import verwenden.'};
   }
-  // Two separately billed source lists; include per-run charges and a pessimistic buffer.
+  // One Actor run requests both relationship types. Include run and profile events.
   // This is only a quote at the documented reference tariff, NOT an executable budget reservation.
   const baseUsd = ((followers + following) / 1000) * p.referenceUsdPer1000 +
-    p.referenceUsdRunFee * p.referenceRuns;
+    p.referenceUsdRunFee * p.referenceRuns + p.referenceUsdProfileFee;
   const withReserveUsd = safeUsd(baseUsd * (1 + p.bufferPercent / 100) + p.extraReserveUsd);
   const withinBudget = withReserveUsd <= p.conservativeUsdCap;
   if (!withinBudget) {
@@ -57,11 +58,115 @@ function estimateFollowCleanBudget(followers, following) {
   return {status:'CANDIDATE', eligible:true, estimatedUsd:withReserveUsd,
     message:'Kostenseitig geeignet, aber noch keine Berechtigung zum API-Start.'};
 }
+
+/*
+ * Opt-in Apify adapter staging.
+ * This Worker does not start actors, even if someone adds a token to Cloudflare.
+ * A later release needs platform approval, account-ownership verification,
+ * durable idempotency, global spend reservation, and an independently checked tariff.
+ * Source: lance_api/instagram-followers-following-scraper.
+ */
+const FC_APIFY_ACTOR = 'lance_api~instagram-followers-following-scraper';
+const FC_PROVIDER_EXECUTION_ENABLED = false;
+function fcNormalizeUsername(value) {
+  if (typeof value !== 'string') return null;
+  const username = value.replace(/^@/,'').trim().toLowerCase();
+  return /^[a-z0-9._]{1,30}$/.test(username) ? username : null;
+}
+function buildApifyDryRun(username, trustedCounts) {
+  const name=fcNormalizeUsername(username);
+  if (!name || !trustedCounts || trustedCounts.verifiedByServer !== true)
+    return {ok:false,error:'trusted_account_counts_required'};
+  const price=estimateFollowCleanBudget(trustedCounts.followers,trustedCounts.following);
+  if(price.status!=='CANDIDATE')return {ok:false,error:price.status,quote:price};
+  // This builds an inert integration specification only. It sends no provider request.
+  return {
+    ok:true,executed:false,provider:'Apify',actor:FC_APIFY_ACTOR,
+    endpoint:'/v2/acts/'+FC_APIFY_ACTOR+'/runs',
+    input:{profiles:[name],dataToScrape:'both',
+      resultsLimit:Math.max(1,Math.max(trustedCounts.followers,trustedCounts.following))},
+    runOptions:{maxTotalChargeUsd:FC_BUDGET_POLICY.conservativeUsdCap,
+      maxPaidDatasetItems:trustedCounts.followers+trustedCounts.following,
+      restartOnError:false},
+    quote:price,
+    gates:['owner_consent','actor_usage_approval','provider_credentials',
+      'durable_idempotency','durable_global_spend_limit','current_tariff_verified']
+  };
+}
+// Conservative offline parser for *synthetic test fixtures only* until a verified
+// external data source and provenance are available. Never trust public request
+// bodies as proof of follower or following membership.
+function validateApifyEvidence(username,counts,rows,summary){
+  const source=fcNormalizeUsername(username);
+  if(!source||!counts||counts.verifiedByServer!==true||
+     !validCount(counts.followers)||!validCount(counts.following)||
+     !Array.isArray(rows)||rows.length!==counts.followers+counts.following||
+     !summary||summary.status!=='SUCCEEDED'||summary.billing?.confirmed!==true)
+    return {ok:false,reason:'unverified_or_incomplete'};
+  if(rows.length>1200) return {ok:false,reason:'over_test_limit'};
+  const coverage=summary.results;
+  if(!Array.isArray(coverage))return {ok:false,reason:'missing_coverage'};
+  const followerProof=coverage.find(v=>v.relationshipType==='follower'&&fcNormalizeUsername(v.sourceUsername)===source);
+  const followingProof=coverage.find(v=>v.relationshipType==='following'&&fcNormalizeUsername(v.sourceUsername)===source);
+  if(!followerProof||!followingProof||
+    [followerProof,followingProof].some(x=>x.coverageStatus!=='COMPLETE'||
+      x.billingConfirmed!==true || x.hasNextPage===true) ||
+    followerProof.deliveredCount!==counts.followers||
+    followingProof.deliveredCount!==counts.following)
+    return {ok:false,reason:'incomplete_coverage'};
+  const followers=new Set(),following=new Map();
+  for(const record of rows){
+    if(!record||fcNormalizeUsername(record.sourceUsername)!==source||
+       !['follower','following'].includes(record.relationshipType)||
+       !/^[0-9]{1,32}$/.test(String(record.userId||''))||
+       !fcNormalizeUsername(record.username))
+      return {ok:false,reason:'ambiguous_record'};
+    if(record.relationshipType==='follower'){
+      if(followers.has(record.userId))return {ok:false,reason:'duplicate_record'};
+      followers.add(record.userId);
+    }else{
+      if(following.has(record.userId))return {ok:false,reason:'duplicate_record'};
+      following.set(record.userId,fcNormalizeUsername(record.username));
+    }
+  }
+  if(followers.size!==counts.followers||following.size!==counts.following)
+    return {ok:false,reason:'count_discrepancy'};
+  const first=[...following].find(([id])=>!followers.has(id));
+  return {ok:true,source:'synthetic_offline_evidence_parser',verifiedAgainstCounts:true,
+    nonfollower:first?{username:first[1]}:null,
+    coverageNote:'COMPLETE describes exposed pagination; Instagram may still omit accounts.'};
+}
+
 async function handleAnalysisBudget(request, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
   if (endpoint==='policy' && request.method==='GET') {
-    return json({policy:FC_BUDGET_POLICY, apiProvider:'not_connected',
+    return json({policy:FC_BUDGET_POLICY, apiProvider:'apify_standby',
       currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
+  }
+  if (endpoint==='provider/status' && request.method==='GET') {
+    return json({provider:'Apify', actor:FC_APIFY_ACTOR, configured:false,
+      executionEnabled:FC_PROVIDER_EXECUTION_ENABLED, mode:'standby',
+      acceptedAccounts:'owner-authorized test accounts only',
+      analysisAvailable:false,
+      note:'Kein Live-Scan, keine Bezahl-Anfrage und kein nicht verifizierter Nicht-Rückfolger.'});
+  }
+  if (endpoint==='provider/plan' && request.method==='POST') {
+    if (request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);
+    if (!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
+      return json({error:'json_required'},415);
+    if(Number(request.headers.get('content-length')||0)>256) return json({error:'body_too_large'},413);
+    let input;
+    try{
+      const raw=await request.text();
+      if(raw.length>256)return json({error:'body_too_large'},413);
+      input=JSON.parse(raw);
+    }catch{return json({error:'invalid_body'},400);}
+    const username=fcNormalizeUsername(input?.username);
+    if(!username)return json({error:'invalid_username'},400);
+    // The username is never sent to Apify; public inputs cannot attest ownership.
+    return json({username,provider:'Apify',executionEnabled:false,available:false,
+      state:'AWAITING_VERIFIED_COUNTS_AND_PROVIDER_APPROVAL',
+      message:'Test-Anbindung vorbereitet. Echte Analyse benötigt erlaubten Zugriff und geprüfte Daten.'});
   }
   if (endpoint==='start' && request.method==='POST') {
     return json({ok:false,error:'paid_provider_not_enabled',
@@ -272,6 +377,6 @@ export default {
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v12-budget-protection'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v13-apify-standby'}});
   }
 };
