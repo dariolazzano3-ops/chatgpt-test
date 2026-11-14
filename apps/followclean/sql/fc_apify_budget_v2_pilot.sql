@@ -26,7 +26,23 @@ BEGIN
   ),0) + NEW.cap_usd_micros > 200000
   THEN RAISE(ABORT,'followclean_v2_total_budget_exceeded') END;
 END;
--- Rows are append-only: identity and reserved cap cannot change, states only move forward.
+-- New rows always start as an unbilled reservation. Only the documented legacy row may
+-- arrive settled. Prevents pre-settled or pre-priced rows from being injected.
+CREATE TRIGGER IF NOT EXISTS tr_fc_apify_v2_insert_shape
+BEFORE INSERT ON fc_apify_v2_runs
+WHEN NEW.kind <> 'legacy'
+BEGIN
+  SELECT CASE WHEN NEW.state <> 'reserved' OR NEW.actual_usd_micros IS NOT NULL
+      OR NEW.provider_run_id IS NOT NULL
+    THEN RAISE(ABORT,'followclean_v2_insert_must_be_reservation') END;
+END;
+-- UPDATE protection. Identity and reserved cap are immutable, states follow one explicit
+-- graph, and reported cost can only stay or rise. NOTE: an UPDATE that records a provider
+-- overrun is deliberately NOT blocked. The money is already spent at the provider; the
+-- ledger must record it truthfully, and the INSERT trigger then refuses every further run.
+--   reserved  -> submitted | failed
+--   submitted -> submitted (cost update) | settled | failed
+--   settled, failed: terminal
 CREATE TRIGGER IF NOT EXISTS tr_fc_apify_v2_update
 BEFORE UPDATE ON fc_apify_v2_runs
 BEGIN
@@ -36,8 +52,21 @@ BEGIN
       THEN RAISE(ABORT,'followclean_v2_immutable_field')
     WHEN OLD.state IN ('settled','failed')
       THEN RAISE(ABORT,'followclean_v2_terminal_state')
-    WHEN OLD.state = 'submitted' AND NEW.state = 'reserved'
-      THEN RAISE(ABORT,'followclean_v2_state_regression')
+    WHEN NOT ((OLD.state = 'reserved' AND NEW.state IN ('submitted','failed'))
+      OR (OLD.state = 'submitted' AND NEW.state IN ('submitted','settled','failed')))
+      THEN RAISE(ABORT,'followclean_v2_invalid_transition')
+    WHEN OLD.actual_usd_micros IS NOT NULL AND
+      (NEW.actual_usd_micros IS NULL OR NEW.actual_usd_micros < OLD.actual_usd_micros)
+      THEN RAISE(ABORT,'followclean_v2_cost_regression')
+    WHEN NEW.state = 'settled' AND NEW.actual_usd_micros IS NULL
+      THEN RAISE(ABORT,'followclean_v2_settle_requires_cost')
+    WHEN NEW.state = 'submitted' AND NEW.provider_run_id IS NULL
+      THEN RAISE(ABORT,'followclean_v2_submit_requires_run_id')
+    WHEN OLD.provider_run_id IS NOT NULL AND
+      (NEW.provider_run_id IS NULL OR NEW.provider_run_id <> OLD.provider_run_id)
+      THEN RAISE(ABORT,'followclean_v2_run_id_immutable')
+    WHEN NEW.updated_ts < OLD.updated_ts
+      THEN RAISE(ABORT,'followclean_v2_clock_regression')
   END;
 END;
 CREATE TRIGGER IF NOT EXISTS tr_fc_apify_v2_no_delete

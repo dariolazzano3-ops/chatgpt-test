@@ -293,10 +293,14 @@ async function fcV2Advance(db,runKey,state,detail={},now=Date.now()){
   if(!db||!['submitted','settled','failed'].includes(state))return {ok:false,reason:'invalid_transition'};
   const actual=detail.actualUsd===undefined?null:Math.ceil(detail.actualUsd*1e6);
   if(actual!==null&&(!Number.isSafeInteger(actual)||actual<0))return {ok:false,reason:'invalid_cost'};
+  if(state==='settled'&&actual===null)return {ok:false,reason:'settle_requires_cost'};
   const runId=typeof detail.providerRunId==='string'&&/^[A-Za-z0-9]{1,40}$/.test(detail.providerRunId)?detail.providerRunId:null;
+  if(state==='submitted'&&runId===null)return {ok:false,reason:'submit_requires_run_id'};
   try{
-    const res=await db.prepare('UPDATE fc_apify_v2_runs SET state=?2, actual_usd_micros=COALESCE(?3,actual_usd_micros), provider_run_id=COALESCE(?4,provider_run_id), updated_ts=?5 WHERE run_key=?1')
-      .bind(runKey,state,actual,runId,now).run();
+    // MAX() keeps reported cost monotonic even if provider polls arrive out of order.
+    // The D1 trigger tr_fc_apify_v2_update independently enforces the same rules.
+    const res=await db.prepare('UPDATE fc_apify_v2_runs SET state=?2, actual_usd_micros=CASE WHEN ?3 IS NULL THEN actual_usd_micros ELSE MAX(COALESCE(actual_usd_micros,0),?3) END, provider_run_id=COALESCE(provider_run_id,?4), updated_ts=MAX(updated_ts,?5) WHERE run_key=?1 AND scope=?6')
+      .bind(runKey,state,actual,runId,now,FC_V2_SCOPE).run();
     return res?.meta?.changes===1?{ok:true}:{ok:false,reason:'unknown_run'};
   }catch{return {ok:false,reason:'transition_rejected'};}
 }
@@ -309,8 +313,10 @@ async function fcV2BudgetStatus(db){
     return {ok:true,scope:FC_V2_SCOPE,runs:Number(row.runs),totalUsd:FC_V2_TOTAL_MICROS/1e6,
       committedUsd:committed/1e6,providerReportedUsd:Number(row.reported)/1e6,
       remainingUsd:Math.max(0,FC_V2_TOTAL_MICROS-committed)/1e6,
+      // D1 can refuse new runs but cannot undo provider charges: surface an overrun loudly.
+      overBudget:committed>FC_V2_TOTAL_MICROS,
       startableRuns:Math.max(0,Math.floor((FC_V2_TOTAL_MICROS-committed)/FC_V2_RUN_CAP_MICROS))};
-  }catch{return {ok:false,reason:'ledger_unavailable',startableRuns:0};}
+  }catch{return {ok:false,reason:'ledger_unavailable',startableRuns:0,overBudget:null};}
 }
 // Evidence = an independent, owner-authorized and COMPLETE follower list (e.g. the local
 // Instagram export). Without it, no checker answer can ever become a confirmed nonfollower.

@@ -68,13 +68,15 @@ await test('Settling below the cap releases nothing; overrun is counted in full'
   await api.fcV2Reserve(db,k1,'checker');await api.fcV2Advance(db,k1,'submitted',{providerRunId:'abcDEF123'});
   await api.fcV2Advance(db,k1,'settled',{actualUsd:0.011});
   assert.equal((await api.fcV2BudgetStatus(db)).committedUsd,0.10);
-  await api.fcV2Reserve(db,k2,'checker');await api.fcV2Advance(db,k2,'settled',{actualUsd:0.09});
+  await api.fcV2Reserve(db,k2,'checker');await api.fcV2Advance(db,k2,'submitted',{providerRunId:'run2'});
+  await api.fcV2Advance(db,k2,'settled',{actualUsd:0.09});
   const s=await api.fcV2BudgetStatus(db);assert.equal(s.committedUsd,0.19);assert.equal(s.startableRuns,0);
   assert.equal((await api.fcV2Reserve(db,await api.fcV2RunKey(S,'checker',me,['c']),'checker')).reason,'total_budget_exceeded');});
 await test('Ledger is append-only: no delete, no cap edit, no leaving a terminal state',async()=>{
   const db=d1(),k=await api.fcV2RunKey(S,'checker',me,['a']);
-  await api.fcV2Reserve(db,k,'checker');await api.fcV2Advance(db,k,'settled',{actualUsd:0.01});
-  assert.equal((await api.fcV2Advance(db,k,'submitted')).ok,false);
+  await api.fcV2Reserve(db,k,'checker');await api.fcV2Advance(db,k,'submitted',{providerRunId:'run1'});
+  assert.equal((await api.fcV2Advance(db,k,'settled',{actualUsd:0.01})).ok,true);
+  assert.equal((await api.fcV2Advance(db,k,'submitted',{providerRunId:'run1'})).ok,false);
   assert.throws(()=>db.raw.exec("DELETE FROM fc_apify_v2_runs"),/append_only/);
   assert.throws(()=>db.raw.exec("UPDATE fc_apify_v2_runs SET cap_usd_micros=1"),/immutable|terminal/);
   assert.throws(()=>db.raw.exec("INSERT INTO fc_apify_v2_runs VALUES ('"+'f'.repeat(64)+"','x-scope','checker',60000,NULL,'reserved',NULL,1,1)"),/CHECK/);});
