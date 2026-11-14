@@ -1834,13 +1834,25 @@ function netShot(){const yaw=camera.rotation.y,p=camera.rotation.x;
   netSend({t:'shot',w:weapon,o:[+camera.position.x.toFixed(3),+camera.position.y.toFixed(3),+camera.position.z.toFixed(3)],d:[-Math.sin(yaw)*Math.cos(p),Math.sin(p),-Math.cos(yaw)*Math.cos(p)].map(v=>+v.toFixed(5))});}
 function netBuy(o,el){if(state!=='shop')return;const key='n'+o.item+(o.side||'')+(o.act||'');const now=performance.now();if(lastBuy[key]&&now-lastBuy[key]<250)return;lastBuy[key]=now;netSend({t:'buy',...o});NET.lastBuyEl=el;}
 function netShopReady(){NET.shopReady=!NET.shopReady;netSend({t:'shopready',v:NET.shopReady});$('nextBtn').textContent=NET.shopReady?'Warte auf Mitspieler …':'Bereit für die nächste Welle';}
-function mateModel(name,team){const g=new THREE.Group();const col=team?0xd6336c:0xf3c969;const M={body:lam(col),head:lam(0xfff4dc),dark:lam(0x2a2433)};
-  const body=new THREE.Mesh(box(0.5,0.8,0.3),M.body);body.position.y=1.05;const legs=new THREE.Mesh(box(0.42,0.65,0.26),M.dark);legs.position.y=0.33;
-  const head=new THREE.Mesh(box(0.3,0.3,0.3),M.head);head.position.y=1.65;const gunm=new THREE.Mesh(box(0.08,0.08,0.55),M.dark);gunm.position.set(0.22,1.2,-0.3);
-  g.add(body,legs,head,gunm);g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+function mateModel(name,team){const g=new THREE.Group();const col=team?0xd6336c:0xf3c969,dark=team?0x7a1a40:0x8a6a1e;
+  const M={body:lam(col),trim:lam(dark),skin:lam(0xf0c9a0),pants:lam(0x2a2433),gun:lam(0x3a2550),eye:new THREE.MeshBasicMaterial({color:0x120c1f})};
+  const hip=new THREE.Group();hip.position.y=0.86;g.add(hip);
+  const torso=new THREE.Mesh(box(0.5,0.62,0.3),M.body);torso.position.y=0.36;const belt=new THREE.Mesh(box(0.52,0.08,0.32),M.trim);belt.position.y=0.06;
+  const vest=new THREE.Mesh(box(0.42,0.3,0.06),M.trim);vest.position.set(0,0.42,0.17);hip.add(torso,belt,vest);
+  const head=new THREE.Group();head.position.y=0.86;hip.add(head);
+  const skull=new THREE.Mesh(box(0.3,0.3,0.3),M.skin);skull.position.y=0.12;const cap=new THREE.Mesh(box(0.33,0.1,0.33),M.body);cap.position.y=0.3;const visor=new THREE.Mesh(box(0.3,0.03,0.16),M.trim);visor.position.set(0,0.27,0.2);
+  head.add(skull,cap,visor);for(const sx of[-1,1]){const e=new THREE.Mesh(box(0.05,0.05,0.02),M.eye);e.position.set(sx*0.07,0.15,0.155);head.add(e);}
+  const legs=[];for(const sx of[-1,1]){const piv=new THREE.Group();piv.position.set(sx*0.13,0,0);const leg=new THREE.Mesh(box(0.18,0.78,0.2),M.pants);leg.position.y=-0.42;const shoe=new THREE.Mesh(box(0.2,0.1,0.28),M.trim);shoe.position.set(0,-0.81,0.04);piv.add(leg,shoe);hip.add(piv);legs.push(piv);}
+  const arms=[];for(const sx of[-1,1]){const piv=new THREE.Group();piv.position.set(sx*0.32,0.6,0);const arm=new THREE.Mesh(box(0.14,0.5,0.14),M.body);arm.position.y=-0.22;const hand=new THREE.Mesh(box(0.12,0.12,0.12),M.skin);hand.position.y=-0.5;piv.add(arm,hand);piv.rotation.x=-1.2;piv.rotation.z=-sx*0.25;hip.add(piv);arms.push(piv);}
+  const gunm=new THREE.Mesh(box(0.08,0.1,0.6),M.gun);gunm.position.set(0.12,0.42,0.5);hip.add(gunm);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   let label=null;try{const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.font='bold 34px Rubik, sans-serif';x.textAlign='center';x.fillStyle='rgba(18,12,31,.7)';x.fillRect(0,8,256,48);x.fillStyle='#fff4dc';x.fillText(name,128,44);
     M.label=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false});label=new THREE.Sprite(M.label);label.scale.set(1.6,0.4,1);label.position.y=2.25;g.add(label);}catch(e){}
-  scene.add(g);return{g,M,head,tx:0,tz:0,ty:0,yaw:0};}
+  scene.add(g);return{g,M,head,hip,legs,arms,tx:0,tz:0,ty:0,yaw:0,ph:0,lx:0,lz:0};}
+// Laufanimation aus der tatsächlichen Bewegung (Beine, Arme, Wippen, Kopfneigung nach Blickwinkel)
+function animMate(m,dt,pitch){const p=m.g.position;const v=Math.hypot(p.x-m.lx,p.z-m.lz)/Math.max(dt,1e-3);m.lx=p.x;m.lz=p.z;const sp=Math.min(1,v/6);
+  m.ph+=dt*(4+sp*8);const a=Math.sin(m.ph)*0.8*sp;m.legs[0].rotation.x=a;m.legs[1].rotation.x=-a;m.hip.position.y=0.86+Math.abs(Math.cos(m.ph))*0.05*sp-(m.cr?0.25:0);
+  m.arms[0].rotation.x=-1.2+a*0.15;m.arms[1].rotation.x=-1.25-a*0.15;if(pitch!=null)m.head.rotation.x=Math.max(-0.6,Math.min(0.6,-pitch));}
 function disposeMate(m){scene.remove(m.g);for(const k in m.M){if(m.M[k].map)m.M[k].map.dispose();m.M[k].dispose();}}
 function netSnap(s){NET.snap=s;NET.lastSnapAt=performance.now();NET.stats.snaps++;if(!NET.on)return;
   if(s.mode==='royale'){if(ROY.on)roySnap(s);return;}
@@ -1880,7 +1892,7 @@ function netSnap(s){NET.snap=s;NET.lastSnapAt=performance.now();NET.stats.snaps+
   const here=new Set();
   for(const p of s.players){if(p.id===NET.you)continue;here.add(p.id);let m=NET.mates.get(p.id);
     if(!m){const rp=NET.room&&NET.room.players.find(x=>x.id===p.id);m=mateModel(rp?rp.name:'Mitspieler',s.team);NET.mates.set(p.id,m);m.g.position.set(p.x,p.y,p.z);}
-    m.tx=p.x;m.tz=p.z;m.ty=p.y;m.yaw=p.yaw;m.cr=p.cr;}
+    m.tx=p.x;m.tz=p.z;m.ty=p.y;m.yaw=p.yaw;m.cr=p.cr;m.pitch=p.pitch;}
   for(const [id,m] of NET.mates)if(!here.has(id)){disposeMate(m);NET.mates.delete(id);}
   // Gegner-Anzeige
   const o=s.others[0];if(o){const tn=NET.room?NET.room.teams[o.team]:'Gegner';
@@ -1917,7 +1929,7 @@ function netUpdate(dt){
     const k=o.c+','+o.x+','+o.z+','+o.y+','+o.yaw+','+o.pitch+','+o.w+','+o.cr;if(k!==NET.lastIn||NET.hbT<=0){NET.lastIn=k;NET.hbT=0.25;netSend(o);}}
   NET.pingT-=dt;if(NET.pingT<=0){NET.pingT=2;netSend({t:'ping',c:performance.now()});}
   for(const m of NET.mates.values()){const k=Math.min(1,dt*12);m.g.position.x+=(m.tx-m.g.position.x)*k;m.g.position.z+=(m.tz-m.g.position.z)*k;m.g.position.y+=(m.ty-m.g.position.y)*k;
-    let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;m.g.scale.y=m.cr?0.7:1;}
+    let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;animMate(m,dt,m.pitch);}
   if(bannerT>0){bannerT-=dt;if(bannerT<=0&&NET.phase==='wave')$('banner').classList.remove('show');}
   const stale=performance.now()-NET.lastSnapAt>1500;$('netDot').classList.toggle('bad',stale);}
 function netResults(r){NET.on=false;state='results';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
@@ -2049,7 +2061,7 @@ function roySnap(s){
   // Spieler
   const here=new Set();
   for(const p of s.players){if(p.id===NET.you)continue;here.add(p.id);const m=royOther(p);
-    m.tx=p.x;m.tz=p.z;m.ty=p.y+(p.mount?0.7:0);m.yaw=p.yaw;m.cr=p.cr;m.fall=p.fall;m.out=p.out;m.prot=p.prot;m.mount=p.mount;
+    m.tx=p.x;m.tz=p.z;m.ty=p.y+(p.mount?0.7:0);m.yaw=p.yaw;m.cr=p.cr;m.pitch=p.pitch;m.fall=p.fall;m.out=p.out;m.prot=p.prot;m.mount=p.mount;
     royInfoTex(m,m.name,p.lives,p.wucht,p.prot);}
   for(const [id,m] of ROY.others)if(!here.has(id)){royDisposeOther(m);ROY.others.delete(id);}
   // Ziegen
@@ -2099,7 +2111,7 @@ function royUpdate(dt){
   // Andere Spieler
   for(const m of ROY.others.values()){const k=Math.min(1,dt*12);m.g.position.x+=(m.tx-m.g.position.x)*k;m.g.position.z+=(m.tz-m.g.position.z)*k;
     const ty=m.fall?-30:m.ty;m.g.position.y+=(ty-m.g.position.y)*Math.min(1,dt*(m.fall?2:12));m.g.visible=!m.out&&!(m.prot&&Math.floor(performance.now()/120)%2);
-    let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;m.g.scale.y=m.cr?0.7:1;}
+    let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;animMate(m,m.mount?0:dt,m.pitch);if(m.mount){m.legs[0].rotation.x=-1.1;m.legs[1].rotation.x=-1.1;m.legs[0].rotation.z=0.5;m.legs[1].rotation.z=-0.5;}else{m.legs[0].rotation.z=m.legs[1].rotation.z=0;}}
   // Ziegen
   for(const [id,r] of ROY.goats){if(r.st===3)continue;const p=r.g.g.position;let tx=r.tx,tz=r.tz,ry=r.ry;
     if(id===ROY.mount&&r.st===1){tx=player.x;tz=player.z;ry=player.yaw+Math.PI;}
