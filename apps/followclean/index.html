@@ -1240,6 +1240,57 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-color-scheme:dark){.fc-smartscan-v1{background:linear-gradient(135deg,#172a24,#1a332b 60%,#1a292d);border-color:#37674e;color:#e4f8e8}.fc-smartscan-v1 p,.fc-smartscan-v1-note{color:#abcfba!important}.fc-smartscan-v1-kicker,.fc-smartscan-v1-stats,.fc-smartscan-v1-stats strong{color:#bcecc9}.fc-smartscan-v1-shield{color:#b7f6c7;background:#2a5641}.fc-smartscan-v1-meter{background:#355240}.fc-smartscan-v1-hit{background:#1e3b2f;border-color:#367956}.fc-smartscan-v1-hit-body strong{color:#d6f4df}.fc-smartscan-v1-hit-body small{color:#a3cdb4}.fc-smartscan-v1-avatar{background:#28553d;color:#e5f8e8}.fc-smartscan-v1-actions button:nth-child(2){background:#18382c;color:#d5f9e1}}
 @media(prefers-reduced-motion:reduce){.fc-smartscan-v1-meter span{transition:none}.fc-smartscan-v1-hit{animation:none}}
 
+
+/* FollowClean V17 · visited vs done, return prompt, fallback avatars, live explainer */
+.profile-row .profile-avatar[data-fc-fallback]{background:hsl(var(--fc-av-h,215) 72% 94%);color:hsl(var(--fc-av-h,215) 58% 30%);border-color:hsl(var(--fc-av-h,215) 60% 72%);font-weight:850}
+.profile-row.fc-row-opened{border-left:3px solid #3d7fe0;padding-left:9px;border-radius:4px 9px 9px 4px}
+.profile-row.fc-row-opened .profile-avatar[data-fc-fallback]{border-style:dashed;border-color:#3d7fe0}
+.profile-row.fc-row-done .profile-avatar[data-fc-fallback]{background:#e5fbec;color:#147c51;border-color:#2cb66f}
+.fc-visit-toast.fc-return-prompt{flex-direction:column;align-items:stretch;gap:11px;background:#eaf2ff;border-color:#a9c8f5;color:#173f7a;padding:14px}
+.fc-return-prompt-actions{display:flex;flex-wrap:wrap;gap:8px}
+.fc-visit-toast.fc-return-prompt button{flex:1 1 auto;min-height:44px;padding:10px 14px;font-size:12.5px;background:#fff;color:#173f7a;border-color:#b9d1f3}
+.fc-visit-toast.fc-return-prompt #visit-confirm{background:#16804f;border-color:#16804f;color:#fff}
+.fc-visit-toast.fc-return-prompt.is-in{animation:fc-prompt-in 260ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes fc-prompt-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.fc-why-live{margin:12px 0 0;border:1px solid #dbe4f3;border-radius:12px;background:#f6f9fe;color:#33405a;overflow:hidden}
+.fc-why-live summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;cursor:pointer;list-style:none;font-size:13px;font-weight:760;line-height:1.35;-webkit-tap-highlight-color:transparent}
+.fc-why-live summary::-webkit-details-marker{display:none}
+.fc-why-live summary:focus-visible{outline:3px solid #a1c8ff;outline-offset:-3px;border-radius:12px}
+.fc-why-live-icon{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#0064e0;color:#fff;font-size:12px;font-weight:900;font-style:italic}
+.fc-why-live summary>span:nth-child(2){flex:1}
+.fc-why-live-chevron{transition:transform 200ms ease;font-size:16px;color:#0064e0}
+.fc-why-live[open] .fc-why-live-chevron{transform:rotate(180deg)}
+.fc-why-live-body{padding:0 14px 14px;font-size:12.5px;line-height:1.6}
+.fc-why-live[open] .fc-why-live-body{animation:fc-card-in 240ms ease both}
+.fc-why-live-body p{margin:0 0 10px}
+.fc-why-live-body ul{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.fc-why-live-body li{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:start}
+.fc-why-tag{display:inline-block;text-align:center;padding:3px 6px;border-radius:999px;font-size:10.5px;font-weight:850;border:1px solid transparent}
+.fc-why-tag.is-confirmed{background:#fdeaea;color:#a3222f;border-color:#f3b9bf}
+.fc-why-tag.is-mutual{background:#e5f8ee;color:#12744a;border-color:#a6dfc1}
+.fc-why-tag.is-unverified{background:#fff4dc;color:#8a5a00;border-color:#f0d48e}
+.fc-why-tag.is-unknown{background:#eceff4;color:#515b6c;border-color:#cfd6e1}
+.fc-why-live-next{font-weight:720}
+.fc-why-live-cta{min-height:44px;width:100%;border-radius:10px;border:1px solid #c2d8f5;background:#fff;color:#0c59b9;font-size:13px;font-weight:850;padding:10px 14px}
+.fc-why-live-cta:focus-visible{outline:3px solid #a1c8ff;outline-offset:2px}
+@media(max-width:380px){.fc-why-live-body li{grid-template-columns:1fr;gap:3px}.fc-why-tag{justify-self:start}}
+@media(prefers-color-scheme:dark){
+ .profile-row .profile-avatar[data-fc-fallback]{background:hsl(var(--fc-av-h,215) 34% 22%);color:hsl(var(--fc-av-h,215) 80% 84%);border-color:hsl(var(--fc-av-h,215) 40% 44%)}
+ .profile-row.fc-row-opened{border-left-color:#6ea6f5}
+ .profile-row.fc-row-opened .profile-avatar[data-fc-fallback]{border-color:#6ea6f5}
+ .profile-row.fc-row-done .profile-avatar[data-fc-fallback]{background:#254a37;color:#b4fbd4;border-color:#40cc87}
+ .fc-visit-toast.fc-return-prompt{background:#1c2c45;border-color:#3d5a86;color:#d3e4ff}
+ .fc-visit-toast.fc-return-prompt button{background:#263a59;color:#d9e8ff;border-color:#45628f}
+ .fc-visit-toast.fc-return-prompt #visit-confirm{background:#1f9a61;border-color:#1f9a61;color:#fff}
+ .fc-why-live{background:#1b2333;border-color:#34425c;color:#d5ddec}
+ .fc-why-live-chevron{color:#8fbaff}
+ .fc-why-tag.is-confirmed{background:#4a2126;color:#ffc4ca;border-color:#7c3a43}
+ .fc-why-tag.is-mutual{background:#1f4334;color:#b4f4cf;border-color:#3d7a5c}
+ .fc-why-tag.is-unverified{background:#453718;color:#ffe2a1;border-color:#7a6230}
+ .fc-why-tag.is-unknown{background:#2c3442;color:#c9d2e0;border-color:#4a5568}
+ .fc-why-live-cta{background:#263d5b;border-color:#44638d;color:#c9e1ff}
+}
+@media(prefers-reduced-motion:reduce){.fc-visit-toast.fc-return-prompt.is-in,.fc-why-live[open] .fc-why-live-body{animation:none}.fc-why-live-chevron{transition:none}}
 </style>
   <script>
 /*!
@@ -1564,6 +1615,7 @@ function setStatus(name, status) {
   if (status!==previous && !$('guide-panel').hidden) state.guideUndo={name,previous};
   if (status === 'open') delete state.statuses[name]; else state.statuses[name] = status;
   if(state.lastVisitedName===name && status!=='opened')state.lastVisitedName=null;
+  if(state.returnPrompt?.name===name && status!=='opened'){state.returnPrompt=null;$('visit-toast').hidden=true;}
   if (state.activeVisit?.name === name && status !== 'opened') {
     state.activeVisit = null;
     rememberPendingVisit(null);
@@ -1881,27 +1933,34 @@ function completeVisitOnReturn() {
   if (visit.key !== state.key || !Number.isFinite(visit.started) ||
       Date.now() - visit.started > FC_VISIT_TTL_MS || Date.now() < visit.started ||
       statusFor(visit.name) !== 'opened') return;
-  // Convenience workflow: "Erledigt" means processed in FollowClean, NOT unfollowed on Instagram.
-  // Account and visit validation above prevents completion on mere focus/blur or another ZIP/account.
-  const previous = visit.previousStatus==='open'?'open':'opened';
-  state.lastVisitedName=null;
+  // A profile visit proves nothing about unfollowing. The account stays "besucht" (opened)
+  // until the user consciously chooses Erledigt or Behalten. No green state is set here.
+  state.lastVisitedName=visit.name;
   state.sessionNextName=null;
   state.skip.delete(visit.name);
-  state.lastAutoDone={name:visit.name,previous,key:state.key};
-  setStatus(visit.name,'done');
+  state.lastAutoDone=null;
+  state.returnPrompt={name:visit.name,key:state.key};
+  renderResults();
   if (!$('guide-panel').hidden) {
-    state.guideUndo={name:visit.name,previous,action:'auto-visit'};
-    renderGuide(); // SetStatus already renders the next account, now display the correct Undo target.
-    $('guide-feedback').textContent='✓ @'+visit.name+' nach Profilbesuch als bearbeitet markiert. Nächster Account bereit. Kein Entfolgen bestätigt.';
+    $('guide-feedback').textContent='↩ Zurück von @'+visit.name+'. Besucht, aber noch nicht erledigt. Bitte selbst bestätigen.';
     $('guide-feedback').hidden=false;
-    const panel=$('guide-panel');
-    panel.classList.remove('fc-step-advanced');
-    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-      requestAnimationFrame(()=>{if(!panel.hidden)panel.classList.add('fc-step-advanced');});
-    }
   }
-  $('visit-toast-text').textContent='✓ @'+visit.name+' automatisch als erledigt markiert. Nicht als Entfolgen bestätigt.';
-  $('visit-toast').hidden=false;
+  showReturnPrompt(visit.name);
+}
+function showReturnPrompt(name) {
+  const toast=$('visit-toast');
+  $('visit-toast-text').textContent='↩ Zurück von @'+name+'. Hast du dort entfolgt? FollowClean kann das nicht sehen.';
+  toast.hidden=false;
+  toast.classList.remove('is-in');
+  if (!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)
+    requestAnimationFrame(()=>toast.classList.add('is-in'));
+}
+function answerReturnPrompt(status) {
+  const target=state.returnPrompt;
+  state.returnPrompt=null;
+  $('visit-toast').hidden=true;
+  if(!target || !state.result || target.key!==state.key || statusFor(target.name)!=='opened')return;
+  if(status==='done' || status==='keep')setStatus(target.name,status);
 }
 window.addEventListener('pagehide', markVisitAway);
 document.addEventListener('visibilitychange', () => {
@@ -2126,9 +2185,10 @@ function renderResults() {
   for (const name of rows) {
     const status = statusFor(name);
     const row = makeEl('div',`profile-row${status === 'done' ? ' fc-row-done' : status === 'opened' ? ' fc-row-opened' : ''}`);
-    const avatar = makeEl('div','profile-avatar',name[0].toUpperCase());
+    const avatar = makeEl('div','profile-avatar',fcAvatarInitial(name));
+    avatar.dataset.fcFallback='1'; avatar.style.setProperty('--fc-av-h',String(fcAvatarHue(name)));
     const details = makeEl('div','profile-details');
-    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Bearbeitet · kein Entfolgen-Nachweis' : status === 'opened' ? '↗ Profil geöffnet · Rückkehr abwarten' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
+    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Bearbeitet · kein Entfolgen-Nachweis' : status === 'opened' ? '↗ Profil besucht · noch nicht erledigt' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
     const actions = makeEl('div','profile-actions');
     if (!state.demo) {
       const link = makeEl('a','profile-link','Profil ↗');
@@ -2148,6 +2208,16 @@ function renderResults() {
   const more=$('fc-load-more'),left=filtered.length-rows.length;
   more.hidden=left<=0;more.textContent=`Weitere ${Math.min(left,FC_PAGE_SIZE)} anzeigen · ${left} übrig`;
   if (!$('guide-panel').hidden) renderGuide();
+}
+// Local fallback avatars only: no remote image request, so nothing can break or leak.
+function fcAvatarInitial(name) {
+  const letter=String(name||'').replace(/[^a-z0-9]/gi,'')[0];
+  return letter?letter.toUpperCase():'@';
+}
+function fcAvatarHue(name) {
+  let hash=0;
+  for (const ch of String(name||'')) hash=(hash*31+ch.codePointAt(0))>>>0;
+  return hash%360;
 }
 function remaining() {
   return state.result.notFollowingBack.filter(name => statusFor(name) === 'open' || statusFor(name) === 'opened');
@@ -2175,7 +2245,7 @@ function renderGuide() {
   $('guide-name').textContent=name?'@'+name:'Alles bearbeitet 🎉';
   $('guide-avatar').textContent=name?name[0].toUpperCase():'✓';
   const pending=name && statusFor(name)==='opened';
-  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil geöffnet. Nach Rückkehr wird es automatisch als erledigt markiert.':'Öffne das Profil oder entscheide direkt. Nach Rückkehr wird automatisch abgehakt.';
+  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil besucht. Erledigt wird es erst, wenn du es selbst bestätigst.':'Öffne das Profil oder entscheide direkt. Nach der Rückkehr fragen wir dich, ob es erledigt ist.';
   $('guide-done').disabled=!name;
   $('guide-keep').disabled=!name;
   $('guide-skip').disabled=!name||remaining().length<2;
@@ -2334,20 +2404,9 @@ $('fc-sort').addEventListener('change',event => {
 });
 $('fc-load-more').addEventListener('click',()=>{state.visibleCount+=FC_PAGE_SIZE;renderResults();});
 // Privacy-safe initials: no external image requests.
-$('visit-undo').addEventListener('click', () => {
-  const target=state.lastAutoDone;
-  $('visit-toast').hidden=true;
-  state.lastAutoDone=null;
-  if(target && state.result && target.key===state.key && statusFor(target.name)==='done'){
-    state.lastVisitedName=null;
-    state.sessionNextName=target.name;
-    setStatus(target.name,target.previous==='open'?'open':'opened');
-    state.guideUndo=null;
-    if(!$('guide-panel').hidden)renderGuide();
-    $('guide-feedback').textContent='↶ @'+target.name+' wieder zur Prüfung vorgemerkt.';
-    $('guide-feedback').hidden=$('guide-panel').hidden;
-  }
-});
+$('visit-confirm').addEventListener('click', () => answerReturnPrompt('done'));
+$('visit-keep').addEventListener('click', () => answerReturnPrompt('keep'));
+$('visit-undo').addEventListener('click', () => answerReturnPrompt(null));
 document.querySelectorAll('[data-copy-rio]').forEach(button => {
   button.addEventListener('click', async () => {
     try {
@@ -2921,6 +2980,20 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div><span class="fc-v4-export-title">Dein Instagram-Export in 3 Einstellungen</span><span class="fc-v4-export-tags"><strong>Follower &amp; Gefolgt</strong><strong>Gesamter Zeitraum</strong><strong>JSON</strong></span></div>
             <a href="https://accountscenter.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Offizielle Meta-Kontenübersicht in einem neuen Tab öffnen">Meta-Kontenübersicht öffnen ↗</a>
           </div>
+          <details class="fc-why-live" id="fc-why-live">
+            <summary><span class="fc-why-live-icon" aria-hidden="true">i</span><span>Warum gibt es kein Live-Ergebnis nur mit Benutzername?</span><span class="fc-why-live-chevron" aria-hidden="true">⌄</span></summary>
+            <div class="fc-why-live-body">
+              <p>Ein Live-Abruf liefert aktuell nur einen <strong>Ausschnitt</strong> deiner Listen. Aus einem Ausschnitt lässt sich nicht beweisen, dass dir jemand nicht zurückfolgt. Wir zeigen deshalb keinen Treffer, den wir nicht belegen können.</p>
+              <ul>
+                <li><span class="fc-why-tag is-confirmed">Bestätigt</span> Steht in deiner vollständigen Export-Datei als Nicht-Rückfolger.</li>
+                <li><span class="fc-why-tag is-mutual">Gegenseitig</span> Ihr folgt euch nachweislich beide.</li>
+                <li><span class="fc-why-tag is-unverified">Unbestätigt</span> Eine einzelne Quelle meldet „folgt nicht“. Ohne zweite Quelle kein Treffer.</li>
+                <li><span class="fc-why-tag is-unknown">Unklar</span> Daten fehlen, sind unvollständig oder widersprechen sich.</li>
+              </ul>
+              <p class="fc-why-live-next">Der sichere Weg ist dein kostenloser Instagram-Export. Er bleibt auf deinem Gerät.</p>
+              <button type="button" class="fc-why-live-cta" data-guide-toggle aria-controls="fc-guide-panel" aria-expanded="false">Zur Export-Anleitung ↓</button>
+            </div>
+          </details>
           <aside class="fc-return-panel" id="fc-return-panel" aria-labelledby="fc-return-title" hidden>
             <div class="fc-return-top"><span class="fc-return-dot" aria-hidden="true">✓</span><span class="fc-return-kicker">DEIN INSTAGRAM-EXPORT</span></div>
             <h3 id="fc-return-title">ZIP erhalten? Hier geht's weiter.</h3>
@@ -3212,10 +3285,10 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </details>
           <div id="detail-view" hidden>
-          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: Es wird als „Angesehen“ markiert. Erst wenn du selbst „Erledigt“ bestätigst, erscheint die grüne Markierung. Entfolgen erfolgt ausschließlich in Instagram.</p></div></div>
+          <div class="action-head"><div><span class="section-index">03 — BEREINIGEN</span><h2>Du entscheidest, wer bleibt.</h2><p>Öffne ein Profil und kehre zurück: Es wird als „Besucht“ markiert. Erst wenn du selbst „Erledigt“ bestätigst, erscheint die grüne Markierung. Entfolgen erfolgt ausschließlich in Instagram.</p></div></div>
           <div class="fc-avatar-panel fc-avatar-private" role="note" aria-label="Profilbilder und Privatsphäre"><span class="fc-avatar-note-icon" aria-hidden="true">✦</span><p><strong>Privatsphäre statt falscher Profilbilder.</strong> Instagram-Exportdateien enthalten normalerweise keine Original-Profilbilder. FollowClean zeigt deshalb farbige Initialen statt unzuverlässiger Bilder. Accountnamen werden nicht an einen Bilddienst gesendet.</p></div>
-          <div id="visit-toast" class="fc-visit-toast" role="status" hidden><span id="visit-toast-text">Profil nach Rückkehr als bearbeitet markiert. Kein Entfolgen bestätigt.</span><button id="visit-undo" type="button">Rückgängig</button></div>
-          <div class="guided-card fc-smart-entry"><div><div class="guided-eyebrow">DEIN CLEANUP-ASSISTENT</div><h3>Ein Account nach dem anderen.</h3><p>Profil öffnen, zurückkehren, fertig: FollowClean markiert es als bearbeitet und zeigt sofort den nächsten Account. Das Entfolgen machst du selbst in Instagram.</p></div><button id="guide-btn" class="primary-button" type="button" aria-expanded="false" aria-controls="guide-panel">Smart Cleanup starten <span aria-hidden="true">↗</span></button></div>
+          <div id="visit-toast" class="fc-visit-toast fc-return-prompt" role="status" hidden><span id="visit-toast-text">Zurück vom Profil. Hast du dort entfolgt?</span><span class="fc-return-prompt-actions"><button id="visit-confirm" type="button">✓ Ja, erledigt</button><button id="visit-keep" type="button">★ Behalten</button><button id="visit-undo" type="button">Noch offen</button></span></div>
+          <div class="guided-card fc-smart-entry"><div><div class="guided-eyebrow">DEIN CLEANUP-ASSISTENT</div><h3>Ein Account nach dem anderen.</h3><p>Profil öffnen, zurückkehren, selbst bestätigen: Erst dann gilt der Account als erledigt und der nächste erscheint. Das Entfolgen machst du selbst in Instagram.</p></div><button id="guide-btn" class="primary-button" type="button" aria-expanded="false" aria-controls="guide-panel">Smart Cleanup starten <span aria-hidden="true">↗</span></button></div>
           <div id="guide-panel" class="guide-panel fc-smart-panel" hidden>
             <div class="fc-smart-top"><div><span class="guide-kicker">SMART CLEANUP · NÄCHSTER ACCOUNT</span><strong id="guide-progress-label">0 von 0 bearbeitet</strong></div><button type="button" id="guide-close" class="fc-smart-close" aria-label="Cleanup-Assistent schließen">Schließen ×</button></div>
             <p id="guide-feedback" class="fc-smart-feedback" role="status" aria-live="polite" hidden></p>
@@ -3228,7 +3301,7 @@ $('delete-local-btn').addEventListener('click',()=>{
             <div class="fc-v2-filterbar" role="group" aria-label="Schnellfilter">
               <button type="button" data-v2-filter="all" class="fc-v2-pill is-active" aria-pressed="true">Alle <span class="fc-v2-pill-count">0</span></button>
               <button type="button" data-v2-filter="open" class="fc-v2-pill" aria-pressed="false">Offen <span class="fc-v2-pill-count">0</span></button>
-              <button type="button" data-v2-filter="opened" class="fc-v2-pill" aria-pressed="false">Angesehen <span class="fc-v2-pill-count">0</span></button>
+              <button type="button" data-v2-filter="opened" class="fc-v2-pill" aria-pressed="false">Besucht <span class="fc-v2-pill-count">0</span></button>
               <button type="button" data-v2-filter="keep" class="fc-v2-pill" aria-pressed="false">Behalten <span class="fc-v2-pill-count">0</span></button>
               <button type="button" data-v2-filter="done" class="fc-v2-pill" aria-pressed="false">Erledigt <span class="fc-v2-pill-count">0</span></button>
             </div>

@@ -1,42 +1,69 @@
-# FollowClean · MVP 0.1
+# FollowClean
 
-Isolierte, passwortfreie und lokal arbeitende Web-App für die Analyse von Instagram-Exporten.
+Web-App, die aus dem eigenen Instagram-Export zeigt, wer nicht zurückfolgt. Ohne Instagram-Passwort, ohne automatisches Entfolgen.
 
-## Funktionen
+Stand: 15.11.2026 · Branch `factory/followclean-mvp-v1-20261109` · Beta, `noindex`, keine echten Zahlungen, kein Live-Scan.
 
-- Lokaler ZIP-/JSON-Import, auch auf iPhone und Android
-- Erkennung von Nicht-Rückfolgern aus `followers_1.json` / `followers_2.json` / `following.json`
-- Statistiken über Gefolgte, Follower-Beziehungen und Nicht-Rückfolger
-- Gefilterte Liste, Accounts behalten, Fortschritt markieren und als CSV exportieren
-- Geführter Modus: Instagram-Profil öffnen → dort selbst entfolgen → als erledigt markieren
-- Fortschritt im lokalen Browser-Speicher, pro Export getrennt
-- Demo mit synthetischen Beispieldaten, ohne Anmeldung oder Datenübertragung
+## Was heute funktioniert
 
-**Kein** Passwortfeld, keine Instagram-API, kein automatisches Entfolgen, keine echten Zahlungen, keine externen Assets oder Tracking-Skripte.
+| Bereich | Status |
+|---|---|
+| Lokale ZIP-/JSON-Analyse im Browser (JSZip lokal eingebunden) | live in der Preview |
+| Smart Scan V1: 10er-Suche auf dem lokalen Export | live in der Preview |
+| Filter, Verlauf, CSV, Smart Cleanup, Fortschritt im lokalen Speicher | live in der Preview |
+| Status „Besucht“ getrennt von „Erledigt“, Rückfrage nach Rückkehr von Instagram | implementiert, in Chrome getestet, nicht deployt |
+| Erklärung „Warum kein Live-Ergebnis“ mit vier Ergebnisstufen | implementiert, in Chrome getestet, nicht deployt |
+| Stripe-Sandbox-Link (1,00 EUR, Code RIO) | Sandbox, kein Entitlement |
+| Instagram-Login für Profilzahlen (Business/Creator) | Code vorhanden, ohne Meta-App-Secrets inaktiv |
+| Apify Smart Scan V2: Plan, Ledger, 10er-Orchestrierung | implementiert, synthetisch getestet, Ausführung gesperrt |
 
-## Lokal starten
+## Aufbau
+
+- `index.html`: gesamte Oberfläche (CSS, Markup, ES-Modul). Analyse der Exportdatei nur im Browser.
+- `worker.instagram-template.mjs`: Cloudflare Worker. Liefert die Seite aus und stellt `/api/instagram/*` sowie `/api/analysis/*` bereit.
+- `build-instagram-worker.mjs`: bettet `index.html` in den Worker ein, Ausgabe `dist/worker.mjs` (nicht eingecheckt).
+- `sql/`: D1-Migrationen. `fc_apify_budget_v1.sql` ist angewendet, `fc_apify_budget_v2_pilot.sql` ist **nicht** angewendet.
+- `tests/`: Regressionstests, alle ohne Kosten und ohne Instagram-Zugriff.
+
+Worker `followclean-mvp-preview`, D1-Binding `FC_APIFY_BUDGET_DB`, Secrets `FC_APIFY_TOKEN` und `FC_IG_SESSION_SECRET`.
+
+## Server-Endpunkte
+
+| Endpunkt | Verhalten |
+|---|---|
+| `GET /api/analysis/policy`, `GET /api/analysis/provider/status` | nur Statusangaben |
+| `POST /api/analysis/quote`, `/provider/plan`, `/provider/v2/plan` | same-origin, reine Trockenläufe, kein Apify-Aufruf |
+| `POST /api/analysis/start` | immer HTTP 503, bezahlte Ausführung gesperrt |
+| `/api/instagram/*` | offizieller Instagram-Login, nur mit konfigurierten Secrets |
+
+Der Worker enthält keinen Netzwerkaufruf zu Apify.
+
+## Lokal starten und testen
 
 ```bash
-python3 -m http.server 4173
-# http://localhost:4173
+cd apps/followclean && python3 -m http.server 4173   # http://localhost:4173
+
+for t in analysis-budget-smoke apify-adapter-smoke apify-two-actor-smartscan-v2-smoke \
+  instagram-live-worker-smoke smart-scan-v1-smoke apify-v2-ledger-orchestration-smoke \
+  apify-v2-ledger-hardening-smoke chrome-ux-smoke; do node apps/followclean/tests/$t.mjs; done
 ```
 
-## Tests
+- Node ≥ 22.5 (für `node:sqlite`). `chrome-ux-smoke` braucht Chrome oder Chromium.
+- `webkit-smoke.mjs` braucht Playwright mit WebKit und ist der einzige Test mit Safari-Engine.
 
-```bash
-npm test
-```
+## Ergebnisstufen
 
-## Sicherheit und Grenzen
+- **Bestätigt**: negative Anbieterantwort und vollständige, autorisierte Followerliste ohne den Account.
+- **Gegenseitig**: positiv bestätigte Gegenfolge.
+- **Unbestätigt**: nur eine Quelle meldet „folgt nicht“.
+- **Unklar**: fehlende, unvollständige oder widersprüchliche Daten.
 
-- Die ZIP-Datei wird ausschließlich im Browser verarbeitet. Ein lokaler Datei-Upload erfolgt nicht.
-- ZIP-Lesebibliothek JSZip wird als lokale Datei eingebunden, ohne CDN-Verbindung. Lizenz unter `vendor/JSZIP-LICENSE.md`.
-- Die App verwendet keine Server-Endpoints, keine Authentifizierung und kein Tracking. `noindex` bis zur Produktabnahme.
-- Fortschrittsdaten (Nutzernamen mit Status) werden **lokal** im Browser gespeichert. Mit „Lokalen Fortschritt löschen“ entfernbar.
-- Die App kann nicht feststellen, ob der Kunde in Instagram wirklich entfolgt ist. „Erledigt“ ist nur eine Checklisten-Markierung.
-- Instagram-Exporte sind Momentaufnahmen; Ergebnisse sind nicht live.
-- Vor kommerziellem Start: Datenschutzerklärung, Impressum, rechtliche Prüfung, Stripe Checkout in Sandbox, Zahlungsfreischaltung und End-to-End-Tests, Missbrauchsschutz und Accessibility-Abnahme.
+Eine unvollständige Followerliste beweist nie einen Nicht-Rückfolger.
 
-## Deployment
+## Grenzen
 
-Der Prototyp wurde bewusst isoliert entwickelt. Öffentliches Deployment und Stripe-Livezahlungen sind **nicht** Bestandteil von MVP 0.1.
+- Der Export ist eine Momentaufnahme, kein Live-Stand.
+- „Erledigt“ ist eine Markierung des Nutzers. FollowClean kann nicht sehen, ob in Instagram entfolgt wurde.
+- Es werden keine Original-Profilbilder geladen, nur lokale Initialen-Avatare.
+- Voraussetzungen für den Livebetrieb: `LIVE_PREREQUISITES_20261115.md`.
+- Vor kommerziellem Start: `PREMIUM_RELEASE_GATES_V1_20261112.md`.
