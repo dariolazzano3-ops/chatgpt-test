@@ -169,6 +169,95 @@ function validateApifyEvidence(username,counts,rows,summary){
     coverageNote:'COMPLETE describes exposed pagination; Instagram may still omit accounts.'};
 }
 
+
+/* FC_APIFY_SMARTSCAN_V2_START */
+// Paid calls are deliberately NOT implemented here. This is a read-only contract,
+// intended for a restricted Apify token and durable global D1 budget gate.
+const FC_V2_ACTORS = Object.freeze({
+  following:'LFWuGJErve4ycMo6l',
+  checker:'5DvofmvZ6Tzdo4b56'
+});
+const FC_V2_MAX_USD=0.20;
+const FC_V2_BATCH=10;
+const FC_V2_FREE_FOLLOWING_CAP=20; // pilot observation; do not promise pagination.
+function fcV2Plan(username){
+  const account=fcNormalizeUsername(username);
+  if(!account || account!=='ysrrioo')
+    return {ok:false,executed:false,reason:'pilot_account_not_authorized'};
+  return {
+    ok:true,executed:false,account,verificationRequired:true,
+    billing:{maxTotalUsd:FC_V2_MAX_USD,guaranteedAcrossRuns:false,
+      globalReservationRequired:true,globalBudgetDatabase:'FC_APIFY_BUDGET_DB'},
+    following:{
+      actor:FC_V2_ACTORS.following,
+      input:{usernames:[account],listType:'following',maxPerProfile:FC_V2_FREE_FOLLOWING_CAP,onlyNew:false},
+      runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120}
+    },
+    checker:{
+      actor:FC_V2_ACTORS.checker,
+      inputTemplate:{account,usernames:'TEN_VERIFIED_FOLLOWING_NAMES',addSummaryRow:true},
+      runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120}
+    },
+    constraints:['owner_authorization','restricted_token_permissions','free_tier_pagination_limit',
+      'global_spend_reservation','trusted_following_provenance','negative_second_source_verification']
+  };
+}
+function fcV2ReadFollowing(account,rows){
+  const source=fcNormalizeUsername(account);
+  if(!source||!Array.isArray(rows)||rows.length>FC_V2_FREE_FOLLOWING_CAP+4)
+    return {ok:false,reason:'bad_or_oversized_following_dataset'};
+  const seen=new Set(),names=[];
+  for(const row of rows){
+    if(!row||typeof row!=='object')return {ok:false,reason:'invalid_row'};
+    // Summary/error/partial rows never become candidates.
+    if(row.error || row.type==='SUMMARY' || row.listType==='summary')continue;
+    const value=fcNormalizeUsername(row.username);
+    if(fcNormalizeUsername(row.sourceUsername)!==source||
+      row.listType!=='following'||!value)
+      return {ok:false,reason:'source_or_list_mismatch'};
+    if(seen.has(value))return {ok:false,reason:'duplicate'};
+    seen.add(value);names.push(value);
+  }
+  return {ok:true,account:source,candidates:names,coverage:
+    names.length===FC_V2_FREE_FOLLOWING_CAP?'BOUNDED_SAMPLE':'NOT_PROVEN',
+    note:'Only the returned candidates are usable. No next-page cursor is established.'};
+}
+function fcV2MakeCheckerBatch(account,following,offset=0){
+  const source=fcNormalizeUsername(account);
+  if(!source||following?.ok!==true||following.account!==source||
+    !Array.isArray(following.candidates)||!Number.isSafeInteger(offset)||offset<0||
+    offset>=following.candidates.length||offset%FC_V2_BATCH!==0)
+    return {ok:false,reason:'invalid_or_untrusted_batch'};
+  const users=following.candidates.slice(offset,offset+FC_V2_BATCH);
+  if(!users.length||users.length>FC_V2_BATCH||users.some(x=>fcNormalizeUsername(x)!==x))
+    return {ok:false,reason:'invalid_candidates'};
+  return {ok:true,executed:false,actor:FC_V2_ACTORS.checker,
+    input:{account:source,usernames:users,addSummaryRow:true},
+    runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120},
+    requested:users,offset,nextOffset:offset+users.length};
+}
+function fcV2ReviewChecks(batch,rows){
+  if(batch?.ok!==true||!Array.isArray(batch.requested)||!Array.isArray(rows)||
+    rows.length>batch.requested.length+2)return {ok:false,reason:'untrusted_checker_response'};
+  const allowed=new Set(batch.requested),result=new Map();
+  for(const row of rows){
+    if(!row||typeof row!=='object')return {ok:false,reason:'invalid_checker_row'};
+    if(row.type==='SUMMARY'||row.username===undefined&&row.follows===undefined)continue;
+    const name=fcNormalizeUsername(row.username);
+    if(!name||!allowed.has(name)||result.has(name))
+      return {ok:false,reason:'unexpected_or_duplicate_checker_row'};
+    const account=fcNormalizeUsername(row.account);
+    const valid=!row.error&&account===batch.input.account&&
+      (row.follows===true||row.follows===false);
+    result.set(name,valid?(row.follows?'MUTUAL':'UNVERIFIED_NEGATIVE'):'UNKNOWN');
+  }
+  return {ok:true,executed:false,confirmedNonfollowers:[],
+    results:batch.requested.map(username=>({username,
+      status:result.get(username)||'UNKNOWN'})),
+    reason:'A checker-negative needs independent evidence before claiming confirmed nonfollower.'};
+}
+/* FC_APIFY_SMARTSCAN_V2_END */
+
 async function handleAnalysisBudget(request, env, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
   if (endpoint==='policy' && request.method==='GET') {
@@ -183,6 +272,18 @@ async function handleAnalysisBudget(request, env, url) {
       acceptedAccounts:'owner-authorized test accounts only',
       analysisAvailable:false,
       note:'Kein Live-Scan, keine Bezahl-Anfrage und kein nicht verifizierter Nicht-Rückfolger.'});
+  }
+  if (endpoint==='provider/v2/plan' && request.method==='POST') {
+    if(request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);
+    if(!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
+      return json({error:'json_required'},415);
+    if(Number(request.headers.get('content-length')||0)>256)return json({error:'body_too_large'},413);
+    let params;
+    try{const raw=await request.text();if(raw.length>256)throw Error('too_large');params=JSON.parse(raw);}
+    catch{return json({error:'invalid_body'},400);}
+    const plan=fcV2Plan(params?.username);
+    return json({plan,mode:'DRY_RUN_ONLY',executionEnabled:false,actorRunsStarted:0,
+      permissionStatus:'NOT_VERIFIED',dataCoverage:'NOT_VERIFIED'},plan.ok?200:403);
   }
   if (endpoint==='provider/plan' && request.method==='POST') {
     if (request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);
