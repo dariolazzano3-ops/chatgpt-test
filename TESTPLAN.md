@@ -3,7 +3,7 @@
 Ziel: Zwei echte Spieler spielen über dieselbe öffentliche Seite in einer Kuchenkrieg-Lobby.
 Alle Punkte hier sind **noch nicht ausgeführt**. Bitte nach dem Deploy abarbeiten und die Spalte „Ergebnis“ ausfüllen.
 
-**Was schon geprüft ist (Stand V5.2)**
+**Was schon geprüft ist (Stand V6.1)**
 
 | Kategorie | Status |
 |---|---|
@@ -71,6 +71,32 @@ Messwerte notieren: Ping A ___ ms, Ping B ___ ms, Ruckeln ja/nein, Akku nach 15 
 | 2.5 | Teamkasse | Kauf von A ist bei C (gleiches Team) sofort sichtbar | |
 | 2.6 | C verliert Verbindung 30 s | Team spielt weiter, C kommt per Neuladen zurück | |
 | 2.7 | Spielende | Ergebnis auf allen vier Geräten gleich | |
+
+## 2b. V6.1 Kuchenkrieg-Arena, Werwölfe, Boost (2 Handys)
+
+| # | Schritt | Erwartung | Ergebnis |
+|---|---|---|---|
+| 2b.1 | Start 1 gegen 1 | Beide in **einer** Arena, gegnerisches Fort mit Kuchen im Blick, Gegner als Figur | |
+| 2b.2 | A und B laufen zur Mitte | Bewegungen flüssig beim jeweils anderen | |
+| 2b.3 | A schießt auf B | B: Lebensanzeige oben sinkt; Treffer nur in Reichweite und nicht durch Deckungen | |
+| 2b.4 | A erledigt B | B: „Erwischt!“, nach 4 s Respawn im eigenen Fort mit Schutzschimmer; A: +20 Münzen | |
+| 2b.5 | A wartet am Spawn von B | B erscheint an der von A abgewandten Seite und ist 3 s geschützt | |
+| 2b.6 | Welle 3: Werwolf-Knopf | Kauf 60 Münzen, Heulen, Wolf jagt Ziegen am eigenen Kuchen; beim Gegner sichtbar; 3. Kauf abgelehnt | |
+| 2b.7 | Sprungknopf kurz tippen / halten | Tippen = Sprung; Halten = Schub bis ca. 5 m, Flamme, Balken lädt 6 s | |
+| 2b.8 | Halten + Joystick + Feuerknopf gleichzeitig | alle drei Finger wirken (Multi-Touch) | |
+| 2b.9 | Welle 4 / 5 | roter Nebel; Ziegenkönig mit Bossbalken, Warnring/-bahn vor Angriffen sichtbar | |
+| 2b.10 | Spielende | gleicher Sieger auf beiden Geräten, Spalte PvP | |
+| 2b.11 | Koop: Raum „Koop“ | beide im selben Team, kein Gegnerfort, Sieg bei überlebter Welle 5 | |
+| 2b.12 | Matchdauer messen | Ziel 5–7 min: ___ min | |
+
+## 2c. iPhone Home-Bildschirm (PWA)
+
+| # | Schritt | Erwartung | Ergebnis |
+|---|---|---|---|
+| 2c.1 | Safari öffnen | Hinweis „Teilen → Zum Home-Bildschirm“ im Menü; × schließt ihn dauerhaft | |
+| 2c.2 | Teilen → Zum Home-Bildschirm | Icon (Kuchen mit Hörnern), Name „Ziegenalarm“ | |
+| 2c.3 | Vom Home-Bildschirm starten | ohne Safari-Leiste, Querformat, nichts unter Notch/Home-Balken verdeckt, kein Hinweis | |
+| 2c.4 | Neue Version deployen, App neu öffnen | neue Version sofort da (kein Service Worker) | |
 
 ## 3. Wenn etwas schiefgeht
 

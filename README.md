@@ -1,9 +1,9 @@
-# Ziegenalarm Online (V6, Entwicklungsstand)
+# Ziegenalarm Online (V6.1 „Kuchenkrieg Revolution“, Entwicklungsstand)
 
 Browser-Egoshooter mit zwei Online-Modi – **Kuchenkrieg** und **GOAT ROYALE** (je 1 gegen 1 und 2 gegen 2) – und dem kompletten Einzelspieler.
 
 > **Branches:** `ziegenalarm-online` = Produktion (Push löst bei verbundenem Cloudflare-Build einen Live-Deploy aus).
-> `ziegenalarm-v6-dev` = Entwicklung. Erst nach geprüfter Freigabe in die Produktion übernehmen.
+> `ziegenalarm-v6-dev` = V6-Entwicklung, `ziegenalarm-v6-1-kuchenkrieg-revolution` = V6.1. Erst nach geprüfter Freigabe in die Produktion übernehmen.
 
 ## Staging (gefahrlos testen, Produktion bleibt unberührt)
 
@@ -11,13 +11,35 @@ Cloudflare erzeugt für Worker mit Durable Objects **keine** Preview-URLs. Darum
 mit eigenem Namen, eigenen Räumen und eigener Adresse:
 
 ```
-git checkout ziegenalarm-v6-dev
+git checkout ziegenalarm-v6-1-kuchenkrieg-revolution
 npm install
 npx wrangler login
 npm run deploy:staging     # → https://ziegenalarm-staging.<konto>.workers.dev
 ```
 
 Löschen: `npx wrangler delete --name ziegenalarm-staging`. Kosten: gleiches Gratis-Kontingent wie die Produktion.
+
+## Kuchenkrieg (V6.1): gemeinsame Arena
+
+- **Eine Arena** (Ellipse 48 × 64 m), zwei Kuchenfestungen gegenüber: Käse im Süden, Beere im Norden. Jeder sieht alle Spieler, die gegnerische Festung, deren Kuchen und Mauern in 3D.
+- **Zwei Fronten:** Jede Festung wird von ihren eigenen Zombie-Ziegen-Wellen von außen angegriffen. Wer den eigenen Kuchen verliert, verliert – PvP ist Beiwerk, die Kuchenverteidigung entscheidet.
+- **PvP:** 100 Leben, Kopftreffer ×1,5, begrenzte Reichweiten je Waffe (Schrot 20 m … Präzisionsgewehr 120 m), Deckungen blocken. Kein Teamschaden. Abschuss = +20 Münzen und 30 Punkte fürs Team.
+  Tod → 4 s Wartezeit, Respawn im **eigenen** Fort an der vom Gegner am weitesten entfernten Stelle, dazu 3 s Schutz (endet beim eigenen Schuss) – gegen Spawn-Camping.
+  Treffer prüft ausschließlich der Server (Strahl gegen Kopf-Kugel und Körper-Zylinder, Deckungen, Mauern, Ziegen). Gleichzeitige Abschüsse im selben Server-Takt zählen beide.
+- **5 Wellen:** 1 Der Angriff · 2 Die Herde · 3 Werwolf-Chaos · 4 Großangriff (roter Nebel) · 5 Ziegenkönig. 8 s Kaufphase, Welle endet sofort mit der letzten Ziege.
+- **Ziegenkönig** (Welle 5, je Festung): Sturmangriff (rote Bahn 1 s vorher), Stampfer (roter Ring 0,8 s vorher, 4,5 m), ruft bei 50 % vier Zicklein. Schwachstellen: Krone/Kopf ×2,5, nach dem Sturm 2,2 s erschöpft (×2).
+- **Sieg:** nur ein Kuchen steht → dieses Team. Beide fallen im selben Takt → mehr Restkuchen, sonst Punkte. Beide überleben Welle 5 → mehr Kuchen (Abstand > 0,5 %), dann Punkte, dann Unentschieden.
+- **Koop:** Größe „Koop“ – zwei Freunde in einem Team gegen die Wellen, ohne PvP. Sieg = Kuchen überlebt Welle 5.
+- **Werwolf** (Markt oder Taste `B`, ab Welle 3): 60 Münzen, höchstens 2 pro Team gleichzeitig, 30 s im Einsatz, 15 s Abklingzeit, 50 Leben (Gegner können ihn erschießen).
+  Server-KI: jagt zuerst die Ziegen am nächsten zum eigenen Kuchen, sonst eindringende Gegner (Biss 18), läuft sonst Patrouille.
+- **Boost-Sprung:** Tippen = normaler Sprung. Halten (Leertaste oder Sprungknopf) = Raketenschub bis ca. 5 m, danach Gleitlandung, 6 s Abklingzeit, Ladebalken unten. Der Server begrenzt Höhe, Steigrate und Abklingzeit.
+- Matchdauer: rechnerisch 3,5–4 min (1v1) bzw. ≈ 4,2 min (2v2) bei durchschnittlicher Trefferleistung; echte Runden mit PvP-Ablenkung länger. **Nicht mit echten Spielern gemessen.**
+
+## Auf den Home-Bildschirm (PWA)
+
+`public/manifest.webmanifest` + Icons (`python3 tools/icons.py`), iOS-Angaben im Kopf von `public/index.html` (Build).
+iPhone: Safari → **Teilen → Zum Home-Bildschirm** → Start ohne Safari-Leiste im Querformat. In Safari zeigt das Menü einmalig einen wegklickbaren Hinweis.
+Absichtlich **kein Service Worker**: Updates kommen immer sofort an, nichts Veraltetes im Cache. (Offline spielen geht ohnehin nicht – es ist ein Online-Spiel.)
 
 ## GOAT ROYALE
 
@@ -145,10 +167,11 @@ Durable Objects → RoomDO (Anfragen, Laufzeit, aktive Objekte = aktive Räume).
 
 ## Bekannte Grenzen
 
-- V6 (Entwicklungsbranch) ist nicht auf Cloudflare und nicht mit echten Handys über das Internet getestet.
-- 3D wurde mit echtem three.js, aber nur in Software-WebGL (Chromium) geprüft, nicht auf Handy-GPUs und nicht in Safari.
-- GOAT ROYALE: keine Rückspul-Treffererkennung; bei hoher Latenz trifft man bewegte Gegner schwerer.
-- Fortschritt liegt nur im Browser (localStorage) und kann dort manipuliert oder gelöscht werden; keine Bestenliste.
-- Ziegenkönig nur im Einzelspieler. Kuchenkrieg-Gegnerteam nur als Anzeige, nicht in 3D.
+- V6.1 ist **nicht** auf Cloudflare (auch nicht Staging) und **nicht** mit echten Handys bzw. echtem iPhone-Safari getestet. Die Worker-Logik ist nur emuliert.
+- 3D mit echtem three.js nur in Software-WebGL (Chromium) geprüft, nicht auf Handy-GPUs.
+- PWA: Manifest, Icons und Hinweis sind geprüft (Chromium mit iPhone-Kennung). Ob iOS die Web-App wirklich im Querformat ohne Leiste startet, ist offen.
+- Keine Rückspul-Treffererkennung: bei hoher Latenz trifft man bewegte Gegner schwerer (Kuchenkrieg und GOAT ROYALE).
+- Matchdauer und Balance sind nur simuliert, nicht mit echten Spielern ausbalanciert.
+- Fortschritt liegt nur im Browser (localStorage); keine Bestenliste.
 - Ziegen-Duell, Käseklau, Ziegenchaos sind weiter als „Demnächst“ markiert.
 - Kein IP-Rate-Limit für `/api/new`; bei Missbrauch eine Rate-Limiting-Regel im Dashboard anlegen.
