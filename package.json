@@ -10,7 +10,8 @@
     "deploy": "node tools/build.mjs --face=neutral && wrangler deploy",
     "deploy:original": "node tools/build.mjs --face=original && wrangler deploy",
     "check:3d": "node tools/render-check.mjs",
-    "test": "node tests/royale-sim.mjs"
+    "test": "node tests/royale-sim.mjs",
+    "deploy:staging": "node tools/build.mjs --face=neutral && wrangler deploy --name ziegenalarm-staging"
   },
   "devDependencies": {
     "wrangler": "^4.30.0"

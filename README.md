@@ -1,6 +1,40 @@
-# Ziegenalarm Online (V5.2)
+# Ziegenalarm Online (V6, Entwicklungsstand)
 
-Browser-Egoshooter mit Online-Minigame **Kuchenkrieg** (1 gegen 1 und 2 gegen 2) und dem kompletten Einzelspieler.
+Browser-Egoshooter mit zwei Online-Modi – **Kuchenkrieg** und **GOAT ROYALE** (je 1 gegen 1 und 2 gegen 2) – und dem kompletten Einzelspieler.
+
+> **Branches:** `ziegenalarm-online` = Produktion (Push löst bei verbundenem Cloudflare-Build einen Live-Deploy aus).
+> `ziegenalarm-v6-dev` = Entwicklung. Erst nach geprüfter Freigabe in die Produktion übernehmen.
+
+## Staging (gefahrlos testen, Produktion bleibt unberührt)
+
+Cloudflare erzeugt für Worker mit Durable Objects **keine** Preview-URLs. Darum gibt es einen eigenen Staging-Worker
+mit eigenem Namen, eigenen Räumen und eigener Adresse:
+
+```
+git checkout ziegenalarm-v6-dev
+npm install
+npx wrangler login
+npm run deploy:staging     # → https://ziegenalarm-staging.<konto>.workers.dev
+```
+
+Löschen: `npx wrangler delete --name ziegenalarm-staging`. Kosten: gleiches Gratis-Kontingent wie die Produktion.
+
+## GOAT ROYALE
+
+- Runde Schwebeinsel (Radius 16 m, schrumpft ab 1:15 innerhalb einer Minute auf 9 m). Jeder hat **3 Leben**, 4 Minuten Zeit.
+- Treffer erhöhen die **Wucht** (%). Je höher die Wucht, desto weiter fliegt man. Wer von der Insel fällt, verliert ein Leben und kommt mit 2,5 s Schutz und 0 % zurück.
+- Waffen: Blaster (schnell, wenig Rückstoß), Schrotflinte (stark aus der Nähe), Präzisionsgewehr (langsam, sehr starker Stoß).
+- **Reiten:** `E` bzw. Reiten-Knopf neben einer neutralen Ziege. Treffer werfen Reiter ab.
+- **Dreikopf-Verwandlung:** 10 s am Stück reiten → Kampfziege in Teamfarbe mit drei Köpfen. Sie läuft **rückwärts** auf den nächsten Gegner zu, holt sichtbar aus (rote Zone, 0,9 s) und tritt mit den Hinterbeinen. Ausweichen ist möglich. Höchstens eine pro Team; abschießbar (24 Treffer-Punkte), erschöpft nach 20 s.
+- **Sieg:** letztes Team auf der Insel; bei Zeitablauf mehr Leben, dann mehr Ring-outs, dann weniger Wucht.
+
+## Fortschritt (nur im Browser gespeichert, kein Konto)
+
+- XP für Matches, Siege, Wellen, Abschüsse, Ring-outs und Verwandlungen. Ränge: Anfänger, Ziegenjäger (500), Herdenmeister (2000), Ziegenlegende (6000).
+- 7 Herausforderungen ohne Zeitdruck, Belohnung jeweils ein Waffen-Skin; Rang-Skins für Ziegenjäger, Herdenmeister, Ziegenlegende.
+- Statistiken: Matches, Siege, Niederlagen, Abschüsse, Ring-outs, Kampfziegen, beste Welle, Spielzeit, Lieblingsmodus.
+- Einstellungen: Grafik (Auto/Hoch/Mittel/Niedrig, Auto senkt bei unter 28 Bildern/s), Lautstärke, Musik.
+- Keine Echtgeldkäufe, keine spielerischen Vorteile durch Skins.
 Ein Cloudflare Worker liefert Seite, API und WebSockets unter **einer** HTTPS-Adresse; jeder Raum ist ein Durable Object.
 
 > **Stand:** noch **nicht** auf Cloudflare veröffentlicht. Lokal und mit echtem three.js im Browser getestet,
@@ -45,6 +79,9 @@ tools/build.mjs              baut public/index.html (--face=neutral|original)
 public/vendor/three.min.js   three.js r128, MIT-Lizenz (offizielles Release aus github.com/mrdoob/three.js, Tag r128)
 shared/engine.js             Raum-Engine: Codes, Lobby, Teams, Bereit, Start, Ergebnis, Revanche, Wiederbeitritt, Schutz
 shared/modes/kuchenkrieg.js  autoritative Simulation (Ziegen, Kuchen, Mauern, Treffer, Granaten, Markt, Sieger)
+shared/modes/royale.js       GOAT ROYALE: Wucht, Rückstoß, Absturz, Reiten, Kampfziege, schrumpfende Insel, Sieger
+shared/modes/index.js        Liste aller Online-Modi
+tests/royale-sim.mjs         Regeltests für GOAT ROYALE ohne Browser (npm test)
 shared/rules.js              Spielwerte, deterministische Wellen
 worker/index.js              Cloudflare Worker + Durable Object RoomDO
 dev/server.js                lokaler Server ohne Abhängigkeiten (gleiche Engine)
@@ -108,7 +145,10 @@ Durable Objects → RoomDO (Anfragen, Laufzeit, aktive Objekte = aktive Räume).
 
 ## Bekannte Grenzen
 
-- Nicht auf echtem Cloudflare und nicht mit echten Handys über das Internet getestet.
+- V6 (Entwicklungsbranch) ist nicht auf Cloudflare und nicht mit echten Handys über das Internet getestet.
 - 3D wurde mit echtem three.js, aber nur in Software-WebGL (Chromium) geprüft, nicht auf Handy-GPUs und nicht in Safari.
-- Ziegenkönig nur im Einzelspieler. Gegnerteam nur als Anzeige, nicht in 3D.
+- GOAT ROYALE: keine Rückspul-Treffererkennung; bei hoher Latenz trifft man bewegte Gegner schwerer.
+- Fortschritt liegt nur im Browser (localStorage) und kann dort manipuliert oder gelöscht werden; keine Bestenliste.
+- Ziegenkönig nur im Einzelspieler. Kuchenkrieg-Gegnerteam nur als Anzeige, nicht in 3D.
+- Ziegen-Duell, Käseklau, Ziegenchaos sind weiter als „Demnächst“ markiert.
 - Kein IP-Rate-Limit für `/api/new`; bei Missbrauch eine Rate-Limiting-Regel im Dashboard anlegen.
