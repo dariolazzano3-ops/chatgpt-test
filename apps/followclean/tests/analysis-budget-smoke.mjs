@@ -74,8 +74,10 @@ await check('existing ZIP parser, sample result UI, sandbox and noindex remain',
   assert.match(html,/id="fc-insights-return-rate"/);
   assert.match(html,/buy\.stripe\.com\/test_/);
   assert.match(html,/noindex/);
-  assert.equal(r.headers.get('x-followclean-release'),'followclean-v13-apify-standby');
+  assert.equal(r.headers.get('x-followclean-release'),'followclean-v15-smartscan-ten-verifiable');
   assert.match(html,/id="fc-username-first"/);
+  assert.match(html,/id="fc-smartscan-v1"/);
+  assert.match(html,/function fcScanNextTen/);
 });
 console.log(passed+' budget regression checks passed');
 if(process.exitCode)process.exit(process.exitCode);
