@@ -17,7 +17,7 @@ const lag = f => { if (!LAG && !JITTER) return f(); setTimeout(f, LAG + Math.ran
 const stats = { bytesOut: 0, msgsOut: 0, msgsIn: 0, bytesIn: 0 };
 const IDLE_MS = +(process.env.IDLE_MS || 15 * 60 * 1000); // leere Räume nach dieser Zeit auflösen (wie im Worker) // Test-Schnittstellen nur mit DEBUG=1
 const rooms = new Map();
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.txt': 'text/plain; charset=utf-8' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const sendJson = (res, o, s = 200) => { res.writeHead(s, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(o)); };
 function originOk(req) { const o = req.headers.origin; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (e) { return false; } }
 
@@ -65,7 +65,7 @@ function handle(req, res) {
     const r = rooms.get(c); return r ? sendJson(res, r.publicInfo()) : sendJson(res, { exists: false }, 404); }
   if (u.pathname === '/api/new') {
     const mode = u.searchParams.get('mode') || 'kuchenkrieg', size = u.searchParams.get('size') || '1v1';
-    if (!MODES[mode] || !['1v1', '2v2'].includes(size)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"bad"}'); }
+    if (!MODES[mode] || !['1v1', '2v2', 'coop'].includes(size) || (size === 'coop' && !MODES[mode].coop)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"bad"}'); }
     let code; do code = newCode(); while (rooms.has(code));
     rooms.set(code, new Room({ code, mode, size }, MODES));
     return sendJson(res, { code });
@@ -77,8 +77,9 @@ function handle(req, res) {
       match: r.match && { time: r.match.time, phase: r.match.phase, players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, lives: ps.lives, wucht: ps.wucht, mount: ps.mount, rideT: ps.rideT, fallT: ps.fallT, out: ps.out, prot: ps.prot, kos: ps.kos, shots: ps.shots, hits: ps.hits, rejects: ps.rejects, kbT: ps.kbT })),
         goats: r.match.goats.map(g => ({ id: g.id, x: g.x, z: g.z, state: g.state, team: g.team, hp: g.hp, wind: g.wind })) } });
     return sendJson(res, ({ tickMs: r._tickMs || 0, tickMax: r._tickMax || 0, stats, state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, dupes: p.dupes, lastSeq: p.lastSeq })),
-      match: r.match && r.match.worlds && { wave: r.match.wave, phase: r.match.phase, worlds: r.match.worlds.map(w => ({ cake: w.cake, coins: w.coins, kills: w.kills, points: w.points, goats: w.goats.length, dead: w.deadAt, walls: w.walls, upg: w.upg })),
-        players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, shots: ps.shots, rejects: ps.rejects, speedRejects: ps.speedRejects, kills: ps.kills, owned: [...ps.owned], nades: ps.nades })) }, results: r.results }));
+      match: r.match && r.match.worlds && { wave: r.match.wave, phase: r.match.phase, worlds: r.match.worlds.map(w => ({ cake: w.cake, coins: w.coins, kills: w.kills, points: w.points, goats: w.goats.length, goatList: w.goats.map(g => ({ id: g.id, type: g.type, x: g.x, z: g.z, hp: g.hp, state: g.state })), active: w.active, dead: w.deadAt, walls: w.walls, upg: w.upg })),
+        players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, shots: ps.shots, rejects: ps.rejects, speedRejects: ps.speedRejects, kills: ps.kills, owned: [...ps.owned], nades: ps.nades, hp: ps.hp, dead: ps.dead, y: ps.y, prot: ps.prot, pkills: ps.pkills, boostReadyAt: ps.boostReadyAt, yRejects: ps.yRejects })),
+        wolves: (r.match.wolves || []).map(f => ({ id: f.id, team: f.team, x: f.x, z: f.z, hp: f.hp, life: f.life, dead: f.dead, state: f.state })), time: r.match.time }, results: r.results }));
   }
   if (DEBUG && u.pathname === '/api/debug/set') { // nur lokal mit DEBUG=1: Testmanipulation
     const r = rooms.get(u.searchParams.get('code')); if (!r || !r.match) { res.writeHead(404); return res.end(); }
@@ -94,6 +95,11 @@ function handle(req, res) {
     if (k === 'goat') { w.goats.push({ id: w.gid++, type: 'normal', s: 1, r: 0.45, x: +u.searchParams.get('x'), z: +u.searchParams.get('z'), hp: v, maxHp: v, speed: 0, eat: 0, state: 'walk', stagger: 0, wp: null, wpTried: true, ry: 0, dead: false }); }
     if (k === 'clear') { w.goats = []; w.queue = []; }
     if (k === 'crash') r.match.worlds = null; // simuliert einen Fehler im Spielmodus
+    if (k === 'wave') { r.match.wave = v; } // nächste Welle = v + 1
+    const kp = r.match.players && r.match.players.get(+u.searchParams.get('id'));
+    if (k === 'php' && kp) kp.hp = v;
+    if (k === 'ppos' && kp) { kp.x = +u.searchParams.get('x'); kp.z = +u.searchParams.get('z'); kp.correct = true; kp.cseq = (kp.cseq || 0) + 1; if (u.searchParams.get('prot') != null) kp.prot = +u.searchParams.get('prot'); }
+    if (k === 'gset') { const g = w.goats.find(x => x.id === +u.searchParams.get('g')); if (g) { if (u.searchParams.get('x') != null) { g.x = +u.searchParams.get('x'); g.z = +u.searchParams.get('z'); } if (u.searchParams.get('speed') != null) g.speed = +u.searchParams.get('speed'); if (u.searchParams.get('hp') != null) g.hp = +u.searchParams.get('hp'); } }
     res.writeHead(200); return res.end('ok');
   }
   if (u.pathname.startsWith('/api/')) return sendJson(res, { error: 'not found' }, 404);

@@ -1,7 +1,8 @@
 // Ziegenalarm Online – generische Raum-Engine (Lobby, Teams, Bereit-Status, Start, Ergebnis, Revanche).
 // Transportunabhängig: eine "Verbindung" ist ein Objekt mit send(text) und close(). Spielregeln stecken in Modus-Objekten.
 export const TEAM_NAMES = ['Käse', 'Beere'];
-const SIZES = { '1v1': 1, '2v2': 2 };
+// coop: zwei Spieler im selben Team (nur Modi, die das unterstützen)
+const SIZES = { '1v1': 1, '2v2': 2, coop: 2 };
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function newCode(rand = Math.random) { let s = ''; for (let i = 0; i < 5; i++) s += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)]; return s; }
 export function validCode(c) { return typeof c === 'string' && /^[A-HJ-NP-Z2-9]{5}$/.test(c); }
@@ -12,14 +13,15 @@ export class Room {
   constructor({ code, mode, size, seed }, modes) {
     if (!modes[mode]) throw new Error('unknown mode');
     if (!SIZES[size]) throw new Error('unknown size');
-    this.code = code; this.modeId = mode; this.mode = modes[mode]; this.size = size; this.perTeam = SIZES[size];
+    if (size === 'coop' && !modes[mode].coop) throw new Error('coop not supported');
+    this.code = code; this.modeId = mode; this.mode = modes[mode]; this.size = size; this.perTeam = SIZES[size]; this.coop = size === 'coop';
     this.seed = seed ?? Math.floor(Math.random() * 1e9);
     this.players = []; this.state = 'lobby'; this.countdown = 0; this.match = null; this.results = null; this.nextId = 1;
     this.conns = new Map(); // conn -> player
     this.pending = new Map(); // Verbindungen ohne "hello" -> Zeitpunkt
     this.lastActive = Date.now(); this.errors = 0;
   }
-  get capacity() { return this.perTeam * 2; }
+  get capacity() { return this.coop ? 2 : this.perTeam * 2; }
   info() {
     return { t: 'room', code: this.code, mode: this.modeId, size: this.size, state: this.state, countdown: +this.countdown.toFixed(2),
       teams: TEAM_NAMES, players: this.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, rematch: !!p.rematch })) };
@@ -45,7 +47,7 @@ export class Room {
     if (msg.seq != null) { if (typeof msg.seq !== 'number' || msg.seq <= p.lastSeq) { p.dupes++; return; } p.lastSeq = msg.seq; }
     switch (msg.t) {
       case 'ready': if (this.state === 'lobby') { p.ready = !!msg.v; this.sync(); } break;
-      case 'team': if (this.state === 'lobby') { const t = msg.v === 1 ? 1 : 0; if (t !== p.team && this.players.filter(x => x.team === t).length < this.perTeam) { p.team = t; p.ready = false; this.sync(); } } break;
+      case 'team': if (this.state === 'lobby' && !this.coop) { const t = msg.v === 1 ? 1 : 0; if (t !== p.team && this.players.filter(x => x.team === t).length < this.perTeam) { p.team = t; p.ready = false; this.sync(); } } break;
       case 'leave': this.remove(p); break;
       case 'rematch': if (this.state === 'results') { p.rematch = true; this.sync(); } break;
       case 'lobby': if (this.state === 'results') { this.toLobby(); } break;
@@ -64,7 +66,7 @@ export class Room {
     if (this.state !== 'lobby') { try { conn.send(JSON.stringify({ t: 'error', code: 'started', msg: 'Das Spiel in diesem Raum läuft schon.' })); conn.close(); } catch (e) { } return; }
     if (this.players.length >= this.capacity) { try { conn.send(JSON.stringify({ t: 'error', code: 'full', msg: 'Der Raum ist voll.' })); conn.close(); } catch (e) { } return; }
     const c0 = this.players.filter(x => x.team === 0).length, c1 = this.players.filter(x => x.team === 1).length;
-    const p = { id: this.nextId++, name: cleanName(msg.name), team: c0 <= c1 ? 0 : 1, ready: false, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
+    const p = { id: this.nextId++, name: cleanName(msg.name), team: this.coop ? 0 : (c0 <= c1 ? 0 : 1), ready: false, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
     this.players.push(p); this.conns.set(conn, p);
     this.send(p, { t: 'welcome', you: p.id, token: p.token, code: this.code, lastSeq: 0 });
     this.sync();
@@ -90,7 +92,7 @@ export class Room {
     // Lobby: verlassene Plätze nach 30 s freigeben
     if (this.state === 'lobby') for (const p of [...this.players]) if (!p.connected && now - p.goneAt > 30000) this.remove(p);
     if (this.state === 'lobby') {
-      const full = this.players.length === this.capacity && [0, 1].every(t => this.players.filter(p => p.team === t).length === this.perTeam);
+      const full = this.players.length === this.capacity && (this.coop || [0, 1].every(t => this.players.filter(p => p.team === t).length === this.perTeam));
       const go = full && this.players.every(p => p.ready && p.connected);
       if (go) { if (this.countdown <= 0) { this.countdown = 3; this.sync(); } else { this.countdown -= dt; if (this.countdown <= 0) { this.countdown = 0; this.startMatch(); } } }
       else if (this.countdown > 0) { this.countdown = 0; this.sync(); }

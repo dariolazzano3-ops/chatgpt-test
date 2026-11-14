@@ -35,3 +35,44 @@ export function makeWave(wave, seed) {
   }
   return { wave, big, fronts, list };
 }
+
+// ---------- V6.1 Kuchenkrieg-Arena: gemeinsame Welt, PvP, Werwölfe, Boost, 5 Wellen, Ziegenkönig ----------
+// Globale Karte: Kuchen Käse bei z=+CZ, Kuchen Beere bei z=-CZ. Jede Teamwelt wird lokal um ihren Kuchen simuliert;
+// lokal +z zeigt nach außen (vom Gegner weg). Team 1 ist um 180° gedreht – beide Teams sind exakt gespiegelt.
+export const ARENA2 = { cz: 16, rx: 24, rz: 32, spawnR: 16, maxAlive: 14 };
+export function toGlobal(team, lx, lz) { return team ? [-lx, -lz - ARENA2.cz] : [lx, lz + ARENA2.cz]; }
+export function toLocal(team, gx, gz) { return team ? [-gx, -gz - ARENA2.cz] : [gx, gz - ARENA2.cz]; }
+// Deckungen in der Mitte (global, punktsymmetrisch = fair): x, z, Breite (x), Tiefe (z), Höhe
+export const COVERS = [
+  { x: -7, z: 0, w: 3.2, d: 1.1, h: 1.5 }, { x: 7, z: 0, w: 3.2, d: 1.1, h: 1.5 },
+  { x: 0, z: -4.5, w: 1.1, d: 2.4, h: 1.2 }, { x: 0, z: 4.5, w: 1.1, d: 2.4, h: 1.2 },
+  { x: -15, z: -6, w: 2.2, d: 2.2, h: 1.8 }, { x: 15, z: 6, w: 2.2, d: 2.2, h: 1.8 },
+  { x: -15, z: 6, w: 2.2, d: 2.2, h: 1.8 }, { x: 15, z: -6, w: 2.2, d: 2.2, h: 1.8 },
+];
+// Schaden gegen Spieler (100 Leben) und Werwölfe; Reichweiten begrenzt
+export const PVP = { hp: 100, respawn: 4, protect: 3, killCoins: 20, killPts: 30, head: 1.5,
+  dmg: { blaster: 9, shotgun: 6, smg: 6, rifle: 11, sniper: 55 }, range: { blaster: 60, shotgun: 20, smg: 45, rifle: 70, sniper: 120 }, wallDmg: 1.5 };
+export const WOLF = { price: 60, max: 2, life: 30, cooldown: 15, hp: 50, speed: 5.2, range: 1.6, biteGoat: 2.5, bitePlayer: 18, cd: 0.9, guard: 13, fromWave: 3 };
+export const BOOST = { cooldown: 6, dur: 0.8, maxY: 5.2, jumpY: 1.7 };
+export const KING = { s: 2.2, hp: 40, speed: 0.95, eat: 4, chargeCd: 8, chargeWind: 1.0, chargeSpeed: 9, chargeDur: 1.3, chargeDmg: 30, tired: 2.2,
+  stompCd: 6, stompWind: 0.8, stompR: 4.5, stompDmg: 20, headMult: 2.5, tiredMult: 2 };
+export const WAVE_NAMES = ['Der Angriff', 'Die Herde', 'Werwolf-Chaos', 'Großangriff', 'Ziegenkönig'];
+const WAVE5 = [ // Anzahl, Anteil Zicklein, Anteil Böcke, Angriffsfronten, Abstand (s), Tempo, Lebensfaktor – gemessen auf ca. 5–7 min pro Match
+  { n: 12, kid: 0, bock: 0, fronts: 1, gap: 2.2, sp: 1, hp: 1 },
+  { n: 18, kid: 0.4, bock: 0, fronts: 2, gap: 1.9, sp: 1.15, hp: 1 },
+  { n: 20, kid: 0.3, bock: 0.2, fronts: 2, gap: 1.8, sp: 1.15, hp: 1.1 },
+  { n: 28, kid: 0.3, bock: 0.3, fronts: 3, gap: 1.4, sp: 1.2, hp: 1.15 },
+  { n: 16, kid: 0.5, bock: 0.15, fronts: 2, gap: 2.4, sp: 1.1, hp: 1.1, king: true },
+];
+// Deterministische Welle (lokal, nur Außenseite): beide Teams bekommen exakt dieselbe Liste
+export function makeWave5(wave, seed, perTeam = 1) {
+  const W = WAVE5[wave - 1], r = rng(seed * 1000 + wave * 7919), scale = 1 + 0.4 * (perTeam - 1);
+  const lo = -0.35, hi = Math.PI + 0.35, fronts = [];
+  for (let i = 0; i < W.fronts; i++) fronts.push(lo + (hi - lo) * ((i + 0.5) / W.fronts) + (r() - 0.5) * 0.4);
+  const list = []; let t = 0.4; const n = Math.round(W.n * scale);
+  if (W.king) { list.push({ t: 0.5, type: 'king', a: Math.PI / 2, sp: 1 }); t = 3; }
+  for (let i = 0; i < n; i++) { const x = r(); const type = x < W.bock ? 'bock' : x < W.bock + W.kid ? 'kid' : 'normal';
+    const a = Math.max(lo, Math.min(hi, fronts[Math.floor(r() * fronts.length)] + (r() - 0.5) * 0.6));
+    list.push({ t, type, a, sp: (0.9 + r() * 0.2) * W.sp, hpM: W.hp }); t += W.gap / (1 + 0.2 * (perTeam - 1)) * (0.6 + r() * 0.8); }
+  return { wave, name: WAVE_NAMES[wave - 1], fronts, list, king: !!W.king };
+}

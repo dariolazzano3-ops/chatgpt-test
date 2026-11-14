@@ -27,7 +27,7 @@ export default {
       if (url.pathname === '/api/new') {
         if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'method' }, 405);
         const mode = url.searchParams.get('mode') || 'kuchenkrieg', size = url.searchParams.get('size') || '1v1';
-        if (!MODES[mode] || !['1v1', '2v2'].includes(size)) return json({ error: 'bad' }, 400);
+        if (!MODES[mode] || !['1v1', '2v2', 'coop'].includes(size) || (size === 'coop' && !MODES[mode].coop)) return json({ error: 'bad' }, 400);
         for (let i = 0; i < 5; i++) {
           const code = newCode(); const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
           const r = await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ code, mode, size }) });
