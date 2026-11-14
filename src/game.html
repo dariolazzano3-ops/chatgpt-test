@@ -241,7 +241,7 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
 .netbar .mini{width:80px;height:7px;border-radius:4px;background:var(--shade);border:1px solid rgba(255,244,220,.6);overflow:hidden}.netbar .mini i{display:block;height:100%;background:#ff7aa2}
 #netPing{font-weight:600;opacity:.85;min-width:42px;text-align:right}
 .fatal3d{background:var(--berry);color:var(--cream);padding:10px 14px;border-radius:12px;font-weight:700;line-height:1.4}
-.royale #coinChip,.royale #wNade,.royale #nadeBtn,.royale #fortHud,.royale #warn,.royale #arrow{display:none!important}
+.royale #goatsLeft,.royale #coinChip,.royale #wNade,.royale #nadeBtn,.royale #fortHud,.royale #warn,.royale #arrow{display:none!important}
 #rideHint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 132px);transform:translateX(-50%);background:rgba(18,12,31,.72);color:var(--cream);font-weight:800;font-size:14px;padding:8px 14px;border-radius:12px;pointer-events:none;z-index:30;white-space:nowrap}
 #rideBar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 118px);transform:translateX(-50%);width:min(260px,60vw);height:8px;border-radius:5px;background:rgba(18,12,31,.6);overflow:hidden;z-index:30;pointer-events:none}
 #rideBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cheese),#ff7aa2)}
@@ -1744,7 +1744,7 @@ function netRoom(r){NET.room=r;if(r.mode&&r.mode!==NET.mode)setLobbyMode(r.mode)
     $('lbStatus').textContent=r.countdown>0?'Start in '+Math.ceil(r.countdown)+' …':missing>0?'Warte auf '+missing+' weitere'+(missing>1?' Spieler':'n Spieler')+'. Teile den Code.':r.players.every(p=>p.ready)?'Alle bereit.':'Sobald alle bereit sind, geht es los.';}
   else if(r.state==='match'&&!NET.on)netStartMatch();
   else if(r.state==='results'){const n=r.players.filter(p=>p.rematch).length;if(n)$('rsStatus').textContent='Revanche: '+n+' von '+r.players.length+' sind dabei.';}}
-function netStartMatch(){if(ROY.on)royExit();resetGame();NET.on=true;NET.phase='';NET.wave=0;NET.map.clear();state='menu';
+function netStartMatch(){NET.cseq=0;if(ROY.on)royExit();resetGame();NET.on=true;NET.phase='';NET.wave=0;NET.map.clear();state='menu';
   const royale=NET.room&&NET.room.mode==='royale';if(royale)royEnter();
   showOnly(null);$('netbar').hidden=false;setPlaying();tryLock();popup('Team '+(NET.room?NET.room.teams[NET.team]:'')+(royale?': stoßt die Gegner von der Insel!':': verteidigt euren Kuchen!'));}
 function netShot(){const yaw=camera.rotation.y,p=camera.rotation.x;
@@ -1830,8 +1830,8 @@ function netGoat(g,dt){const p=g.g.position,k=Math.min(1,dt*12);
   const flash=g.hitT>0;if(flash)g.hitT-=dt;if(flash!==g.flashOn){g.flashOn=flash;const c=flash?0x7a1a30:0;g.M.fur.emissive.setHex(c);g.M.skin.emissive.setHex(c);g.M.face.emissive.setHex(c);}}
 function netUpdate(dt){
   if(ROY.on)royUpdate(dt);
-  NET.sendT-=dt;NET.hbT-=dt;if(NET.sendT<=0){NET.sendT=0.05;const o={t:'in',x:+player.x.toFixed(2),z:+player.z.toFixed(2),y:+pY.toFixed(2),yaw:+player.yaw.toFixed(2),pitch:+player.pitch.toFixed(2),w:weapon,cr:crouched};
-    const k=o.x+','+o.z+','+o.y+','+o.yaw+','+o.pitch+','+o.w+','+o.cr;if(k!==NET.lastIn||NET.hbT<=0){NET.lastIn=k;NET.hbT=0.25;netSend(o);}}
+  NET.sendT-=dt;NET.hbT-=dt;if(NET.sendT<=0){NET.sendT=0.05;const o={t:'in',c:NET.cseq||0,x:+player.x.toFixed(2),z:+player.z.toFixed(2),y:+pY.toFixed(2),yaw:+player.yaw.toFixed(2),pitch:+player.pitch.toFixed(2),w:weapon,cr:crouched};
+    const k=o.c+','+o.x+','+o.z+','+o.y+','+o.yaw+','+o.pitch+','+o.w+','+o.cr;if(k!==NET.lastIn||NET.hbT<=0){NET.lastIn=k;NET.hbT=0.25;netSend(o);}}
   NET.pingT-=dt;if(NET.pingT<=0){NET.pingT=2;netSend({t:'ping',c:performance.now()});}
   for(const m of NET.mates.values()){const k=Math.min(1,dt*12);m.g.position.x+=(m.tx-m.g.position.x)*k;m.g.position.z+=(m.tz-m.g.position.z)*k;m.g.position.y+=(m.ty-m.g.position.y)*k;
     let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;m.g.scale.y=m.cr?0.7:1;}
@@ -1916,14 +1916,37 @@ function royOther(p){let m=ROY.others.get(p.id);if(m)return m;
   m.g.position.set(p.x,p.y,p.z);m.tx=p.x;m.tz=p.z;m.ty=p.y;ROY.others.set(p.id,m);return m;}
 function royDisposeOther(m){if(m.infoTex)m.infoTex.dispose();disposeMate(m);}
 // Ziegen: neutral, geritten oder als dreiköpfige Kampfziege (Teamfarbe)
-function royGoat(id){let r=ROY.goats.get(id);if(r)return r;const g=makeGoat('normal');scene.add(g.g);
-  const extra=[];for(const sx of[-1,1]){const n=g.neck.clone();n.position.x+=sx*0.3;n.rotation.z=sx*0.45;n.visible=false;g.spine.add(n);extra.push(n);}
+// Vierbeinige Reitziege (eigenes Modell, nicht das Zombie-Modell): Galopp, Ausholen, Hinterbein-Tritt, drei Köpfe als Kampfziege
+function makeRideGoat(){
+  const M={fur:new THREE.MeshLambertMaterial({color:0xe9dfc8}),dark:lam(0x5b4a3c),horn:lam(0xcbb894),hoof:lam(0x2a2433),
+    face:new THREE.MeshLambertMaterial({map:faceTex,transparent:true,alphaTest:0.04}),eye:new THREE.MeshBasicMaterial({color:0x1a1420}),saddle:lam(0xb31f52)};
+  const g=new THREE.Group();const body=new THREE.Group();body.position.y=0.78;g.add(body);
+  const torso=new THREE.Mesh(box(0.5,0.48,1.05),M.fur);torso.castShadow=true;body.add(torso);
+  const belly=new THREE.Mesh(box(0.44,0.12,0.8),M.dark);belly.position.y=-0.24;body.add(belly);
+  const saddle=new THREE.Mesh(box(0.54,0.08,0.42),M.saddle);saddle.position.set(0,0.27,-0.05);saddle.visible=false;body.add(saddle);
+  const legs=[];for(const [x,z] of[[-0.17,0.38],[0.17,0.38],[-0.17,-0.38],[0.17,-0.38]]){const piv=new THREE.Group();piv.position.set(x,-0.2,z);
+    const up=new THREE.Mesh(box(0.13,0.36,0.14),M.fur);up.position.y=-0.18;const lo=new THREE.Mesh(box(0.1,0.26,0.1),M.dark);lo.position.y=-0.46;const hf=new THREE.Mesh(box(0.12,0.07,0.13),M.hoof);hf.position.y=-0.6;
+    piv.add(up,lo,hf);up.castShadow=true;body.add(piv);legs.push(piv);}
+  const tail=new THREE.Mesh(box(0.08,0.2,0.08),M.fur);tail.position.set(0,0.2,-0.55);tail.rotation.x=-0.6;body.add(tail);
+  const mkHead=()=>{const h=new THREE.Group();const neck=new THREE.Mesh(box(0.22,0.42,0.22),M.fur);neck.position.y=0.18;neck.rotation.x=0.35;
+    const head=new THREE.Mesh(box(0.28,0.3,0.36),M.fur);head.position.set(0,0.42,0.16);head.castShadow=true;
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(0.26,0.29),M.face);face.position.set(0,0.43,0.345);
+    const snout=new THREE.Mesh(box(0.2,0.16,0.14),M.fur);snout.position.set(0,0.33,0.38);
+    const beard=new THREE.Mesh(cone(0.05,0.16,5),M.dark);beard.rotation.x=Math.PI;beard.position.set(0,0.2,0.38);
+    h.add(neck,head,face,snout,beard);
+    for(const sx of[-1,1]){const horn=new THREE.Mesh(cone(0.045,0.3,5),M.horn);horn.position.set(sx*0.09,0.68,0.08);horn.rotation.set(-0.5,0,sx*0.25);
+      const ear=new THREE.Mesh(box(0.16,0.05,0.08),M.fur);ear.position.set(sx*0.19,0.5,0.12);ear.rotation.z=sx*-0.4;h.add(horn,ear);}
+    return h;};
+  const head=mkHead();head.position.set(0,0.12,0.5);body.add(head);
+  const extra=[];for(const sx of[-1,1]){const h=mkHead();h.position.set(sx*0.24,0.08,0.44);h.rotation.set(0,sx*0.5,sx*0.35);h.scale.setScalar(0.92);h.visible=false;body.add(h);extra.push(h);}
+  return{g,body,legs,tail,head,extra,saddle,M,type:'normal',hitT:0,flashOn:false};}
+function royGoat(id){let r=ROY.goats.get(id);if(r)return r;const g=makeRideGoat();scene.add(g.g);
   const wind=new THREE.Mesh(new THREE.RingGeometry(0.3,2.7,28,1,-0.62,1.24),new THREE.MeshBasicMaterial({color:0xff3a3a,transparent:true,opacity:0.45,side:THREE.DoubleSide,depthWrite:false}));
   wind.rotation.x=-Math.PI/2;wind.position.y=0.06;wind.visible=false;scene.add(wind);
-  r={g,extra,wind,furHex:g.M.fur.color.getHex(),tx:0,tz:0,ry:0,st:0,team:-1,phase:Math.random()*6,special:false};ROY.goats.set(id,r);return r;}
+  r={g,extra:g.extra,wind,furHex:g.M.fur.color.getHex(),tx:0,tz:0,ry:0,st:0,team:-1,phase:Math.random()*6,special:false,kickT:0};ROY.goats.set(id,r);return r;}
 function royDisposeGoat(r){scene.remove(r.g.g);scene.remove(r.wind);r.wind.material.dispose();for(const k in r.g.M)r.g.M[k].dispose();}
-function royGoatVisual(r,special,team){if(special===r.special&&team===r.team)return;r.special=special;r.team=team;
-  r.extra.forEach(n=>n.visible=special);r.g.M.fur.color.setHex(special?TEAMCOL[team]:r.furHex);r.g.g.scale.setScalar(special?1.18:1);}
+function royGoatVisual(r,special,team){r.g.saddle.visible=r.st===1||special;if(special===r.special&&team===r.team)return;r.special=special;r.team=team;
+  r.extra.forEach(n=>n.visible=special);r.g.M.fur.color.setHex(special?TEAMCOL[team]:r.furHex);r.g.M.saddle.color.setHex(special?0x2a2433:0xb31f52);r.g.g.scale.setScalar(special?1.25:1);}
 function roySnap(s){
   ROY.time=s.time;ROY.maxTime=s.maxTime;if(Math.abs(s.arenaR-ROY.R)>0.005)roySetR(s.arenaR);
   if(s.phase!==ROY.phase){const prev=ROY.phase;ROY.phase=s.phase;if(s.phase==='countdown')showBanner('GOAT ROYALE','Stoß die Gegner von der Insel. Drei Leben pro Spieler.',2.6);}
@@ -1934,7 +1957,7 @@ function roySnap(s){
     if(y.out&&!ROY.out){ROY.out=true;showBanner('Ausgeschieden','Du schaust jetzt zu, bis das Match endet.',4,true);}
     if(ROY.fall&&!y.fall){pY=0;pVy=0;grounded=true;}ROY.fall=y.fall;
     for(const k in y.ammo)if(WEAPONS[k]&&y.ammo[k]<ammo[k]&&reloadT<=0&&!y.reloading)ammo[k]=y.ammo[k];}
-  if(s.correct){player.x=s.correct.x;player.z=s.correct.z;}
+  if(s.correct){player.x=s.correct.x;player.z=s.correct.z;if(s.correct.c)NET.cseq=s.correct.c;}
   // Spieler
   const here=new Set();
   for(const p of s.players){if(p.id===NET.you)continue;here.add(p.id);const m=royOther(p);
@@ -1968,7 +1991,7 @@ function royEvent(e){
   else if(e.k==='transform'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=1.4;puff(tmpA,TEAMCOL[e.team],14);bleat(r.g,1);}
     const mine=e.team===NET.team;showBanner(mine?'Kampfziege!':'Achtung: Kampfziege!',mine?'Sie tritt rückwärts nach Gegnern. Du kannst weiter schießen.':'Weg vom Hinterteil! Abschießen beendet sie.',2.4,!mine);waveSound();}
   else if(e.k==='windup'){const r=ROY.goats.get(e.g);if(r)bleat(r.g,0.8);}
-  else if(e.k==='kick'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=0.4;puff(tmpA,0xf3e6c0,8);}}
+  else if(e.k==='kick'){const r=ROY.goats.get(e.g);if(r){r.kickT=0.35;tmpA.copy(r.g.g.position);tmpA.y+=0.4;puff(tmpA,0xf3e6c0,8);hitSound(true);}}
   else if(e.k==='kicked'){if(e.id===NET.you){shakeT=Math.max(shakeT,0.35);flashT=Math.max(flashT,0.3);popup('Getreten!');}}
   else if(e.k==='ghit'){const r=ROY.goats.get(e.g);if(r){r.g.hitT=0.12;if(e.by===NET.you){hitmT=0.14;$('hitm').className='show';hitSound(false);}}}
   else if(e.k==='gdown'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=1;puff(tmpA,0x8ea478,12);}if(e.by===NET.you){hitSound(true);showBanner('Kampfziege erledigt!','',1.4);}}
@@ -1995,11 +2018,15 @@ function royUpdate(dt){
     else if(r.st===1){for(const m of ROY.others.values())if(m.mount===id){tx=m.g.position.x;tz=m.g.position.z;}}
     const k=Math.min(1,dt*12);const mv=Math.hypot(tx-p.x,tz-p.z);p.x+=(tx-p.x)*k;p.z+=(tz-p.z)*k;p.y=0;
     let d=ry-r.g.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));r.g.g.rotation.y+=d*Math.min(1,dt*10);
-    const speed=Math.min(1,mv/dt/3);r.phase+=dt*(2+speed*(r.st===1?14:9));const st=Math.sin(r.phase);
-    r.g.legs[0].rotation.x=-0.3+st*0.6*speed;r.g.legs[1].rotation.x=-0.3-st*0.6*speed;r.g.tail.rotation.z=Math.sin(r.phase*2)*0.5;
-    if(r.st===4){r.g.spine.rotation.x=0.9;r.g.legs.forEach((l,i)=>l.rotation.x=-0.9-Math.sin(performance.now()/60+i)*0.2);}
-    else r.g.spine.rotation.x=r.st===2?0.6:0.35;
-    for(const n of r.extra)n.rotation.x=Math.sin(r.phase*1.3+n.position.x*4)*0.25;
+    const speed=Math.min(1,mv/Math.max(dt,1e-3)/3);r.phase+=dt*(1.5+speed*(r.st===1?13:9));const ph=r.phase,G=r.g;
+    if(r.kickT>0)r.kickT-=dt;
+    if(r.st===4){/* Ausholen: Kopf runter, Hinterteil hoch, Hinterbeine angezogen */G.body.rotation.x=0.28+Math.sin(performance.now()/70)*0.03;G.legs[2].rotation.x=G.legs[3].rotation.x=0.9;G.legs[0].rotation.x=G.legs[1].rotation.x=-0.2;G.body.position.y=0.74;}
+    else if(r.kickT>0){/* Tritt: Hinterbeine schnellen nach hinten */const k2=r.kickT/0.35;G.body.rotation.x=0.35*k2;G.legs[2].rotation.x=G.legs[3].rotation.x=-1.4*k2;G.legs[0].rotation.x=G.legs[1].rotation.x=0.1;}
+    else{/* Gangart: Galopp beim Reiten, sonst Schritt */const gal=r.st===1||r.st===2;const a=0.65*speed+0.05;
+      G.legs[0].rotation.x=Math.sin(ph)*a;G.legs[1].rotation.x=Math.sin(ph+(gal?0.4:Math.PI))*a;G.legs[2].rotation.x=Math.sin(ph+(gal?Math.PI:Math.PI))*a;G.legs[3].rotation.x=Math.sin(ph+(gal?Math.PI+0.4:0))*a;
+      G.body.rotation.x=gal?Math.sin(ph*2)*0.06*speed:0;G.body.position.y=0.78+(gal?Math.abs(Math.sin(ph))*0.07*speed:Math.abs(Math.sin(ph))*0.02);}
+    G.tail.rotation.z=Math.sin(ph*2.2)*0.5;G.head.rotation.x=Math.sin(ph*0.7)*0.08;
+    for(let i=0;i<r.extra.length;i++){const n=r.extra[i];n.rotation.x=Math.sin(ph*1.1+i*2)*0.22;}
     r.wind.position.set(p.x,0.06,p.z);r.wind.rotation.z=r.g.g.rotation.y+Math.PI/2+Math.PI;r.wind.material.opacity=0.3+0.25*Math.abs(Math.sin(performance.now()/90));
     const flash=r.g.hitT>0;if(flash)r.g.hitT-=dt;if(flash!==r.g.flashOn){r.g.flashOn=flash;const c=flash?0x7a1a30:0;r.g.M.fur.emissive.setHex(c);}}
   // Wolken treiben

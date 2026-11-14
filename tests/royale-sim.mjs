@@ -37,6 +37,10 @@ let seq = 1000; const send = (r, c, o) => r.message(c, JSON.stringify({ seq: ++s
   b.x = ROYALE.R0 + 1; r.tick(0.05);
   check('Über den Rand = Absturz, ein Leben weniger, KO für den Schützen', b.lives === 2 && b.fallT > 0 && a.kos === 1, `Leben ${b.lives}, KOs ${a.kos}`);
   for (let i = 0; i < 60; i++) r.tick(0.05);
+  { const cs0 = b.cseq; const bx0 = b.x; send(r, cs[1], { t: 'in', c: cs0 - 1, x: 30, z: 0, y: 0, yaw: 0, pitch: 0, w: 'blaster', cr: false }); r.tick(0.01);
+    check('Veraltete Position (vor der Server-Korrektur) wird ignoriert', Math.abs(b.x - bx0) < 1e-6 && b.lives === 2);
+    send(r, cs[1], { t: 'in', c: cs0, x: bx0 + 0.3, z: b.z, y: 0, yaw: 0, pitch: 0, w: 'blaster', cr: false }); r.tick(0.01);
+    check('Nach Bestätigung der Korrektur zählt die Position wieder', Math.abs(b.x - (bx0 + 0.3)) < 1e-6); }
   check('Wiederbelebung mit Schutz und Wucht 0', b.fallT === 0 && b.prot > 0 && b.wucht === 0 && Math.hypot(b.x, b.z) < ROYALE.R0);
   b.x = 3; b.z = 0; a.x = -3; a.z = 0; const w0 = b.wucht; a.lastShot = {}; m.time += 2; cs[0].out = []; shoot('blaster'); r.tick(0.01);
   check('Schutz nach Wiederbelebung blockt Treffer', b.wucht === w0 && cs[0].out.some(x => x.t === 'snap' && x.ev.some(e => e.k === 'shield')));

@@ -84,7 +84,7 @@ function handle(req, res) {
     const r = rooms.get(u.searchParams.get('code')); if (!r || !r.match) { res.writeHead(404); return res.end(); }
     if (r.modeId === 'royale') { const q = k => u.searchParams.get(k), m = r.match, ps = m.players.get(+q('id')), g = m.goats.find(x => x.id === +q('g'));
       const k = q('k');
-      if (k === 'rpos' && ps) { ps.x = +q('x'); ps.z = +q('z'); ps.kbT = 0; ps.vx = ps.vz = 0; ps.correct = true; if (q('prot') != null) ps.prot = +q('prot'); }
+      if (k === 'rpos' && ps) { ps.x = +q('x'); ps.z = +q('z'); ps.kbT = 0; ps.vx = ps.vz = 0; ps.correct = true; ps.cseq++; if (q('prot') != null) ps.prot = +q('prot'); }
       if (k === 'rset' && ps) { for (const f of ['lives', 'wucht', 'prot', 'rideT']) if (q(f) != null) ps[f] = +q(f); }
       if (k === 'rgoat' && g) { if (q('x') != null) { g.x = +q('x'); g.z = +q('z'); } if (q('hp') != null) g.hp = +q('hp'); if (q('life') != null) g.life = +q('life'); if (q('state')) g.state = q('state'); g.respawn = 0; g.wt = 99; g.wx = g.x; g.wz = g.z; }
       if (k === 'rtime') m.time = +q('v');

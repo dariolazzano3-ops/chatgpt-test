@@ -31,10 +31,12 @@ function newGoat(m, id) { const a = m.rand() * Math.PI * 2, r = 3 + m.rand() * 4
 function makePS(p, idx) {
   const ammo = {}; for (const k in RWEAPONS) ammo[k] = RWEAPONS[k].mag; const s = spawnPos(p.team, idx);
   return { id: p.id, team: p.team, idx, x: s.x, z: s.z, y: 0, yaw: p.team ? Math.PI / 2 : -Math.PI / 2, pitch: 0, w: 'blaster', cr: false,
-    ammo, reloadUntil: 0, reloadW: 'blaster', lastShot: {}, lastInT: 0, correct: true,
+    ammo, reloadUntil: 0, reloadW: 'blaster', lastShot: {}, lastInT: 0, correct: true, cseq: 1,
     lives: ROYALE.lives, wucht: 0, kbT: 0, vx: 0, vz: 0, prot: ROYALE.protect, fallT: 0, out: false, mount: 0, rideT: 0,
     kos: 0, falls: 0, hits: 0, shots: 0, rejects: {}, speedRejects: 0, lastHitBy: 0, transforms: 0 };
 }
+// Server-Teleport: Korrektur-Nummer erhöhen. Positionen vom Client zählen erst wieder, wenn er diese Nummer bestätigt.
+function corr(ps) { ps.correct = true; ps.cseq++; }
 function reject(ps, why) { ps.rejects[why] = (ps.rejects[why] || 0) + 1; }
 const alivePS = m => [...m.players.values()].filter(ps => !ps.out);
 
@@ -56,7 +58,7 @@ function fall(m, ps) {
   if (ps.lives <= 0) { ps.out = true; m.ev.push({ k: 'out', id: ps.id }); }
 }
 function respawn(m, ps) { const s = spawnPos(ps.team, ps.idx), R = arenaR(m) * 0.6, l = Math.hypot(s.x, s.z) || 1, f = Math.min(1, R / l);
-  ps.x = s.x * f; ps.z = s.z * f; ps.wucht = 0; ps.prot = ROYALE.protect; ps.correct = true; ps.lastHitBy = 0; m.ev.push({ k: 'respawn', id: ps.id }); }
+  ps.x = s.x * f; ps.z = s.z * f; ps.wucht = 0; ps.prot = ROYALE.protect; corr(ps); ps.lastHitBy = 0; m.ev.push({ k: 'respawn', id: ps.id }); }
 
 function shot(m, p, ps, msg) {
   if (m.phase !== 'play') return reject(ps, 'phase');
@@ -90,7 +92,7 @@ function shot(m, p, ps, msg) {
   }
   for (const [g, n] of hitsG) {
     if (g.state === 'special') { if (g.team === ps.team) continue; g.hp -= W.goatDmg * n; m.ev.push({ k: 'ghit', g: g.id, by: p.id, hp: +Math.max(0, g.hp).toFixed(1) });
-      if (g.hp <= 0) { const r = m.players.get(g.rider); if (r) { r.mount = 0; r.rideT = 0; r.correct = true; } g.state = 'free'; g.team = -1; g.rider = 0; g.respawn = 4; ps.kos++; m.ev.push({ k: 'gdown', g: g.id, by: p.id }); } }
+      if (g.hp <= 0) { const r = m.players.get(g.rider); if (r) { r.mount = 0; r.rideT = 0; corr(r); } g.state = 'free'; g.team = -1; g.rider = 0; g.respawn = 4; ps.kos++; m.ev.push({ k: 'gdown', g: g.id, by: p.id }); } }
     else if (g.state === 'free') { const l = Math.hypot(g.x - ps.x, g.z - ps.z) || 1; g.x += (g.x - ps.x) / l * 0.4 * n; g.z += (g.z - ps.z) / l * 0.4 * n; m.ev.push({ k: 'ghit', g: g.id, by: p.id }); }
   }
 }
@@ -114,7 +116,7 @@ function stepGoats(m, dt) {
     } else if (g.state === 'special') {
       g.life -= dt; g.cd -= dt;
       const rider = m.players.get(g.rider);
-      if (g.life <= 0) { if (rider) { rider.mount = 0; rider.rideT = 0; rider.correct = true; } g.state = 'free'; g.team = -1; g.rider = 0; g.respawn = 3; m.ev.push({ k: 'gexpire', g: g.id }); continue; }
+      if (g.life <= 0) { if (rider) { rider.mount = 0; rider.rideT = 0; corr(rider); } g.state = 'free'; g.team = -1; g.rider = 0; g.respawn = 3; m.ev.push({ k: 'gexpire', g: g.id }); continue; }
       // Ziel: nächster verwundbarer Gegner
       let tgt = null, td = 1e9; for (const q of m.players.values()) { if (q.team === g.team || q.out || q.fallT > 0) continue; const d = Math.hypot(q.x - g.x, q.z - g.z); if (d < td) { td = d; tgt = q; } }
       if (g.wind > 0) { g.wind -= dt; if (g.wind <= 0) { // Tritt mit den Hinterbeinen: Kegel hinter der Ziege
@@ -143,7 +145,7 @@ export const royale = {
     for (let i = 1; i <= ROYALE.goats; i++) m.goats.push(newGoat(m, i));
     return m;
   },
-  onRejoin(m, p) { const ps = m.players.get(p.id); if (ps) ps.correct = true; },
+  onRejoin(m, p) { const ps = m.players.get(p.id); if (ps) corr(ps); },
   onLeave(m, p) { const ps = m.players.get(p.id); if (ps) { dismount(m, ps); ps.out = true; ps.lives = 0; m.ev.push({ k: 'out', id: ps.id }); } },
   onMsg(m, p, msg) {
     const ps = m.players.get(p.id); if (!ps) return;
@@ -153,20 +155,21 @@ export const royale = {
       if (RWEAPONS[msg.w]) ps.w = msg.w;
       // Während Rückstoß, Absturz oder auf der Kampfziege bestimmt der Server die Position
       if (ps.out || ps.fallT > 0 || ps.kbT > 0 || (ps.mount && m.goats.find(g => g.id === ps.mount)?.state === 'special')) return;
+      if ((+msg.c || 0) < ps.cseq) return; // veraltete Position aus der Zeit vor der letzten Server-Korrektur
       const x = +msg.x, z = +msg.z; if (!Number.isFinite(x) || !Number.isFinite(z)) return;
       const maxD = 11 * (ps.mount ? 1.4 : 1) * 1.3 * dt + 0.6;
       let nx = x, nz = z; const d = Math.hypot(x - ps.x, z - ps.z);
-      if (d > maxD) { nx = ps.x + (x - ps.x) / d * maxD; nz = ps.z + (z - ps.z) / d * maxD; ps.correct = true; ps.speedRejects++; }
+      if (d > maxD) { nx = ps.x + (x - ps.x) / d * maxD; nz = ps.z + (z - ps.z) / d * maxD; corr(ps); ps.speedRejects++; }
       ps.x = nx; ps.z = nz; ps.y = Math.max(0, Math.min(2, +msg.y || 0));
     }
     else if (msg.t === 'shot') shot(m, p, ps, msg);
     else if (msg.t === 'reload') { const W = RWEAPONS[msg.w]; if (W && !ps.reloadUntil && ps.ammo[msg.w] < W.mag) { ps.reloadUntil = m.time + W.reload * 0.9; ps.reloadW = msg.w; } }
     else if (msg.t === 'mount') {
       if (m.phase !== 'play' || ps.out || ps.fallT > 0 || ps.kbT > 0) return reject(ps, 'mount');
-      if (ps.mount) { const g = m.goats.find(x => x.id === ps.mount); if (g && g.state === 'special') return reject(ps, 'mount'); dismount(m, ps); ps.correct = true; m.ev.push({ k: 'dismount', id: ps.id }); return; }
+      if (ps.mount) { const g = m.goats.find(x => x.id === ps.mount); if (g && g.state === 'special') return reject(ps, 'mount'); dismount(m, ps); corr(ps); m.ev.push({ k: 'dismount', id: ps.id }); return; }
       let best = null, bd = ROYALE.mountDist; for (const g of m.goats) { if (g.state !== 'free') continue; const d = Math.hypot(g.x - ps.x, g.z - ps.z); if (d < bd) { bd = d; best = g; } }
       if (!best) return reject(ps, 'mount');
-      best.state = 'ridden'; best.rider = ps.id; ps.mount = best.id; ps.rideT = 0; ps.x = best.x; ps.z = best.z; ps.correct = true; m.ev.push({ k: 'mount', id: ps.id, g: best.id });
+      best.state = 'ridden'; best.rider = ps.id; ps.mount = best.id; ps.rideT = 0; ps.x = best.x; ps.z = best.z; corr(ps); m.ev.push({ k: 'mount', id: ps.id, g: best.id });
     }
   },
   tick(m, dt) {
@@ -178,7 +181,7 @@ export const royale = {
       if (ps.out) continue;
       if (ps.prot > 0) ps.prot = Math.max(0, ps.prot - dt);
       if (ps.fallT > 0) { ps.fallT -= dt; if (ps.fallT <= 0) { ps.fallT = 0; respawn(m, ps); } continue; }
-      if (ps.kbT > 0) { ps.kbT -= dt; ps.x += ps.vx * dt; ps.z += ps.vz * dt; const f = Math.exp(-3.2 * dt); ps.vx *= f; ps.vz *= f; if (ps.kbT <= 0) { ps.vx = ps.vz = 0; ps.correct = true; } }
+      if (ps.kbT > 0) { ps.kbT -= dt; ps.x += ps.vx * dt; ps.z += ps.vz * dt; const f = Math.exp(-3.2 * dt); ps.vx *= f; ps.vz *= f; if (ps.kbT <= 0) { ps.vx = ps.vz = 0; corr(ps); } }
       if (Math.hypot(ps.x, ps.z) > R + 0.35) fall(m, ps);
     }
     stepGoats(m, dt);
@@ -197,7 +200,7 @@ export const royale = {
       goats: m.goats.map(g => [g.id, +g.x.toFixed(2), +g.z.toFixed(2), +g.ry.toFixed(2), { free: 0, ridden: 1, special: 2, gone: 3 }[g.state] + (g.wind > 0 ? 2 : 0), g.team, +Math.max(0, g.hp).toFixed(1), ROYALE.specialHp]),
       ev: m.ev,
       you: ps ? { ammo: ps.ammo, reloading: !!ps.reloadUntil, ride: +ps.rideT.toFixed(2), mount: ps.mount, forced: forced ? { x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) } : null, lives: ps.lives, wucht: Math.round(ps.wucht), out: ps.out, fall: ps.fallT > 0, kos: ps.kos } : null };
-    if (ps && ps.correct) { snap.correct = { x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) }; ps.correct = false; }
+    if (ps && ps.correct) { snap.correct = { x: +ps.x.toFixed(2), z: +ps.z.toFixed(2), c: ps.cseq }; ps.correct = false; }
     return snap;
   },
   flush(m) { m.ev = []; },
