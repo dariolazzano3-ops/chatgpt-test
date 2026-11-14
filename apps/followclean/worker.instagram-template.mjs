@@ -257,6 +257,109 @@ function fcV2ReviewChecks(batch,rows){
     reason:'A checker-negative needs independent evidence before claiming confirmed nonfollower.'};
 }
 /* FC_APIFY_SMARTSCAN_V2_END */
+/* FC_APIFY_V2_LEDGER_START */
+// Durable budget ledger + batch orchestration for Smart Scan V2. Still NOT wired to any
+// Actor start: nothing in this block performs a network request. Requires the migration
+// sql/fc_apify_budget_v2_pilot.sql. Every failure mode answers "do not start a paid run".
+const FC_V2_SCOPE='pilot-ysrrioo-v1';
+const FC_V2_RUN_CAP_MICROS=50000;
+const FC_V2_TOTAL_MICROS=200000;
+async function fcV2RunKey(scope,kind,account,usernames){
+  const a=fcNormalizeUsername(account);
+  if(typeof scope!=='string'||!a||(kind!=='following'&&kind!=='checker')||!Array.isArray(usernames)||
+    usernames.some(x=>fcNormalizeUsername(x)!==x))return null;
+  if(kind==='checker'&&(!usernames.length||usernames.length>FC_V2_BATCH))return null;
+  // Order-independent: the same candidates can never be billed twice under another order.
+  const text=JSON.stringify(['fc-v2',scope,kind,a,[...new Set(usernames)].sort()]);
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function fcV2Reserve(db,runKey,kind,now=Date.now()){
+  if(!db||typeof runKey!=='string'||!/^[0-9a-f]{64}$/.test(runKey)||
+    (kind!=='following'&&kind!=='checker'))return {ok:false,mayStart:false,reason:'invalid_reservation'};
+  try{
+    const res=await db.prepare('INSERT INTO fc_apify_v2_runs (run_key,scope,kind,cap_usd_micros,state,created_ts,updated_ts) VALUES (?1,?2,?3,?4,\'reserved\',?5,?5) ON CONFLICT(run_key) DO NOTHING')
+      .bind(runKey,FC_V2_SCOPE,kind,FC_V2_RUN_CAP_MICROS,now).run();
+    if(res?.meta?.changes===1)return {ok:true,mayStart:true,runKey,capUsd:FC_V2_RUN_CAP_MICROS/1e6};
+    const row=await db.prepare('SELECT state FROM fc_apify_v2_runs WHERE run_key=?1').bind(runKey).first();
+    // Same work already reserved/billed once: never start it a second time, never retry.
+    return {ok:false,mayStart:false,reason:'duplicate_run',existingState:row?.state||'unknown'};
+  }catch(e){
+    const exceeded=String(e?.message||e).includes('followclean_v2_total_budget_exceeded');
+    return {ok:false,mayStart:false,reason:exceeded?'total_budget_exceeded':'ledger_unavailable'};
+  }
+}
+async function fcV2Advance(db,runKey,state,detail={},now=Date.now()){
+  if(!db||!['submitted','settled','failed'].includes(state))return {ok:false,reason:'invalid_transition'};
+  const actual=detail.actualUsd===undefined?null:Math.ceil(detail.actualUsd*1e6);
+  if(actual!==null&&(!Number.isSafeInteger(actual)||actual<0))return {ok:false,reason:'invalid_cost'};
+  const runId=typeof detail.providerRunId==='string'&&/^[A-Za-z0-9]{1,40}$/.test(detail.providerRunId)?detail.providerRunId:null;
+  try{
+    const res=await db.prepare('UPDATE fc_apify_v2_runs SET state=?2, actual_usd_micros=COALESCE(?3,actual_usd_micros), provider_run_id=COALESCE(?4,provider_run_id), updated_ts=?5 WHERE run_key=?1')
+      .bind(runKey,state,actual,runId,now).run();
+    return res?.meta?.changes===1?{ok:true}:{ok:false,reason:'unknown_run'};
+  }catch{return {ok:false,reason:'transition_rejected'};}
+}
+async function fcV2BudgetStatus(db){
+  try{
+    const row=await db.prepare('SELECT COUNT(*) AS runs, COALESCE(SUM(MAX(cap_usd_micros,COALESCE(actual_usd_micros,0))),0) AS committed, COALESCE(SUM(COALESCE(actual_usd_micros,0)),0) AS reported FROM fc_apify_v2_runs WHERE scope=?1')
+      .bind(FC_V2_SCOPE).first();
+    const committed=Number(row.committed);
+    if(!Number.isSafeInteger(committed))throw Error('bad');
+    return {ok:true,scope:FC_V2_SCOPE,runs:Number(row.runs),totalUsd:FC_V2_TOTAL_MICROS/1e6,
+      committedUsd:committed/1e6,providerReportedUsd:Number(row.reported)/1e6,
+      remainingUsd:Math.max(0,FC_V2_TOTAL_MICROS-committed)/1e6,
+      startableRuns:Math.max(0,Math.floor((FC_V2_TOTAL_MICROS-committed)/FC_V2_RUN_CAP_MICROS))};
+  }catch{return {ok:false,reason:'ledger_unavailable',startableRuns:0};}
+}
+// Evidence = an independent, owner-authorized and COMPLETE follower list (e.g. the local
+// Instagram export). Without it, no checker answer can ever become a confirmed nonfollower.
+function fcV2Classify(checkStatus,username,evidence){
+  const trusted=evidence&&evidence.authorized===true&&evidence.complete===true&&
+    evidence.followers instanceof Set;
+  if(checkStatus==='MUTUAL')
+    return trusted&&!evidence.followers.has(username)?'UNKNOWN':'MUTUAL';
+  if(checkStatus==='UNVERIFIED_NEGATIVE'){
+    if(!trusted)return 'UNVERIFIED_NEGATIVE';
+    return evidence.followers.has(username)?'UNKNOWN':'CONFIRMED_NONFOLLOWER';
+  }
+  return 'UNKNOWN';
+}
+// Pure decision step. state.checked: {username:status} for every candidate already billed;
+// state.shown: usernames whose confirmed hit the user has already seen.
+function fcV2NextStep(account,following,state={},evidence=null){
+  const source=fcNormalizeUsername(account);
+  if(!source||following?.ok!==true||following.account!==source||!Array.isArray(following.candidates)||
+    following.candidates.length>FC_V2_FREE_FOLLOWING_CAP)return {ok:false,action:'STOP_ERROR',reason:'untrusted_following'};
+  const checked=state.checked&&typeof state.checked==='object'?state.checked:{};
+  const shown=new Set(Array.isArray(state.shown)?state.shown:[]);
+  const all=following.candidates;
+  for(let offset=0;offset<all.length;offset+=FC_V2_BATCH){
+    const group=all.slice(offset,offset+FC_V2_BATCH);
+    const open=group.filter(u=>!Object.hasOwn(checked,u));
+    if(open.length){
+      // A partly billed group cannot be re-sent whole; resume with only the open names.
+      if(open.length!==group.length)
+        return {ok:true,action:'CHECK_BATCH',executed:false,offset,
+          batch:{ok:true,executed:false,actor:FC_V2_ACTORS.checker,
+            input:{account:source,usernames:open,addSummaryRow:true},
+            runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120},
+            requested:open,offset,nextOffset:offset+group.length}};
+      return {ok:true,action:'CHECK_BATCH',executed:false,offset,batch:fcV2MakeCheckerBatch(source,following,offset)};
+    }
+    for(const username of group){
+      if(shown.has(username))continue;
+      if(fcV2Classify(checked[username],username,evidence)==='CONFIRMED_NONFOLLOWER')
+        return {ok:true,action:'STOP_CONFIRMED',hit:{username,status:'CONFIRMED_NONFOLLOWER',
+          profileUrl:'https://www.instagram.com/'+username+'/'},checkedCount:offset+group.length};
+    }
+  }
+  const tally={CONFIRMED_NONFOLLOWER:0,MUTUAL:0,UNVERIFIED_NEGATIVE:0,UNKNOWN:0};
+  for(const u of all)tally[fcV2Classify(checked[u],u,evidence)]++;
+  return {ok:true,action:'SAMPLE_EXHAUSTED',checkedCount:all.length,tally,coverage:'BOUNDED_SAMPLE',
+    note:'Only the returned sample was examined. No statement about accounts beyond it.'};
+}
+/* FC_APIFY_V2_LEDGER_END */
 
 async function handleAnalysisBudget(request, env, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
