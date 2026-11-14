@@ -105,6 +105,7 @@ function handle(req, res) {
     if (k === 'scoins' && kp) kp.coins = v; if (k === 'lives' && kp) kp.lives = v; if (k === 'reveal' && kp) kp.revealUntil = m.time + v;
     if (k === 'npcpos') { const n = m.npcs[+q('i') || 0]; if (n) { n.x = +q('x'); n.z = +q('z'); n.tx = n.x; n.tz = n.z; n.state = 'graze'; n.t = 99; n.ry = q('ry') != null ? +q('ry') : n.ry; } }
     if (k === 'npcfreeze') for (const n of m.npcs) { n.state = 'graze'; n.t = 999; }
+    if (k === 'npcaway') m.npcs.forEach((n, i) => { const a = i / m.npcs.length * 6.283; n.x = n.tx = Math.cos(a) * 33; n.z = n.tz = Math.sin(a) * 33; n.state = 'graze'; n.t = 999; });
     if (k === 'wall') { const wl = m.fort.walls[q('side')]; if (wl) { wl.lvl = v; wl.hp = wl.maxHp = v ? [0, 60, 140, 240][v] : 0; } }
     res.writeHead(200); return res.end('ok');
   }
