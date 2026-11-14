@@ -5,6 +5,8 @@ import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath }
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = process.argv.find(a => a.startsWith('--face=')); const face = arg ? arg.slice(7) : 'neutral';
 if (!['neutral', 'original'].includes(face)) { console.error('--face=neutral oder --face=original'); process.exit(1); }
+// Seit V7: öffentliche Builds nur mit neutralem Gesicht. Das Original nur lokal und nur mit ausdrücklicher Freigabe.
+if (face === 'original' && process.env.ZIEGENALARM_PRIVATE_FACE !== '1') { console.error('Originalgesicht gesperrt: öffentliche Builds nur neutral (lokal: ZIEGENALARM_PRIVATE_FACE=1)'); process.exit(1); }
 let html = fs.readFileSync(path.join(root, 'src', 'game.html'), 'utf8').replace('/*@test-hooks*/', '');
 const re = /const faceTex=new THREE\.TextureLoader\(\)\.load\('data:image\/png;base64,[A-Za-z0-9+/=]+'\)/;
 if (!re.test(html)) { console.error('Gesichtstextur nicht gefunden'); process.exit(1); }

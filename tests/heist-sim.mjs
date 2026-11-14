@@ -48,6 +48,15 @@ function aim(r, c, ps, x, z, tx, tz, ty = 0.78) { const dx = tx - x, dz = tz - z
   check('Aussichtsturm: Schwanz bis 32 m erkennbar', row[5] === 1);
   check('Keine Ereignisse verraten den Schafspieler ohne Kampf', !allEv(csOf(d)).some(e => e.sid === s.sid || e.id === s.id));
 }
+// ---------- 1b. Tarnverhalten: Herde sieht sich um, Spieler grast im Stand ----------
+{ const { r, m, D, S, csOf } = setup(); const s = S[0], c = csOf(s); startWave(r, m, 1); hold(m);
+  let idle = 0; for (let i = 0; i < 200; i++) { tick(r, 0.1); idle += m.npcs.filter(n => n.state === 'idle').length; }
+  check('Herdenschafe sehen sich auch mal um (wie ein stehender Spieler)', idle > 10, idle);
+  s.x = 22; s.z = 0; for (let i = 0; i < 50; i++) { send(r, c, { t: 'in', c: s.cseq, x: 22, z: 0, y: 0, yaw: 0, pitch: 0 }); tick(r, 0.05); }
+  const row = lastSnap(csOf(D[0])).sh.find(e => e[0] === s.sid); check('Schafspieler steht > 2 s still → grast automatisch', row && row[4] === 0, row && row[4]);
+  let x = 22; const r0 = s.speedRejects; for (let i = 0; i < 40; i++) { x += 1.35 * 0.05; send(r, c, { t: 'in', c: s.cseq, x, z: 0, y: 0, yaw: 0, pitch: 0 }); tick(r, 0.05); }
+  const row2 = lastSnap(csOf(D[0])).sh.find(e => e[0] === s.sid); check('Herdentempo (1,35 m/s): Animation „gehen“ wie die Herde, keine Verstöße', row2 && row2[4] === 1 && s.speedRejects === r0, row2 && row2[4]);
+}
 // ---------- 2. NPC-Schafe: nur nach Anvisieren ----------
 { const { r, m, D, csOf } = setup(); const d = D[0], c = csOf(d); startWave(r, m, 1); hold(m); isolate(m, m.npcs.slice(0, 4));
   const n = m.npcs[0]; n.x = 14; n.z = 0; n.state = 'graze'; n.t = 999;

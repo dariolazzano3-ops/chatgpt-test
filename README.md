@@ -106,8 +106,8 @@ npx wrangler login
 npm run deploy            # neutrales Gesicht (Standard)
 ```
 
-`npm run deploy:original` veröffentlicht das Gesicht aus dem Foto. Das braucht `src/face-original.png`
-(liegt absichtlich **nicht** in diesem Repo) und die Einwilligung der abgebildeten Person für eine öffentliche Website.
+Seit V7 werden öffentliche Builds **nur mit dem neutralen, erfundenen Gesicht** gebaut. Es gibt kein Deploy-Skript für das Originalfoto mehr;
+`tools/build.mjs --face=original` bricht ab (nur lokal mit `ZIEGENALARM_PRIVATE_FACE=1`), und `src/face-original.png` liegt nicht im Repo.
 
 ### Nach dem Deploy prüfen
 

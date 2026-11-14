@@ -561,7 +561,7 @@ const camera=new THREE.PerspectiveCamera(75,1,0.05,200);
 camera.rotation.order='YXZ';
 scene.add(camera);
 
-scene.add(new THREE.HemisphereLight(0xffc29a,0x2f4a2a,0.75));
+const hemiLight=new THREE.HemisphereLight(0xffc29a,0x2f4a2a,0.75);scene.add(hemiLight);
 const sun=new THREE.DirectionalLight(0xffb070,1.0);
 sun.position.set(-30,25,-20);sun.castShadow=true;
 const sm=lowPower?1024:2048;sun.shadow.mapSize.set(sm,sm);
@@ -2356,22 +2356,28 @@ const SHEEP_ITEMS=[['shield','Schild','🛡',40],['speed','Tempo','💨',25],['s
 
 // ---------- Schafmodell (gemeinsame Geometrien und Materialien für die ganze Herde) ----------
 let SHEEP_G=null;
+function kkMerge(parts){const pos=[],nor=[],col=[],c=new THREE.Color(),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),P=new THREE.Vector3(),S=new THREE.Vector3();
+  for(const [g0,x,y,z,sx,sy,sz,rx,ry,rz,hex] of parts){let g=g0.clone();if(g.index)g=g.toNonIndexed();e.set(rx||0,ry||0,rz||0);q.setFromEuler(e);P.set(x,y,z);S.set(sx,sy,sz);m.compose(P,q,S);g.applyMatrix4(m);
+    const A=g.attributes.position,N=g.attributes.normal;c.setHex(hex);for(let i=0;i<A.count;i++){pos.push(A.getX(i),A.getY(i),A.getZ(i));nor.push(N.getX(i),N.getY(i),N.getZ(i));col.push(c.r,c.g,c.b);}g.dispose();}
+  const out=new THREE.BufferGeometry();out.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));out.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));out.setAttribute('color',new THREE.Float32BufferAttribute(col,3));return out;}
 function sheepShared(){if(SHEEP_G)return SHEEP_G;
   const wool=new THREE.IcosahedronGeometry(0.6,2);const p=wool.attributes.position,v=new THREE.Vector3();const rnd=s=>{const x=Math.sin(s*12.9898)*43758.5453;return x-Math.floor(x);};
   for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const n=0.88+0.2*rnd(Math.round(v.x*40)+Math.round(v.y*40)*7+Math.round(v.z*40)*13);v.multiplyScalar(n);p.setXYZ(i,v.x,v.y,v.z);}wool.computeVertexNormals();
   const tuft=new THREE.IcosahedronGeometry(0.2,1);
-  SHEEP_G={wool,tuft,head:new THREE.SphereGeometry(0.22,10,8),ear:box(0.16,0.05,0.09),leg:new THREE.CylinderGeometry(0.055,0.045,0.5,6),hoof:box(0.11,0.06,0.11),eye:new THREE.SphereGeometry(0.035,6,4),tail:new THREE.IcosahedronGeometry(0.12,1),
-    M:{wool:new THREE.MeshLambertMaterial({color:0xf1ebdd,flatShading:true}),woolT:new THREE.MeshLambertMaterial({color:0xf1ebdd,flatShading:true}),face:lam(0x2d2730),leg:lam(0x2d2730),eye:new THREE.MeshBasicMaterial({color:0xfff4dc}),
-      tailW:new THREE.MeshLambertMaterial({color:0xece4d2,flatShading:true}),tailB:new THREE.MeshLambertMaterial({color:0x17131b,flatShading:true}),warn:new THREE.MeshLambertMaterial({color:0xf1ebdd,flatShading:true,emissive:0x3a0a12})}};
+  // Kopf (mit Haarschopf, Ohren, Augen) und Bein (mit Huf) je als EIN Teil: 7 statt 17 Draw Calls pro Schaf
+  const FACE=0x2d2730,WOOL=0xf1ebdd,headG=new THREE.SphereGeometry(0.22,10,8),earG=new THREE.BoxGeometry(0.16,0.05,0.09),eyeG=new THREE.SphereGeometry(0.035,6,4);
+  const neckGeo=kkMerge([[headG,0,0.06,0.2,0.9,1,1.25,0,0,0,FACE],[tuft,0,0.22,0.12,1,0.7,1,0,0,0,WOOL],[earG,-0.21,0.14,0.08,1,1,1,0,0,-0.5,FACE],[earG,0.21,0.14,0.08,1,1,1,0,0,0.5,FACE],[eyeG,-0.1,0.12,0.38,1,1,1,0,0,0,0xfff4dc],[eyeG,0.1,0.12,0.38,1,1,1,0,0,0,0xfff4dc]]);
+  const legGeo=kkMerge([[new THREE.CylinderGeometry(0.055,0.045,0.5,6),0,-0.18,0,1,1,1,0,0,0,FACE],[new THREE.BoxGeometry(0.11,0.06,0.11),0,-0.42,0,1,1,1,0,0,0,0x241f27]]);headG.dispose();earG.dispose();eyeG.dispose();
+  SHEEP_G={wool,tuft,neckGeo,legGeo,tail:new THREE.IcosahedronGeometry(0.085,1),
+    M:{wool:new THREE.MeshLambertMaterial({color:0xf1ebdd,flatShading:true}),parts:new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true}),
+      tailW:new THREE.MeshLambertMaterial({color:0xece4d2,flatShading:true}),tailB:new THREE.MeshLambertMaterial({color:0x2b242c,flatShading:true}),warn:new THREE.MeshLambertMaterial({color:0xf1ebdd,flatShading:true,emissive:0x3a0a12})}};
   return SHEEP_G;}
 function makeSheep(){const S=sheepShared(),M=S.M;const g=new THREE.Group();const body=new THREE.Group();body.position.y=0.78;g.add(body);
   const wool=new THREE.Mesh(S.wool,M.wool);wool.scale.set(0.95,0.82,1.28);body.add(wool);
-  const neck=new THREE.Group();neck.position.set(0,0.12,0.62);body.add(neck);const head=new THREE.Mesh(S.head,M.face);head.scale.set(0.9,1,1.25);head.position.set(0,0.06,0.2);neck.add(head);
-  const top=new THREE.Mesh(S.tuft,M.wool);top.position.set(0,0.22,0.12);top.scale.set(1,0.7,1);neck.add(top);
-  for(const sx of[-1,1]){const ear=new THREE.Mesh(S.ear,M.face);ear.position.set(sx*0.21,0.14,0.08);ear.rotation.z=sx*0.5;neck.add(ear);const e=new THREE.Mesh(S.eye,M.eye);e.position.set(sx*0.1,0.12,0.38);neck.add(e);}
-  const legs=[];for(const [lx,lz] of[[-0.24,0.36],[0.24,0.36],[-0.24,-0.36],[0.24,-0.36]]){const piv=new THREE.Group();piv.position.set(lx,-0.38,lz);const l=new THREE.Mesh(S.leg,M.leg);l.position.y=-0.18;const h=new THREE.Mesh(S.hoof,M.leg);h.position.y=-0.42;piv.add(l,h);body.add(piv);legs.push(piv);}
-  const tail=new THREE.Mesh(S.tail,M.tailW);tail.position.set(0,0.14,-0.76);body.add(tail);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});scene.add(g);
+  const neck=new THREE.Group();neck.position.set(0,0.12,0.62);body.add(neck);const head=new THREE.Mesh(S.neckGeo,M.parts);neck.add(head);
+  const legs=[];for(const [lx,lz] of[[-0.24,0.36],[0.24,0.36],[-0.24,-0.36],[0.24,-0.36]]){const piv=new THREE.Group();piv.position.set(lx,-0.38,lz);piv.add(new THREE.Mesh(S.legGeo,M.parts));body.add(piv);legs.push(piv);}
+  const tail=new THREE.Mesh(S.tail,M.tailW);tail.position.set(0,0.06,-0.74);tail.scale.set(0.8,1.25,0.7);tail.rotation.x=0.4;body.add(tail);
+  wool.castShadow=true;scene.add(g); // nur der Wollkörper wirft Schatten (spart den Schattendurchgang)
   return{g,body,wool,neck,head,legs,tail,ph:Math.random()*6,tx:0,tz:0,ry:0,anim:0,lx:0,lz:0,headT:Math.random()*4,headA:0,carry:null,shield:null,y:0,ty:0};}
 function disposeSheep(s){scene.remove(s.g);if(s.label){s.label.material.map.dispose();s.label.material.dispose();}}
 // Animationen: grasen (Kopf unten, kauen), laufen, rennen, warnen (Kopf senken, Hufscharren, Zittern), stürmen, umsehen
@@ -2548,11 +2554,14 @@ function kkBuildsUpdate(dt){const now=performance.now();for(const b of KK.builds
 function kkTracer(a,b,col){if(KK.tracers.length>24)return;const geo=new THREE.BufferGeometry().setFromPoints([a,b]);const m=new THREE.Line(geo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:1}));scene.add(m);KK.tracers.push({m,t:0.12});}
 
 // ---------- Ziegen: volle Modelle in der Nähe, vereinfachte Instanzen in der Ferne (Finale: 100 Ziegen) ----------
-const KK_FULL=26;
+const KK_FULL=26,kkFullN=()=>gfxLevel==='niedrig'?8:isTouch?12:KK_FULL; // volle Ziegenmodelle: Desktop 26, Handy 12, Niedrig 8
 function kkInstInit(){if(KK.inst)return;
   // Einfache Zombie-Ziege aus wenigen Quadern, als eine Geometrie mit Vertexfarben (1 Draw Call für alle fernen Ziegen)
-  const parts=[[0.5,0.55,0.95,0,1.05,0,0x7a8a6a],[0.34,0.36,0.42,0,1.48,0.5,0x9aa888],[0.12,0.6,0.12,-0.16,0.42,0.3,0x4a5a3a],[0.12,0.6,0.12,0.16,0.42,0.3,0x4a5a3a],[0.12,0.6,0.12,-0.16,0.42,-0.3,0x4a5a3a],[0.12,0.6,0.12,0.16,0.42,-0.3,0x4a5a3a],
-    [0.06,0.24,0.06,-0.1,1.76,0.42,0xd9c49a],[0.06,0.24,0.06,0.1,1.76,0.42,0xd9c49a],[0.07,0.05,0.02,-0.08,1.52,0.72,0x9dff6a],[0.07,0.05,0.02,0.08,1.52,0.72,0x9dff6a]];
+  // dieselbe aufrechte Silhouette wie das volle Modell (Beine, Rumpf, ausgestreckte Arme, Kopf mit Gesicht, Haarschopf, Hörner)
+  const F=0x86846e,D=0x1e1816,S=0xa8b090;const parts=[[0.17,1.0,0.19,-0.14,0.5,0,0x6f6e5c],[0.17,1.0,0.19,0.14,0.5,0,0x6f6e5c],[0.56,0.72,0.34,0,1.4,0,F],[0.36,0.42,0.03,0,1.32,0.18,S],
+    [0.13,0.13,0.62,-0.35,1.66,0.3,F],[0.13,0.13,0.62,0.35,1.66,0.3,F],[0.13,0.13,0.13,-0.35,1.66,0.66,D],[0.13,0.13,0.13,0.35,1.66,0.66,D],
+    [0.36,0.42,0.34,0,1.99,0.04,F],[0.3,0.3,0.02,0,1.99,0.22,0xd8c8a8],[0.4,0.12,0.38,0,2.21,0.03,0xcdb98a],[0.06,0.24,0.06,-0.11,2.36,-0.04,0x6e6252],[0.06,0.24,0.06,0.11,2.36,-0.04,0x6e6252],
+    [0.06,0.04,0.02,-0.07,2.03,0.235,0x9dff6a],[0.06,0.04,0.02,0.07,2.03,0.235,0x9dff6a]];
   const pos=[],nor=[],col=[];const c=new THREE.Color();
   for(const [w,h,d,x,y,z,hex] of parts){const g=new THREE.BoxGeometry(w,h,d).toNonIndexed();g.translate(x,y,z);const P=g.attributes.position,N=g.attributes.normal;c.setHex(hex);
     for(let i=0;i<P.count;i++){pos.push(P.getX(i),P.getY(i),P.getZ(i));nor.push(N.getX(i),N.getY(i),N.getZ(i));col.push(c.r,c.g,c.b);}g.dispose();}
@@ -2566,7 +2575,7 @@ function kkGoatData(arr){const now=performance.now(),seen=new Set();
   for(const [id,d] of KK.gd)if(!seen.has(id))KK.gd.delete(id);}
 function kkGoatsUpdate(dt){kkInstInit();const cam=camera.position,list=[...KK.gd.values()];let king=null;
   for(const d of list){d.dist=Math.hypot(d.px-cam.x,d.pz-cam.z);if(d.ti===3)king=d;}
-  const full=new Set();if(list.length<=KK_FULL+12)list.forEach(d=>full.add(d.id));else{list.sort((a,b)=>a.dist-b.dist);for(let i=0;i<KK_FULL;i++)full.add(list[i].id);if(king)full.add(king.id);}
+  const NF=kkFullN(),full=new Set();if(list.length<=NF+12)list.forEach(d=>full.add(d.id));else{list.sort((a,b)=>a.dist-b.dist);for(let i=0;i<NF;i++)full.add(list[i].id);if(king)full.add(king.id);}
   const I=KK.inst;let n=0;const now=performance.now();
   for(const d of list){
     // Vorausberechnung (begrenzt) und weiches Nachziehen
@@ -2576,7 +2585,7 @@ function kkGoatsUpdate(dt){kkInstInit();const cam=camera.position,list=[...KK.gd
       g.tAt=d.tAt;g.tx=d.tx;g.tz=d.tz;g.vx=d.vx;g.vz=d.vz;g.try=d.ry;const st=d.st;g.nstate=st===7?1:st>=3?(st===4?0:st===5?1:2):st;g.kst=st;g.hp=d.hp;g.maxHp=100;g.enemyWorld=false;
       if(st===1&&KK.cakeState!==0)g.nstate=1;if(d.ti!==3&&d.hp<100&&g.barBg){g.barBg.visible=g.barFg.visible=true;g.barFg.scale.x=0.56*Math.max(0,d.hp/100);}}
     else{if(g){NET.map.delete(d.id);const i=goats.indexOf(g);if(i>=0)removeGoat(i);}
-      if(n<120){d.ph+=dt*(d.st===0?9:4);const s=KK_TSCALE[d.ti]||1;I.e.set(d.st===1?0.35:0,d.ry,0);I.q.setFromEuler(I.e);I.p.set(d.px,Math.abs(Math.sin(d.ph))*0.07,d.pz);I.s.set(s,s*(1+Math.sin(d.ph)*0.03),s);I.m4.compose(I.p,I.q,I.s);I.mesh.setMatrixAt(n++,I.m4);}}}
+      if(n<120){d.ph+=dt*(d.st===0?9:4);const s=KK_TSCALE[d.ti]||1;I.e.set(d.st===1?0.3:0,d.ry,Math.sin(d.ph*0.5)*0.06);I.q.setFromEuler(I.e);I.p.set(d.px,Math.abs(Math.sin(d.ph))*0.07,d.pz);I.s.set(s,s*(1+Math.sin(d.ph)*0.03),s);I.m4.compose(I.p,I.q,I.s);I.mesh.setMatrixAt(n++,I.m4);}}}
   I.mesh.count=n;I.mesh.instanceMatrix.needsUpdate=true;
   // Modelle ohne Daten entfernen (z. B. nach Tod ohne Ereignis)
   for(const [id,g] of NET.map)if(!KK.gd.has(id)){NET.map.delete(id);if(g.state!=='dead'){const i=goats.indexOf(g);if(i>=0)removeGoat(i);}}
@@ -2607,7 +2616,8 @@ function kkExit(){if(!KK.on)return;KK.on=false;for(const o of KK.hidden)o.visibl
   for(const k in WEAPONS){const W=WEAPONS[k];if(W.baseMag!=null){W.mag=W.baseMag;W.reload=W.baseReload;}}
   document.body.classList.remove('kk','kk-sheep','kk-def');$('hpBox').hidden=true;$('kkDead').hidden=true;$('wolfBtn').hidden=true;$('boostBar').hidden=true;$('kkHud').hidden=true;$('hshopBtn').hidden=true;$('hshop').hidden=true;$('sheepBar').hidden=true;$('grabBtn').hidden=true;$('grabRing').hidden=true;$('emoteBtn').hidden=true;KK.shopOpen=false;}
 // Stimmung: Nacht ab Welle 5, Finale (Welle 8) mit rotem Himmel
-let kkFog0=null;function kkAtmos(mode){if(!kkFog0)kkFog0={c:scene.fog.color.getHex(),near:scene.fog.near,far:scene.fog.far,sun:sun.color.getHex(),si:sun.intensity,bg:scene.background&&scene.background.isColor?scene.background.getHex():null};if(KK.atmos===mode)return;KK.atmos=mode;
+let kkFog0=null;function kkAtmos(mode){if(!kkFog0)kkFog0={c:scene.fog.color.getHex(),near:scene.fog.near,far:scene.fog.far,sun:sun.color.getHex(),si:sun.intensity,hi:hemiLight.intensity,hs:hemiLight.color.getHex(),bg:scene.background&&scene.background.isColor?scene.background.getHex():null};if(KK.atmos===mode)return;KK.atmos=mode;
+  hemiLight.intensity=kkFog0.hi*(mode==='night'?0.4:mode==='final'?0.6:1);hemiLight.color.setHex(mode==='night'?0x6a7aff:mode==='final'?0xff7a6a:kkFog0.hs);
   const P={'':[kkFog0.c,kkFog0.near,kkFog0.far,kkFog0.sun,kkFog0.si,kkFog0.bg],night:[0x141a33,12,60,0x8a9aff,kkFog0.si*0.45,0x0d1124],final:[0x3a0f1e,14,72,0xff7a5a,kkFog0.si*0.6,0x2a0a14]}[mode];
   scene.fog.color.setHex(P[0]);scene.fog.near=P[1];scene.fog.far=P[2];sun.color.setHex(P[3]);sun.intensity=P[4];if(P[5]!=null&&scene.background&&scene.background.isColor)scene.background.setHex(P[5]);}
 // Kollision des eigenen Spielers: Mauern (nur über die Oberkante), Tore nur für Verteidiger, Zaun
