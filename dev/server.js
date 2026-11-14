@@ -76,10 +76,15 @@ function handle(req, res) {
     if (r.modeId === 'royale') return sendJson(res, { mode: 'royale', state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, connected: p.connected, lastSeq: p.lastSeq })), results: r.results,
       match: r.match && { time: r.match.time, phase: r.match.phase, players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, lives: ps.lives, wucht: ps.wucht, mount: ps.mount, rideT: ps.rideT, fallT: ps.fallT, out: ps.out, prot: ps.prot, kos: ps.kos, shots: ps.shots, hits: ps.hits, rejects: ps.rejects, kbT: ps.kbT })),
         goats: r.match.goats.map(g => ({ id: g.id, x: g.x, z: g.z, state: g.state, team: g.team, hp: g.hp, wind: g.wind })) } });
-    return sendJson(res, ({ tickMs: r._tickMs || 0, tickMax: r._tickMax || 0, stats, state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, dupes: p.dupes, lastSeq: p.lastSeq })),
-      match: r.match && r.match.worlds && { wave: r.match.wave, phase: r.match.phase, worlds: r.match.worlds.map(w => ({ cake: w.cake, coins: w.coins, kills: w.kills, points: w.points, goats: w.goats.length, goatList: w.goats.map(g => ({ id: g.id, type: g.type, x: g.x, z: g.z, hp: g.hp, state: g.state })), active: w.active, dead: w.deadAt, walls: w.walls, upg: w.upg })),
-        players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, shots: ps.shots, rejects: ps.rejects, speedRejects: ps.speedRejects, kills: ps.kills, owned: [...ps.owned], nades: ps.nades, hp: ps.hp, dead: ps.dead, y: ps.y, prot: ps.prot, pkills: ps.pkills, boostReadyAt: ps.boostReadyAt, yRejects: ps.yRejects })),
-        wolves: (r.match.wolves || []).map(f => ({ id: f.id, team: f.team, x: f.x, z: f.z, hp: f.hp, life: f.life, dead: f.dead, state: f.state })), time: r.match.time }, results: r.results }));
+    const m = r.match; // Kuchenkrieg V7 (Käsekuchen-Raub)
+    return sendJson(res, { tickMs: r._tickMs || 0, tickMax: r._tickMax || 0, stats, state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, dupes: p.dupes, lastSeq: p.lastSeq })), results: r.results,
+      match: m && m.fort && { wave: m.wave, phase: m.phase, phaseT: m.phaseT, time: m.time, night: m.night, final: m.final, cake: m.cake, coins: m.fort.coins, upg: m.fort.upg, kills: m.fort.kills, walls: m.fort.walls,
+        builds: m.fort.builds.map(b => ({ id: b.id, kind: b.kind, slot: b.slot, x: b.x, z: b.z, hp: b.hp, dur: b.dur, life: b.life })), goats: m.goats.length, queue: m.queue.length, maxAlive: m.maxAlive,
+        goatList: m.goats.map(g => ({ id: g.id, type: g.type, x: g.x, z: g.z, hp: g.hp, state: g.state })),
+        npcs: m.npcs.map(n => ({ sid: n.sid, x: n.x, z: n.z, state: n.state, hp: n.hp, target: n.target })), decoys: m.decoys.length, smokes: m.smokes.length,
+        players: [...m.players.values()].map(ps => ({ id: ps.id, team: ps.team, role: ps.role, x: ps.x, y: ps.y, z: ps.z, hp: ps.hp, dead: ps.dead, prot: ps.prot, sid: ps.sid, lives: ps.lives, waiting: ps.waiting, out: ps.out, coins: ps.coins, inv: ps.inv, shield: ps.shield,
+          jumpUpg: ps.jumpUpg, revealUntil: ps.revealUntil, grabT: ps.grabT, owned: ps.owned && [...ps.owned], ammo: ps.ammo, nades: ps.nades, kills: ps.kills, pkills: ps.pkills, deaths: ps.deaths, rejects: ps.rejects, speedRejects: ps.speedRejects, yRejects: ps.yRejects, wallRejects: ps.wallRejects, boostReadyAt: ps.boostReadyAt, shots: ps.shots })),
+        wolves: m.wolves.map(f => ({ id: f.id, x: f.x, z: f.z, hp: f.hp, life: f.life, dead: f.dead, state: f.state, leash: f.leash || 0 })) } });
   }
   if (DEBUG && u.pathname === '/api/debug/set') { // nur lokal mit DEBUG=1: Testmanipulation
     const r = rooms.get(u.searchParams.get('code')); if (!r || !r.match) { res.writeHead(404); return res.end(); }
@@ -90,16 +95,17 @@ function handle(req, res) {
       if (k === 'rgoat' && g) { if (q('x') != null) { g.x = +q('x'); g.z = +q('z'); } if (q('hp') != null) g.hp = +q('hp'); if (q('life') != null) g.life = +q('life'); if (q('state')) g.state = q('state'); g.respawn = 0; g.wt = 99; g.wx = g.x; g.wz = g.z; }
       if (k === 'rtime') m.time = +q('v');
       res.writeHead(200); return res.end('ok'); }
-    const w = r.match.worlds[+u.searchParams.get('team') || 0]; const k = u.searchParams.get('k'), v = +u.searchParams.get('v');
-    if (k === 'cake') w.cake = v; if (k === 'cakeAll') for (const x of r.match.worlds) x.cake = v; if (k === 'coins') w.coins = v; if (k === 'phaseT') r.match.phaseT = v;
-    if (k === 'goat') { w.goats.push({ id: w.gid++, type: 'normal', s: 1, r: 0.45, x: +u.searchParams.get('x'), z: +u.searchParams.get('z'), hp: v, maxHp: v, speed: 0, eat: 0, state: 'walk', stagger: 0, wp: null, wpTried: true, ry: 0, dead: false }); }
-    if (k === 'clear') { w.goats = []; w.queue = []; }
-    if (k === 'crash') r.match.worlds = null; // simuliert einen Fehler im Spielmodus
-    if (k === 'wave') { r.match.wave = v; } // nächste Welle = v + 1
-    const kp = r.match.players && r.match.players.get(+u.searchParams.get('id'));
+    const q = k => u.searchParams.get(k), m = r.match, k = q('k'), v = +q('v'), kp = m.players && m.players.get(+q('id'));
+    if (k === 'cakehp') m.cake.hp = v; if (k === 'coins') m.fort.coins = v; if (k === 'phaseT') m.phaseT = v; if (k === 'wave') m.wave = v; // nächste Welle = v + 1
+    if (k === 'goat') m.goats.push({ id: m.gid++, type: q('type') || 'normal', s: 1, r: 0.45, x: +q('x'), z: +q('z'), hp: v, maxHp: v, speed: q('speed') != null ? +q('speed') : 0, eat: q('eat') != null ? +q('eat') : 0, state: 'walk', stagger: 0, wp: null, wpTried: true, ry: 0, dead: false, slow: 1 });
+    if (k === 'clear') { m.goats = []; m.queue = []; }
+    if (k === 'crash') m.fort = null; // simuliert einen Fehler im Spielmodus
     if (k === 'php' && kp) kp.hp = v;
-    if (k === 'ppos' && kp) { kp.x = +u.searchParams.get('x'); kp.z = +u.searchParams.get('z'); kp.correct = true; kp.cseq = (kp.cseq || 0) + 1; if (u.searchParams.get('prot') != null) kp.prot = +u.searchParams.get('prot'); }
-    if (k === 'gset') { const g = w.goats.find(x => x.id === +u.searchParams.get('g')); if (g) { if (u.searchParams.get('x') != null) { g.x = +u.searchParams.get('x'); g.z = +u.searchParams.get('z'); } if (u.searchParams.get('speed') != null) g.speed = +u.searchParams.get('speed'); if (u.searchParams.get('hp') != null) g.hp = +u.searchParams.get('hp'); } }
+    if (k === 'ppos' && kp) { kp.x = +q('x'); kp.z = +q('z'); if (q('y') != null) kp.y = +q('y'); kp.correct = true; kp.cseq = (kp.cseq || 0) + 1; if (q('prot') != null) kp.prot = +q('prot'); }
+    if (k === 'scoins' && kp) kp.coins = v; if (k === 'lives' && kp) kp.lives = v; if (k === 'reveal' && kp) kp.revealUntil = m.time + v;
+    if (k === 'npcpos') { const n = m.npcs[+q('i') || 0]; if (n) { n.x = +q('x'); n.z = +q('z'); n.tx = n.x; n.tz = n.z; n.state = 'graze'; n.t = 99; n.ry = q('ry') != null ? +q('ry') : n.ry; } }
+    if (k === 'npcfreeze') for (const n of m.npcs) { n.state = 'graze'; n.t = 999; }
+    if (k === 'wall') { const wl = m.fort.walls[q('side')]; if (wl) { wl.lvl = v; wl.hp = wl.maxHp = v ? [0, 60, 140, 240][v] : 0; } }
     res.writeHead(200); return res.end('ok');
   }
   if (u.pathname.startsWith('/api/')) return sendJson(res, { error: 'not found' }, 404);

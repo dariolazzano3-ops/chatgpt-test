@@ -24,7 +24,7 @@ export class Room {
   get capacity() { return this.coop ? 2 : this.perTeam * 2; }
   info() {
     return { t: 'room', code: this.code, mode: this.modeId, size: this.size, state: this.state, countdown: +this.countdown.toFixed(2),
-      teams: TEAM_NAMES, players: this.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, rematch: !!p.rematch })) };
+      teams: this.mode.teamNames || TEAM_NAMES, players: this.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, rematch: !!p.rematch })) };
   }
   send(p, msg) { if (p.conn && p.connected) { try { p.conn.send(JSON.stringify(msg)); } catch (e) { } } }
   broadcast(msg) { const s = JSON.stringify(msg); for (const p of this.players) if (p.conn && p.connected) { try { p.conn.send(s); } catch (e) { } } }
