@@ -74,7 +74,7 @@ await check('existing ZIP parser, sample result UI, sandbox and noindex remain',
   assert.match(html,/id="fc-insights-return-rate"/);
   assert.match(html,/buy\.stripe\.com\/test_/);
   assert.match(html,/noindex/);
-  assert.equal(r.headers.get('x-followclean-release'),'followclean-v15-smartscan-ten-verifiable');
+  assert.equal(r.headers.get('x-followclean-release'),'followclean-v16-apify-two-actor-staging');
   assert.match(html,/id="fc-username-first"/);
   assert.match(html,/id="fc-smartscan-v1"/);
   assert.match(html,/function fcScanNextTen/);
