@@ -1906,7 +1906,7 @@ function netSnap(s){NET.snap=s;NET.lastSnapAt=performance.now();NET.stats.snaps+
     for(const k in y.ammo)if(WEAPONS[k]&&y.ammo[k]<ammo[k]&&reloadT<=0&&!(y.reloading))ammo[k]=y.ammo[k];}
   if(state==='shop')renderShop();
   if(s.correct){if(KK.on){const [cx,cz]=kkL(s.correct.x,s.correct.z);player.x=cx;player.z=cz;if(s.correct.c)NET.cseq=s.correct.c;}else{player.x=s.correct.x;player.z=s.correct.z;}}
-  if(KK.on&&s.mode==='kk'){kkSnap(s);for(const e of s.ev)kkEv(e);kkOpp(s);return;}
+  if(KK.on&&s.mode==='kk'){kkSnap(s);for(const e of s.ev)kkEv(e);kkOpp(s);score=mine.points|0;updateHud();return;}
   // Ziegen
   const seen=new Set();
   for(const a of mine.goats){const [id,ti,x,z,hp,maxHp,st,ry]=a;seen.add(id);let g=NET.map.get(id);
