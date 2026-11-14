@@ -1209,6 +1209,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-color-scheme:dark){.fc-username-first{background:linear-gradient(130deg,#1c2b44,#203a4b);border-color:#46668b}.fc-username-first h3,.fc-username-result strong{color:#ebf4ff}.fc-username-first>p,.fc-username-note,.fc-username-result p{color:#b6cae4}.fc-username-form label{color:#c6e2ff}.fc-username-form input{background:#1b2a3d;border-color:#4e6a8a;color:#f4f8ff}.fc-username-result{background:#223751;border-color:#4a6a8d}.fc-username-avatar{background:#2a4563;color:#e0efff}}
 @media(prefers-reduced-motion:reduce){.fc-username-progress span{animation:none!important;width:100%}}
 
+
+/* FollowClean Smart Scan V1: verified list matching in groups of ten, local only. */
+.fc-smartscan-v1{margin:18px 0 24px;padding:22px;border:1px solid #b4d9be;border-radius:20px;background:linear-gradient(125deg,#f7fff9 0%,#eefbf2 56%,#f4f9ff 100%);color:#17382c;box-shadow:0 8px 29px #42956512;overflow:hidden}
+.fc-smartscan-v1-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.fc-smartscan-v1-kicker{font-size:10px;letter-spacing:.13em;color:#277e53;font-weight:900}
+.fc-smartscan-v1 h3{font-size:21px;line-height:1.2;margin:7px 0 6px;letter-spacing:-.55px}
+.fc-smartscan-v1 p{font-size:12px;line-height:1.55;margin:0;color:#4a7160}
+.fc-smartscan-v1-shield{display:inline-flex;gap:5px;align-items:center;color:#217c50;background:#d9f4e1;border-radius:100px;font-size:10px;font-weight:800;padding:7px 11px;white-space:nowrap}
+.fc-smartscan-v1-meter{margin:19px 0 11px;height:9px;background:#dbe9de;border-radius:100px;overflow:hidden}
+.fc-smartscan-v1-meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#25a66c,#91dc70);transition:width .26s ease;border-radius:100px}
+.fc-smartscan-v1-stats{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center;font-size:11px;color:#32654d}
+.fc-smartscan-v1-stats strong{font-size:14px;color:#165d3b}
+.fc-smartscan-v1-note{margin-top:11px!important;font-size:10px!important;color:#577663!important}
+.fc-smartscan-v1-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.fc-smartscan-v1-actions button,.fc-smartscan-v1-actions a{min-height:44px;border-radius:11px;padding:11px 17px;font-size:12px;font-weight:850;text-align:center}
+.fc-smartscan-v1-actions button:first-child{border:1px solid #188b5b;background:#158257;color:#fff}
+.fc-smartscan-v1-actions button:nth-child(2){border:1px solid #188b5b;background:#fff;color:#176b46}
+.fc-smartscan-v1-actions button:last-child{border:1px solid #b4d5bd;background:transparent;color:#427358}
+.fc-smartscan-v1-actions button[hidden],.fc-smartscan-v1 [hidden]{display:none!important}
+.fc-smartscan-v1 button:disabled{cursor:wait;opacity:.65}
+.fc-smartscan-v1-hit{display:flex;align-items:center;gap:11px;padding:14px;margin:14px 0 0;border:1px solid #7bcda2;background:#fff;border-radius:14px;animation:fcSmartScanHit .35s ease-out}
+.fc-smartscan-v1-avatar{flex-shrink:0;width:43px;height:43px;border-radius:50%;background:#e4f1e7;border:2px solid #acd6bc;display:grid;place-items:center;font-weight:900;color:#246e48;font-size:20px}
+.fc-smartscan-v1-hit-body{flex:1;min-width:0}
+.fc-smartscan-v1-hit-body strong{font-size:15px;display:block;overflow-wrap:anywhere;color:#18623e}
+.fc-smartscan-v1-hit-body small{display:block;font-size:10px;color:#557968;line-height:1.45}
+.fc-smartscan-v1-profile{border-radius:10px;background:#176f4c;color:#fff;padding:10px;font-size:11px;font-weight:850}
+@keyframes fcSmartScanHit{from{transform:translateY(9px);opacity:.45}to{transform:translateY(0);opacity:1}}
+@media(max-width:570px){.fc-smartscan-v1{padding:16px}.fc-smartscan-v1-top{flex-direction:column;gap:8px}.fc-smartscan-v1 h3{font-size:19px}.fc-smartscan-v1-shield{padding:5px 9px}.fc-smartscan-v1-hit{flex-wrap:wrap}.fc-smartscan-v1-profile{width:100%;text-align:center}}
+@media(prefers-color-scheme:dark){.fc-smartscan-v1{background:linear-gradient(135deg,#172a24,#1a332b 60%,#1a292d);border-color:#37674e;color:#e4f8e8}.fc-smartscan-v1 p,.fc-smartscan-v1-note{color:#abcfba!important}.fc-smartscan-v1-kicker,.fc-smartscan-v1-stats,.fc-smartscan-v1-stats strong{color:#bcecc9}.fc-smartscan-v1-shield{color:#b7f6c7;background:#2a5641}.fc-smartscan-v1-meter{background:#355240}.fc-smartscan-v1-hit{background:#1e3b2f;border-color:#367956}.fc-smartscan-v1-hit-body strong{color:#d6f4df}.fc-smartscan-v1-hit-body small{color:#a3cdb4}.fc-smartscan-v1-avatar{background:#28553d;color:#e5f8e8}.fc-smartscan-v1-actions button:nth-child(2){background:#18382c;color:#d5f9e1}}
+@media(prefers-reduced-motion:reduce){.fc-smartscan-v1-meter span{transition:none}.fc-smartscan-v1-hit{animation:none}}
+
 </style>
   <script>
 /*!
@@ -1281,6 +1312,56 @@ function compareLists(followers, following) {
     notFollowingBack: uniqueFollowing.filter(name => !followerSet.has(name))
   };
 }
+
+
+/* FC_SMARTSCAN_CORE_V1_START */
+/* Pure matching engine: a full follower set is mandatory; never treat truncated samples as proof. */
+const FC_SMARTSCAN_BATCH_SIZE=10;
+function fcCreateSmartScan(snapshot, source){
+  if (!snapshot || !['local_export','synthetic_demo'].includes(source) ||
+    !Array.isArray(snapshot.followerNames) || !Array.isArray(snapshot.followingNames))
+    return {ok:false,reason:'complete_follower_snapshot_required'};
+  const followers=snapshot.followerNames.map(normalizeUsername);
+  const following=snapshot.followingNames.map(normalizeUsername);
+  if(followers.some(x=>!x) || following.some(x=>!x) ||
+    new Set(followers).size!==followers.length ||
+    new Set(following).size!==following.length ||
+    snapshot.followers!==followers.length || snapshot.following!==following.length)
+    return {ok:false,reason:'invalid_or_incomplete_snapshot'};
+  return {ok:true,source,followers:new Set(followers),following,
+    cursor:0,checked:0,batches:0,found:null,lastBatchCount:0,finished:following.length===0,
+    running:false};
+}
+function fcScanNextTen(scan,exclude=()=>false){
+  if(!scan || scan.ok!==true || !(scan.followers instanceof Set) ||
+    !Array.isArray(scan.following))return {ok:false,reason:'verified_snapshot_missing'};
+  if(scan.finished || scan.cursor>=scan.following.length){
+    scan.finished=true;
+    return {ok:true,found:null,checked:scan.checked,scannedThisBatch:0,finished:true,batch:scan.batches};
+  }
+  if(typeof exclude!=='function')return {ok:false,reason:'invalid_filter'};
+  const stop=Math.min(scan.cursor+FC_SMARTSCAN_BATCH_SIZE,scan.following.length);
+  const before=scan.cursor;
+  scan.batches++;
+  scan.found=null;
+  for(;scan.cursor<stop;){
+    const name=scan.following[scan.cursor];
+    scan.cursor++;
+    scan.checked++;
+    if(!scan.followers.has(name) && !exclude(name)){
+      scan.found=name;
+      scan.lastBatchCount=scan.cursor-before;
+      scan.finished=scan.cursor>=scan.following.length;
+      return {ok:true,found:name,checked:scan.checked,scannedThisBatch:scan.lastBatchCount,
+        finished:scan.finished,batch:scan.batches,total:scan.following.length};
+    }
+  }
+  scan.lastBatchCount=scan.cursor-before;
+  scan.finished=scan.cursor>=scan.following.length;
+  return {ok:true,found:null,checked:scan.checked,scannedThisBatch:scan.lastBatchCount,
+    finished:scan.finished,batch:scan.batches,total:scan.following.length};
+}
+/* FC_SMARTSCAN_CORE_V1_END */
 
 function compareSnapshots(previous, current) {
   if (!previous || !current || !Array.isArray(previous.followerNames) || !Array.isArray(current.followerNames)) {
@@ -1564,6 +1645,8 @@ async function importFiles(files) {
 function useResult(result, demo) {
   state.demo = demo;
   state.result = result;
+  fcSmartScanRunId++;
+  state.smartScan=fcCreateSmartScan(result,demo?'synthetic_demo':'local_export');
   state.legacyKey=demo?null:snapshotKey(result);
   state.currentAccount=null;
   state.key=null;
@@ -1608,6 +1691,7 @@ function useResult(result, demo) {
   renderLivePanel();
   renderCostGuardPreview();
   renderResults();
+  fcSmartScanDraw();
   if(!demo)refreshInstagramLive(true);
   renderLocalHistory();
   completeVisitOnReturn();
@@ -1889,6 +1973,70 @@ fcUsernameForm.addEventListener('submit',async event=>{
   }
 });
 
+
+let fcSmartScanRunId=0;
+function fcSmartScanDraw(message){
+  const panel=$('fc-smartscan-v1');
+  if(!panel)return;
+  const scan=state.smartScan;
+  const ready=scan?.ok===true;
+  const checked=ready?scan.checked:0,total=ready?scan.following.length:0;
+  $('fc-smartscan-v1-checked').textContent=checked.toLocaleString('de-DE')+' / '+total.toLocaleString('de-DE');
+  $('fc-smartscan-v1-batch').textContent='Runde '+(ready?scan.batches:0)+' · je max. 10';
+  $('fc-smartscan-v1-meter').setAttribute('aria-valuenow',String(total?Math.round(checked*100/total):0));
+  $('fc-smartscan-v1-fill').style.width=(total?100*checked/total:0)+'%';
+  $('fc-smartscan-v1-state').textContent=message||(!ready?'Vollständige Follower-Daten benötigt':scan.found?'Treffer gefunden':scan.finished?'Alle geprüft':'Bereit');
+  $('fc-smartscan-v1-start').hidden=!ready||scan.running||checked>0||total===0;
+  $('fc-smartscan-v1-next').hidden=!ready||scan.running||(!scan.found&&!checked)||scan.finished;
+  $('fc-smartscan-v1-stop').hidden=!ready||!scan.running;
+  const hit=ready&&!!scan.found;
+  $('fc-smartscan-v1-hit').hidden=!hit;
+  if(hit){
+    const name=scan.found;
+    $('fc-smartscan-v1-name').textContent='@'+name;
+    $('fc-smartscan-v1-avatar').textContent=name[0].toUpperCase();
+    $('fc-smartscan-v1-proof').textContent=state.demo
+      ?'Nur Beispielaccount aus der Demo. Kein echter Instagram-Treffer.'
+      :'Nicht-Rückfolger laut deinem Instagram-Export. Bitte in Instagram gegenprüfen.';
+    $('fc-smartscan-v1-profile').hidden=state.demo;
+    if(!state.demo)$('fc-smartscan-v1-profile').href=validProfileUrl(name);
+  }
+}
+async function fcSmartScanRun(){
+  const scan=state.smartScan,snapshot=state.result;
+  if(!scan?.ok||scan.running||scan.finished)return;
+  scan.running=true;
+  const runId=++fcSmartScanRunId;
+  fcSmartScanDraw('10er-Gruppe wird geprüft …');
+  try{
+    while(scan.cursor<scan.following.length&&fcSmartScanRunId===runId&&state.result===snapshot){
+      const outcome=fcScanNextTen(scan,name=>['done','keep'].includes(statusFor(name)));
+      fcSmartScanDraw(outcome.found?'Treffer nach '+scan.checked+' geprüften Profilen!'
+        :outcome.finished?'Kein weiterer offener Nicht-Rückfolger im Export.'
+        :'10er-Gruppe ohne offenen Treffer. Nächste Gruppe …');
+      if(outcome.found||outcome.finished)break;
+      await new Promise(resolve=>setTimeout(resolve,180));
+    }
+  }finally{
+    if(fcSmartScanRunId===runId){
+      scan.running=false;
+      fcSmartScanDraw(scan.found?'Treffer gefunden · Suche angehalten'
+        :scan.finished?'Suche abgeschlossen · kein weiterer Treffer':'Suche gestoppt');
+    }
+  }
+}
+$('fc-smartscan-v1-start').addEventListener('click',fcSmartScanRun);
+$('fc-smartscan-v1-next').addEventListener('click',fcSmartScanRun);
+$('fc-smartscan-v1-stop').addEventListener('click',()=>{
+  fcSmartScanRunId++;
+  if(state.smartScan)state.smartScan.running=false;
+  fcSmartScanDraw('Manuell gestoppt · Fortsetzen möglich');
+});
+$('fc-smartscan-v1-profile').addEventListener('click',()=>{
+  const name=state.smartScan?.found;
+  if(name&&!state.demo)beginProfileVisit(name);
+});
+
 function renderCostGuardPreview(){
   const p=$('fc-cost-guard');
   if(!p||!state.result)return;
@@ -2073,6 +2221,7 @@ function reset() {
   $('fc-history-account').value='';
   $('fc-history-input').value='';
   $('fc-history').open=false;
+  fcSmartScanRunId++; state.smartScan=null;
   state.result = null; state.key = null; state.legacyKey=null;state.currentAccount=null;state.lastVisitedName=null;state.sessionNextName=null;state.statuses = {}; state.demo = false; state.skip.clear(); state.activeVisit = null; state.visibleCount = FC_PAGE_SIZE; state.lastAutoDone = null;
   $('visit-toast').hidden = true;
   $('results-view').hidden = true; $('import-view').hidden = false; $('detail-view').hidden = true; $('step-count').textContent = '01 / 03';
@@ -2891,6 +3040,27 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </div>
           <div id="fc-v7-resume" class="fc-v7-resume" hidden><div><strong>Willkommen zurück 👋</strong><p id="fc-v7-resume-text">Dein Stand wartet.</p></div><button id="fc-v7-resume-now" type="button">Cleanup fortsetzen ↗</button></div>
+
+          <section class="fc-smartscan-v1" id="fc-smartscan-v1" aria-labelledby="fc-smartscan-v1-title">
+            <div class="fc-smartscan-v1-top"><div>
+              <span class="fc-smartscan-v1-kicker">SMART SCAN V1 · 10ER-SUCHE</span>
+              <h3 id="fc-smartscan-v1-title">10 Profile prüfen. Beim Treffer stoppen.</h3>
+              <p>Die Suche vergleicht jeweils höchstens 10 gefolgte Accounts mit deiner vollständigen Follower-Liste. Ohne Treffer geht es automatisch mit den nächsten 10 weiter.</p>
+            </div><span class="fc-smartscan-v1-shield">✓ Ohne API-Kosten</span></div>
+            <div class="fc-smartscan-v1-meter" role="progressbar" id="fc-smartscan-v1-meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Geprüfte gefolgte Profile"><span id="fc-smartscan-v1-fill"></span></div>
+            <div class="fc-smartscan-v1-stats"><span><strong id="fc-smartscan-v1-checked">0</strong> Profile geprüft</span><span id="fc-smartscan-v1-batch">Runde 0</span><span id="fc-smartscan-v1-state" role="status" aria-live="polite">Bereit</span></div>
+            <div id="fc-smartscan-v1-hit" class="fc-smartscan-v1-hit" hidden>
+              <div class="fc-smartscan-v1-avatar" id="fc-smartscan-v1-avatar" aria-hidden="true">?</div>
+              <div class="fc-smartscan-v1-hit-body"><strong id="fc-smartscan-v1-name"></strong><small id="fc-smartscan-v1-proof">Nicht-Rückfolger laut deinem Instagram-Export.</small></div>
+              <a id="fc-smartscan-v1-profile" class="fc-smartscan-v1-profile" href="#" target="_blank" rel="noopener noreferrer">Profil öffnen ↗</a>
+            </div>
+            <div class="fc-smartscan-v1-actions">
+              <button type="button" id="fc-smartscan-v1-start">10er-Suche starten ↗</button>
+              <button type="button" id="fc-smartscan-v1-next" hidden>Weiteren Treffer suchen ↗</button>
+              <button type="button" id="fc-smartscan-v1-stop" hidden>Suche stoppen</button>
+            </div>
+            <p class="fc-smartscan-v1-note">Diese erste Version verarbeitet ausschließlich die bereits im Browser geprüften Exportlisten. Kein weiterer Instagram-Abruf, keine externe Zahlung. API-Suche ohne ZIP wird erst bei nachgewiesener Datenvollständigkeit aktiviert.</p>
+          </section>
           <div class="stats-grid" aria-label="Instagram-Statistik">
             <div class="stat-card accent"><span class="stat-label">FOLGEN DIR NICHT ZURÜCK</span><strong id="stat-nonfollowers">0</strong><span class="stat-desc">Kostenlos für dich berechnet</span></div>
             <div class="stat-card"><span class="stat-label">DU FOLGST</span><strong id="stat-following">0</strong><span class="stat-desc">Accounts insgesamt</span></div>
