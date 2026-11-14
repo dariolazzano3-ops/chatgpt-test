@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Ziegenalarm</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1028"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ziegenalarm"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/favicon-64.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{background:#1a1028}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Ziegenalarm</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1a1028"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ziegenalarm"><meta name="format-detection" content="telephone=no"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/favicon-64.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{background:#1a1028}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <title>Ziegenalarm</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap">
@@ -1299,7 +1299,7 @@ addEventListener('touchend',touchEnd,{passive:false});addEventListener('touchcan
 /* ---------- Bewegung: Springen, Ducken, Rutschen, Nachladen ---------- */
 function doJump(){if(state!=='play'||!grounded||slideT>0)return;if(crouched){crouched=false;return;}pVy=kkJumpV();grounded=false;jumps++;}
 function crouchPress(){if(state!=='play')return;
-  if(sprinting&&grounded&&slideT<=0){const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);slideT=0.75;slideVx=fx;slideVz=fz;crouched=true;sprintLocked=false;slides++;noiseHit(0.35,700,0.18,'bandpass');return;}
+  if(sprinting&&grounded&&slideT<=0&&!(KK.on&&KK.role==='sheep')){const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);slideT=0.75;slideVx=fx;slideVz=fz;crouched=true;sprintLocked=false;slides++;noiseHit(0.35,700,0.18,'bandpass');return;}
   crouched=!crouched;}
 function startReload(){const W=WEAPONS[weapon];if(KK.on&&KK.role==='sheep')return;if(state!=='play'||reloadT>0||ammo[weapon]>=W.mag)return;
   reloadT=reloadMax=W.reload;reloadW=weapon;reloads++;clickSound();if(NET.on)netSend({t:'reload',w:weapon});}
@@ -2619,7 +2619,8 @@ function kkCollide(){const r=0.4;for(const k in KK_SIDES){const W=KK.walls[k];if
   const d=Math.hypot(player.x,player.z);if(d>38.6){player.x*=38.6/d;player.z*=38.6/d;}}
 function kkNearWall(x,z,dist){for(const k in KK_SIDES){const W=KK.walls[k];if(!W||!W.lvl)continue;const s=KK_SIDES[k];const a=s.ax==='x'?x:z,b=s.ax==='x'?z:x;if(Math.abs(b)<=KK_HALF+0.3&&Math.abs(a-s.sg*KK_F)<dist)return KK_WH[W.lvl];}return 0;}
 // Schaf: Tempo, Sprunghöhe, Klettern, Kamera
-function kkSheepSpeed(){const y=KK.you||{};if(y.carrying)return 3.5/1.5;return 5.0*(y.speedOn?1.55:1);}
+function kkSheepSpeed(){const y=KK.you||{};if(crouched&&!y.carrying)return 1.35/0.55; // Herdentempo (C): so schnell wie grasende Schafe
+  if(y.carrying)return 3.4/(sprinting?1.5:1);return 5.0*(y.speedOn?1.55:1);}
 function kkJumpV(){if(!KK.on||KK.role!=='sheep')return 7;const y=KK.you||{};const h=y.carrying?0.65:1.55+(y.jumpUpg?1.05:0);return Math.sqrt(2*20*h);}
 function kkClimb(dt){if(!KK.on||KK.role!=='sheep'||KK.dead||!jumpHeld||(jumpHoldT<0.3&&!KK.climbing))return KK.climbing=false; // kurz tippen = Sprung, halten = kletternconst h=kkNearWall(player.x,player.z,1.0);if(!h)return KK.climbing=false;
   if(pY<h+0.35){KK.climbing=true;const rate=(KK.you&&KK.you.carrying?0.6:1.25);pVy=rate+20*dt;grounded=false;}else KK.climbing=false;return KK.climbing;}
@@ -2731,7 +2732,7 @@ function kkName(id){if(id===NET.you)return'Du';const rp=NET.room&&NET.room.playe
 function kkHud(s){const me=s.you||{},def=me.role!=='sheep';const sig=[s.wave,s.phase,s.cake.s,Math.ceil(s.cake.hp),s.left,s.sheepLives,me.lives,me.carrying,me.revealed,me.out,me.waiting,Math.ceil(s.cake.back||0),Math.ceil(s.phaseT)].join('|');if(sig===KK.hudSig)return;KK.hudSig=sig;
   $('kkWave').textContent=(s.wave||'–')+'/8 · '+(s.waveName||'Gleich geht es los');
   let mission;if(def){mission=s.cake.s===1?'🚨 Ein Schaf hat den Kuchen! Aufhalten, bevor es die Omi erreicht!':s.cake.s===2?'Kuchen liegt im Gras – zurückholen! ('+Math.ceil(s.cake.back)+' s)':'Kuchen schützen · Festung ausbauen · das Schaf mit dem schwarzen Schwanz finden';}
-  else mission=me.out?'Ausgeschieden – die Herde zählt auf dich … nicht mehr.':me.carrying?'🎂 Zur Omi bringen! (Norden, beim Sessel)':s.cake.s===1?'Dein Team hat den Kuchen – Omi wartet im Norden!':s.cake.s===2?'Kuchen liegt im Gras – schnapp ihn dir (E)!':'Unauffällig bleiben · Festung beobachten · Kuchen stehlen (E halten)';
+  else mission=me.out?'Ausgeschieden – die Herde zählt auf dich … nicht mehr.':me.carrying?'🎂 Zur Omi bringen! (Norden, beim Sessel)':s.cake.s===1?'Dein Team hat den Kuchen – Omi wartet im Norden!':s.cake.s===2?'Kuchen liegt im Gras – schnapp ihn dir (E)!':'Unauffällig bleiben (C = Herdentempo) · Kuchen stehlen (E halten)';
   $('kkMission').textContent=mission;
   const L=def?s.sheepLives:me.lives;$('kkLives').textContent=def?'Schaf-Team: '+L+(L===1?' Leben':' Leben'):'Leben: '+'♥'.repeat(Math.max(0,L||0))+(me.revealed?' · AUFGEFLOGEN':'');$('kkLives').classList.toggle('rev',!!me.revealed);
   $('kkLeft').textContent=s.phase==='shop'?'Markt offen · '+Math.ceil(s.phaseT)+' s':s.phase==='overtime'?'Nachspielzeit '+Math.ceil(s.phaseT)+' s':'Ziegen übrig: '+s.left;
@@ -2807,7 +2808,7 @@ function bellSound(){if(!ac)return;const t=ac.currentTime;for(const [f,d] of[[88
 function kkUpdate(dt){
   kkWolvesUpdate(dt);kkBuildsUpdate(dt);kkGoatsUpdate(dt);omiUpdate(dt);
   for(const sh of KK.sheep.values())animSheep(sh,dt);
-  if(KK.sheepMe){const me=KK.sheepMe,sp=Math.hypot(player.x-me.lx,player.z-me.lz)/Math.max(dt,1e-3);me.anim=KK.emoteT>0?(KK.emote==='warn'?3:0):sp<0.4?5:sp<4?1:2;if(KK.emoteT>0)KK.emoteT-=dt;
+  if(KK.sheepMe){const me=KK.sheepMe,sp=Math.hypot(player.x-me.lx,player.z-me.lz)/Math.max(dt,1e-3);KK.stillT=sp<0.4?(KK.stillT||0)+dt:0;me.anim=KK.emoteT>0?(KK.emote==='warn'?3:0):sp<0.4?(KK.stillT>2?0:5):sp<4?1:2;if(KK.emoteT>0)KK.emoteT-=dt;
     animSheep(me,dt);me.g.position.set(player.x,pY,player.z);me.g.rotation.y=player.yaw+Math.PI;sheepTail(me,true);sheepCarry(me,KK.carrying);sheepShield(me,!!(KK.you&&KK.you.shield>0));if(gun.visible)gun.visible=false;}
   if(KK.meleeCd>0)KK.meleeCd-=dt;
   for(const m of NET.mates.values()){if(m.kdead){m.g.visible=false;continue;}m.g.visible=!(m.prot&&Math.floor(performance.now()/130)%2);if(m.hitT>0){m.hitT-=dt;m.hip.rotation.x=-0.25*Math.sin(m.hitT/0.15*Math.PI);}else m.hip.rotation.x=0;}

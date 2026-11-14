@@ -272,7 +272,7 @@ function stepNpcs(m, dt) {
     let fx = 0, fz = 0; for (const g of m.goats) { const ex = n.x - g.x, ez = n.z - g.z, e = Math.hypot(ex, ez); if (e < N.flee && e > 0.01) { fx += ex / e; fz += ez / e; } }
     if (fx || fz) { const l = Math.hypot(fx, fz); n.state = 'flee'; n.t = 1; n.tx = n.x + fx / l * 4; n.tz = n.z + fz / l * 4; }
     n.t -= dt;
-    if (n.state === 'graze' || n.state === 'calm') { if (n.t <= 0) { n.state = 'walk'; [n.tx, n.tz] = herdPoint(m, n.x, n.z); n.t = 8; } }
+    if (n.state === 'graze' || n.state === 'calm' || n.state === 'idle') { if (n.t <= 0) { if (n.state === 'graze' && m.rand() < 0.35) { n.state = 'idle'; n.t = 1.5 + m.rand() * 3; } else { n.state = 'walk'; [n.tx, n.tz] = herdPoint(m, n.x, n.z); n.t = 8; } } } // grasen, umsehen, weiterziehen
     else { const dx = n.tx - n.x, dz = n.tz - n.z, d = Math.hypot(dx, dz), sp = n.state === 'flee' ? 3.8 : 1.1 * n.sp;
       if (d < 0.3 || n.t <= 0) { n.state = 'graze'; n.t = 2 + m.rand() * 5; }
       else { n.x += dx / d * Math.min(d, sp * dt); n.z += dz / d * Math.min(d, sp * dt); n.ry = Math.atan2(dx, dz); } }
@@ -485,7 +485,7 @@ export const heist = {
       const wk = crossesWall(m, ps.x, ps.z, nx, nz, y);
       if (wk && !(ps.role === 'def' && m.fort.walls[wk].gate && Math.abs(SIDES[wk].ax === 'x' ? nz : nx) < GATE_W)) { nx = ps.x; nz = ps.z; corr(ps); ps.wallRejects++; }
       const q = { x: nx, z: nz }; if (clampArena(q)) corr(ps); ps.x = q.x; ps.z = q.z; ps.y = y;
-      ps.vis = { boost: t < ps.boostUntil }; ps.mv = Math.min(1, d / dt / 8); ps.lastMoveSpeed = d / dt;
+      ps.vis = { boost: t < ps.boostUntil }; ps.mv = Math.min(1, d / dt / 8); ps.lastMoveSpeed = d / dt; if (d / dt < 0.4) { if (!ps.stillAt) ps.stillAt = t; } else ps.stillAt = 0;
     }
     else if (msg.t === 'boost') { if (ps.role !== 'def' || ps.dead || t < ps.boostReadyAt) return reject(ps, 'boost');
       ps.boostUntil = t + BOOST.dur + 0.2; ps.boostReadyAt = t + H.boostCd[m.fort.upg.boostcd ? 1 : 0]; ps.boosts++; m.ev.push({ k: 'boost', id: ps.id, only: 0 }); }
@@ -546,7 +546,7 @@ export const heist = {
     for (const c of m.decoys) sh.push([c.sid, r1(c.x), r1(c.z), Math.round(c.ry * 100), 2, tailFor(c.x, c.z), 0, 0]);
     for (const q of m.players.values()) { if (q.role !== 'sheep' || !q.alive()) continue;
       const carrying = m.cake.state === 'carried' && m.cake.by === q.id, sp = q.lastMoveSpeed || 0;
-      const anim = t < q.emoteT ? SH_ANIM[q.emote] : sp < 0.4 ? 5 : sp < 3.2 ? 1 : 2, camo = t < q.camoUntil && isDef;
+      const anim = t < q.emoteT ? SH_ANIM[q.emote] : sp < 0.4 ? (q.stillAt && t - q.stillAt > 2 ? 0 : 5) : sp < 3.2 ? 1 : 2, camo = t < q.camoUntil && isDef; // stillstehen = nach 2 s grasen wie die Herde
       let fl = (carrying ? 1 : 0) | (q.shield > 0 ? 2 : 0) | (q.prot > 0 ? 4 : 0);
       if (!isDef) fl |= q === ps ? 16 : 8;
       sh.push([q.sid, r1(q.x), r1(q.z), Math.round((q.yaw + Math.PI) * 100), anim, camo ? 0 : tailFor(q.x, q.z), fl, r1(q.y)]); }

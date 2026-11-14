@@ -1,9 +1,9 @@
-# Ziegenalarm Online (V6.1 „Kuchenkrieg Revolution“, Entwicklungsstand)
+# Ziegenalarm Online (V7 „Der große Käsekuchen-Raub“, Entwicklungsstand)
 
 Browser-Egoshooter mit zwei Online-Modi – **Kuchenkrieg** und **GOAT ROYALE** (je 1 gegen 1 und 2 gegen 2) – und dem kompletten Einzelspieler.
 
 > **Branches:** `ziegenalarm-online` = Produktion (Push löst bei verbundenem Cloudflare-Build einen Live-Deploy aus).
-> `ziegenalarm-v6-dev` = V6-Entwicklung, `ziegenalarm-v6-1-kuchenkrieg-revolution` = V6.1. Erst nach geprüfter Freigabe in die Produktion übernehmen.
+> `ziegenalarm-v6-dev` = V6-Entwicklung, `ziegenalarm-v6-1-kuchenkrieg-revolution` = V6.1, `ziegenalarm-v7-cheesecake-heist` = V7. Erst nach geprüfter Freigabe in die Produktion übernehmen.
 
 ## Staging (gefahrlos testen, Produktion bleibt unberührt)
 
@@ -11,7 +11,7 @@ Cloudflare erzeugt für Worker mit Durable Objects **keine** Preview-URLs. Darum
 mit eigenem Namen, eigenen Räumen und eigener Adresse:
 
 ```
-git checkout ziegenalarm-v6-1-kuchenkrieg-revolution
+git checkout ziegenalarm-v7-cheesecake-heist
 npm install
 npx wrangler login
 npm run deploy:staging     # → https://ziegenalarm-staging.<konto>.workers.dev
@@ -19,21 +19,46 @@ npm run deploy:staging     # → https://ziegenalarm-staging.<konto>.workers.dev
 
 Löschen: `npx wrangler delete --name ziegenalarm-staging`. Kosten: gleiches Gratis-Kontingent wie die Produktion.
 
-## Kuchenkrieg (V6.1): gemeinsame Arena
+## Kuchenkrieg V7: Der große Käsekuchen-Raub (asymmetrisch)
 
-- **Eine Arena** (Ellipse 48 × 64 m), zwei Kuchenfestungen gegenüber: Käse im Süden, Beere im Norden. Jeder sieht alle Spieler, die gegnerische Festung, deren Kuchen und Mauern in 3D.
-- **Zwei Fronten:** Jede Festung wird von ihren eigenen Zombie-Ziegen-Wellen von außen angegriffen. Wer den eigenen Kuchen verliert, verliert – PvP ist Beiwerk, die Kuchenverteidigung entscheidet.
-- **PvP:** 100 Leben, Kopftreffer ×1,5, begrenzte Reichweiten je Waffe (Schrot 20 m … Präzisionsgewehr 120 m), Deckungen blocken. Kein Teamschaden. Abschuss = +20 Münzen und 30 Punkte fürs Team.
-  Tod → 4 s Wartezeit, Respawn im **eigenen** Fort an der vom Gegner am weitesten entfernten Stelle, dazu 3 s Schutz (endet beim eigenen Schuss) – gegen Spawn-Camping.
-  Treffer prüft ausschließlich der Server (Strahl gegen Kopf-Kugel und Körper-Zylinder, Deckungen, Mauern, Ziegen). Gleichzeitige Abschüsse im selben Server-Takt zählen beide.
-- **5 Wellen:** 1 Der Angriff · 2 Die Herde · 3 Werwolf-Chaos · 4 Großangriff (roter Nebel) · 5 Ziegenkönig. 8 s Kaufphase, Welle endet sofort mit der letzten Ziege.
-- **Ziegenkönig** (Welle 5, je Festung): Sturmangriff (rote Bahn 1 s vorher), Stampfer (roter Ring 0,8 s vorher, 4,5 m), ruft bei 50 % vier Zicklein. Schwachstellen: Krone/Kopf ×2,5, nach dem Sturm 2,2 s erschöpft (×2).
-- **Sieg:** nur ein Kuchen steht → dieses Team. Beide fallen im selben Takt → mehr Restkuchen, sonst Punkte. Beide überleben Welle 5 → mehr Kuchen (Abstand > 0,5 %), dann Punkte, dann Unentschieden.
-- **Koop:** Größe „Koop“ – zwei Freunde in einem Team gegen die Wellen, ohne PvP. Sieg = Kuchen überlebt Welle 5.
-- **Werwolf** (Markt oder Taste `B`, ab Welle 3): 60 Münzen, höchstens 2 pro Team gleichzeitig, 30 s im Einsatz, 15 s Abklingzeit, 50 Leben (Gegner können ihn erschießen).
-  Server-KI: jagt zuerst die Ziegen am nächsten zum eigenen Kuchen, sonst eindringende Gegner (Biss 18), läuft sonst Patrouille.
-- **Boost-Sprung:** Tippen = normaler Sprung. Halten (Leertaste oder Sprungknopf) = Raketenschub bis ca. 5 m, danach Gleitlandung, 6 s Abklingzeit, Ladebalken unten. Der Server begrenzt Höhe, Steigrate und Abklingzeit.
-- Matchdauer: rechnerisch 3,5–4 min (1v1) bzw. ≈ 4,2 min (2v2) bei durchschnittlicher Trefferleistung; echte Runden mit PvP-Ablenkung länger. **Nicht mit echten Spielern gemessen.**
+**Team Verteidiger** schützt den Käsekuchen in der Festung acht Wellen lang gegen Zombie-Ziegen – und gegen einen versteckten Gegenspieler.
+**Team Schafe** steckt in einem Schaf mitten in einer Herde computergesteuerter Schafe, stiehlt den Kuchen und bringt ihn zur Omi.
+1 gegen 1 oder 2 gegen 2 (Team 1 = Verteidiger, Team 2 = Schafe; „Team wechseln“ in der Lobby).
+
+- **Tarnung:** Der Schafspieler sieht aus wie jedes andere Schaf – einziger Unterschied ist ein kleiner **schwarzer Schwanz**.
+  Der Server überträgt ihn dem Verteidiger nur aus der Nähe (17 m, mit Aussichtsturm 32 m) und nie bei aktivem Tarnpuder. Kein Namensschild, keine Markierung, keine Minimap.
+  Alle Schafe stehen in einer gemischten, sortierten Liste mit zufälligen IDs; nach jedem Tod bekommt der Schafspieler eine neue.
+- **Die Herde:** grast, wandert, flieht vor Zombies. Ein Schaf greift **nur** an, wenn ein Verteidiger 0,7 s direkt mit der Waffe darauf zielt
+  (Winkel, Reichweite 24 m, Sichtlinie) oder darauf schießt – erst Warnung (Kopf senken, Scharren), dann Rammen (12 Schaden). Kein Angriff von hinten.
+  Ein unschuldiges Schaf zu erschießen kostet 5 Münzen.
+- **Schaf-Steuerung:** Third-Person. Laufen, Sprint (Shift), Sprung (Holzmauern), Halten an einer Mauer = langsam klettern (auch Stahl),
+  Kopfstoß (Klick/F; trifft Verteidiger, Werwölfe, Bauwerke, Mauern – verrät dich 4 s), E halten = Kuchen schnappen (1 s), E = ablegen,
+  1–6 = Gegenstände, V/X = grasen/stampfen (zum Nachahmen der Herde), T = Schaf-Markt.
+- **Schafleben:** Welle n = n Leben (Welle 1: 1 … Welle 8: 8), nicht kaufbar. Tod = ein Leben weg, Respawn in der Herde (2 s Schutz).
+  Bei 0 Leben warten bis zur nächsten Welle; in Welle 8 scheidet man aus.
+- **Kuchenraub:** Aufnahme dauert 1 s (Server zählt). Ein aktiver Schild fällt beim Aufnehmen ab (keine Erstattung, nicht wieder aktivierbar).
+  Mit Kuchen: langsamer (≈ 3,5 m/s), kein Sprint, kein Tempo-Item, nur kleine Sprünge, Klettern halb so schnell. Stirbt das Schaf, fällt der Kuchen
+  ins Gras; Verteidiger bringen ihn durch Berühren zurück (sonst automatisch nach 25 s). Liegt er, kann er erneut gestohlen werden.
+- **Sieg:** Kuchen bei der Omi → Schafe gewinnen sofort. Kuchen von Zombies aufgefressen → Schafe gewinnen. Alle 8 Wellen überstanden → Verteidiger gewinnen.
+  Ist bei Ende von Welle 8 der Kuchen unterwegs: 20 s Nachspielzeit (abgeliefert → Schafe; fallen gelassen oder Zeit um → Verteidiger).
+  Gleichzeitig: Ablieferung gewinnt (ein getragener Kuchen kann nicht gefressen werden). Verlässt ein Team das Spiel, gewinnt das andere.
+- **8 Wellen:** Die ersten Ziegen · Die Herde erwacht · Werwolf-Alarm · Belagerung · Nacht der Zombies (dunkel) · Die Festung bebt ·
+  Der Ziegenkönig (Sturm, Stampfer, Zicklein; Krone ×2,5, erschöpft ×2; +60 Münzen) · **Die Zombie-Apokalypse: exakt 100 Ziegen gleichzeitig von allen Seiten.**
+  10 s Pause mit Markt zwischen den Wellen, eine Welle endet sofort mit der letzten Ziege.
+- **Verteidiger-Markt (T oder Knopf „Markt“, jederzeit):** Holz-/Stein-/Stahlmauern, Reparatur, Tore (nur Verteidiger und Werwölfe kommen durch),
+  Verteidigungstürme (Armbrust), automatische Geschütze, Stachelfallen, Explosivfallen, Aussichtsturm, Wachglocke, Munitionsstation,
+  Werwolf, Reparaturhelfer, Waffen, Schaden, Feuerrate, Magazin, Nachladen, Granaten, Lauftempo, Boost-Feder, Reparatur-Profi, Kuchen flicken.
+  Vieles wird erst in späteren Wellen freigeschaltet.
+- **Werwölfe:** 60 Münzen, max. 2 gleichzeitig, max. 3 pro Welle, 30 s, 15 s Abklingzeit, 50 Leben. An den Kuchen gebunden (9 m),
+  springen über Mauern, beißen Zombies und **aufgeflogene** Schafe (nach Kampf, mit Kuchen oder in der Festung) – nie durch hohe Mauern.
+- **Schaf-Markt:** Schutzschild (40), Sprungfeder (dauerhaft, über Steinmauern), Tempo, Rauchbombe, Ablenkungs-Schaf (läuft mit schwarzem Schwanz davon),
+  Tarnpuder (Schwanz wirkt 12 s hell), Heilkraut. Münzen: Start 40, +20 pro Welle, +1 alle 3 s, +6 pro Kopfstoß-Treffer.
+- **Die Omi:** sitzt im Norden auf ihrem Sessel (Häkeldecke, Brille, Gehstock, Kaffeetisch), kommentiert Tod, Diebstahl, Verlust, Ankunft, Sieg, Niederlage.
+  Stimme über die Sprachausgabe des Geräts (keine Audiodateien, keine Kosten), immer mit Sprechblase und Untertitel. Mindestens 6–10 s zwischen normalen
+  Sprüchen, wichtige Ereignisse haben Vorrang, nichts überlappt. **Profil → Einstellungen:** Omi-Stimme an/aus, eigene Lautstärke.
+- **Anvisieren (ADS) gibt es nicht mehr** – in keinem Modus: kein Visier-Knopf, keine rechte Maustaste, kein Zoom, kein Zielfernrohr.
+- **Leistung im Finale:** volle Ziegenmodelle nur für die nächsten 26 Ziegen, alle übrigen als einfache, instanzierte Modelle (1 Draw Call).
+  Server: Raster für die Kollision, Ziegen-Daten kompakt (Ganzzahlen) und bei mehr als 40 Ziegen nur jeden zweiten Takt.
 
 ## Auf den Home-Bildschirm (PWA)
 
@@ -137,6 +162,9 @@ Test-Schnittstellen gibt es nur mit `DEBUG=1 node dev/server.js`. Für Netztests
 - **Treffer** rechnet der Server gegen seine eigenen Ziegenpositionen (Körper-Zylinder, Kopf-Kugel, Mauern). Waffe, Munition, Feuerrate, Nachladen und Schussursprung werden geprüft.
 - **Bewegung:** Höchsttempo inklusive Upgrades, Strecke pro Nachricht auf 0,5 s gedeckelt, Arenagrenze, bereinigte Blickwerte.
 - **Münzen, Käufe, Punkte, Kills, Sieger:** nur serverseitig. Doppelte Nachrichten über steigende Sequenznummern verworfen.
+- **Käsekuchen-Raub (V7):** Rollen, Schaf-Identität (keine Position des Schafspielers in der Spielerliste der Verteidiger, Schwanzfarbe nur aus der Nähe),
+  Herden-KI, Schafleben (keine Nachricht kann sie setzen), Mauerüberquerung nur oberhalb der Mauerkante (Sprung/Klettern mit begrenzter Steiggeschwindigkeit),
+  Kuchenbesitz (genau ein Träger, Aufnahmezeit serverseitig, kein Schild mit Kuchen), Ablieferung, Bauwerke, Werwölfe, Kopfstoß (Reichweite, Richtung, Abklingzeit), Schaf-Items.
 - **Verbindungen:** gleiche Herkunft, max. 12 Sockets pro Raum, Anmeldung binnen 10 s, Nachrichten bis 4 KB, max. 80/s.
 - **Räume:** Token gilt nur im eigenen Raum, zweite Sitzung übernimmt die alte, Fehler im Spielmodus führen zurück in die Lobby statt zum Absturz.
 
@@ -145,8 +173,8 @@ Test-Schnittstellen gibt es nur mit `DEBUG=1 node dev/server.js`. Für Netztests
 | Wert | Messung |
 |---|---|
 | Client → Server | 20/s bei Bewegung, ~4/s im Stillstand (+ Ping alle 2 s) |
-| Server → Client | 20 Zustände/s, Ø ~0,7 KB |
-| Rechenzeit pro Tick | Ø ~0,2 ms, Spitze ~4 ms (Cloudflare-Limit: 30 s pro Ereignis) |
+| Server → Client | 20 Zustände/s; Käsekuchen-Raub Ø ~1,5 KB, Finale (100 Ziegen) Ø ~2,7 KB, Ziegen dann nur jeden 2. Takt |
+| Rechenzeit pro Tick | Ø ~0,2 ms, Finale Ø ~0,5 ms, Spitze ~4,6 ms (Cloudflare-Limit: 30 s pro Ereignis) |
 | Ziegen-Glättung | Interpolation + höchstens 150 ms Vorausberechnung, Ø Abweichung 0,04 m zum Server-Stand |
 
 Keine Rückspul-Treffererkennung: Bei hoher Latenz zielt man auf den Stand von vor ~RTT/2. Ping steht oben in der Statusleiste.
@@ -167,11 +195,14 @@ Durable Objects → RoomDO (Anfragen, Laufzeit, aktive Objekte = aktive Räume).
 
 ## Bekannte Grenzen
 
-- V6.1 ist **nicht** auf Cloudflare (auch nicht Staging) und **nicht** mit echten Handys bzw. echtem iPhone-Safari getestet. Die Worker-Logik ist nur emuliert.
+- V7 ist **nicht** auf Cloudflare (auch nicht Staging) und **nicht** mit echten Handys bzw. echtem iPhone-Safari getestet. Die Worker-Logik ist nur emuliert.
+- Bildrate im Finale auf echten Smartphones ist **ungemessen** (nur Software-WebGL).
+- Die Omi-Stimme hängt von der Sprachausgabe des Geräts ab (Stimme und Qualität je nach System); ohne deutsche Stimme bleiben Sprechblase und Untertitel.
 - 3D mit echtem three.js nur in Software-WebGL (Chromium) geprüft, nicht auf Handy-GPUs.
 - PWA: Manifest, Icons und Hinweis sind geprüft (Chromium mit iPhone-Kennung). Ob iOS die Web-App wirklich im Querformat ohne Leiste startet, ist offen.
 - Keine Rückspul-Treffererkennung: bei hoher Latenz trifft man bewegte Gegner schwerer (Kuchenkrieg und GOAT ROYALE).
-- Matchdauer und Balance sind nur simuliert, nicht mit echten Spielern ausbalanciert.
+- Matchdauer und Balance (Schaf gegen Verteidiger) sind nur simuliert, nicht mit echten Spielern ausbalanciert.
+- Kuchenkrieg V6.1 (zwei Festungen, PvP) wurde durch V7 ersetzt; der Stand liegt im Branch `ziegenalarm-v6-1-kuchenkrieg-revolution`.
 - Fortschritt liegt nur im Browser (localStorage); keine Bestenliste.
 - Ziegen-Duell, Käseklau, Ziegenchaos sind weiter als „Demnächst“ markiert.
 - Kein IP-Rate-Limit für `/api/new`; bei Missbrauch eine Rate-Limiting-Regel im Dashboard anlegen.
