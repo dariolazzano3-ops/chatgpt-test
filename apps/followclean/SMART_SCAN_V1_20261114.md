@@ -31,3 +31,9 @@ Der etablierte LanceAPI-Actor hat auf Free-Tarif 100 je Beziehung und keine öff
 ## Abnahme
 - Der Smart-Scan ist nur dann ein bestätigter Treffer **laut lokalem Export**, nicht ein Beweis für den aktuellen Instagram-Status. Dies wird in der UI kenntlich gemacht.
 - Das Nutzerziel eines vollständigen ZIP-freien On-Demand-Scans bleibt ein nachfolgender Integrationsschritt, sobald verlässliche Providerabdeckung und Budgetkontrolle nachgewiesen sind.
+
+## Cloudflare Veröffentlichung
+- Veröffentlichung auf dem bestehenden Worker `followclean-mvp-preview` am 14.11.2026.
+- Deployment `3580419c-f7f7-4cb1-839f-396166622e96`, Worker Version `62a5d204-582c-448f-9c09-9d03939aed45`, 100 % Traffic (über Cloudflare Deployments-API verifiziert).
+- Geheimnisse `FC_APIFY_TOKEN`, `FC_IG_SESSION_SECRET` und D1 `FC_APIFY_BUDGET_DB` durch versionsgebundenes `inherit` erhalten, Werte wurden nicht ausgelesen.
+- API-Scans bleiben gesperrt. Nur lokaler 10er-Abgleich ist freigeschaltet.
