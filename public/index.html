@@ -243,6 +243,12 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
 .netbar .mini{width:80px;height:7px;border-radius:4px;background:var(--shade);border:1px solid rgba(255,244,220,.6);overflow:hidden}.netbar .mini i{display:block;height:100%;background:#ff7aa2}
 #netPing{font-weight:600;opacity:.85;min-width:42px;text-align:right}
 .fatal3d{background:var(--berry);color:var(--cream);padding:10px 14px;border-radius:12px;font-weight:700;line-height:1.4}
+.royale #coinChip,.royale #wNade,.royale #nadeBtn,.royale #fortHud,.royale #warn,.royale #arrow{display:none!important}
+#rideHint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 132px);transform:translateX(-50%);background:rgba(18,12,31,.72);color:var(--cream);font-weight:800;font-size:14px;padding:8px 14px;border-radius:12px;pointer-events:none;z-index:30;white-space:nowrap}
+#rideBar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 118px);transform:translateX(-50%);width:min(260px,60vw);height:8px;border-radius:5px;background:rgba(18,12,31,.6);overflow:hidden;z-index:30;pointer-events:none}
+#rideBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cheese),#ff7aa2)}
+#rideBtn{position:fixed;right:max(150px,calc(env(safe-area-inset-right,0px) + 140px));top:calc(env(safe-area-inset-top,0px) + 96px);width:74px;height:74px;border-radius:50%;border:3px solid var(--cream);background:rgba(243,201,105,.75);color:var(--ink);font:800 12px/1 var(--body);text-transform:uppercase;z-index:40;touch-action:none}
+#rideBtn.on{background:rgba(214,51,108,.75);color:var(--cream)}
 .netbar .dot{width:8px;height:8px;border-radius:50%;background:var(--grass)}.netbar .dot.bad{background:var(--berry)}
 #netMsg{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);z-index:80;background:var(--berry);color:var(--cream);font:700 13px var(--body);padding:6px 12px;border-radius:8px;pointer-events:none}
 .res{max-width:560px}
@@ -333,6 +339,7 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
     <div class="modes">
       <button class="mode main" id="startBtn" type="button"><b>Einzelspieler</b><span>Kuchen verteidigen: Wellen, Festung, Ziegenkönig</span></button>
       <button class="mode" id="modeKK" type="button"><b>Kuchenkrieg</b><span>Online, 1 gegen 1 oder 2 gegen 2: wessen Kuchen hält länger?</span><i class="tag live">Online</i></button>
+      <button class="mode" id="modeGR" type="button"><b>GOAT ROYALE</b><span>Stoß die Gegner von der Schwebeinsel. Reite Ziegen, mach sie zur dreiköpfigen Kampfziege.</span><i class="tag live">Neu · Online</i></button>
       <div class="mode soon" aria-disabled="true"><b>Ziegen-Duell</b><span>Spieler gegen Spieler mit Ziegen als Hindernis</span><i class="tag">Demnächst</i></div>
       <div class="mode soon" aria-disabled="true"><b>Käseklau</b><span>Klaue das Käserad aus der gegnerischen Festung</span><i class="tag">Demnächst</i></div>
       <div class="mode soon" aria-disabled="true"><b>Ziegenchaos</b><span>Alle gegen alle, jede Runde neue Regeln</span><i class="tag">Demnächst</i></div>
@@ -357,8 +364,8 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
 </div>
 <div class="overlay" id="lobby" hidden>
   <div class="card lob">
-    <h2>Kuchenkrieg</h2>
-    <p>Jedes Team verteidigt seinen eigenen Kuchen gegen genau dieselben Wellen. Wessen Kuchen länger hält, gewinnt. Halten beide durch, entscheiden die Punkte.</p>
+    <h2 id="lbTitle">Kuchenkrieg</h2>
+    <p id="lbDesc">Jedes Team verteidigt seinen eigenen Kuchen gegen genau dieselben Wellen. Wessen Kuchen länger hält, gewinnt. Halten beide durch, entscheiden die Punkte.</p>
     <div id="lbConnect" style="display:grid;gap:10px">
       <label for="lbName">Dein Name</label><input id="lbName" maxlength="16" autocomplete="nickname">
       <div class="seg" id="lbSize"><button type="button" data-s="1v1" class="on">1 gegen 1</button><button type="button" data-s="2v2">2 gegen 2</button></div>
@@ -368,7 +375,7 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
       <p class="lnote" id="lbNote"></p>
     </div>
     <div id="lbRoom" hidden style="display:grid;gap:10px">
-      <div class="rcode">Raumcode <b id="lbRoomCode"></b><button type="button" id="lbCopy">Kopieren</button><span id="lbSizeInfo"></span></div>
+      <div class="rcode">Raumcode <b id="lbRoomCode"></b><button type="button" id="lbCopy">Kopieren</button><button type="button" id="lbLink">Einladungslink</button><span id="lbSizeInfo"></span></div>
       <div class="lteams" id="lbTeams"></div>
       <div class="lrow"><button class="go" id="lbReady" type="button">Bereit</button><button class="go ghost" id="lbSwitch" type="button">Team wechseln</button></div>
       <p id="lbStatus"></p>
@@ -387,6 +394,7 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
   </div>
 </div>
 <div id="netMsg" hidden></div>
+<div id="rideHint" hidden></div><div id="rideBar" hidden><i></i></div><button id="rideBtn" type="button" hidden>Reiten</button>
 <div class="overlay" id="pause" hidden>
   <div class="card">
     <h1>Pause</h1>
@@ -477,7 +485,7 @@ const lam=c=>new THREE.MeshLambertMaterial({color:c});
  const top=new THREE.Color(0x1d1530),mid=new THREE.Color(0x7a3e6a),low=new THREE.Color(0xff9a5c);
  for(let i=0;i<p.count;i++){const y=p.getY(i)/150;const c=y>0.15?mid.clone().lerp(top,Math.min(1,(y-0.15)/0.6)):low.clone().lerp(mid,Math.max(0,(y+0.05)/0.2));cols.push(c.r,c.g,c.b);}
  g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
- scene.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false})));}
+ {const sky=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false}));sky.userData.sky=true;scene.add(sky);}}
 
 // Wiese
 {const g=new THREE.PlaneGeometry(200,200,60,60);g.rotateX(-Math.PI/2);
@@ -1169,7 +1177,7 @@ function nadeStart(pos,vel){const yaw=player.yaw,p=player.pitch;const dx=-Math.s
   pos.set(camera.position.x+Math.cos(yaw)*0.25+dx*0.4,camera.position.y-0.15,camera.position.z-Math.sin(yaw)*0.25+dz*0.4);
   vel.set(dx*15,dy*15+3.5,dz*15);}
 function updateNadeHud(){$('nadeCnt').textContent=nades;$('nadeAmmo').textContent=nades+'/'+NADE_MAX;$('nadeBtn').classList.toggle('empty',nades<=0);}
-function nadePrepare(){if(state!=='play'||nadeHeld)return;
+function nadePrepare(){if(state!=='play'||nadeHeld||ROY.on)return;
   if(nades<=0){popup('Keine Granaten. Im Ziegenmarkt gibt es Nachschub');clickSound();return;}
   nadeHeld=true;handNade.visible=true;}
 function nadeCancel(){if(nadeHeld){nadeHeld=false;handNade.visible=false;arcLine.visible=false;}}
@@ -1368,23 +1376,25 @@ function update(dt){
   sprinting=(keys.ShiftLeft||keys.ShiftRight||touchSprint||sprintLocked)&&mz>0.3&&!adsOn&&!crouched&&!firing&&reloadT<=0;
   if(sprinting&&crouched&&slideT<=0)crouched=false;
   const stick2=$('stick');stick2.classList.toggle('sprint',sprinting);stick2.lastChild.hidden=!sprintLocked;
-  let speed=6*(1+0.1*upg.speed)*(playerSlowT>0?0.5:1);
+  let speed=6*(1+0.1*upg.speed)*(playerSlowT>0?0.5:1)*(ROY.on&&ROY.mount?1.35:1);
   if(sprinting)speed*=1.5;else if(crouched)speed*=0.55;
   speed*=1-0.3*adsK;
   const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);
-  if(slideT>0){slideT-=dt;const v=3+8*Math.max(0,slideT/0.75);player.x+=slideVx*v*dt;player.z+=slideVz*v*dt;}
+  if(ROY.on&&royMove(dt)){/* Royale: Server führt (Rückstoß, Kampfziege, Absturz) */}
+  else if(slideT>0){slideT-=dt;const v=3+8*Math.max(0,slideT/0.75);player.x+=slideVx*v*dt;player.z+=slideVz*v*dt;}
   else{player.x+=(fx*mz+rx*mx)*speed*dt;player.z+=(fz*mz+rz*mx)*speed*dt;}
   // Springen: Schwerkraft, Bodenprüfung, Landung
-  if(!grounded||pVy>0){pVy-=20*dt;pY+=pVy*dt;if(pY<=0){if(pVy<-5)landDip=0.12;pY=0;pVy=0;grounded=true;}}
+  const noFloor=ROY.on&&royGround();if(noFloor&&grounded){grounded=false;}
+  if(!grounded||pVy>0){pVy-=20*dt;pY+=pVy*dt;if(pY<=0&&!noFloor){if(pVy<-5)landDip=0.12;pY=0;pVy=0;grounded=true;}if(pY<-40)pY=-40;}
   landDip=Math.max(0,landDip-dt*0.6);
-  const pd=Math.hypot(player.x,player.z);if(pd>40){player.x*=40/pd;player.z*=40/pd;}
-  for(const o of obstacles){const dx=player.x-o.x,dz=player.z-o.z,d=Math.hypot(dx,dz),min=o.r+0.4;if(d<min&&d>0.001){player.x=o.x+dx/d*min;player.z=o.z+dz/d*min;}}
-  if(typeof wallsCollidePlayer==='function')wallsCollidePlayer();
+  if(!ROY.on){const pd=Math.hypot(player.x,player.z);if(pd>40){player.x*=40/pd;player.z*=40/pd;}}
+  if(!ROY.on)for(const o of obstacles){const dx=player.x-o.x,dz=player.z-o.z,d=Math.hypot(dx,dz),min=o.r+0.4;if(d<min&&d>0.001){player.x=o.x+dx/d*min;player.z=o.z+dz/d*min;}}
+  if(!ROY.on&&typeof wallsCollidePlayer==='function')wallsCollidePlayer();
   if(ml>0.1&&grounded&&slideT<=0)player.bob+=dt*speed*(sprinting?1.9:1.6);
   const eyeT=slideT>0?0.85:crouched?1.05:1.6;eyeH+=(eyeT-eyeH)*Math.min(1,dt*12);
   kick*=Math.exp(-dt*12);shakeT=Math.max(0,shakeT-dt);
   const sh=shakeT>0?shakeT*0.25:0,bobA=(sprinting?0.085:0.05)*(1-adsK*0.8);
-  camera.position.set(player.x+(Math.random()-0.5)*sh,pY+eyeH+Math.sin(player.bob)*bobA-landDip+(Math.random()-0.5)*sh,player.z);
+  camera.position.set(player.x+(Math.random()-0.5)*sh,pY+eyeH+(ROY.on&&ROY.mount&&!ROY.out?0.75:0)+Math.sin(player.bob)*bobA-landDip+(Math.random()-0.5)*sh,player.z);
   camera.rotation.y=player.yaw;camera.rotation.x=Math.max(-1.5,Math.min(1.5,player.pitch+kick));
   camera.rotation.z+=((slideT>0?0.07:sprinting?Math.sin(player.bob*0.5)*0.012:0)-camera.rotation.z)*Math.min(1,dt*10);
   // Visier (ADS): weicher Zoom, Waffe zur Mitte
@@ -1514,7 +1524,7 @@ function update(dt){
   $('barfill').style.width=Math.max(0,cakeHp).toFixed(1)+'%';
   $('bar').classList.toggle('low',cakeHp<30);$('bar').classList.toggle('hurt',eating);
   if(wallWarnT<=0)$('warn').hidden=!eating;
-  $('alarm').style.opacity=eating?(0.35+0.25*Math.sin(performance.now()/120)).toFixed(2):(flashT>0?0.4:0);
+  if(!ROY.on)$('alarm').style.opacity=eating?(0.35+0.25*Math.sin(performance.now()/120)).toFixed(2):(flashT>0?0.4:0);
   // Pfeil zum Kuchen, wenn er außer Sicht ist
   const arrow=$('arrow');
   if(eating){const tx=-player.x,tz=-player.z;const ang=Math.atan2(tx,tz)-Math.atan2(fx,fz);const a=Math.atan2(Math.sin(ang),Math.cos(ang));
@@ -1664,13 +1674,18 @@ function netSend(o){if(!NET.ws||NET.ws.readyState!==1)return false;if(o.t!=='rea
 function openLobby(){showOverlay('lobby');$('lbConnect').hidden=!!NET.code;$('lbRoom').hidden=!NET.code;
   try{$('lbName').value=$('lbName').value||localStorage.getItem('ziegenalarm-name')||'';}catch(e){}
   const b=netBase();netNote(b?'':'Diese Vorschau läuft in der claude.ai-Sandbox. Sie erlaubt keine Verbindungen zu Spielservern. Spiel Kuchenkrieg in der gehosteten Version oder trag oben einen Spielserver ein.');}
-$('modeKK').addEventListener('click',()=>{initAudio();openLobby();});
+const MODE_INFO={kuchenkrieg:['Kuchenkrieg','Jedes Team verteidigt seinen eigenen Kuchen gegen genau dieselben Wellen. Wessen Kuchen länger hält, gewinnt. Halten beide durch, entscheiden die Punkte.'],
+  royale:['GOAT ROYALE','Runde Schwebeinsel, drei Leben. Jeder Treffer erhöht die Wucht, je höher, desto weiter fliegt man. Wer runterfällt, verliert ein Leben. Reite eine Ziege 10 Sekunden lang und sie wird zur dreiköpfigen Kampfziege, die rückwärts nach Gegnern tritt.']};
+function setLobbyMode(m){NET.mode=MODE_INFO[m]?m:'kuchenkrieg';$('lbTitle').textContent=MODE_INFO[NET.mode][0];$('lbDesc').textContent=MODE_INFO[NET.mode][1];}
+$('modeKK').addEventListener('click',()=>{initAudio();setLobbyMode('kuchenkrieg');openLobby();});
+$('modeGR').addEventListener('click',()=>{initAudio();setLobbyMode('royale');openLobby();});
+$('lbLink').addEventListener('click',()=>{const u=location.origin+location.pathname+'?join='+NET.code;try{navigator.clipboard.writeText(u).then(()=>{$('lbLink').textContent='Link kopiert';},()=>{$('lbLink').textContent=u;});}catch(e){$('lbLink').textContent=u;}setTimeout(()=>$('lbLink').textContent='Einladungslink',2500);});
 $('lbBack').addEventListener('click',()=>{netLeave(true);showOverlay('menu');});
 for(const b of $('lbSize').children)b.addEventListener('click',()=>{NET.size=b.dataset.s;for(const x of $('lbSize').children)x.classList.toggle('on',x===b);});
 function myName(){const n=$('lbName').value.trim()||'Ziegenjäger';try{localStorage.setItem('ziegenalarm-name',n);}catch(e){}return n;}
 $('lbCreate').addEventListener('click',async()=>{const base=netBase();if(!base){netNote('Kein Spielserver erreichbar. In der claude.ai-Vorschau sind Verbindungen nach außen gesperrt.');return;}
   netNote('Raum wird erstellt …');
-  try{const r=await fetch(base+'/api/new?mode=kuchenkrieg&size='+NET.size);const j=await r.json();if(!j.code)throw 0;netConnect(j.code);}
+  try{const r=await fetch(base+'/api/new?mode='+(NET.mode||'kuchenkrieg')+'&size='+NET.size);const j=await r.json();if(!j.code)throw 0;netConnect(j.code);}
   catch(e){netNote('Der Spielserver antwortet nicht. Prüfe die Adresse oder versuch es gleich noch einmal.');}});
 // Vor dem Beitreten fragen, ob der Raum existiert, voll ist oder schon läuft. Liefert null, wenn alles passt, sonst einen Hinweis.
 async function roomCheck(c,rejoin){try{const r=await fetch(netBase()+'/api/room/'+c,{cache:'no-store'});if(r.status===404)return 'gone';const j=await r.json();
@@ -1705,7 +1720,7 @@ function netForget(){if(NET.code){try{sessionStorage.removeItem('ziegenalarm-tok
 function netGone(){const was=NET.on;netLeave(true);if(was)resetGame();showOverlay('lobby');$('lbConnect').hidden=false;$('lbRoom').hidden=true;netNote('Der Raum wurde aufgelöst. Erstell einen neuen Raum oder tritt einem anderen bei.');}
 function netLeave(silent){NET.closing=true;if(NET.ws){try{NET.ws.send(JSON.stringify({t:'leave'}));NET.ws.close();}catch(e){}}NET.ws=null;
   if(NET.code){try{sessionStorage.removeItem('ziegenalarm-tok-'+NET.code);sessionStorage.removeItem('ziegenalarm-net-code');}catch(e){}}
-  NET.code='';NET.welcomed=false;NET.retry=0;NET.room=null;const was=NET.on;NET.on=false;for(const m of NET.mates.values())disposeMate(m);NET.mates.clear();NET.map.clear();
+  royExit();NET.code='';NET.welcomed=false;NET.retry=0;NET.room=null;const was=NET.on;NET.on=false;for(const m of NET.mates.values())disposeMate(m);NET.mates.clear();NET.map.clear();
   netMsg('');$('netbar').hidden=true;if(was&&!silent)showOverlay('menu');if(was)resetGame();}
 function netOnMsg(m){
   if(m.t==='welcome'){NET.welcomed=true;NET.retry=0;NET.you=m.you;NET.token=m.token;NET.seq=Math.max(NET.seq,m.lastSeq||0);try{sessionStorage.setItem('ziegenalarm-tok-'+m.code,m.token);}catch(e){}if(m.rejoined)popup('Wieder verbunden');}
@@ -1715,8 +1730,8 @@ function netOnMsg(m){
   else if(m.t==='room')netRoom(m);
   else if(m.t==='snap')netSnap(m);
   else if(m.t==='results')netResults(m);}
-function netRoom(r){NET.room=r;const me=r.players.find(p=>p.id===NET.you);if(me)NET.team=me.team;
-  if(r.state==='lobby'){if(NET.on){NET.on=false;state='menu';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
+function netRoom(r){NET.room=r;if(r.mode&&r.mode!==NET.mode)setLobbyMode(r.mode);const me=r.players.find(p=>p.id===NET.you);if(me)NET.team=me.team;
+  if(r.state==='lobby'){if(NET.on||ROY.on){royExit();NET.on=false;state='menu';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
       $('hud').hidden=$('cross').hidden=true;showTouch(false);$('scope').hidden=true;$('netbar').hidden=true;$('banner').classList.remove('show');resetGame();}
     if($('lobby').hidden)openLobby();$('lbConnect').hidden=true;$('lbRoom').hidden=false;$('lbRoomCode').textContent=r.code;$('lbSizeInfo').textContent=r.size==='2v2'?'2 gegen 2':'1 gegen 1';
     const per=r.size==='2v2'?2:1;let html='';
@@ -1731,8 +1746,9 @@ function netRoom(r){NET.room=r;const me=r.players.find(p=>p.id===NET.you);if(me)
     $('lbStatus').textContent=r.countdown>0?'Start in '+Math.ceil(r.countdown)+' …':missing>0?'Warte auf '+missing+' weitere'+(missing>1?' Spieler':'n Spieler')+'. Teile den Code.':r.players.every(p=>p.ready)?'Alle bereit.':'Sobald alle bereit sind, geht es los.';}
   else if(r.state==='match'&&!NET.on)netStartMatch();
   else if(r.state==='results'){const n=r.players.filter(p=>p.rematch).length;if(n)$('rsStatus').textContent='Revanche: '+n+' von '+r.players.length+' sind dabei.';}}
-function netStartMatch(){resetGame();NET.on=true;NET.phase='';NET.wave=0;NET.map.clear();state='menu';
-  showOnly(null);$('netbar').hidden=false;setPlaying();tryLock();popup('Team '+(NET.room?NET.room.teams[NET.team]:'')+': verteidigt euren Kuchen!');}
+function netStartMatch(){if(ROY.on)royExit();resetGame();NET.on=true;NET.phase='';NET.wave=0;NET.map.clear();state='menu';
+  const royale=NET.room&&NET.room.mode==='royale';if(royale)royEnter();
+  showOnly(null);$('netbar').hidden=false;setPlaying();tryLock();popup('Team '+(NET.room?NET.room.teams[NET.team]:'')+(royale?': stoßt die Gegner von der Insel!':': verteidigt euren Kuchen!'));}
 function netShot(){const yaw=camera.rotation.y,p=camera.rotation.x;
   netSend({t:'shot',w:weapon,o:[+camera.position.x.toFixed(3),+camera.position.y.toFixed(3),+camera.position.z.toFixed(3)],d:[-Math.sin(yaw)*Math.cos(p),Math.sin(p),-Math.cos(yaw)*Math.cos(p)].map(v=>+v.toFixed(5))});}
 function netBuy(o,el){if(state!=='shop')return;const key='n'+o.item+(o.side||'')+(o.act||'');const now=performance.now();if(lastBuy[key]&&now-lastBuy[key]<250)return;lastBuy[key]=now;netSend({t:'buy',...o});NET.lastBuyEl=el;}
@@ -1746,6 +1762,7 @@ function mateModel(name,team){const g=new THREE.Group();const col=team?0xd6336c:
   scene.add(g);return{g,M,head,tx:0,tz:0,ty:0,yaw:0};}
 function disposeMate(m){scene.remove(m.g);for(const k in m.M){if(m.M[k].map)m.M[k].map.dispose();m.M[k].dispose();}}
 function netSnap(s){NET.snap=s;NET.lastSnapAt=performance.now();NET.stats.snaps++;if(!NET.on)return;
+  if(s.mode==='royale'){if(ROY.on)roySnap(s);return;}
   const mine=s.mine;
   // Phasen
   if(s.phase!==NET.phase||s.wave!==NET.wave){const prev=NET.phase;NET.phase=s.phase;NET.wave=s.wave;wave=s.wave;
@@ -1814,6 +1831,7 @@ function netGoat(g,dt){const p=g.g.position,k=Math.min(1,dt*12);
   g.tail.rotation.z=Math.sin(ph*4)*0.5;
   const flash=g.hitT>0;if(flash)g.hitT-=dt;if(flash!==g.flashOn){g.flashOn=flash;const c=flash?0x7a1a30:0;g.M.fur.emissive.setHex(c);g.M.skin.emissive.setHex(c);g.M.face.emissive.setHex(c);}}
 function netUpdate(dt){
+  if(ROY.on)royUpdate(dt);
   NET.sendT-=dt;NET.hbT-=dt;if(NET.sendT<=0){NET.sendT=0.05;const o={t:'in',x:+player.x.toFixed(2),z:+player.z.toFixed(2),y:+pY.toFixed(2),yaw:+player.yaw.toFixed(2),pitch:+player.pitch.toFixed(2),w:weapon,cr:crouched};
     const k=o.x+','+o.z+','+o.y+','+o.yaw+','+o.pitch+','+o.w+','+o.cr;if(k!==NET.lastIn||NET.hbT<=0){NET.lastIn=k;NET.hbT=0.25;netSend(o);}}
   NET.pingT-=dt;if(NET.pingT<=0){NET.pingT=2;netSend({t:'ping',c:performance.now()});}
@@ -1823,6 +1841,8 @@ function netUpdate(dt){
   const stale=performance.now()-NET.lastSnapAt>1500;$('netDot').classList.toggle('bad',stale);}
 function netResults(r){NET.on=false;state='results';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
   $('hud').hidden=$('cross').hidden=true;showTouch(false);$('scope').hidden=true;$('netbar').hidden=true;$('banner').classList.remove('show');
+  if(r.mode==='royale'){royResults(r);$('rsStatus').textContent='';showOverlay('results');if(r.winner===NET.team)victorySound();return;}
+  kkResultHeads();
   const teams=NET.room?NET.room.teams:['Käse','Beere'];
   $('rsTitle').textContent=r.winner==null?'Unentschieden':(r.winner===NET.team?'Gewonnen! ':'Verloren. ')+'Team '+teams[r.winner]+' siegt';
   $('rsReason').textContent=r.reason==='survival'?'Dieser Kuchen hat länger durchgehalten.':r.reason==='points'?'Beide Kuchen hielten gleich lang, die Punkte entscheiden.':r.reason==='cake'?'Gleich lang und gleich viele Punkte: der größere Kuchenrest entscheidet.':'Gleich lang, gleiche Punkte, gleicher Kuchenrest.';
@@ -1832,6 +1852,195 @@ function netResults(r){NET.on=false;state='results';clearInputs();if(document.po
   $('rsStatus').textContent='';showOverlay('results');
   if(r.winner===NET.team)victorySound();}
 
+/* ---------- GOAT ROYALE (Online-Modus): Schwebeinsel, Rückstoß, Reiten, dreiköpfige Kampfziege ---------- */
+const ROY={on:false,R:16,maxTime:240,time:0,phase:'',world:null,platform:null,edge:null,hidden:[],others:new Map(),goats:new Map(),
+  forced:null,mount:0,ride:0,lives:3,wucht:0,out:false,fall:false,offEdge:false,labels:null,lastHudSig:'',nearGoat:0,clouds:[]};
+const TEAMCOL=[0xf3c969,0xd6336c];
+function royBuildWorld(){
+  if(ROY.world)return;const W=new THREE.Group();W.visible=false;scene.add(W);ROY.world=W;
+  // Insel: Grasdeckel, Felsrand, kegelförmige Unterseite
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(1,0.97,0.5,56),new THREE.MeshLambertMaterial({color:0x6f9e55}));top.position.y=-0.25;top.receiveShadow=true;
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(0.97,0.9,0.9,56),lam(0x6b5a7a));rim.position.y=-0.95;
+  const under=new THREE.Mesh(new THREE.ConeGeometry(0.9,5.5,28),lam(0x4a3d5c));under.rotation.x=Math.PI;under.position.y=-4.15;
+  const P=new THREE.Group();P.add(top,rim,under);W.add(P);ROY.platform=P;
+  // Grasflecken und Steine auf der Insel (ohne Kollision, rein optisch)
+  {const gm=lam(0x5e8b46),sm=new THREE.MeshLambertMaterial({color:0x8a8296,flatShading:true});
+   for(let i=0;i<26;i++){const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*0.85;const t=new THREE.Mesh(cone(0.06,0.32,4),gm);t.position.set(Math.cos(a)*r,0.15,Math.sin(a)*r);t.userData.rel=[Math.cos(a)*r,Math.sin(a)*r];P.add(t);}
+   for(let i=0;i<7;i++){const a=i/7*Math.PI*2+0.4;const s=new THREE.Mesh(new THREE.DodecahedronGeometry(0.035+Math.random()*0.03,0),sm);s.position.set(Math.cos(a)*0.93,0.02,Math.sin(a)*0.93);P.add(s);}}
+  // Warnrand
+  const edge=new THREE.Mesh(new THREE.RingGeometry(0.955,1.0,72),new THREE.MeshBasicMaterial({color:0xffd36b,transparent:true,opacity:0.85,side:THREE.DoubleSide}));
+  edge.rotation.x=-Math.PI/2;edge.position.y=0.03;W.add(edge);ROY.edge=edge;
+  // Wolkenmeer und schwebende Felsen
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshLambertMaterial({color:0xcdb6dc}));sea.rotation.x=-Math.PI/2;sea.position.y=-34;W.add(sea);
+  const cm=new THREE.MeshLambertMaterial({color:0xf3e6f4,flatShading:true});
+  for(let i=0;i<16;i++){const c=new THREE.Group();const n=3+Math.floor(Math.random()*3);for(let k=0;k<n;k++){const s=new THREE.Mesh(new THREE.IcosahedronGeometry(2+Math.random()*2.5,0),cm);s.position.set(k*2.6-n,Math.random()*1.2,Math.random()*2-1);c.add(s);}
+    const a=Math.random()*Math.PI*2,r=34+Math.random()*50;c.position.set(Math.cos(a)*r,-14+Math.random()*22,Math.sin(a)*r);c.userData.a=a;c.userData.r=r;c.userData.sp=0.004+Math.random()*0.006;W.add(c);ROY.clouds.push(c);}
+  const rm=new THREE.MeshLambertMaterial({color:0x5a4a6e,flatShading:true});
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2+Math.random()*0.4,r=24+Math.random()*16;const g=new THREE.Group();
+    const top2=new THREE.Mesh(new THREE.CylinderGeometry(2+Math.random()*1.5,1.6,0.6,9),lam(0x6f9e55));const rock=new THREE.Mesh(new THREE.ConeGeometry(1.8,4,7),rm);rock.rotation.x=Math.PI;rock.position.y=-2.3;
+    g.add(top2,rock);g.position.set(Math.cos(a)*r,-6+Math.random()*8,Math.sin(a)*r);g.userData.bob=Math.random()*6;W.add(g);ROY.clouds.push(g);}
+}
+function roySetR(R){ROY.R=R;ROY.platform.scale.set(R,1,R);ROY.edge.scale.set(R,R,1);
+  for(const o of ROY.platform.children)if(o.userData.rel){o.scale.set(1/R,1,1/R);}}
+function royEnter(){
+  royBuildWorld();ROY.on=true;ROY.hidden=[];
+  for(const o of scene.children){if(o===camera||o.isLight||o===ROY.world||o.userData.sky)continue;if(o.visible){o.visible=false;ROY.hidden.push(o);}}
+  ROY.world.visible=true;roySetR(16);ROY.out=false;ROY.fall=false;ROY.forced=null;ROY.mount=0;ROY.ride=0;ROY.lives=3;ROY.wucht=0;ROY.lastHudSig='';
+  scene.fog.near=45;scene.fog.far=140;
+  document.body.classList.add('royale');
+  // Waffen im Royale: Blaster, Schrotflinte, Präzisionsgewehr
+  hasShotgun=true;owned.add('sniper');for(const k in WEAPONS){const el=$(WEAPONS[k].slot);if(el)el.hidden=!owns(k);}setWeapon('blaster',true);
+  if(!ROY.labels){const sm=$('wave').previousElementSibling,sc=$('score').previousElementSibling;ROY.labels={wave:sm.textContent,score:sc.textContent,cake:$('cakeLabel').textContent};}
+  $('wave').previousElementSibling.textContent='Leben';$('score').previousElementSibling.textContent='Wucht';
+}
+function royExit(){
+  if(!ROY.on)return;ROY.on=false;for(const o of ROY.hidden)o.visible=true;ROY.hidden=[];if(ROY.world)ROY.world.visible=false;
+  for(const m of ROY.others.values())royDisposeOther(m);ROY.others.clear();
+  for(const g of ROY.goats.values())royDisposeGoat(g);ROY.goats.clear();
+  scene.fog.near=30;scene.fog.far=85;document.body.classList.remove('royale');$('rideHint').hidden=true;$('rideBtn').hidden=true;$('alarm').style.opacity=0;
+  if(ROY.labels){$('wave').previousElementSibling.textContent=ROY.labels.wave;$('score').previousElementSibling.textContent=ROY.labels.score;$('cakeLabel').textContent=ROY.labels.cake;}
+  owned.delete('sniper');hasShotgun=false;for(const k in WEAPONS){const el=$(WEAPONS[k].slot);if(el)el.hidden=!owns(k);}setWeapon('blaster',true);
+}
+// Andere Spieler: Teamfarbe, Name, Leben und Wucht über dem Kopf
+function royInfoTex(m,name,lives,wucht,prot){const sig=name+lives+'|'+wucht+'|'+prot;if(m.infoSig===sig)return;m.infoSig=sig;
+  const c=m.infoCanvas;const x=c.getContext('2d');x.clearRect(0,0,256,96);x.fillStyle='rgba(18,12,31,.72)';x.fillRect(4,4,248,88);
+  x.font='bold 30px Rubik, sans-serif';x.textAlign='center';x.fillStyle='#fff4dc';x.fillText(name,128,36);
+  x.font='bold 30px Rubik, sans-serif';x.fillStyle='#ff5c8a';x.fillText('♥'.repeat(Math.max(0,lives))+'♡'.repeat(Math.max(0,3-lives)),86,78);
+  x.fillStyle=wucht>=100?'#ff5c5c':wucht>=50?'#ffb347':'#f3c969';x.fillText(wucht+'%',196,78);if(prot){x.strokeStyle='#8ad4ff';x.lineWidth=6;x.strokeRect(6,6,244,84);}
+  m.infoTex.needsUpdate=true;}
+function royOther(p){let m=ROY.others.get(p.id);if(m)return m;
+  const rp=NET.room&&NET.room.players.find(x=>x.id===p.id);const name=rp?rp.name:'Spieler';
+  m=mateModel('',p.team);m.name=name;if(m.M.label){m.g.children.forEach(o=>{if(o.isSprite)o.visible=false;});}
+  m.infoCanvas=document.createElement('canvas');m.infoCanvas.width=256;m.infoCanvas.height=96;m.infoTex=new THREE.CanvasTexture(m.infoCanvas);
+  m.M.info=new THREE.SpriteMaterial({map:m.infoTex,depthTest:false});const sp=new THREE.Sprite(m.M.info);sp.scale.set(1.7,0.64,1);sp.position.y=2.45;m.g.add(sp);
+  // Teamring am Boden für klare Zuordnung
+  m.M.ring=new THREE.MeshBasicMaterial({color:TEAMCOL[p.team],transparent:true,opacity:0.8});const ring=new THREE.Mesh(new THREE.RingGeometry(0.45,0.6,24),m.M.ring);ring.rotation.x=-Math.PI/2;ring.position.y=0.04;m.g.add(ring);
+  m.g.position.set(p.x,p.y,p.z);m.tx=p.x;m.tz=p.z;m.ty=p.y;ROY.others.set(p.id,m);return m;}
+function royDisposeOther(m){if(m.infoTex)m.infoTex.dispose();disposeMate(m);}
+// Ziegen: neutral, geritten oder als dreiköpfige Kampfziege (Teamfarbe)
+function royGoat(id){let r=ROY.goats.get(id);if(r)return r;const g=makeGoat('normal');scene.add(g.g);
+  const extra=[];for(const sx of[-1,1]){const n=g.neck.clone();n.position.x+=sx*0.3;n.rotation.z=sx*0.45;n.visible=false;g.spine.add(n);extra.push(n);}
+  const wind=new THREE.Mesh(new THREE.RingGeometry(0.3,2.7,28,1,-0.62,1.24),new THREE.MeshBasicMaterial({color:0xff3a3a,transparent:true,opacity:0.45,side:THREE.DoubleSide,depthWrite:false}));
+  wind.rotation.x=-Math.PI/2;wind.position.y=0.06;wind.visible=false;scene.add(wind);
+  r={g,extra,wind,furHex:g.M.fur.color.getHex(),tx:0,tz:0,ry:0,st:0,team:-1,phase:Math.random()*6,special:false};ROY.goats.set(id,r);return r;}
+function royDisposeGoat(r){scene.remove(r.g.g);scene.remove(r.wind);r.wind.material.dispose();for(const k in r.g.M)r.g.M[k].dispose();}
+function royGoatVisual(r,special,team){if(special===r.special&&team===r.team)return;r.special=special;r.team=team;
+  r.extra.forEach(n=>n.visible=special);r.g.M.fur.color.setHex(special?TEAMCOL[team]:r.furHex);r.g.g.scale.setScalar(special?1.18:1);}
+function roySnap(s){
+  ROY.time=s.time;ROY.maxTime=s.maxTime;if(Math.abs(s.arenaR-ROY.R)>0.005)roySetR(s.arenaR);
+  if(s.phase!==ROY.phase){const prev=ROY.phase;ROY.phase=s.phase;if(s.phase==='countdown')showBanner('GOAT ROYALE','Stoß die Gegner von der Insel. Drei Leben pro Spieler.',2.6);}
+  if(s.phase==='countdown'&&bannerT<=0)$('bannerSub').textContent='Start in '+Math.max(1,Math.ceil(s.phaseT));
+  const y=s.you;if(y){
+    ROY.forced=y.forced;ROY.mount=y.mount;ROY.ride=y.ride;ROY.wucht=y.wucht;
+    if(y.lives<ROY.lives){flashT=0.5;}ROY.lives=y.lives;
+    if(y.out&&!ROY.out){ROY.out=true;showBanner('Ausgeschieden','Du schaust jetzt zu, bis das Match endet.',4,true);}
+    if(ROY.fall&&!y.fall){pY=0;pVy=0;grounded=true;}ROY.fall=y.fall;
+    for(const k in y.ammo)if(WEAPONS[k]&&y.ammo[k]<ammo[k]&&reloadT<=0&&!y.reloading)ammo[k]=y.ammo[k];}
+  if(s.correct){player.x=s.correct.x;player.z=s.correct.z;}
+  // Spieler
+  const here=new Set();
+  for(const p of s.players){if(p.id===NET.you)continue;here.add(p.id);const m=royOther(p);
+    m.tx=p.x;m.tz=p.z;m.ty=p.y+(p.mount?0.7:0);m.yaw=p.yaw;m.cr=p.cr;m.fall=p.fall;m.out=p.out;m.prot=p.prot;m.mount=p.mount;
+    royInfoTex(m,m.name,p.lives,p.wucht,p.prot);}
+  for(const [id,m] of ROY.others)if(!here.has(id)){royDisposeOther(m);ROY.others.delete(id);}
+  // Ziegen
+  for(const a of s.goats){const [id,x,z,ry,st,team]=a;const r=royGoat(id);r.tx=x;r.tz=z;r.ry=ry;r.st=st;r.g.g.visible=st!==3;
+    royGoatVisual(r,st===2||st===4,team);r.wind.visible=st===4;if(r.st===3){r.g.g.position.set(x,0,z);}}
+  // Ereignisse
+  for(const e of s.ev)royEvent(e);
+  // Gegnerteam-Anzeige
+  const enemy=s.players.filter(p=>p.team!==NET.team),teams=NET.room?NET.room.teams:['Käse','Beere'];
+  $('netOpp').textContent='Team '+teams[1-NET.team]+': '+enemy.map(p=>p.out?'✕':'♥'.repeat(p.lives)).join(' · ');
+  $('netOppBar').style.width=(100*enemy.reduce((a,p)=>a+Math.max(0,p.lives),0)/Math.max(1,enemy.length*3)).toFixed(0)+'%';
+}
+function royName(id){if(id===NET.you)return'Du';const rp=NET.room&&NET.room.players.find(x=>x.id===id);return rp?rp.name:'Jemand';}
+function royEvent(e){
+  if(e.k==='go'){showBanner('Los!','Treffer erhöhen die Wucht · E: auf eine Ziege steigen',2);waveSound();}
+  else if(e.k==='phit'){const m=ROY.others.get(e.id);if(m){tmpA.copy(m.g.position);tmpA.y+=1.2;puff(tmpA,TEAMCOL[NET.team===0?1:0],5);}
+    if(e.by===NET.you){hitmT=0.14;$('hitm').className='show';hitSound(false);popup(e.w+'% Wucht');}
+    if(e.id===NET.you){shakeT=Math.max(shakeT,0.18);flashT=Math.max(flashT,0.15);}}
+  else if(e.k==='shield'){if(e.by===NET.you)popup('Geschützt');}
+  else if(e.k==='fall'){if(e.id===NET.you){showBanner('Abgestürzt!',e.lives>0?'Noch '+e.lives+(e.lives>1?' Leben':' Leben')+' · gleich geht es weiter':'Keine Leben mehr',2.4,true);}
+    else if(e.by===NET.you){$('hitm').className='show kill';hitmT=0.2;hitSound(true);showBanner('Ring-out!',royName(e.id)+' fliegt von der Insel',1.6);}
+    else popup(royName(e.id)+' ist abgestürzt');}
+  else if(e.k==='out'){if(e.id!==NET.you)popup(royName(e.id)+' ist raus');}
+  else if(e.k==='respawn'){if(e.id===NET.you){pY=0;pVy=0;grounded=true;popup('Zurück auf der Insel – kurz geschützt');}}
+  else if(e.k==='mount'){const r=ROY.goats.get(e.g);if(r)bleat(r.g,0.7);if(e.id===NET.you)popup('Aufgestiegen – 10 s reiten für die Verwandlung');}
+  else if(e.k==='dismount'){if(e.id===NET.you)popup('Abgestiegen');}
+  else if(e.k==='transform'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=1.4;puff(tmpA,TEAMCOL[e.team],14);bleat(r.g,1);}
+    const mine=e.team===NET.team;showBanner(mine?'Kampfziege!':'Achtung: Kampfziege!',mine?'Sie tritt rückwärts nach Gegnern. Du kannst weiter schießen.':'Weg vom Hinterteil! Abschießen beendet sie.',2.4,!mine);waveSound();}
+  else if(e.k==='windup'){const r=ROY.goats.get(e.g);if(r)bleat(r.g,0.8);}
+  else if(e.k==='kick'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=0.4;puff(tmpA,0xf3e6c0,8);}}
+  else if(e.k==='kicked'){if(e.id===NET.you){shakeT=Math.max(shakeT,0.35);flashT=Math.max(flashT,0.3);popup('Getreten!');}}
+  else if(e.k==='ghit'){const r=ROY.goats.get(e.g);if(r){r.g.hitT=0.12;if(e.by===NET.you){hitmT=0.14;$('hitm').className='show';hitSound(false);}}}
+  else if(e.k==='gdown'){const r=ROY.goats.get(e.g);if(r){tmpA.copy(r.g.g.position);tmpA.y+=1;puff(tmpA,0x8ea478,12);}if(e.by===NET.you){hitSound(true);showBanner('Kampfziege erledigt!','',1.4);}}
+  else if(e.k==='gexpire'){popup('Die Kampfziege ist erschöpft');}
+  else if(e.k==='shrink'){showBanner('Die Insel schrumpft!','Bleib in der Mitte',2.2,true);waveSound();}
+}
+function royNearGoat(){let best=0,bd=2.4;for(const [id,r] of ROY.goats){if(r.st!==0)continue;const d=Math.hypot(r.tx-player.x,r.tz-player.z);if(d<bd){bd=d;best=id;}}return best;}
+function royToggleMount(){if(!ROY.on||state!=='play'||ROY.out)return;netSend({t:'mount'});}
+// Steuerung im Royale: Server-Position bei Rückstoß/Kampfziege, Absturz über den Rand, Zuschauen nach dem Ausscheiden
+function royMove(dt){
+  if(ROY.out){player.x=0;player.z=ROY.R+9;pY=7;pVy=0;grounded=true;return true;}
+  if(ROY.forced){const k=Math.min(1,dt*14);player.x+=(ROY.forced.x-player.x)*k;player.z+=(ROY.forced.z-player.z)*k;return true;}
+  if(ROY.fall){return true;}
+  return false;}
+function royGround(){ROY.offEdge=Math.hypot(player.x,player.z)>ROY.R+0.3;return ROY.offEdge||ROY.fall;}
+function royUpdate(dt){
+  // Andere Spieler
+  for(const m of ROY.others.values()){const k=Math.min(1,dt*12);m.g.position.x+=(m.tx-m.g.position.x)*k;m.g.position.z+=(m.tz-m.g.position.z)*k;
+    const ty=m.fall?-30:m.ty;m.g.position.y+=(ty-m.g.position.y)*Math.min(1,dt*(m.fall?2:12));m.g.visible=!m.out&&!(m.prot&&Math.floor(performance.now()/120)%2);
+    let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;m.g.scale.y=m.cr?0.7:1;}
+  // Ziegen
+  for(const [id,r] of ROY.goats){if(r.st===3)continue;const p=r.g.g.position;let tx=r.tx,tz=r.tz,ry=r.ry;
+    if(id===ROY.mount&&r.st===1){tx=player.x;tz=player.z;ry=player.yaw+Math.PI;}
+    else if(r.st===1){for(const m of ROY.others.values())if(m.mount===id){tx=m.g.position.x;tz=m.g.position.z;}}
+    const k=Math.min(1,dt*12);const mv=Math.hypot(tx-p.x,tz-p.z);p.x+=(tx-p.x)*k;p.z+=(tz-p.z)*k;p.y=0;
+    let d=ry-r.g.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));r.g.g.rotation.y+=d*Math.min(1,dt*10);
+    const speed=Math.min(1,mv/dt/3);r.phase+=dt*(2+speed*(r.st===1?14:9));const st=Math.sin(r.phase);
+    r.g.legs[0].rotation.x=-0.3+st*0.6*speed;r.g.legs[1].rotation.x=-0.3-st*0.6*speed;r.g.tail.rotation.z=Math.sin(r.phase*2)*0.5;
+    if(r.st===4){r.g.spine.rotation.x=0.9;r.g.legs.forEach((l,i)=>l.rotation.x=-0.9-Math.sin(performance.now()/60+i)*0.2);}
+    else r.g.spine.rotation.x=r.st===2?0.6:0.35;
+    for(const n of r.extra)n.rotation.x=Math.sin(r.phase*1.3+n.position.x*4)*0.25;
+    r.wind.position.set(p.x,0.06,p.z);r.wind.rotation.z=r.g.g.rotation.y+Math.PI/2+Math.PI;r.wind.material.opacity=0.3+0.25*Math.abs(Math.sin(performance.now()/90));
+    const flash=r.g.hitT>0;if(flash)r.g.hitT-=dt;if(flash!==r.g.flashOn){r.g.flashOn=flash;const c=flash?0x7a1a30:0;r.g.M.fur.emissive.setHex(c);}}
+  // Wolken treiben
+  for(const c of ROY.clouds){if(c.userData.sp){c.userData.a+=c.userData.sp*dt;c.position.x=Math.cos(c.userData.a)*c.userData.r;c.position.z=Math.sin(c.userData.a)*c.userData.r;}else{c.userData.bob+=dt;c.position.y+=Math.sin(c.userData.bob)*0.004;}}
+  // Reithinweis
+  const near=ROY.mount?0:royNearGoat();ROY.nearGoat=near;const special=ROY.mount&&ROY.goats.get(ROY.mount)&&ROY.goats.get(ROY.mount).st>=2;
+  const hint=$('rideHint');let ht='';
+  if(ROY.out||state!=='play'||ROY.phase!=='play')ht='';
+  else if(special)ht='Kampfziege! Sie läuft selbst – schieß weiter';
+  else if(ROY.mount)ht=(isTouch?'Absteigen: Reiten-Knopf':'E: absteigen')+' · Verwandlung in '+Math.max(0,10-ROY.ride).toFixed(1)+' s';
+  else if(near)ht=isTouch?'Reiten-Knopf: aufsteigen':'E: auf die Ziege steigen';
+  if(hint.textContent!==ht)hint.textContent=ht;hint.hidden=!ht;
+  const rb=$('rideBar');rb.hidden=!ROY.mount||special;if(!rb.hidden)rb.firstChild.style.width=(Math.min(1,ROY.ride/10)*100).toFixed(0)+'%';
+  $('rideBtn').hidden=!(isTouch&&state==='play'&&!ROY.out&&(near||(ROY.mount&&!special)));$('rideBtn').classList.toggle('on',!!ROY.mount);
+  // Rand-Warnung
+  const edgeD=ROY.R-Math.hypot(player.x,player.z);$('alarm').style.opacity=(!ROY.out&&edgeD<2.2?Math.min(0.7,(2.2-edgeD)/2.2):0).toFixed(2);
+  ROY.edge.material.color.setHex(ROY.time>70&&ROY.time<75||ROY.R<15.9?0xff5c5c:0xffd36b);
+  // HUD: Leben, Wucht, Restzeit
+  const left=Math.max(0,ROY.maxTime-ROY.time),mm=Math.floor(left/60),ss=String(Math.floor(left%60)).padStart(2,'0');
+  const sig=ROY.lives+'|'+ROY.wucht+'|'+mm+ss+'|'+ROY.R.toFixed(0);
+  if(sig!==ROY.lastHudSig){ROY.lastHudSig=sig;$('wave').textContent='♥'.repeat(Math.max(0,ROY.lives))||'–';$('score').textContent=ROY.wucht+' %';
+    $('cakeLabel').textContent='GOAT ROYALE · '+mm+':'+ss+' · Insel '+ROY.R.toFixed(0)+' m';$('barfill').style.width=(left/ROY.maxTime*100).toFixed(1)+'%';
+    $('score').style.color=ROY.wucht>=100?'#ff5c5c':ROY.wucht>=50?'#ffb347':'';}
+}
+function royResults(r){
+  const teams=NET.room?NET.room.teams:['Käse','Beere'];
+  $('rsTitle').textContent=r.winner==null?'Unentschieden':(r.winner===NET.team?'Gewonnen! ':'Verloren. ')+'Team '+teams[r.winner]+' siegt';
+  $('rsReason').textContent={last:'Als letztes Team noch auf der Insel.',lives:'Zeit abgelaufen: mehr Leben übrig.',kos:'Gleich viele Leben: mehr Ring-outs.',wucht:'Gleichstand: weniger Wucht auf dem Konto.'}[r.reason]||'Alles ausgeglichen.';
+  const th=document.querySelectorAll('#results thead tr');th[0].innerHTML='<th>Team</th><th>Status</th><th>Leben</th><th>Ring-outs</th><th>Abstürze</th>';th[1].innerHTML='<th>Spieler</th><th>Team</th><th>Ring-outs</th><th>Abstürze</th>';
+  const tb=$('rsTeams');tb.textContent='';for(const t of r.teams){const tr=document.createElement('tr');if(r.winner===t.team)tr.className='win';
+    for(const v of['Team '+teams[t.team],t.survived?'noch drin':'raus',t.lives,t.kos,t.falls]){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);}tb.appendChild(tr);}
+  const pb=$('rsPlayers');pb.textContent='';for(const p of r.players){const tr=document.createElement('tr');for(const v of[p.name+(p.id===NET.you?' (du)':''),teams[p.team],p.kos,p.falls]){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);}pb.appendChild(tr);}
+}
+function kkResultHeads(){const th=document.querySelectorAll('#results thead tr');th[0].innerHTML='<th>Team</th><th>Status</th><th>Wellen</th><th>Kills</th><th>Punkte</th>';th[1].innerHTML='<th>Spieler</th><th>Team</th><th>Kills</th><th>Punkte</th>';}
+addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat&&ROY.on)royToggleMount();});
+$('rideBtn').addEventListener('pointerdown',e=>{e.preventDefault();royToggleMount();});
+
+// Einladungslink ?join=CODE: Lobby mit vorausgefülltem Code öffnen
+try{const j=(new URLSearchParams(location.search).get('join')||'').toUpperCase();if(/^[A-HJ-NP-Z2-9]{5}$/.test(j)&&netBase()&&!sessionStorage.getItem('ziegenalarm-tok-'+j)){openLobby();$('lbCode').value=j;netNote('Einladung zu Raum '+j+': Namen eingeben und „Beitreten“ drücken.');}}catch(e){}
 // Nach einem Neuladen automatisch wieder in den laufenden Raum
 try{const c=sessionStorage.getItem('ziegenalarm-net-code');if(c&&netBase()&&sessionStorage.getItem('ziegenalarm-tok-'+c)){
   roomCheck(c,true).then(bad=>{if(!bad){NET.welcomed=true;openLobby();netConnect(c);}else if(bad==='gone'){try{sessionStorage.removeItem('ziegenalarm-tok-'+c);sessionStorage.removeItem('ziegenalarm-net-code');}catch(e){}openLobby();netNote('Der Raum wurde aufgelöst. Erstell einen neuen Raum oder tritt einem anderen bei.');}});}}catch(e){}

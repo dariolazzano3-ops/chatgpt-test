@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Room, newCode, validCode } from '../shared/engine.js';
-import { MODES } from '../shared/modes/kuchenkrieg.js';
+import { MODES } from '../shared/modes/index.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8787);
@@ -73,12 +73,22 @@ function handle(req, res) {
   if (DEBUG && u.pathname === '/api/debug') { // nur lokal mit DEBUG=1: Zustand für Tests
     const r = rooms.get(u.searchParams.get('code'));
     if (!r) return sendJson(res, null);
+    if (r.modeId === 'royale') return sendJson(res, { mode: 'royale', state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, connected: p.connected, lastSeq: p.lastSeq })), results: r.results,
+      match: r.match && { time: r.match.time, phase: r.match.phase, players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, lives: ps.lives, wucht: ps.wucht, mount: ps.mount, rideT: ps.rideT, fallT: ps.fallT, out: ps.out, prot: ps.prot, kos: ps.kos, shots: ps.shots, hits: ps.hits, rejects: ps.rejects, kbT: ps.kbT })),
+        goats: r.match.goats.map(g => ({ id: g.id, x: g.x, z: g.z, state: g.state, team: g.team, hp: g.hp, wind: g.wind })) } });
     return sendJson(res, ({ tickMs: r._tickMs || 0, tickMax: r._tickMax || 0, stats, state: r.state, players: r.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, dupes: p.dupes, lastSeq: p.lastSeq })),
       match: r.match && r.match.worlds && { wave: r.match.wave, phase: r.match.phase, worlds: r.match.worlds.map(w => ({ cake: w.cake, coins: w.coins, kills: w.kills, points: w.points, goats: w.goats.length, dead: w.deadAt, walls: w.walls, upg: w.upg })),
         players: [...r.match.players.values()].map(ps => ({ id: ps.id, team: ps.team, x: ps.x, z: ps.z, shots: ps.shots, rejects: ps.rejects, speedRejects: ps.speedRejects, kills: ps.kills, owned: [...ps.owned], nades: ps.nades })) }, results: r.results }));
   }
   if (DEBUG && u.pathname === '/api/debug/set') { // nur lokal mit DEBUG=1: Testmanipulation
     const r = rooms.get(u.searchParams.get('code')); if (!r || !r.match) { res.writeHead(404); return res.end(); }
+    if (r.modeId === 'royale') { const q = k => u.searchParams.get(k), m = r.match, ps = m.players.get(+q('id')), g = m.goats.find(x => x.id === +q('g'));
+      const k = q('k');
+      if (k === 'rpos' && ps) { ps.x = +q('x'); ps.z = +q('z'); ps.kbT = 0; ps.vx = ps.vz = 0; ps.correct = true; if (q('prot') != null) ps.prot = +q('prot'); }
+      if (k === 'rset' && ps) { for (const f of ['lives', 'wucht', 'prot', 'rideT']) if (q(f) != null) ps[f] = +q(f); }
+      if (k === 'rgoat' && g) { if (q('x') != null) { g.x = +q('x'); g.z = +q('z'); } if (q('hp') != null) g.hp = +q('hp'); if (q('life') != null) g.life = +q('life'); if (q('state')) g.state = q('state'); g.respawn = 0; g.wt = 99; g.wx = g.x; g.wz = g.z; }
+      if (k === 'rtime') m.time = +q('v');
+      res.writeHead(200); return res.end('ok'); }
     const w = r.match.worlds[+u.searchParams.get('team') || 0]; const k = u.searchParams.get('k'), v = +u.searchParams.get('v');
     if (k === 'cake') w.cake = v; if (k === 'cakeAll') for (const x of r.match.worlds) x.cake = v; if (k === 'coins') w.coins = v; if (k === 'phaseT') r.match.phaseT = v;
     if (k === 'goat') { w.goats.push({ id: w.gid++, type: 'normal', s: 1, r: 0.45, x: +u.searchParams.get('x'), z: +u.searchParams.get('z'), hp: v, maxHp: v, speed: 0, eat: 0, state: 'walk', stagger: 0, wp: null, wpTried: true, ry: 0, dead: false }); }

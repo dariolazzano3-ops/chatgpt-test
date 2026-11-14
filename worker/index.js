@@ -1,7 +1,7 @@
 // Cloudflare Worker + Durable Object: ein Durable Object pro Raumcode hält die autoritative Spielsimulation.
 // Die Spielseite (public/index.html) wird über die Assets-Bindung ausgeliefert.
 import { Room, newCode, validCode } from '../shared/engine.js';
-import { MODES } from '../shared/modes/kuchenkrieg.js';
+import { MODES } from '../shared/modes/index.js';
 
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 const IDLE_DISSOLVE_MS = 15 * 60 * 1000; // Raum ohne Verbindung wird nach 15 min aufgelöst
