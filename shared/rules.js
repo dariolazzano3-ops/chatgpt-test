@@ -30,7 +30,7 @@ export const HEIST = {
   arenaR: 39, spawnR: 43, omi: { x: 0, z: -34, r: 2.6 }, herdIn: 11, herdOut: 33, npc: { '1': 16, '2': 22 },
   shopTime: 10, countdown: 3, startCoins: 40, sheepStartCoins: 40, waveCoins: 30, sheepWaveCoins: 20, aliveCoinEvery: 3,
   def: { hp: 100, respawn: 4, protect: 2 },
-  sheep: { hp: 60, respawn: 3, protect: 2, walk: 5.2, sprint: 7.6, carry: 0.68, jumpY: 1.6, jumpUpg: 1.1, carryJumpY: 0.7, climbRate: 1.3,
+  sheep: { hp: 60, respawn: 3, protect: 2, walk: 5.2, sprint: 7.6, carry: 0.68, jumpY: 1.6, jumpUpg: 1.1, carryJumpY: 0.7, climbRate: 1.3, carryClimb: 0.8,
     meleeR: 2.1, meleeCd: 0.8, meleeDmg: 15, meleeWolf: 12, meleeWall: 5, meleeBuild: 8, revealT: 4, coinPerHit: 6 },
   npcSheep: { hp: 25, aimR: 24, aimT: 0.7, warnT: 1.0, chargeSpeed: 7.2, chargeT: 2.6, hitDmg: 12, calm: 5, killPenalty: 5, respawn: 10, flee: 3.2 },
   tail: { near: 17, watch: 32 }, // ab dieser Entfernung sieht der Verteidiger nur einen hellen Schwanz

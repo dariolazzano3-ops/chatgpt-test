@@ -2633,7 +2633,7 @@ function kkSheepSpeed(){const y=KK.you||{};if(crouched&&!y.carrying)return 1.35/
   if(y.carrying)return 3.4/(sprinting?1.5:1);return 5.0*(y.speedOn?1.55:1);}
 function kkJumpV(){if(!KK.on||KK.role!=='sheep')return 7;const y=KK.you||{};const h=y.carrying?0.65:1.55+(y.jumpUpg?1.05:0);return Math.sqrt(2*20*h);}
 function kkClimb(dt){if(!KK.on||KK.role!=='sheep'||KK.dead||!jumpHeld||(jumpHoldT<0.3&&!KK.climbing))return KK.climbing=false; // kurz tippen = Sprung, halten = kletternconst h=kkNearWall(player.x,player.z,1.0);if(!h)return KK.climbing=false;
-  if(pY<h+0.35){KK.climbing=true;const rate=(KK.you&&KK.you.carrying?0.6:1.25);pVy=rate+20*dt;grounded=false;}else KK.climbing=false;return KK.climbing;}
+  if(pY<h+0.35){KK.climbing=true;const rate=(KK.you&&KK.you.carrying?1.0:1.25);pVy=rate+20*dt;grounded=false;}else KK.climbing=false;return KK.climbing;}
 function kkCam(){if(!KK.on||KK.role!=='sheep')return;const yaw=player.yaw,p=Math.max(-0.7,Math.min(0.5,player.pitch));const back=3.6,up=1.55+pY;
   // Kamera kreist hinter dem Schaf; nie unter 0,9 m (sonst steckt sie im Gras)
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw);camera.position.set(player.x-fx*back*Math.cos(p),Math.max(0.9+pY*0.5,up-Math.sin(p)*back*0.7),player.z-fz*back*Math.cos(p));camera.rotation.x=p-0.12;

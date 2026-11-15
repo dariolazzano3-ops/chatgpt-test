@@ -503,7 +503,7 @@ export const heist = {
       // Springen: schnell steigend bis zur Sprunghöhe. Darüber nur Klettern: langsam (1,3 m/s, mit Kuchen halb so schnell)
       let y = Math.max(0, Math.min(yMax, +msg.y || 0)); const vdt = Math.min(dt, 0.2);
       if (y > ps.y + 14 * vdt + 0.3) { y = ps.y + 14 * vdt + 0.3; ps.yRejects++; }
-      if (y > fast) { const lim = Math.max(ps.y, fast) + H.sheep.climbRate * (carrying ? 0.5 : 1) * vdt + 0.01; if (y > lim) { y = lim; ps.yRejects++; } }
+      if (y > fast) { const lim = Math.max(ps.y, fast) + H.sheep.climbRate * (carrying ? H.sheep.carryClimb : 1) * vdt + 0.01; if (y > lim) { y = lim; ps.yRejects++; } }
       // Durch eine Mauer? Nur über die Oberkante (Sprung/Klettern), Tore nur für Verteidiger
       const wk = crossesWall(m, ps.x, ps.z, nx, nz, y);
       if (wk && !(ps.role === 'def' && m.fort.walls[wk].gate && Math.abs(SIDES[wk].ax === 'x' ? nz : nx) < GATE_W)) { nx = ps.x; nz = ps.z; corr(ps); ps.wallRejects++; }

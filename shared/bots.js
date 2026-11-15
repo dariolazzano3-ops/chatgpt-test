@@ -7,17 +7,18 @@ import { rng } from './rules.js';
 // Schwierigkeit: dieselben Regeln für alle, nur Wahrnehmung, Reaktion, Genauigkeit, Taktik und Kaufentscheidungen unterscheiden sich
 export const BOT = {
   def: {
-    easy: { react: 0.75, aimErr: 0.075, sheepErr: 0.16, turn: 2.6, fov: 0.8, sight: 24, tailW: 0.45, suspect: 1.15, shop: 0, chase: 0.6, burst: 2 },
-    normal: { react: 0.42, aimErr: 0.042, sheepErr: 0.1, turn: 4.5, fov: 0.95, sight: 30, tailW: 0.8, suspect: 0.8, shop: 1, chase: 0.85, burst: 4 },
-    hard: { react: 0.24, aimErr: 0.024, sheepErr: 0.055, turn: 7, fov: 1.1, sight: 36, tailW: 1, suspect: 0.62, shop: 2, chase: 1, burst: 6 },
+    easy: { react: 0.6, aimErr: 0.045, sheepErr: 0.19, fortSus: 0.1, turn: 3, fov: 0.85, sight: 26, tailW: 0.55, suspect: 1.0, shop: 0, chase: 0.66, burst: 2 },
+    normal: { react: 0.65, aimErr: 0.045, sheepErr: 0.2, fortSus: 0.12, turn: 4, fov: 0.9, sight: 27, tailW: 0.7, suspect: 0.95, shop: 1, chase: 0.66, burst: 4 },
+    hard: { react: 0.42, aimErr: 0.028, sheepErr: 0.2, fortSus: 0.16, turn: 6, fov: 1.05, sight: 32, tailW: 1, suspect: 0.85, shop: 2, chase: 0.78, burst: 6 },
   },
   sheep: {
-    easy: { observe: [6, 10], walkV: [2.2, 3.0], grazeT: [1, 3], openAngle: 0.7, openDist: 9, react: 0.9, items: 0, wait: 8, sloppy: 0.35, commitHp: 50 },
-    normal: { observe: [10, 16], walkV: [1.0, 1.6], grazeT: [2, 6], openAngle: 1.2, openDist: 13, react: 0.5, items: 1, wait: 12, sloppy: 0.08, commitHp: 28 },
-    hard: { observe: [14, 22], walkV: [0.9, 1.6], grazeT: [2, 7], openAngle: 1.5, openDist: 16, react: 0.28, items: 2, wait: 16, sloppy: 0, commitHp: 18 },
+    easy: { observe: [16, 26], walkV: [2.2, 3.0], grazeT: [1, 3], openAngle: 0.7, openDist: 9, react: 1.1, items: 0, wait: 14, sloppy: 0.45, commitHp: 50, sab: 0.25 },
+    normal: { observe: [5, 9], walkV: [1.6, 2.4], grazeT: [2, 6], openAngle: 1.2, openDist: 13, react: 0.5, items: 1, wait: 8, sloppy: 0.08, commitHp: 28, sab: 0.4 },
+    hard: { observe: [5, 10], walkV: [1.5, 2.4], grazeT: [2, 7], openAngle: 1.5, openDist: 16, react: 0.28, items: 2, wait: 10, sloppy: 0, commitHp: 18, sab: 0.45 },
   },
 };
 const F = 5, HALF = 5.3, OMI = { x: 0, z: -34 };
+const inSpikes = (b, x, z) => (b.side === 'N' || b.side === 'S') ? Math.abs(x - b.x) < 3.4 && Math.abs(z - b.z) < 1.1 : Math.abs(z - b.z) < 3.4 && Math.abs(x - b.x) < 1.1;
 const SIDE_N = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
 const ang = (a, b) => { let d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
 const yawTo = (fx, fz, tx, tz) => Math.atan2(-(tx - fx), -(tz - fz)); // Spieler-Blickwinkel: vorwärts = (−sin, −cos)
@@ -61,7 +62,7 @@ class SheepBrain {
   constructor(diff, seed) { this.diff = diff; this.P = BOT.sheep[diff]; this.R = rng(seed); this.state = 'GRAZE'; this.t = 0; this.dec = 0; this.mv = null; this.goal = null; this.side = null; this.log = [];
     this.observeLeft = this.rnd(this.P.observe); this.hpSeen = 60; this.hurtT = -9; this.waitT = 0; this.boughtWave = -1; this.decoyUsed = 0; this.smokeAt = -99; this.stats = { states: {}, steals: 0, entries: 0, flee: 0, items: {} }; }
   rnd([a, b]) { return a + this.R() * (b - a); }
-  set(s, why) { if (this.state === s) return; this.state = s; this.t = 0; if (s === 'FLEE') this.goal = null; this.stats.states[s] = (this.stats.states[s] || 0) + 1; if (this.log.length < 400) this.log.push([+this.now.toFixed(1), s, why || '']); }
+  set(s, why) { if (this.state === s) return; this.state = s; this.t = 0; if (s === 'FLEE') this.goal = null; if (s === 'SABOTAGE') this.sabLat = null; this.stats.states[s] = (this.stats.states[s] || 0) + 1; if (this.log.length < 400) this.log.push([+this.now.toFixed(1), s, why || '']); }
   step(m, ps, dt, api) {
     this.now = m.time; if (!this.mv) this.mv = new Mover(ps, this.R);
     if (!ps.alive()) { if (this.state !== 'WAIT') this.set('WAIT', ps.waiting ? 'keine Leben' : 'tot'); this.mv.vx = this.mv.vz = 0; this.mv.y = 0; this.mv.climb = false; return; }
@@ -116,14 +117,21 @@ class SheepBrain {
       this.set('FLEE', aimer ? 'im Visier' : 'getroffen'); this.stats.flee++;
       if (this.P.items >= 1 && ps.inv.smoke > (this.P.items >= 2 ? 1 : 0) && m.time - this.smokeAt > 6) { this.use(api, 'smoke'); this.smokeAt = m.time; } // Schwer: letzten Rauch für die Flucht aufheben
       if (this.P.items >= 2 && ps.inv.speed > 0) this.use(api, 'speed');
-      const a = Math.atan2(ps.z, ps.x) + (this.R() - 0.5); this.goal = [Math.cos(a) * 22, Math.sin(a) * 22]; return; }
+      const a = Math.atan2(ps.z, ps.x) + (this.R() - 0.5); this.goal = [Math.cos(a) * 22, Math.sin(a) * 22];
+      if (this.diff !== 'easy') { // in der Herde untertauchen – außer Reichweite der Türme (die feuern auf getroffene Schafe)
+        const tw = m.fort.builds.filter(b => b.kind === 'tower'); let bd = 1e9;
+        for (const n of m.npcs) { const r = Math.hypot(n.x, n.z), d = Math.hypot(n.x - ps.x, n.z - ps.z); if (r < 12) continue;
+          const tn = tw.reduce((a, b) => Math.min(a, Math.hypot(b.x - n.x, b.z - n.z)), 99), sc = d + (tn < 15 ? 40 : 0); if (sc < bd) { bd = sc; this.goal = [n.x, n.z]; } } }
+      return; }
     if (carrying && this.state !== 'ESCAPE' && this.state !== 'DELIVER') { this.set('ESCAPE', 'Kuchen!'); this.stats.steals = (this.stats.steals || 0) + 1; }
     switch (this.state) {
       case 'GRAZE': case 'OBSERVE': {
         this.observeLeft -= 0.1;
         if (m.phase !== 'wave' && m.phase !== 'countdown' && m.phase !== 'overtime') { this.set('GRAZE', 'Pause'); break; }
         if (m.cake.state === 'dropped') { this.set('STEAL', 'Kuchen liegt'); break; }
-        if (this.observeLeft <= 0) { this.set('PLAN', 'genug beobachtet'); break; }
+        if (this.observeLeft <= 0) { const sab = this.pickSabotage(m);
+          if (sab && this.R() < this.P.sab) { this.sab = sab; this.set('SABOTAGE', 'Mauer ' + sab.k + ' schwächen (' + sab.n + ' Ziegen)'); this.stats.sabotage = (this.stats.sabotage || 0) + 1; break; }
+          this.set('PLAN', 'genug beobachtet'); break; }
         if (this.state === 'GRAZE' && this.observeLeft < this.rnd(this.P.observe) * 0.4) this.set('OBSERVE', 'Festung beobachten');
         break; }
       case 'PLAN': { // Zugang wählen: geringstes Risiko (leicht: grob, schwer: genau)
@@ -135,22 +143,29 @@ class SheepBrain {
       case 'APPROACH': { // unauffällig zum Bereitstellungsplatz, dann auf eine Lücke warten
         const d = Math.hypot(this.stage[0] - ps.x, this.stage[1] - ps.z);
         if (d < 1.2) { this.waitT += 0.1;
-          const open = th.worst < 0.35 && !m.wolves.some(f => !f.dead && Math.hypot(f.x - this.stage[0], f.z - this.stage[1]) < 6);
+          const busy = m.goats.length >= 3, towers = m.fort.builds.some(b => b.kind === 'tower' && Math.hypot(b.x - this.stage[0], b.z - this.stage[1]) < 18 && !m.goats.some(g => Math.hypot(g.x - b.x, g.z - b.z) < 20)); // Türme, die gerade keine Ziege haben
+          // Mittel/Schwer: Türme schießen nur auf Schafe, wenn keine Ziegen da sind → im Wellen-Getümmel zuschlagen
+          const atCake = this.diff === 'hard' && this.defenders(m).some(q => Math.hypot(q.x, q.z) < 2.6); // Wächter steht am Kuchen → warten, bis er an die Mauer geht
+          const open = !atCake && (th.worst < 0.35 || (busy && this.diff !== 'easy' && th.worst < 0.6)) && !(towers && this.diff !== 'easy') && !m.wolves.some(f => !f.dead && Math.hypot(f.x - this.stage[0], f.z - this.stage[1]) < 6);
           if (open || this.waitT > this.P.wait) {
             if (this.P.items >= 2 && ps.inv.decoy > 0 && th.near && th.near.d < 18 && !this.decoyUsed) { this.use(api, 'decoy'); this.decoyUsed = 1; } // DISTRACT
             if (ps.inv.shield > 0 && this.P.items >= 1) this.use(api, 'shield');
             if (this.P.items >= 2 && ps.inv.speed > 0) this.use(api, 'speed');
             this.set('INFILTRATE', open ? 'Lücke' : 'Geduld am Ende'); this.stats.entries++; }
+          else if (this.waitT > 3 && this.R() < 0.03 * this.P.sab) { const sab = this.pickSabotage(m); if (sab) { this.sab = sab; this.set('SABOTAGE', 'statt warten: Mauer ' + sab.k); this.stats.sabotage = (this.stats.sabotage || 0) + 1; } }
           else if (this.diff === 'hard' && this.waitT > this.P.wait * 0.6 && this.R() < 0.02) { this.observeLeft = 3; this.set('GRAZE', 'zu riskant, neu planen'); } }
         break; }
       case 'INFILTRATE': if (inFortP(ps.x, ps.z, 0.3)) this.set('STEAL', 'drin'); else if (this.t > 9) { this.observeLeft = 4; this.set('GRAZE', 'abgebrochen'); } break;
-      case 'STEAL': if (this.P.items >= 1 && ps.inv.smoke > 0 && m.cake.state === 'home' && Math.hypot(ps.x, ps.z) < 2.2 && m.time - this.smokeAt > 6 && this.defenders(m).some(q => Math.hypot(q.x, q.z) < 14)) { this.use(api, 'smoke'); this.smokeAt = m.time; } // Rauch über dem Kuchen, dann greifen
+      case 'STEAL': if (this.P.items >= 2 && ps.inv.smoke > 1 && m.cake.state === 'home' && Math.hypot(ps.x, ps.z) < 2.2 && m.time - this.smokeAt > 6 && this.defenders(m).some(q => Math.hypot(q.x, q.z) < 14)) { this.use(api, 'smoke'); this.smokeAt = m.time; } // Rauch über dem Kuchen, dann greifen
         if (m.cake.state === 'carried' && m.cake.by !== ps.id) { this.observeLeft = 4; this.set('GRAZE', 'Mitspieler trägt'); } if (this.t > 14) { this.observeLeft = 3; this.set('GRAZE', 'zu lange'); } break;
       case 'ESCAPE': if (!carrying) { this.observeLeft = 3; this.set(m.cake.state === 'dropped' ? 'STEAL' : 'GRAZE', 'Kuchen verloren'); break; }
-        if (this.P.items >= 1 && ps.inv.smoke > 0 && th.near && th.near.d < 12 && m.time - this.smokeAt > 6) { this.use(api, 'smoke'); this.smokeAt = m.time; }
+        if (this.P.items >= 1 && ps.inv.smoke > 0 && m.time - this.smokeAt > 6 && ((th.near && th.near.d < 12) || (inFortP(ps.x, ps.z, -0.4) && this.exitSide && this.wallDist(ps, this.exitSide) < 1.6 && m.fort.walls[this.exitSide].lvl >= 1 && this.defenders(m).some(q => Math.hypot(q.x - ps.x, q.z - ps.z) < 10)))) { this.use(api, 'smoke'); this.smokeAt = m.time; } // Rauch beim Klettern über hohe Mauern
+        if (this.P.items >= 1 && ps.inv.heal > 0 && ps.hp < 30) this.use(api, 'heal');
         if (!inFortP(ps.x, ps.z, -1.5) && Math.hypot(ps.x - OMI.x, ps.z - OMI.z) < 12) this.set('DELIVER', 'fast da');
         break;
       case 'DELIVER': if (!carrying) this.set('GRAZE', 'weg'); break;
+      case 'SABOTAGE': { const w = m.fort.walls[this.sab.k]; // die Ziegen-Seite aufbrechen: Zombies sollen an den Kuchen
+        if (!w.lvl || m.phase !== 'wave' || this.t > 22 || m.goats.length < 2) { this.observeLeft = this.rnd(this.P.observe) * 0.5; this.set('GRAZE', w.lvl ? 'Sabotage vorbei' : 'Mauer offen'); if (!w.lvl) this.observeLeft = 1.5; } break; }
       case 'FLEE': if (this.t > 4 && !this.aimedAtMe(m, ps)) { this.observeLeft = this.rnd(this.P.observe) * 0.7; this.set('GRAZE', 'abgetaucht'); } break;
     }
   }
@@ -171,7 +186,7 @@ class SheepBrain {
         { const w = this.overWall(m, ps, tx, tz, jumpBase); tx = w.tx; tz = w.tz; climbTop = w.top; }
         break; }
       case 'PLAN': break;
-      case 'APPROACH': [tx, tz] = viaCorner(ps.x, ps.z, this.stage[0], this.stage[1]); speed = this.diff === 'easy' ? 2.4 : 1.3; if (Math.hypot(this.stage[0] - ps.x, this.stage[1] - ps.z) < 1.2) { speed = 0; em = 'graze'; }
+      case 'APPROACH': [tx, tz] = viaCorner(ps.x, ps.z, this.stage[0], this.stage[1]); speed = this.diff === 'easy' ? 2.4 : 2.1; if (Math.hypot(this.stage[0] - ps.x, this.stage[1] - ps.z) < 1.2) { speed = 0; em = 'graze'; }
         { const w = this.overWall(m, ps, tx, tz, jumpBase); tx = w.tx; tz = w.tz; climbTop = w.top; } break;
       case 'INFILTRATE': case 'STEAL': {
         const cx = m.cake.state === 'dropped' ? m.cake.x : 0, cz = m.cake.state === 'dropped' ? m.cake.z : 0;
@@ -179,8 +194,11 @@ class SheepBrain {
         speed = 5; sprint = true;
         { const w = this.overWall(m, ps, tx, tz, jumpBase); tx = w.tx; tz = w.tz; climbTop = w.top; }
         if (this.state === 'STEAL' && Math.hypot(cx - ps.x, cz - ps.z) < 1.3) { speed = 0;
-          const close = this.diff !== 'easy' && !m.smokes.some(s => Math.hypot(s.x - ps.x, s.z - ps.z) < s.r * 0.8) && this.defenders(m).some(q => Math.hypot(q.x - ps.x, q.z - ps.z) < 3.5);
-          if (!close && !ps.grabbing) api.send({ t: 'grab', v: true }); else if (close && ps.grabbing) api.send({ t: 'grab', v: false }); }
+          const close = this.diff !== 'easy' && !m.smokes.some(s => Math.hypot(s.x - ps.x, s.z - ps.z) < s.r * 0.8) && this.defenders(m).some(q => Math.hypot(q.x - ps.x, q.z - ps.z) < 3.5 && (this.diff !== 'hard' || Math.cos(ang(yawTo(q.x, q.z, ps.x, ps.z), q.yaw)) > -0.2)); // Schwer greift auch, wenn er direkt daneben wegschaut
+          if (close) { this.closeT = (this.closeT || 0) + dt; if (this.closeT > 1.5) { this.closeT = 0; this.set('FLEE', 'zu nah am Wächter'); } } else this.closeT = 0;
+          if (!close && !ps.grabbing && ps.hp < 45 && this.diff !== 'easy' && ps.inv.heal > 0) this.use(api, 'heal'); // erst heilen, dann greifen
+          if (!close && !ps.grabbing && ps.hp < 35 && this.diff !== 'easy') { this.set('FLEE', 'zu schwach für die Flucht'); }
+          else if (!close && !ps.grabbing) api.send({ t: 'grab', v: true }); else if (close && ps.grabbing) api.send({ t: 'grab', v: false }); }
         if (this.diff !== 'easy') for (const f of m.wolves) if (!f.dead && Math.hypot(f.x - ps.x, f.z - ps.z) < 1.8) { mv.yaw = yawTo(ps.x, ps.z, f.x, f.z); if (m.time - (ps.meleeAt ?? -9) >= 0.85) api.send({ t: 'melee' }); } // Werwolf wegstoßen (Abklingzeit wie beim Menschen)
         break; }
       case 'ESCAPE': case 'DELIVER': { // raus Richtung Omi (Nordmauer, wenn dort niemand steht), dann geradeaus
@@ -193,8 +211,14 @@ class SheepBrain {
         speed = 3.3;
         { const w = this.overWall(m, ps, tx, tz, jumpBase); tx = w.tx; tz = w.tz; climbTop = w.top; }
         break; }
+      case 'SABOTAGE': { const [nx, nz] = SIDE_N[this.sab.k], lat = this.sabLat ?? (this.sabLat = (this.R() - 0.5) * 6); // außen an die Mauer, frontal stoßen
+        tx = nx * (F + 0.95) + (nz ? lat : 0); tz = nz * (F + 0.95) + (nx ? lat : 0); [tx, tz] = viaCorner(ps.x, ps.z, tx, tz); speed = 3.2;
+        if (this.wallDist(ps, this.sab.k) < 1.25 && Math.abs(nx ? ps.z : ps.x) < HALF) { speed = 0; this.faceYaw = Math.atan2(nx, nz);
+          if (m.time - (ps.meleeAt ?? -9) >= 0.85 && Math.abs(ang(mv.yaw, this.faceYaw)) < 0.4) api.send({ t: 'melee' }); }
+        break; }
       case 'FLEE': { if (!this.goal) { if (inFortP(ps.x, ps.z, -0.4)) { const [nx, nz] = SIDE_N[this.pickExit(m, ps)]; this.goal = [nx * (F + 6) + (nz ? ps.x : 0), nz * (F + 6) + (nx ? ps.z : 0)]; } else this.goal = [ps.x * 1.5, ps.z * 1.5]; } const zig = Math.sin(m.time * 4) * 2.5; const gx = this.goal[0] + zig * Math.cos(m.time), gz = this.goal[1] + zig * Math.sin(m.time);
         [tx, tz] = viaCorner(ps.x, ps.z, gx, gz); speed = 7; sprint = true;
+        if (this.diff !== 'easy' && this.t > (this.diff === 'hard' ? 1.2 : 2) && !inFortP(ps.x, ps.z, 1.5) && !(ps.revealUntil > m.time && m.fort.builds.some(b => b.kind === 'tower' && Math.hypot(b.x - ps.x, b.z - ps.z) < 15))) { speed = 2.4; sprint = false; if (Math.hypot(this.goal[0] - ps.x, this.goal[1] - ps.z) < 2) { speed = 0; em = 'graze'; } } // nicht weiter auffällig rennen
         { const w = this.overWall(m, ps, tx, tz, jumpBase); tx = w.tx; tz = w.tz; climbTop = w.top; }
         break; }
     }
@@ -205,8 +229,11 @@ class SheepBrain {
     if (ps.speedUntil > m.time && !carrying) speed *= 1.4;
     if (this.state !== 'STEAL' && ps.grabbing) api.send({ t: 'grab', v: false });
     mv.steer(ps, tx, tz, speed, dt, sprint ? 18 : 10);
+    if (this.state === 'SABOTAGE' && this.faceYaw != null && speed === 0) mv.yaw += ang(this.faceYaw, mv.yaw) * Math.min(1, dt * 6); else this.faceYaw = null; // zur Mauer drehen
     if (speed === 0) { mv.vx *= 0.8; mv.vz *= 0.8; }
-    mv.vertical(dt, jumpV, carrying ? 0.6 : 1.25, mv.climb ? climbTop : 0);
+    mv.vertical(dt, jumpV, carrying ? 1.0 : 1.25, mv.climb ? climbTop : 0);
+    if (this.diff !== 'easy' || this.R() < 0.5) { const v = Math.hypot(mv.vx, mv.vz); // Stachelstreifen sehen und überspringen (sie liegen sichtbar im Gras)
+      if (v > 0.8 && mv.y < 0.02) { const lx = ps.x + mv.vx / v * 0.7, lz = ps.z + mv.vz / v * 0.7; if (m.fort.builds.some(b => b.kind === 'spikes' && inSpikes(b, lx, lz))) mv.jumpQ = true; } }
     { const nx = ps.x + mv.vx * dt, nz = ps.z + mv.vz * dt, k = this.crossingWall(m, ps, nx, nz); // nie unterhalb der Kante durch die Mauer
       if (k && Math.min(mv.y, ps.y) < wallH(m.fort.walls[k].lvl) - 0.1) { if (SIDE_N[k][0]) mv.vx = 0; else mv.vz = 0; } }
     this.ex = ps.x + mv.vx * dt; this.ez = ps.z + mv.vz * dt;
@@ -228,11 +255,18 @@ class SheepBrain {
     return null; }
   wallApproach(m, ps) { const k = this.side || 'S', [nx, nz] = SIDE_N[k], st = this.stage || [nx * (F + 4), nz * (F + 4)]; // senkrecht über die gewählte Mauer
     return [nx ? nx * (F - 2) : Math.max(-3, Math.min(3, st[0])), nz ? nz * (F - 2) : Math.max(-3, Math.min(3, st[1]))]; }
+  pickSabotage(m) { // Mauerseite mit den meisten Ziegen davor (nur während einer Welle)
+    if (m.phase !== 'wave' || m.goats.length < 3) return null; let best = null;
+    for (const k in SIDE_N) { const w = m.fort.walls[k]; if (!w.lvl) continue; const [nx, nz] = SIDE_N[k];
+      const n = m.goats.filter(g => Math.hypot(g.x - nx * (F + 1), g.z - nz * (F + 1)) < 14).length; if (n >= 2 && (!best || n > best.n)) best = { k, n }; }
+    return best; }
   pickExit(m, ps) { // geschätzte Zeit im Freien: Weg zur Omi + Kletterzeit (mit Kuchen halb so schnell) + Verteidiger in der Nähe
-    const carrying = m.cake.state === 'carried' && m.cake.by === ps.id, jb = carrying ? 0.7 : 1.6 + (ps.jumpUpg ? 1.1 : 0), cr = carrying ? 0.65 : 1.3;
+    const carrying = m.cake.state === 'carried' && m.cake.by === ps.id, jb = carrying ? 0.7 : 1.6 + (ps.jumpUpg ? 1.1 : 0), cr = carrying ? 1.04 : 1.3;
     let best = 'N', bs = 1e9; for (const k in SIDE_N) { const [nx, nz] = SIDE_N[k], ex = nx * (F + 3), ez = nz * (F + 3), h = wallH(m.fort.walls[k].lvl);
       let s = Math.hypot(ex - OMI.x, ez - OMI.z) / 3.3 + Math.max(0, h - jb + 0.15) / cr * (this.diff === 'easy' ? 0.2 : 1);
-      for (const q of this.defenders(m)) s += Math.max(0, 1 - Math.hypot(q.x - ex, q.z - ez) / 10) * (this.diff === 'easy' ? 1 : 4);
+      if (this.diff === 'easy') { for (const q of this.defenders(m)) s += Math.max(0, 1 - Math.hypot(q.x - ex, q.z - ez) / 10); }
+      else { const ix = nx * (F - 0.6) + (nz ? ps.x : 0), iz = nz * (F - 0.6) + (nx ? ps.z : 0), tC = Math.hypot(ix - ps.x, iz - ps.z) / 3.5 + Math.max(0, h - jb + 0.15) / cr; // bin ich vor dem Wächter über der Mauer?
+        for (const q of this.defenders(m)) { const tD = 1.2 + Math.hypot(q.x - ix, q.z - iz) / 5.8; s += Math.max(0, tC - tD + 1.5) * 4; } }
       for (const b of m.fort.builds) if (b.kind === 'spikes' && b.side === k) s += 3; if (s < bs) { bs = s; best = k; } } return best; }
 }
 const wallH = l => [0, 1.3, 2.1, 2.8][l] || 0;
@@ -241,8 +275,8 @@ const wallH = l => [0, 1.3, 2.1, 2.8][l] || 0;
 // KI-WÄCHTER: Zombies abwehren, Festung ausbauen, verdächtige Schafe beobachten, Dieb stoppen, Kuchen zurückholen
 // =====================================================================================================
 const DEF_PLAN = [ // [ab Welle, Artikel, Mindest-Schwierigkeit (0 leicht, 1 mittel, 2 schwer)]
-  [1, 'watch', 2], [1, 'bell', 1], [2, 'smg', 1], [2, 'stone', 1], [2, 'tower', 1], [2, 'shotgun', 0], [3, 'stone', 0], [3, 'stone', 1], [3, 'spikes', 1], [3, 'tower', 2], [3, 'rate', 2],
-  [4, 'rifle', 1], [4, 'stone', 1], [4, 'gun', 1], [4, 'mag', 2], [5, 'steel', 1], [5, 'gun', 2], [5, 'mine', 1], [5, 'dmg', 2], [6, 'steel', 1], [6, 'gun', 1], [6, 'tower', 1],
+  [1, 'watch', 2], [1, 'bell', 1], [2, 'smg', 1], [2, 'stone', 1], [2, 'tower', 1], [2, 'shotgun', 0], [3, 'stone', 0], [3, 'tower', 0], [3, 'stone', 1], [3, 'spikes', 1], [3, 'tower', 2], [3, 'rate', 2],
+  [4, 'rifle', 1], [4, 'stone', 1], [4, 'gun', 1], [4, 'mag', 2], [5, 'stone', 0], [5, 'steel', 1], [5, 'gun', 2], [5, 'mine', 1], [5, 'dmg', 2], [6, 'gun', 0], [6, 'steel', 1], [6, 'gun', 1], [6, 'tower', 1],
   [6, 'tower', 2], [7, 'steel', 1], [7, 'gun', 2], [7, 'mine', 2], [7, 'steel', 2], [7, 'spikes', 2], [7, 'dmg', 1], [8, 'gun', 2]];
 class DefBrain {
   constructor(diff, seed) { this.diff = diff; this.P = BOT.def[diff]; this.R = rng(seed); this.state = 'GUARD'; this.t = 0; this.dec = 0; this.mv = null; this.mem = new Map(); this.target = null; this.reactT = 0; this.scanA = 0;
@@ -261,10 +295,11 @@ class DefBrain {
   suspicion(m, ps) {
     const now = m.time;
     for (const r of this.see) { let e = this.mem.get(r.sid); if (!e) { e = { s: 0, x: r.x, z: r.z, t: now, v: 0 }; this.mem.set(r.sid, e); }
+      if (now - (e.seen || now) > 1.2 && !r.carry) { e.s = 0; e.v = 0; } // aus den Augen verloren: zwischen gleich aussehenden Schafen nicht wiedererkennbar
       const dt = Math.max(0.05, now - e.t), v = Math.hypot(r.x - e.x, r.z - e.z) / dt; e.v = e.v * 0.7 + v * 0.3; e.x = r.x; e.z = r.z; e.t = now; e.seen = now;
       if (r.tail) e.s += this.P.tailW * 0.35; // schwarzer Schwanz gesehen
       if (e.v > 2.6 && r.anim !== 3 && r.anim !== 4) e.s += 0.04; // rennt ohne Grund (Herde flieht nur vor Zombies)
-      if (Math.max(Math.abs(r.x), Math.abs(r.z)) < F + 1.5) e.s += 0.25; // an oder in der Festung
+      if (Math.max(Math.abs(r.x), Math.abs(r.z)) < F + 1.5) e.s += this.P.fortSus; // an oder in der Festung
       if (r.carry) e.s = 10; // trägt sichtbar den Kuchen
     }
     for (const sid of this.evBuf) { const x = this.mem.get(sid); if (x && this.see.some(r => r.sid === sid)) x.s += 1.5; } this.evBuf = [];
@@ -280,18 +315,30 @@ class DefBrain {
     if (m.wave >= 3 && coins >= 60 && (nearGoats >= (this.diff === 'easy' ? 5 : 3) || m.cake.state !== 'home' || (m.final && this.P.shop >= 1)) && m.wolves.filter(f => !f.dead).length < 2 && m.time >= fo.wolfReadyAt) return buy('wolf');
     const reserve = m.wave >= 6 && this.P.shop >= 2 ? 0 : 20; // schwer: spart nicht mehr kurz vor dem Finale
     for (const e of this.plan) { if (e.done || e.wave > m.wave + (m.phase !== 'wave' ? 1 : 0)) continue; const price = { watch: 50, bell: 35, smg: 100, stone: 70, tower: 80, shotgun: 80, spikes: 25, rifle: 120, gun: 120, steel: 110, mine: 40, rate: 40, dmg: 45, mag: 60 }[e.item] || 50;
+      if (e.item === 'tower' && fo.builds.filter(b => b.kind === 'tower').length >= [1, 1, 2][this.P.shop]) { e.done = true; continue; } // Turm-Obergrenze je Stufe (Türme sind gegen Schafe sehr stark)
       if (coins >= price + reserve * (e.wave < m.wave ? 0 : 1)) { e.done = true; return buy(e.item); } break; }
+    // Überschuss nicht horten: Mauern flicken und ausbauen, dann Türme und Stacheln (Leicht gibt später und weniger aus)
+    const spare = coins - [380, 260, 200][this.P.shop]; if (spare <= 0) return;
+    const ws = Object.values(fo.walls);
+    if (ws.some(w => w.lvl && w.hp / w.maxHp < 0.75) && m.wave >= 2 && spare >= 55) return buy('repairall');
+    if (m.wave >= 2 && ws.some(w => w.lvl < 2) && spare >= 70) return buy('stone');
+    if (m.wave >= 4 && this.P.shop >= 1 && ws.some(w => w.lvl < 3) && spare >= 110) return buy('steel');
+
+    if (fo.builds.filter(b => b.kind === 'spikes').length < 4 && spare >= 25) return buy('spikes');
   }
   think(m, ps, api) {
     this.suspicion(m, ps);
     if (m.phase === 'shop' || this.R() < 0.15) this.shop(m, ps, api);
     const cake = m.cake, carrier = this.see.find(r => r.carry);
     // 1) Dieb mit Kuchen gesehen → verfolgen und schießen
-    if (cake.state === 'carried') { if (this.state !== 'CHASE') { this.set('CHASE', 'Kuchen gestohlen'); this.stats.chases++; }
+    if (cake.state === 'carried') { if (this.state !== 'CHASE') { this.set('CHASE', 'Kuchen gestohlen'); this.stats.chases++; this.chaseWait = this.P.react * (this.diff === 'hard' ? 1.2 : 2.2); } // erst begreifen, dann losrennen
+      // Zwickmühle: viele Ziegen am Kuchen und der Dieb weit weg → erst die Ziegen (leicht/mittel öfter)
+      const nearG = m.goats.filter(g => Math.hypot(g.x, g.z) < 9).length, cd = carrier ? carrier.d : 99;
+      if (nearG >= [2, 3, 6][this.P.shop] && cd > [8, 12, 20][this.P.shop]) { this.target = this.bestGoat(m, ps); this.chaseSplit = true; return; } this.chaseSplit = false;
       if (carrier) { this.target = { kind: 'sheep', sid: carrier.sid, x: carrier.x, z: carrier.z, y: 0.8 }; this.lastSeen = [carrier.x, carrier.z]; }
       else { this.target = null; // ungesehen: zur letzten Sichtung; mittel/schwer denken an die Omi (sie steht für alle sichtbar), leicht sucht planlos
         const omiGuess = [OMI.x * 0.6, OMI.z * 0.6];
-        if (!this.lastSeen) this.lastSeen = this.P.shop >= 1 ? omiGuess : [ps.x, ps.z];
+        if (!this.lastSeen) this.lastSeen = this.P.shop >= 2 ? omiGuess : [m.cake.state === 'carried' ? 0 : ps.x, 0]; // nur Schwer ahnt sofort den Weg zur Omi
         else if (Math.hypot(this.lastSeen[0] - ps.x, this.lastSeen[1] - ps.z) < 2) this.lastSeen = this.P.shop >= 1 ? omiGuess : [ps.x + (this.R() - 0.5) * 12, ps.z + (this.R() - 0.5) * 12]; } return; }
     this.lastSeen = null;
     // 2) Kuchen liegt im Gras → zurückholen
@@ -299,6 +346,7 @@ class DefBrain {
     if (this.state === 'CHASE' || this.state === 'RETURN') { if (this.state === 'RETURN') this.stats.returns++; this.set('GUARD', 'Kuchen sicher'); }
     // 3) Verdächtiges Schaf → anvisieren, bei genug Verdacht schießen
     let sus = null, best = this.P.suspect; for (const r of this.see) { const e = this.mem.get(r.sid); if (e && e.s >= best) { best = e.s; sus = r; } }
+    if (sus && this.diff !== 'easy' && m.goats.filter(g => Math.hypot(g.x, g.z) < 7).length >= 2 && Math.hypot(sus.x, sus.z) > 4) sus = null; // Ziegen am Kuchen gehen vor (Leicht lässt sich ablenken)
     if (sus) { if (this.state !== 'HUNT') this.set('HUNT', 'Verdacht ' + best.toFixed(2)); this.target = { kind: 'sheep', sid: sus.sid, x: sus.x, z: sus.z, y: 0.8 }; return; }
     if (this.state === 'HUNT') this.set('GUARD', 'Verdacht weg');
     // 4) Zombies: die dem Kuchen am nächsten zuerst
@@ -313,7 +361,11 @@ class DefBrain {
     const tgt = this.target; if (tgt && tgt.kind === 'goat') { tgt.x = tgt.g.x; tgt.z = tgt.g.z; }
     if (tgt && tgt.kind === 'sheep') { const r = this.see.find(q => q.sid === tgt.sid); if (r) { tgt.x = r.x; tgt.z = r.z; } }
     // Bewegung je Zustand
-    if (this.state === 'CHASE') { const [lx, lz] = tgt ? [tgt.x, tgt.z] : this.lastSeen; tx = lx; tz = lz; speed = 8 * P.chase; }
+    if (this.state === 'CHASE' && this.chaseSplit) { tx = 0; tz = 0; speed = 4; }
+    else if (this.state === 'CHASE') { const [lx, lz] = tgt && tgt.kind === 'sheep' ? [tgt.x, tgt.z] : (this.lastSeen || [0, 0]); tx = lx; tz = lz; speed = 8 * P.chase; if (this.t < this.chaseWait) { tx = ps.x; tz = ps.z; }
+      // Leicht/Mittel verlassen die Festung nur, wenn der Dieb nah ist – sonst an der Mauer bleiben (und ggf. nicht mehr drüber sehen)
+      const lim = [8, 10, 11][P.shop], dd = Math.hypot(lx - ps.x, lz - ps.z);
+      if (inFortP(ps.x, ps.z, 0) && !inFortP(lx, lz, -0.2) && dd > lim) { const k = sideOf(lx, lz), [nx, nz] = SIDE_N[k]; tx = nx * (F - 0.9) + (nz ? Math.max(-4, Math.min(4, lx)) : 0); tz = nz * (F - 0.9) + (nx ? Math.max(-4, Math.min(4, lz)) : 0); } }
     else if (this.state === 'RETURN') { tx = m.cake.x; tz = m.cake.z; speed = 8; }
     else if (tgt && tgt.kind === 'goat') { const a = Math.atan2(tgt.z, tgt.x), r = this.diff === 'hard' ? 3.0 : 3.9; tx = Math.cos(a) * r; tz = Math.sin(a) * r; speed = 4; } // an die bedrohte Mauer (Zinnen), im Fort bleiben – der Rücken ist dann frei
     else if (tgt && tgt.kind === 'sheep') { const a = Math.atan2(tgt.z, tgt.x); tx = Math.cos(a) * 2.8; tz = Math.sin(a) * 2.8; speed = 3; }
@@ -342,7 +394,7 @@ class DefBrain {
     if (fire) { const W = api.WEAPONS[w], cd = W.cd / (1 + 0.15 * m.fort.upg.rate);
       if (ps.ammo[w] <= 0 || ps.reloadUntil > m.time) { if (!ps.reloadUntil) api.send({ t: 'reload', w }); }
       else if (m.time - (this.lastShot[w] ?? -9) >= cd * 1.05) { this.lastShot[w] = m.time;
-        const e = tgt && tgt.kind === 'sheep' ? P.sheepErr : P.aimErr, ny = (this.R() + this.R() + this.R() - 1.5) * e, np = (this.R() + this.R() + this.R() - 1.5) * e * 0.7, yw = this.aimYaw + ny, pt = this.aimPitch + np, cp = Math.cos(pt);
+        const e = (tgt && tgt.kind === 'sheep' ? P.sheepErr : P.aimErr) * (1 + Math.hypot(mv.vx, mv.vz) / 4) /* im Laufen ungenauer */, ny = (this.R() + this.R() + this.R() - 1.5) * e, np = (this.R() + this.R() + this.R() - 1.5) * e * 0.7, yw = this.aimYaw + ny, pt = this.aimPitch + np, cp = Math.cos(pt);
         api.send({ t: 'shot', w, o: [+ps.x.toFixed(3), +(ps.y + 1.55).toFixed(3), +ps.z.toFixed(3)], d: [-Math.sin(yw) * cp, Math.sin(pt), -Math.cos(yw) * cp] });
         this.stats.shots++; if (tgt.kind === 'goat') this.stats.goatShots++; else this.stats.sheepShots++; } }
     mv.vertical(dt, 7, 0, 0);
