@@ -129,44 +129,58 @@ try{
   await test('Import result: 3 non-followers, mutual excluded, progress starts at 0 von 3',async()=>{
     assert.equal(await ev("return !!__row('alice')"),false);
     assert.equal(await progress(),'0 von 3');});
-  await test('Opening a profile marks it visited, never done',async()=>{
+  await test('Opening an Instagram profile gives a visibly green visited state, not done',async()=>{
     await ev("__row('bob').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('bob');
     assert.ok(s.cls.includes('fc-row-opened')&&!s.cls.includes('fc-row-done'),s.cls);
-    assert.match(s.text,/Profil besucht · noch nicht erledigt/);});
-  await test('Returning from Instagram asks; it does NOT mark the account done',async()=>{
+    assert.match(s.text,/Profil besucht · Entfolgen nicht bestätigt/);
+    const green=await ev("return getComputedStyle(__row('bob')).borderLeftColor");
+    assert.match(green,/20, 164, 95|64, 204, 135/,green);
+    assert.equal(await progress(),'0 von 3');
+  });
+  await test('Returning from Instagram keeps visited GREEN automatically, without any question',async()=>{
     await ev("__leaveAndReturn();await new Promise(r=>setTimeout(r,120));");
     const s=await state('bob');
     assert.ok(s.cls.includes('fc-row-opened')&&!s.cls.includes('fc-row-done'),s.cls);
-    assert.equal(s.toast,true);assert.match(s.toastText,/@bob.*kann das nicht sehen/);
+    assert.equal(s.toast,false);
     const saved=await stored();
     assert.match(saved,/"bob":"opened"/,'visited state is persisted: '+saved);
     assert.ok(!/"bob":"done"/.test(saved),saved);
-    const sizes=await ev("return [...document.querySelectorAll('#visit-toast button')].map(b=>__box(b).h)");
-    assert.ok(sizes.length===3&&sizes.every(h=>h>=44),'touch targets '+sizes);
-    assert.equal(await progress(),'0 von 3','a visit must not count as progress');
-    await ev("document.querySelector('#visit-toast').scrollIntoView({block:'center'})");await sleep(350);await shot('3-return-prompt');});
-  await test('"Noch offen" keeps the account visited',async()=>{
-    await ev("document.querySelector('#visit-undo').click();await new Promise(r=>setTimeout(r,80));");
-    const s=await state('bob');
-    assert.equal(s.toast,false);assert.ok(s.cls.includes('fc-row-opened')&&!s.cls.includes('fc-row-done'),s.cls);});
-  await test('Only the explicit confirmation turns the row green',async()=>{
+    assert.equal(await progress(),'0 von 3','a visit is not proof of unfollowing');
+    await shot('3-return-green-visited');
+  });
+  await test('Revisiting stays green and needs no confirmation',async()=>{
     await ev("__row('bob').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));__leaveAndReturn();await new Promise(r=>setTimeout(r,120));");
-    assert.equal((await state('bob')).toast,true);
-    await ev("document.querySelector('#visit-confirm').click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('bob');
-    assert.ok(s.cls.includes('fc-row-done'),s.cls);assert.equal(s.toast,false);
+    assert.ok(s.cls.includes('fc-row-opened'),s.cls);
+    assert.equal(s.toast,false);
+    assert.equal(await progress(),'0 von 3');
+  });
+  await test('Explicit manual done stays separate and updates completion progress',async()=>{
+    await ev("__row('bob').querySelectorAll('.mini-btn')[1].click();await new Promise(r=>setTimeout(r,80));");
+    const s=await state('bob');
+    assert.ok(s.cls.includes('fc-row-done'),s.cls);
+    assert.equal(s.toast,false);
     assert.match(s.text,/kein Entfolgen-Nachweis/);
-    assert.match(await stored(),/"bob":"done"/);assert.equal(await progress(),'1 von 3');});
-  await test('"Behalten" from the prompt keeps the account without a done state',async()=>{
-    await ev("__row('carla').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));__leaveAndReturn();await new Promise(r=>setTimeout(r,120));document.querySelector('#visit-keep').click();await new Promise(r=>setTimeout(r,80));");
+    assert.match(await stored(),/"bob":"done"/);
+    assert.equal(await progress(),'1 von 3');
+  });
+  await test('Choosing Behalten is available from the list without a return dialog',async()=>{
+    await ev("__row('carla').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));__leaveAndReturn();await new Promise(r=>setTimeout(r,120));__row('carla').querySelectorAll('.mini-btn')[0].click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('carla');
-    assert.ok(!s.cls.includes('fc-row-done')&&!s.cls.includes('fc-row-opened'),s.cls);assert.match(s.text,/Behalten/);});
-  await test('Deciding in the list closes a pending prompt',async()=>{
+    assert.ok(!s.cls.includes('fc-row-done')&&!s.cls.includes('fc-row-opened'),s.cls);
+    assert.match(s.text,/Behalten/);
+    assert.equal(s.toast,false);
+  });
+  await test('Another visited account can be explicitly completed with no popup',async()=>{
     await ev("__row('_.dora').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));__leaveAndReturn();await new Promise(r=>setTimeout(r,120));");
-    assert.equal((await state('_.dora')).toast,true);
-    await ev("[...__row('_.dora').querySelectorAll('.mini-btn')].at(-1).click();await new Promise(r=>setTimeout(r,80));");
-    const s=await state('_.dora');assert.equal(s.toast,false);assert.ok(s.cls.includes('fc-row-done'),s.cls);});
+    assert.equal((await state('_.dora')).toast,false);
+    assert.ok((await state('_.dora')).cls.includes('fc-row-opened'));
+    await ev("__row('_.dora').querySelectorAll('.mini-btn')[1].click();await new Promise(r=>setTimeout(r,80));");
+    const s=await state('_.dora');
+    assert.equal(s.toast,false);
+    assert.ok(s.cls.includes('fc-row-done'),s.cls);
+  });
   await test('Progress counts only explicit decisions and survives reload + re-import',async()=>{
     const before=await progress();
     assert.equal(before,'3 von 3');
