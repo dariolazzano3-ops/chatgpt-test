@@ -11,7 +11,7 @@ Stand: 15.11.2026 · Branch `factory/followclean-mvp-v1-20261109` · Beta, `noin
 | Lokale ZIP-/JSON-Analyse im Browser (JSZip lokal eingebunden) | live in der Preview |
 | Smart Scan V1: 10er-Suche auf dem lokalen Export | live in der Preview |
 | Filter, Verlauf, CSV, Smart Cleanup, Fortschritt im lokalen Speicher | live in der Preview |
-| Status „Besucht“ getrennt von „Erledigt“, Rückfrage nach Rückkehr von Instagram | implementiert, in Chrome getestet, nicht deployt |
+| Profilbesuch leuchtet automatisch grün (ohne Rückfrage), „Erledigt“ bleibt separat manuell | V17.1 implementiert, Preview-Version 67 hochgeladen, noch nicht auf Live-Traffic |
 | Erklärung „Warum kein Live-Ergebnis“ mit vier Ergebnisstufen | implementiert, in Chrome getestet, nicht deployt |
 | Stripe-Sandbox-Link (1,00 EUR, Code RIO) | Sandbox, kein Entitlement |
 | Instagram-Login für Profilzahlen (Business/Creator) | Code vorhanden, ohne Meta-App-Secrets inaktiv |
