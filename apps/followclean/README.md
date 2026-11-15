@@ -16,6 +16,7 @@ Stand: 15.11.2026 · Branch `factory/followclean-mvp-v1-20261109` · Beta, `noin
 | Stripe-Sandbox-Link (1,00 EUR, Code RIO) | Sandbox, kein Entitlement |
 | Instagram-Login für Profilzahlen (Business/Creator) | Code vorhanden, ohne Meta-App-Secrets inaktiv |
 | Apify Smart Scan V2: Plan, Ledger, 10er-Orchestrierung | implementiert, synthetisch getestet, Ausführung gesperrt |
+| Export + optionaler Checker V1 (Aktualitätshinweis für Export-Treffer) | Dry-Run, synthetisch getestet, keine Oberfläche, Ausführung gesperrt |
 
 ## Aufbau
 
@@ -32,7 +33,7 @@ Worker `followclean-mvp-preview`, D1-Binding `FC_APIFY_BUDGET_DB`, Secrets `FC_A
 | Endpunkt | Verhalten |
 |---|---|
 | `GET /api/analysis/policy`, `GET /api/analysis/provider/status` | nur Statusangaben |
-| `POST /api/analysis/quote`, `/provider/plan`, `/provider/v2/plan` | same-origin, reine Trockenläufe, kein Apify-Aufruf |
+| `POST /api/analysis/quote`, `/provider/plan`, `/provider/v2/plan`, `/provider/export-check/plan` | same-origin, reine Trockenläufe, kein Apify-Aufruf |
 | `POST /api/analysis/start` | immer HTTP 503, bezahlte Ausführung gesperrt |
 | `/api/instagram/*` | offizieller Instagram-Login, nur mit konfigurierten Secrets |
 
@@ -45,11 +46,18 @@ cd apps/followclean && python3 -m http.server 4173   # http://localhost:4173
 
 for t in analysis-budget-smoke apify-adapter-smoke apify-two-actor-smartscan-v2-smoke \
   instagram-live-worker-smoke smart-scan-v1-smoke apify-v2-ledger-orchestration-smoke \
-  apify-v2-ledger-hardening-smoke chrome-ux-smoke release-verify; do node apps/followclean/tests/$t.mjs; done
+  apify-v2-ledger-hardening-smoke export-checker-v1-smoke chrome-ux-smoke release-verify; do node apps/followclean/tests/$t.mjs; done
 ```
 
 - Node ≥ 22.5 (für `node:sqlite`). `chrome-ux-smoke` braucht Chrome oder Chromium.
 - `webkit-smoke.mjs` braucht Playwright mit WebKit und ist der einzige Test mit Safari-Engine.
+
+## Zwei Stufen, klar getrennt
+
+- **Vollständige Exportanalyse:** kostenlos, lokal, zuverlässig für den Stand des Exports.
+- **Optionale Aktualitätsprüfung (in Vorbereitung):** zusätzlicher Hinweis für einzelne Export-Treffer, soweit technisch zulässig und verlässlich.
+
+Einen vollständig aktuellen Scan nur per Benutzername verspricht FollowClean nicht.
 
 ## Ergebnisstufen
 

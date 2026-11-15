@@ -1,6 +1,13 @@
 # FollowClean | Release-Kandidat V17 für die bestehende Preview | 15.11.2026
 
-Status: **vorbereitet, nicht deployt.** Deployment nur nach ausdrücklicher Freigabe.
+Status: **GO von der Architekturinstanz erteilt (15.11.), nicht deployt.** Aus der Entwicklungsumgebung besteht kein Cloudflare-Zugang; siehe „Release-Protokoll“ am Ende.
+
+**V17 ist fest an Commit `8eda8894dee0e79172fa0ec0dee53e1c50c8a739` gebunden.** Spätere Commits (Export + Checker V1, Positionierungstext) gehören zu V18 und sind nicht Teil dieser Freigabe. Zum Bauen von V17:
+
+```bash
+git worktree add --detach /tmp/v17 8eda8894dee0e79172fa0ec0dee53e1c50c8a739
+cd /tmp/v17 && node apps/followclean/tests/release-verify.mjs
+```
 
 ## Inhalt gegenüber V16 (live)
 - Profilbesuch markiert nie mehr automatisch als erledigt; Rückfrage nach der Rückkehr.
@@ -51,3 +58,21 @@ V16, Worker-Version `315389f2-6138-4ca2-84a3-14a43b442f5e`, wieder auf 100 % Tra
 ## Bekannte Grenzen
 - Safari/WebKit ungetestet (siehe oben).
 - Versions-ID von V16 stammt aus der Projektdoku vom 14.11. und wurde hier nicht gegen Cloudflare geprüft.
+
+## Release-Protokoll 15.11.2026 (Master Loop V4)
+
+| Schritt | Ergebnis |
+|---|---|
+| 1. Build, Hashes, Tests aus sauberem Checkout von `8eda8894` reproduziert | **Erfüllt.** Beide Hashes identisch, 59 + 18 + 18 + 19 + 8 Prüfungen bestanden |
+| 2. Cloudflare-Ziel, Bindings und V16-Rollback-Version verifiziert | **Nicht nachweisbar.** Kein API-Token, kein Wrangler-Login, `api.cloudflare.com` nicht erreichbar |
+| 3. V17 mit 0 % Traffic bereitgestellt | **Nicht ausgeführt** (folgt aus 2) |
+| 4. API- und UX-Gates über die Versions-URL | **Nicht ausgeführt** (folgt aus 3) |
+| 5. Safari/WebKit-Abnahme | **Nicht ausgeführt.** Playwright/WebKit nicht vorhanden und nicht installierbar |
+| 6. Traffic-Umschaltung | **Keine Umschaltung.** Gates 2 bis 5 sind nicht nachgewiesen |
+
+Tatsächliche Preview-Version: unverändert V16 laut Projektdoku vom 14.11. (hier nicht prüfbar).
+
+### Was für die Schritte 2 bis 5 nötig ist
+- Entweder ein Cloudflare-Zugang für die Entwicklungssitzung (Connector „Cloudflare Developer Platform“ oder ein auf den Worker `followclean-mvp-preview` beschränktes API-Token mit Workers-Skript-Rechten),
+- oder die Ausführung durch eine Instanz mit Zugang. Reihenfolge: Bindings und aktive Version lesen und notieren, `dist/worker.mjs` aus `8eda8894` als neue Version mit 0 % hochladen, Abnahmeliste oben über die Versions-URL prüfen, Safari-Abnahme auf einem echten iPhone, erst dann 100 %.
+- Für die Safari-Abnahme genügt ein iPhone mit der Versions-URL und einem echten oder synthetischen Export.

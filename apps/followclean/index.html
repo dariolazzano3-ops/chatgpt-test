@@ -1270,6 +1270,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .fc-why-tag.is-mutual{background:#e5f8ee;color:#12744a;border-color:#a6dfc1}
 .fc-why-tag.is-unverified{background:#fff4dc;color:#8a5a00;border-color:#f0d48e}
 .fc-why-tag.is-unknown{background:#eceff4;color:#515b6c;border-color:#cfd6e1}
+.fc-why-tiers{display:grid;gap:8px;margin:0 0 12px}
+.fc-why-tier{display:grid;gap:3px;padding:10px 12px;border-radius:10px;border:1px solid #d5dfef;background:#fff}
+.fc-why-tier.is-primary{border-color:#9fd3b8;background:#f1fbf5}
+.fc-why-tier strong{font-size:12.5px}
+.fc-why-tier em{font-style:normal;font-weight:800;font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:#eceff4;color:#515b6c;margin-left:4px;white-space:nowrap}
+.fc-why-tier span{font-size:12px;line-height:1.5}
 .fc-why-live-next{font-weight:720}
 .fc-why-live-cta{min-height:44px;width:100%;border-radius:10px;border:1px solid #c2d8f5;background:#fff;color:#0c59b9;font-size:13px;font-weight:850;padding:10px 14px}
 .fc-why-live-cta:focus-visible{outline:3px solid #a1c8ff;outline-offset:2px}
@@ -1288,6 +1294,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .fc-why-tag.is-mutual{background:#1f4334;color:#b4f4cf;border-color:#3d7a5c}
  .fc-why-tag.is-unverified{background:#453718;color:#ffe2a1;border-color:#7a6230}
  .fc-why-tag.is-unknown{background:#2c3442;color:#c9d2e0;border-color:#4a5568}
+ .fc-why-tier{background:#222c3e;border-color:#3a4860}
+ .fc-why-tier.is-primary{background:#1c3329;border-color:#3d7a5c}
+ .fc-why-tier em{background:#2c3442;color:#c9d2e0}
  .fc-why-live-cta{background:#263d5b;border-color:#44638d;color:#c9e1ff}
 }
 @media(prefers-reduced-motion:reduce){.fc-visit-toast.fc-return-prompt.is-in,.fc-why-live[open] .fc-why-live-body{animation:none}.fc-why-live-chevron{transition:none}}
@@ -2990,7 +2999,11 @@ $('delete-local-btn').addEventListener('click',()=>{
                 <li><span class="fc-why-tag is-unverified">Unbestätigt</span> Eine einzelne Quelle meldet „folgt nicht“. Ohne zweite Quelle kein Treffer.</li>
                 <li><span class="fc-why-tag is-unknown">Unklar</span> Daten fehlen, sind unvollständig oder widersprechen sich.</li>
               </ul>
-              <p class="fc-why-live-next">Der sichere Weg ist dein kostenloser Instagram-Export. Er bleibt auf deinem Gerät.</p>
+              <div class="fc-why-tiers">
+                <div class="fc-why-tier is-primary"><strong>Vollständige Exportanalyse</strong><span>Kostenlos, lokal auf deinem Gerät, zuverlässig für den Stand deines Exports.</span></div>
+                <div class="fc-why-tier"><strong>Optionale Aktualitätsprüfung <em>in Vorbereitung</em></strong><span>Ein zusätzlicher Hinweis für einzelne Treffer aus deinem Export. Kein Ersatz für den Export und kein Beweis für den aktuellen Stand.</span></div>
+              </div>
+              <p class="fc-why-live-next">Einen vollständig aktuellen Scan nur per Benutzername gibt es bei uns nicht. Der sichere Weg ist dein Export.</p>
               <button type="button" class="fc-why-live-cta" data-guide-toggle aria-controls="fc-guide-panel" aria-expanded="false">Zur Export-Anleitung ↓</button>
             </div>
           </details>

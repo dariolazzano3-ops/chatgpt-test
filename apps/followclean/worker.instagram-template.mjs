@@ -349,26 +349,26 @@ function fcV2Classify(checkStatus,username,evidence){
 }
 // Pure decision step. state.checked: {username:status} for every candidate already billed;
 // state.shown: usernames whose confirmed hit the user has already seen.
-function fcV2NextStep(account,following,state={},evidence=null){
+function fcV2NextStep(account,following,state={},evidence=null,limit=FC_V2_FREE_FOLLOWING_CAP){
   const source=fcNormalizeUsername(account);
   if(!source||following?.ok!==true||following.account!==source||!Array.isArray(following.candidates)||
-    following.candidates.length>FC_V2_FREE_FOLLOWING_CAP)return {ok:false,action:'STOP_ERROR',reason:'untrusted_following'};
+    !Number.isSafeInteger(limit)||limit<1||following.candidates.length>limit||
+    following.candidates.some(u=>fcNormalizeUsername(u)!==u)||
+    new Set(following.candidates).size!==following.candidates.length)
+    return {ok:false,action:'STOP_ERROR',reason:'untrusted_following'};
   const checked=state.checked&&typeof state.checked==='object'?state.checked:{};
   const shown=new Set(Array.isArray(state.shown)?state.shown:[]);
   const all=following.candidates;
   for(let offset=0;offset<all.length;offset+=FC_V2_BATCH){
     const group=all.slice(offset,offset+FC_V2_BATCH);
+    // Only names that were never billed are sent; a partly billed group resumes with the rest.
     const open=group.filter(u=>!Object.hasOwn(checked,u));
-    if(open.length){
-      // A partly billed group cannot be re-sent whole; resume with only the open names.
-      if(open.length!==group.length)
-        return {ok:true,action:'CHECK_BATCH',executed:false,offset,
-          batch:{ok:true,executed:false,actor:FC_V2_ACTORS.checker,
-            input:{account:source,usernames:open,addSummaryRow:true},
-            runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120},
-            requested:open,offset,nextOffset:offset+group.length}};
-      return {ok:true,action:'CHECK_BATCH',executed:false,offset,batch:fcV2MakeCheckerBatch(source,following,offset)};
-    }
+    if(open.length)
+      return {ok:true,action:'CHECK_BATCH',executed:false,offset,
+        batch:{ok:true,executed:false,actor:FC_V2_ACTORS.checker,
+          input:{account:source,usernames:open,addSummaryRow:true},
+          runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120},
+          requested:open,offset,nextOffset:offset+group.length}};
     for(const username of group){
       if(shown.has(username))continue;
       if(fcV2Classify(checked[username],username,evidence)==='CONFIRMED_NONFOLLOWER')
@@ -382,6 +382,83 @@ function fcV2NextStep(account,following,state={},evidence=null){
     note:'Only the returned sample was examined. No statement about accounts beyond it.'};
 }
 /* FC_APIFY_V2_LEDGER_END */
+/* FC_EXPORT_CHECKER_V1_START */
+// Export + optional checker. The user's complete Instagram export is the primary source and
+// the only basis for "does not follow back" (true for the moment of the export). The checker
+// is an optional freshness hint for those export results, ten accounts per run.
+// DRY RUN ONLY: nothing in this block performs a network request or starts an Actor.
+const FC_EC_MAX_LIST=20000;
+function fcEcNames(list){
+  if(!Array.isArray(list)||list.length>FC_EC_MAX_LIST)return null;
+  const out=[],seen=new Set();
+  for(const raw of list){
+    const name=fcNormalizeUsername(raw);
+    if(!name)return null;
+    if(!seen.has(name)){seen.add(name);out.push(name);}
+  }
+  return out;
+}
+// data: {account, following[], followers[], complete, authorized}. "complete" must come from
+// the export parser (all follower parts read); "authorized" means the owner supplied it.
+function fcEcDeriveCandidates(data){
+  const account=fcNormalizeUsername(data?.account);
+  if(!account)return {ok:false,reason:'invalid_account'};
+  if(data.authorized!==true)return {ok:false,reason:'export_not_owner_authorized'};
+  // An incomplete follower list proves nothing, so it yields no candidates at all.
+  if(data.complete!==true)return {ok:false,reason:'export_incomplete'};
+  const following=fcEcNames(data.following),followers=fcEcNames(data.followers);
+  if(!following||!followers)return {ok:false,reason:'invalid_or_oversized_export'};
+  const followerSet=new Set(followers);
+  const candidates=following.filter(u=>u!==account&&!followerSet.has(u));
+  return {ok:true,account,source:'EXPORT',asOf:'EXPORT_TIME',candidates,
+    counts:{following:following.length,followers:followers.length,nonFollowersAtExport:candidates.length,
+      checkerRunsForAll:Math.ceil(candidates.length/FC_V2_BATCH)},
+    evidence:{authorized:true,complete:true,followers:followerSet}};
+}
+function fcEcNextStep(plan,state={}){
+  if(plan?.ok!==true||plan.source!=='EXPORT')return {ok:false,action:'STOP_ERROR',reason:'no_export_plan'};
+  if(!plan.candidates.length)return {ok:true,action:'NOTHING_TO_CHECK',checkedCount:0};
+  const step=fcV2NextStep(plan.account,{ok:true,account:plan.account,candidates:plan.candidates},
+    state,plan.evidence,FC_EC_MAX_LIST);
+  if(step.action==='SAMPLE_EXHAUSTED')
+    return {ok:true,action:'ALL_CHECKED',checkedCount:step.checkedCount,report:fcEcReport(plan,state)};
+  if(step.action==='STOP_CONFIRMED')step.hit.meaning='EXPORT_AND_LIVE_CHECK_AGREE';
+  return step;
+}
+// One line per export result. Wording is deliberately modest: the export is a fact about the
+// export moment, the checker is a single third-party answer about now.
+function fcEcReport(plan,state={}){
+  if(plan?.ok!==true)return {ok:false,reason:'no_export_plan'};
+  const checked=state.checked&&typeof state.checked==='object'?state.checked:{};
+  const rows=plan.candidates.map(username=>{
+    const base={username,exportStatus:'NONFOLLOWER_AT_EXPORT'};
+    if(!Object.hasOwn(checked,username))return {...base,liveCheck:'NOT_CHECKED',label:'EXPORT_ONLY'};
+    const status=fcV2Classify(checked[username],username,plan.evidence);
+    if(status==='CONFIRMED_NONFOLLOWER')return {...base,liveCheck:'AGREES',label:'EXPORT_AND_LIVE_CHECK_AGREE'};
+    // Checker says "follows back": the export is older, so this may be a real change. Never a hit.
+    if(checked[username]==='MUTUAL')return {...base,liveCheck:'CONFLICT_FOLLOW_BACK_REPORTED',label:'UNCONFIRMED'};
+    return {...base,liveCheck:'NO_USABLE_ANSWER',label:'UNCONFIRMED'};
+  });
+  const count=label=>rows.filter(r=>r.label===label).length;
+  return {ok:true,asOf:'EXPORT_TIME',rows,
+    summary:{exportOnly:count('EXPORT_ONLY'),agree:count('EXPORT_AND_LIVE_CHECK_AGREE'),unconfirmed:count('UNCONFIRMED')},
+    disclaimer:'Export results describe the moment of the export. A live check is one additional third-party answer, not proof of the current state.'};
+}
+// Server side of the dry run: validates one batch of at most ten export candidates.
+async function fcEcDryRunBatch(account,usernames){
+  const source=fcNormalizeUsername(account);
+  if(!source||source!=='ysrrioo')return {ok:false,executed:false,reason:'pilot_account_not_authorized'};
+  if(!Array.isArray(usernames)||!usernames.length||usernames.length>FC_V2_BATCH)
+    return {ok:false,executed:false,reason:'batch_must_have_1_to_10_names'};
+  const names=usernames.map(fcNormalizeUsername);
+  if(names.some(n=>!n)||new Set(names).size!==names.length||names.includes(source))
+    return {ok:false,executed:false,reason:'invalid_or_duplicate_names'};
+  return {ok:true,executed:false,actor:FC_V2_ACTORS.checker,
+    input:{account:source,usernames:names,addSummaryRow:true},
+    runOptions:{maxTotalChargeUsd:0.05,restartOnError:false,timeout:120},
+    requested:names,runKey:await fcV2RunKey(FC_V2_SCOPE,'checker',source,names)};
+}
+/* FC_EXPORT_CHECKER_V1_END */
 
 async function handleAnalysisBudget(request, env, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
@@ -397,6 +474,22 @@ async function handleAnalysisBudget(request, env, url) {
       acceptedAccounts:'owner-authorized test accounts only',
       analysisAvailable:false,
       note:'Kein Live-Scan, keine Bezahl-Anfrage und kein nicht verifizierter Nicht-Rückfolger.'});
+  }
+  if (endpoint==='provider/export-check/plan' && request.method==='POST') {
+    if(request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);
+    if(!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))
+      return json({error:'json_required'},415);
+    if(Number(request.headers.get('content-length')||0)>1024)return json({error:'body_too_large'},413);
+    let params;
+    const raw=await request.text();
+    if(raw.length>1024)return json({error:'body_too_large'},413);
+    try{params=JSON.parse(raw);}catch{return json({error:'invalid_body'},400);}
+    const batch=await fcEcDryRunBatch(params?.account,params?.usernames);
+    // Read-only look at the ledger. Before the migration this honestly reports "unavailable".
+    const ledger=batch.ok?await fcV2BudgetStatus(env.FC_APIFY_BUDGET_DB):null;
+    return json({batch,ledger,mode:'DRY_RUN_ONLY',executionEnabled:false,actorRunsStarted:0,
+      permissionStatus:'NOT_VERIFIED',pricingStatus:'NOT_VERIFIED',
+      note:'Export bleibt die Grundlage. Eine Aktualitätsprüfung wäre nur ein zusätzlicher Hinweis.'},batch.ok?200:403);
   }
   if (endpoint==='provider/v2/plan' && request.method==='POST') {
     if(request.headers.get('Origin')!==url.origin) return json({error:'origin_not_allowed'},403);

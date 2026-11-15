@@ -42,6 +42,13 @@ await gate('No embedded photos, no <img>, no third-party script, style, font or 
   assert.ok(!/<link[^>]+rel=["']?stylesheet/i.test(html),'external stylesheet');
   assert.ok(!/url\(\s*["']?(https?:)?\/\//i.test(html),'remote CSS url()');
   assert.ok(!/@import\s/i.test(html),'CSS @import');});
+await gate('Export-check endpoint is a dry run that starts nothing',async()=>{
+  const worker=(await import(pathToFileURL(bundlePath).href+'?e='+Date.now())).default;
+  const origin='https://followclean-mvp-preview.example';
+  const res=await worker.fetch(new Request(origin+'/api/analysis/provider/export-check/plan',{method:'POST',
+    headers:{origin,'content-type':'application/json'},body:JSON.stringify({account:'ysrrioo',usernames:['synthetic.one']})}),{},{waitUntil(){}});
+  assert.equal(res.status,200);const j=await res.json();
+  assert.deepEqual([j.mode,j.executionEnabled,j.actorRunsStarted,j.batch.executed],['DRY_RUN_ONLY',false,0,false]);});
 await gate('Preview stays out of search indexes',()=>{
   assert.match(html,/<meta name="robots" content="[^"]*noindex/i);});
 await gate('A profile visit can never set the done state on its own',()=>{

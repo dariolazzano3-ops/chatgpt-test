@@ -76,6 +76,11 @@ try{
         bodyH:__box(d.querySelector('.fc-why-live-body')).h,cta:__box(d.querySelector('.fc-why-live-cta')).h}`);
     assert.deepEqual([s.before,s.after],[false,true]);
     assert.deepEqual(s.tags,['Bestätigt','Gegenseitig','Unbestätigt','Unklar']);
+    const tiers=await ev("return [...document.querySelectorAll('#fc-why-live .fc-why-tier strong')].map(x=>x.textContent)");
+    assert.deepEqual(tiers,['Vollständige Exportanalyse','Optionale Aktualitätsprüfung in Vorbereitung']);
+    const page=await ev("return document.body.innerText");
+    assert.ok(!/live[- ]?scan in sekunden|sofort aktuell|echtzeit/i.test(page),'misleading live-scan promise');
+    assert.match(page,/Einen vollständig aktuellen Scan nur per Benutzername gibt es bei uns nicht/);
     assert.ok(s.h>=44&&s.cta>=44&&s.bodyH>80,JSON.stringify(s));
     await shot('1-explainer');});
   await test('Explainer button opens the export guide and syncs every toggle',async()=>{
