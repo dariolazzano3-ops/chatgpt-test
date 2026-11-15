@@ -223,6 +223,8 @@ body.editing #custom .cpanel{pointer-events:auto;max-width:min(420px,48vw);box-s
 .lrow{display:flex;gap:8px;align-items:stretch}.lrow>*{flex:1}
 .seg{display:flex;gap:6px}.seg button{flex:1;font:700 14px var(--body);padding:10px;border-radius:10px;border:2px solid var(--cream);background:transparent;color:var(--cream);cursor:pointer}
 .seg button.on{background:var(--cheese);border-color:var(--cheese);color:var(--ink)}
+.lsub{margin:6px 0 0;font:700 15px var(--body);color:var(--cheese);letter-spacing:.04em;text-transform:uppercase}.lsolo{display:grid;gap:8px;padding:10px;border:2px dashed rgba(255,233,180,.35);border-radius:12px}
+.lp .lbot{margin-left:auto;font:700 12px var(--body);padding:4px 8px;border-radius:8px;border:1px solid var(--cream);background:transparent;color:var(--cream);cursor:pointer}.lp.botp i{color:var(--cheese)}
 .lnote{margin:0;font-size:13px;line-height:1.45;color:#ff9ab8}
 .lnote:empty{display:none}
 .lob details{font-size:13px}.lob summary{cursor:pointer;opacity:.8}
@@ -451,6 +453,12 @@ body:not(.touch) #wolfBtn{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) +
     <p id="lbDesc">Jedes Team verteidigt seinen eigenen Kuchen gegen genau dieselben Wellen. Wessen Kuchen länger hält, gewinnt. Halten beide durch, entscheiden die Punkte.</p>
     <div id="lbConnect" style="display:grid;gap:10px">
       <label for="lbName">Dein Name</label><input id="lbName" maxlength="16" autocomplete="nickname">
+      <div id="lbSolo" class="lsolo"><h3 class="lsub">Alleine spielen</h3>
+        <div class="seg" id="lbRole"><button type="button" data-r="def" class="on">Als Verteidiger</button><button type="button" data-r="sheep">Als Schaf</button></div>
+        <div class="seg" id="lbDiff"><button type="button" data-d="easy">Leicht</button><button type="button" data-d="normal" class="on">Mittel</button><button type="button" data-d="hard">Schwer</button></div>
+        <button class="go" id="lbSoloGo" type="button">Solo starten</button>
+        <p class="lnote" id="lbSoloInfo">Gegen eine KI mit denselben Regeln, Märkten und 8 Wellen. Kein Code, kein Warten.</p></div>
+      <h3 class="lsub" id="lbFriendsH">Mit Freunden spielen</h3>
       <div class="seg" id="lbSize"><button type="button" data-s="1v1" class="on">1 gegen 1</button><button type="button" data-s="2v2">2 gegen 2</button><button type="button" data-s="coop" id="lbCoop">Koop (2)</button></div>
       <button class="go" id="lbCreate" type="button">Raum erstellen</button>
       <div class="lrow"><input id="lbCode" placeholder="Code" maxlength="5" autocomplete="off" aria-label="Raumcode"><button class="go ghost" id="lbJoin" type="button">Beitreten</button></div>
@@ -1825,12 +1833,22 @@ function openLobby(){showOverlay('lobby');$('lbConnect').hidden=!!NET.code;$('lb
 const MODE_INFO={kuchenkrieg:['Kuchenkrieg: Der große Käsekuchen-Raub','Verteidiger gegen Schafe: Die Verteidiger bauen ihre Festung aus und halten 8 Zombie-Wellen stand – Welle 8 sind 100 Ziegen. Ein Schafspieler versteckt sich in der Herde (nur ein kleiner schwarzer Schwanz verrät ihn), stiehlt den Käsekuchen und bringt ihn zur Omi. Team 1 = Verteidiger, Team 2 = Schafe.'],
 
   royale:['GOAT ROYALE','Runde Schwebeinsel, drei Leben. Jeder Treffer erhöht die Wucht, je höher, desto weiter fliegt man. Wer runterfällt, verliert ein Leben. Reite eine Ziege 10 Sekunden lang und sie wird zur dreiköpfigen Kampfziege, die rückwärts nach Gegnern tritt.']};
-function setLobbyMode(m){NET.mode=MODE_INFO[m]?m:'kuchenkrieg';$('lbCoop').hidden=true;if(NET.size==='coop'){NET.size='1v1';for(const x of $('lbSize').children)x.classList.toggle('on',x.dataset.s==='1v1');}$('lbTitle').textContent=MODE_INFO[NET.mode][0];$('lbDesc').textContent=MODE_INFO[NET.mode][1];}
+function setLobbyMode(m){NET.mode=MODE_INFO[m]?m:'kuchenkrieg';$('lbSolo').hidden=$('lbFriendsH').hidden=NET.mode!=='kuchenkrieg';$('lbCoop').hidden=true;if(NET.size==='coop'){NET.size='1v1';for(const x of $('lbSize').children)x.classList.toggle('on',x.dataset.s==='1v1');}$('lbTitle').textContent=MODE_INFO[NET.mode][0];$('lbDesc').textContent=MODE_INFO[NET.mode][1];}
 $('modeKK').addEventListener('click',()=>{initAudio();setLobbyMode('kuchenkrieg');openLobby();});
 $('modeGR').addEventListener('click',()=>{initAudio();setLobbyMode('royale');openLobby();});
 $('lbLink').addEventListener('click',()=>{const u=location.origin+location.pathname+'?join='+NET.code;try{navigator.clipboard.writeText(u).then(()=>{$('lbLink').textContent='Link kopiert';},()=>{$('lbLink').textContent=u;});}catch(e){$('lbLink').textContent=u;}setTimeout(()=>$('lbLink').textContent='Einladungslink',2500);});
 $('lbBack').addEventListener('click',()=>{netLeave(true);showOverlay('menu');});
 for(const b of $('lbSize').children)b.addEventListener('click',()=>{NET.size=b.dataset.s;for(const x of $('lbSize').children)x.classList.toggle('on',x===b);});
+// V7.1 Solo: Rolle und Schwierigkeit wählen, Raum mit KI-Gegner sofort starten
+const SOLO={role:'def',diff:'normal'};try{const j=JSON.parse(localStorage.getItem('ziegenalarm-solo')||'{}');if(j.role==='sheep'||j.role==='def')SOLO.role=j.role;if(['easy','normal','hard'].includes(j.diff))SOLO.diff=j.diff;}catch(e){}
+function soloSeg(){for(const x of $('lbRole').children)x.classList.toggle('on',x.dataset.r===SOLO.role);for(const x of $('lbDiff').children)x.classList.toggle('on',x.dataset.d===SOLO.diff);try{localStorage.setItem('ziegenalarm-solo',JSON.stringify(SOLO));}catch(e){}}
+for(const b of $('lbRole').children)b.addEventListener('click',()=>{SOLO.role=b.dataset.r;soloSeg();});
+for(const b of $('lbDiff').children)b.addEventListener('click',()=>{SOLO.diff=b.dataset.d;soloSeg();});soloSeg();
+async function soloStart(){const base=netBase();if(!base){netNote('Kein Spielserver erreichbar. In der claude.ai-Vorschau sind Verbindungen nach außen gesperrt.');return;}
+  netNote('Solo-Spiel wird gestartet …');
+  try{const r=await fetch(base+'/api/new?mode=kuchenkrieg&size=solo&role='+SOLO.role+'&diff='+SOLO.diff);const j=await r.json();if(!j.code)throw 0;netConnect(j.code);}
+  catch(e){netNote('Der Spielserver antwortet nicht. Prüfe die Adresse oder versuch es gleich noch einmal.');}}
+$('lbSoloGo').addEventListener('click',()=>{initAudio();soloStart();});
 function myName(){const n=$('lbName').value.trim()||'Ziegenjäger';try{localStorage.setItem('ziegenalarm-name',n);}catch(e){}return n;}
 $('lbCreate').addEventListener('click',async()=>{const base=netBase();if(!base){netNote('Kein Spielserver erreichbar. In der claude.ai-Vorschau sind Verbindungen nach außen gesperrt.');return;}
   netNote('Raum wird erstellt …');
@@ -1847,8 +1865,8 @@ $('lbJoin').addEventListener('click',async()=>{const c=$('lbCode').value.trim().
 $('lbCopy').addEventListener('click',()=>{const t=NET.code;try{navigator.clipboard.writeText(t).then(()=>{$('lbCopy').textContent='Kopiert';},()=>{});}catch(e){}setTimeout(()=>$('lbCopy').textContent='Kopieren',1500);});
 $('lbReady').addEventListener('click',()=>{const me=NET.room&&NET.room.players.find(p=>p.id===NET.you);netSend({t:'ready',v:!(me&&me.ready)});});
 $('lbSwitch').addEventListener('click',()=>{const me=NET.room&&NET.room.players.find(p=>p.id===NET.you);if(me)netSend({t:'team',v:me.team?0:1});});
-$('rsAgain').addEventListener('click',()=>{netSend({t:'rematch'});$('rsStatus').textContent='Warte auf die anderen …';});
-$('rsLobby').addEventListener('click',()=>netSend({t:'lobby'}));
+$('rsAgain').addEventListener('click',()=>{netSend({t:'rematch'});$('rsStatus').textContent=NET.room&&NET.room.solo?'Neue Runde startet …':'Warte auf die anderen …';});
+$('rsLobby').addEventListener('click',()=>{if(NET.room&&NET.room.solo){netLeave(true);openLobby();$('lbConnect').hidden=false;$('lbRoom').hidden=true;netNote('');return;}netSend({t:'lobby'});}); // Solo: neue Einstellung wählen
 $('rsMenu').addEventListener('click',()=>{netLeave(true);showOverlay('menu');});
 function netConnect(code){
   const base=netBase();NET.code=code;NET.closing=false;try{sessionStorage.setItem('ziegenalarm-net-code',code);}catch(e){}
@@ -1882,17 +1900,20 @@ function netOnMsg(m){
 function netRoom(r){NET.room=r;if(r.mode&&r.mode!==NET.mode)setLobbyMode(r.mode);const me=r.players.find(p=>p.id===NET.you);if(me)NET.team=me.team;
   if(r.state==='lobby'){if(NET.on||ROY.on||KK.on){royExit();kkExit();NET.on=false;state='menu';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
       $('hud').hidden=$('cross').hidden=true;showTouch(false);$('netbar').hidden=true;$('banner').classList.remove('show');resetGame();}
-    if($('lobby').hidden)openLobby();$('lbConnect').hidden=true;$('lbRoom').hidden=false;$('lbRoomCode').textContent=r.code;$('lbSizeInfo').textContent=r.size==='2v2'?'2 gegen 2':r.size==='coop'?'Koop zu zweit':'1 gegen 1';
+    if($('lobby').hidden)openLobby();$('lbConnect').hidden=true;$('lbRoom').hidden=false;$('lbRoomCode').textContent=r.code;$('lbSizeInfo').textContent=r.solo?'Solo gegen KI':r.size==='2v2'?'2 gegen 2':r.size==='coop'?'Koop zu zweit':'1 gegen 1';
     const per=r.size==='2v2'?2:1;let html='';
     for(const t of[0,1]){html+='<div class="lteam t'+t+'"><h3>Team '+r.teams[t]+'</h3>';const ps=r.players.filter(p=>p.team===t);
-      for(const p of ps)html+='<div class="lp'+(p.id===NET.you?' me':'')+'"><span></span><i class="'+(!p.connected?'off':p.ready?'ok':'')+'">'+(!p.connected?'getrennt':p.ready?'bereit':'wartet')+'</i></div>';
-      for(let i=ps.length;i<per;i++)html+='<div class="lp empty"><span>freier Platz</span></div>';html+='</div>';}
+      for(const p of ps)html+='<div class="lp'+(p.id===NET.you?' me':'')+(p.bot?' botp':'')+'"><span></span><i class="'+(!p.connected?'off':p.ready?'ok':'')+'">'+(p.bot?'KI':!p.connected?'getrennt':p.ready?'bereit':'wartet')+'</i>'+(p.bot&&!r.solo?'<button type="button" class="lbot" data-kick="'+p.id+'" aria-label="KI entfernen">×</button>':'')+'</div>';
+      for(let i=ps.length;i<per;i++)html+='<div class="lp empty"><span>freier Platz</span>'+(r.bots&&!r.solo?'<button type="button" class="lbot" data-add="'+t+'">+ KI ('+({easy:'Leicht',normal:'Mittel',hard:'Schwer'})[SOLO.diff]+')</button>':'')+'</div>';html+='</div>';}
     $('lbTeams').innerHTML=html;
+    for(const b of $('lbTeams').querySelectorAll('[data-add]'))b.addEventListener('click',()=>netSend({t:'addbot',team:+b.dataset.add,diff:SOLO.diff}));
+    for(const b of $('lbTeams').querySelectorAll('[data-kick]'))b.addEventListener('click',()=>netSend({t:'kickbot',id:+b.dataset.kick}));
+    $('lbReady').hidden=$('lbSwitch').hidden=!!r.solo;$('lbCopy').hidden=$('lbLink').hidden=!!r.solo;
     // Namen sicher als Text einsetzen
     const spans=$('lbTeams').querySelectorAll('.lp:not(.empty) span');let k=0;for(const t of[0,1])for(const p of r.players.filter(p=>p.team===t))spans[k++].textContent=p.name+(p.id===NET.you?' (du)':'');
     $('lbReady').textContent=me&&me.ready?'Nicht bereit':'Bereit';$('lbReady').classList.toggle('ghost',!!(me&&me.ready));
     const missing=per*2-r.players.length;
-    $('lbStatus').textContent=r.countdown>0?'Start in '+Math.ceil(r.countdown)+' …':missing>0?'Warte auf '+missing+' weitere'+(missing>1?' Spieler':'n Spieler')+'. Teile den Code.':r.players.every(p=>p.ready)?'Alle bereit.':'Sobald alle bereit sind, geht es los.';}
+    $('lbStatus').textContent=r.solo?'Solo-Spiel startet …':r.countdown>0?'Start in '+Math.ceil(r.countdown)+' …':missing>0?'Warte auf '+missing+' weitere'+(missing>1?' Spieler':'n Spieler')+'. Teile den Code.':r.players.every(p=>p.ready)?'Alle bereit.':'Sobald alle bereit sind, geht es los.';}
   else if(r.state==='match'&&!NET.on)netStartMatch();
   else if(r.state==='results'){const n=r.players.filter(p=>p.rematch).length;if(n)$('rsStatus').textContent='Revanche: '+n+' von '+r.players.length+' sind dabei.';}}
 function netStartMatch(){NET.cseq=0;if(ROY.on)royExit();if(KK.on)kkExit();resetGame();NET.on=true;NET.phase='';NET.wave=0;NET.map.clear();state='menu';
@@ -2004,7 +2025,7 @@ function netUpdate(dt){
     let d=m.yaw-m.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));m.g.rotation.y+=d*k;animMate(m,dt,m.pitch);}
   if(bannerT>0){bannerT-=dt;if(bannerT<=0&&NET.phase==='wave')$('banner').classList.remove('show');}
   const stale=performance.now()-NET.lastSnapAt>1500;$('netDot').classList.toggle('bad',stale);}
-function netResults(r){NET.on=false;state='results';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
+function netResults(r){NET.on=false;state='results';{const so=!!(NET.room&&NET.room.solo);$('rsAgain').textContent=so?'Revanche (sofort)':'Revanche';$('rsLobby').textContent=so?'Neu starten …':'Zur Lobby';}clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}
   $('hud').hidden=$('cross').hidden=true;showTouch(false);$('netbar').hidden=true;$('banner').classList.remove('show');
   const me=r.players.find(p=>p.id===NET.you)||{};const akey=NET.code+'|'+(r.time||r.waves)+'|'+JSON.stringify(r.teams);let xpTxt='';
   if(NET.lastAward!==akey){NET.lastAward=akey;const base={win:r.winner===NET.team,draw:r.winner==null};

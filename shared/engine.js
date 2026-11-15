@@ -81,7 +81,7 @@ export class Room {
     if (this.state !== 'lobby') { try { conn.send(JSON.stringify({ t: 'error', code: 'started', msg: 'Das Spiel in diesem Raum läuft schon.' })); conn.close(); } catch (e) { } return; }
     if (this.players.length >= this.capacity) { try { conn.send(JSON.stringify({ t: 'error', code: 'full', msg: 'Der Raum ist voll.' })); conn.close(); } catch (e) { } return; }
     const c0 = this.players.filter(x => x.team === 0).length, c1 = this.players.filter(x => x.team === 1).length;
-    const p = { id: this.nextId++, name: cleanName(msg.name), team: this.solo ? this.soloTeam : this.coop ? 0 : (c0 <= c1 ? 0 : 1), ready: false, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
+    const p = { id: this.nextId++, name: cleanName(msg.name), team: this.solo ? this.soloTeam : this.coop ? 0 : (c0 <= c1 ? 0 : 1), ready: this.solo, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
     this.players.push(p); this.conns.set(conn, p);
     this.send(p, { t: 'welcome', you: p.id, token: p.token, code: this.code, lastSeq: 0 });
     this.sync();
@@ -93,9 +93,9 @@ export class Room {
   }
   remove(p) { const i = this.players.indexOf(p); if (i < 0) return; this.players.splice(i, 1); if (p.conn) { this.conns.delete(p.conn); try { p.conn.close(); } catch (e) { } }
     if (this.match) this.mode.onLeave?.(this.match, p); this.sync(); }
-  toLobby() { this.state = 'lobby'; this.match = null; this.results = null; for (const p of this.players) { p.ready = false; p.rematch = false; } this.sync(); }
+  toLobby() { this.state = 'lobby'; this.match = null; this.results = null; for (const p of this.players) { p.ready = !!p.bot || this.solo; p.rematch = false; } this.sync(); }
   startMatch() { this.seed = (this.seed * 1103515245 + 12345) >>> 0; this.match = this.mode.create(this); this.state = 'match'; this.results = null;
-    for (const p of this.players) { p.ready = false; p.rematch = false; } this.sync(); }
+    for (const p of this.players) { p.ready = !!p.bot || this.solo; p.rematch = false; } this.sync(); }
   connectedCount() { return this.players.filter(p => p.connected && !p.bot).length; }
   // Fehler im Spielmodus dürfen den Server nicht abstürzen lassen: protokollieren, bei Häufung zurück in die Lobby.
   fault(e) { this.errors++; try { console.error('room ' + this.code + ':', e && e.stack || e); } catch (x) { }

@@ -471,6 +471,7 @@ function runBots(m, dt) {
 }
 
 export const heist = {
+  perceiveForTest: (m, v, o) => perceive(m, v, o), // nur für Tests: dieselbe Wahrnehmung wie die KI
   id: 'kuchenkrieg', name: 'Kuchenkrieg', coop: false, bots: true, teamNames: ['Verteidiger', 'Schafe'],
   create(room) {
     const m = { room, seed: room.seed, rand: rng(room.seed ^ 0x5bd1e995), time: 0, tickN: 0, wave: 0, phase: 'countdown', phaseT: H.countdown + 1, fort: newFort(),

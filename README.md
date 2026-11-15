@@ -60,6 +60,25 @@ Löschen: `npx wrangler delete --name ziegenalarm-staging`. Kosten: gleiches Gra
 - **Leistung im Finale:** volle Ziegenmodelle nur für die nächsten 26 Ziegen, alle übrigen als einfache, instanzierte Modelle (1 Draw Call).
   Server: Raster für die Kollision, Ziegen-Daten kompakt (Ganzzahlen) und bei mehr als 40 Ziegen nur jeden zweiten Takt.
 
+## V7.1: Alleine spielen gegen KI
+
+- **Menü Kuchenkrieg → Alleine spielen:** *Als Verteidiger* oder *Als Schaf*, Schwierigkeit *Leicht / Mittel (Standard) / Schwer*, **Solo starten**.
+  Kein Code, kein Freund, kein Warten: der Server legt einen Solo-Raum mit KI-Gegner an und startet sofort. Gleiche Karte, Regeln, Märkte, 8 Wellen,
+  Omi und Siegbedingungen wie im Mehrspieler. Ergebnis → **Revanche (sofort)** oder **Neu starten …** (andere Rolle/Schwierigkeit).
+- **Mit Freunden spielen:** wie bisher (1 gegen 1, 2 gegen 2). Freie Plätze lassen sich in der Lobby mit **+ KI** füllen (mit × wieder entfernen);
+  KI-Spieler heißen immer „KI · Schaf/Wächter (Stufe)“, Kapazität und Teamgrößen bleiben unverändert.
+- **Die KI ist ein normaler Teilnehmer auf dem Server** (`shared/bots.js`): sie schickt dieselben Nachrichten wie ein Mensch (`in`, `fire`, `buy`, `grab`,
+  `melee`, `use` …) und durchläuft dieselbe Prüfung (Tempo, Mauern, Klettern, Münzen, Abklingzeiten). Entscheidungen 10× pro Sekunde, Bewegung 20×, rund 0,04 ms je Takt.
+- **Fair:** Der KI-Wächter sieht nur, was `perceive()` liefert – Sichtkegel, Sichtweite, Mauern und Rauch verdecken, schwarzer Schwanz nur aus der Nähe,
+  keine Spieler-Identität. Verliert er ein Schaf aus den Augen, kann er es zwischen gleich aussehenden Schafen nicht wiedererkennen. Menschliche Reaktionszeit,
+  begrenzte Drehgeschwindigkeit, Streuung (im Laufen größer). Das KI-Schaf hat dieselben Leben, Münzen, Gegenstände und Kletterregeln.
+- **KI-Schaf** (Zustände GRAZE → OBSERVE → PLAN → APPROACH → INFILTRATE → STEAL → ESCAPE → DELIVER, dazu FLEE, SABOTAGE, WAIT): grast wie die Herde,
+  beobachtet, wählt die Seite mit dem geringsten Risiko, wartet auf eine Lücke (Wächter abgelenkt, Türme mit Ziegen beschäftigt), springt/klettert regelkonform,
+  springt über Stacheln, Rauch/Schild/Köder/Tempo je nach Stufe, wählt den Fluchtweg per Wettlauf-Schätzung, taucht nach Treffern in der Herde unter.
+- **KI-Wächter** (GUARD / FIGHT / HUNT / CHASE / RETURN): schießt Ziegen von den Zinnen, baut und repariert, kauft Türme (Obergrenze je Stufe), Stacheln, Waffen,
+  Werwölfe; Verdacht aus sichtbaren Hinweisen; verfolgt den Dieb (Leicht/Mittel nur, wenn er nah ist), holt den Kuchen zurück, steht vor der Zwickmühle Ziegen vs. Dieb.
+- **Regeländerung für die Balance:** Klettern mit Kuchen 0,8× statt 0,5× (Server und Client) – sonst war ein Diebstahl gegen einen aufmerksamen Wächter praktisch chancenlos.
+
 ## Auf den Home-Bildschirm (PWA)
 
 `public/manifest.webmanifest` + Icons (`python3 tools/icons.py`), iOS-Angaben im Kopf von `public/index.html` (Build).

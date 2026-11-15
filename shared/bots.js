@@ -234,8 +234,7 @@ class SheepBrain {
     mv.vertical(dt, jumpV, carrying ? 1.0 : 1.25, mv.climb ? climbTop : 0);
     if (this.diff !== 'easy' || this.R() < 0.5) { const v = Math.hypot(mv.vx, mv.vz); // Stachelstreifen sehen und überspringen (sie liegen sichtbar im Gras)
       if (v > 0.8 && mv.y < 0.02) { const lx = ps.x + mv.vx / v * 0.7, lz = ps.z + mv.vz / v * 0.7; if (m.fort.builds.some(b => b.kind === 'spikes' && inSpikes(b, lx, lz))) mv.jumpQ = true; } }
-    { const nx = ps.x + mv.vx * dt, nz = ps.z + mv.vz * dt, k = this.crossingWall(m, ps, nx, nz); // nie unterhalb der Kante durch die Mauer
-      if (k && Math.min(mv.y, ps.y) < wallH(m.fort.walls[k].lvl) - 0.1) { if (SIDE_N[k][0]) mv.vx = 0; else mv.vz = 0; } }
+    blockWalls(m, ps, mv, dt, false); // nie unterhalb der Kante durch die Mauer
     this.ex = ps.x + mv.vx * dt; this.ez = ps.z + mv.vz * dt;
     mv.sendIn(api, ps, dt, { sp: sprint ? 1 : 0, cl: mv.climb ? 1 : 0, em: em || undefined });
   }
@@ -378,6 +377,7 @@ class DefBrain {
     if (!outside && !inside && Math.max(Math.abs(ps.x), Math.abs(ps.z)) > F) { const wk = sideOf(ps.x, ps.z), wl = m.fort.walls[wk]; if (wl.lvl && !wl.gate) { const wd = Math.abs((SIDE_N[wk][0] ? ps.x * SIDE_N[wk][0] : ps.z * SIDE_N[wk][1]) - F); if (wd < 1.0 && mv.y < 0.1) wantBoost = true; if (mv.y < wallH(wl.lvl) - 0.05 && wd < 0.9) { tx = ps.x; tz = ps.z; } } }
     if (wantBoost && m.time >= ps.boostReadyAt) { api.send({ t: 'boost' }); mv.boostT = 0.8; mv.vy = 7; mv.y = Math.max(mv.y, 0.01); }
     if (mv.boostT > 0) { mv.boostT -= dt; mv.vy = Math.min(7.5, mv.vy + 30 * dt); if (mv.y > 4.4) mv.vy = Math.min(mv.vy, 0.5); }
+    if (!inside && !inFortP(tx, tz, -0.2)) [tx, tz] = viaCorner(ps.x, ps.z, tx, tz); // draußen um die Festung herum, nicht durch die Ecke
     mv.steer(ps, tx, tz, speed, dt, 18);
     // Zielen: menschliche Reaktionszeit, begrenzte Drehgeschwindigkeit, Streuung
     let fire = false;
@@ -398,11 +398,19 @@ class DefBrain {
         api.send({ t: 'shot', w, o: [+ps.x.toFixed(3), +(ps.y + 1.55).toFixed(3), +ps.z.toFixed(3)], d: [-Math.sin(yw) * cp, Math.sin(pt), -Math.cos(yw) * cp] });
         this.stats.shots++; if (tgt.kind === 'goat') this.stats.goatShots++; else this.stats.sheepShots++; } }
     mv.vertical(dt, 7, 0, 0);
+    blockWalls(m, ps, mv, dt, true); // nach der Höhe: nie unterhalb der Kante durch eine Mauer (Tor ausgenommen)
     mv.sendIn(api, ps, dt, { w });
   }
   weapon(ps, tgt) { const d = tgt ? Math.hypot(tgt.x - ps.x, tgt.z - ps.z) : 10; const has = k => ps.owned.has(k) && (ps.ammo[k] > 0 || ps.reloadW === k);
     if (d < 7 && has('shotgun')) return 'shotgun'; if (has('rifle')) return 'rifle'; if (has('smg')) return 'smg'; return 'blaster'; }
 }
+// Wie die Server-Prüfung (crossesWall): würde der nächste Schritt eine stehende Mauer unterhalb der Kante kreuzen, wird diese Richtung gestoppt
+function blockWalls(m, ps, mv, dt, gateOk) {
+  for (let pass = 0; pass < 2; pass++) { const nx = +(ps.x + mv.vx * dt).toFixed(3), nz = +(ps.z + mv.vz * dt).toFixed(3); // gerundet wie gesendet
+    for (const k in SIDE_N) { const w = m.fort.walls[k]; if (!w.lvl || Math.min(mv.y, ps.y) >= wallH(w.lvl) - 0.1) continue; const [sx, sz] = SIDE_N[k];
+      const a = (sx ? ps.x * sx : ps.z * sz) - F, b = (sx ? nx * sx : nz * sz) - F; if (Math.sign(a) === Math.sign(b) || (Math.abs(a) < 1e-6 && Math.abs(b) < 1e-6)) continue;
+      const f = a / (a - b), c = sx ? ps.z + (nz - ps.z) * f : ps.x + (nx - ps.x) * f; if (Math.abs(c) > HALF + 0.3) continue;
+      if (gateOk && w.gate && Math.abs(c) < 0.5) continue; if (sx) mv.vx = 0; else mv.vz = 0; } } }
 const sideOf = (x, z) => Math.abs(x) >= Math.abs(z) ? (x > 0 ? 'E' : 'W') : (z > 0 ? 'S' : 'N');
 
 export function makeBrain(role, diff, seed) { return role === 'sheep' ? new SheepBrain(diff, seed) : new DefBrain(diff, seed); }

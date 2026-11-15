@@ -95,6 +95,21 @@ Messwerte notieren: Ping A ___ ms, Ping B ___ ms, Ruckeln ja/nein, Akku nach 15 
 | 2b.17 | Kein Anvisieren: Einzelspieler, Kuchenkrieg, GOAT ROYALE | kein Visier-Knopf, rechte Maustaste zoomt nicht | |
 | 2b.18 | Matchdauer messen | ___ min | |
 
+## 2d. V7.1 Solo gegen KI (1 Gerät, echtes Cloudflare-Staging)
+
+| # | Schritt | Erwartung | ✓ |
+|---|---|---|---|
+| 2d.1 | Kuchenkrieg → Alleine spielen → Als Verteidiger, Mittel → Solo starten | Spiel startet in wenigen Sekunden, kein Code | |
+| 2d.2 | 2 Minuten spielen | KI-Schaf grast in der Herde, nähert sich, klettert über Mauern; kein Teleportieren, kein Zittern | |
+| 2d.3 | KI-Schaf stiehlt (abwarten oder Lücke lassen) | Kuchen sichtbar auf dem Rücken, Omi kommentiert | |
+| 2d.4 | KI-Schaf erschießen | Omi kommentiert, KI kommt mit weniger Leben zurück | |
+| 2d.5 | Ergebnis → Revanche (sofort) | neue Runde ab Welle 1 | |
+| 2d.6 | Neu starten … → Als Schaf, Schwer | KI-Wächter mit Name „KI · Wächter (Schwer)“ sichtbar, schießt Ziegen, baut | |
+| 2d.7 | Als Schaf hinter einer hohen Mauer verstecken | KI-Wächter schießt nicht durch die Mauer, findet dich nicht ohne Sicht | |
+| 2d.8 | Kuchen stehlen und zur Omi bringen (Leicht) | machbar; auf Schwer deutlich schwerer | |
+| 2d.9 | Mit Freunden spielen → Raum → „+ KI“ → Bereit | Match mit KI-Mitspieler | |
+| 2d.10 | Gefühlte Schwierigkeit Leicht / Mittel / Schwer notieren | ___ / ___ / ___ | |
+
 ## 2c. iPhone Home-Bildschirm (PWA)
 
 | # | Schritt | Erwartung | Ergebnis |
