@@ -93,16 +93,26 @@ try{
     await ev("document.querySelector('[data-guide-toggle]').click()");
     await until("document.querySelector('#fc-guide-panel').getBoundingClientRect().height<4",'guide collapsed');
     assert.equal(await ev("return document.querySelector('#fc-guide-panel').inert"),true);});
-  await test('Synthetic export loads and renders local fallback avatars only',async()=>{
+  const feed=async()=>{
     await ev(`const make=n=>({string_list_data:[{value:n,href:'https://www.instagram.com/'+n+'/'}]});
-      const zip=new JSZip();zip.file('followers_1.json',JSON.stringify(['alice'].map(make)));
-      zip.file('following.json',JSON.stringify({relationships_following:['alice','bob','carla','_.dora'].map(title=>({title}))}));
+      const zip=new JSZip();zip.file('connections/followers_and_following/followers_1.json',JSON.stringify(['alice'].map(make)));
+      zip.file('connections/followers_and_following/following.json',JSON.stringify({relationships_following:['alice','bob','carla','_.dora'].map(title=>({title}))}));
       const file=new File([await zip.generateAsync({type:'blob'})],'test.zip',{type:'application/zip'});
       const dt=new DataTransfer();dt.items.add(file);const input=document.querySelector('#file-input');
       input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));`);
     await until("!document.querySelector('#results-view').hidden && window.__row('bob')",'results');
+    // Progress is stored per account name, exactly as a user would enter it.
+    await ev("const a=document.querySelector('#fc-history-account');a.value='example.test';a.dispatchEvent(new Event('input',{bubbles:true}));a.dispatchEvent(new Event('change',{bubbles:true}));");
     await ev("document.querySelector('#fc-insights-start').click()");
-    await until("!document.querySelector('#detail-view').hidden && __box(__row('bob')).h>0",'list opened');
+    await until("!document.querySelector('#detail-view').hidden && __box(__row('bob')).h>0",'list opened');};
+  const stored=()=>ev("return localStorage.getItem('followclean:progress:v2:example.test')||''");
+  await test('Hero example uses self-drawn inline SVG avatars, no embedded photos',async()=>{
+    assert.ok(!html.includes('data:image/'),'embedded raster image left in page');
+    const s=await ev(`return {imgs:document.images.length,svgs:[...document.querySelectorAll('.balance-portrait svg')].map(x=>[__box(x).w>=60,x.getAttribute('role'),x.getAttribute('aria-label')].join('|'))}`);
+    assert.equal(s.imgs,0);
+    assert.deepEqual(s.svgs,['true|img|Jonas, gezeichnetes Beispiel-Profil','true|img|Matilda, gezeichnetes Beispiel-Profil']);});
+  await test('ZIP import (nested export folders) renders local fallback avatars only',async()=>{
+    await feed();
     const s=await ev(`const rows=[...document.querySelectorAll('#profiles-list .profile-row')];
       return {n:rows.length,imgs:document.querySelectorAll('#profiles-list img').length,
         av:rows.map(r=>{const a=r.querySelector('.profile-avatar');return [a.textContent,a.dataset.fcFallback,a.style.getPropertyValue('--fc-av-h')!==''].join('|')})}`);
@@ -110,6 +120,10 @@ try{
     assert.deepEqual(s.av.sort(),['B|1|true','C|1|true','D|1|true']);});
   const state=n=>ev(`const r=__row('${n}');return {cls:r.className,text:r.querySelector('.profile-status').textContent,
     toast:!document.querySelector('#visit-toast').hidden,toastText:document.querySelector('#visit-toast-text').textContent}`);
+  const progress=()=>ev("return document.querySelector('#progress-text').textContent");
+  await test('Import result: 3 non-followers, mutual excluded, progress starts at 0 von 3',async()=>{
+    assert.equal(await ev("return !!__row('alice')"),false);
+    assert.equal(await progress(),'0 von 3');});
   await test('Opening a profile marks it visited, never done',async()=>{
     await ev("__row('bob').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('bob');
@@ -120,10 +134,12 @@ try{
     const s=await state('bob');
     assert.ok(s.cls.includes('fc-row-opened')&&!s.cls.includes('fc-row-done'),s.cls);
     assert.equal(s.toast,true);assert.match(s.toastText,/@bob.*kann das nicht sehen/);
-    const stored=await ev("return Object.keys(localStorage).filter(k=>k.startsWith('followclean:progress')).map(k=>localStorage.getItem(k)).join(' ')");
-    assert.ok(!/"bob":"done"/.test(stored),stored);
+    const saved=await stored();
+    assert.match(saved,/"bob":"opened"/,'visited state is persisted: '+saved);
+    assert.ok(!/"bob":"done"/.test(saved),saved);
     const sizes=await ev("return [...document.querySelectorAll('#visit-toast button')].map(b=>__box(b).h)");
     assert.ok(sizes.length===3&&sizes.every(h=>h>=44),'touch targets '+sizes);
+    assert.equal(await progress(),'0 von 3','a visit must not count as progress');
     await ev("document.querySelector('#visit-toast').scrollIntoView({block:'center'})");await sleep(350);await shot('3-return-prompt');});
   await test('"Noch offen" keeps the account visited',async()=>{
     await ev("document.querySelector('#visit-undo').click();await new Promise(r=>setTimeout(r,80));");
@@ -135,7 +151,8 @@ try{
     await ev("document.querySelector('#visit-confirm').click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('bob');
     assert.ok(s.cls.includes('fc-row-done'),s.cls);assert.equal(s.toast,false);
-    assert.match(s.text,/kein Entfolgen-Nachweis/);});
+    assert.match(s.text,/kein Entfolgen-Nachweis/);
+    assert.match(await stored(),/"bob":"done"/);assert.equal(await progress(),'1 von 3');});
   await test('"Behalten" from the prompt keeps the account without a done state',async()=>{
     await ev("__row('carla').querySelector('.profile-link').click();await new Promise(r=>setTimeout(r,80));__leaveAndReturn();await new Promise(r=>setTimeout(r,120));document.querySelector('#visit-keep').click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('carla');
@@ -145,6 +162,20 @@ try{
     assert.equal((await state('_.dora')).toast,true);
     await ev("[...__row('_.dora').querySelectorAll('.mini-btn')].at(-1).click();await new Promise(r=>setTimeout(r,80));");
     const s=await state('_.dora');assert.equal(s.toast,false);assert.ok(s.cls.includes('fc-row-done'),s.cls);});
+  await test('Progress counts only explicit decisions and survives reload + re-import',async()=>{
+    const before=await progress();
+    assert.equal(before,'3 von 3');
+    await cdp('Page.reload');
+    await until("document.readyState==='complete' && document.querySelector('#fc-why-live') && typeof JSZip!=='undefined'",'reload');
+    await sleep(300);await ev(helpers);await feed();
+    const s=await ev("return ['bob','carla','_.dora'].map(n=>{const r=__row(n);return n+':'+(r.className.includes('fc-row-done')?'done':r.querySelector('.profile-status').textContent.includes('Behalten')?'keep':'open')})");
+    assert.deepEqual(s,['bob:done','carla:keep','_.dora:done']);
+    assert.equal(await progress(),'3 von 3');
+    assert.equal(await ev("return document.querySelector('#visit-toast').hidden"),true,'no prompt after reload');});
+  await test('Undo from the list returns an account to open and lowers progress',async()=>{
+    await ev("__row('bob').querySelector('.mini-btn.active-done').click();await new Promise(r=>setTimeout(r,80));");
+    const cls=await ev("return __row('bob').className");
+    assert.ok(!cls.includes('fc-row-done'),cls);assert.equal(await progress(),'2 von 3');});
   await test('Focus/blur alone (no real leave) never opens a prompt or changes state',async()=>{
     await ev("document.querySelector('#visit-toast').hidden=true;window.dispatchEvent(new Event('focus'));window.dispatchEvent(new Event('pageshow'));await new Promise(r=>setTimeout(r,80));");
     assert.equal(await ev("return document.querySelector('#visit-toast').hidden"),true);});

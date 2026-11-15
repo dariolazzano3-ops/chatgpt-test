@@ -45,7 +45,7 @@ cd apps/followclean && python3 -m http.server 4173   # http://localhost:4173
 
 for t in analysis-budget-smoke apify-adapter-smoke apify-two-actor-smartscan-v2-smoke \
   instagram-live-worker-smoke smart-scan-v1-smoke apify-v2-ledger-orchestration-smoke \
-  apify-v2-ledger-hardening-smoke chrome-ux-smoke; do node apps/followclean/tests/$t.mjs; done
+  apify-v2-ledger-hardening-smoke chrome-ux-smoke release-verify; do node apps/followclean/tests/$t.mjs; done
 ```
 
 - Node ≥ 22.5 (für `node:sqlite`). `chrome-ux-smoke` braucht Chrome oder Chromium.
