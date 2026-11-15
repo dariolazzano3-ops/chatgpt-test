@@ -1300,6 +1300,31 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .fc-why-live-cta{background:#263d5b;border-color:#44638d;color:#c9e1ff}
 }
 @media(prefers-reduced-motion:reduce){.fc-visit-toast.fc-return-prompt.is-in,.fc-why-live[open] .fc-why-live-body{animation:none}.fc-why-live-chevron{transition:none}}
+/* V17.1: a visited profile glows green automatically, but is not marked as unfollowed. */
+.profile-row.fc-row-opened{
+  background:linear-gradient(100deg,#e9fff2,#f7fffb);
+  border:1px solid #51cb87;border-left:4px solid #14a45f;
+  border-radius:10px;padding:12px 11px;margin:9px 0;
+  box-shadow:0 0 0 2px #90e6bb55,0 3px 17px #14a45f44;
+}
+.profile-row.fc-row-opened .profile-details .profile-status{color:#087a47;font-weight:800}
+.profile-row.fc-row-opened .profile-avatar[data-fc-fallback]{
+  background:#e5fbec;color:#147c51;border-color:#2cb66f;
+  box-shadow:0 0 0 2px #b9efd4;
+}
+@media(prefers-color-scheme:dark){
+  .profile-row.fc-row-opened{
+    background:linear-gradient(100deg,#17382d,#1b2a29);
+    border-color:#3b9c6e;border-left-color:#40cc87;
+    box-shadow:0 0 0 2px #3b9c6e40,0 5px 18px #1ba87233;
+  }
+  .profile-row.fc-row-opened .profile-details .profile-status{color:#71dca8}
+  .profile-row.fc-row-opened .profile-avatar[data-fc-fallback]{
+    background:#254a37;color:#b4fbd4;border-color:#40cc87;
+    box-shadow:0 0 0 2px #3b9c6e40;
+  }
+}
+@media(prefers-reduced-motion:reduce){.profile-row.fc-row-opened{transition:none}}
 </style>
   <script>
 /*!
@@ -1942,19 +1967,18 @@ function completeVisitOnReturn() {
   if (visit.key !== state.key || !Number.isFinite(visit.started) ||
       Date.now() - visit.started > FC_VISIT_TTL_MS || Date.now() < visit.started ||
       statusFor(visit.name) !== 'opened') return;
-  // A profile visit proves nothing about unfollowing. The account stays "besucht" (opened)
-  // until the user consciously chooses Erledigt or Behalten. No green state is set here.
+  // Green means visited, not verified unfollowing. Only an explicit choice sets 'done'.
   state.lastVisitedName=visit.name;
   state.sessionNextName=null;
   state.skip.delete(visit.name);
   state.lastAutoDone=null;
-  state.returnPrompt={name:visit.name,key:state.key};
+  state.returnPrompt=null;
+  $('visit-toast').hidden=true;
   renderResults();
   if (!$('guide-panel').hidden) {
-    $('guide-feedback').textContent='↩ Zurück von @'+visit.name+'. Besucht, aber noch nicht erledigt. Bitte selbst bestätigen.';
+    $('guide-feedback').textContent='✓ @'+visit.name+' besucht. Der grüne Status zeigt den Profilbesuch, nicht das Entfolgen.';
     $('guide-feedback').hidden=false;
   }
-  showReturnPrompt(visit.name);
 }
 function showReturnPrompt(name) {
   const toast=$('visit-toast');
@@ -2197,7 +2221,7 @@ function renderResults() {
     const avatar = makeEl('div','profile-avatar',fcAvatarInitial(name));
     avatar.dataset.fcFallback='1'; avatar.style.setProperty('--fc-av-h',String(fcAvatarHue(name)));
     const details = makeEl('div','profile-details');
-    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Bearbeitet · kein Entfolgen-Nachweis' : status === 'opened' ? '↗ Profil besucht · noch nicht erledigt' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
+    details.append(makeEl('strong','',`@${name}`), makeEl('span','profile-status',status === 'done' ? '✓ Bearbeitet · kein Entfolgen-Nachweis' : status === 'opened' ? '✓ Profil besucht · Entfolgen nicht bestätigt' : status === 'keep' ? '★ Auf deiner Behalten-Liste' : 'Noch offen'));
     const actions = makeEl('div','profile-actions');
     if (!state.demo) {
       const link = makeEl('a','profile-link','Profil ↗');
@@ -2254,7 +2278,7 @@ function renderGuide() {
   $('guide-name').textContent=name?'@'+name:'Alles bearbeitet 🎉';
   $('guide-avatar').textContent=name?name[0].toUpperCase():'✓';
   const pending=name && statusFor(name)==='opened';
-  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'Profil besucht. Erledigt wird es erst, wenn du es selbst bestätigst.':'Öffne das Profil oder entscheide direkt. Nach der Rückkehr fragen wir dich, ob es erledigt ist.';
+  $('guide-status').textContent=!name?'Alle Accounts sind eingeordnet. Du kannst Behalten und Erledigt jederzeit ändern.':pending?'✓ Profil besucht (grün). Entfolgt ist erst nach deiner Bestätigung markiert.':'Öffne das Profil. Nach dem Besuch wird es automatisch grün als besucht angezeigt.';
   $('guide-done').disabled=!name;
   $('guide-keep').disabled=!name;
   $('guide-skip').disabled=!name||remaining().length<2;
