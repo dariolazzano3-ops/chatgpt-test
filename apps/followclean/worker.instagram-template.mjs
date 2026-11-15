@@ -722,15 +722,187 @@ async function handleApi(request, env, url) {
   return json({error: 'not_found'}, 404);
 }
 
+
+/* FC_PREMIUM_V1_START */
+// Premium unlock (Stripe TEST mode only) + free username scan gate.
+// Webhook: Stripe-Signature HMAC-SHA256 over "t.body" with FC_STRIPE_WEBHOOK_SECRET (whsec_...),
+// 300 s tolerance, constant-time compare. Live-mode events are rejected. Orders are idempotent
+// (session id PK, event id UNIQUE, INSERT OR IGNORE). Premium tokens are HMAC-signed with
+// FC_IG_SESSION_SECRET (domain-separated) and re-checked against the order table on verify.
+const FC_PREMIUM_PATH = '/api/premium/';
+const FC_SCAN_PATH = '/api/scan/free';
+const FC_STRIPE_TOLERANCE_S = 300;
+const FC_PREMIUM_TOKEN_S = 365 * 86400;
+const FC_RATE = {scanIp: 10, scanName: 5, statusIp: 120};
+const fcEnc = new TextEncoder();
+function fcHex(buf) { return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+async function fcHmacHex(key, msg) {
+  const k = await crypto.subtle.importKey('raw', fcEnc.encode(key), {name: 'HMAC', hash: 'SHA-256'}, false, ['sign']);
+  return fcHex(await crypto.subtle.sign('HMAC', k, fcEnc.encode(msg)));
+}
+function fcSafeEq(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+function fcValidRef(v) { return typeof v === 'string' && /^fc_[a-f0-9]{32}$/.test(v); }
+async function fcStripeVerify(header, body, secret, nowS) {
+  if (typeof secret !== 'string' || !/^whsec_[A-Za-z0-9]{16,}$/.test(secret)) return {ok: false, reason: 'not_configured'};
+  if (typeof header !== 'string' || !header || header.length > 4096) return {ok: false, reason: 'missing_signature'};
+  let t = null; const v1 = [];
+  for (const part of header.split(',')) {
+    const i = part.indexOf('='); if (i < 1) continue;
+    const k = part.slice(0, i).trim(), v = part.slice(i + 1).trim();
+    if (k === 't' && /^\d{1,12}$/.test(v)) t = Number(v);
+    else if (k === 'v1' && /^[a-f0-9]{64}$/.test(v)) v1.push(v);
+  }
+  if (t === null || !v1.length) return {ok: false, reason: 'malformed_signature'};
+  if (Math.abs(nowS - t) > FC_STRIPE_TOLERANCE_S) return {ok: false, reason: 'timestamp_out_of_tolerance'};
+  const expected = await fcHmacHex(secret, t + '.' + body);
+  return v1.some(s => fcSafeEq(s, expected)) ? {ok: true} : {ok: false, reason: 'bad_signature'};
+}
+function fcStripeOrder(ev, env) {
+  if (!ev || typeof ev !== 'object' || typeof ev.id !== 'string' || !/^evt_[A-Za-z0-9_]{1,250}$/.test(ev.id))
+    return {ok: false, reason: 'invalid_event'};
+  if (ev.livemode !== false) return {ok: false, reason: 'live_mode_rejected'};
+  if (ev.type !== 'checkout.session.completed' && ev.type !== 'checkout.session.async_payment_succeeded')
+    return {ok: true, ignored: 'event_type'};
+  const s = ev.data && ev.data.object;
+  if (!s || s.object !== 'checkout.session' || typeof s.id !== 'string' || !/^cs_test_[A-Za-z0-9_]{1,240}$/.test(s.id) || s.livemode !== false)
+    return {ok: false, reason: 'invalid_session'};
+  if (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required') return {ok: true, ignored: 'not_paid'};
+  if (typeof env.FC_STRIPE_PAYMENT_LINK_ID === 'string' && env.FC_STRIPE_PAYMENT_LINK_ID && s.payment_link !== env.FC_STRIPE_PAYMENT_LINK_ID)
+    return {ok: true, ignored: 'foreign_payment_link'};
+  if (!fcValidRef(s.client_reference_id)) return {ok: true, ignored: 'no_claim_reference'};
+  return {ok: true, order: {eventId: ev.id, sessionId: s.id, ref: s.client_reference_id,
+    amount: Number.isSafeInteger(s.amount_total) && s.amount_total >= 0 ? s.amount_total : null,
+    currency: typeof s.currency === 'string' ? s.currency.slice(0, 8) : null}};
+}
+function fcPremiumKey(env) {
+  return typeof env.FC_IG_SESSION_SECRET === 'string' && env.FC_IG_SESSION_SECRET.length >= 32 ? env.FC_IG_SESSION_SECRET : null;
+}
+async function fcPremiumToken(ref, env, nowS) {
+  const key = fcPremiumKey(env); if (!key) return null;
+  const exp = nowS + FC_PREMIUM_TOKEN_S;
+  return 'fcp1.' + ref + '.' + exp + '.' + await fcHmacHex(key, 'fc-premium-v1|' + ref + '|' + exp);
+}
+async function fcPremiumParse(token, env, nowS) {
+  const key = fcPremiumKey(env);
+  if (!key || typeof token !== 'string' || token.length > 200) return null;
+  const m = /^fcp1\.(fc_[a-f0-9]{32})\.(\d{10})\.([a-f0-9]{64})$/.exec(token); if (!m) return null;
+  const exp = Number(m[2]); if (exp <= nowS) return null;
+  return fcSafeEq(m[3], await fcHmacHex(key, 'fc-premium-v1|' + m[1] + '|' + exp)) ? m[1] : null;
+}
+async function fcOrderForRef(db, ref) {
+  return db.prepare('SELECT session_id FROM fc_premium_orders_v1 WHERE claim_ref = ? LIMIT 1').bind(ref).first();
+}
+async function fcRateHit(db, bucket, limit, nowS) {
+  const win = nowS - (nowS % 3600);
+  await db.prepare('INSERT INTO fc_rate_limit_v1(bucket, window_start, hits) VALUES(?, ?, 1) ' +
+    'ON CONFLICT(bucket, window_start) DO UPDATE SET hits = hits + 1').bind(bucket, win).run();
+  const row = await db.prepare('SELECT hits FROM fc_rate_limit_v1 WHERE bucket = ? AND window_start = ?').bind(bucket, win).first();
+  if (Math.random() < 0.02) await db.prepare('DELETE FROM fc_rate_limit_v1 WHERE window_start < ?').bind(win - 7200).run();
+  return !!row && row.hits <= limit;
+}
+async function fcIpBucket(request, env, kind) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  return kind + ':' + (await fcHmacHex(fcPremiumKey(env) || 'fc-no-secret', 'fc-ip-v1|' + ip)).slice(0, 24);
+}
+function fcSameOrigin(request, url) {
+  const origin = request.headers.get('Origin'), site = request.headers.get('Sec-Fetch-Site');
+  return origin === url.origin && (!site || site === 'same-origin');
+}
+async function fcReadSmallBody(request, max) {
+  const text = await request.text();
+  return text.length > max ? null : text;
+}
+// Free username scan. Real provider execution stays OFF: a result is only ever reported
+// when a verified provider adapter exists. Until then the honest answer is NO_RELIABLE_LIVE_RESULT.
+async function fcFreeScan(request, env, url) {
+  if (request.method !== 'POST') return json({error: 'method_not_allowed'}, 405);
+  if (!fcSameOrigin(request, url)) return json({error: 'origin_not_allowed'}, 403);
+  const text = await fcReadSmallBody(request, 512);
+  if (text === null) return json({error: 'body_too_large'}, 413);
+  let body; try { body = JSON.parse(text); } catch { return json({error: 'invalid_json'}, 400); }
+  const username = fcNormalizeUsername(body && body.username);
+  if (!username) return json({error: 'invalid_username'}, 400);
+  const nowS = Math.floor(Date.now() / 1000), db = env.FC_APIFY_BUDGET_DB;
+  let rateLimit = 'unavailable';
+  if (db) {
+    try {
+      const okIp = await fcRateHit(db, await fcIpBucket(request, env, 'scan'), FC_RATE.scanIp, nowS);
+      const okName = await fcRateHit(db, 'scanname:' + username, FC_RATE.scanName, nowS);
+      if (!okIp || !okName) return json({error: 'rate_limited', retryAfterS: 3600 - (nowS % 3600)}, 429);
+      rateLimit = 'ok';
+    } catch { rateLimit = 'unavailable'; }
+  }
+  // Paid execution requires: verified provider, D1 rate limit, budget ledger. None is proven yet.
+  const reason = !FC_PROVIDER_EXECUTION_ENABLED ? 'provider_not_verified'
+    : rateLimit !== 'ok' ? 'rate_limit_unavailable' : 'provider_adapter_not_implemented';
+  return json({username, status: 'NO_RELIABLE_LIVE_RESULT', reason, live: false,
+    checked: 0, batches: 0, hit: null, checkedAt: new Date(nowS * 1000).toISOString(),
+    costUsd: 0, rateLimit, executionEnabled: FC_PROVIDER_EXECUTION_ENABLED});
+}
+async function fcHandlePremium(request, env, url) {
+  const endpoint = url.pathname.slice(FC_PREMIUM_PATH.length);
+  const nowS = Math.floor(Date.now() / 1000), db = env.FC_APIFY_BUDGET_DB;
+  if (endpoint === 'config' && request.method === 'GET') {
+    return json({checkout: 'https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00', testMode: true,
+      unlockConfigured: !!db && !!fcPremiumKey(env) && typeof env.FC_STRIPE_WEBHOOK_SECRET === 'string' && env.FC_STRIPE_WEBHOOK_SECRET.startsWith('whsec_')});
+  }
+  if (endpoint === 'webhook' && request.method === 'POST') {
+    const text = await fcReadSmallBody(request, 65536);
+    if (text === null) return json({error: 'body_too_large'}, 413);
+    const sig = await fcStripeVerify(request.headers.get('Stripe-Signature'), text, env.FC_STRIPE_WEBHOOK_SECRET, nowS);
+    if (!sig.ok) return json({error: sig.reason}, sig.reason === 'not_configured' ? 503 : 400);
+    let ev; try { ev = JSON.parse(text); } catch { return json({error: 'invalid_json'}, 400); }
+    const parsed = fcStripeOrder(ev, env);
+    if (!parsed.ok) return json({error: parsed.reason}, 400);
+    if (parsed.ignored) return json({received: true, ignored: parsed.ignored});
+    if (!db) return json({error: 'premium_store_unavailable'}, 503);
+    try {
+      const o = parsed.order;
+      const r = await db.prepare('INSERT OR IGNORE INTO fc_premium_orders_v1(session_id, event_id, claim_ref, amount_total, currency, livemode, created_ts) VALUES(?, ?, ?, ?, ?, 0, ?)')
+        .bind(o.sessionId, o.eventId, o.ref, o.amount, o.currency, nowS).run();
+      return json({received: true, recorded: !!(r && r.meta && r.meta.changes)});
+    } catch { return json({error: 'premium_store_unavailable'}, 503); }
+  }
+  if (endpoint === 'status' && request.method === 'GET') {
+    const ref = url.searchParams.get('ref');
+    if (!fcValidRef(ref)) return json({error: 'invalid_ref'}, 400);
+    if (!db || !fcPremiumKey(env)) return json({premium: false, error: 'premium_unlock_not_configured'}, 503);
+    try {
+      if (!await fcRateHit(db, await fcIpBucket(request, env, 'status'), FC_RATE.statusIp, nowS)) return json({error: 'rate_limited'}, 429);
+      if (!await fcOrderForRef(db, ref)) return json({premium: false, pending: true});
+      return json({premium: true, token: await fcPremiumToken(ref, env, nowS)});
+    } catch { return json({premium: false, error: 'premium_store_unavailable'}, 503); }
+  }
+  if (endpoint === 'verify' && request.method === 'POST') {
+    if (!fcSameOrigin(request, url)) return json({error: 'origin_not_allowed'}, 403);
+    const text = await fcReadSmallBody(request, 512);
+    if (text === null) return json({error: 'body_too_large'}, 413);
+    let body; try { body = JSON.parse(text); } catch { return json({error: 'invalid_json'}, 400); }
+    const ref = await fcPremiumParse(body && body.token, env, nowS);
+    if (!ref) return json({premium: false, error: 'invalid_token'}, 401);
+    if (!db) return json({premium: false, error: 'premium_store_unavailable'}, 503);
+    try { return (await fcOrderForRef(db, ref)) ? json({premium: true}) : json({premium: false, error: 'order_not_found'}, 401); }
+    catch { return json({premium: false, error: 'premium_store_unavailable'}, 503); }
+  }
+  return json({error: 'not_found'}, 404);
+}
+/* FC_PREMIUM_V1_END */
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === FC_SCAN_PATH) return fcFreeScan(request, env, url);
+    if (url.pathname.startsWith(FC_PREMIUM_PATH)) return fcHandlePremium(request, env, url);
     if (url.pathname.startsWith('/api/analysis/')) return handleAnalysisBudget(request, env, url);
     if (url.pathname.startsWith(API_PREFIX)) return handleApi(request, env, url);
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', {status:405});
     if (url.pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', {headers: headers('text/plain; charset=utf-8')});
     if (url.pathname !== '/' && url.pathname !== '/index.html') return new Response('Not found', {status:404});
     return new Response(request.method === 'HEAD' ? null : FOLLOWCLEAN_HTML,
-      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v16-apify-two-actor-staging'}});
+      {headers: {...headers('text/html; charset=utf-8'), 'X-FollowClean-Release': 'followclean-v19-premium-conversion-candidate'}});
   }
 };

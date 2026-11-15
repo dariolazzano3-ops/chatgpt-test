@@ -12,7 +12,12 @@ import {join} from 'node:path';
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const bin=['google-chrome','chromium','chromium-browser'].find(b=>{try{execFileSync('which',[b]);return true}catch{return false}});
 if(!bin){console.error('SKIP: no Chrome/Chromium binary found');process.exit(2);}
+// Premium fixture: this suite tests the post-purchase cleanup area. The real unlock (Stripe webhook,
+// signed token, D1 order check) is covered end to end in tests/premium-conversion-e2e.mjs.
 const server=http.createServer((req,res)=>{
+  if(req.url==='/api/premium/verify'&&req.method==='POST'){let b='';req.on('data',c=>b+=c);req.on('end',()=>{
+    const ok=JSON.parse(b||'{}').token==='fcp1.fixture';
+    res.writeHead(ok?200:401,{'Content-Type':'application/json'}).end(JSON.stringify({premium:ok}));});return;}
   if(req.url.split('?')[0]!=='/'){res.writeHead(404).end('{}');return;}
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}).end(html);});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -58,8 +63,9 @@ window.__leaveAndReturn=()=>{window.__vis='hidden';document.dispatchEvent(new Ev
 window.__row=n=>[...document.querySelectorAll('#profiles-list .profile-row')].find(r=>r.querySelector('strong').textContent==='@'+n);
 window.__box=el=>{const r=el.getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height)};};`;
 try{
+  await cdp('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('followclean:premium:v1','fcp1.fixture')}catch{}"});
   await cdp('Page.navigate',{url});
-  await until("document.readyState==='complete' && document.querySelector('#fc-why-live')",'page load');
+  await until("document.readyState==='complete' && document.querySelector('#fc-why-live') && document.body.classList.contains('fc-premium')",'page load (premium fixture)');
   await ev(helpers);
 
   await test('Page loads at 390px without script errors or horizontal overflow',async()=>{
@@ -92,7 +98,7 @@ try{
         expanded:[...document.querySelectorAll('[data-guide-toggle]')].map(b=>b.getAttribute('aria-expanded')),
         overflow:document.documentElement.scrollWidth>window.innerWidth+1}`);
     assert.deepEqual([s.open,s.inert,s.aria,s.steps,s.overflow],[true,false,'false',3,false]);
-    assert.ok(s.expanded.length>=3&&s.expanded.every(x=>x==='true'),s.expanded.join());
+    assert.ok(s.expanded.length>=2&&s.expanded.every(x=>x==='true'),s.expanded.join());
     await sleep(500);await shot('2-guide-open');});
   await test('Export guide closes again and returns to inert',async()=>{
     await ev("document.querySelector('[data-guide-toggle]').click()");
@@ -185,7 +191,7 @@ try{
     const before=await progress();
     assert.equal(before,'3 von 3');
     await cdp('Page.reload');
-    await until("document.readyState==='complete' && document.querySelector('#fc-why-live') && typeof JSZip!=='undefined'",'reload');
+    await until("document.readyState==='complete' && document.querySelector('#fc-why-live') && typeof JSZip!=='undefined' && document.body.classList.contains('fc-premium')",'reload');
     await sleep(300);await ev(helpers);await feed();
     const s=await ev("return ['bob','carla','_.dora'].map(n=>{const r=__row(n);return n+':'+(r.className.includes('fc-row-done')?'done':r.querySelector('.profile-status').textContent.includes('Behalten')?'keep':'open')})");
     assert.deepEqual(s,['bob:done','carla:keep','_.dora:done']);

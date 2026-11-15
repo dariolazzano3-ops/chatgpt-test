@@ -81,7 +81,7 @@ test('ZIP-first and actor-paused declarations are present',()=>{
   assert.match(html,/id="fc-smartscan-v1"/);
   assert.match(html,/ausschließlich die bereits im Browser geprüften Exportlisten/);
   assert.match(html,/function analyzeFiles/);
-  assert.match(html,/id="fc-username-first"/);
+  assert.match(html,/id="fc-analyze-form"/);
   assert.match(html,/buy\.stripe\.com\/test_/);
   assert.match(html,/noindex/);
 });

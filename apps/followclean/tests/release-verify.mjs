@@ -84,6 +84,27 @@ await gate('Visited profiles glow green without an automatic unfollow confirmati
     'automatic green visited highlight missing');
 });
 
+await gate('V19: free start has no ZIP upload/export guide; workspace is premium-only',()=>{
+  assert.ok(html.includes('body:not(.fc-premium) .fc-premium-only{display:none!important}'),'premium gate CSS missing');
+  assert.match(html,/<section class="workspace fc-premium-only" id="workspace"/);
+  assert.ok(html.indexOf('id="fc-analyze-form"')<html.indexOf('id="workspace"'),'username form must sit before the workspace');
+  for(const id of ['dropzone','export-guide','file-input','fc-smartscan-v1'])
+    assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="workspace"'),id+' must be inside the premium workspace');
+  assert.ok(!html.includes('id="fc-username-first"'),'old technical preview still present');
+  assert.match(html,/Jetzt analysieren/);assert.match(html,/Kein verlässlicher Live-Treffer möglich/);
+  assert.match(html,/Instagram-Datenexport im JSON-\/ZIP-Format/);});
+await gate('V19: free scan is honest and premium unlock fails closed without webhook secret',async()=>{
+  const worker=(await import(pathToFileURL(bundlePath).href+'?v19='+Date.now())).default;
+  const origin='https://followclean-mvp-preview.example',env={};
+  const scan=await worker.fetch(new Request(origin+'/api/scan/free',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{"username":"ysrrioo"}'}),env);
+  const j=await scan.json();
+  assert.deepEqual([scan.status,j.status,j.live,j.checked,j.costUsd],[200,'NO_RELIABLE_LIVE_RESULT',false,0,0]);
+  const hook=await worker.fetch(new Request(origin+'/api/premium/webhook',{method:'POST',body:'{}'}),env);
+  assert.equal(hook.status,503,'unconfigured webhook must not accept events');
+  const st=await worker.fetch(new Request(origin+'/api/premium/status?ref=fc_'+'a'.repeat(32)),env);
+  assert.equal(st.status,503);
+  assert.ok(!/client_reference_id=fc_[a-f0-9]{32}/.test(html),'no hard-coded claim reference');});
+
 const manifest={product:'FollowClean',target:'Cloudflare Worker followclean-mvp-preview (existing preview only)',
   deployed:false,node:process.version,
   sha256:{'index.html':sha(html),'worker.instagram-template.mjs':sha(template),'dist/worker.mjs':sha(bundle)},

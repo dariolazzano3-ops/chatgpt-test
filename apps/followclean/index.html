@@ -1325,6 +1325,63 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   }
 }
 @media(prefers-reduced-motion:reduce){.profile-row.fc-row-opened{transition:none}}
+
+/* V19 conversion flow */
+body:not(.fc-premium) .fc-premium-only{display:none!important}
+.fc-retired{display:none!important}
+.fc-analyze-form{display:grid;gap:10px;margin:22px 0 14px;max-width:520px}
+.fc-analyze-form label{font-size:12px;font-weight:800;letter-spacing:.04em;color:#315e88}
+.fc-analyze-field{display:flex;align-items:center;background:#fff;border:1.5px solid #aec8e5;border-radius:14px;padding:0 14px;min-height:56px;box-shadow:0 8px 24px rgba(23,104,223,.08);transition:border-color .2s,box-shadow .2s}
+.fc-analyze-field:focus-within{border-color:#1768df;box-shadow:0 0 0 4px rgba(23,104,223,.15)}
+.fc-analyze-field span{color:#7d97b5;font-weight:800;font-size:18px;margin-right:4px}
+.fc-analyze-field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:17px;color:#183d65;padding:14px 0}
+#fc-analyze-submit{min-height:56px;border:0;border-radius:14px;background:linear-gradient(120deg,#1768df,#5b4bf5);color:#fff;font-size:16px;font-weight:850;cursor:pointer;box-shadow:0 12px 28px rgba(23,104,223,.28);transition:transform .15s,box-shadow .2s}
+#fc-analyze-submit:active{transform:scale(.98)}
+#fc-analyze-submit:disabled{opacity:.7;cursor:wait}
+.fc-analyze-error{margin:0;color:#b42318;font-size:13px;font-weight:700}
+.fc-analysis{max-width:760px;margin:12px auto 40px;padding:24px;border-radius:24px;background:linear-gradient(160deg,#f5f9ff,#eef1ff);border:1px solid #cfdcf3;animation:fcAnIn .45s ease both}
+.fc-an-kicker,.fc-an-offer-kicker{display:inline-block;font-size:11px;font-weight:850;letter-spacing:.12em;color:#1768df}
+.fc-an-head h2{margin:6px 0 4px;font-size:clamp(22px,5vw,30px);color:#13355c}
+.fc-an-head p{margin:0;color:#4b6688}
+.fc-an-steps{list-style:none;margin:20px 0 14px;padding:0;display:grid;gap:10px}
+.fc-an-steps li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid #dbe5f5;opacity:.55;transition:opacity .3s,border-color .3s}
+.fc-an-steps li[data-state="active"],.fc-an-steps li[data-state="ok"],.fc-an-steps li[data-state="warn"]{opacity:1}
+.fc-an-steps li strong{display:block;color:#183d65;font-size:14px}.fc-an-steps li small{color:#6580a3;font-size:12px}
+.fc-an-dot{flex:0 0 18px;height:18px;margin-top:1px;border-radius:50%;border:2px solid #b9cbe6;background:#fff;position:relative}
+li[data-state="active"] .fc-an-dot{border-color:#1768df;animation:fcAnPulse 1s ease-in-out infinite}
+li[data-state="ok"] .fc-an-dot{border-color:#12a150;background:#12a150}
+li[data-state="ok"] .fc-an-dot::after{content:"";position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+li[data-state="warn"] .fc-an-dot{border-color:#d98a06;background:#fbbf24}
+li[data-state="warn"]{border-color:#f3d59b}
+li[data-state="skip"] small::after{content:" · übersprungen"}
+.fc-an-meter{height:8px;border-radius:99px;background:#dbe5f5;overflow:hidden}
+.fc-an-meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1768df,#5b4bf5);transition:width .6s ease}
+.fc-an-count{margin:8px 0 16px;font-size:13px;color:#4b6688}
+.fc-an-card{border-radius:18px;padding:18px;margin:0 0 16px;background:#fff;border:1px solid #dbe5f5;animation:fcAnIn .4s ease both}
+.fc-an-none{border-color:#f3d59b;background:#fffaf0}.fc-an-none strong{color:#8a5300;font-size:17px}.fc-an-none p{margin:6px 0;color:#5f4a22;font-size:14px}.fc-an-none small{color:#8a7350}
+.fc-an-error{border-color:#f5c2c0;background:#fff5f5;color:#9b1c1c;font-weight:700}
+.fc-an-hit{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center}
+.fc-an-avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:850;font-size:20px;color:#fff;background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af)}
+.fc-an-hit-body strong{display:block;font-size:17px;color:#13355c}.fc-an-badge{display:inline-block;margin:4px 0;padding:3px 9px;border-radius:99px;background:#fde8e8;color:#b42318;font-size:12px;font-weight:800}.fc-an-hit-body small{display:block;color:#6580a3}
+.fc-an-profile{grid-column:1/-1;text-align:center;padding:12px;border-radius:12px;background:#13355c;color:#fff;font-weight:800;text-decoration:none}
+.fc-an-offer{border-radius:22px;padding:22px;background:linear-gradient(150deg,#13355c,#2a2f7a);color:#eef4ff;animation:fcAnIn .5s .1s ease both}
+.fc-an-offer h3{margin:6px 0;font-size:22px;color:#fff}.fc-an-offer p{color:#c9d8f2;font-size:14px}.fc-an-offer-kicker{color:#9cc3ff}
+.fc-an-offer-list{margin:10px 0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}.fc-an-offer-list li::before{content:"✓ ";color:#6ee7a8;font-weight:900}
+.fc-an-export-note{padding:12px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+.fc-an-price{display:flex;gap:10px;align-items:baseline;margin:12px 0}.fc-an-price strong{font-size:28px;color:#fff;white-space:nowrap}.fc-an-price span{font-size:13px;color:#c9d8f2}
+.fc-an-cta{display:block;text-align:center;padding:16px;border-radius:14px;background:#fff;color:#13355c;font-weight:900;font-size:16px;text-decoration:none;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.fc-an-coupon{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0 4px;font-size:13px}
+.fc-an-coupon .fc-rio-copy{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:10px;padding:8px 12px;font-weight:800}
+.fc-an-test{font-size:12px!important;color:#aabfe0!important}.fc-an-test code{color:#fff}
+.fc-an-pending{margin-top:12px;padding:12px;border-radius:12px;background:rgba(110,231,168,.12);border:1px solid rgba(110,231,168,.4)}
+.fc-an-pending p{margin:0 0 8px;color:#e6fff1}.fc-an-pending button{border:0;border-radius:10px;padding:10px 14px;background:#6ee7a8;color:#0c3b25;font-weight:850}
+.fc-premium-welcome{margin:0 0 18px;padding:20px;border-radius:20px;background:linear-gradient(140deg,#e9fbf1,#eef6ff);border:1px solid #bfe8d0}
+.fc-premium-welcome .fc-an-kicker{color:#0f8a45}.fc-premium-welcome h2{margin:6px 0;color:#13355c}.fc-premium-welcome p{margin:0;color:#365a7d}
+@keyframes fcAnIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fcAnPulse{0%,100%{box-shadow:0 0 0 0 rgba(23,104,223,.45)}50%{box-shadow:0 0 0 7px rgba(23,104,223,0)}}
+@media(prefers-reduced-motion:reduce){.fc-analysis,.fc-an-card,.fc-an-offer{animation:none}li[data-state="active"] .fc-an-dot{animation:none}.fc-an-meter span{transition:none}}
+@media(max-width:520px){.fc-analysis{margin:8px 10px 28px;padding:18px}.fc-an-offer{padding:18px}}
+@media(prefers-color-scheme:dark){.fc-analysis{background:linear-gradient(160deg,#16243a,#1c2148);border-color:#33496b}.fc-an-head h2{color:#eef4ff}.fc-an-head p,.fc-an-count{color:#b6cae4}.fc-an-steps li,.fc-an-card{background:#1b2a3d;border-color:#3a5272}.fc-an-steps li strong,.fc-an-hit-body strong{color:#eef4ff}.fc-an-none{background:#33280f;border-color:#6b5320}.fc-an-none strong,.fc-an-none p,.fc-an-none small{color:#fde7b0}.fc-analyze-field{background:#1b2a3d;border-color:#4e6a8a}.fc-analyze-field input{color:#f4f8ff}.fc-analyze-form label{color:#c6e2ff}.fc-premium-welcome{background:linear-gradient(140deg,#123426,#16263d);border-color:#2f6b4c}.fc-premium-welcome h2{color:#eef4ff}.fc-premium-welcome p{color:#c4d6ea}}
 </style>
   <script>
 /*!
@@ -2029,41 +2086,114 @@ function animateNonFollowPercent(element, value, result) {
 }
 
 
-// Username-first opt-in readiness check. The Worker never contacts Instagram or Apify here.
-const fcUsernameForm=$('fc-username-form');
-fcUsernameForm.addEventListener('submit',async event=>{
-  event.preventDefault();
-  const value=$('fc-username-input').value.trim().replace(/^@/,'').toLowerCase();
-  const result=$('fc-username-result');
-  result.hidden=false;
-  if(!/^[a-z0-9._]{1,30}$/.test(value)){
-    $('fc-username-name').textContent='Bitte gültigen Instagram-Namen eingeben';
-    $('fc-username-state').textContent='Nur Buchstaben, Zahlen, Punkt und Unterstrich sind erlaubt.';
-    $('fc-username-progress').hidden=true;
-    return;
-  }
-  const submit=$('fc-username-submit');
-  submit.disabled=true;
-  $('fc-username-avatar').textContent=value[0].toUpperCase();
-  $('fc-username-name').textContent='@'+value;
-  $('fc-username-state').textContent='Verbindung zum FollowClean-Testsystem wird geprüft …';
-  $('fc-username-progress').hidden=false;
+// V19 conversion flow: username -> honest live analysis -> premium (Stripe TEST) -> export upload.
+// No fake hits: a result is shown only when the Worker reports a verified hit.
+const FC_PREMIUM_TOKEN_KEY='followclean:premium:v1';
+const FC_PREMIUM_CLAIM_KEY='followclean:premium-claim:v1';
+const FC_CHECKOUT_URL='https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00';
+const fcLs={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+function fcSetPremium(on){document.body.classList.toggle('fc-premium',!!on);document.body.classList.toggle('fc-free',!on);}
+fcSetPremium(false);
+function fcClaimRef(){
+  let ref=fcLs.get(FC_PREMIUM_CLAIM_KEY);
+  if(!/^fc_[a-f0-9]{32}$/.test(ref||'')){const b=new Uint8Array(16);crypto.getRandomValues(b);
+    ref='fc_'+[...b].map(x=>x.toString(16).padStart(2,'0')).join('');fcLs.set(FC_PREMIUM_CLAIM_KEY,ref);}
+  return ref;}
+function fcCheckoutHref(){return FC_CHECKOUT_URL+'?client_reference_id='+encodeURIComponent(fcClaimRef());}
+async function fcVerifyPremium(){
+  const token=fcLs.get(FC_PREMIUM_TOKEN_KEY);
+  if(!token){fcSetPremium(false);return false;}
   try{
-    const response=await fetch('/api/analysis/provider/plan',{method:'POST',
-      credentials:'same-origin',cache:'no-store',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({username:value})});
-    if(!response.ok)throw new Error('unavailable');
-    const info=await response.json();
-    if(info.username!==value||info.executionEnabled!==false)throw new Error('untrusted');
-    $('fc-username-state').textContent='Technische Vorbereitung abgeschlossen. Die externe Profilanalyse ist noch nicht freigeschaltet. Für ein echtes Ergebnis nutze derzeit deinen Instagram-Export.';
+    const r=await fetch('/api/premium/verify',{method:'POST',credentials:'same-origin',cache:'no-store',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({token})});
+    const info=await r.json().catch(()=>({}));
+    if(r.ok&&info.premium===true){fcSetPremium(true);return true;}
+    if(r.status===401)fcLs.del(FC_PREMIUM_TOKEN_KEY);
+  }catch{}
+  fcSetPremium(false);return false;}
+let fcPollTimer=null,fcPollLeft=0;
+async function fcCheckClaim(manual){
+  const ref=fcLs.get(FC_PREMIUM_CLAIM_KEY);if(!ref)return false;
+  const text=$('fc-an-pending-text');
+  try{
+    const r=await fetch('/api/premium/status?ref='+encodeURIComponent(ref),{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}});
+    const info=await r.json().catch(()=>({}));
+    if(r.ok&&info.premium===true&&typeof info.token==='string'){
+      fcLs.set(FC_PREMIUM_TOKEN_KEY,info.token);
+      if(await fcVerifyPremium()){fcStopPoll();fcLs.del('followclean:premium-pending:v1');
+        text.textContent='Premium ist freigeschaltet.';
+        requestAnimationFrame(()=>$('fc-premium-welcome').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
+        return true;}}
+    if(manual)text.textContent=r.status===503?'Die Freischaltung ist im Testsystem noch nicht eingerichtet. Es wurde nichts freigeschaltet.'
+      :r.status===429?'Zu viele Prüfungen. Bitte kurz warten.':'Noch keine bestätigte Testzahlung gefunden. Stripe meldet den Abschluss meist innerhalb weniger Sekunden.';
+  }catch{if(manual)text.textContent='Verbindung nicht möglich. Bitte erneut versuchen.';}
+  return false;}
+function fcStopPoll(){clearInterval(fcPollTimer);fcPollTimer=null;}
+function fcStartPoll(){
+  $('fc-an-offer').hidden=false;$('fc-an-pending').hidden=false;fcPollLeft=40;
+  if(fcPollTimer)return;
+  fcPollTimer=setInterval(()=>{if(document.visibilityState!=='visible')return;if(--fcPollLeft<0){fcStopPoll();return;}fcCheckClaim(false);},4000);}
+$('fc-an-cta').addEventListener('click',()=>{$('fc-an-cta').href=fcCheckoutHref();fcLs.set('followclean:premium-pending:v1','1');fcStartPoll();});
+$('fc-an-recheck').addEventListener('click',()=>fcCheckClaim(true));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&fcLs.get('followclean:premium-pending:v1')==='1'&&!document.body.classList.contains('fc-premium'))fcCheckClaim(false);});
+const fcSleep=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
+function fcStep(name,status){const li=document.querySelector('#fc-an-steps [data-step="'+name+'"]');if(li)li.dataset.state=status;}
+function fcShowOffer(hit){
+  $('fc-an-offer-title').textContent=hit?'Du hast einen Nicht-Rückfolger entdeckt.':'Entdecke deine vollständige Liste.';
+  $('fc-an-offer-text').textContent=hit?'Entdecke deine vollständige Liste und bereinige sie mit FollowClean Premium.'
+    :'Mit FollowClean Premium findest du alle Accounts, die dir nicht zurückfolgen, und bereinigst sie Schritt für Schritt.';
+  $('fc-an-cta').href=fcCheckoutHref();
+  $('fc-an-offer').hidden=false;}
+let fcAnalysisRun=0;
+$('fc-analyze-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const raw=$('fc-analyze-input').value.trim().replace(/^@/,'').toLowerCase();
+  const err=$('fc-analyze-error');
+  if(!/^[a-z0-9._]{1,30}$/.test(raw)){err.textContent='Bitte gib einen gültigen Instagram-Namen ein (Buchstaben, Zahlen, Punkt, Unterstrich).';err.hidden=false;$('fc-analyze-input').focus();return;}
+  err.hidden=true;
+  const run=++fcAnalysisRun,submit=$('fc-analyze-submit');submit.disabled=true;
+  const view=$('fc-analysis');view.hidden=false;view.classList.remove('fc-an-done');
+  for(const id of ['fc-an-hit','fc-an-none','fc-an-error','fc-an-offer'])$(id).hidden=true;
+  document.querySelectorAll('#fc-an-steps li').forEach(li=>li.dataset.state='wait');
+  $('fc-an-name').textContent='@'+raw;$('fc-an-checked').textContent='0';$('fc-an-fill').style.width='0%';$('fc-an-meter').setAttribute('aria-valuenow','0');
+  $('fc-an-sub').textContent='Wir prüfen Schritt für Schritt, was sich zuverlässig feststellen lässt.';
+  view.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  try{
+    fcStep('name','active');await fcSleep(450);fcStep('name','ok');fcStep('access','active');
+    const started=Date.now();
+    const r=await fetch('/api/scan/free',{method:'POST',credentials:'same-origin',cache:'no-store',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({username:raw})});
+    const info=await r.json().catch(()=>({}));
+    await fcSleep(Math.max(0,900-(Date.now()-started)));
+    if(run!==fcAnalysisRun)return;
+    if(r.status===429){fcStep('access','warn');$('fc-an-error').textContent='Zu viele Analysen in kurzer Zeit. Bitte versuche es in einer Stunde erneut.';$('fc-an-error').hidden=false;return;}
+    if(!r.ok||info.username!==raw)throw new Error('unavailable');
+    const checked=Number.isSafeInteger(info.checked)&&info.checked>=0?info.checked:0;
+    $('fc-an-checked').textContent=String(checked);
+    const time=info.checkedAt?new Date(info.checkedAt).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}):'';
+    const hit=info.status==='CONFIRMED_NONFOLLOWER'&&info.live===true&&info.hit&&/^[a-z0-9._]{1,30}$/.test(info.hit.username||'')?info.hit:null;
+    if(hit){
+      fcStep('access','ok');fcStep('batch','ok');fcStep('check','ok');
+      $('fc-an-fill').style.width=Math.min(100,checked*10)+'%';$('fc-an-meter').setAttribute('aria-valuenow',String(Math.min(10,checked)));
+      $('fc-an-hit-name').textContent='@'+hit.username;$('fc-an-hit-avatar').textContent=hit.username[0].toUpperCase();
+      $('fc-an-hit-time').textContent='Geprüft am '+time+' · '+checked+' Accounts geprüft';
+      $('fc-an-hit-profile').href=validProfileUrl(hit.username);
+      $('fc-an-hit').hidden=false;$('fc-an-sub').textContent='Bestätigter Treffer aus einer geprüften Live-Abfrage.';
+      fcShowOffer(true);
+    }else{
+      fcStep('access','warn');fcStep('batch','skip');fcStep('check','skip');
+      $('fc-an-none-time').textContent=time?'Stand: '+time+' · 0 Accounts geprüft · keine Kosten':'';
+      $('fc-an-none').hidden=false;$('fc-an-sub').textContent='Ehrliches Ergebnis statt Schätzung.';
+      fcShowOffer(false);
+    }
+    view.classList.add('fc-an-done');
   }catch{
-    $('fc-username-state').textContent='Die technische Verbindung ist momentan nicht verfügbar. Die lokale ZIP-Analyse funktioniert weiterhin.';
-  }finally{
-    $('fc-username-progress').hidden=true;
-    submit.disabled=false;
-  }
+    if(run!==fcAnalysisRun)return;
+    fcStep('access','warn');
+    $('fc-an-error').textContent='Die Analyse ist gerade nicht erreichbar. Bitte versuche es später erneut.';$('fc-an-error').hidden=false;
+  }finally{if(run===fcAnalysisRun)submit.disabled=false;}
 });
+fcVerifyPremium().then(ok=>{if(!ok&&fcLs.get('followclean:premium-pending:v1')==='1'){$('fc-analysis').hidden=false;fcShowOffer(false);fcStartPoll();fcCheckClaim(false);}});
 
 
 let fcSmartScanRunId=0;
@@ -2949,9 +3079,14 @@ $('delete-local-btn').addEventListener('click',()=>{
         <div class="hero-copy">
           <div class="eyebrow"><span class="eyebrow-line"></span> DEIN FEED. DEINE REGELN.</div>
           <h1 id="hero-title">Sei kein Fan von Leuten,<br><em>die nicht mal zurückfolgen.</em></h1>
-          <p class="hero-intro">Manche lassen sich gern folgen, folgen selbst aber nicht zurück. Du musst niemandem hinterherlaufen. <strong>Finde nach dem Instagram-Export kostenlos heraus, wie viele dir nicht zurückfolgen.</strong></p>
-          <div class="hero-cta-row"><a class="hero-guide-cta" href="#dropzone">Jetzt kostenlos prüfen <span aria-hidden="true">↓</span></a><button type="button" class="hero-upload-cta fc-hero-guide-toggle" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fc-guide-button-text">Anleitung ansehen</span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button></div>
-          <div class="privacy-line"><span>✦</span> Anzahl kostenlos sehen <span class="sep">·</span> Ohne Passwort <span class="sep">·</span> Lokal analysiert</div>
+          <p class="hero-intro">Manche lassen sich gern folgen, folgen selbst aber nicht zurück. Du musst niemandem hinterherlaufen. <strong>Gib deinen Instagram-Namen ein und starte die Analyse.</strong> Wir zeigen dir nur Ergebnisse, die wir tatsächlich prüfen konnten.</p>
+          <form class="fc-analyze-form" id="fc-analyze-form" novalidate>
+            <label for="fc-analyze-input">Dein Instagram-Name</label>
+            <div class="fc-analyze-field"><span aria-hidden="true">@</span><input type="text" id="fc-analyze-input" name="username" maxlength="31" placeholder="deinname" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" enterkeyhint="go" aria-describedby="fc-analyze-hint"/></div>
+            <button type="submit" id="fc-analyze-submit">Jetzt analysieren <span aria-hidden="true">→</span></button>
+            <p class="fc-analyze-error" id="fc-analyze-error" role="alert" hidden></p>
+          </form>
+          <div class="privacy-line" id="fc-analyze-hint"><span>✦</span> Ohne Passwort <span class="sep">·</span> Kein Instagram-Login <span class="sep">·</span> Keine erfundenen Treffer</div>
           <p class="independent-note">Unabhängiges Tool. Keine Verbindung zu Instagram oder Meta.</p>
         </div>
 
@@ -2979,36 +3114,60 @@ $('delete-local-btn').addEventListener('click',()=>{
               <span>Matilda folgt dir nicht zurück.</span>
             </div>
             <p class="balance-statement">Du bist kein Fanclub.</p>
-            <a href="#dropzone" class="balance-unfollow-button" aria-label="Jetzt entfolgen: Instagram-Datei auswählen und Liste prüfen">Jetzt entfolgen <span aria-hidden="true">→</span></a>
-            <p class="balance-card-note">Dein Export zeigt die echten Accounts. Das Entfolgen bestätigst du anschließend in Instagram.</p>
+            <a href="#fc-analyze-input" class="balance-unfollow-button" aria-label="Jetzt analysieren: Instagram-Namen eingeben">Jetzt analysieren <span aria-hidden="true">→</span></a>
+            <p class="balance-card-note">Gezeichnetes Beispiel. Das Entfolgen bestätigst du immer selbst in Instagram.</p>
           </div>
         </div>
       </section>
 
-      <section class="workspace" id="workspace" aria-label="Instagram-Analyse">
+      <section class="fc-analysis" id="fc-analysis" aria-labelledby="fc-an-title" hidden>
+        <div class="fc-an-head"><span class="fc-an-kicker">LIVE-ANALYSE</span><h2 id="fc-an-title">Analyse für <span id="fc-an-name">@konto</span></h2><p id="fc-an-sub">Wir prüfen Schritt für Schritt, was sich zuverlässig feststellen lässt.</p></div>
+        <ol class="fc-an-steps" id="fc-an-steps">
+          <li data-step="name"><span class="fc-an-dot" aria-hidden="true"></span><div><strong>Name prüfen</strong><small>Schreibweise und Format</small></div></li>
+          <li data-step="access"><span class="fc-an-dot" aria-hidden="true"></span><div><strong>Zugang prüfen</strong><small>Öffentliches Konto und verifizierte Datenquelle</small></div></li>
+          <li data-step="batch"><span class="fc-an-dot" aria-hidden="true"></span><div><strong>Gefolgte Accounts abrufen</strong><small>Höchstens 10 pro Runde</small></div></li>
+          <li data-step="check"><span class="fc-an-dot" aria-hidden="true"></span><div><strong>Rückfolge prüfen</strong><small>Stopp beim ersten bestätigten Treffer</small></div></li>
+        </ol>
+        <div class="fc-an-meter" role="progressbar" id="fc-an-meter" aria-label="Tatsächlich geprüfte Accounts" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span id="fc-an-fill"></span></div>
+        <p class="fc-an-count" role="status" aria-live="polite"><strong id="fc-an-checked">0</strong> Accounts tatsächlich geprüft</p>
+        <div class="fc-an-card fc-an-hit" id="fc-an-hit" hidden>
+          <div class="fc-an-avatar" id="fc-an-hit-avatar" aria-hidden="true">?</div>
+          <div class="fc-an-hit-body"><strong id="fc-an-hit-name"></strong><span class="fc-an-badge">Folgt dir nicht zurück</span><small id="fc-an-hit-time"></small></div>
+          <a id="fc-an-hit-profile" class="fc-an-profile" href="#" target="_blank" rel="noopener noreferrer">Instagram-Profil ansehen ↗</a>
+        </div>
+        <div class="fc-an-card fc-an-none" id="fc-an-none" role="status" hidden>
+          <strong>Kein verlässlicher Live-Treffer möglich</strong>
+          <p id="fc-an-none-text">Für dieses Konto können wir gerade keinen geprüften Live-Treffer liefern. Unsere Live-Datenquelle ist noch nicht verifiziert. Deshalb zeigen wir dir bewusst kein geschätztes oder erfundenes Ergebnis.</p>
+          <small id="fc-an-none-time"></small>
+        </div>
+        <div class="fc-an-card fc-an-error" id="fc-an-error" role="alert" hidden></div>
+        <div class="fc-an-offer" id="fc-an-offer" hidden>
+          <span class="fc-an-offer-kicker">FOLLOWCLEAN PREMIUM · STRIPE TESTMODUS</span>
+          <h3 id="fc-an-offer-title">Entdecke deine vollständige Liste.</h3>
+          <p id="fc-an-offer-text">Finde mit FollowClean Premium alle Accounts, die dir nicht zurückfolgen, und bereinige sie Schritt für Schritt.</p>
+          <ul class="fc-an-offer-list"><li>Vollständige Nicht-Rückfolger-Liste zum Exportzeitpunkt</li><li>Geführter Cleanup mit Fortschritt</li><li>Besuchte Profile werden automatisch grün markiert</li><li>Auswertung lokal auf deinem Gerät</li></ul>
+          <p class="fc-an-export-note" id="fc-an-export-note"><strong>Wichtig vor dem Kauf:</strong> Für die vollständige Analyse benötigst du nach dem Kauf deinen Instagram-Datenexport im JSON-/ZIP-Format. Wir zeigen dir genau, wie du ihn anforderst.</p>
+          <div class="fc-an-price"><strong>1,00 €</strong><span>einmalig · nur Testmodus · mit <b>RIO</b> 0,00 €</span></div>
+          <a class="fc-an-cta" id="fc-an-cta" href="https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00" target="_blank" rel="noopener noreferrer">Premium freischalten <span aria-hidden="true">↗</span></a>
+          <div class="fc-an-coupon"><span>Test-Gutschein <b>RIO</b> · 100 % Rabatt</span><button type="button" data-copy-rio class="fc-rio-copy">RIO kopieren</button></div>
+          <p class="fc-an-test">Nur Sandbox, keine echte Zahlung. Ohne Gutschein Testkarte <code>4242 4242 4242 4242</code>, beliebiges zukünftiges Datum, beliebige Prüfnummer. Keine echte Karte eingeben.</p>
+          <div class="fc-an-pending" id="fc-an-pending" hidden>
+            <p id="fc-an-pending-text">Kauf abgeschlossen? Wir prüfen die Freischaltung automatisch.</p>
+            <button type="button" id="fc-an-recheck">Freischaltung prüfen</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace fc-premium-only" id="workspace" aria-label="Instagram-Analyse">
+        <div class="fc-premium-welcome" id="fc-premium-welcome"><span class="fc-an-kicker">PREMIUM AKTIV</span><h2>Willkommen in deinem Cleanup-Bereich.</h2><p><strong>Nächster Schritt:</strong> Fordere deinen Instagram-Export im JSON-Format an und lade die ZIP-Datei hier hoch. Die Auswertung läuft direkt in deinem Browser, die Datei wird nicht auf unsere Server übertragen.</p></div>
         <div class="step-nav"><span class="step-nav-label">DEIN CLEANUP-SPACE</span><span class="step-nav-count" id="step-count">01 / 03</span></div>
         <div id="import-view" class="view">
-          <div class="section-head"><div><span class="section-index">01 — START</span><h2>Wie viele folgen dir nicht zurück?</h2><p>Deine Instagram-Datei auswählen und die Anzahl kostenlos sehen. Ohne Registrierung, ohne Zahlung und direkt auf deinem Gerät.</p></div></div>
+          <div class="section-head"><div><span class="section-index">01 — START</span><h2>Wie viele folgen dir nicht zurück?</h2><p>Wähle deinen Instagram-Export aus. Die Auswertung läuft direkt auf deinem Gerät.</p></div></div>
           <div class="fast-entry" aria-label="So startest du">
-            <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt kostenlos prüfen</small></span><span aria-hidden="true">↓</span></a>
+            <a class="fast-entry-link fast-entry-primary" href="#dropzone"><span class="fast-entry-icon" aria-hidden="true">↑</span><span><strong>ZIP bereits vorhanden?</strong><small>Direkt hochladen und auswerten</small></span><span aria-hidden="true">↓</span></a>
             <button type="button" class="fast-entry-link fast-entry-secondary" data-guide-toggle aria-expanded="false" aria-controls="fc-guide-panel"><span class="fast-entry-icon" aria-hidden="true">?</span><span><strong class="fc-guide-button-text">Anleitung ansehen</strong><small>Nur 3 einfache Schritte</small></span><span class="fc-guide-chevron" aria-hidden="true">⌄</span></button>
           </div>
 
-          <section class="fc-username-first" id="fc-username-first" aria-labelledby="fc-username-title">
-            <span class="fc-username-kicker">NEU · PROFIL-CHECK VORSCHAU</span>
-            <h3 id="fc-username-title">Starte mit deinem Instagram-Namen.</h3>
-            <p>Einfach den Namen eingeben. Wir prüfen die technische Anbindung und zeigen den nächsten Schritt. Echte Profilbilder, Zahlen und Nicht-Rückfolger werden nur angezeigt, wenn wir sie tatsächlich zuverlässig abrufen dürfen.</p>
-            <form class="fc-username-form" id="fc-username-form">
-              <label for="fc-username-input">Dein Instagram-Name</label>
-              <input type="text" id="fc-username-input" maxlength="31" placeholder="@deinname" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="fc-username-privacy"/>
-              <button type="submit" id="fc-username-submit">Profil-Check ansehen ↗</button>
-            </form>
-            <div class="fc-username-result" id="fc-username-result" role="status" aria-live="polite" hidden>
-              <div class="fc-username-result-top"><div class="fc-username-avatar" id="fc-username-avatar" aria-hidden="true">@</div><div><strong id="fc-username-name">Instagram-Profil</strong><p id="fc-username-state">Verbindung wird geprüft …</p></div></div>
-              <div class="fc-username-progress" id="fc-username-progress" aria-hidden="true"><span></span></div>
-            </div>
-            <p class="fc-username-note" id="fc-username-privacy">Diese Vorschau fragt nur unseren eigenen FollowClean-Worker. Kein Instagram-Login, kein Profil-Scraping, keine externen API-Kosten. Deine bisherige ZIP-Analyse bleibt kostenlos.</p>
-          </section>
           <div class="fc-v4-export-strip" role="note">
             <div><span class="fc-v4-export-title">Dein Instagram-Export in 3 Einstellungen</span><span class="fc-v4-export-tags"><strong>Follower &amp; Gefolgt</strong><strong>Gesamter Zeitraum</strong><strong>JSON</strong></span></div>
             <a href="https://accountscenter.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Offizielle Meta-Kontenübersicht in einem neuen Tab öffnen">Meta-Kontenübersicht öffnen ↗</a>
@@ -3091,7 +3250,7 @@ $('delete-local-btn').addEventListener('click',()=>{
                   <div class="export-ready"><span aria-hidden="true">📁</span><div><strong>Auf dem iPhone:</strong> Dateien → Downloads<small>Die ZIP nicht entpacken, einfach bei FollowClean auswählen.</small></div></div>
                   <button id="fc-export-requested" class="fc-save-wait" type="button" aria-pressed="false"><span aria-hidden="true">✓</span> Export angefordert? Hier für später merken</button>
                   <p class="fc-export-wait-note">Das merkt sich nur dein Browser, ohne Konto oder persönliche Daten.</p>
-                  <a class="export-back-upload" href="#dropzone">ZIP da? Jetzt kostenlos auswerten <span aria-hidden="true">↓</span></a>
+                  <a class="export-back-upload" href="#dropzone">ZIP da? Jetzt auswerten <span aria-hidden="true">↓</span></a>
                 </div>
               </article>
             </div>
@@ -3099,7 +3258,7 @@ $('delete-local-btn').addEventListener('click',()=>{
           </section>
             </div>
           </div>
-<div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt kostenlos prüfen</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
+<div class="upload-section-heading" id="upload-here"><span class="section-index">DATEI BEREIT?</span><h3>Jetzt auswerten</h3><p>Instagram-ZIP aus „Dateien“ auswählen. Die Anzahl der Nicht-Rückfolger erscheint danach sofort.</p></div>
           <p id="fc-v3-history-return" class="fc-v3-return" role="status" hidden></p>
           <details class="fc-v4-backup-restore" id="fc-v4-backup-restore">
             <summary>Verlauf aus privater Sicherung wiederherstellen <span aria-hidden="true">⌄</span></summary>
@@ -3292,11 +3451,11 @@ $('delete-local-btn').addEventListener('click',()=>{
             </div>
           </details>
           <div class="free-result-cta" id="free-result-cta">
-            <div class="free-result-cta-copy"><span class="free-result-eyebrow">DEIN NÄCHSTER SCHRITT</span><span class="fc-beta-free-pill">Aktuell ebenfalls gratis</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
+            <div class="free-result-cta-copy"><span class="free-result-eyebrow">DEIN NÄCHSTER SCHRITT</span><span class="fc-beta-free-pill">In Premium enthalten</span><h3>Du weißt jetzt, wie viele es sind.</h3><p>Du möchtest auch wissen, <strong>welche Accounts</strong> dir nicht zurückfolgen? Öffne die Liste und entscheide selbst, wem du weiter folgst.</p></div>
             <button id="open-list-btn" class="free-result-button" type="button" aria-expanded="false" aria-controls="detail-view">Vollständige Liste anzeigen <span aria-hidden="true">↓</span></button>
-            <p class="free-result-note">Die Liste bleibt kostenlos. Echte Zahlungen sind deaktiviert; optional kannst du unten eine Stripe-Testbestellung ausprobieren.</p>
+            <p class="free-result-note">Teil deines Premium-Zugangs. Die Auswertung bleibt lokal auf deinem Gerät.</p>
           </div>
-          <details class="fc-premium-preview" id="premium-preview">
+          <details class="fc-premium-preview fc-retired" id="premium-preview" hidden>
             <summary class="fc-premium-summary">
               <span class="fc-premium-summary-icon" aria-hidden="true">✦</span>
               <span class="fc-premium-summary-text"><strong>Premium-Testkauf</strong><small>Jetzt Stripe-Testbestellung ausprobieren. Alle Beta-Funktionen bleiben gratis.</small></span>
@@ -3357,7 +3516,7 @@ $('delete-local-btn').addEventListener('click',()=>{
 
       <section class="features" aria-label="Deine Vorteile"><div><div class="feature-icon" aria-hidden="true">01</div><h3>Kein Fanclub.</h3><p>Deine Aufmerksamkeit ist wertvoll. Du musst niemandem folgen, nur weil er viele Follower hat.</p></div><div><div class="feature-icon" aria-hidden="true">02</div><h3>Klarheit statt Rätselraten.</h3><p>Entdecke Nicht-Rückfolger mit deinem Instagram-Export, ohne jeden Account einzeln zu suchen.</p></div><div><div class="feature-icon" aria-hidden="true">03</div><h3>Du entscheidest.</h3><p>Behalt Menschen, die du magst. Räume einseitige Follows nur dann auf, wenn du es wirklich willst.</p></div></section>
 
-      <section class="fc-test-store" id="testkauf" aria-labelledby="fc-test-store-title">
+      <section class="fc-test-store fc-retired" id="testkauf" aria-labelledby="fc-test-store-title" hidden>
         <div class="fc-test-store-badge"><span aria-hidden="true">●</span> STRIPE TESTMODUS · 0 € ECHTE ZAHLUNG</div>
         <div class="fc-test-store-head"><div><h2 id="fc-test-store-title">Teste unseren Premium-Checkout.</h2><p>1 € Testpreis, 100 % kostenlos mit <strong>RIO</strong>. Die Bestellung wird bei Stripe ausschließlich als Test erfasst. Deine Instagram-Datei bleibt auf deinem Gerät.</p></div><strong>1,00 € <small>simuliert</small></strong></div>
         <div class="fc-test-store-actions"><a class="fc-sandbox-buy" href="https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00" target="_blank" rel="noopener noreferrer">Testkauf starten <span aria-hidden="true">↗</span></a><button data-copy-rio class="fc-rio-copy" type="button">RIO kopieren · 100 % Rabatt</button></div>

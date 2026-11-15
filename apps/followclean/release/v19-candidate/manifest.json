@@ -1,0 +1,23 @@
+{
+  "product": "FollowClean",
+  "worker": "followclean-mvp-preview",
+  "release": "V19-candidate (Premium Conversion)",
+  "deployed": false,
+  "status": "Candidate, NOT deployed. Contains V18 + username-first conversion flow, honest free scan, Stripe TEST premium unlock, ZIP area behind premium.",
+  "source_commit": "see git log: commit containing this manifest",
+  "artifact": {"path": "apps/followclean/release/v19-candidate/worker.mjs", "sha256": "155fb44dfd8dc3cdc0594b710025f1110913cc26c9d5194cb23d1345e11752d4", "bytes": 446624},
+  "index_html_sha256": "dab41c1c32b3b5156f2ea790eb54f3bad1daa515e0de048d0d575ebcd5767034",
+  "prerequisites": [
+    "V18 step B: FC_APIFY_BUDGET_DB bound to followclean-db 28194058-2779-4b6d-ab81-b38459d5f6a8 (tables fc_premium_orders_v1 + fc_rate_limit_v1 already created there 2026-11-15)",
+    "Stripe TEST-mode webhook to /api/premium/webhook for checkout.session.completed and checkout.session.async_payment_succeeded",
+    "Secret FC_STRIPE_WEBHOOK_SECRET (whsec_..., TEST) set by Rio; optional FC_STRIPE_PAYMENT_LINK_ID"
+  ],
+  "secrets_expected_unchanged": ["FC_APIFY_TOKEN", "FC_IG_SESSION_SECRET"],
+  "secrets_new": ["FC_STRIPE_WEBHOOK_SECRET (to be created by Rio, never by Claude)"],
+  "safety": {
+    "paid_provider_execution": "disabled (/api/analysis/start -> 503, /api/scan/free -> NO_RELIABLE_LIVE_RESULT, cost 0)",
+    "apify_network_calls": 0,
+    "real_payments": "off; live-mode Stripe events rejected; only cs_test_ sessions stored",
+    "unlock_without_webhook_secret": "fails closed (503)"
+  }
+}

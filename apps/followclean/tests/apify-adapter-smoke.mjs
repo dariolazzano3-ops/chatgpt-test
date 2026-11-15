@@ -119,7 +119,7 @@ await test('provider start remains disabled even when a username is supplied',as
 });
 await test('HTML preserves local ZIP, noindex, and Stripe sandbox',async()=>{
   const html=await (await request('/')).text();
-  for(const phrase of ['function analyzeFiles(', 'id="fc-username-form"',
+  for(const phrase of ['function analyzeFiles(', 'id="fc-analyze-form"',
     'id="fc-cost-guard"','buy.stripe.com/test_','noindex']){
     assert.ok(html.includes(phrase),phrase);
   }
