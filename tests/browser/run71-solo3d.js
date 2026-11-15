@@ -40,6 +40,7 @@ const H = (c, n, a = []) => c.page.evaluate(([n, a]) => window.__ziegenalarm[n](
     if (carried) { const sp = carried.match.players.find(p => p.role === 'sheep');
       await dset(code, `k=ppos&id=${me.id}&x=${(sp.x + 6).toFixed(1)}&z=${(sp.z + 6).toFixed(1)}`); await sleep(1200);
       const s2 = (await dbg(code)).match.players.find(p => p.role === 'sheep'); await H(A, 'aim', [s2.x, 0.8, s2.z]); await sleep(1500);
+      { const kc = (await K(A)).sheep.find(s => s.carry); if (kc) { await dset(code, `k=ppos&id=${me.id}&x=${(kc.x + 4.5).toFixed(1)}&z=${(kc.z + 4.5).toFixed(1)}`); await sleep(900); const kc2 = (await K(A)).sheep.find(s => s.carry) || kc; await H(A, 'aim', [kc2.x, 0.7, kc2.z]); await sleep(1200); } }
       const k = await K(A); check('Client zeigt den Kuchen auf dem KI-Schaf', k.sheep.some(s => s.carry) && !k.tableCake, 'Tisch-Kuchen sichtbar: ' + k.tableCake);
       await A.page.screenshot({ path: path.join(shots, 'ki-schaf-klaut.png'), timeout: 240000 });
       check('Omi reagiert (Untertitel)', !!await until(async () => (await K(A)).omiSub.length > 0, 8000), (await K(A)).omiSub); }
@@ -49,7 +50,7 @@ const H = (c, n, a = []) => c.page.evaluate(([n, a]) => window.__ziegenalarm[n](
     const B = await client('Shaun', { width: 1280, height: 720 }); const code2 = await solo(B, 'sheep', 'hard');
     await dset(code2, 'k=phaseT&v=0'); await sleep(9000);
     d = await dbg(code2); const df = d.match.players.find(p => p.role === 'def'), sm = d.players.find(p => !p.bot);
-    await dset(code2, `k=ppos&id=${sm.id}&x=${(df.x + 4).toFixed(1)}&z=${(df.z + 9).toFixed(1)}`); await sleep(1500);
+    await dset(code2, `k=ppos&id=${sm.id}&x=13&z=13`); await sleep(1500);
     await B.page.evaluate(([x, z]) => window.__ziegenalarm.aim(x, 1.4, z), [df.x, df.z]); await sleep(3000);
     const kb = await K(B); const mt = kb.mateNames.find(m => /KI/.test(m.name));
     check('KI-Wächter als 3D-Figur mit KI-Namen', !!(mt && mt.vis), mt && mt.name);

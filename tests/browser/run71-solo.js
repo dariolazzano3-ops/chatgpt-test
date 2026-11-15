@@ -65,7 +65,7 @@ const vis = (c, id) => c.page.evaluate(id => { const e = document.getElementById
     check('KI-Wächter (Schwer) im Raum', botD && botD.team === 0 && botD.name === 'KI · Wächter (Schwer)', botD && botD.name);
     const mate = await until(async () => { const kk = await K(A); return kk.mateNames.find(m => /KI/.test(m.name) && m.vis); }, 6000);
     check('KI-Wächter als 3D-Figur mit KI-Namen sichtbar', !!mate, mate ? mate.name : JSON.stringify((await K(A)).mateNames));
-    await dset(s2.code, 'k=phaseT&v=0'); await sleep(12000); d = await dbg(s2.code); const dp = d.match.players.find(p => p.role === 'def');
+    await dset(s2.code, 'k=phaseT&v=0'); await until(async () => { const x = await dbg(s2.code); return x.match.kills > 0 && x.match.players.find(p => p.role === 'def').shots > 0; }, 40000, 1000); d = await dbg(s2.code); const dp = d.match.players.find(p => p.role === 'def');
     check('KI-Wächter schießt auf Ziegen', dp.shots > 0 && d.match.kills > 0, dp.shots + ' Schüsse, ' + d.match.kills + ' Kills, Zustand ' + dp.botState);
     check('KI-Wächter ohne Regelverstöße', !dp.wallRejects && !dp.speedRejects, JSON.stringify(dp.rejects));
     await A.page.click('#rsMenu').catch(() => {}); await A.ctx.close();
