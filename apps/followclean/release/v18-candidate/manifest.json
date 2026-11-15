@@ -1,0 +1,53 @@
+{
+  "product": "FollowClean",
+  "worker": "followclean-mvp-preview",
+  "deployed": false,
+  "secrets_expected_unchanged": [
+    "FC_APIFY_TOKEN",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "optional_unbound": [
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET"
+  ],
+  "safety": {
+    "paid_provider_execution": "disabled (POST /api/analysis/start -> 503)",
+    "apify_network_calls": 0,
+    "real_payments": "off",
+    "d1_writes_by_worker": 0
+  },
+  "release": "V18-candidate",
+  "status": "Candidate, NOT released. Contains V17.1 plus Export+Checker V1 dry run (endpoint provider/export-check/plan). Binding switch to followclean-db is a SEPARATE release step.",
+  "source_commit": "5500edb13dd6306bf32f8e670b43ca3ef228f9f8",
+  "artifact": {
+    "path": "apps/followclean/release/v18-candidate/worker.mjs",
+    "sha256": "73a0fcbc742b799e8eafc232ffefd637ef970568600e74b92e5c23d85d306709",
+    "bytes": 418300
+  },
+  "index_html_sha256": "462f99a38d256ccbc88a404b0c87cb3b6246d54e742bdfa895eda02d658bc93a",
+  "env_referenced": [
+    "FC_APIFY_BUDGET_DB",
+    "FC_APIFY_TOKEN",
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "d1_binding": {
+    "name": "FC_APIFY_BUDGET_DB",
+    "database": "chatgpt-test-db",
+    "database_id": "24bce336-3a04-4517-bd12-c9e713068d58",
+    "change": "none in this artifact; switch target followclean-db 28194058-2779-4b6d-ab81-b38459d5f6a8 is a separate step"
+  },
+  "reproduce": "git worktree add --detach /tmp/v17 8eda8894dee0e79172fa0ec0dee53e1c50c8a739 && cd /tmp/v17 && node apps/followclean/tests/release-verify.mjs",
+  "tests_at_source_commit": {
+    "existing_five_suites": "59/59",
+    "ledger_orchestration": "18/18",
+    "ledger_hardening": "18/18",
+    "chrome_ux_390px": "19/19",
+    "release_gates": "8/8",
+    "webkit_safari": "NOT RUN"
+  },
+  "contains_v18_code": false,
+  "rollback": "previous active version (V16) to 100 %; no data migration involved",
+  "source_note": "branch head plus committed test change in export-checker-v1-smoke.mjs"
+}

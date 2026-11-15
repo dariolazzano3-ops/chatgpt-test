@@ -1,0 +1,53 @@
+{
+  "product": "FollowClean",
+  "worker": "followclean-mvp-preview",
+  "deployed": false,
+  "secrets_expected_unchanged": [
+    "FC_APIFY_TOKEN",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "optional_unbound": [
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET"
+  ],
+  "safety": {
+    "paid_provider_execution": "disabled (POST /api/analysis/start -> 503)",
+    "apify_network_calls": 0,
+    "real_payments": "off",
+    "d1_writes_by_worker": 0
+  },
+  "release": "V17.1",
+  "status": "Hotfix (green visited), GO by architecture; Cloudflare Version per release owner: 5c754246-0a46-4615-85e9-21ef04153be6; rollback V16 315389f2-6138-4ca2-84a3-14a43b442f5e",
+  "source_commit": "aefb0aaed8c8edd469303ae987b53b3a3731213d",
+  "artifact": {
+    "path": "apps/followclean/release/v17.1/worker.mjs",
+    "sha256": "e22c5ee0f3602f87f9ee4f1368a629f257651913b7762c2fda2118a1473f68b8",
+    "bytes": 410967
+  },
+  "index_html_sha256": "8980157ab62f72c901e3e7b2312b76f4210711aa9bb773a0010d3c7d1c2cdcec",
+  "env_referenced": [
+    "FC_APIFY_BUDGET_DB",
+    "FC_APIFY_TOKEN",
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "d1_binding": {
+    "name": "FC_APIFY_BUDGET_DB",
+    "database": "chatgpt-test-db",
+    "database_id": "24bce336-3a04-4517-bd12-c9e713068d58",
+    "change": "none"
+  },
+  "reproduce": "git worktree add --detach /tmp/v17 8eda8894dee0e79172fa0ec0dee53e1c50c8a739 && cd /tmp/v17 && node apps/followclean/tests/release-verify.mjs",
+  "tests_at_source_commit": {
+    "existing_five_suites": "59/59",
+    "ledger_orchestration": "18/18",
+    "ledger_hardening": "18/18",
+    "chrome_ux_390px": "19/19",
+    "release_gates": "8/8",
+    "webkit_safari": "NOT RUN"
+  },
+  "contains_v18_code": false,
+  "rollback": "previous active version (V16) to 100 %; no data migration involved",
+  "source_branch": "factory/followclean-v17-green-visited-hotfix-20261115"
+}

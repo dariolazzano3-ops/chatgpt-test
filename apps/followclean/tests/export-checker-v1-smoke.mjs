@@ -161,6 +161,43 @@ await test('Endpoint: foreign origin, wrong type, oversized, malformed and unaut
   assert.equal((await post({account:me,usernames:ghosts.slice(0,11)})).status,403);
   const get=await built.fetch(new Request(origin+'/api/analysis/provider/export-check/plan'),{},{waitUntil(){}});
   assert.notEqual(get.status,200);});
+// The acceptance check for the binding switch: worker bound to a database that carries the
+// pilot ledger (here SQLite with the real migration behind a D1-shaped shim).
+function boundEnv(){
+  const raw=new DatabaseSync(':memory:');raw.exec(sql);
+  const cutArgs=(q,a)=>a.slice(0,Math.max(0,...[...q.matchAll(/\?(\d+)/g)].map(m=>+m[1])));
+  const stmt=(q,a=[])=>({bind:(...b)=>stmt(q,b),run:async()=>({meta:{changes:Number(raw.prepare(q).run(...cutArgs(q,a)).changes)}}),
+    first:async()=>raw.prepare(q).get(...cutArgs(q,a))??null});
+  return {env:{FC_APIFY_BUDGET_DB:{prepare:q=>stmt(q)}},raw};
+}
+const postEnv=(env,body)=>built.fetch(new Request(origin+'/api/analysis/provider/export-check/plan',
+  {method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)}),env,{waitUntil(){}});
+await test('Bound to the ledger database: 0.05 USD committed, 0.15 USD left, 3 runs possible',async()=>{
+  const {env}=boundEnv();
+  const j=await (await postEnv(env,{account:me,usernames:ghosts.slice(0,10)})).json();
+  assert.deepEqual([j.ledger.ok,j.ledger.scope,j.ledger.committedUsd,j.ledger.remainingUsd,j.ledger.startableRuns,j.ledger.overBudget],
+    [true,'pilot-ysrrioo-v1',0.05,0.15,3,false]);
+  assert.deepEqual([j.executionEnabled,j.actorRunsStarted],[false,0]);});
+await test('The dry run never writes: repeated plans leave the ledger untouched',async()=>{
+  const {env,raw}=boundEnv();
+  const before=JSON.stringify(raw.prepare('SELECT * FROM fc_apify_v2_runs ORDER BY run_key').all());
+  for(let i=0;i<5;i++)await postEnv(env,{account:me,usernames:ghosts.slice(i,i+10)});
+  await postEnv(env,{account:'other',usernames:['a']});
+  assert.equal(JSON.stringify(raw.prepare('SELECT * FROM fc_apify_v2_runs ORDER BY run_key').all()),before);});
+await test('Exhausted or overrun ledger is reported honestly, still nothing starts',async()=>{
+  const {env,raw}=boundEnv();
+  for(const k of ['a','b','c'])raw.exec("INSERT INTO fc_apify_v2_runs (run_key,scope,kind,cap_usd_micros,state,created_ts,updated_ts) VALUES ('"+k.repeat(64)+"','pilot-ysrrioo-v1','checker',50000,'reserved',1,1)");
+  let j=await (await postEnv(env,{account:me,usernames:['ghost1']})).json();
+  assert.deepEqual([j.ledger.remainingUsd,j.ledger.startableRuns,j.ledger.overBudget],[0,0,false]);
+  raw.exec("UPDATE fc_apify_v2_runs SET state='failed', actual_usd_micros=90000 WHERE run_key='"+'a'.repeat(64)+"'");
+  j=await (await postEnv(env,{account:me,usernames:['ghost1']})).json();
+  assert.deepEqual([j.ledger.startableRuns,j.ledger.overBudget,j.actorRunsStarted],[0,true,0]);});
+await test('A database without the ledger (old shared DB) reports unavailable instead of failing',async()=>{
+  const raw=new DatabaseSync(':memory:');
+  const env={FC_APIFY_BUDGET_DB:{prepare:q=>({bind:()=>({first:async()=>raw.prepare(q).get()})})}};
+  const res=await postEnv(env,{account:me,usernames:['ghost1']});
+  assert.equal(res.status,200);
+  const j=await res.json();assert.deepEqual([j.ledger.ok,j.ledger.reason,j.ledger.startableRuns],[false,'ledger_unavailable',0]);});
 await test('Paid execution remains disabled',async()=>{
   const res=await built.fetch(new Request(origin+'/api/analysis/start',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{"username":"ysrrioo"}'}),{},{waitUntil(){}});
   assert.equal(res.status,503);assert.equal((await res.json()).error,'paid_provider_not_enabled');});

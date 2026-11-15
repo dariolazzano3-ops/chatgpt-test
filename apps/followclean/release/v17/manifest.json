@@ -1,0 +1,52 @@
+{
+  "product": "FollowClean",
+  "worker": "followclean-mvp-preview",
+  "deployed": false,
+  "secrets_expected_unchanged": [
+    "FC_APIFY_TOKEN",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "optional_unbound": [
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET"
+  ],
+  "safety": {
+    "paid_provider_execution": "disabled (POST /api/analysis/start -> 503)",
+    "apify_network_calls": 0,
+    "real_payments": "off",
+    "d1_writes_by_worker": 0
+  },
+  "release": "V17",
+  "status": "GO by architecture, awaiting deployment by the Cloudflare release owner",
+  "source_commit": "8eda8894dee0e79172fa0ec0dee53e1c50c8a739",
+  "artifact": {
+    "path": "apps/followclean/release/v17/worker.mjs",
+    "sha256": "2a5a4b383d0fca5298219eb0f71afe91eb3ce23ede07b40568e9eb56759400b1",
+    "bytes": 409917
+  },
+  "index_html_sha256": "e7602b00ab05c96e7717d696ecd20aecfc2c5e0b348fd72959f36176df434df1",
+  "env_referenced": [
+    "FC_APIFY_BUDGET_DB",
+    "FC_APIFY_TOKEN",
+    "FC_IG_CLIENT_ID",
+    "FC_IG_CLIENT_SECRET",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "d1_binding": {
+    "name": "FC_APIFY_BUDGET_DB",
+    "database": "chatgpt-test-db",
+    "database_id": "24bce336-3a04-4517-bd12-c9e713068d58",
+    "change": "none"
+  },
+  "reproduce": "git worktree add --detach /tmp/v17 8eda8894dee0e79172fa0ec0dee53e1c50c8a739 && cd /tmp/v17 && node apps/followclean/tests/release-verify.mjs",
+  "tests_at_source_commit": {
+    "existing_five_suites": "59/59",
+    "ledger_orchestration": "18/18",
+    "ledger_hardening": "18/18",
+    "chrome_ux_390px": "19/19",
+    "release_gates": "8/8",
+    "webkit_safari": "NOT RUN"
+  },
+  "contains_v18_code": false,
+  "rollback": "previous active version (V16) to 100 %; no data migration involved"
+}
