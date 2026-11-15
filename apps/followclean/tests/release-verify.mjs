@@ -70,6 +70,20 @@ await gate('Built worker answers in-process: page 200, paid start 503, dry-run e
   assert.equal(status.status,200);
   const s=await status.json();assert.equal(s.executionEnabled??s.execution?.enabled??false,false);});
 
+
+await gate('Visited profiles glow green without an automatic unfollow confirmation',()=>{
+  const start=html.indexOf('function completeVisitOnReturn()');
+  const end=html.indexOf('function showReturnPrompt',start);
+  assert.ok(start>0&&end>start,'return lifecycle missing');
+  const body=html.slice(start,end);
+  assert.ok(!body.includes('showReturnPrompt('),'return still opens the old confirmation popup');
+  assert.ok(!/setStatus\s*\([^,]+,\s*['"]done['"]/.test(body),'return should not claim unfollowing');
+  assert.ok(html.includes("status === 'opened' ? '✓ Profil besucht · Entfolgen nicht bestätigt'"),
+    'visited status label missing');
+  assert.ok(/\/\* V17\.1:/.test(html)&&html.includes('border-left:4px solid #14a45f'),
+    'automatic green visited highlight missing');
+});
+
 const manifest={product:'FollowClean',target:'Cloudflare Worker followclean-mvp-preview (existing preview only)',
   deployed:false,node:process.version,
   sha256:{'index.html':sha(html),'worker.instagram-template.mjs':sha(template),'dist/worker.mjs':sha(bundle)},
