@@ -76,3 +76,26 @@ Tatsächliche Preview-Version: unverändert V16 laut Projektdoku vom 14.11. (hie
 - Entweder ein Cloudflare-Zugang für die Entwicklungssitzung (Connector „Cloudflare Developer Platform“ oder ein auf den Worker `followclean-mvp-preview` beschränktes API-Token mit Workers-Skript-Rechten),
 - oder die Ausführung durch eine Instanz mit Zugang. Reihenfolge: Bindings und aktive Version lesen und notieren, `dist/worker.mjs` aus `8eda8894` als neue Version mit 0 % hochladen, Abnahmeliste oben über die Versions-URL prüfen, Safari-Abnahme auf einem echten iPhone, erst dann 100 %.
 - Für die Safari-Abnahme genügt ein iPhone mit der Versions-URL und einem echten oder synthetischen Export.
+
+## Nachtrag 15.11.2026, 09:05: Lesezugriff über den Cloudflare-Connector
+
+Der Connector „Cloudflare Developer Platform“ ist jetzt verbunden. Er bietet nur Lesen von Workern sowie D1-, KV-, R2- und Hyperdrive-Verwaltung. **Er hat keine Funktion zum Hochladen einer Worker-Version, zum Anlegen einer 0-%-Version oder zum Umschalten von Traffic.** Die Schritte 3, 4 und 6 bleiben damit unausgeführt.
+
+Nur lesend verifiziert:
+
+| Punkt | Befund |
+|---|---|
+| Worker `followclean-mvp-preview` | existiert, Skript-ID `0adeba082a9e4aaba5a839cbcdda45ea` |
+| D1 mit den FollowClean-Budgettabellen | `chatgpt-test-db`, ID `24bce336-3a04-4517-bd12-c9e713068d58`. **Dieselbe Datenbank ist in der `wrangler.jsonc` des anderen Workers `chatgpt-test` als `DB` gebunden**, wird also von zwei Projekten geteilt |
+| Vorhandene FollowClean-Objekte | `fc_apify_budget_reservations_v1` mit zwei Triggern, `fc_apify_token_diagnostics_v1` (bisher undokumentiert) |
+| V2-Pilot-Ledger `fc_apify_v2_runs` | nicht vorhanden. Die Migration ist nachweislich nicht angewendet |
+| Budgetzeilen | genau eine: `fc-single-actor-20261113`, 0,05 USD reserviert, Zustand `settled`. Deckt sich mit der Vorbelegung im Pilot-Ledger |
+| Token-Diagnose vom 13.11. | Apify-Benutzerendpunkt HTTP 403, Actor-Runs HTTP 404. Passt zu einem eingeschränkten Token ohne Rechte auf die beiden Actors |
+
+Nicht verifizierbar mit diesem Connector: die Bindings des Workers, die aktive Versions-ID und damit die tatsächliche V16-Rollback-Version, sowie die Versionsliste. Den Live-Code habe ich nicht abgerufen (rund 400 KB).
+
+Es wurden ausschließlich SELECT-Abfragen ausgeführt. Keine Schreibvorgänge, keine Migration.
+
+### Folgen
+- Die spätere Migration `fc_apify_budget_v2_pilot.sql` träfe eine mit einem anderen Projekt geteilte Datenbank. Sie legt nur Objekte mit Präfix `fc_apify_v2`/`tr_fc_apify_v2` an, sollte aber bewusst freigegeben werden.
+- Der Connector ist laut eigener Angabe abgekündigt; der Nachfolger ist der Cloudflare-API-MCP-Server unter `https://mcp.cloudflare.com/mcp`. Für das Deployment braucht es diesen, ein Worker-beschränktes API-Token oder eine Instanz mit Wrangler-Zugang.
