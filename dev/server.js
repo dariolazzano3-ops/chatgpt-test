@@ -65,9 +65,10 @@ function handle(req, res) {
     const r = rooms.get(c); return r ? sendJson(res, r.publicInfo()) : sendJson(res, { exists: false }, 404); }
   if (u.pathname === '/api/new') {
     const mode = u.searchParams.get('mode') || 'kuchenkrieg', size = u.searchParams.get('size') || '1v1';
-    if (!MODES[mode] || !['1v1', '2v2', 'coop'].includes(size) || (size === 'coop' && !MODES[mode].coop)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"bad"}'); }
+    const role = u.searchParams.get('role') === 'sheep' ? 'sheep' : 'def', diff = ['easy', 'normal', 'hard'].includes(u.searchParams.get('diff')) ? u.searchParams.get('diff') : 'normal';
+    if (!MODES[mode] || !['1v1', '2v2', 'coop', 'solo'].includes(size) || (size === 'coop' && !MODES[mode].coop) || (size === 'solo' && !MODES[mode].bots)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"bad"}'); }
     let code; do code = newCode(); while (rooms.has(code));
-    rooms.set(code, new Room({ code, mode, size }, MODES));
+    rooms.set(code, new Room({ code, mode, size, role, diff }, MODES));
     return sendJson(res, { code });
   }
   if (DEBUG && u.pathname === '/api/debug') { // nur lokal mit DEBUG=1: Zustand für Tests

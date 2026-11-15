@@ -2,7 +2,9 @@
 // Transportunabhängig: eine "Verbindung" ist ein Objekt mit send(text) und close(). Spielregeln stecken in Modus-Objekten.
 export const TEAM_NAMES = ['Käse', 'Beere'];
 // coop: zwei Spieler im selben Team (nur Modi, die das unterstützen)
-const SIZES = { '1v1': 1, '2v2': 2, coop: 2 };
+const SIZES = { '1v1': 1, '2v2': 2, coop: 2, solo: 1 }; // solo: ein Mensch gegen einen KI-Gegner (V7.1)
+export const BOT_DIFFS = ['easy', 'normal', 'hard'];
+const DIFF_NAME = { easy: 'Leicht', normal: 'Mittel', hard: 'Schwer' };
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function newCode(rand = Math.random) { let s = ''; for (let i = 0; i < 5; i++) s += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)]; return s; }
 export function validCode(c) { return typeof c === 'string' && /^[A-HJ-NP-Z2-9]{5}$/.test(c); }
@@ -10,30 +12,41 @@ function cleanName(n) { n = String(n || '').replace(/[\u0000-\u001f<>]/g, '').tr
 function tok() { let s = ''; for (let i = 0; i < 24; i++) s += 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]; return s; }
 
 export class Room {
-  constructor({ code, mode, size, seed }, modes) {
+  constructor({ code, mode, size, seed, role, diff }, modes) {
     if (!modes[mode]) throw new Error('unknown mode');
     if (!SIZES[size]) throw new Error('unknown size');
     if (size === 'coop' && !modes[mode].coop) throw new Error('coop not supported');
+    if (size === 'solo' && !modes[mode].bots) throw new Error('solo not supported');
     this.code = code; this.modeId = mode; this.mode = modes[mode]; this.size = size; this.perTeam = SIZES[size]; this.coop = size === 'coop';
     this.seed = seed ?? Math.floor(Math.random() * 1e9);
     this.players = []; this.state = 'lobby'; this.countdown = 0; this.match = null; this.results = null; this.nextId = 1;
     this.conns = new Map(); // conn -> player
     this.pending = new Map(); // Verbindungen ohne "hello" -> Zeitpunkt
     this.lastActive = Date.now(); this.errors = 0;
+    this.solo = size === 'solo'; this.soloTeam = role === 'sheep' ? 1 : 0;
+    if (this.solo) this.addBot(1 - this.soloTeam, BOT_DIFFS.includes(diff) ? diff : 'normal');
+  }
+  // KI-Teilnehmer: belegt einen normalen Platz (Kapazität und Teamgrößen gelten), ist immer bereit, klar als KI benannt
+  addBot(team, diff) {
+    if (!this.mode.bots || this.state !== 'lobby' || this.coop) return false;
+    if (this.players.length >= this.capacity || this.players.filter(x => x.team === team).length >= this.perTeam) return false;
+    const role = this.mode.teamNames ? this.mode.teamNames[team] : TEAM_NAMES[team];
+    const p = { id: this.nextId++, name: 'KI · ' + (team ? 'Schaf' : 'Wächter') + ' (' + DIFF_NAME[diff] + ')', team, ready: true, conn: null, connected: true, bot: true, diff, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0, role };
+    this.players.push(p); this.sync(); return true;
   }
   get capacity() { return this.coop ? 2 : this.perTeam * 2; }
   info() {
     return { t: 'room', code: this.code, mode: this.modeId, size: this.size, state: this.state, countdown: +this.countdown.toFixed(2),
-      teams: this.mode.teamNames || TEAM_NAMES, players: this.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, rematch: !!p.rematch })) };
+      teams: this.mode.teamNames || TEAM_NAMES, solo: this.solo, bots: !!this.mode.bots, players: this.players.map(p => ({ id: p.id, name: p.name, team: p.team, ready: p.ready, connected: p.connected, rematch: !!p.rematch, bot: !!p.bot, diff: p.diff })) };
   }
-  send(p, msg) { if (p.conn && p.connected) { try { p.conn.send(JSON.stringify(msg)); } catch (e) { } } }
-  broadcast(msg) { const s = JSON.stringify(msg); for (const p of this.players) if (p.conn && p.connected) { try { p.conn.send(s); } catch (e) { } } }
+  send(p, msg) { if (!p.bot && p.conn && p.connected) { try { p.conn.send(JSON.stringify(msg)); } catch (e) { } } }
+  broadcast(msg) { const s = JSON.stringify(msg); for (const p of this.players) if (!p.bot && p.conn && p.connected) { try { p.conn.send(s); } catch (e) { } } }
   sync() { this.broadcast(this.info()); }
 
   // Höchstens 12 Sockets pro Raum; wer sich nicht innerhalb von 10 s anmeldet, wird getrennt.
   open(conn) { this.lastActive = Date.now(); if (this.conns.size + this.pending.size >= 12) { try { conn.send(JSON.stringify({ t: 'error', code: 'busy', msg: 'Zu viele Verbindungen in diesem Raum.' })); conn.close(); } catch (e) { } return false; }
     this.pending.set(conn, Date.now()); return true; }
-  publicInfo() { return { exists: true, mode: this.modeId, size: this.size, state: this.state, players: this.players.length, capacity: this.capacity, full: this.players.length >= this.capacity }; }
+  publicInfo() { return { exists: true, mode: this.modeId, size: this.size, state: this.state, players: this.players.length, capacity: this.capacity, full: this.players.length >= this.capacity || this.solo }; }
   message(conn, raw) {
     this.lastActive = Date.now();
     if (typeof raw === 'string' && raw.length > 4096) return; // übergroße Nachrichten verwerfen
@@ -47,7 +60,9 @@ export class Room {
     if (msg.seq != null) { if (typeof msg.seq !== 'number' || msg.seq <= p.lastSeq) { p.dupes++; return; } p.lastSeq = msg.seq; }
     switch (msg.t) {
       case 'ready': if (this.state === 'lobby') { p.ready = !!msg.v; this.sync(); } break;
-      case 'team': if (this.state === 'lobby' && !this.coop) { const t = msg.v === 1 ? 1 : 0; if (t !== p.team && this.players.filter(x => x.team === t).length < this.perTeam) { p.team = t; p.ready = false; this.sync(); } } break;
+      case 'addbot': if (this.state === 'lobby' && !this.solo && (msg.team === 0 || msg.team === 1)) this.addBot(msg.team, BOT_DIFFS.includes(msg.diff) ? msg.diff : 'normal'); break;
+      case 'kickbot': if (this.state === 'lobby' && !this.solo) { const b = this.players.find(x => x.bot && x.id === msg.id); if (b) this.remove(b); } break;
+      case 'team': if (this.state === 'lobby' && !this.coop && !this.solo) { const t = msg.v === 1 ? 1 : 0; if (t !== p.team && this.players.filter(x => x.team === t).length < this.perTeam) { p.team = t; p.ready = false; this.sync(); } } break;
       case 'leave': this.remove(p); break;
       case 'rematch': if (this.state === 'results') { p.rematch = true; this.sync(); } break;
       case 'lobby': if (this.state === 'results') { this.toLobby(); } break;
@@ -66,7 +81,7 @@ export class Room {
     if (this.state !== 'lobby') { try { conn.send(JSON.stringify({ t: 'error', code: 'started', msg: 'Das Spiel in diesem Raum läuft schon.' })); conn.close(); } catch (e) { } return; }
     if (this.players.length >= this.capacity) { try { conn.send(JSON.stringify({ t: 'error', code: 'full', msg: 'Der Raum ist voll.' })); conn.close(); } catch (e) { } return; }
     const c0 = this.players.filter(x => x.team === 0).length, c1 = this.players.filter(x => x.team === 1).length;
-    const p = { id: this.nextId++, name: cleanName(msg.name), team: this.coop ? 0 : (c0 <= c1 ? 0 : 1), ready: false, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
+    const p = { id: this.nextId++, name: cleanName(msg.name), team: this.solo ? this.soloTeam : this.coop ? 0 : (c0 <= c1 ? 0 : 1), ready: false, conn, connected: true, token: tok(), lastSeq: 0, dupes: 0, rateT: 0, rateN: 0, goneAt: 0 };
     this.players.push(p); this.conns.set(conn, p);
     this.send(p, { t: 'welcome', you: p.id, token: p.token, code: this.code, lastSeq: 0 });
     this.sync();
@@ -81,7 +96,7 @@ export class Room {
   toLobby() { this.state = 'lobby'; this.match = null; this.results = null; for (const p of this.players) { p.ready = false; p.rematch = false; } this.sync(); }
   startMatch() { this.seed = (this.seed * 1103515245 + 12345) >>> 0; this.match = this.mode.create(this); this.state = 'match'; this.results = null;
     for (const p of this.players) { p.ready = false; p.rematch = false; } this.sync(); }
-  connectedCount() { return this.players.filter(p => p.connected).length; }
+  connectedCount() { return this.players.filter(p => p.connected && !p.bot).length; }
   // Fehler im Spielmodus dürfen den Server nicht abstürzen lassen: protokollieren, bei Häufung zurück in die Lobby.
   fault(e) { this.errors++; try { console.error('room ' + this.code + ':', e && e.stack || e); } catch (x) { }
     if (this.errors >= 5 && this.state === 'match') { this.errors = 0; this.broadcast({ t: 'error', code: 'server', msg: 'Serverfehler, das Spiel wurde abgebrochen.' }); this.toLobby(); } }
@@ -94,6 +109,7 @@ export class Room {
     if (this.state === 'lobby') {
       const full = this.players.length === this.capacity && (this.coop || [0, 1].every(t => this.players.filter(p => p.team === t).length === this.perTeam));
       const go = full && this.players.every(p => p.ready && p.connected);
+      if (go && this.solo) { this.countdown = 0; this.startMatch(); return; } // Solo: sofort los, kein Warten
       if (go) { if (this.countdown <= 0) { this.countdown = 3; this.sync(); } else { this.countdown -= dt; if (this.countdown <= 0) { this.countdown = 0; this.startMatch(); } } }
       else if (this.countdown > 0) { this.countdown = 0; this.sync(); }
       return;
@@ -106,6 +122,7 @@ export class Room {
       return;
     }
     if (this.state === 'results') {
+      for (const b of this.players) if (b.bot) b.rematch = true; // KI will immer eine Revanche
       const con = this.players.filter(p => p.connected);
       if (this.players.length === this.capacity && con.length === this.capacity && con.every(p => p.rematch)) this.startMatch();
     }
