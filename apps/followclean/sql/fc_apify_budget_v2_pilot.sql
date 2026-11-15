@@ -42,7 +42,10 @@ END;
 -- ledger must record it truthfully, and the INSERT trigger then refuses every further run.
 --   reserved  -> submitted | failed
 --   submitted -> submitted (cost update) | settled | failed
---   settled, failed: terminal
+--   settled, failed: terminal. The state can never change again. The ONLY update still
+--   accepted is a late provider bill: reported cost may rise (never fall) and a missing
+--   run id may be filled in once. A failed run that Apify still charges is therefore
+--   recorded instead of silently lost, and counts against the total at once.
 CREATE TRIGGER IF NOT EXISTS tr_fc_apify_v2_update
 BEFORE UPDATE ON fc_apify_v2_runs
 BEGIN
@@ -50,11 +53,14 @@ BEGIN
     WHEN NEW.run_key <> OLD.run_key OR NEW.scope <> OLD.scope OR NEW.kind <> OLD.kind
       OR NEW.cap_usd_micros <> OLD.cap_usd_micros OR NEW.created_ts <> OLD.created_ts
       THEN RAISE(ABORT,'followclean_v2_immutable_field')
-    WHEN OLD.state IN ('settled','failed')
+    WHEN OLD.state IN ('settled','failed') AND NEW.state <> OLD.state
       THEN RAISE(ABORT,'followclean_v2_terminal_state')
     WHEN NOT ((OLD.state = 'reserved' AND NEW.state IN ('submitted','failed'))
-      OR (OLD.state = 'submitted' AND NEW.state IN ('submitted','settled','failed')))
+      OR (OLD.state = 'submitted' AND NEW.state IN ('submitted','settled','failed'))
+      OR (OLD.state IN ('settled','failed') AND NEW.state = OLD.state))
       THEN RAISE(ABORT,'followclean_v2_invalid_transition')
+    WHEN OLD.state IN ('settled','failed') AND NEW.actual_usd_micros IS NULL
+      THEN RAISE(ABORT,'followclean_v2_late_update_requires_cost')
     WHEN OLD.actual_usd_micros IS NOT NULL AND
       (NEW.actual_usd_micros IS NULL OR NEW.actual_usd_micros < OLD.actual_usd_micros)
       THEN RAISE(ABORT,'followclean_v2_cost_regression')

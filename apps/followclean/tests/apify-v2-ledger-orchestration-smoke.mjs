@@ -87,7 +87,7 @@ await test('Missing database, missing table and bad input all fail closed',async
   const broken={prepare(){throw Error('no such table')}};
   assert.deepEqual([(await api.fcV2Reserve(broken,k,'checker')).reason,(await api.fcV2BudgetStatus(broken)).startableRuns],['ledger_unavailable',0]);
   assert.equal((await api.fcV2Advance(d1(),k,'settled',{actualUsd:-1})).ok,false);
-  assert.equal((await api.fcV2Advance(d1(),k,'settled',{actualUsd:0.01})).reason,'unknown_run');});
+  assert.equal((await api.fcV2Advance(d1(),k,'settled',{actualUsd:0.01})).reason,'no_advanceable_run');});
 
 const full=(followers)=>({authorized:true,complete:true,followers:new Set(followers)});
 await test('Classification: confirmed only with complete authorized evidence',()=>{

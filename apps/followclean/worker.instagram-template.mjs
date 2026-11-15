@@ -299,10 +299,26 @@ async function fcV2Advance(db,runKey,state,detail={},now=Date.now()){
   try{
     // MAX() keeps reported cost monotonic even if provider polls arrive out of order.
     // The D1 trigger tr_fc_apify_v2_update independently enforces the same rules.
-    const res=await db.prepare('UPDATE fc_apify_v2_runs SET state=?2, actual_usd_micros=CASE WHEN ?3 IS NULL THEN actual_usd_micros ELSE MAX(COALESCE(actual_usd_micros,0),?3) END, provider_run_id=COALESCE(provider_run_id,?4), updated_ts=MAX(updated_ts,?5) WHERE run_key=?1 AND scope=?6')
+    const res=await db.prepare('UPDATE fc_apify_v2_runs SET state=?2, actual_usd_micros=CASE WHEN ?3 IS NULL THEN actual_usd_micros ELSE MAX(COALESCE(actual_usd_micros,0),?3) END, provider_run_id=COALESCE(provider_run_id,?4), updated_ts=MAX(updated_ts,?5) WHERE run_key=?1 AND scope=?6 AND state IN (\'reserved\',\'submitted\')')
       .bind(runKey,state,actual,runId,now,FC_V2_SCOPE).run();
-    return res?.meta?.changes===1?{ok:true}:{ok:false,reason:'unknown_run'};
+    return res?.meta?.changes===1?{ok:true}:{ok:false,reason:'no_advanceable_run'};
   }catch{return {ok:false,reason:'transition_rejected'};}
+}
+// Late provider bill for a run that already ended (failed or settled). Apify can charge a
+// run that failed, timed out or was aborted, and usage can be finalised after the run ends.
+// The state stays terminal; only the reported cost may rise. Because every row counts with
+// MAX(reserve, cost), a late bill can only shrink the remaining budget, never free any.
+async function fcV2RecordLateCost(db,runKey,actualUsd,detail={},now=Date.now()){
+  const actual=typeof actualUsd==='number'?Math.ceil(actualUsd*1e6):NaN;
+  if(!db||typeof runKey!=='string'||!Number.isSafeInteger(actual)||actual<0)return {ok:false,reason:'invalid_cost'};
+  const runId=typeof detail.providerRunId==='string'&&/^[A-Za-z0-9]{1,40}$/.test(detail.providerRunId)?detail.providerRunId:null;
+  try{
+    const res=await db.prepare('UPDATE fc_apify_v2_runs SET actual_usd_micros=MAX(COALESCE(actual_usd_micros,0),?2), provider_run_id=COALESCE(provider_run_id,?3), updated_ts=MAX(updated_ts,?4) WHERE run_key=?1 AND scope=?5 AND state IN (\'failed\',\'settled\')')
+      .bind(runKey,actual,runId,now,FC_V2_SCOPE).run();
+    if(res?.meta?.changes!==1)return {ok:false,reason:'no_finished_run'};
+    const budget=await fcV2BudgetStatus(db);
+    return {ok:true,overBudget:budget.overBudget??null,remainingUsd:budget.remainingUsd??0,startableRuns:budget.startableRuns};
+  }catch{return {ok:false,reason:'late_cost_rejected'};}
 }
 async function fcV2BudgetStatus(db){
   try{

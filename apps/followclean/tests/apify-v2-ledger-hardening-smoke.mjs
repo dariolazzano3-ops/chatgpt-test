@@ -17,7 +17,7 @@ assert.ok(i>=0&&j>i);
 const norm=v=>{if(typeof v!=='string')return null;const u=v.replace(/^@/,'').trim().toLowerCase();
   return /^[a-z0-9._]{1,30}$/.test(u)?u:null;};
 const api=new Function('fcNormalizeUsername','FC_V2_BATCH','FC_V2_FREE_FOLLOWING_CAP','FC_V2_ACTORS','fcV2MakeCheckerBatch',
-  worker.slice(i,j)+'\nreturn {fcV2RunKey,fcV2Reserve,fcV2Advance,fcV2BudgetStatus}')(norm,10,20,{},()=>({}));
+  worker.slice(i,j)+'\nreturn {fcV2RunKey,fcV2Reserve,fcV2Advance,fcV2BudgetStatus,fcV2RecordLateCost}')(norm,10,20,{},()=>({}));
 function d1(){
   const raw=new DatabaseSync(':memory:');raw.exec(sql);
   const cut=(q,a)=>a.slice(0,Math.max(0,...[...q.matchAll(/\?(\d+)/g)].map(m=>+m[1])));
@@ -68,7 +68,7 @@ await test('Raw SQL cannot lower cost, clear cost, rewind state or swap the run 
   bad("UPDATE fc_apify_v2_runs SET cap_usd_micros=1 WHERE kind='checker'",/immutable_field/);
   bad("UPDATE fc_apify_v2_runs SET kind='legacy' WHERE kind='checker'",/immutable_field/);
   bad("UPDATE fc_apify_v2_runs SET updated_ts=0 WHERE kind='checker'",/clock_regression/);
-  bad("UPDATE fc_apify_v2_runs SET actual_usd_micros=0 WHERE kind='legacy'",/terminal_state/);
+  bad("UPDATE fc_apify_v2_runs SET actual_usd_micros=0 WHERE kind='legacy'",/cost_regression/);
   bad("UPDATE fc_apify_v2_runs SET actual_usd_micros=-5 WHERE kind='checker'",/CHECK|cost_regression/);});
 await test('Rows can only be inserted as plain reservations',async()=>{
   const db=d1(),ins=(state,actual,run)=>()=>db.raw.exec("INSERT INTO fc_apify_v2_runs VALUES ('"+'e'.repeat(64)+"','"+S+"','checker',50000,"+actual+",'"+state+"',"+run+",1,1)");
@@ -87,8 +87,60 @@ await test('Within budget the status reports overBudget=false',async()=>{
 await test('A run from another scope cannot be advanced through the worker',async()=>{
   const db=d1();
   db.raw.exec("INSERT INTO fc_apify_v2_runs VALUES ('"+'d'.repeat(64)+"','other-scope','checker',50000,NULL,'reserved',NULL,1,1)");
-  assert.equal((await api.fcV2Advance(db,'d'.repeat(64),'failed')).reason,'unknown_run');
+  assert.equal((await api.fcV2Advance(db,'d'.repeat(64),'failed')).reason,'no_advanceable_run');
   assert.equal((await api.fcV2BudgetStatus(db)).committedUsd,0.05);});
+
+await test('Failed run billed later: cost is recorded, state stays failed',async()=>{
+  const db=d1(),k=await submitted(db,'a');await api.fcV2Advance(db,k,'failed');
+  const r=await api.fcV2RecordLateCost(db,k,0.021);
+  assert.deepEqual([r.ok,r.overBudget,r.startableRuns],[true,false,2]);
+  assert.deepEqual({...row(db,k)},{state:'failed',a:21000,r:'runA'});
+  assert.equal((await api.fcV2BudgetStatus(db)).committedUsd,0.10);});
+await test('Late bill above the reserve shrinks the budget immediately and blocks new runs',async()=>{
+  const db=d1(),k=await submitted(db,'a');await api.fcV2Advance(db,k,'failed');
+  const r=await api.fcV2RecordLateCost(db,k,0.12);
+  assert.deepEqual([r.ok,r.overBudget,r.remainingUsd,r.startableRuns],[true,false,0.03,0]);
+  assert.equal((await api.fcV2Reserve(db,await key('b'),'checker')).reason,'total_budget_exceeded');
+  const over=await api.fcV2RecordLateCost(db,k,0.4);
+  assert.deepEqual([over.ok,over.overBudget,over.remainingUsd],[true,true,0]);});
+await test('Late bill never lowers cost, never frees budget, never reopens the run',async()=>{
+  const db=d1(),k=await submitted(db,'a');
+  await api.fcV2Advance(db,k,'submitted',{actualUsd:0.04,providerRunId:'runA'});await api.fcV2Advance(db,k,'failed');
+  assert.equal((await api.fcV2RecordLateCost(db,k,0.01)).ok,true);
+  assert.equal(row(db,k).a,40000);
+  assert.equal((await api.fcV2BudgetStatus(db)).committedUsd,0.10);
+  for(const s of ['submitted','settled','failed'])
+    assert.equal((await api.fcV2Advance(db,k,s,{actualUsd:0.01,providerRunId:'runA'})).ok,false);
+  assert.equal((await api.fcV2Reserve(db,k,'checker')).reason,'duplicate_run');
+  const bad=(q,re)=>assert.throws(()=>db.raw.exec(q),re,q);
+  bad("UPDATE fc_apify_v2_runs SET state='submitted' WHERE kind='checker'",/terminal_state/);
+  bad("UPDATE fc_apify_v2_runs SET state='settled' WHERE kind='checker'",/terminal_state/);
+  bad("UPDATE fc_apify_v2_runs SET actual_usd_micros=NULL WHERE kind='checker'",/cost_regression|late_update_requires_cost/);
+  bad("UPDATE fc_apify_v2_runs SET actual_usd_micros=39999 WHERE kind='checker'",/cost_regression/);
+  bad("UPDATE fc_apify_v2_runs SET provider_run_id='other' WHERE kind='checker'",/run_id_immutable/);});
+await test('Start timed out, run failed without id: late bill may add the run id once',async()=>{
+  const db=d1(),k=await key('a');await api.fcV2Reserve(db,k,'checker');await api.fcV2Advance(db,k,'failed');
+  assert.throws(()=>db.raw.exec("UPDATE fc_apify_v2_runs SET provider_run_id='runZ' WHERE kind='checker'"),/late_update_requires_cost/);
+  assert.equal((await api.fcV2RecordLateCost(db,k,0.03,{providerRunId:'runZ'})).ok,true);
+  assert.deepEqual({...row(db,k)},{state:'failed',a:30000,r:'runZ'});
+  await api.fcV2RecordLateCost(db,k,0.035,{providerRunId:'other'});
+  assert.deepEqual({...row(db,k)},{state:'failed',a:35000,r:'runZ'});});
+await test('Late bill is refused for running, unknown, foreign-scope and invalid input',async()=>{
+  const db=d1(),k=await submitted(db,'a');
+  assert.equal((await api.fcV2RecordLateCost(db,k,0.01)).reason,'no_finished_run');
+  assert.equal(row(db,k).a,null);
+  assert.equal((await api.fcV2RecordLateCost(db,'f'.repeat(64),0.01)).reason,'no_finished_run');
+  db.raw.exec("INSERT INTO fc_apify_v2_runs VALUES ('"+'c'.repeat(64)+"','other-scope','checker',50000,NULL,'reserved',NULL,1,1)");
+  db.raw.exec("UPDATE fc_apify_v2_runs SET state='failed' WHERE scope='other-scope'");
+  assert.equal((await api.fcV2RecordLateCost(db,'c'.repeat(64),0.01)).reason,'no_finished_run');
+  for(const v of [-0.01,NaN,Infinity,'0.01',null,undefined])
+    assert.equal((await api.fcV2RecordLateCost(db,k,v)).reason,'invalid_cost');
+  assert.equal((await api.fcV2RecordLateCost(undefined,k,0.01)).ok,false);
+  assert.equal((await api.fcV2RecordLateCost({prepare(){throw Error('down')}},k,0.01)).reason,'late_cost_rejected');});
+await test('Settled run: finalised usage may rise after settlement',async()=>{
+  const db=d1(),k=await submitted(db,'a');await api.fcV2Advance(db,k,'settled',{actualUsd:0.02});
+  assert.equal((await api.fcV2RecordLateCost(db,k,0.026)).ok,true);
+  assert.deepEqual({...row(db,k)},{state:'settled',a:26000,r:'runA'});});
 
 // Real contention: separate OS processes, each with its own connection to one database file.
 const child=`
