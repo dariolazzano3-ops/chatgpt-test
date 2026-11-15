@@ -29,8 +29,9 @@ Die Felder im Code stammen aus der Projektdoku vom 14.11., nicht aus einer eigen
 - [ ] Echte Paginierung nachweisen. Ohne Nachweis bleibt die Stichprobe bei 20.
 
 ## 5. D1
-- [ ] Migration `sql/fc_apify_budget_v2_pilot.sql` anwenden (gesonderte Freigabe).
-- [ ] Parallelitätstest gegen echtes D1. Bisher nur SQLite mit getrennten Prozessen. Die Garantie beruht darauf, dass die Prüfung im Trigger desselben INSERT läuft.
+- [x] Migration `sql/fc_apify_budget_v2_pilot.sql` angewendet, ausschließlich in der neuen Datenbank `followclean-db` (`28194058-2779-4b6d-ab81-b38459d5f6a8`). Siehe `D1_ISOLATION_20261115.md`.
+- [x] Trigger gegen echtes D1 geprüft, inklusive parallel abgeschickter Reservierungen. Lasttest über das Worker-Binding steht aus.
+- [ ] Binding `FC_APIFY_BUDGET_DB` auf die neue Datenbank umstellen (braucht Deploy-Zugang).
 - [ ] Worker-Code an das Ledger anbinden: reservieren, Lauf starten, `submitted` mit Run-ID, Kosten nachführen, `settled` oder `failed`.
 
 ## 6. Recht und Plattform

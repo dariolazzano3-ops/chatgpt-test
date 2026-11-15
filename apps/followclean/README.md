@@ -23,7 +23,7 @@ Stand: 15.11.2026 · Branch `factory/followclean-mvp-v1-20261109` · Beta, `noin
 - `index.html`: gesamte Oberfläche (CSS, Markup, ES-Modul). Analyse der Exportdatei nur im Browser.
 - `worker.instagram-template.mjs`: Cloudflare Worker. Liefert die Seite aus und stellt `/api/instagram/*` sowie `/api/analysis/*` bereit.
 - `build-instagram-worker.mjs`: bettet `index.html` in den Worker ein, Ausgabe `dist/worker.mjs` (nicht eingecheckt).
-- `sql/`: D1-Migrationen. `fc_apify_budget_v1.sql` ist angewendet, `fc_apify_budget_v2_pilot.sql` ist **nicht** angewendet.
+- `sql/`: D1-Migrationen. Beide sind in der eigenen Datenbank `followclean-db` angewendet. Der Worker ist noch an die alte, geteilte Datenbank gebunden; siehe `D1_ISOLATION_20261115.md`.
 - `tests/`: Regressionstests, alle ohne Kosten und ohne Instagram-Zugriff.
 
 Worker `followclean-mvp-preview`, D1-Binding `FC_APIFY_BUDGET_DB`, Secrets `FC_APIFY_TOKEN` und `FC_IG_SESSION_SECRET`.

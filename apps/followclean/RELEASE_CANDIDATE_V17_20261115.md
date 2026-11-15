@@ -99,3 +99,6 @@ Es wurden ausschließlich SELECT-Abfragen ausgeführt. Keine Schreibvorgänge, k
 ### Folgen
 - Die spätere Migration `fc_apify_budget_v2_pilot.sql` träfe eine mit einem anderen Projekt geteilte Datenbank. Sie legt nur Objekte mit Präfix `fc_apify_v2`/`tr_fc_apify_v2` an, sollte aber bewusst freigegeben werden.
 - Der Connector ist laut eigener Angabe abgekündigt; der Nachfolger ist der Cloudflare-API-MCP-Server unter `https://mcp.cloudflare.com/mcp`. Für das Deployment braucht es diesen, ein Worker-beschränktes API-Token oder eine Instanz mit Wrangler-Zugang.
+
+## Nachtrag 15.11.2026, 09:45: Phase A (Architecture Upgrade V5)
+Erneut geprüft: kein Cloudflare-Token, kein Wrangler-Login, `api.cloudflare.com` aus der Sitzung nicht erreichbar, Connector ohne Deploy-Funktion. **V17 bleibt undeployt, keine Traffic-Umschaltung.** Phase B ist getrennt dokumentiert in `D1_ISOLATION_20261115.md`.
