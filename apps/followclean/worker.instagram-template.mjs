@@ -771,12 +771,22 @@ function fcStripeOrder(ev, env) {
   if (!s || s.object !== 'checkout.session' || typeof s.id !== 'string' || !/^cs_test_[A-Za-z0-9_]{1,240}$/.test(s.id) || s.livemode !== false)
     return {ok: false, reason: 'invalid_session'};
   if (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required') return {ok: true, ignored: 'not_paid'};
-  if (typeof env.FC_STRIPE_PAYMENT_LINK_ID === 'string' && env.FC_STRIPE_PAYMENT_LINK_ID && s.payment_link !== env.FC_STRIPE_PAYMENT_LINK_ID)
-    return {ok: true, ignored: 'foreign_payment_link'};
+  // Product binding is mandatory: only the configured FollowClean TEST payment link, one-time EUR payment, max 1.00 EUR.
+  if (!fcStripeLinkId(env) || s.payment_link !== env.FC_STRIPE_PAYMENT_LINK_ID) return {ok: true, ignored: 'foreign_payment_link'};
+  if (s.mode !== 'payment') return {ok: true, ignored: 'unexpected_mode'};
+  if (s.currency !== 'eur' || !Number.isSafeInteger(s.amount_total) || s.amount_total < 0 || s.amount_total > 100)
+    return {ok: true, ignored: 'unexpected_amount'};
   if (!fcValidRef(s.client_reference_id)) return {ok: true, ignored: 'no_claim_reference'};
   return {ok: true, order: {eventId: ev.id, sessionId: s.id, ref: s.client_reference_id,
     amount: Number.isSafeInteger(s.amount_total) && s.amount_total >= 0 ? s.amount_total : null,
     currency: typeof s.currency === 'string' ? s.currency.slice(0, 8) : null}};
+}
+function fcStripeLinkId(env) {
+  return typeof env.FC_STRIPE_PAYMENT_LINK_ID === 'string' && /^plink_[A-Za-z0-9]{8,64}$/.test(env.FC_STRIPE_PAYMENT_LINK_ID) ? env.FC_STRIPE_PAYMENT_LINK_ID : null;
+}
+function fcUnlockConfigured(env) {
+  return !!env.FC_APIFY_BUDGET_DB && !!fcPremiumKey(env) && !!fcStripeLinkId(env) &&
+    typeof env.FC_STRIPE_WEBHOOK_SECRET === 'string' && /^whsec_[A-Za-z0-9]{16,}$/.test(env.FC_STRIPE_WEBHOOK_SECRET);
 }
 function fcPremiumKey(env) {
   return typeof env.FC_IG_SESSION_SECRET === 'string' && env.FC_IG_SESSION_SECRET.length >= 32 ? env.FC_IG_SESSION_SECRET : null;
@@ -847,14 +857,18 @@ async function fcHandlePremium(request, env, url) {
   const endpoint = url.pathname.slice(FC_PREMIUM_PATH.length);
   const nowS = Math.floor(Date.now() / 1000), db = env.FC_APIFY_BUDGET_DB;
   if (endpoint === 'config' && request.method === 'GET') {
+    const unlockConfigured = fcUnlockConfigured(env);
+    // The paywall may only replace the free ZIP access once a verified free live hit exists.
+    const premiumGate = FC_PROVIDER_EXECUTION_ENABLED && unlockConfigured && env.FC_PREMIUM_GATE === 'on';
     return json({checkout: 'https://buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00', testMode: true,
-      unlockConfigured: !!db && !!fcPremiumKey(env) && typeof env.FC_STRIPE_WEBHOOK_SECRET === 'string' && env.FC_STRIPE_WEBHOOK_SECRET.startsWith('whsec_')});
+      unlockConfigured, liveScan: FC_PROVIDER_EXECUTION_ENABLED, premiumGate});
   }
   if (endpoint === 'webhook' && request.method === 'POST') {
     const text = await fcReadSmallBody(request, 65536);
     if (text === null) return json({error: 'body_too_large'}, 413);
     const sig = await fcStripeVerify(request.headers.get('Stripe-Signature'), text, env.FC_STRIPE_WEBHOOK_SECRET, nowS);
     if (!sig.ok) return json({error: sig.reason}, sig.reason === 'not_configured' ? 503 : 400);
+    if (!fcStripeLinkId(env)) return json({error: 'not_configured'}, 503);
     let ev; try { ev = JSON.parse(text); } catch { return json({error: 'invalid_json'}, 400); }
     const parsed = fcStripeOrder(ev, env);
     if (!parsed.ok) return json({error: parsed.reason}, 400);
@@ -870,7 +884,7 @@ async function fcHandlePremium(request, env, url) {
   if (endpoint === 'status' && request.method === 'GET') {
     const ref = url.searchParams.get('ref');
     if (!fcValidRef(ref)) return json({error: 'invalid_ref'}, 400);
-    if (!db || !fcPremiumKey(env)) return json({premium: false, error: 'premium_unlock_not_configured'}, 503);
+    if (!fcUnlockConfigured(env)) return json({premium: false, error: 'premium_unlock_not_configured'}, 503);
     try {
       if (!await fcRateHit(db, await fcIpBucket(request, env, 'status'), FC_RATE.statusIp, nowS)) return json({error: 'rate_limited'}, 429);
       if (!await fcOrderForRef(db, ref)) return json({premium: false, pending: true});

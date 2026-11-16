@@ -1327,7 +1327,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-reduced-motion:reduce){.profile-row.fc-row-opened{transition:none}}
 
 /* V19 conversion flow */
-body:not(.fc-premium) .fc-premium-only{display:none!important}
+body.fc-gate-on:not(.fc-premium) .fc-premium-only{display:none!important}
+body:not(.fc-premium) .fc-premium-visible{display:none!important}
+.fc-an-free{border-color:#bfe8d0;background:#f1fbf5}.fc-an-free strong{color:#0f6b38;font-size:17px}.fc-an-free p{margin:6px 0 12px;color:#2f5a44;font-size:14px}.fc-an-free a{display:block;text-align:center;padding:14px;border-radius:12px;background:#12a150;color:#fff;font-weight:850;text-decoration:none}
+.fc-recover{margin-top:10px;font-size:13px}.fc-recover summary{cursor:pointer;color:#c9d8f2}.fc-recover form{display:flex;gap:8px;margin-top:8px}.fc-recover input{flex:1;min-width:0;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;padding:9px;font-family:monospace;font-size:12px}.fc-recover button{border:0;border-radius:10px;padding:9px 12px;background:#fff;color:#13355c;font-weight:800}
+.fc-recovery-code{margin:10px 0 0!important;font-size:13px!important}.fc-recovery-code code{user-select:all;word-break:break-all;background:#fff;padding:2px 6px;border-radius:6px}
 .fc-retired{display:none!important}
 .fc-analyze-form{display:grid;gap:10px;margin:22px 0 14px;max-width:520px}
 .fc-analyze-form label{font-size:12px;font-weight:800;letter-spacing:.04em;color:#315e88}
@@ -2138,7 +2142,13 @@ $('fc-an-recheck').addEventListener('click',()=>fcCheckClaim(true));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&fcLs.get('followclean:premium-pending:v1')==='1'&&!document.body.classList.contains('fc-premium'))fcCheckClaim(false);});
 const fcSleep=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
 function fcStep(name,status){const li=document.querySelector('#fc-an-steps [data-step="'+name+'"]');if(li)li.dataset.state=status;}
+let fcGateOn=false;
+async function fcLoadConfig(){
+  try{const r=await fetch('/api/premium/config',{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}});
+    const c=await r.json().catch(()=>({}));fcGateOn=r.ok&&c.premiumGate===true;}catch{fcGateOn=false;}
+  document.body.classList.toggle('fc-gate-on',fcGateOn);return fcGateOn;}
 function fcShowOffer(hit){
+  if(!fcGateOn){$('fc-an-offer').hidden=true;$('fc-an-free').hidden=false;return;}
   $('fc-an-offer-title').textContent=hit?'Du hast einen Nicht-Rückfolger entdeckt.':'Entdecke deine vollständige Liste.';
   $('fc-an-offer-text').textContent=hit?'Entdecke deine vollständige Liste und bereinige sie mit FollowClean Premium.'
     :'Mit FollowClean Premium findest du alle Accounts, die dir nicht zurückfolgen, und bereinigst sie Schritt für Schritt.';
@@ -2153,7 +2163,7 @@ $('fc-analyze-form').addEventListener('submit',async event=>{
   err.hidden=true;
   const run=++fcAnalysisRun,submit=$('fc-analyze-submit');submit.disabled=true;
   const view=$('fc-analysis');view.hidden=false;view.classList.remove('fc-an-done');
-  for(const id of ['fc-an-hit','fc-an-none','fc-an-error','fc-an-offer'])$(id).hidden=true;
+  for(const id of ['fc-an-hit','fc-an-none','fc-an-error','fc-an-offer','fc-an-free'])$(id).hidden=true;
   document.querySelectorAll('#fc-an-steps li').forEach(li=>li.dataset.state='wait');
   $('fc-an-name').textContent='@'+raw;$('fc-an-checked').textContent='0';$('fc-an-fill').style.width='0%';$('fc-an-meter').setAttribute('aria-valuenow','0');
   $('fc-an-sub').textContent='Wir prüfen Schritt für Schritt, was sich zuverlässig feststellen lässt.';
@@ -2193,7 +2203,14 @@ $('fc-analyze-form').addEventListener('submit',async event=>{
     $('fc-an-error').textContent='Die Analyse ist gerade nicht erreichbar. Bitte versuche es später erneut.';$('fc-an-error').hidden=false;
   }finally{if(run===fcAnalysisRun)submit.disabled=false;}
 });
-fcVerifyPremium().then(ok=>{if(!ok&&fcLs.get('followclean:premium-pending:v1')==='1'){$('fc-analysis').hidden=false;fcShowOffer(false);fcStartPoll();fcCheckClaim(false);}});
+$('fc-recover-form').addEventListener('submit',async e=>{e.preventDefault();
+  const code=$('fc-recover-input').value.trim().toLowerCase();
+  $('fc-an-pending').hidden=false;
+  if(!/^fc_[a-f0-9]{32}$/.test(code)){$('fc-an-pending-text').textContent='Der Code hat nicht das richtige Format (fc_ und 32 Zeichen).';return;}
+  fcLs.set(FC_PREMIUM_CLAIM_KEY,code);fcCheckClaim(true);});
+const fcSetPremiumBase=fcSetPremium;
+fcSetPremium=function(on){fcSetPremiumBase(on);if(on)$('fc-recovery-code').textContent=fcLs.get(FC_PREMIUM_CLAIM_KEY)||'';};
+Promise.all([fcLoadConfig(),fcVerifyPremium()]).then(([gate,ok])=>{if(gate&&!ok&&fcLs.get('followclean:premium-pending:v1')==='1'){$('fc-analysis').hidden=false;fcShowOffer(false);fcStartPoll();fcCheckClaim(false);}});
 
 
 let fcSmartScanRunId=0;
@@ -3141,6 +3158,11 @@ $('delete-local-btn').addEventListener('click',()=>{
           <small id="fc-an-none-time"></small>
         </div>
         <div class="fc-an-card fc-an-error" id="fc-an-error" role="alert" hidden></div>
+        <div class="fc-an-card fc-an-free" id="fc-an-free" hidden>
+          <strong>Kostenlos weiter mit deinem Instagram-Export</strong>
+          <p>Mit deinem Instagram-Datenexport (JSON/ZIP) siehst du die vollständige Liste zum Exportzeitpunkt. Die Auswertung läuft direkt in deinem Browser, die Datei wird nicht hochgeladen.</p>
+          <a href="#workspace" id="fc-an-free-link">Zur kostenlosen Export-Analyse ↓</a>
+        </div>
         <div class="fc-an-offer" id="fc-an-offer" hidden>
           <span class="fc-an-offer-kicker">FOLLOWCLEAN PREMIUM · STRIPE TESTMODUS</span>
           <h3 id="fc-an-offer-title">Entdecke deine vollständige Liste.</h3>
@@ -3155,11 +3177,14 @@ $('delete-local-btn').addEventListener('click',()=>{
             <p id="fc-an-pending-text">Kauf abgeschlossen? Wir prüfen die Freischaltung automatisch.</p>
             <button type="button" id="fc-an-recheck">Freischaltung prüfen</button>
           </div>
+          <details class="fc-recover"><summary>Schon gekauft, anderes Gerät? Wiederherstellungscode eingeben</summary>
+            <form id="fc-recover-form"><input id="fc-recover-input" maxlength="35" placeholder="fc_…" autocomplete="off" spellcheck="false" aria-label="Wiederherstellungscode"/><button type="submit">Wiederherstellen</button></form>
+          </details>
         </div>
       </section>
 
       <section class="workspace fc-premium-only" id="workspace" aria-label="Instagram-Analyse">
-        <div class="fc-premium-welcome" id="fc-premium-welcome"><span class="fc-an-kicker">PREMIUM AKTIV</span><h2>Willkommen in deinem Cleanup-Bereich.</h2><p><strong>Nächster Schritt:</strong> Fordere deinen Instagram-Export im JSON-Format an und lade die ZIP-Datei hier hoch. Die Auswertung läuft direkt in deinem Browser, die Datei wird nicht auf unsere Server übertragen.</p></div>
+        <div class="fc-premium-welcome fc-premium-visible" id="fc-premium-welcome"><span class="fc-an-kicker">PREMIUM AKTIV</span><h2>Willkommen in deinem Cleanup-Bereich.</h2><p><strong>Nächster Schritt:</strong> Fordere deinen Instagram-Export im JSON-Format an und lade die ZIP-Datei hier hoch. Die Auswertung läuft direkt in deinem Browser, die Datei wird nicht auf unsere Server übertragen.</p><p class="fc-recovery-code">Dein Wiederherstellungscode für andere Geräte: <code id="fc-recovery-code"></code></p></div>
         <div class="step-nav"><span class="step-nav-label">DEIN CLEANUP-SPACE</span><span class="step-nav-count" id="step-count">01 / 03</span></div>
         <div id="import-view" class="view">
           <div class="section-head"><div><span class="section-index">01 — START</span><h2>Wie viele folgen dir nicht zurück?</h2><p>Wähle deinen Instagram-Export aus. Die Auswertung läuft direkt auf deinem Gerät.</p></div></div>

@@ -22,7 +22,8 @@ function d1(){const raw=new DatabaseSync(':memory:');raw.exec(sql);
     first:async()=>raw.prepare(q).get(...a)??null});
   return {prepare:q=>stmt(q),raw};}
 const WH='whsec_'+'T'.repeat(24);
-const mkEnv=(over={})=>({FC_APIFY_BUDGET_DB:d1(),FC_IG_SESSION_SECRET:'s'.repeat(40),FC_STRIPE_WEBHOOK_SECRET:WH,...over});
+const LINK='plink_testFollowClean01';
+const mkEnv=(over={})=>({FC_APIFY_BUDGET_DB:d1(),FC_IG_SESSION_SECRET:'s'.repeat(40),FC_STRIPE_WEBHOOK_SECRET:WH,FC_STRIPE_PAYMENT_LINK_ID:LINK,...over});
 let failed=0,count=0;
 async function test(label,fn){count++;try{await fn();console.log('PASS',label);}catch(e){failed++;console.error('FAIL',label,e.message);process.exitCode=1;}}
 const O='https://fc.test';
@@ -30,7 +31,7 @@ const call=(env,path,{method='GET',body,headers={},ip='203.0.113.7'}={})=>worker
   headers:{'CF-Connecting-IP':ip,...(method!=='GET'?{'Origin':O,'Sec-Fetch-Site':'same-origin','Content-Type':'application/json'}:{}),...headers}}),env);
 const ref='fc_'+'a'.repeat(32);
 const event=({id='1',...o}={},{id:sid='1',...s}={})=>JSON.stringify({object:'event',livemode:false,type:'checkout.session.completed',...o,id:'evt_'+id,
-  data:{object:{object:'checkout.session',livemode:false,payment_status:'paid',client_reference_id:ref,amount_total:0,currency:'eur',payment_link:'plink_x',...s,id:sid.startsWith('live')?sid:'cs_test_'+sid}}});
+  data:{object:{object:'checkout.session',livemode:false,payment_status:'paid',mode:'payment',client_reference_id:ref,amount_total:0,currency:'eur',payment_link:LINK,...s,id:sid.startsWith('live')?sid:'cs_test_'+sid}}});
 const sign=(body,t=Math.floor(Date.now()/1000),secret=WH)=>'t='+t+',v1='+crypto.createHmac('sha256',secret).update(t+'.'+body).digest('hex');
 const hook=(env,body,sig=sign(body))=>call(env,'/api/premium/webhook',{method:'POST',body,headers:{'Stripe-Signature':sig,'Origin':'https://stripe.example'}});
 
@@ -74,7 +75,7 @@ await test('Webhook records a paid TEST session once (idempotent across replays 
   assert.deepEqual(await (await hook(env,dup)).json(),{received:true,recorded:false});
   assert.equal(env.FC_APIFY_BUDGET_DB.raw.prepare('SELECT COUNT(*) n FROM fc_premium_orders_v1').get().n,1);});
 await test('Webhook never unlocks live mode, unpaid, foreign links, missing claim or other events',async()=>{
-  const env=mkEnv({FC_STRIPE_PAYMENT_LINK_ID:'plink_x'});
+  const env=mkEnv();
   assert.equal((await hook(env,event({livemode:true}))).status,400);
   assert.equal((await hook(env,event({},{livemode:true}))).status,400);
   assert.equal((await hook(env,event({},{id:'live_1'}))).status,400,'non cs_test_ session');
@@ -82,6 +83,10 @@ await test('Webhook never unlocks live mode, unpaid, foreign links, missing clai
   assert.equal((await (await hook(env,event({id:'4'},{id:'4',payment_link:'plink_other'}))).json()).ignored,'foreign_payment_link');
   assert.equal((await (await hook(env,event({id:'5'},{id:'5',client_reference_id:'x'}))).json()).ignored,'no_claim_reference');
   assert.equal((await (await hook(env,event({id:'6',type:'charge.refunded'}))).json()).ignored,'event_type');
+  assert.equal((await (await hook(env,event({id:'7'},{id:'7',mode:'subscription'}))).json()).ignored,'unexpected_mode');
+  assert.equal((await (await hook(env,event({id:'8'},{id:'8',amount_total:4900}))).json()).ignored,'unexpected_amount');
+  assert.equal((await (await hook(env,event({id:'9'},{id:'9',currency:'usd'}))).json()).ignored,'unexpected_amount');
+  assert.equal((await hook(mkEnv({FC_STRIPE_PAYMENT_LINK_ID:undefined}),event())).status,503,'product binding is mandatory');
   assert.equal(env.FC_APIFY_BUDGET_DB.raw.prepare('SELECT COUNT(*) n FROM fc_premium_orders_v1').get().n,0);});
 await test('Status issues a signed token only after a recorded order; verify re-checks the order',async()=>{
   const env=mkEnv();
@@ -101,7 +106,9 @@ await test('Unconfigured store fails closed (503), never unlocks',async()=>{
   const env=mkEnv({FC_APIFY_BUDGET_DB:undefined});
   assert.equal((await call(env,'/api/premium/status?ref='+ref)).status,503);
   const cfg=await (await call(env,'/api/premium/config')).json();
-  assert.equal(cfg.unlockConfigured,false);assert.match(cfg.checkout,/^https:\/\/buy\.stripe\.com\/test_/);});
+  assert.equal(cfg.unlockConfigured,false);assert.equal(cfg.premiumGate,false);
+  const full=await (await call(mkEnv({FC_PREMIUM_GATE:'on'}),'/api/premium/config')).json();
+  assert.deepEqual([full.unlockConfigured,full.liveScan,full.premiumGate],[true,false,false],'no paywall while no free live hit exists');assert.match(cfg.checkout,/^https:\/\/buy\.stripe\.com\/test_/);});
 await test('Order table is append-only and rejects live mode rows',async()=>{
   const raw=d1().raw;
   raw.prepare("INSERT INTO fc_premium_orders_v1 VALUES('cs_test_9','evt_9',?,0,'eur',0,1)").run(ref);
@@ -113,15 +120,18 @@ await test('Paid provider path is still closed and no outbound request happened'
   assert.equal(r.status,503);assert.equal(outbound,0);});
 
 // ---- Real browser end to end (Chromium 390x844; NOT Safari/WebKit) ----
-globalThis.fetch=realFetch;
+// Pass 1: shipped build (no live scan -> paywall OFF, free ZIP access stays).
+// Pass 2: isolated test build with FC_PROVIDER_EXECUTION_ENABLED forced true only in a temp copy
+//         (worker fetch stays stubbed, so nothing can leave this process) and FC_PREMIUM_GATE=on.
+const {writeFileSync}=await import('node:fs');
+const gateSrc=(await readFile(dir+'dist/worker.mjs','utf8')).replace('const FC_PROVIDER_EXECUTION_ENABLED = false;','const FC_PROVIDER_EXECUTION_ENABLED = true;');
+const gatePath=join(await mkdtemp(join(tmpdir(),'fc-gate-')),'worker.gatetest.mjs');writeFileSync(gatePath,gateSrc);
+const gateWorker=(await import(pathToFileURL(gatePath).href)).default;
 const bin=['google-chrome','chromium','chromium-browser'].find(b=>{try{execFileSync('which',[b]);return true}catch{return false}});
-if(!bin){console.error('SKIP browser part: no Chrome');}
-else{
-  const env=mkEnv();
+async function browser(w,env,run){
   const server=http.createServer(async(req,res)=>{
     const chunks=[];for await(const c of req)chunks.push(c);
-    const host='http://'+req.headers.host;
-    const r=await worker.fetch(new Request(host+req.url,{method:req.method,headers:{...req.headers,'CF-Connecting-IP':'127.0.0.1'},
+    const r=await w.fetch(new Request('http://'+req.headers.host+req.url,{method:req.method,headers:{...req.headers,'CF-Connecting-IP':'127.0.0.1'},
       body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks)}),env);
     res.writeHead(r.status,Object.fromEntries(r.headers));res.end(Buffer.from(await r.arrayBuffer()));});
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -143,66 +153,86 @@ else{
   const ev=async x=>{const r=await cdp('Runtime.evaluate',{expression:'(async()=>{'+x+'})()',awaitPromise:true,returnByValue:true});
     if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  const shot=async(n,full)=>{if(!process.env.FC_SHOTS)return;const {data}=await cdp('Page.captureScreenshot',{format:'png',captureBeyondViewport:!!full});
-    (await import('node:fs')).writeFileSync(join(process.env.FC_SHOTS,n+'.png'),Buffer.from(data,'base64'));};
+  const shot=async n=>{if(!process.env.FC_SHOTS)return;const {data}=await cdp('Page.captureScreenshot',{format:'png'});
+    writeFileSync(join(process.env.FC_SHOTS,n+'.png'),Buffer.from(data,'base64'));};
   const until=async(x,l,ms=15000)=>{const end=Date.now()+ms;while(Date.now()<end){if(await ev('return !!('+x+')'))return;await sleep(100);}throw Error('Timeout: '+l);};
   const vis=sel=>`(()=>{const e=document.querySelector('${sel}');if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden'})()`;
-  try{
-    await cdp('Page.navigate',{url});
-    await until("document.readyState==='complete'&&document.body.classList.contains('fc-free')",'load');
-    await ev("window.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[target=\"_blank\"]');if(a){e.preventDefault();window.__opened=a.href;}},true);");
-    await test('Free start: username field + "Jetzt analysieren", no ZIP upload, no export guide, no old preview',async()=>{
-      assert.equal(await ev("return document.querySelector('#fc-analyze-submit').textContent.trim().startsWith('Jetzt analysieren')"),true);
-      for(const sel of ['#dropzone','#export-guide','#file-input','#fc-smartscan-v1','#testkauf','#premium-preview'])
-        assert.equal(await ev('return '+vis(sel)),false,sel+' must be hidden before purchase');
-      assert.equal(await ev("return !!document.querySelector('#fc-username-first')"),false);
-      assert.equal(await ev('return '+vis('#fc-analyze-input')),true);
-      assert.ok(await ev('return document.documentElement.scrollWidth<=window.innerWidth+1'),'overflow');await shot('v19-1-start');});
-    await test('Invalid name shows inline error and starts no analysis',async()=>{
-      await ev("document.querySelector('#fc-analyze-input').value='bad name!';document.querySelector('#fc-analyze-submit').click();");
-      assert.equal(await ev("return document.querySelector('#fc-analyze-error').hidden"),false);
-      assert.equal(await ev("return document.querySelector('#fc-analysis').hidden"),true);});
-    await test('Analysis view animates steps and ends with "Kein verlässlicher Live-Treffer möglich" (no fake hit)',async()=>{
-      await ev("document.querySelector('#fc-analyze-input').value='@YsrRioo';document.querySelector('#fc-analyze-submit').click();");
-      await until("!document.querySelector('#fc-analysis').hidden",'analysis open',3000);
-      await until("document.querySelector('#fc-analysis').classList.contains('fc-an-done')",'analysis done');
-      const s=await ev(`return {none:!document.querySelector('#fc-an-none').hidden,hit:!document.querySelector('#fc-an-hit').hidden,
-        text:document.querySelector('#fc-an-none strong').textContent,checked:document.querySelector('#fc-an-checked').textContent,
-        name:document.querySelector('#fc-an-name').textContent,steps:[...document.querySelectorAll('#fc-an-steps li')].map(l=>l.dataset.state)}`);
-      assert.deepEqual(s,{none:true,hit:false,text:'Kein verlässlicher Live-Treffer möglich',checked:'0',name:'@ysrrioo',steps:['ok','warn','skip','skip']});
-      await ev("document.querySelector('#fc-analysis').scrollIntoView()");await sleep(700);await shot('v19-2-analysis');
-      await ev("document.querySelector('#fc-an-offer').scrollIntoView()");await sleep(300);await shot('v19-3-offer');});
-    await test('Premium offer explains the JSON/ZIP export before purchase; no countdown, no invented numbers',async()=>{
-      const s=await ev(`const o=document.querySelector('#fc-an-offer');return {shown:!o.hidden,text:o.textContent,href:document.querySelector('#fc-an-cta').href}`);
-      assert.equal(s.shown,true);assert.match(s.text,/Instagram-Datenexport im JSON-\/ZIP-Format/);
-      assert.doesNotMatch(s.text,/Countdown|nur noch \d|\d+ Nicht-Rückfolger gefunden/i);
-      assert.match(s.href,/^https:\/\/buy\.stripe\.com\/test_[A-Za-z0-9]+\?client_reference_id=fc_[a-f0-9]{32}$/);});
-    await test('Checkout click shows pending state; nothing unlocks without a verified webhook',async()=>{
-      await ev("document.querySelector('#fc-an-cta').click()");
-      assert.equal(await ev("return !document.querySelector('#fc-an-pending').hidden"),true);
-      await ev("document.querySelector('#fc-an-recheck').click()");await sleep(400);
-      assert.equal(await ev("return document.body.classList.contains('fc-premium')"),false);
-      assert.match(await ev("return document.querySelector('#fc-an-pending-text').textContent"),/Noch keine bestätigte Testzahlung/);
-      await ev("localStorage.setItem('followclean:premium:v1','fcp1.fc_'+'a'.repeat(32)+'.9999999999.'+'0'.repeat(64))");
-      await cdp('Page.reload');
-      await until("document.readyState==='complete'&&document.body.classList.contains('fc-free')&&localStorage.getItem('followclean:premium:v1')===null",'forged token rejected and removed');
-      assert.equal(await ev('return '+vis('#dropzone')),false,'forged token must not unlock');
-      await ev("window.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[target=\"_blank\"]');if(a){e.preventDefault();}},true);");});
-    await test('Signed TEST webhook for this claim unlocks Premium; export guide + ZIP upload appear',async()=>{
-      const claim=await ev("return localStorage.getItem('followclean:premium-claim:v1')");
-      const body=JSON.parse(event());body.data.object.client_reference_id=claim;const b=JSON.stringify(body);
-      const r=await realFetch(url+'api/premium/webhook',{method:'POST',body:b,headers:{'Stripe-Signature':sign(b),'Content-Type':'application/json'}});
-      assert.equal(r.status,200);
-      await ev("document.querySelector('#fc-an-recheck').click()");
-      await until("document.body.classList.contains('fc-premium')",'premium unlocked',8000);
-      for(const sel of ['#fc-premium-welcome','#export-guide','#dropzone'])assert.equal(await ev('return '+vis(sel)),true,sel);
-      assert.equal(await ev('return '+vis('#testkauf')),false);await sleep(600);await shot('v19-4-premium');});
-    await test('Premium survives reload via server-verified token',async()=>{
-      await cdp('Page.reload');
-      await until("document.readyState==='complete'&&document.body.classList.contains('fc-premium')",'premium after reload');});
-    await test('No script errors and no horizontal overflow at 390px',async()=>{
-      assert.deepEqual(pageErrors,[]);assert.ok(await ev('return document.documentElement.scrollWidth<=window.innerWidth+1'));});
-  }finally{ws.close();chrome.kill();server.close();}
+  const blockPopups="window.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[target=\"_blank\"]');if(a){e.preventDefault();}},true);";
+  try{await run({cdp,ev,until,vis,sleep,shot,url,pageErrors,blockPopups});}finally{ws.close();chrome.kill();server.close();}
+}
+const analyze=async({ev,until},name)=>{
+  await ev(`document.querySelector('#fc-analyze-input').value=${JSON.stringify(name)};document.querySelector('#fc-analyze-submit').click();`);
+  await until("!document.querySelector('#fc-analysis').hidden",'analysis open',3000);
+  await until("document.querySelector('#fc-analysis').classList.contains('fc-an-done')",'analysis done');};
+if(!bin)console.error('SKIP browser part: no Chrome');
+else{
+await browser(worker,mkEnv({FC_PREMIUM_GATE:'on'}),async b=>{const {cdp,ev,until,vis,sleep,shot,url,pageErrors}=b;
+  await cdp('Page.navigate',{url});
+  await until("document.readyState==='complete'&&document.body.classList.contains('fc-free')",'load');await sleep(300);
+  await test('Shipped build: username start, NO paywall, free ZIP access stays (no free live hit possible yet)',async()=>{
+    assert.equal(await ev("return document.querySelector('#fc-analyze-submit').textContent.trim().startsWith('Jetzt analysieren')"),true);
+    assert.equal(await ev("return document.body.classList.contains('fc-gate-on')"),false);
+    for(const sel of ['#dropzone','#workspace'])assert.equal(await ev('return '+vis(sel)),true,sel+' must stay free');
+    assert.equal(await ev('return '+vis('#fc-premium-welcome')),false);
+    assert.equal(await ev("return !!document.querySelector('#fc-username-first')"),false);
+    assert.ok(await ev('return document.documentElement.scrollWidth<=window.innerWidth+1'),'overflow');await shot('v20-1-start');});
+  await test('Invalid name shows inline error and starts no analysis',async()=>{
+    await ev("document.querySelector('#fc-analyze-input').value='bad name!';document.querySelector('#fc-analyze-submit').click();");
+    assert.equal(await ev("return document.querySelector('#fc-analyze-error').hidden"),false);
+    assert.equal(await ev("return document.querySelector('#fc-analysis').hidden"),true);});
+  await test('Analysis ends honestly and points to the FREE export analysis, no sales offer',async()=>{
+    await analyze(b,'@YsrRioo');
+    const s=await ev(`return {none:!document.querySelector('#fc-an-none').hidden,hit:!document.querySelector('#fc-an-hit').hidden,free:!document.querySelector('#fc-an-free').hidden,
+      offer:!document.querySelector('#fc-an-offer').hidden,text:document.querySelector('#fc-an-none strong').textContent,checked:document.querySelector('#fc-an-checked').textContent,
+      steps:[...document.querySelectorAll('#fc-an-steps li')].map(l=>l.dataset.state)}`);
+    assert.deepEqual(s,{none:true,hit:false,free:true,offer:false,text:'Kein verlässlicher Live-Treffer möglich',checked:'0',steps:['ok','warn','skip','skip']});
+    await ev("document.querySelector('#fc-an-free').scrollIntoView()");await sleep(500);await shot('v20-2-free-result');});
+  await test('No script errors and no horizontal overflow (shipped build)',async()=>{
+    assert.deepEqual(pageErrors,[]);assert.ok(await ev('return document.documentElement.scrollWidth<=window.innerWidth+1'));});
+});
+const genv=mkEnv({FC_PREMIUM_GATE:'on'});
+await browser(gateWorker,genv,async b=>{const {cdp,ev,until,vis,sleep,shot,url,pageErrors,blockPopups}=b;
+  await cdp('Page.navigate',{url});
+  await until("document.readyState==='complete'&&document.body.classList.contains('fc-gate-on')",'gate load');
+  await ev(blockPopups);
+  await test('[isolated gate test] Paywall hides ZIP upload, export guide and smart-scan block before purchase',async()=>{
+    for(const sel of ['#dropzone','#export-guide','#file-input','#fc-smartscan-v1','#testkauf','#premium-preview'])
+      assert.equal(await ev('return '+vis(sel)),false,sel);});
+  await test('[isolated gate test] Offer explains the JSON/ZIP export first; checkout link binds a claim',async()=>{
+    await analyze(b,'ysrrioo');
+    const s=await ev(`const o=document.querySelector('#fc-an-offer');return {shown:!o.hidden,text:o.textContent,href:document.querySelector('#fc-an-cta').href}`);
+    assert.equal(s.shown,true);assert.match(s.text,/Instagram-Datenexport im JSON-\/ZIP-Format/);
+    assert.doesNotMatch(s.text,/Countdown|nur noch \d|\d+ Nicht-Rückfolger gefunden/i);
+    assert.match(s.href,/^https:\/\/buy\.stripe\.com\/test_[A-Za-z0-9]+\?client_reference_id=fc_[a-f0-9]{32}$/);
+    await ev("document.querySelector('#fc-an-offer').scrollIntoView()");await sleep(400);await shot('v20-3-offer');});
+  await test('[isolated gate test] Pending state; forged token rejected and removed',async()=>{
+    await ev("document.querySelector('#fc-an-cta').click()");
+    assert.equal(await ev("return !document.querySelector('#fc-an-pending').hidden"),true);
+    await ev("document.querySelector('#fc-an-recheck').click()");await sleep(400);
+    assert.equal(await ev("return document.body.classList.contains('fc-premium')"),false);
+    await ev("localStorage.setItem('followclean:premium:v1','fcp1.fc_'+'a'.repeat(32)+'.9999999999.'+'0'.repeat(64))");
+    await cdp('Page.reload');
+    await until("document.readyState==='complete'&&document.body.classList.contains('fc-gate-on')&&!document.body.classList.contains('fc-premium')&&localStorage.getItem('followclean:premium:v1')===null",'forged token removed');
+    await ev(blockPopups);assert.equal(await ev('return '+vis('#dropzone')),false);});
+  let claim;
+  await test('[isolated gate test] Signed TEST webhook for this claim unlocks Premium + shows recovery code',async()=>{
+    claim=await ev("return localStorage.getItem('followclean:premium-claim:v1')");
+    const body=JSON.parse(event());body.data.object.client_reference_id=claim;const bb=JSON.stringify(body);
+    const r=await realFetch(url+'api/premium/webhook',{method:'POST',body:bb,headers:{'Stripe-Signature':sign(bb),'Content-Type':'application/json'}});
+    assert.equal(r.status,200);
+    await ev("document.querySelector('#fc-an-recheck').click()");
+    await until("document.body.classList.contains('fc-premium')",'premium unlocked',8000);
+    for(const sel of ['#fc-premium-welcome','#export-guide','#dropzone'])assert.equal(await ev('return '+vis(sel)),true,sel);
+    assert.equal(await ev("return document.querySelector('#fc-recovery-code').textContent"),claim);await sleep(500);await shot('v20-4-premium');});
+  await test('[isolated gate test] Premium is restored on a fresh device with the recovery code',async()=>{
+    await ev("localStorage.clear()");await cdp('Page.reload');
+    await until("document.readyState==='complete'&&document.body.classList.contains('fc-gate-on')&&!document.body.classList.contains('fc-premium')",'fresh device');
+    await analyze(b,'ysrrioo');
+    await ev(`document.querySelector('.fc-recover').open=true;document.querySelector('#fc-recover-input').value=${JSON.stringify(claim)};document.querySelector('#fc-recover-form').requestSubmit();`);
+    await until("document.body.classList.contains('fc-premium')",'restored',8000);});
+  await test('[isolated gate test] No script errors, no overflow',async()=>{
+    assert.deepEqual(pageErrors,[]);assert.ok(await ev('return document.documentElement.scrollWidth<=window.innerWidth+1'));});
+});
 }
 console.log('FollowClean premium conversion e2e:',count-failed,'of',count,'passed');
 if(failed)process.exit(1);

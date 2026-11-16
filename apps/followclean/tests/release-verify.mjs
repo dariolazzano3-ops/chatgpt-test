@@ -84,15 +84,17 @@ await gate('Visited profiles glow green without an automatic unfollow confirmati
     'automatic green visited highlight missing');
 });
 
-await gate('V19: free start has no ZIP upload/export guide; workspace is premium-only',()=>{
-  assert.ok(html.includes('body:not(.fc-premium) .fc-premium-only{display:none!important}'),'premium gate CSS missing');
+await gate('V20: paywall only behind a verified live scan; free ZIP access stays in the shipped build',async()=>{
+  assert.ok(html.includes('body.fc-gate-on:not(.fc-premium) .fc-premium-only{display:none!important}'),'gate CSS must depend on fc-gate-on');
+  assert.ok(!html.includes('body:not(.fc-premium) .fc-premium-only'),'unconditional paywall CSS must be gone');
   assert.match(html,/<section class="workspace fc-premium-only" id="workspace"/);
-  assert.ok(html.indexOf('id="fc-analyze-form"')<html.indexOf('id="workspace"'),'username form must sit before the workspace');
-  for(const id of ['dropzone','export-guide','file-input','fc-smartscan-v1'])
-    assert.ok(html.indexOf('id="'+id+'"')>html.indexOf('id="workspace"'),id+' must be inside the premium workspace');
+  assert.ok(html.indexOf('id="fc-analyze-form"')<html.indexOf('id="workspace"'));
   assert.ok(!html.includes('id="fc-username-first"'),'old technical preview still present');
   assert.match(html,/Jetzt analysieren/);assert.match(html,/Kein verlässlicher Live-Treffer möglich/);
-  assert.match(html,/Instagram-Datenexport im JSON-\/ZIP-Format/);});
+  assert.match(html,/Instagram-Datenexport im JSON-\/ZIP-Format/);assert.match(html,/Kostenlos weiter mit deinem Instagram-Export/);
+  const worker=(await import(pathToFileURL(bundlePath).href+'?v20='+Date.now())).default;
+  const cfg=await (await worker.fetch(new Request('https://x.example/api/premium/config'),{FC_PREMIUM_GATE:'on',FC_STRIPE_WEBHOOK_SECRET:'whsec_'+'a'.repeat(20),FC_STRIPE_PAYMENT_LINK_ID:'plink_abcdefgh',FC_IG_SESSION_SECRET:'s'.repeat(40),FC_APIFY_BUDGET_DB:{}})).json();
+  assert.equal(cfg.premiumGate,false,'paywall must stay off while the live scan is disabled');});
 await gate('V19: free scan is honest and premium unlock fails closed without webhook secret',async()=>{
   const worker=(await import(pathToFileURL(bundlePath).href+'?v19='+Date.now())).default;
   const origin='https://followclean-mvp-preview.example',env={};
