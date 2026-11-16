@@ -7,14 +7,14 @@ import { rng } from './rules.js';
 // Schwierigkeit: dieselben Regeln für alle, nur Wahrnehmung, Reaktion, Genauigkeit, Taktik und Kaufentscheidungen unterscheiden sich
 export const BOT = {
   def: {
-    easy: { react: 0.6, aimErr: 0.045, sheepErr: 0.19, fortSus: 0.1, turn: 3, fov: 0.85, sight: 26, tailW: 0.55, suspect: 1.0, shop: 0, chase: 0.66, burst: 2 },
-    normal: { react: 0.65, aimErr: 0.045, sheepErr: 0.2, fortSus: 0.12, turn: 4, fov: 0.9, sight: 27, tailW: 0.7, suspect: 0.95, shop: 1, chase: 0.66, burst: 4 },
-    hard: { react: 0.42, aimErr: 0.028, sheepErr: 0.2, fortSus: 0.16, turn: 6, fov: 1.05, sight: 32, tailW: 1, suspect: 0.85, shop: 2, chase: 0.78, burst: 6 },
+    easy: { react: 0.5, aimErr: 0.04, sheepErr: 0.15, fortSus: 0.1, turn: 3.4, fov: 0.9, sight: 27, tailW: 0.6, suspect: 1.0, shop: 0, chase: 0.8, burst: 2 },
+    normal: { react: 0.55, aimErr: 0.04, sheepErr: 0.14, fortSus: 0.12, turn: 4.5, fov: 0.95, sight: 28, tailW: 0.75, suspect: 0.95, shop: 1, chase: 0.75, burst: 4 },
+    hard: { react: 0.38, aimErr: 0.026, sheepErr: 0.11, fortSus: 0.16, turn: 6, fov: 1.05, sight: 32, tailW: 1, suspect: 0.85, shop: 2, chase: 0.85, burst: 6 },
   },
   sheep: {
-    easy: { observe: [16, 26], walkV: [2.2, 3.0], grazeT: [1, 3], openAngle: 0.7, openDist: 9, react: 1.1, items: 0, wait: 14, sloppy: 0.45, commitHp: 50, sab: 0.25 },
-    normal: { observe: [5, 9], walkV: [1.6, 2.4], grazeT: [2, 6], openAngle: 1.2, openDist: 13, react: 0.5, items: 1, wait: 8, sloppy: 0.08, commitHp: 28, sab: 0.4 },
-    hard: { observe: [5, 10], walkV: [1.5, 2.4], grazeT: [2, 7], openAngle: 1.5, openDist: 16, react: 0.28, items: 2, wait: 10, sloppy: 0, commitHp: 18, sab: 0.45 },
+    easy: { observe: [16, 26], walkV: [2.2, 3.0], grazeT: [1, 3], openAngle: 0.7, openDist: 9, react: 1.1, items: 0, wait: 14, sloppy: 0.45, commitHp: 50, sab: 0.25, helpers: 2, tactic: 0 },
+    normal: { observe: [5, 9], walkV: [1.6, 2.4], grazeT: [2, 6], openAngle: 1.2, openDist: 13, react: 0.5, items: 1, wait: 8, sloppy: 0.08, commitHp: 28, sab: 0.4, helpers: 3, tactic: 1 },
+    hard: { observe: [5, 10], walkV: [1.5, 2.4], grazeT: [2, 7], openAngle: 1.5, openDist: 16, react: 0.28, items: 2, wait: 10, sloppy: 0, commitHp: 18, sab: 0.25, helpers: 3, tactic: 2 },
   },
 };
 const F = 5, HALF = 5.3, OMI = { x: 0, z: -34 };
@@ -71,11 +71,33 @@ class SheepBrain {
     this.t += dt; this.dec -= dt;
     if (ps.hp < this.hpSeen - 0.5) this.hurtT = m.time; this.hpSeen = ps.hp;
     const carrying = m.cake.state === 'carried' && m.cake.by === ps.id;
-    if (this.dec <= 0) { this.dec = 0.1; this.think(m, ps, api, carrying); }
+    if (this.dec <= 0) { this.dec = 0.1; this.see(m, ps, api); this.think(m, ps, api, carrying); if (this.state !== 'WAIT') this.commando(m, ps, api, this.threat(m, ps)); }
     this.act(m, ps, dt, api, carrying);
   }
   // ---- Wahrnehmung (alles, was ein menschliches Schaf sieht: Verteidiger, Festung, Werwölfe, Kuchen) ----
-  defenders(m) { return [...m.players.values()].filter(q => q.role === 'def' && !q.dead); }
+  // Nur Verteidiger, die das Schaf gerade sieht (oder vor Kurzem gesehen hat) – keine Positionen durch Mauern
+  defenders(m) { return this.vis || [...m.players.values()].filter(q => q.role === 'def' && !q.dead); }
+  see(m, ps, api) { if (!api.seeDefs) return; const now = m.time, mem = this.defMem || (this.defMem = new Map());
+    for (const q of api.seeDefs(ps)) mem.set(q.id, { id: q.id, x: q.x, z: q.z, y: q.y, yaw: q.yaw, role: 'def', t: now });
+    for (const [id, e] of mem) if (now - e.t > 4) mem.delete(id); this.vis = [...mem.values()]; }
+  // ---- V7.2: Helferschafe wählen, Befehle geben, Fluchtweg planen (gleiche Nachrichten wie ein Mensch) ----
+  commando(m, ps, api, th) {
+    const P = this.P, mine = m.npcs.filter(n => n.helper), want = P.helpers, ready = m.time >= (m.cmdReadyAt || 0);
+    if (mine.length < want && m.time >= (m.helperReadyAt || 0) && ['GRAZE', 'OBSERVE', 'APPROACH', 'PLAN'].includes(this.state) && m.wave >= 1) {
+      const ref = P.tactic >= 2 && this.stage ? this.stage : [ps.x, ps.z]; let best = null, bd = 1e9;
+      for (const n of m.npcs) { if (n.helper || n.dead) continue; const d = Math.hypot(n.x - ps.x, n.z - ps.z); if (d > 28) continue; const sc = Math.hypot(n.x - ref[0], n.z - ref[1]) + d * 0.5; if (sc < bd) { bd = sc; best = n; } }
+      if (best) { api.send({ t: 'helper', sid: best.sid, v: true }); this.stats.helpers = (this.stats.helpers || 0) + 1; return; } }
+    if (!mine.length || !ready) return;
+    const cmd = (mode, x, z, why) => { api.send({ t: 'cmd', mode, x: +x.toFixed(1), z: +z.toFixed(1) }); this.stats.cmds = this.stats.cmds || {}; this.stats.cmds[mode] = (this.stats.cmds[mode] || 0) + 1; if (this.log.length < 400) this.log.push([+this.now.toFixed(1), 'CMD', mode + ' ' + why]); };
+    if (this.state === 'INFILTRATE' && this.t < 0.3) { const [sx, sz] = this.stage || [0, 0]; return cmd('storm', P.tactic ? sx * 0.4 : 0, P.tactic ? sz * 0.4 : 0, 'gemeinsam rein'); } // alle zusammen stürmen
+    if (P.tactic >= 1 && this.state === 'APPROACH' && this.stage && this.waitT > 2.5 && th.worst >= 0.3) return cmd('distract', -this.stage[0] * 1.6, -this.stage[1] * 1.6, 'Gegenseite'); // Wächter auf die andere Seite locken
+    if (P.tactic >= 2 && this.state === 'APPROACH' && this.stage && m.wolves.some(f => !f.dead && Math.hypot(f.x - this.stage[0], f.z - this.stage[1]) < 9)) return cmd('sabotage', this.stage[0], this.stage[1], 'Werwölfe binden');
+    if (P.tactic >= 2 && (this.state === 'ESCAPE' || this.state === 'STEAL')) { const q = this.defenders(m).find(q => Math.hypot(q.x - ps.x, q.z - ps.z) < 9); if (q) return cmd('storm', q.x, q.z, 'Verteidiger abdrängen'); }
+  }
+  planRoute(m, ps, api, k) { // Fluchtweg zur Omi über die gewählte Ausgangsseite (wie die Karte eines Menschen)
+    const [nx, nz] = SIDE_N[k], ex = nx * (F + 3) + (nz ? ps.x * 0.3 : 0), ez = nz * (F + 3) + (nx ? ps.z * 0.3 : 0), [cx, cz] = viaCorner(ex, ez, OMI.x, OMI.z + 1);
+    const pts = [[ex, ez]]; if (Math.hypot(cx - OMI.x, cz - OMI.z - 1) > 1) pts.push([cx, cz]); pts.push([OMI.x, OMI.z + 1]);
+    api.send({ t: 'route', pts: pts.map(p => [+p[0].toFixed(1), +p[1].toFixed(1)]) }); this.stats.routes = (this.stats.routes || 0) + 1; }
   threat(m, ps) { // wie gefährlich ist es gerade? Nähe und Blickrichtung der Verteidiger
     let worst = 0, near = null;
     for (const q of this.defenders(m)) { const d = Math.hypot(q.x - ps.x, q.z - ps.z), a = Math.abs(ang(yawTo(q.x, q.z, ps.x, ps.z), q.yaw));
@@ -203,7 +225,7 @@ class SheepBrain {
         break; }
       case 'ESCAPE': case 'DELIVER': { // raus Richtung Omi (Nordmauer, wenn dort niemand steht), dann geradeaus
         const inside = inFortP(ps.x, ps.z, -0.4);
-        if (inside) { const k = this.exitSide || (this.exitSide = this.pickExit(m, ps)); const [nx, nz] = SIDE_N[k]; tx = nx * (F + 3) + (nz ? ps.x * 0.3 : 0); tz = nz * (F + 3) + (nx ? ps.z * 0.3 : 0); }
+        if (inside) { const k = this.exitSide || (this.exitSide = this.pickExit(m, ps), this.diff !== 'easy' && this.planRoute(m, ps, api, this.exitSide), this.exitSide); const [nx, nz] = SIDE_N[k]; tx = nx * (F + 3) + (nz ? ps.x * 0.3 : 0); tz = nz * (F + 3) + (nx ? ps.z * 0.3 : 0); }
         else { this.exitSide = null; [tx, tz] = viaCorner(ps.x, ps.z, OMI.x, OMI.z + 1);
           if (this.diff !== 'easy') for (const q of this.defenders(m)) { // steht ein Verteidiger auf dem Weg? Im Bogen ausweichen
             const dx = tx - ps.x, dz = tz - ps.z, l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l, along = (q.x - ps.x) * ux + (q.z - ps.z) * uz, lat = (q.x - ps.x) * uz - (q.z - ps.z) * ux;
@@ -274,19 +296,20 @@ const wallH = l => [0, 1.3, 2.1, 2.8][l] || 0;
 // KI-WÄCHTER: Zombies abwehren, Festung ausbauen, verdächtige Schafe beobachten, Dieb stoppen, Kuchen zurückholen
 // =====================================================================================================
 const DEF_PLAN = [ // [ab Welle, Artikel, Mindest-Schwierigkeit (0 leicht, 1 mittel, 2 schwer)]
-  [1, 'watch', 2], [1, 'bell', 1], [2, 'smg', 1], [2, 'stone', 1], [2, 'tower', 1], [2, 'shotgun', 0], [3, 'stone', 0], [3, 'tower', 0], [3, 'stone', 1], [3, 'spikes', 1], [3, 'tower', 2], [3, 'rate', 2],
-  [4, 'rifle', 1], [4, 'stone', 1], [4, 'gun', 1], [4, 'mag', 2], [5, 'stone', 0], [5, 'steel', 1], [5, 'gun', 2], [5, 'mine', 1], [5, 'dmg', 2], [6, 'gun', 0], [6, 'steel', 1], [6, 'gun', 1], [6, 'tower', 1],
+  [1, 'watch', 2], [2, 'bell', 1], [2, 'smg', 1], [2, 'stone', 1], [2, 'tower', 1], [2, 'shotgun', 0], [3, 'stone', 0], [3, 'tower', 0], [3, 'stone', 1], [3, 'spikes', 1], [3, 'tower', 2], [3, 'rate', 2],
+  [4, 'rifle', 1], [4, 'stone', 1], [4, 'cakealarm', 1], [4, 'gun', 1], [4, 'mag', 2], [5, 'motion', 2], [5, 'stone', 0], [5, 'steel', 1], [5, 'gun', 2], [5, 'mine', 1], [5, 'dmg', 2], [6, 'gun', 0], [6, 'steel', 1], [6, 'gun', 1], [6, 'tower', 1],
   [6, 'tower', 2], [7, 'steel', 1], [7, 'gun', 2], [7, 'mine', 2], [7, 'steel', 2], [7, 'spikes', 2], [7, 'dmg', 1], [8, 'gun', 2]];
 class DefBrain {
   constructor(diff, seed) { this.diff = diff; this.P = BOT.def[diff]; this.R = rng(seed); this.state = 'GUARD'; this.t = 0; this.dec = 0; this.mv = null; this.mem = new Map(); this.target = null; this.reactT = 0; this.scanA = 0;
-    this.plan = DEF_PLAN.filter(e => e[2] <= this.P.shop).map(e => ({ wave: e[0], item: e[1], done: false })); this.log = []; this.lastShot = {}; this.burst = 0; this.evBuf = [];
+    this.plan = DEF_PLAN.filter(e => e[2] <= Math.max(1, this.P.shop) && !(this.P.shop === 0 && ['cakealarm', 'bell', 'motion', 'watch'].includes(e[1]))).map(e => ({ wave: e[0], item: e[1], done: false })); this.log = []; this.lastShot = {}; this.burst = 0; this.evBuf = [];
     this.stats = { shots: 0, goatShots: 0, sheepShots: 0, npcShots: 0, buys: {}, falseSuspects: 0, chases: 0, returns: 0, states: {} }; }
   set(s, why) { if (this.state === s) return; this.state = s; this.t = 0; this.stats.states[s] = (this.stats.states[s] || 0) + 1; if (this.log.length < 400) this.log.push([+this.now.toFixed(1), s, why || '']); }
   step(m, ps, dt, api) {
     this.now = m.time; if (!this.mv) this.mv = new Mover(ps, this.R);
     if (ps.dead) { this.mv.vx = this.mv.vz = 0; this.mv.y = 0; this.target = null; return; }
     this.t += dt; this.dec -= dt;
-    for (const e of m.ev) if ((e.k === 'butt' || (e.k === 'sheephit' && e.by < 0)) && e.sid != null) this.evBuf.push(e.sid); // sichtbare Kampfspuren merken
+    for (const e of m.ev) { if ((e.k === 'butt' || (e.k === 'sheephit' && e.by < 0)) && e.sid != null) this.evBuf.push(e.sid); // sichtbare Kampfspuren merken
+      if (e.k === 'alarm' && e.x != null) this.alert = { x: e.x, z: e.z, t: m.time }; } // Glocke/Bewegungsmelder: dort hinschauen (Hinweis, keine Identität)
     if (this.dec <= 0) { this.dec = 0.1; this.see = api.perceive(ps, { fov: this.P.fov, sight: this.P.sight, yaw: this.mv.yaw }); this.think(m, ps, api); }
     this.act(m, ps, dt, api);
   }
@@ -296,12 +319,12 @@ class DefBrain {
     for (const r of this.see) { let e = this.mem.get(r.sid); if (!e) { e = { s: 0, x: r.x, z: r.z, t: now, v: 0 }; this.mem.set(r.sid, e); }
       if (now - (e.seen || now) > 1.2 && !r.carry) { e.s = 0; e.v = 0; } // aus den Augen verloren: zwischen gleich aussehenden Schafen nicht wiedererkennbar
       const dt = Math.max(0.05, now - e.t), v = Math.hypot(r.x - e.x, r.z - e.z) / dt; e.v = e.v * 0.7 + v * 0.3; e.x = r.x; e.z = r.z; e.t = now; e.seen = now;
-      if (r.tail) e.s += this.P.tailW * 0.35; // schwarzer Schwanz gesehen
-      if (e.v > 2.6 && r.anim !== 3 && r.anim !== 4) e.s += 0.04; // rennt ohne Grund (Herde flieht nur vor Zombies)
+      if (r.tail) { e.s += this.P.tailW * 0.35; e.tailAt = now; } // schwarzer Schwanz gesehen
+      if (e.v > 2.6 && r.anim !== 3 && r.anim !== 4 && !m.goats.some(g => Math.hypot(g.x - r.x, g.z - r.z) < 7)) e.s += 0.04; // rennt ohne Grund (vor Zombies flieht die Herde zu Recht)
       if (Math.max(Math.abs(r.x), Math.abs(r.z)) < F + 1.5) e.s += this.P.fortSus; // an oder in der Festung
       if (r.carry) e.s = 10; // trägt sichtbar den Kuchen
     }
-    for (const sid of this.evBuf) { const x = this.mem.get(sid); if (x && this.see.some(r => r.sid === sid)) x.s += 1.5; } this.evBuf = [];
+    for (const sid of this.evBuf) { const x = this.mem.get(sid); if (x && this.see.some(r => r.sid === sid)) { x.s += 1.5; x.buttAt = now; } } this.evBuf = [];
     for (const [sid, e] of this.mem) { e.s = Math.max(0, e.s - 0.012); if (now - (e.seen || 0) > 25) this.mem.delete(sid); }
   }
   shop(m, ps, api) {
@@ -313,11 +336,11 @@ class DefBrain {
     const nearGoats = m.goats.filter(g => Math.hypot(g.x, g.z) < 9).length;
     if (m.wave >= 3 && coins >= 60 && (nearGoats >= (this.diff === 'easy' ? 5 : 3) || m.cake.state !== 'home' || (m.final && this.P.shop >= 1)) && m.wolves.filter(f => !f.dead).length < 2 && m.time >= fo.wolfReadyAt) return buy('wolf');
     const reserve = m.wave >= 6 && this.P.shop >= 2 ? 0 : 20; // schwer: spart nicht mehr kurz vor dem Finale
-    for (const e of this.plan) { if (e.done || e.wave > m.wave + (m.phase !== 'wave' ? 1 : 0)) continue; const price = { watch: 50, bell: 35, smg: 100, stone: 70, tower: 80, shotgun: 80, spikes: 25, rifle: 120, gun: 120, steel: 110, mine: 40, rate: 40, dmg: 45, mag: 60 }[e.item] || 50;
+    for (const e of this.plan) { if (e.done || e.wave > m.wave + (m.phase !== 'wave' ? 1 : 0)) continue; const price = { watch: 50, bell: 35, cakealarm: 40, motion: 30, smg: 100, stone: 70, tower: 80, shotgun: 80, spikes: 25, rifle: 120, gun: 120, steel: 110, mine: 40, rate: 40, dmg: 45, mag: 60 }[e.item] || 50;
       if (e.item === 'tower' && fo.builds.filter(b => b.kind === 'tower').length >= [1, 1, 2][this.P.shop]) { e.done = true; continue; } // Turm-Obergrenze je Stufe (Türme sind gegen Schafe sehr stark)
       if (coins >= price + reserve * (e.wave < m.wave ? 0 : 1)) { e.done = true; return buy(e.item); } break; }
     // Überschuss nicht horten: Mauern flicken und ausbauen, dann Türme und Stacheln (Leicht gibt später und weniger aus)
-    const spare = coins - [380, 260, 200][this.P.shop]; if (spare <= 0) return;
+    const spare = coins - [300, 260, 200][this.P.shop]; if (spare <= 0) return;
     const ws = Object.values(fo.walls);
     if (ws.some(w => w.lvl && w.hp / w.maxHp < 0.75) && m.wave >= 2 && spare >= 55) return buy('repairall');
     if (m.wave >= 2 && ws.some(w => w.lvl < 2) && spare >= 70) return buy('stone');
@@ -333,8 +356,9 @@ class DefBrain {
     if (cake.state === 'carried') { if (this.state !== 'CHASE') { this.set('CHASE', 'Kuchen gestohlen'); this.stats.chases++; this.chaseWait = this.P.react * (this.diff === 'hard' ? 1.2 : 2.2); } // erst begreifen, dann losrennen
       // Zwickmühle: viele Ziegen am Kuchen und der Dieb weit weg → erst die Ziegen (leicht/mittel öfter)
       const nearG = m.goats.filter(g => Math.hypot(g.x, g.z) < 9).length, cd = carrier ? carrier.d : 99;
-      if (nearG >= [2, 3, 6][this.P.shop] && cd > [8, 12, 20][this.P.shop]) { this.target = this.bestGoat(m, ps); this.chaseSplit = true; return; } this.chaseSplit = false;
-      if (carrier) { this.target = { kind: 'sheep', sid: carrier.sid, x: carrier.x, z: carrier.z, y: 0.8 }; this.lastSeen = [carrier.x, carrier.z]; }
+      if (nearG >= [2, 3, 6][this.P.shop] && cd > [8, 12, 20][this.P.shop] && (carrier || this.P.shop === 0)) { this.target = this.bestGoat(m, ps); this.chaseSplit = true; return; } this.chaseSplit = false;
+      if (carrier) { this.target = { kind: 'sheep', sid: carrier.sid, x: carrier.x, z: carrier.z, y: 0.8, ry: carrier.ry }; this.lastSeen = [carrier.x, carrier.z]; }
+      else if (api.thief && api.thief()) { this.target = null; this.lastSeen = api.thief(); } // Kuchenalarm ortet den Dieb (wie die Markierung im HUD)
       else { this.target = null; // ungesehen: zur letzten Sichtung; mittel/schwer denken an die Omi (sie steht für alle sichtbar), leicht sucht planlos
         const omiGuess = [OMI.x * 0.6, OMI.z * 0.6];
         if (!this.lastSeen) this.lastSeen = this.P.shop >= 2 ? omiGuess : [m.cake.state === 'carried' ? 0 : ps.x, 0]; // nur Schwer ahnt sofort den Weg zur Omi
@@ -344,8 +368,16 @@ class DefBrain {
     if (cake.state === 'dropped') { this.set('RETURN', 'Kuchen liegt'); this.target = this.bestGoat(m, ps); return; }
     if (this.state === 'CHASE' || this.state === 'RETURN') { if (this.state === 'RETURN') this.stats.returns++; this.set('GUARD', 'Kuchen sicher'); }
     // 3) Verdächtiges Schaf → anvisieren, bei genug Verdacht schießen
-    let sus = null, best = this.P.suspect; for (const r of this.see) { const e = this.mem.get(r.sid); if (e && e.s >= best) { best = e.s; sus = r; } }
+    const wrong = m.fort.wrong || 0, now = m.time, thr = this.P.suspect * (1 + (this.diff === 'easy' ? 0.25 : 0.6) * wrong);
+    // Beweis: Schwanz gesehen, Kopfstoß beobachtet oder im Fort – ab 2 Fehlabschüssen (Leicht: 3) nur noch mit Beweis, bei 3 nur noch eindeutig
+    // Eindeutig ist nur der schwarze Schwanz (aus der Nähe). Rempeln, Rennen, Eindringen können auch kommandierte Helferschafe.
+    // Leicht schießt auch auf bloßen Verdacht (solange noch kein Fehlabschuss), Mittel nur im Fort ohne Fehlabschuss, Schwer nur mit Schwanz.
+    const tailSeen = e => now - (e.tailAt ?? -99) < 8, inF = r => Math.max(Math.abs(r.x), Math.abs(r.z)) < F - 0.2;
+    let sus = null, best = thr; for (const r of this.see) { const e = this.mem.get(r.sid); if (!e || e.s < best) continue;
+      const ok = tailSeen(e) || (this.diff === 'easy' && wrong === 0) || (this.diff === 'normal' && wrong === 0 && inF(r) && e.s >= thr * 1.5); if (!ok) continue; best = e.s; sus = r; }
     if (sus && this.diff !== 'easy' && m.goats.filter(g => Math.hypot(g.x, g.z) < 7).length >= 2 && Math.hypot(sus.x, sus.z) > 4) sus = null; // Ziegen am Kuchen gehen vor (Leicht lässt sich ablenken)
+    if (sus && m.goats.some(g => Math.hypot(g.x, g.z) < 2.6)) sus = null; // eine Ziege frisst gerade am Kuchen: sofort dorthin
+    if (sus && this.state === 'HUNT' && this.t > 4 && m.time - (this.lastSheepShot ?? -9) > 4) { const e = this.mem.get(sus.sid); if (e) e.s *= 0.5; sus = null; } // kein freies Schussfeld: nicht ewig zielen
     if (sus) { if (this.state !== 'HUNT') this.set('HUNT', 'Verdacht ' + best.toFixed(2)); this.target = { kind: 'sheep', sid: sus.sid, x: sus.x, z: sus.z, y: 0.8 }; return; }
     if (this.state === 'HUNT') this.set('GUARD', 'Verdacht weg');
     // 4) Zombies: die dem Kuchen am nächsten zuerst
@@ -362,12 +394,15 @@ class DefBrain {
     // Bewegung je Zustand
     if (this.state === 'CHASE' && this.chaseSplit) { tx = 0; tz = 0; speed = 4; }
     else if (this.state === 'CHASE') { const [lx, lz] = tgt && tgt.kind === 'sheep' ? [tgt.x, tgt.z] : (this.lastSeen || [0, 0]); tx = lx; tz = lz; speed = 8 * P.chase; if (this.t < this.chaseWait) { tx = ps.x; tz = ps.z; }
+      if (tgt && tgt.kind === 'sheep' && tgt.ry != null && P.shop >= 1) { const fx = Math.sin(tgt.ry), fz = Math.cos(tgt.ry), bx = lx - ps.x, bz = lz - ps.z, bl = Math.hypot(bx, bz) || 1; // Kuchen schützt den Rücken → seitlich nach vorne
+        if ((bx * fx + bz * fz) / bl > 0.3) { const sg = (bx * fz - bz * fx) > 0 ? 1 : -1; tx = lx + fx * 4 + fz * sg * 3; tz = lz + fz * 4 - fx * sg * 3; this.stats.flank = (this.stats.flank || 0) + 1; } }
       // Leicht/Mittel verlassen die Festung nur, wenn der Dieb nah ist – sonst an der Mauer bleiben (und ggf. nicht mehr drüber sehen)
       const lim = [8, 10, 11][P.shop], dd = Math.hypot(lx - ps.x, lz - ps.z);
-      if (inFortP(ps.x, ps.z, 0) && !inFortP(lx, lz, -0.2) && dd > lim) { const k = sideOf(lx, lz), [nx, nz] = SIDE_N[k]; tx = nx * (F - 0.9) + (nz ? Math.max(-4, Math.min(4, lx)) : 0); tz = nz * (F - 0.9) + (nx ? Math.max(-4, Math.min(4, lz)) : 0); } }
+      if (inFortP(ps.x, ps.z, 0) && !inFortP(lx, lz, -0.2) && dd > lim && tgt && tgt.kind === 'sheep' && this.see.some(q => q.sid === tgt.sid)) { /* nur solange er ihn über die Mauer sieht */ const k = sideOf(lx, lz), [nx, nz] = SIDE_N[k]; tx = nx * (F - 0.9) + (nz ? Math.max(-4, Math.min(4, lx)) : 0); tz = nz * (F - 0.9) + (nx ? Math.max(-4, Math.min(4, lz)) : 0); } }
     else if (this.state === 'RETURN') { tx = m.cake.x; tz = m.cake.z; speed = 8; }
     else if (tgt && tgt.kind === 'goat') { const a = Math.atan2(tgt.z, tgt.x), r = this.diff === 'hard' ? 3.0 : 3.9; tx = Math.cos(a) * r; tz = Math.sin(a) * r; speed = 4; } // an die bedrohte Mauer (Zinnen), im Fort bleiben – der Rücken ist dann frei
     else if (tgt && tgt.kind === 'sheep') { const a = Math.atan2(tgt.z, tgt.x); tx = Math.cos(a) * 2.8; tz = Math.sin(a) * 2.8; speed = 3; }
+    else if (this.alert && m.time - this.alert.t < 4) { const a = Math.atan2(this.alert.z, this.alert.x); tx = Math.cos(a) * 3; tz = Math.sin(a) * 3; speed = 3; }
     else { this.scanA += dt * 0.25; tx = Math.cos(this.scanA) * 2; tz = Math.sin(this.scanA) * 2; speed = 1.8; }
     // raus aus der Festung? Tor nutzen, sonst Boost-Sprung über die Mauer
     const outside = !inFortP(tx, tz, -0.2), inside = inFortP(ps.x, ps.z, 0);
@@ -378,17 +413,21 @@ class DefBrain {
     if (wantBoost && m.time >= ps.boostReadyAt) { api.send({ t: 'boost' }); mv.boostT = 0.8; mv.vy = 7; mv.y = Math.max(mv.y, 0.01); }
     if (mv.boostT > 0) { mv.boostT -= dt; mv.vy = Math.min(7.5, mv.vy + 30 * dt); if (mv.y > 4.4) mv.vy = Math.min(mv.vy, 0.5); }
     if (!inside && !inFortP(tx, tz, -0.2)) [tx, tz] = viaCorner(ps.x, ps.z, tx, tz); // draußen um die Festung herum, nicht durch die Ecke
+    if (this.holdT > 0 && this.state !== 'CHASE') { this.holdT -= dt; const yx = -Math.sin(mv.yaw), yz = -Math.cos(mv.yaw); tx = ps.x + yz * this.holdSg * 2; tz = ps.z - yx * this.holdSg * 2; speed = 4; // Schaf in der Schusslinie: zur Seite treten
+      if (inFortP(ps.x, ps.z, 0) && !inFortP(tx, tz, 0.4)) { tx = ps.x - yz * this.holdSg * 2; tz = ps.z + yx * this.holdSg * 2; this.holdSg *= -1; } }
     mv.steer(ps, tx, tz, speed, dt, 18);
     // Zielen: menschliche Reaktionszeit, begrenzte Drehgeschwindigkeit, Streuung
-    let fire = false;
+    let fire = false; this.safe = null;
     if (tgt) { const eyeY = ps.y + 1.55, dx = tgt.x - ps.x, dz = tgt.z - ps.z, d = Math.hypot(dx, dz), wy = yawTo(ps.x, ps.z, tgt.x, tgt.z), wp = Math.atan2(tgt.y - eyeY, d);
       if (this.lastTgt !== (tgt.g || tgt.sid)) { this.lastTgt = tgt.g || tgt.sid; this.reactT = P.react * (0.7 + this.R() * 0.6); }
       this.aimYaw = (this.aimYaw ?? mv.yaw) + Math.max(-P.turn * dt, Math.min(P.turn * dt, ang(wy, this.aimYaw ?? mv.yaw))); this.aimPitch = (this.aimPitch ?? 0) + (wp - (this.aimPitch ?? 0)) * Math.min(1, dt * 8);
       mv.yaw = this.aimYaw; mv.pitch = this.aimPitch; this.reactT -= dt;
       const onTarget = Math.abs(ang(wy, this.aimYaw)) < Math.max(0.03, 0.6 / Math.max(1, d));
       const range = tgt.kind === 'sheep' ? 45 : 34; fire = this.reactT <= 0 && onTarget && d < range;
-      if (fire && tgt.kind === 'goat') for (const r of this.see) { // kein unschuldiges Schaf in der Schusslinie
-        const t = ((r.x - ps.x) * dx + (r.z - ps.z) * dz) / (d * d); if (t > 0 && t < 1) { const px = ps.x + dx * t - r.x, pz = ps.z + dz * t - r.z; if (Math.hypot(px, pz) < 0.9) { fire = false; break; } } }
+      if (fire) for (const r of (this.safe || (this.safe = api.perceive(ps, { fov: 1.2, sight: 60, yaw: this.aimYaw, safety: true })))) { if (tgt.kind === 'sheep' && r.sid === tgt.sid) continue; // kein unschuldiges Schaf in der Schusslinie (auch beim Schuss auf ein Schaf)
+        const t = ((r.x - ps.x) * dx + (r.z - ps.z) * dz) / (d * d), ds = Math.hypot(r.x - ps.x, r.z - ps.z), eS = (tgt.kind === 'sheep' ? P.sheepErr : P.aimErr) * (1 + Math.hypot(mv.vx, mv.vz) / 4),
+          lat = Math.max(0.7, eS * ds * 2) + 0.3 * (m.fort.wrong || 0) + (this.weapon(ps, tgt) === 'shotgun' ? 0.7 : 0); // Streuung × Entfernung
+        if (t > 0 && t * d < d + 22) { const px = ps.x + dx * t - r.x, pz = ps.z + dz * t - r.z; if (Math.hypot(px, pz) < lat) { fire = false; this.stats.held = (this.stats.held || 0) + 1; if (!(this.holdT > 0)) { this.holdT = 0.9; this.holdSg = this.R() < 0.5 ? -1 : 1; } break; } } }
     } else { this.aimYaw = mv.yaw; this.aimPitch = 0; mv.pitch *= 0.9; }
     const w = this.weapon(ps, tgt);
     if (fire) { const W = api.WEAPONS[w], cd = W.cd / (1 + 0.15 * m.fort.upg.rate);
@@ -396,7 +435,7 @@ class DefBrain {
       else if (m.time - (this.lastShot[w] ?? -9) >= cd * 1.05) { this.lastShot[w] = m.time;
         const e = (tgt && tgt.kind === 'sheep' ? P.sheepErr : P.aimErr) * (1 + Math.hypot(mv.vx, mv.vz) / 4) /* im Laufen ungenauer */, ny = (this.R() + this.R() + this.R() - 1.5) * e, np = (this.R() + this.R() + this.R() - 1.5) * e * 0.7, yw = this.aimYaw + ny, pt = this.aimPitch + np, cp = Math.cos(pt);
         api.send({ t: 'shot', w, o: [+ps.x.toFixed(3), +(ps.y + 1.55).toFixed(3), +ps.z.toFixed(3)], d: [-Math.sin(yw) * cp, Math.sin(pt), -Math.cos(yw) * cp] });
-        this.stats.shots++; if (tgt.kind === 'goat') this.stats.goatShots++; else this.stats.sheepShots++; } }
+        this.stats.shots++; if (tgt.kind === 'goat') this.stats.goatShots++; else { this.stats.sheepShots++; this.lastSheepShot = m.time; } } }
     mv.vertical(dt, 7, 0, 0);
     blockWalls(m, ps, mv, dt, true); // nach der Höhe: nie unterhalb der Kante durch eine Mauer (Tor ausgenommen)
     mv.sendIn(api, ps, dt, { w });

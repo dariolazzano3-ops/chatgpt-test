@@ -330,7 +330,7 @@ function helperButt(m, n, tgt) {
   if (tgt.q) hurtPlayer(m, tgt.q, HELP.buttDmg, 0, tgt.q.x - n.x, tgt.q.z - n.z, 1.4);
   else if (tgt.f) hurtWolf(m, tgt.f, HELP.buttWolf, 0);
   else if (tgt.b) hurtBuild(m, tgt.b, HELP.buttBuild);
-  else if (tgt.wall) { const wl = m.fort.walls[tgt.wall]; wallDamage(m, tgt.wall, wl.gate ? HELP.buttGate : wl.lvl <= 1 ? HELP.buttWall : 0.3); } }
+  else if (tgt.wall) { const wl = m.fort.walls[tgt.wall]; if (wl.gate) wallDamage(m, tgt.wall, HELP.buttGate); } } // nur Tore geben nach – Mauern hält ein Schaf nicht auf
 function sabotageTarget(m, n) { // nächstes erreichbares Verteidigungsobjekt: Werwolf, Bauwerk mit Lebenspunkten, Tor
   let best = null, bd = 1e9; const take = (x, z, o) => { const d = Math.hypot(x - n.x, z - n.z); if (d < bd) { bd = d; best = { x, z, ...o }; } };
   for (const f of m.wolves) if (!f.dead) take(f.x, f.z, { f });
@@ -570,22 +570,24 @@ function endMatch(m, winner, reason) { if (m.over) return; m.over = true; m.winn
 const SNAP_EV_PRIVATE = new Set(['shurt', 'sheepwait', 'sheepspawn', 'sbuy', 'usefail', 'helperfail', 'cmdfail']);
 // Was ein Verteidiger an seiner Stelle sehen könnte: Schafe im Sichtfeld, in Sichtweite, nicht hinter Mauern.
 // Gleiche Zeilen wie im Snapshot (zufällige ID, Position, Animation, Schwanz nur aus der Nähe, Kuchen/Schild sichtbar) – keine Identität.
-function perceive(m, viewer, { fov = 1, sight = 30, yaw = viewer.yaw } = {}) {
+function perceive(m, viewer, { fov = 1, sight = 30, yaw = viewer.yaw, safety = false } = {}) { // safety: nur zum Nicht-Schießen – Schafe hinter Zinnen zählen mit
   const eye = [viewer.x, viewer.y + 1.6, viewer.z], fx = -Math.sin(yaw), fz = -Math.cos(yaw), tailR = m.fort.builds.some(b => b.kind === 'watch') ? H.tail.watch : H.tail.near, out = [], t = m.time;
-  const add = (sid, x, z, anim, black, carry, shield) => { const dx = x - viewer.x, dz = z - viewer.z, d = Math.hypot(dx, dz); if (d > sight) return;
-    if (d > 2.5 && (dx * fx + dz * fz) / d < Math.cos(fov)) return; if (!los(m, eye, x, 1.1, z)) return;
+  const add = (sid, x, z, anim, black, carry, shield, ry = 0) => { const dx = x - viewer.x, dz = z - viewer.z, d = Math.hypot(dx, dz); if (d > sight) return;
+    if (d > 2.5 && (dx * fx + dz * fz) / d < Math.cos(fov)) return; if (!safety && !los(m, eye, x, 1.1, z)) return;
     if (d > 2.5) for (const s of m.smokes) { const ux = s.x - viewer.x, uz = s.z - viewer.z, f = Math.max(0, Math.min(1, (ux * dx + uz * dz) / (d * d))); // Rauch verdeckt die Sicht wie im Client
       if (Math.hypot(viewer.x + dx * f - s.x, viewer.z + dz * f - s.z) < s.r * 0.75) return; }
-    out.push({ sid, x, z, d, anim, tail: black && d <= tailR ? 1 : 0, carry, shield }); };
-  for (const n of m.npcs) add(n.sid, n.x, n.z, SH_ANIM[n.state] ?? 0, false, false, false);
+    out.push({ sid, x, z, d, anim, tail: black && d <= tailR ? 1 : 0, carry, shield, ry }); };
+  for (const n of m.npcs) add(n.sid, n.x, n.z, SH_ANIM[n.state] ?? 0, false, false, false, n.ry);
   for (const c of m.decoys) add(c.sid, c.x, c.z, 2, true, false, false);
   for (const q of m.players.values()) { if (q.role !== 'sheep' || !q.alive()) continue; const sp = q.lastMoveSpeed || 0;
-    add(q.sid, q.x, q.z, t < q.emoteT ? SH_ANIM[q.emote] : sp < 0.4 ? (q.stillAt && t - q.stillAt > 2 ? 0 : 5) : sp < 3.2 ? 1 : 2, !(t < q.camoUntil), m.cake.state === 'carried' && m.cake.by === q.id, q.shield > 0); }
+    add(q.sid, q.x, q.z, t < q.emoteT ? SH_ANIM[q.emote] : sp < 0.4 ? (q.stillAt && t - q.stillAt > 2 ? 0 : 5) : sp < 3.2 ? 1 : 2, !(t < q.camoUntil), m.cake.state === 'carried' && m.cake.by === q.id, q.shield > 0, q.yaw + Math.PI); }
   return out.sort((a, b) => a.sid - b.sid);
 }
 function runBots(m, dt) {
   for (const ps of m.players.values()) { if (!ps.bot) continue; const t0 = Date.now();
-    const api = { send: msg => heist.onMsg(m, { id: ps.id }, msg), perceive: (v, o) => perceive(m, v, o), WEAPONS };
+    const api = { send: msg => heist.onMsg(m, { id: ps.id }, msg), perceive: (v, o) => perceive(m, v, o), WEAPONS,
+      seeDefs: v => [...m.players.values()].filter(q => q.role === 'def' && defVisible(m, v, q)), // KI-Schaf: nur sichtbare Verteidiger
+      thief: () => m.cake.state === 'carried' && m.fort.builds.some(b => b.kind === 'cakealarm') ? [m.cake.x, m.cake.z] : null }; // KI-Wächter: Kuchenalarm-Ortung wie im HUD
     try { ps.bot.step(m, ps, dt, api); } catch (e) { ps.botErr = (ps.botErr || 0) + 1; if (ps.botErr < 3) console.error('bot', e && e.stack || e); }
     ps.botMs = (ps.botMs || 0) + (Date.now() - t0); }
 }

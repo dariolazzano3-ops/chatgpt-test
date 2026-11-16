@@ -31,7 +31,7 @@ export const HEIST = {
   // V7.2: exakt 15 Schafe insgesamt (Schafspieler eingerechnet), keine Nachgeburten. Die Herde rückt Welle für Welle an die Festung (innen/außen, m).
   herdTotal: 15, herdBands: [[21, 34], [19, 32], [15, 28], [13, 25], [9.5, 20], [8.5, 18], [6.8, 15], [6.6, 13]],
   helper: { max: 3, pickR: 32, replaceCd: 8, cmdCd: 18, dur: { distract: 10, storm: 11, sabotage: 13 }, speed: { distract: 4.4, storm: 5.4, sabotage: 4.6 },
-    buttCd: 1.4, buttDmg: 8, buttWolf: 10, buttBuild: 7, buttGate: 3, buttWall: 1.5, jumpV: 8.2 },
+    buttCd: 1.6, buttDmg: 5, buttWolf: 10, buttBuild: 7, buttGate: 3, jumpV: 8.2 },
   wrongMax: 3, cakeBack: 0.35, // 4. unschuldiges Schaf → Sieg der Schafe · Kuchen auf dem Rücken: 65 % weniger Schussschaden von hinten
   sus: { sprint: 0.35, trot: 0.08, jump: 0.12, climb: 0.5, butt: 0.35, item: 0.25, fort: 0.6, still: 0.12, slow: 0.05, warn: 0.35, reveal: 0.75 },
   shopTime: 10, countdown: 3, startCoins: 40, sheepStartCoins: 40, waveCoins: 30, sheepWaveCoins: 20, aliveCoinEvery: 3,

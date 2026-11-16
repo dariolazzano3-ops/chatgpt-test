@@ -13,7 +13,7 @@ export function playMatch(sDiff, dDiff, seed, maxMin = 12) {
   return { sDiff, dDiff, seed, winner: res.winner, reason: res.reason, wave: maxWave, min: +(ticks / 1200).toFixed(1), steals: S.bot.stats.steals || steals,
     sheep: { deaths: S.deaths, entries: S.bot.stats.entries, flee: S.bot.stats.flee, items: S.bot.stats.items, rejects: { speed: S.speedRejects, wall: S.wallRejects, y: S.yRejects, other: S.rejects }, states: S.bot.stats.states },
     def: { shots: D.shots, landed: D.landed || 0, acc: D.shots ? +((D.landed || 0) / D.shots).toFixed(2) : 0, sheepKills: D.pkills, buys: D.bot.stats.buys, chases: D.bot.stats.chases, rejects: { speed: D.speedRejects, wall: D.wallRejects, other: D.rejects } },
-    npcKills: m.ev ? 0 : 0, kills: m.fort.kills, msPerTick: +((performance.now() - t0) / ticks).toFixed(3), worstMs: +worst.toFixed(2), botMs: +(((S.botMs || 0) + (D.botMs || 0)) / ticks).toFixed(3) };
+    sheepStats: S.bot.stats, defStats: D.bot.stats, npcKills: m.ev ? 0 : 0, kills: m.fort.kills, msPerTick: +((performance.now() - t0) / ticks).toFixed(3), worstMs: +worst.toFixed(2), botMs: +(((S.botMs || 0) + (D.botMs || 0)) / ticks).toFixed(3) };
 }
 if (process.argv[1] && process.argv[1].endsWith('bots-sim.mjs')) {
   const rows = [];
