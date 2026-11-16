@@ -652,7 +652,7 @@ export const heist = {
     else if (msg.t === 'helper') setHelper(m, ps, msg);
     else if (msg.t === 'cmd') helperCmd(m, ps, msg);
     else if (msg.t === 'mark') { if (ps.role !== 'sheep') return reject(ps, 'mark'); const x = +msg.x, z = +msg.z; if (msg.clear) { m.attackPt = null; return; } if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > H.arenaR) return reject(ps, 'mark'); m.attackPt = [+x.toFixed(1), +z.toFixed(1)]; }
-    else if (msg.t === 'route') { if (ps.role !== 'sheep') return reject(ps, 'route'); const pts = Array.isArray(msg.pts) ? msg.pts.slice(0, 6) : [];
+    else if (msg.t === 'route') { if (ps.role !== 'sheep') return reject(ps, 'route'); if (!Array.isArray(msg.pts)) return reject(ps, 'route'); const pts = msg.pts.slice(0, 6);
       if (!pts.every(q => Array.isArray(q) && q.length === 2 && q.every(Number.isFinite) && Math.hypot(q[0], q[1]) <= H.arenaR + 1)) return reject(ps, 'route'); m.route = pts.map(q => [+q[0].toFixed(1), +q[1].toFixed(1)]); }
   },
   tick(m, dt) {

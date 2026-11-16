@@ -2,13 +2,13 @@
   "name": "ziegenalarm-online",
   "private": true,
   "type": "module",
-  "version": "0.7.1-dev",
+  "version": "0.7.2-dev",
   "scripts": {
     "dev": "node tools/build.mjs --face=neutral && node dev/server.js",
     "build": "node tools/build.mjs --face=neutral",
     "deploy": "node tools/build.mjs --face=neutral && wrangler deploy",
     "check:3d": "node tools/render-check.mjs",
-    "test": "node tests/heist-sim.mjs && node tests/royale-sim.mjs && node tests/bots-test.mjs",
+    "test": "node tests/heist-sim.mjs && node tests/schafkommando-sim.mjs && node tests/royale-sim.mjs && node tests/bots-test.mjs",
     "deploy:staging": "node tools/build.mjs --face=neutral && wrangler deploy --name ziegenalarm-staging"
   },
   "devDependencies": {
