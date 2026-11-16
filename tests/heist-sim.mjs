@@ -31,9 +31,9 @@ function aim(r, c, ps, x, z, tx, tz, ty = 0.78) { const dx = tx - x, dz = tz - z
 // ---------- 1. Rollen, Tarnung, Schwanz ----------
 { const { r, m, D, S, cs, csOf } = setup(); const d = D[0], s = S[0];
   check('Asymmetrische Rollen: Team 0 = Verteidiger, Team 1 = Schaf', d.role === 'def' && s.role === 'sheep' && r.info().teams[1] === 'Schafe');
-  check('Herde: 16 NPC-Schafe im 1v1', m.npcs.length === 16);
+  check('Herde: 14 NPC-Schafe im 1v1 (15 Schafe insgesamt)', m.npcs.length === 14);
   tick(r, 0.2); const sd = lastSnap(csOf(d)), ss = lastSnap(csOf(s));
-  check('Verteidiger sieht 17 gleich aufgebaute Schafe (Herde + Spieler)', sd.sh.length === 17 && sd.sh.every(e => e.length === 8));
+  check('Verteidiger sieht 15 gleich aufgebaute Schafe (Herde + Spieler)', sd.sh.length === 15 && sd.sh.every(e => e.length === 8));
   check('Kein Positions-Eintrag des Schafspielers in der Spielerliste des Verteidigers', !sd.pl.some(p => p.team === 1) && sd.sheepTeam.every(e => e.x === undefined && e.sid === undefined));
   check('Schaf-IDs nicht fortlaufend, Liste sortiert (Reihenfolge verrät nichts)', sd.sh.every((e, i, a) => !i || a[i - 1][0] < e[0]) && new Set(sd.sh.map(e => e[0] % 100)).size > 3);
   freezeHerd(m); d.x = 0; d.z = 0; s.x = 25; s.z = 0; tick(r, 0.1); let row = lastSnap(csOf(d)).sh.find(e => e[0] === s.sid);
@@ -80,8 +80,8 @@ function aim(r, c, ps, x, z, tx, tz, ty = 0.78) { const dx = tx - x, dz = tz - z
   const a = aim(r, c, d, 4, 4, 10, 10); d.lastShot = {}; send(r, c, { t: 'shot', w: 'blaster', o: a.o, d: a.d }); tick(r, 0.05);
   check('Angeschossenes NPC-Schaf wehrt sich sofort', n4.state === 'warn' && n4.hp < 25);
   for (let i = 0; i < 3; i++) { d.lastShot = {}; send(r, c, { t: 'shot', w: 'blaster', o: a.o, d: a.d }); tick(r, 0.05); }
-  check('Unschuldiges Schaf erschossen: 5 Münzen Strafe, Herde wächst nach', !m.npcs.includes(n4) && m.fort.coins === coins - 5 && m.npcRespawn.length === 1, `coins ${m.fort.coins}`);
-  d.yaw = 0; d.pitch = 1.5; tick(r, 11); check('Neues Herdenschaf nach 10 s', m.npcs.length === 16);
+  check('Unschuldiges Schaf erschossen: 5 Münzen Strafe, Herde wächst NICHT nach (V7.2), Fehlabschuss 1/3', !m.npcs.includes(n4) && m.fort.coins === coins - 5 && m.npcs.length === 13 && m.fort.wrong === 1, `coins ${m.fort.coins} npcs ${m.npcs.length} wrong ${m.fort.wrong}`);
+  d.yaw = 0; d.pitch = 1.5; tick(r, 11); check('V7.2: kein neues Herdenschaf (getötete Schafe bleiben weg)', m.npcs.length === 13);
 }
 // ---------- 3. Mauern überwinden (Server-Prüfung) ----------
 { const { r, m, S, csOf } = setup(); const s = S[0], c = csOf(s); startWave(r, m, 1); m.queue = []; m.goats = [];
@@ -153,7 +153,7 @@ function aim(r, c, ps, x, z, tx, tz, ty = 0.78) { const dx = tx - x, dz = tz - z
 }
 // ---------- 6. Doppelte Kuchen, Selbst-Abwurf, Auto-Rückgabe (2v2) ----------
 { const { r, m, D, S, csOf } = setup('2v2'); freezeHerd(m); startWave(r, m, 1); hold(m); m.goats.push({ id: 996, type: 'normal', s: 1, r: 0.45, x: 35, z: 0, hp: 99, maxHp: 99, speed: 0, eat: 0, state: 'walk', stagger: 0, ry: 0, slow: 1 });
-  check('2v2: zwei Verteidiger, zwei Schafe, 22 NPC-Schafe', D.length === 2 && S.length === 2 && m.npcs.length === 22);
+  check('2v2: zwei Verteidiger, zwei Schafe, 13 NPC-Schafe (15 insgesamt)', D.length === 2 && S.length === 2 && m.npcs.length === 13);
   for (const d of D) { d.x = -20; d.z = -20; }
   S[0].x = 0.6; S[0].z = 0; S[1].x = -0.6; S[1].z = 0; send(r, csOf(S[0]), { t: 'grab', v: true }); send(r, csOf(S[1]), { t: 'grab', v: true }); tick(r, 1.2);
   check('Gleichzeitiges Greifen: genau ein Träger (keine Kuchen-Duplikation)', m.cake.state === 'carried' && [S[0], S[1]].filter(s => m.cake.by === s.id).length === 1);

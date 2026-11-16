@@ -28,6 +28,12 @@ export const BOOST = { cooldown: 6, dur: 0.8, maxY: 5.2, jumpY: 1.7 };
 // Welt = Einzelspieler-Welt: Festung F=5, Zaun Radius 40. Die Omi sitzt außerhalb im Norden.
 export const HEIST = {
   arenaR: 39, spawnR: 43, omi: { x: 0, z: -34, r: 2.6 }, herdIn: 11, herdOut: 33, npc: { '1': 16, '2': 22 },
+  // V7.2: exakt 15 Schafe insgesamt (Schafspieler eingerechnet), keine Nachgeburten. Die Herde rückt Welle für Welle an die Festung (innen/außen, m).
+  herdTotal: 15, herdBands: [[21, 34], [19, 32], [15, 28], [13, 25], [9.5, 20], [8.5, 18], [6.8, 15], [6.6, 13]],
+  helper: { max: 3, pickR: 32, replaceCd: 8, cmdCd: 18, dur: { distract: 10, storm: 11, sabotage: 13 }, speed: { distract: 4.4, storm: 5.4, sabotage: 4.6 },
+    buttCd: 1.4, buttDmg: 8, buttWolf: 10, buttBuild: 7, buttGate: 3, buttWall: 1.5, jumpV: 8.2 },
+  wrongMax: 3, cakeBack: 0.35, // 4. unschuldiges Schaf → Sieg der Schafe · Kuchen auf dem Rücken: 65 % weniger Schussschaden von hinten
+  sus: { sprint: 0.35, trot: 0.08, jump: 0.12, climb: 0.5, butt: 0.35, item: 0.25, fort: 0.6, still: 0.12, slow: 0.05, warn: 0.35, reveal: 0.75 },
   shopTime: 10, countdown: 3, startCoins: 40, sheepStartCoins: 40, waveCoins: 30, sheepWaveCoins: 20, aliveCoinEvery: 3,
   def: { hp: 100, respawn: 4, protect: 2 },
   sheep: { hp: 60, respawn: 3, protect: 2, walk: 5.2, sprint: 7.6, carry: 0.68, jumpY: 1.6, jumpUpg: 1.1, carryJumpY: 0.7, climbRate: 1.3, carryClimb: 0.8,
@@ -51,7 +57,8 @@ export const DEF_SHOP = {
   gate: { price: 30, wave: 2 }, tower: { price: 80, wave: 2, max: 4, hp: 150, range: 20, dmg: 1.6, cd: 0.9, sheepDmg: 10 },
   watch: { price: 50, wave: 1, max: 1, hp: 120 }, spikes: { price: 25, wave: 1, max: 4, dps: 1.2, sheepDps: 10, slow: 0.5, dur: 60 },
   mine: { price: 40, wave: 3, max: 4, r: 4.5, dmg: 8, sheepDmg: 45 }, gun: { price: 120, wave: 4, max: 4, hp: 120, range: 16, dmg: 0.8, cd: 0.18 },
-  ammo: { price: 30, wave: 1, max: 1, r: 2.6 }, bell: { price: 35, wave: 1, max: 1 },
+  ammo: { price: 30, wave: 1, max: 1, r: 2.6 }, bell: { price: 35, wave: 1, max: 1, r: 11, cd: 6 },
+  motion: { price: 30, wave: 2, max: 4, r: 8, speed: 3.4, cd: 4 }, cakealarm: { price: 40, wave: 1, max: 1 },
   wolf: { price: 60, wave: 3 }, bot: { price: 50, wave: 2, max: 1, hp: 40, life: 45, rate: 3 },
   shotgun: { price: 80, wave: 1 }, smg: { price: 100, wave: 2 }, rifle: { price: 120, wave: 3 }, sniper: { price: 150, wave: 4 },
   dmg: { price: 45, wave: 1, max: 4, grow: 1.5 }, rate: { price: 40, wave: 1, max: 4, grow: 1.5 }, move: { price: 40, wave: 1, max: 1 },

@@ -20,11 +20,13 @@ const SLOTS = {
   spikes: [[0, -F - 2.4, 'N'], [F + 2.4, 0, 'E'], [0, F + 2.4, 'S'], [-F - 2.4, 0, 'W']],
   mine: [[2.5, -F - 4.5], [F + 4.5, 2.5], [-2.5, F + 4.5], [-F - 4.5, -2.5]],
   watch: [[-3.4, 3.4]], ammo: [[3.4, 3.4]], bell: [[-3.4, -3.4]],
+  motion: [[0, -F - 7, 'N'], [F + 7, 0, 'E'], [0, F + 7, 'S'], [-F - 7, 0, 'W']], cakealarm: [[0, 0]],
 };
 
 // ---------- Festung, Navigation, Mauern ----------
+// wrong = unschuldige Schafe, die das Verteidigerteam erschossen hat (gilt fürs ganze Match)
 function newFort() { const walls = {}; for (const k in SIDES) walls[k] = { lvl: 1, hp: WALL7.wood.hp, maxHp: WALL7.wood.hp, gate: false };
-  return { walls, builds: [], bid: 1, coins: H.startCoins, upg: { dmg: 0, rate: 0, move: 0, mag: 0, reload: 0, boostcd: 0, fixer: 0 }, kills: 0, points: 0, wolfReadyAt: 0, wolvesThisWave: 0, kingDown: false, lostThisWave: 0 }; }
+  return { walls, builds: [], bid: 1, coins: H.startCoins, upg: { dmg: 0, rate: 0, move: 0, mag: 0, reload: 0, boostcd: 0, fixer: 0 }, kills: 0, points: 0, wolfReadyAt: 0, wolvesThisWave: 0, kingDown: false, lostThisWave: 0, wrong: 0 }; }
 const built = (m, k) => m.fort.walls[k].lvl > 0;
 const sideOf = (x, z) => Math.abs(x) >= Math.abs(z) ? (x > 0 ? 'E' : 'W') : (z > 0 ? 'S' : 'N');
 const ADJ = { N: ['E', 'W'], S: ['E', 'W'], E: ['N', 'S'], W: ['N', 'S'] }, OPP = { N: 'S', S: 'N', E: 'W', W: 'E' };
@@ -194,9 +196,18 @@ function hurtSheep(m, q, dmg, by) {
   q.revealUntil = m.time + H.sheep.revealT;
   if (q.shield > 0) { const a = Math.min(q.shield, dmg); q.shield -= a; dmg -= a; m.ev.push({ k: 'shieldhit', sid: q.sid, left: Math.round(q.shield) }); if (q.shield <= 0) { q.shield = 0; m.ev.push({ k: 'shieldoff', sid: q.sid, why: 'broken' }); } if (dmg <= 0) return true; }
   q.hp -= dmg; m.ev.push({ k: 'shurt', sid: q.sid, id: q.id, by, d: Math.round(dmg), hp: Math.max(0, Math.round(q.hp)), only: 1 });
+  if (m.cake.state === 'carried' && m.cake.by === q.id && m.time - (m.omiCakeShotAt ?? -99) > 8) { m.omiCakeShotAt = m.time; m.ev.push({ k: 'omi', q: 'cakeshot' }); }
   m.ev.push({ k: 'sheephit', sid: q.sid, by, x: +q.x.toFixed(2), z: +q.z.toFixed(2) });
   if (q.hp <= 0) killSheep(m, q, by);
   return true;
+}
+// V7.2: Der getragene Kuchen schützt den Rücken. Nur Treffer, die von hinten kommen UND die hintere Körperhälfte in Rückenhöhe treffen.
+function cakeBack(m, q, hit, dir) {
+  if (!(m.cake.state === 'carried' && m.cake.by === q.id)) return false;
+  const fx = -Math.sin(q.yaw), fz = -Math.cos(q.yaw), rx = hit[0] - q.x, rz = hit[2] - q.z, ry = hit[1] - q.y;
+  const behind = rx * fx + rz * fz < -0.08, fromBehind = dir[0] * fx + dir[2] * fz > 0.2, onBack = ry > 0.55 && ry < 1.55;
+  if (!(behind && fromBehind && onBack)) return false;
+  m.ev.push({ k: 'cakeblock', sid: q.sid, x: +hit[0].toFixed(2), y: +hit[1].toFixed(2), z: +hit[2].toFixed(2) }); return true;
 }
 function killSheep(m, q, by) {
   q.dead = true; q.hp = 0; q.deaths++; q.lives = Math.max(0, q.lives - 1); q.grabT = 0; q.grabbing = false; q.shield = 0;
@@ -238,14 +249,26 @@ function stepCake(m, dt) {
     q.grabT += dt; if (q.grabT >= H.cake.grabT) { q.grabT = 0; q.grabbing = false;
       Object.assign(c, { state: 'carried', by: q.id, near: false }); q.revealUntil = m.time + 999;
       if (q.shield > 0) { q.shield = 0; q.shieldUntil = 0; m.ev.push({ k: 'shieldoff', sid: q.sid, why: 'cake' }); } // Schildregel: Kuchen und Schild nie zusammen
-      q.speedUntil = 0; m.ev.push({ k: 'cakesteal', id: q.id, sid: q.sid }); m.ev.push({ k: 'omi', q: 'steal' }); break; } }
+      q.speedUntil = 0; m.ev.push({ k: 'cakesteal', id: q.id, sid: q.sid }); m.ev.push({ k: 'omi', q: 'steal' });
+      if (m.fort.builds.some(b => b.kind === 'cakealarm')) m.ev.push({ k: 'cakealarm', only: 0 }); break; } }
 }
 
 // ---------- Herde (NPC-Schafe) ----------
-function newNpc(m, x, z) { return { sid: newSid(m), x, z, ry: m.rand() * 6.283, state: 'graze', t: 1 + m.rand() * 4, tx: x, tz: z, hp: H.npcSheep.hp, threat: new Map(), target: 0, dead: false, sp: 0.9 + m.rand() * 0.6 }; }
-function herdPoint(m, nearX, nearZ) { for (let i = 0; i < 12; i++) { const a = m.rand() * 6.283, r = nearX == null ? H.herdIn + m.rand() * (H.herdOut - H.herdIn) : 2 + m.rand() * 5;
-  const x = nearX == null ? Math.cos(a) * r : nearX + Math.cos(a) * r, z = nearX == null ? Math.sin(a) * r : nearZ + Math.sin(a) * r, d = Math.hypot(x, z);
-  if (d > H.herdIn && d < H.herdOut && Math.hypot(x - H.omi.x, z - H.omi.z) > 5) return [x, z]; } return [Math.cos(m.rand() * 6.283) * 20, 20]; }
+function newNpc(m, x, z, grp = 0) { return { sid: newSid(m), x, z, y: 0, vy: 0, ry: m.rand() * 6.283, state: 'graze', t: 1 + m.rand() * 4, tx: x, tz: z, hp: H.npcSheep.hp, threat: new Map(), target: 0, dead: false, sp: 0.9 + m.rand() * 0.6, grp, helper: false, cmd: null }; }
+// V7.2: Herdenband je Welle (innen/außen). Innerhalb einer Welle gleitet es langsam zur nächsten Stufe – Zeitdruck ohne Sprünge.
+function herdBand(m) { const B = H.herdBands, w = Math.max(1, Math.min(8, m.wave || 1)), a = B[w - 1], b = B[Math.min(7, w)], f = m.phase === 'wave' ? Math.min(1, (m.waveT || 0) / 100) * 0.5 : 0;
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; }
+// Drei lose Gruppen, die langsam um die Festung wandern und mit dem Band nach innen rücken
+function initHerd(m) { const base = m.rand() * 6.283, [ri, ro] = herdBand(m); m.herd = [0, 1, 2].map(i => ({ a: base + i * 2.09 + (m.rand() - 0.5) * 0.6, r: (ri + ro) / 2 + (m.rand() - 0.5) * 4, va: 0 })); }
+function stepHerd(m, dt) { const [ri, ro] = herdBand(m), mid = (ri + ro) / 2;
+  for (const g of m.herd) { g.va = Math.max(-0.02, Math.min(0.02, g.va + (m.rand() - 0.5) * 0.01 * dt * 10)); g.a += g.va * dt;
+    const want = Math.max(ri + 2, Math.min(ro - 2, mid)); g.r += Math.max(-0.22 * dt, Math.min(0.22 * dt, want - g.r));
+    const cx = Math.cos(g.a) * g.r, cz = Math.sin(g.a) * g.r; if (Math.hypot(cx - H.omi.x, cz - H.omi.z) < 9) g.a += (cx >= 0 ? 1 : -1) * 0.3 * dt; } }
+function herdPoint(m, n) { const [ri, ro] = herdBand(m), g = m.herd[n ? n.grp % m.herd.length : Math.floor(m.rand() * m.herd.length)];
+  for (let i = 0; i < 14; i++) { const cx = Math.cos(g.a) * g.r, cz = Math.sin(g.a) * g.r, a = m.rand() * 6.283, rr = 1.5 + m.rand() * 6;
+    let x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr; const d = Math.hypot(x, z) || 1, dc = Math.max(ri, Math.min(ro, d)); x *= dc / d; z *= dc / d;
+    if (Math.hypot(x - H.omi.x, z - H.omi.z) > 5 && !inFort(x, z, -1.6)) return [x, z]; }
+  const a = g.a, r = Math.max(ri, Math.min(ro, g.r)); return [Math.cos(a) * r, Math.sin(a) * r]; }
 function aimDir(q) { const cp = Math.cos(q.pitch); return [-Math.sin(q.yaw) * cp, Math.sin(q.pitch), -Math.cos(q.yaw) * cp]; }
 // Wird das Schaf vom Verteidiger direkt anvisiert? (Waffenrichtung, Sichtlinie, begrenzter Winkel, Reichweite)
 function aimedAt(m, q, x, z) {
@@ -255,8 +278,11 @@ function aimedAt(m, q, x, z) {
 }
 function stepNpcs(m, dt) {
   const N = H.npcSheep;
+  stepHerd(m, dt);
   for (const n of m.npcs) {
     if (n.dead) continue;
+    if (n.cmd) { stepHelper(m, n, dt); continue; } // kommandiertes Helferschaf
+    if (n.y > 0 || n.vy) { n.vy -= 20 * dt; n.y = Math.max(0, n.y + n.vy * dt); if (n.y === 0) n.vy = 0; }
     // Bedrohung durch Anvisieren (nicht durch bloße Nähe): erst nach kurzer Zeit Warnung, dann Angriff
     if (n.state !== 'warn' && n.state !== 'charge' && n.state !== 'calm') {
       for (const q of m.players.values()) { if (q.role !== 'def' || q.dead) continue;
@@ -273,21 +299,111 @@ function stepNpcs(m, dt) {
     let fx = 0, fz = 0; for (const g of m.goats) { const ex = n.x - g.x, ez = n.z - g.z, e = Math.hypot(ex, ez); if (e < N.flee && e > 0.01) { fx += ex / e; fz += ez / e; } }
     if (fx || fz) { const l = Math.hypot(fx, fz); n.state = 'flee'; n.t = 1; n.tx = n.x + fx / l * 4; n.tz = n.z + fz / l * 4; }
     n.t -= dt;
-    if (n.state === 'graze' || n.state === 'calm' || n.state === 'idle') { if (n.t <= 0) { if (n.state === 'graze' && m.rand() < 0.35) { n.state = 'idle'; n.t = 1.5 + m.rand() * 3; } else { n.state = 'walk'; [n.tx, n.tz] = herdPoint(m, n.x, n.z); n.t = 8; } } } // grasen, umsehen, weiterziehen
+    if (n.state === 'graze' || n.state === 'calm' || n.state === 'idle') { if (n.t <= 0) { if (n.state === 'graze' && m.rand() < 0.35) { n.state = 'idle'; n.t = 1.5 + m.rand() * 3; } else { n.state = 'walk'; [n.tx, n.tz] = herdPoint(m, n); n.t = 12; } } } // grasen, umsehen, mit der Gruppe weiterziehen
     else { const dx = n.tx - n.x, dz = n.tz - n.z, d = Math.hypot(dx, dz), sp = n.state === 'flee' ? 3.8 : 1.1 * n.sp;
       if (d < 0.3 || n.t <= 0) { n.state = 'graze'; n.t = 2 + m.rand() * 5; }
       else { n.x += dx / d * Math.min(d, sp * dt); n.z += dz / d * Math.min(d, sp * dt); n.ry = Math.atan2(dx, dz); } }
-    const p = { x: n.x, z: n.z }; pushOut(m, p, 0.5); clampArena(p, H.arenaR - 1); if (Math.hypot(p.x, p.z) < H.herdIn - 2 && n.state !== 'charge') { const l = Math.hypot(p.x, p.z) || 1; p.x *= (H.herdIn - 2) / l; p.z *= (H.herdIn - 2) / l; } n.x = p.x; n.z = p.z;
+    const p = { x: n.x, z: n.z }; pushOut(m, p, 0.5); clampArena(p, H.arenaR - 1); n.x = p.x; n.z = p.z;
+    // zu nah an der Festung (nach Flucht oder Angriff)? Das nächste Ziel liegt wieder im Herdenband: zu Fuß zurück, nie teleportieren
   }
-  for (const r of m.npcRespawn) if (r.at <= m.time) { r.done = true; const [x, z] = herdPoint(m); m.npcs.push(newNpc(m, x, z)); }
-  m.npcRespawn = m.npcRespawn.filter(r => !r.done);
 }
 function hurtNpc(m, n, dmg, by) {
   n.hp -= dmg; m.ev.push({ k: 'sheephit', sid: n.sid, by, x: +n.x.toFixed(2), z: +n.z.toFixed(2) });
   if (n.hp <= 0) { n.dead = true; m.npcs.splice(m.npcs.indexOf(n), 1); m.fort.coins = Math.max(0, m.fort.coins - H.npcSheep.killPenalty);
-    m.ev.push({ k: 'npcdie', sid: n.sid, by, x: +n.x.toFixed(2), z: +n.z.toFixed(2), penalty: H.npcSheep.killPenalty }); m.npcRespawn.push({ at: m.time + H.npcSheep.respawn }); return; }
+    m.ev.push({ k: 'npcdie', sid: n.sid, by, x: +n.x.toFixed(2), z: +n.z.toFixed(2), penalty: H.npcSheep.killPenalty }); // tot bleibt tot: die Herde wird kleiner
+    if (n.helper) { n.helper = false; m.helperReadyAt = m.time + H.helper.replaceCd; m.ev.push({ k: 'helperdie', sid: n.sid, only: 1 }); }
+    // V7.2: unschuldiges Schaf vom Verteidigerteam getötet (Schüsse sind die einzige Todesursache für Herdenschafe; Geschütze, Fallen und Werwölfe verscheuchen nur)
+    const shooter = m.players.get(by); if (shooter && shooter.role === 'def') { m.fort.wrong++; shooter.wrong = (shooter.wrong || 0) + 1;
+      m.ev.push({ k: 'wrong', n: m.fort.wrong, max: H.wrongMax, by }); m.ev.push({ k: 'omi', q: 'wrong' + Math.min(4, m.fort.wrong), pri: 1 });
+      if (m.fort.wrong > H.wrongMax) endMatch(m, 1, 'wrongkills'); }
+    return; }
   if (n.state !== 'charge') { n.state = 'warn'; n.t = 0.45; n.target = by; m.ev.push({ k: 'sheepwarn', sid: n.sid }); } // getroffen: wehrt sich sofort
 }
+// ---------- V7.2: Helferschafe (bis zu 3 NPCs der Herde, nur für das Schaf-Team erkennbar) ----------
+const HELP = H.helper;
+function helperJump(m, n, tx, tz) { // an niedrigen Holzmauern hochspringen; Stein und Stahl sind zu hoch
+  if (n.y > 0) return; const k = nearWall(m, n.x, n.z, 0.95); if (!k) return; const wl = m.fort.walls[k], s = SIDES[k];
+  const a = s.ax === 'x' ? n.x : n.z, ta = s.ax === 'x' ? tx : tz; if ((a - s.sg * F) * (ta - s.sg * F) >= 0) return; // Ziel liegt nicht hinter dieser Mauer
+  if (wl.lvl <= 1) { n.vy = HELP.jumpV; n.y = 0.01; m.ev.push({ k: 'hjump', sid: n.sid }); } }
+function helperButt(m, n, tgt) {
+  if (m.time - (n.buttAt ?? -9) < HELP.buttCd) return; n.buttAt = m.time; m.ev.push({ k: 'butt', sid: n.sid, x: +n.x.toFixed(2), z: +n.z.toFixed(2) });
+  if (tgt.q) hurtPlayer(m, tgt.q, HELP.buttDmg, 0, tgt.q.x - n.x, tgt.q.z - n.z, 1.4);
+  else if (tgt.f) hurtWolf(m, tgt.f, HELP.buttWolf, 0);
+  else if (tgt.b) hurtBuild(m, tgt.b, HELP.buttBuild);
+  else if (tgt.wall) { const wl = m.fort.walls[tgt.wall]; wallDamage(m, tgt.wall, wl.gate ? HELP.buttGate : wl.lvl <= 1 ? HELP.buttWall : 0.3); } }
+function sabotageTarget(m, n) { // nächstes erreichbares Verteidigungsobjekt: Werwolf, Bauwerk mit Lebenspunkten, Tor
+  let best = null, bd = 1e9; const take = (x, z, o) => { const d = Math.hypot(x - n.x, z - n.z); if (d < bd) { bd = d; best = { x, z, ...o }; } };
+  for (const f of m.wolves) if (!f.dead) take(f.x, f.z, { f });
+  for (const b of m.fort.builds) if (b.hp != null && b.kind !== 'bot') take(b.x, b.z, { b });
+  for (const k in SIDES) { const wl = m.fort.walls[k]; if (wl.lvl && wl.gate) { const s = SIDES[k], x = s.ax === 'x' ? s.sg * (F + 0.7) : 0, z = s.ax === 'z' ? s.sg * (F + 0.7) : 0; take(x, z, { wall: k }); } }
+  return best; }
+function stepHelper(m, n, dt) {
+  const C = n.cmd; C.t -= dt;
+  if (n.y > 0 || n.vy) { n.vy -= 20 * dt; n.y = Math.max(0, n.y + n.vy * dt); if (n.y === 0) n.vy = 0; }
+  if (C.t <= 0) { n.cmd = null; n.state = 'walk'; [n.tx, n.tz] = herdPoint(m, n); n.t = 14; return; } // zurück zur Herde (zu Fuß)
+  let tx = C.x, tz = C.z, sp = HELP.speed[C.mode], tgt = null;
+  if (C.mode === 'distract') { // auseinander, Haken schlagen, Lärm machen
+    if ((C.zz -= dt) <= 0) { C.zz = 0.9 + m.rand() * 1.3; C.ang += (m.rand() - 0.5) * 1.8; }
+    const r = Math.hypot(C.x - n.x, C.z - n.z) > 9 && !C.arrived ? 0 : 7; if (r) C.arrived = true; tx = C.x + Math.cos(C.ang) * r; tz = C.z + Math.sin(C.ang) * r;
+    if (inFort(tx, tz, -1.2)) { const l = Math.hypot(tx, tz) || 1; tx *= (F + 2) / l; tz *= (F + 2) / l; } }
+  else if (C.mode === 'sabotage') { if ((C.re -= dt) <= 0 || !C.tg || (C.tg.f && C.tg.f.dead) || (C.tg.b && !m.fort.builds.includes(C.tg.b)) || (C.tg.wall && !m.fort.walls[C.tg.wall].lvl)) { C.re = 1; C.tg = sabotageTarget(m, n); }
+    if (C.tg) { tx = C.tg.f ? C.tg.f.x : C.tg.x; tz = C.tg.f ? C.tg.f.z : C.tg.z; if (Math.hypot(tx - n.x, tz - n.z) < (C.tg.wall ? 1.0 : 1.5)) tgt = C.tg; } }
+  else { // gemeinsam stürmen: zum Angriffspunkt, über Holzmauern, Verteidiger anrempeln, den Weg zum Kuchen freimachen
+    let bq = null, bd = 7; for (const q of m.players.values()) if (q.role === 'def' && !q.dead) { const d = Math.hypot(q.x - n.x, q.z - n.z); if (d < bd && (inFort(n.x, n.z, 0.2) === inFort(q.x, q.z, 0.2))) { bd = d; bq = q; } }
+    if (bq) { tx = bq.x; tz = bq.z; if (bd < 1.4) tgt = { q: bq }; }
+    else if (inFort(n.x, n.z, 0.3)) { C.ang += dt * 1.4; tx = Math.cos(C.ang) * 2.2; tz = Math.sin(C.ang) * 2.2; sp = 3; } // um den Kuchen kreisen – aufnehmen kann ihn nur der echte Schafspieler
+    else { const k = nearWall(m, n.x, n.z, 1.0); if (k && m.fort.walls[k].lvl >= 2 && n.y === 0) tgt = { wall: k }; } }
+  const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
+  if (tgt) { helperButt(m, n, tgt); n.state = 'charge'; n.ry = Math.atan2(dx, dz); }
+  else if (d > 0.3) { helperJump(m, n, tx, tz); const st = Math.min(d, sp * dt); n.x += dx / d * st; n.z += dz / d * st; n.ry = Math.atan2(dx, dz); n.state = sp > 3.5 ? 'run' : 'walk'; }
+  const p = { x: n.x, z: n.z }; const k = nearWall(m, n.x, n.z, 0.9); if (!(k && n.y >= wallH(m.fort.walls[k].lvl) - 0.05)) pushOut(m, p, 0.5); clampArena(p, H.arenaR - 1); n.x = p.x; n.z = p.z;
+}
+function setHelper(m, ps, msg) {
+  const fail = why => { reject(ps, 'helper'); m.ev.push({ k: 'helperfail', why, only: 1, by: ps.id }); };
+  if (ps.role !== 'sheep' || ps.out) return fail('role');
+  const n = m.npcs.find(x => x.sid === +msg.sid); if (!n || n.dead) return fail('gone');
+  if (!msg.v) { if (!n.helper) return; n.helper = false; n.cmd = null; m.ev.push({ k: 'helper', sid: n.sid, v: 0, only: 1 }); return; }
+  if (n.helper) return fail('dup'); // kein NPC doppelt (auch nicht im 2v2)
+  if (m.npcs.filter(x => x.helper).length >= HELP.max) return fail('max');
+  if (m.time < (m.helperReadyAt || 0)) return fail('cooldown');
+  if (ps.alive() && Math.hypot(n.x - ps.x, n.z - ps.z) > HELP.pickR) return fail('far');
+  n.helper = true; m.ev.push({ k: 'helper', sid: n.sid, v: 1, only: 1 });
+}
+function helperCmd(m, ps, msg) {
+  const fail = why => { reject(ps, 'cmd'); m.ev.push({ k: 'cmdfail', why, only: 1, by: ps.id }); };
+  if (ps.role !== 'sheep' || ps.out) return fail('role'); if (!HELP.dur[msg.mode]) return fail('bad');
+  const hs = m.npcs.filter(x => x.helper && !x.dead); if (!hs.length) return fail('none');
+  if (m.time < (m.cmdReadyAt || 0)) return fail('cooldown');
+  let x = +msg.x, z = +msg.z; if (!Number.isFinite(x) || !Number.isFinite(z)) { [x, z] = m.attackPt || [0, 0]; }
+  const p = { x, z }; clampArena(p, H.arenaR - 1); m.cmdReadyAt = m.time + HELP.cmdCd; const base = m.rand() * 6.283;
+  hs.forEach((n, i) => { n.cmd = { mode: msg.mode, t: HELP.dur[msg.mode], x: p.x + (msg.mode === 'storm' ? (m.rand() - 0.5) * 2 : 0), z: p.z + (msg.mode === 'storm' ? (m.rand() - 0.5) * 2 : 0), ang: base + i * 2.09, zz: 0, re: 0, tg: null, arrived: false }; n.state = 'run'; n.threat.clear(); });
+  m.cmdMode = msg.mode; m.cmdUntil = m.time + HELP.dur[msg.mode];
+  m.ev.push({ k: 'cmd', mode: msg.mode, n: hs.length, x: +p.x.toFixed(1), z: +p.z.toFixed(1), only: 1 });
+  if (msg.mode === 'storm' && hs.length >= 2) m.ev.push({ k: 'omi', q: 'storm' });
+}
+// ---------- V7.2: Verdacht (intern) → Tarnungsanzeige nur für den Schafspieler ----------
+function stepSus(m, ps, dt) {
+  const S = H.sus, sp = ps.lastMoveSpeed || 0, t = m.time; let s = ps.sus || 0;
+  if (sp > 3.4) s += S.sprint * dt; else if (sp > 2.6) s += S.trot * dt; else if (sp < 0.4) s -= S.still * dt; else if (sp < 1.8) s -= S.slow * dt;
+  if (ps.y > 0.35 && (ps.prevY || 0) <= 0.35) s += S.jump; if (ps.y > 1.0) s += S.climb * dt;
+  if (inFort(ps.x, ps.z, -0.3)) s += S.fort * dt;
+  ps.prevY = ps.y; ps.sus = Math.max(0, Math.min(1, s));
+  const carrying = m.cake.state === 'carried' && m.cake.by === ps.id;
+  ps.tarn = carrying || ps.revealUntil > t || ps.sus >= S.reveal ? 2 : ps.sus >= S.warn ? 1 : 0;
+}
+// ---------- V7.2: Alarmanlagen (Hinweise, keine Identität) ----------
+function alarmSources(m) { const out = [];
+  for (const q of m.players.values()) if (q.role === 'sheep' && q.alive()) out.push({ x: q.x, z: q.z, sp: q.lastMoveSpeed || 0, loud: (q.y > 0.4) || m.time - (q.meleeAt ?? -9) < 0.6 });
+  for (const n of m.npcs) if (!n.dead) out.push({ x: n.x, z: n.z, sp: n.state === 'run' || n.state === 'flee' || n.state === 'charge' ? 4 : n.state === 'walk' ? 1.2 : 0, loud: n.y > 0.4 || m.time - (n.buttAt ?? -9) < 0.6 });
+  for (const c of m.decoys) out.push({ x: c.x, z: c.z, sp: 4.6, loud: false }); return out; }
+function stepAlarms(m) {
+  const bells = m.fort.builds.filter(b => b.kind === 'bell' || b.kind === 'motion'); if (!bells.length) return; const src = alarmSources(m);
+  for (const b of bells) { const S = DEF_SHOP[b.kind]; if (m.time - (b.rang ?? -99) < S.cd) continue;
+    const hit = src.find(o => Math.hypot(o.x - b.x, o.z - b.z) < S.r && (b.kind === 'motion' ? o.sp > S.speed : o.sp > 3.4 || o.loud || inFort(o.x, o.z, -0.2)));
+    if (hit) { b.rang = m.time; m.ev.push({ k: 'alarm', kind: b.kind, b: b.id, x: +b.x.toFixed(1), z: +b.z.toFixed(1), side: b.side || null, only: 0 }); } } }
+// Was ein Schaf an seiner Stelle von den Verteidigern sehen kann (Mauern verdecken; kurz nachwirkend gegen Flackern)
+function defVisible(m, viewer, q) { if (q.dead) return false; const d = Math.hypot(q.x - viewer.x, q.z - viewer.z); if (d < 7) return true; if (d > 60) return false;
+  return los(m, [viewer.x, viewer.y + 0.95, viewer.z], q.x, q.y + 1.5, q.z) || los(m, [viewer.x, viewer.y + 0.95, viewer.z], q.x, q.y + 0.6, q.z); }
 function stepDecoys(m, dt) { for (const c of m.decoys) { c.t -= dt; c.x += Math.sin(c.ry) * 4.6 * dt; c.z += Math.cos(c.ry) * 4.6 * dt; const p = { x: c.x, z: c.z }; if (clampArena(p, H.arenaR - 1)) c.ry += Math.PI * 0.7; pushOut(m, p, 0.5); c.x = p.x; c.z = p.z; }
   for (const c of m.decoys) if (c.t <= 0) m.ev.push({ k: 'poof', sid: c.sid, x: +c.x.toFixed(2), z: +c.z.toFixed(2) });
   m.decoys = m.decoys.filter(c => c.t > 0); m.smokes = m.smokes.filter(s => (s.t -= dt) > 0); }
@@ -307,10 +423,11 @@ function stepWolves(m, dt) {
     for (const g of m.goats) { if (Math.hypot(g.x - home[0], g.z - home[1]) > W.guard) continue; const d = Math.hypot(g.x - f.x, g.z - f.z); if (d < bd) { bd = d; best = { g, x: g.x, z: g.z }; } }
     for (const q of m.players.values()) { if (q.role !== 'sheep' || !sheepExposed(m, q)) continue; if (Math.hypot(q.x - home[0], q.z - home[1]) > W.guard + 2) continue;
       if (!los(m, [f.x, 2.0, f.z], q.x, 1.3, q.z) && !inFort(q.x, q.z)) continue; const d = Math.hypot(q.x - f.x, q.z - f.z) - 2; if (d < bd) { bd = d; best = { q, x: q.x, z: q.z }; } }
+    for (const n of m.npcs) { if (!n.cmd || n.dead || Math.hypot(n.x - home[0], n.z - home[1]) > W.guard + 2) continue; const d = Math.hypot(n.x - f.x, n.z - f.z) - 1; if (d < bd) { bd = d; best = { n, x: n.x, z: n.z }; } } // Helfer lenken ab
     let tx, tz; if (best) { tx = best.x; tz = best.z; } else { f.idleA += dt * 0.7; tx = home[0] + Math.cos(f.idleA) * W.patrol; tz = home[1] + Math.sin(f.idleA) * W.patrol; }
     const dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz) || 0.001; f.state = best ? 'run' : 'patrol'; f.ry = Math.atan2(dx, dz);
     if (best && d <= W.range + (best.g ? best.g.r : 0.5)) { f.state = 'bite';
-      if (f.cd <= 0) { f.cd = W.cd; m.ev.push({ k: 'wolfbite', f: f.id }); if (best.g) damageGoat(m, best.g, W.biteGoat, false, f.id, [f.x, 0, f.z]); else hurtSheep(m, best.q, W.biteSheep, f.owner); } }
+      if (f.cd <= 0) { f.cd = W.cd; m.ev.push({ k: 'wolfbite', f: f.id }); if (best.g) damageGoat(m, best.g, W.biteGoat, false, f.id, [f.x, 0, f.z]); else if (best.n) { const ex = best.n.x - f.x, ez = best.n.z - f.z, el = Math.hypot(ex, ez) || 1; best.n.x += ex / el * 1.6; best.n.z += ez / el * 1.6; } else hurtSheep(m, best.q, W.biteSheep, f.owner); } }
     else { const sp = best ? W.speed : W.speed * 0.45; f.x += dx / d * sp * dt; f.z += dz / d * sp * dt; } // Werwölfe springen über Mauern, bleiben aber an der Leine
     // Leine: nie weiter als der Schutzradius vom Kuchen
     const ex = f.x - home[0], ez = f.z - home[1], el = Math.hypot(ex, ez); if (el > W.guard) { f.x = home[0] + ex / el * W.guard; f.z = home[1] + ez / el * W.guard; f.leash = (f.leash || 0) + 1; }
@@ -328,7 +445,8 @@ function stepBuilds(m, dt) {
       let best = null, bd = S.range; for (const g of m.goats) { const d = Math.hypot(g.x - b.x, g.z - b.z); if (d < bd) { bd = d; best = g; } }
       let sheep = null; if (b.kind === 'tower' && !best) for (const q of m.players.values()) if (q.role === 'sheep' && sheepExposed(m, q) && Math.hypot(q.x - b.x, q.z - b.z) < S.range * 0.7) sheep = q;
       const t = best || sheep; if (t) b.tgt = [t.x, t.z];
-      if (t && b.cd <= 0) { b.cd = S.cd; if (best) damageGoat(m, best, S.dmg * (1 + 0.2 * m.fort.upg.dmg), false, -900 - b.id, [b.x, 0, b.z]); else hurtSheep(m, sheep, S.sheepDmg, -900 - b.id); } }
+      if (t && b.cd <= 0) { b.cd = S.cd; if (best) damageGoat(m, best, S.dmg * (1 + 0.2 * m.fort.upg.dmg), false, -900 - b.id, [b.x, 0, b.z]); else { const dx = sheep.x - b.x, dz = sheep.z - b.z, l = Math.hypot(dx, dz) || 1, dir = [dx / l, -0.1, dz / l];
+        const back = cakeBack(m, sheep, [sheep.x - dir[0] * 0.5, sheep.y + 0.95, sheep.z - dir[2] * 0.5], dir); hurtSheep(m, sheep, S.sheepDmg * (back ? H.cakeBack : 1), -900 - b.id); } } }
     else if (b.kind === 'spikes') { const S = DEF_SHOP.spikes, horiz = b.side === 'N' || b.side === 'S';
       const inStrip = (x, z) => horiz ? Math.abs(x - b.x) < 3.2 && Math.abs(z - b.z) < 0.9 : Math.abs(z - b.z) < 3.2 && Math.abs(x - b.x) < 0.9;
       for (const g of [...m.goats]) if (inStrip(g.x, g.z)) { g.slow = S.slow; b.dur -= dt; damageGoat(m, g, S.dps * dt, false, -900 - b.id, null); }
@@ -340,7 +458,7 @@ function stepBuilds(m, dt) {
       if (n >= 3 || trig) { removeBuild(m, b); explode(m, b.x, 0.3, b.z, S.r, S.dmg, S.sheepDmg, -900 - b.id); } }
     else if (b.kind === 'ammo') { for (const q of m.players.values()) if (q.role === 'def' && !q.dead && Math.hypot(q.x - b.x, q.z - b.z) < DEF_SHOP.ammo.r && m.time - (q.ammoAt || -9) > 1.5) {
       q.ammoAt = m.time; q.reloadUntil = 0; for (const k of q.owned) q.ammo[k] = magOf(m, k); if (q.nades < NADE.max && m.time - (q.nadeAt || -99) > 20) { q.nades++; q.nadeAt = m.time; } m.ev.push({ k: 'ammo', id: q.id }); } }
-    else if (b.kind === 'bell') { for (const q of m.players.values()) if (q.role === 'sheep' && q.alive() && inFort(q.x, q.z, -0.2) && m.time - (b.rang || -99) > 6) { b.rang = m.time; m.ev.push({ k: 'alarm', only: 0 }); } }
+    else if (b.kind === 'bell' || b.kind === 'motion' || b.kind === 'cakealarm') { /* stepAlarms */ }
     else if (b.kind === 'bot') { b.life -= dt; if (b.life <= 0) { removeBuild(m, b); continue; }
       let side = null, low = 1; for (const k in SIDES) { const wl = m.fort.walls[k]; if (wl.lvl && wl.hp / wl.maxHp < low) { low = wl.hp / wl.maxHp; side = k; } }
       const tgt = side ? { x: SIDES[side].ax === 'x' ? SIDES[side].sg * (F - 0.9) : 0, z: SIDES[side].ax === 'z' ? SIDES[side].sg * (F - 0.9) : 0 } : { x: 0, z: 1.5 };
@@ -377,7 +495,8 @@ function shot(m, p, ps, msg) {
     if (h.t > range) continue;
     let dmg = H.dmg[msg.w] || 10; if (W.far) { const f = Math.min(1, Math.max(0, (h.t - W.near) / (W.far - W.near))); dmg *= 1 - 0.7 * f; }
     if (h.n) perN.set(h.n, (perN.get(h.n) || 0) + dmg);
-    else if (h.q) perQ.set(h.q, (perQ.get(h.q) || 0) + dmg * (h.head ? H.head : 1));
+    else if (h.q) { const back = cakeBack(m, h.q, [o[0] + dd[0] * h.t, o[1] + dd[1] * h.t, o[2] + dd[2] * h.t], dd); if (back) h.q.cakeBlocks = (h.q.cakeBlocks || 0) + 1;
+      perQ.set(h.q, (perQ.get(h.q) || 0) + dmg * (h.head ? H.head : 1) * (back ? H.cakeBack : 1)); }
     else if (h.decoy) { h.decoy.t = 0; }
   }
   if (perG.size || perN.size || perQ.size) ps.landed = (ps.landed || 0) + 1;
@@ -388,7 +507,7 @@ function shot(m, p, ps, msg) {
 function melee(m, ps) { // Kopfstoß des Schafs
   const S = H.sheep; if (!ps.alive() || m.time - ps.meleeAt < S.meleeCd) return reject(ps, 'melee'); ps.meleeAt = m.time;
   const fx = -Math.sin(ps.yaw), fz = -Math.cos(ps.yaw), front = (x, z, r) => { const dx = x - ps.x, dz = z - ps.z, d = Math.hypot(dx, dz); return d <= r && (d < 0.6 || (dx * fx + dz * fz) / d > 0.45); };
-  ps.revealUntil = m.time + S.revealT; m.ev.push({ k: 'butt', sid: ps.sid, x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) });
+  ps.revealUntil = m.time + S.revealT; ps.sus = Math.min(1, (ps.sus || 0) + H.sus.butt); m.ev.push({ k: 'butt', sid: ps.sid, x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) });
   for (const q of m.players.values()) if (q.role === 'def' && !q.dead && front(q.x, q.z, S.meleeR)) { if (hurtPlayer(m, q, S.meleeDmg, ps.id, q.x - ps.x, q.z - ps.z, 1.4)) { ps.coins += S.coinPerHit; ps.hits++; } return; }
   for (const f of m.wolves) if (!f.dead && front(f.x, f.z, S.meleeR)) { hurtWolf(m, f, S.meleeWolf, ps.id); ps.coins += S.coinPerHit; return; }
   for (const b of m.fort.builds) if (b.hp != null && front(b.x, b.z, S.meleeR + 0.4)) { hurtBuild(m, b, S.meleeBuild); return; }
@@ -414,7 +533,7 @@ function sheepUse(m, ps, item) {
   else if (item === 'camo') ps.camoUntil = m.time + S.dur;
   else if (item === 'heal') { if (ps.hp >= H.sheep.hp) return fail('full'); ps.hp = Math.min(H.sheep.hp, ps.hp + S.hp); }
   else return fail('bad');
-  ps.inv[item]--; m.ev.push(item === 'smoke' ? { k: 'smoke', x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) } : { k: 'use', item, by: ps.id, only: 1 });
+  ps.inv[item]--; if (item !== 'heal' && item !== 'camo') ps.sus = Math.min(1, (ps.sus || 0) + H.sus.item); m.ev.push(item === 'smoke' ? { k: 'smoke', x: +ps.x.toFixed(2), z: +ps.z.toFixed(2) } : { k: 'use', item, by: ps.id, only: 1 });
 }
 function defBuy(m, p, ps, msg) {
   const it = msg.item, S = DEF_SHOP[it], fo = m.fort, fail = why => m.ev.push({ k: 'buyfail', by: p.id, item: it, why, only: 0 });
@@ -433,6 +552,7 @@ function defBuy(m, p, ps, msg) {
     for (let i = 0; i < SLOTS[it].length; i++) { if (used.has(i)) continue; const s = SLOTS[it][i]; if (it === 'gun' && !fo.walls[s[2]].lvl) continue; if (side && s[2] && s[2] !== side) continue; slot = i; break; }
     if (slot < 0) return fail(it === 'gun' ? 'wall' : 'max');
     apply = () => { const s = SLOTS[it][slot]; fo.builds.push({ id: fo.bid++, kind: it, slot, x: s[0], z: s[1], side: s[2], hp: S.hp ?? null, maxHp: S.hp ?? null, dur: S.dur, cd: 0, ry: 0 }); m.ev.push({ k: 'build', kind: it, slot }); }; }
+  else if (it === 'cakealarm') { if (count('cakealarm')) return fail('owned'); apply = () => { fo.builds.push({ id: fo.bid++, kind: 'cakealarm', slot: 0, x: 0, z: 0, hp: null, maxHp: null, ry: 0 }); m.ev.push({ k: 'build', kind: 'cakealarm' }); }; }
   else if (it === 'bot') { if (count('bot') >= S.max) return fail('max'); apply = () => { fo.builds.push({ id: fo.bid++, kind: 'bot', slot: 0, x: 0, z: 1.5, hp: S.hp, maxHp: S.hp, life: S.life, ry: 0 }); m.ev.push({ k: 'build', kind: 'bot' }); }; }
   else if (it === 'wolf') { const W = WOLF7; if (m.wolves.filter(f => !f.dead).length >= W.max) return fail('max'); if (m.time < fo.wolfReadyAt) return fail('cooldown'); if (fo.wolvesThisWave >= W.perWave) return fail('limit');
     apply = () => { fo.wolfReadyAt = m.time + W.cooldown; fo.wolvesThisWave++; const f = { id: -(++wolfSeq), owner: p.id, x: wolfSeq % 2 ? 1.8 : -1.8, z: 2.2, ry: 0, hp: W.hp, maxHp: W.hp, life: W.life, cd: 0.5, state: 'patrol', dead: false, idleA: m.rand() * 6.3 };
@@ -447,7 +567,7 @@ function defBuy(m, p, ps, msg) {
   fo.coins -= price; apply(); m.ev.push({ k: 'buy', by: p.id, item: it, price, only: 0 });
 }
 function endMatch(m, winner, reason) { if (m.over) return; m.over = true; m.winner = winner; m.reason = reason; if (winner === 0) m.ev.push({ k: 'omi', q: 'lose' }); }
-const SNAP_EV_PRIVATE = new Set(['shurt', 'sheepwait', 'sheepspawn', 'sbuy', 'usefail']);
+const SNAP_EV_PRIVATE = new Set(['shurt', 'sheepwait', 'sheepspawn', 'sbuy', 'usefail', 'helperfail', 'cmdfail']);
 // Was ein Verteidiger an seiner Stelle sehen könnte: Schafe im Sichtfeld, in Sichtweite, nicht hinter Mauern.
 // Gleiche Zeilen wie im Snapshot (zufällige ID, Position, Animation, Schwanz nur aus der Nähe, Kuchen/Schild sichtbar) – keine Identität.
 function perceive(m, viewer, { fov = 1, sight = 30, yaw = viewer.yaw } = {}) {
@@ -476,8 +596,10 @@ export const heist = {
   create(room) {
     const m = { room, seed: room.seed, rand: rng(room.seed ^ 0x5bd1e995), time: 0, tickN: 0, wave: 0, phase: 'countdown', phaseT: H.countdown + 1, fort: newFort(),
       cake: { state: 'home', x: 0, z: 0, by: 0, hp: H.cake.hp, returnAt: 0, near: false }, goats: [], gid: 1, queue: [], qt: 0, maxAlive: 18, nades: [],
-      npcs: [], npcRespawn: [], decoys: [], smokes: [], wolves: [], players: new Map(), ev: [], over: false, winner: null, reason: '', cleared: 0, night: false, final: false };
-    const nN = H.npc[String(room.perTeam)] || H.npc['1']; for (let i = 0; i < nN; i++) { const [x, z] = herdPoint(m); m.npcs.push(newNpc(m, x, z)); }
+      npcs: [], decoys: [], smokes: [], wolves: [], players: new Map(), ev: [], over: false, winner: null, reason: '', cleared: 0, night: false, final: false,
+      herd: [], waveT: 0, helperReadyAt: 0, cmdReadyAt: 0, cmdMode: null, cmdUntil: 0, attackPt: null, route: [] };
+    initHerd(m); const nSheep = room.players.filter(p => p.team === 1).length || room.perTeam; // exakt 15 Schafe: Schafspieler zählen mit
+    for (let i = 0; i < H.herdTotal - nSheep; i++) { const n = newNpc(m, 0, 0, i % 3); [n.x, n.z] = herdPoint(m, n); m.npcs.push(n); }
     for (const p of room.players) { const ps = makePS(m, p, room.players.filter(x => x.team === p.team).indexOf(p)); if (p.bot) { ps.bot = makeBrain(ps.role, p.diff || 'normal', (m.seed ^ (p.id * 2654435761)) >>> 0); ps.diff = p.diff; } m.players.set(p.id, ps); }
     return m;
   },
@@ -527,6 +649,11 @@ export const heist = {
     else if (msg.t === 'grab') { if (ps.role === 'sheep') { ps.grabbing = !!msg.v; if (!ps.grabbing) ps.grabT = 0; } }
     else if (msg.t === 'dropcake') { if (ps.role === 'sheep' && m.cake.state === 'carried' && m.cake.by === ps.id) dropCake(m, ps.x, ps.z); }
     else if (msg.t === 'shopready') { if (m.phase === 'shop') ps.shopReady = !!msg.v; }
+    else if (msg.t === 'helper') setHelper(m, ps, msg);
+    else if (msg.t === 'cmd') helperCmd(m, ps, msg);
+    else if (msg.t === 'mark') { if (ps.role !== 'sheep') return reject(ps, 'mark'); const x = +msg.x, z = +msg.z; if (msg.clear) { m.attackPt = null; return; } if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > H.arenaR) return reject(ps, 'mark'); m.attackPt = [+x.toFixed(1), +z.toFixed(1)]; }
+    else if (msg.t === 'route') { if (ps.role !== 'sheep') return reject(ps, 'route'); const pts = Array.isArray(msg.pts) ? msg.pts.slice(0, 6) : [];
+      if (!pts.every(q => Array.isArray(q) && q.length === 2 && q.every(Number.isFinite) && Math.hypot(q[0], q[1]) <= H.arenaR + 1)) return reject(ps, 'route'); m.route = pts.map(q => [+q[0].toFixed(1), +q[1].toFixed(1)]); }
   },
   tick(m, dt) {
     if (m.over) return;
@@ -536,14 +663,16 @@ export const heist = {
       if (ps.shield > 0 && m.time > ps.shieldUntil) { ps.shield = 0; m.ev.push({ k: 'shieldoff', sid: ps.sid, why: 'time' }); }
       if (ps.role === 'def' && ps.dead && m.time >= ps.respawnAt) { const [x, z] = defSpawnPoint(m, ps); Object.assign(ps, { dead: false, hp: H.def.hp, x, z, y: 0, prot: H.def.protect }); corr(ps); m.ev.push({ k: 'respawn', id: ps.id }); }
       if (ps.role === 'sheep' && ps.dead && !ps.waiting && !ps.out && m.time >= ps.respawnAt) respawnSheep(m, ps);
-      if (ps.role === 'sheep' && ps.alive() && m.phase === 'wave') { ps.aliveT += dt; if (ps.aliveT >= H.aliveCoinEvery) { ps.aliveT = 0; ps.coins++; } } }
+      if (ps.role === 'sheep' && ps.alive() && m.phase === 'wave') { ps.aliveT += dt; if (ps.aliveT >= H.aliveCoinEvery) { ps.aliveT = 0; ps.coins++; } }
+      if (ps.role === 'sheep' && ps.alive()) stepSus(m, ps, dt); }
+    if (m.phase === 'wave') m.waveT = (m.waveT || 0) + dt;
     if (![...m.players.values()].some(q => q.role === 'sheep')) return endMatch(m, 0, 'forfeit');
     if (![...m.players.values()].some(q => q.role === 'def')) return endMatch(m, 1, 'forfeit');
-    stepNpcs(m, dt); stepDecoys(m, dt); stepWolves(m, dt); stepCake(m, dt); if (m.over) return;
+    stepNpcs(m, dt); stepDecoys(m, dt); stepWolves(m, dt); stepAlarms(m); stepCake(m, dt); if (m.over) return;
     if (m.phase === 'overtime') { m.phaseT -= dt; stepGoats(m, dt); stepBuilds(m, dt); stepNades(m, dt);
       if (m.cake.state !== 'carried') return endMatch(m, 0, 'overtime'); if (m.phaseT <= 0) return endMatch(m, 0, 'overtime'); return; }
     if (m.phase === 'countdown') { m.phaseT -= dt; if (m.phaseT <= 0) { m.wave++; const wv = makeWave8(m.wave, m.seed, m.room.perTeam);
-      m.queue = wv.list.map(e => ({ ...e })); m.qt = 0; m.maxAlive = wv.maxAlive; m.fort.lostThisWave = 0; m.fort.wolvesThisWave = 0; m.night = wv.night || m.wave > 5; m.final = wv.final;
+      m.queue = wv.list.map(e => ({ ...e })); m.qt = 0; m.waveT = 0; m.maxAlive = wv.maxAlive; m.fort.lostThisWave = 0; m.fort.wolvesThisWave = 0; m.night = wv.night || m.wave > 5; m.final = wv.final;
       for (const ps of m.players.values()) if (ps.role === 'sheep' && !ps.out) { ps.lives = sheepLives(m.wave); ps.coins += m.wave > 1 ? H.sheepWaveCoins : 0; if (ps.dead || ps.waiting) respawnSheep(m, ps); }
       m.ev.push({ k: 'wave', wave: m.wave, name: wv.name, king: wv.king, final: wv.final, night: wv.night, count: wv.list.length });
       if (wv.final) m.ev.push({ k: 'omi', q: 'final' });
@@ -567,7 +696,7 @@ export const heist = {
     // Den schwarzen Schwanz bekommt der Verteidiger nur aus der Nähe (und nicht bei Tarnpuder) – sonst steht hier "hell".
     const tailFor = (x, z) => isDef ? (viewer && Math.hypot(viewer.x - x, viewer.z - z) <= tailR ? 1 : 0) : 1;
     const sh = [];
-    for (const n of m.npcs) sh.push([n.sid, r1(n.x), r1(n.z), Math.round(n.ry * 100), SH_ANIM[n.state] ?? 0, 0, 0, 0]);
+    for (const n of m.npcs) sh.push([n.sid, r1(n.x), r1(n.z), Math.round(n.ry * 100), SH_ANIM[n.state] ?? 0, 0, isDef ? 0 : (n.helper ? 32 : 0) | (n.cmd ? 64 : 0), r1(n.y)]); // Helfer-Markierung nur fürs Schaf-Team
     for (const c of m.decoys) sh.push([c.sid, r1(c.x), r1(c.z), Math.round(c.ry * 100), 2, tailFor(c.x, c.z), 0, 0]);
     for (const q of m.players.values()) { if (q.role !== 'sheep' || !q.alive()) continue;
       const carrying = m.cake.state === 'carried' && m.cake.by === q.id, sp = q.lastMoveSpeed || 0;
@@ -579,12 +708,17 @@ export const heist = {
     const sendGoats = m.goats.length <= 40 || m.tickN % 2 === 0;
     const players = []; const sheepTeam = [];
     for (const o of m.players.values()) {
+      if (o.role === 'def' && !isDef && viewer) { const seen = viewer.seenDef || (viewer.seenDef = new Map()); if (defVisible(m, viewer, o)) seen.set(o.id, t); if (t - (seen.get(o.id) ?? -9) > 0.6) continue; } // keine Verteidiger durch Mauern
       if (o.role === 'def') players.push({ id: o.id, team: 0, x: +o.x.toFixed(2), y: +o.y.toFixed(2), z: +o.z.toFixed(2), yaw: +o.yaw.toFixed(3), pitch: +o.pitch.toFixed(3), w: o.w, cr: o.cr, hp: Math.round(o.hp), dead: o.dead ? 1 : 0, prot: o.prot > 0 ? 1 : 0, boost: o.vis && o.vis.boost ? 1 : 0 });
       else sheepTeam.push(isDef ? { id: o.id, lives: o.lives, waiting: o.waiting ? 1 : 0, out: o.out ? 1 : 0 } : { id: o.id, sid: o.alive() ? o.sid : 0, lives: o.lives, waiting: o.waiting ? 1 : 0, out: o.out ? 1 : 0, hp: Math.round(o.hp) }); }
     const ev = m.ev.filter(e => (e.only == null || e.only === team) && (!SNAP_EV_PRIVATE.has(e.k) || (e.id ?? e.by) === p.id));
     const fo = m.fort, c = m.cake;
     const snap = { t: 'snap', mode: 'heist', time: +t.toFixed(2), phase: m.phase, phaseT: +m.phaseT.toFixed(2), wave: m.wave, maxWaves: MAX_WAVES, waveName: WAVE_NAMES8[m.wave - 1] || '', team, role: isDef ? 'def' : 'sheep', night: m.night, final: m.final,
       left: m.queue.length + m.goats.length,
+      wrong: fo.wrong, wrongMax: H.wrongMax,
+      thief: isDef && c.state === 'carried' && fo.builds.some(b => b.kind === 'cakealarm') ? [+c.x.toFixed(1), +c.z.toFixed(1)] : undefined,
+      tac: isDef ? undefined : { helpers: m.npcs.filter(n => n.helper).map(n => n.sid), hIn: +Math.max(0, (m.helperReadyAt || 0) - t).toFixed(1), cIn: +Math.max(0, (m.cmdReadyAt || 0) - t).toFixed(1),
+        mode: t < m.cmdUntil ? m.cmdMode : null, mLeft: +Math.max(0, m.cmdUntil - t).toFixed(1), atk: m.attackPt, route: m.route, max: H.helper.max, pickR: H.helper.pickR },
       fort: { coins: isDef ? fo.coins : undefined, upg: isDef ? fo.upg : undefined, kills: fo.kills, points: fo.points, wolfIn: isDef ? Math.max(0, +(fo.wolfReadyAt - t).toFixed(1)) : undefined,
         walls: Object.fromEntries(Object.entries(fo.walls).map(([k, v]) => [k, [v.lvl, Math.round(v.hp), v.maxHp, v.gate ? 1 : 0]])),
         builds: fo.builds.map(b => [b.id, b.kind, +b.x.toFixed(2), +b.z.toFixed(2), b.maxHp ? Math.round(100 * b.hp / b.maxHp) : 100, b.tgt ? +b.tgt[0].toFixed(1) : null, b.tgt ? +b.tgt[1].toFixed(1) : null, +(b.ry || 0).toFixed(2)]) },
@@ -598,7 +732,7 @@ export const heist = {
         hp: Math.round(ps.hp), dead: ps.dead, respawnIn: ps.dead ? +Math.max(0, ps.respawnAt - t).toFixed(1) : 0, prot: ps.prot > 0, boostIn: +Math.max(0, ps.boostReadyAt - t).toFixed(2), boostCd: H.boostCd[fo.upg.boostcd ? 1 : 0] }
       : { role: 'sheep', sid: ps.alive() ? ps.sid : 0, hp: Math.round(ps.hp), maxHp: H.sheep.hp, lives: ps.lives, waiting: ps.waiting, out: ps.out, dead: ps.dead, respawnIn: ps.dead && Number.isFinite(ps.respawnAt) ? +Math.max(0, ps.respawnAt - t).toFixed(1) : 0,
         coins: ps.coins, inv: ps.inv, jumpUpg: ps.jumpUpg, shield: Math.round(ps.shield), shieldIn: ps.shield > 0 ? +Math.max(0, ps.shieldUntil - t).toFixed(1) : 0, speedIn: +Math.max(0, ps.speedReadyAt - t).toFixed(1), speedOn: t < ps.speedUntil,
-        camoIn: +Math.max(0, ps.camoUntil - t).toFixed(1), carrying: c.state === 'carried' && c.by === ps.id, grab: +(ps.grabT / H.cake.grabT).toFixed(2), revealed: ps.revealUntil > t && !(c.state === 'carried' && c.by === ps.id) ? 1 : 0, prot: ps.prot > 0, kills: ps.pkills, hits: ps.hits };
+        tarn: ps.tarn || 0, camoIn: +Math.max(0, ps.camoUntil - t).toFixed(1), carrying: c.state === 'carried' && c.by === ps.id, grab: +(ps.grabT / H.cake.grabT).toFixed(2), revealed: ps.revealUntil > t && !(c.state === 'carried' && c.by === ps.id) ? 1 : 0, prot: ps.prot > 0, kills: ps.pkills, hits: ps.hits };
     if (ps && ps.correct) { snap.correct = { x: +ps.x.toFixed(2), z: +ps.z.toFixed(2), y: +ps.y.toFixed(2), c: ps.cseq }; ps.correct = false; }
     return snap;
   },
