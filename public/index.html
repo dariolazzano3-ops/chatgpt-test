@@ -310,6 +310,23 @@ body.kk-def #emoteBtn,body.kk-def #sheepBar,body.kk-def #grabBtn{display:none!im
 #kkDead b{font-family:var(--display);font-weight:400;font-size:44px;color:#ff7aa2}#kkDead span{font-weight:700}
 #wolfBtn{position:fixed;right:max(150px,calc(env(safe-area-inset-right,0px) + 140px));top:calc(env(safe-area-inset-top,0px) + 96px);display:grid;place-items:center;gap:1px;padding:8px 12px;border-radius:14px;border:2px solid var(--cream);background:rgba(74,66,80,.85);color:var(--cream);font:800 13px var(--body);z-index:40;touch-action:none;cursor:pointer}
 #wolfBtn small{font-size:11px;opacity:.85}#wolfBtn.cd{opacity:.5}
+/* V7.2 Schafkommando: Fehlabschüsse, Tarnung, taktische Karte */
+#kkHud .krow+.krow{margin-top:4px}#kkWrong{color:#ffd3a8}#kkWrong.w2{background:rgba(160,80,20,.8)!important;color:#fff}#kkWrong.w3{background:rgba(190,20,50,.9)!important;color:#fff;animation:wblink .7s steps(2) infinite}@keyframes wblink{50%{opacity:.35}}
+body.touch.kk-sheep #kkLeft{display:none}#kkTarn{display:inline-flex;align-items:center;gap:5px}#kkTarn::before{content:'';width:9px;height:9px;border-radius:50%;background:currentColor}#kkTarn.t0{color:#9ae6a8}#kkTarn.t1{color:#ffd166}#kkTarn.t2{color:#fff;background:rgba(190,20,50,.85)!important}
+#mapBtn{position:fixed;z-index:31;left:max(16px,calc(env(safe-area-inset-left,0px) + 14px));top:calc(env(safe-area-inset-top,0px) + 186px);border:2px solid #9ae6a8;border-radius:14px;background:rgba(18,12,31,.72);color:var(--cream);padding:6px 10px;font-size:20px;display:grid;justify-items:center;cursor:pointer;min-width:52px;min-height:52px}
+#mapBtn small{font-size:10px;font-weight:800}body:not(.touch) #mapBtn small::after{content:' (M)'}#mapBtn.ready{box-shadow:0 0 0 3px rgba(154,230,168,.45)}
+#tmap{position:fixed;inset:0;z-index:66;display:flex;justify-content:flex-end;align-items:stretch;pointer-events:none;padding:calc(env(safe-area-inset-top,0px) + 8px) max(10px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(10px,env(safe-area-inset-left,0px))}
+#tmap .tpanel{pointer-events:auto;width:min(720px,100%);max-height:100%;display:flex;flex-direction:column;gap:8px;background:rgba(26,18,42,.92);border:1px solid rgba(154,230,168,.35);border-radius:18px;padding:10px 12px;color:var(--cream);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+#tmap .thead{display:flex;align-items:center;gap:10px}#tmap .thead>div{flex:1;min-width:0;display:grid}#tmap .thead b{font-family:var(--display);font-weight:400;font-size:22px;color:#9ae6a8}#tmap .thead small{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tmapClose{border:0;background:rgba(255,244,220,.12);color:var(--cream);width:44px;height:44px;border-radius:12px;font-size:18px;cursor:pointer}
+#tmap .tbody{display:flex;gap:10px;min-height:0;flex:1}#tmapCv{flex:0 1 auto;min-width:0;height:auto;aspect-ratio:1;max-height:min(66vh,560px);width:auto;max-width:62%;border-radius:14px;background:#2d4a2a;touch-action:none;cursor:crosshair;align-self:flex-start}
+#tmap .tside{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+#tmap .tmodes,#tmap .tcmds{display:grid;grid-template-columns:1fr 1fr;gap:6px}#tmap .tcmds{grid-template-columns:1fr}
+#tmap button[data-m],#tmap button[data-c]{min-height:46px;border-radius:12px;border:1px solid rgba(255,244,220,.2);background:rgba(255,244,220,.07);color:var(--cream);font:700 14px Rubik,sans-serif;cursor:pointer;padding:6px 8px}
+#tmap button[data-m].on{background:rgba(154,230,168,.25);border-color:#9ae6a8}#tmap button[data-c]{background:rgba(214,51,108,.32);border-color:rgba(255,143,179,.5)}#tmap button[data-c]:disabled{opacity:.4;cursor:default}
+#tmap .thint{margin:0;font-size:12.5px;line-height:1.35;opacity:.88}
+@media (max-width:700px),(max-height:520px){#tmap .tpanel{width:100%}#tmapCv{max-height:calc(100vh - 110px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-width:56%}#tmap .thead b{font-size:18px}#tmap button[data-m],#tmap button[data-c]{font-size:12.5px;min-height:44px}}
+@media (max-width:520px) and (orientation:portrait){#tmap .tbody{flex-direction:column}#tmapCv{max-width:100%;width:100%}}
 body:not(.touch) #wolfBtn{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);right:24px}
 #boostBar{position:fixed;left:50%;top:calc(50% + 34px);transform:translateX(-50%);width:64px;height:5px;border-radius:3px;background:rgba(18,12,31,.5);overflow:hidden;pointer-events:none;z-index:30}
 #boostBar i{display:block;height:100%;width:0;background:#8ad4ff}#boostBar.on i{background:#ffb347}
@@ -488,7 +505,13 @@ body:not(.touch) #wolfBtn{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) +
 <div id="netMsg" hidden></div>
 <div id="hpBox" hidden><span>♥</span><div class="hpbar"><i id="hpFill"></i></div><b id="hpNum">100</b></div>
 <div id="kkDead" hidden><b id="kkDeadH">Erwischt!</b><span id="kkDeadT"></span></div>
-<div id="kkHud" hidden><div class="krow"><b id="kkWave"></b><span id="kkLives"></span><span id="kkLeft"></span></div><p id="kkMission"></p></div>
+<div id="kkHud" hidden><div class="krow"><b id="kkWave"></b><span id="kkLives"></span><span id="kkLeft"></span><span id="kkWrong" hidden></span><span id="kkTarn" hidden></span></div><p id="kkMission"></p></div>
+<button id="mapBtn" type="button" hidden aria-label="Taktische Karte öffnen">🗺️<small>Karte</small></button>
+<div id="tmap" hidden><div class="tpanel"><div class="thead"><div><b>Schafkommando</b><small id="tmapInfo"></small></div><button type="button" id="tmapClose" aria-label="Karte schließen">✕</button></div>
+<div class="tbody"><canvas id="tmapCv" width="640" height="640" aria-label="Taktische Karte: Schafe, Festung, Omi"></canvas>
+<div class="tside"><div class="tmodes" id="tmapModes"><button type="button" data-m="pick" class="on">🐑 Helfer</button><button type="button" data-m="atk">🎯 Ziel</button><button type="button" data-m="route">🧭 Fluchtweg</button><button type="button" data-m="clear">🧹 Löschen</button></div>
+<div class="tcmds" id="tmapCmds"><button type="button" data-c="distract">💨 Ablenken</button><button type="button" data-c="storm">⚔️ Stürmen</button><button type="button" data-c="sabotage">🔨 Verteidigung angreifen</button></div>
+<p class="thint" id="tmapHint"></p></div></div></div></div>
 <button id="hshopBtn" type="button" hidden aria-label="Markt öffnen"><i>🛒</i><span>Markt</span><small>T</small></button>
 <div id="sheepBar" hidden aria-label="Schaf-Gegenstände"></div>
 <button id="grabBtn" type="button" hidden>Kuchen</button>
@@ -2496,16 +2519,18 @@ function omiUpdate(dt){const o=KK.omi;if(!o)return;o.t+=dt;const t=o.t;if(o.stat
 // Sprüche: zufällig, ohne Wiederholung, 6–10 s Abstand, wichtige Ereignisse haben Vorrang, keine Überlappung
 const OMI_LINES={
   die:['DU WOLLVERSAGER! Schon wieder?!','Ach du heilige Wollsocke!','Das war ja peinlich, mein Schäfchen!','Ich brauch wohl ein neues Schaf!','Steh auf! Der Kuchen bringt sich nicht von allein!','Nicht mal Kuchen klauen kannst du!'],
-  steal:['JAAAA! Bring ihn zur Omi!','Schneller, du Wollrakete!','Endlich! Ich hab seit Stunden Hunger!','Lass dich bloß nicht erwischen!'],
+  steal:['JAAA! Bring ihn zur Omi!','Schneller, du Wollrakete!','Endlich! Ich hab seit Stunden Hunger!','Lass dich bloß nicht erwischen!'],
   drop:['MEIN KUCHEN! NEIN!','Du hast ihn FALLEN LASSEN?!','Ich glaub, ich spinne!'],
   near:['Ich kann ihn schon riechen!','Komm zu Omi, mein Schäfchen!','Kaffee steht bereit!'],
   win:['ENDLICH! Käsekuchen für die Königin!','So muss das, du kleiner Wollheld!','Der Kuchen gehört MIR!'],
   lose:['Unfassbar! Acht Wellen und kein Kuchen!','Ich kündige der ganzen Schafherde!','Dann ess ich eben Zwieback!'],
   idle:['Wo bleibt denn mein Kuchen?','Mein Kaffee wird kalt!','Diese Zombie-Ziegen haben keine Manieren!','Früher gab es sonntags Kuchen. Einfach so!','Ich sitz hier, bis ich Moos ansetze!'],
   king:['Was ist DAS denn für ein Riesenbock?!','Der hat ja eine Krone! Frechheit!'],
-  final:['Hundert Ziegen?! Jetzt oder nie, mein Schäfchen!','Das ist die letzte Gelegenheit!']};
-const OMI_PRIO={win:3,lose:3,steal:2,drop:2,die:2,near:1,king:1,final:2,idle:0};
-const OMI_ANIM={die:'stomp',steal:'stand',drop:'angry',near:'stand',win:'victory',lose:'slump',idle:'wave',king:'shake',final:'stand'};
+  final:['Hundert Ziegen?! Jetzt oder nie, mein Schäfchen!','Das ist die letzte Gelegenheit!'],
+  wrong1:['Junge, das war doch ein ganz normales Schaf!'],wrong2:['Kannst du überhaupt zählen?!'],wrong3:['NOCH EIN SCHAF UND ICH RUF DIE POLIZEI!'],wrong4:['VIER SCHAFE?! AB INS GEFÄNGNIS MIT DIR!'],
+  storm:['Jetzt kommen die Wollgangster!','Drei gegen einen? So gefällt mir das!'],cakeshot:['PASS AUF MEINEN KUCHEN AUF!']};
+const OMI_PRIO={win:3,lose:3,steal:2,drop:2,die:2,near:1,king:1,final:2,idle:0,wrong1:2,wrong2:2,wrong3:2,wrong4:3,storm:2,cakeshot:1};
+const OMI_ANIM={die:'stomp',steal:'stand',drop:'angry',near:'stand',win:'victory',lose:'slump',idle:'wave',king:'shake',final:'stand',wrong1:'angry',wrong2:'angry',wrong3:'stomp',wrong4:'stomp',storm:'victory',cakeshot:'shake'};
 const omiQ={last:{},nextAt:0,speaking:0,idleAt:0};
 function omiSay(cat,force){const now=performance.now()/1000,pr=OMI_PRIO[cat]||0;
   if(!force&&now<omiQ.nextAt&&pr<2)return false; // normale Kommentare frühestens nach 6–10 s
@@ -2558,10 +2583,12 @@ function kkBuildMesh(kind){const g=new THREE.Group(),M=kkWallMats();const parts=
     const scope=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,0.5,8),M.steelD);scope.rotation.x=Math.PI/2;scope.position.set(0,4.9,0.4);const flag=new THREE.Mesh(box(0.6,0.35,0.03),lam(0xf3c969));flag.position.set(0.35,6.2,0);const fp=new THREE.Mesh(box(0.04,0.8,0.04),M.woodD);fp.position.y=5.95;g.add(pl,roof,scope,flag,fp);parts.flag=flag;}
   else if(kind==='bot'){const body=new THREE.Mesh(box(0.5,0.45,0.5),lam(0xf3c969));body.position.y=0.45;const head=new THREE.Mesh(box(0.34,0.26,0.3),lam(0x3a2550));head.position.y=0.82;const eyeM=new THREE.MeshBasicMaterial({color:0x8ad4ff});const eye=new THREE.Mesh(box(0.22,0.06,0.02),eyeM);eye.position.set(0,0.84,0.16);
     const arm=new THREE.Group();arm.position.set(0.3,0.6,0.1);const ah=new THREE.Mesh(box(0.08,0.4,0.08),lam(0x3a2550));ah.position.y=-0.15;const hammer=new THREE.Mesh(box(0.22,0.12,0.12),M.steel);hammer.position.y=-0.38;arm.add(ah,hammer);for(const sx of[-1,1]){const w=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.08,10),M.steelD);w.rotation.z=Math.PI/2;w.position.set(sx*0.27,0.13,0);g.add(w);}g.add(body,head,eye,arm);parts.arm=arm;}
+  else if(kind==='motion'){const p=new THREE.Mesh(box(0.12,1.1,0.12),M.steelD);p.position.y=0.55;const hd=new THREE.Mesh(box(0.34,0.24,0.26),M.steel);hd.position.y=1.15;const lm=new THREE.MeshBasicMaterial({color:0x8ad4ff});const lens=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),lm);lens.position.set(0,1.15,0.14);g.add(p,hd,lens);parts.light=lm;}
+  else if(kind==='cakealarm'){const p=new THREE.Mesh(box(0.1,0.9,0.1),M.steelD);p.position.y=0.45;const lm=new THREE.MeshBasicMaterial({color:0xff3a5a});const dome=new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),lm);dome.position.y=0.98;g.add(p,dome);parts.light=lm;}
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});KK.group.add(g);return{g,parts,kind,x:0,z:0,tgt:null,fireT:0};}
-const KK_BUILD_NAMES={tower:'Verteidigungsturm',gun:'Geschütz',spikes:'Stachelfalle',mine:'Explosivfalle',ammo:'Munitionsstation',bell:'Wachglocke',watch:'Aussichtsturm',bot:'Reparaturhelfer'};
+const KK_BUILD_NAMES={tower:'Verteidigungsturm',gun:'Geschütz',spikes:'Stachelfalle',mine:'Explosivfalle',ammo:'Munitionsstation',bell:'Wachglocke',watch:'Aussichtsturm',bot:'Reparaturhelfer',motion:'Bewegungsmelder',cakealarm:'Kuchenalarm'};
 function kkBuilds(list){const seen=new Set();for(const a of list){const [id,kind,x,z,hpPct,tx,tz,ry]=a;seen.add(id);let b=KK.builds.get(id);
-    if(!b){b=kkBuildMesh(kind);b.g.position.set(x,0,z);KK.builds.set(id,b);if(kind==='gun'){const sd=Math.abs(x)>Math.abs(z)?(x>0?'E':'W'):(z>0?'S':'N');const w=KK.walls[sd];b.g.position.y=w?KK_WH[w.lvl]:1.3;}
+    if(!b){b=kkBuildMesh(kind);b.g.position.set(kind==='cakealarm'?x+1.2:x,0,kind==='cakealarm'?z-1.2:z);KK.builds.set(id,b);if(kind==='gun'){const sd=Math.abs(x)>Math.abs(z)?(x>0?'E':'W'):(z>0?'S':'N');const w=KK.walls[sd];b.g.position.y=w?KK_WH[w.lvl]:1.3;}
       if(kind==='spikes'){b.g.rotation.y=Math.abs(x)>Math.abs(z)?Math.PI/2:0;}tmpA.set(x,0.5,z);puff(tmpA,0xfff4dc,10,0.8);}
     b.tx=x;b.tz=z;b.tgt=tx!=null?[tx,tz]:null;b.ry=ry;b.hp=hpPct;if(kind==='gun'){const sd=Math.abs(x)>Math.abs(z)?(x>0?'E':'W'):(z>0?'S':'N');const w=KK.walls[sd];if(w)b.g.position.y=KK_WH[w.lvl]||1.3;}}
   for(const [id,b] of KK.builds)if(!seen.has(id)){tmpA.copy(b.g.position);tmpA.y+=0.6;puff(tmpA,0x6e4a2a,14,1.1);KK.group.remove(b.g);KK.builds.delete(id);}}
@@ -2570,6 +2597,7 @@ function kkBuildsUpdate(dt){const now=performance.now();for(const b of KK.builds
   if(P.head&&b.tgt){const a=Math.atan2(b.tgt[0]-p.x,b.tgt[1]-p.z);let d=a-P.head.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));P.head.rotation.y+=d*Math.min(1,dt*10);
     b.fireT-=dt;if(b.fireT<=0){b.fireT=b.kind==='gun'?0.18:0.9;const from=new THREE.Vector3(p.x,p.y+(b.kind==='tower'?3.6:0.6),p.z),to=new THREE.Vector3(b.tgt[0],0.9,b.tgt[1]);kkTracer(from,to,b.kind==='gun'?0xffd36b:0xfff4dc);if(b.kind==='gun'&&Math.random()<0.3&&ac)noiseHit(0.03,2400,0.05,'highpass');}}
   if(P.light&&b.kind==='mine')P.light.color.setHex(Math.floor(now/400)%2?0xff3a3a:0x4a0a0a);
+  if(P.light&&(b.kind==='motion'||b.kind==='cakealarm')){const hot=(b.ringT||0)>0;if(hot)b.ringT-=dt;P.light.color.setHex(hot?(Math.floor(now/150)%2?0xff3a3a:0xffd166):(b.kind==='motion'?0x8ad4ff:0x7a1a2a));}
   if(P.light&&b.kind==='gun')P.light.color.setHex(b.tgt?0xff5c5c:0x7bd88f);
   if(P.flag)P.flag.rotation.y=Math.sin(now/300)*0.3;
   if(P.bell&&b.ringT>0){b.ringT-=dt;P.bell.rotation.z=Math.sin(now/40)*0.5;}}
@@ -2631,7 +2659,7 @@ function kkEnter(team){kkBuild();Object.assign(KK,{on:true,team,role:team===0?'d
   $('hpBox').hidden=false;$('kkHud').hidden=false;$('hshopBtn').hidden=false;kkAtmos('');
   if(KK.role==='sheep'){player.pitch=-0.2;KK.sheepMe=makeSheep();KK.sheepMe.g.visible=false;gun.visible=false;$('cross').hidden=true;}
   kkItemsHud(true);}
-function kkExit(){if(!KK.on)return;KK.on=false;for(const o of KK.hidden)o.visible=true;KK.hidden=[];if(KK.group)KK.group.visible=false;
+function kkExit(){if(!KK.on)return;if(KK.mapOpen)tmapClose();$('mapBtn').hidden=true;KK.on=false;for(const o of KK.hidden)o.visible=true;KK.hidden=[];if(KK.group)KK.group.visible=false;
   for(const f of KK.wolves.values())kkDisposeWolf(f);KK.wolves.clear();for(const s of KK.sheep.values())disposeSheep(s);KK.sheep.clear();if(KK.sheepMe){disposeSheep(KK.sheepMe);KK.sheepMe=null;}
   for(const b of KK.builds.values())KK.group.remove(b.g);KK.builds.clear();KK.gd.clear();if(KK.inst)KK.inst.mesh.count=0;for(const s of KK.smokes)scene.remove(s.m);KK.smokes=[];
   if(KK.ring)KK.ring.visible=KK.lane.visible=false;if(KK.dropCake)KK.dropCake.visible=false;cake.visible=true;if(KK.omi){KK.omi.g.visible=false;}kkAtmos('');
@@ -2719,7 +2747,7 @@ function kkSnap(s){KK.snap=s;const me=s.you;KK.you=me;
   const seen=new Set();KK.mineSid=0;
   for(const a of s.sh){const [sid,x10,z10,ry100,anim,tail,fl,y10]=a;if(fl&16){KK.mineSid=sid;continue;}seen.add(sid);let sh=KK.sheep.get(sid);const x=x10/10,z=z10/10;
     if(!sh){sh=makeSheep();sh.g.position.set(x,0,z);sh.lx=x;sh.lz=z;sh.g.rotation.y=ry100/100;KK.sheep.set(sid,sh);}
-    sh.tx=x;sh.tz=z;sh.ty=(y10||0)/10;sh.ry=ry100/100;sh.anim=anim;sheepTail(sh,tail===1);sheepCarry(sh,!!(fl&1));sheepShield(sh,!!(fl&2));sh.g.visible=!((fl&4)&&Math.floor(performance.now()/130)%2);
+    sh.tx=x;sh.tz=z;sh.ty=(y10||0)/10;sh.ry=ry100/100;sh.anim=anim;sheepTail(sh,tail===1);sheepCarry(sh,!!(fl&1));sheepShield(sh,!!(fl&2));sheepHelperRing(sh,(fl&32)?((fl&64)?2:1):0);sh.g.visible=!((fl&4)&&Math.floor(performance.now()/130)%2);
     if(fl&8){const st=s.sheepTeam.find(q=>q.sid===sid);sheepLabel(sh,st?kkName(st.id):'Mitspieler');}}
   for(const [sid,sh] of KK.sheep)if(!seen.has(sid)){disposeSheep(sh);KK.sheep.delete(sid);}
   // Verteidiger (für alle sichtbar)
@@ -2757,10 +2785,80 @@ function kkSnap(s){KK.snap=s;const me=s.you;KK.you=me;
     for(const k in me.ammo)if(WEAPONS[k]&&reloadT<=0&&!me.reloading&&me.ammo[k]<ammo[k])ammo[k]=me.ammo[k];}
   // Stimmung
   const want=s.wave===8&&(s.phase==='wave'||s.phase==='overtime')?'final':s.night?'night':'';kkAtmos(want);
-  kkHud(s);if(KK.shopOpen)kkRenderShop();}
+  kkTac(s);kkHud(s);if(KK.shopOpen)kkRenderShop();if(KK.mapOpen)tmapDraw();}
+// ---------- V7.2 Schafkommando: Helfer-Ringe, Route/Ziel in der Welt, Kuchenalarm-Ortung ----------
+const TAC_G={};function tacMats(){if(TAC_G.ring)return TAC_G;TAC_G.ring=new THREE.RingGeometry(0.7,0.86,28);TAC_G.ring.rotateX(-Math.PI/2);
+  TAC_G.m1=new THREE.MeshBasicMaterial({color:0x9ae6a8,transparent:true,opacity:0.85,depthWrite:false});TAC_G.m2=new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.95,depthWrite:false});
+  TAC_G.pole=new THREE.CylinderGeometry(0.05,0.05,1.6,6);TAC_G.flag=new THREE.ConeGeometry(0.28,0.5,4);TAC_G.pm=new THREE.MeshBasicMaterial({color:0xf3c969});TAC_G.am=new THREE.MeshBasicMaterial({color:0xff5c8a});
+  TAC_G.thief=new THREE.ConeGeometry(0.45,0.9,4);TAC_G.tm=new THREE.MeshBasicMaterial({color:0xff3a5a,depthTest:false,transparent:true,opacity:0.9});return TAC_G;}
+// Helferschafe sind nur für das Schaf-Team markiert (die Verteidiger bekommen die Kennung gar nicht)
+function sheepHelperRing(sh,lvl){if(!lvl){if(sh.hring){sh.g.remove(sh.hring);sh.hring=null;}return;}const T=tacMats();if(!sh.hring){sh.hring=new THREE.Mesh(T.ring,T.m1);sh.hring.position.y=0.04;sh.hring.renderOrder=2;sh.g.add(sh.hring);}sh.hring.material=lvl===2?T.m2:T.m1;}
+function kkTac(s){const T=tacMats();if(!KK.tacG){KK.tacG=new THREE.Group();KK.group.add(KK.tacG);KK.thief=new THREE.Mesh(T.thief,T.tm);KK.thief.rotation.x=Math.PI;KK.thief.renderOrder=9;KK.thief.visible=false;KK.group.add(KK.thief);}
+  // Kuchenalarm: Ortung des Diebs (nur Verteidiger, nur mit gekauftem Kuchenalarm)
+  if(s.thief){KK.thief.visible=true;KK.thief.position.set(s.thief[0],3.2+Math.sin(performance.now()/180)*0.2,s.thief[1]);}else KK.thief.visible=false;
+  const t=s.tac;KK.tacSnap=t||null;const sig=t?JSON.stringify([t.route,t.atk]):'';if(sig===KK.tacSig)return;KK.tacSig=sig;
+  for(const c of [...KK.tacG.children])KK.tacG.remove(c);if(!t)return;
+  for(const [x,z] of t.route||[]){const g=new THREE.Group();const po=new THREE.Mesh(T.pole,T.pm);po.position.y=0.8;const fl=new THREE.Mesh(T.flag,T.pm);fl.position.y=1.8;fl.rotation.x=Math.PI;g.add(po,fl);g.position.set(x,0,z);KK.tacG.add(g);}
+  if(t.atk){const g=new THREE.Group();const po=new THREE.Mesh(T.pole,T.am);po.position.y=0.8;const r=new THREE.Mesh(T.ring,T.am);r.position.y=0.05;r.scale.setScalar(1.6);g.add(po,r);g.position.set(t.atk[0],0,t.atk[1]);KK.tacG.add(g);}}
+// ---------- Taktische Karte (nur Schaf-Team) ----------
+const TMAP={mode:'pick',route:[],editing:0};
+const tmapScale=()=>$('tmapCv').width/2/40;
+function tmapW2C(x,z){const k=tmapScale(),c=$('tmapCv').width/2;return[c+x*k,c+z*k];}
+function tmapC2W(px,py){const k=tmapScale(),c=$('tmapCv').width/2;return[(px-c)/k,(py-c)/k];}
+function tmapOpen(){if(!KK.on||KK.role!=='sheep'||(state!=='play'&&state!=='shop'))return;if(KK.shopOpen)kkCloseShop();KK.mapOpen=true;state='shop';clearInputs();if(document.pointerLockElement){try{document.exitPointerLock();}catch(e){}}$('tmap').hidden=false;
+  TMAP.route=((KK.tacSnap&&KK.tacSnap.route)||[]).filter(p=>Math.hypot(p[0]-KK_OMI.x,p[1]-KK_OMI.z)>3).map(p=>p.slice());tmapMode(TMAP.mode);tmapDraw();}
+function tmapClose(){if(!KK.mapOpen)return;KK.mapOpen=false;$('tmap').hidden=true;if(state==='shop'&&!KK.shopOpen){setPlaying();tryLock();}}
+function tmapMode(m){if(m==='clear'){TMAP.route=[];netSend({t:'route',pts:[]});netSend({t:'mark',clear:true});popup('Route und Ziel gelöscht');m='pick';}
+  TMAP.mode=m;for(const b of $('tmapModes').children)b.classList.toggle('on',b.dataset.m===m);tmapDraw();}
+function tmapHelpers(){const t=KK.tacSnap;return t?t.helpers:[];}
+function tmapDraw(){const cv=$('tmapCv'),x=cv.getContext('2d'),s=KK.snap;if(!s||!x)return;const W=cv.width,k=tmapScale(),c=W/2,t=s.tac||{};x.clearRect(0,0,W,W);
+  // Wiese, Zaun, Herdenband
+  x.fillStyle='#35532f';x.beginPath();x.arc(c,c,39*k,0,7);x.fill();x.strokeStyle='rgba(255,244,220,.35)';x.lineWidth=3;x.stroke();
+  // Festung mit Mauerstufen
+  const [fx,fz]=tmapW2C(-5,-5);x.fillStyle='#6b5a3e';x.fillRect(fx,fz,10*k,10*k);
+  const wc=['rgba(0,0,0,0)','#c8955a','#a7a7b4','#d7e2ef'];for(const sd in s.fort.walls){const [lvl,,,gate]=s.fort.walls[sd];if(!lvl)continue;x.strokeStyle=wc[lvl];x.lineWidth=2+lvl*1.5;x.beginPath();
+    const S=KK_SIDES[sd];if(S.ax==='x'){const [a,b]=tmapW2C(S.sg*5,-5.3),[a2,b2]=tmapW2C(S.sg*5,5.3);x.moveTo(a,b);x.lineTo(a2,b2);}else{const [a,b]=tmapW2C(-5.3,S.sg*5),[a2,b2]=tmapW2C(5.3,S.sg*5);x.moveTo(a,b);x.lineTo(a2,b2);}x.stroke();
+    if(gate){const [gx,gz]=tmapW2C(S.ax==='x'?S.sg*5:0,S.ax==='z'?S.sg*5:0);x.fillStyle='#3a2550';x.fillRect(gx-5,gz-5,10,10);}}
+  // bekannte Hindernisse/Anlagen (für alle sichtbar aufgebaut)
+  for(const b of s.fort.builds){const [,kind,bx,bz]=b;const [px,py]=tmapW2C(bx,bz);x.fillStyle=kind==='tower'||kind==='gun'?'#ff8f8f':kind==='spikes'||kind==='mine'?'#d8b86a':'#c9c0d6';x.beginPath();x.arc(px,py,kind==='tower'?6:4,0,7);x.fill();}
+  // Kuchen (solange bekannt) und Omi
+  const ck=s.cake.s===0?[0,0]:[s.cake.x,s.cake.z];{const [px,py]=tmapW2C(ck[0],ck[1]);x.font='22px serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🎂',px,py);}
+  {const [px,py]=tmapW2C(KK_OMI.x,KK_OMI.z);x.fillText('👵',px,py);}
+  // Werwölfe (sichtbar)
+  for(const f of s.wolves){const [px,py]=tmapW2C(f[1],f[2]);x.fillStyle='#4a4250';x.beginPath();x.arc(px,py,6,0,7);x.fill();}
+  // Fluchtweg
+  const me=[player.x,player.z],pts=[me,...TMAP.route,[KK_OMI.x,KK_OMI.z+1]];x.setLineDash([10,7]);x.strokeStyle='#f3c969';x.lineWidth=3;x.beginPath();pts.forEach((p,i)=>{const [px,py]=tmapW2C(p[0],p[1]);i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();x.setLineDash([]);
+  TMAP.route.forEach((p,i)=>{const [px,py]=tmapW2C(p[0],p[1]);x.fillStyle='#f3c969';x.beginPath();x.arc(px,py,8,0,7);x.fill();x.fillStyle='#3a2550';x.font='bold 11px Rubik,sans-serif';x.fillText(i+1,px,py+0.5);});
+  // Angriffspunkt
+  if(t.atk){const [px,py]=tmapW2C(t.atk[0],t.atk[1]);x.strokeStyle='#ff5c8a';x.lineWidth=3;x.beginPath();x.arc(px,py,11,0,7);x.moveTo(px-16,py);x.lineTo(px+16,py);x.moveTo(px,py-16);x.lineTo(px,py+16);x.stroke();}
+  // Auswahlradius
+  if(TMAP.mode==='pick'){const [px,py]=tmapW2C(me[0],me[1]);x.strokeStyle='rgba(154,230,168,.35)';x.setLineDash([4,6]);x.beginPath();x.arc(px,py,(t.pickR||32)*k,0,7);x.stroke();x.setLineDash([]);}
+  // Schafe: Herde, Helfer, Mitspieler, ich
+  const hs=new Set(t.helpers||[]);for(const a of s.sh){const [sid,x10,z10,,,,fl]=a;if(fl&16)continue;const [px,py]=tmapW2C(x10/10,z10/10);const helper=hs.has(sid);
+    x.fillStyle=fl&8?'#8ad4ff':'#f4efe2';x.beginPath();x.arc(px,py,helper?7:5.5,0,7);x.fill();if(helper){x.strokeStyle=(fl&64)?'#ffb347':'#9ae6a8';x.lineWidth=3;x.beginPath();x.arc(px,py,11,0,7);x.stroke();}}
+  {const [px,py]=tmapW2C(me[0],me[1]);x.fillStyle='#17131b';x.strokeStyle='#f3c969';x.lineWidth=3;x.beginPath();x.arc(px,py,8,0,7);x.fill();x.stroke();
+    const yw=player.yaw;x.beginPath();x.moveTo(px,py);x.lineTo(px-Math.sin(yw)*16,py-Math.cos(yw)*16);x.stroke();}
+  // Verteidiger: nur, wenn du sie gerade siehst (der Server schickt nichts durch Mauern)
+  for(const p of s.pl){if(p.dead)continue;const [px,py]=tmapW2C(p.x,p.z);x.fillStyle='#ff5c5c';x.beginPath();x.moveTo(px,py-9);x.lineTo(px+8,py+7);x.lineTo(px-8,py+7);x.closePath();x.fill();}
+  // Kopf/Infozeile
+  const nH=hs.size,cIn=t.cIn||0,hIn=t.hIn||0;$('tmapInfo').textContent='Helfer '+nH+'/'+(t.max||3)+(t.mode?' · '+({distract:'Ablenken',storm:'Sturm',sabotage:'Sabotage'}[t.mode])+' '+Math.ceil(t.mLeft)+' s':'')+(cIn>0?' · Befehl in '+Math.ceil(cIn)+' s':'')+(hIn>0?' · Ersatz in '+Math.ceil(hIn)+' s':'');
+  for(const b of $('tmapCmds').children){b.disabled=!nH||cIn>0;}
+  $('tmapHint').textContent=TMAP.mode==='pick'?'Tippe ein Schaf in deiner Nähe (Kreis), um es als Helfer zu wählen oder freizugeben. Bis zu 3 – Verteidiger sehen keine Markierung, nur das Verhalten.':
+    TMAP.mode==='atk'?'Tippe den Angriffspunkt: Dorthin stürmen die Helfer oder lenken ab.':'Tippe Wegpunkte für deine Flucht zur Omi (bis 5). Die Route ist eine Hilfe – laufen musst du selbst.';}
+function tmapPointer(e){e.preventDefault();const cv=$('tmapCv'),r=cv.getBoundingClientRect(),px=(e.clientX-r.left)*cv.width/r.width,py=(e.clientY-r.top)*cv.height/r.height,[wx,wz]=tmapC2W(px,py),s=KK.snap;if(!s)return;
+  if(Math.hypot(wx,wz)>39)return;
+  if(TMAP.mode==='pick'){let best=null,bd=3.2;for(const a of s.sh){const [sid,x10,z10,,,,fl]=a;if(fl&(8|16))continue;const d=Math.hypot(x10/10-wx,z10/10-wz);if(d<bd){bd=d;best=a;}}
+    if(!best){popup('Dort ist kein Schaf');return;}const on=!tmapHelpers().includes(best[0]);netSend({t:'helper',sid:best[0],v:on});baa(0.4);return;}
+  if(TMAP.mode==='atk'){netSend({t:'mark',x:+wx.toFixed(1),z:+wz.toFixed(1)});popup('Angriffspunkt gesetzt');return;}
+  if(TMAP.mode==='route'){if(TMAP.route.length>=5)TMAP.route.shift();TMAP.route.push([+wx.toFixed(1),+wz.toFixed(1)]);netSend({t:'route',pts:[...TMAP.route,[KK_OMI.x,KK_OMI.z+1]]});tmapDraw();}}
+function tmapCmd(mode){const t=KK.tacSnap||{};const at=t.atk||(mode==='storm'?[0,0]:null);netSend(at?{t:'cmd',mode,x:at[0],z:at[1]}:{t:'cmd',mode});if((t.helpers||[]).length&&!(t.cIn>0))tmapClose();}
+$('tmapCv').addEventListener('pointerdown',tmapPointer);$('tmapClose').addEventListener('click',tmapClose);
+for(const b of $('tmapModes').children)b.addEventListener('click',()=>tmapMode(b.dataset.m));
+for(const b of $('tmapCmds').children)b.addEventListener('click',()=>tmapCmd(b.dataset.c));
+$('mapBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(KK.mapOpen)tmapClose();else tmapOpen();});
 function kkName(id){if(id===NET.you)return'Du';const rp=NET.room&&NET.room.players.find(x=>x.id===id);return rp?rp.name:'Jemand';}
 // kompakte Anzeige: Welle, Mission, Schafleben, Kuchenstatus
-function kkHud(s){const me=s.you||{},def=me.role!=='sheep';const sig=[s.wave,s.phase,s.cake.s,Math.ceil(s.cake.hp),s.left,s.sheepLives,me.lives,me.carrying,me.revealed,me.out,me.waiting,Math.ceil(s.cake.back||0),Math.ceil(s.phaseT)].join('|');if(sig===KK.hudSig)return;KK.hudSig=sig;
+function kkHud(s){const me=s.you||{},def=me.role!=='sheep';const sig=[s.wave,s.phase,s.cake.s,Math.ceil(s.cake.hp),s.left,s.sheepLives,me.lives,me.carrying,me.revealed,me.out,me.waiting,Math.ceil(s.cake.back||0),Math.ceil(s.phaseT),s.wrong,me.tarn].join('|');if(sig===KK.hudSig)return;KK.hudSig=sig;
   $('kkWave').textContent=(s.wave||'–')+'/8 · '+(s.waveName||'Gleich geht es los');
   let mission;if(def){mission=s.cake.s===1?'🚨 Ein Schaf hat den Kuchen! Aufhalten, bevor es die Omi erreicht!':s.cake.s===2?'Kuchen liegt im Gras – zurückholen! ('+Math.ceil(s.cake.back)+' s)':'Kuchen schützen · Festung ausbauen · das Schaf mit dem schwarzen Schwanz finden';}
   else mission=me.out?'Ausgeschieden – die Herde zählt auf dich … nicht mehr.':me.carrying?'🎂 Zur Omi bringen! (Norden, beim Sessel)':s.cake.s===1?'Dein Team hat den Kuchen – Omi wartet im Norden!':s.cake.s===2?'Kuchen liegt im Gras – schnapp ihn dir (E)!':'Unauffällig bleiben (C = Herdentempo) · Kuchen stehlen (E halten)';
@@ -2768,7 +2866,9 @@ function kkHud(s){const me=s.you||{},def=me.role!=='sheep';const sig=[s.wave,s.p
   const L=def?s.sheepLives:me.lives;$('kkLives').textContent=def?'Schaf-Team: '+L+(L===1?' Leben':' Leben'):'Leben: '+'♥'.repeat(Math.max(0,L||0))+(me.revealed?' · AUFGEFLOGEN':'');$('kkLives').classList.toggle('rev',!!me.revealed);
   $('kkLeft').textContent=s.phase==='shop'?'Markt offen · '+Math.ceil(s.phaseT)+' s':s.phase==='overtime'?'Nachspielzeit '+Math.ceil(s.phaseT)+' s':'Ziegen übrig: '+s.left;
   $('cakeLabel').textContent=(s.cake.s===0?'Käsekuchen':s.cake.s===1?'Käsekuchen – GESTOHLEN':'Käsekuchen – liegt im Gras')+' · '+Math.ceil(s.cake.hp)+' %';$('barfill').style.width=Math.max(0,s.cake.hp)+'%';
-  $('wave').textContent=s.wave;$('score').textContent=s.fort.points||0;$('goatsLeft').textContent='';}
+  $('wave').textContent=s.wave;$('score').textContent=s.fort.points||0;$('goatsLeft').textContent='';
+  const wr=s.wrong||0,wm=s.wrongMax||3,kw=$('kkWrong');kw.hidden=!(def||wr>0);kw.textContent='Unschuldige Schafe getötet: '+wr+'/'+wm;kw.className=wr>=wm?'w3':wr===wm-1?'w2':'';
+  const kt=$('kkTarn');kt.hidden=def||!!me.out;if(!def){const tl=me.carrying?2:me.tarn||0;kt.textContent=['Unauffällig','Verdächtig','Enttarnt'][tl];kt.className='t'+tl;}}
 // Schaf: Item-Leiste
 function kkItemsHud(force){const me=KK.you||{},inv=me.inv||{},sig=JSON.stringify(inv)+'|'+me.speedIn+'|'+me.shield+'|'+me.carrying+'|'+me.camoIn;if(!force&&sig===KK.itemsSig)return;KK.itemsSig=sig;const bar=$('sheepBar');bar.hidden=!(KK.on&&KK.role==='sheep');if(bar.hidden)return;
   if(!bar.children.length)SHEEP_ITEMS.forEach(([id,n,ic],i)=>{const b=document.createElement('button');b.type='button';b.className='sitem';b.dataset.i=i;b.innerHTML='<i></i><b></b><small></small>';b.querySelector('i').textContent=ic;b.querySelector('small').textContent=(i+1)+' '+n;
@@ -2805,7 +2905,17 @@ function kkEvent(e){
   if(e.k==='smoke'){tmpA.set(e.x,1,e.z);puff(tmpA,0xd8d4dc,20,1.5);return true;}
   if(e.k==='poof'){tmpA.set(e.x,0.8,e.z);puff(tmpA,0xf1ebdd,10,1);return true;}
   if(e.k==='butt'){tmpA.set(e.x,0.9,e.z);puff(tmpA,0xfff4dc,4,0.5);return true;}
-  if(e.k==='alarm'){const b=[...KK.builds.values()].find(x=>x.kind==='bell');if(b)b.ringT=1.5;bellSound();showBanner('Glocke: Eindringling in der Festung!','',1.8,true);return true;}
+  if(e.k==='alarm'){const b=e.b!=null?KK.builds.get(e.b):[...KK.builds.values()].find(x=>x.kind==='bell');if(b)b.ringT=1.5;const dir=e.side?({N:'Nord',E:'Ost',S:'Süd',W:'West'}[e.side]):'';
+    if(e.kind==='motion'){alarmPing(e.x,e.z);noiseHit(0.08,1800,0.1,'highpass');popup('Bewegungsmelder '+dir+': schnelle Bewegung!');}else{bellSound();showBanner('Wachglocke!','Auffälliges Verhalten an der Festung',1.6,true);}return true;}
+  if(e.k==='cakealarm'){alarmSound();setTimeout(alarmSound,700);for(const b of KK.builds.values())if(b.kind==='cakealarm')b.ringT=6;popup('Kuchenalarm: Der Dieb wird geortet!');return true;}
+  if(e.k==='wrong'){const last=e.n>=e.max;showBanner(e.n>e.max?'VIER UNSCHULDIGE SCHAFE!':last?'LETZTE WARNUNG!':e.n===e.max-1?'Deutliche Warnung!':'Verwarnung!','Unschuldige Schafe getötet: '+Math.min(e.n,e.max+1)+'/'+e.max+(e.n>e.max?' – die Schafe gewinnen':last?' – noch eins und das Spiel ist verloren':''),2.6,e.n>=e.max-1);return true;}
+  if(e.k==='helper'){if(KK.role==='sheep'){popup(e.v?'Helfer gewählt':'Helfer freigegeben');if(KK.mapOpen)tmapDraw();}return true;}
+  if(e.k==='helperfail'){popup({max:'Schon 3 Helfer',dup:'Dieses Schaf hilft schon',cooldown:'Ersatz-Helfer noch nicht bereit',far:'Zu weit weg – geh näher heran',gone:'Das Schaf gibt es nicht mehr',role:'Geht nicht'}[e.why]||'Geht nicht');return true;}
+  if(e.k==='helperdie'){popup('Ein Helfer ist gefallen – such dir Ersatz');return true;}
+  if(e.k==='cmd'){popup({distract:'Helfer: Ablenken!',storm:'Helfer: STURM!',sabotage:'Helfer: Verteidigung angreifen!'}[e.mode]+' ('+e.n+')');baa(1);if(KK.mapOpen)tmapClose();return true;}
+  if(e.k==='cmdfail'){popup({cooldown:'Befehl noch nicht bereit',none:'Erst Helfer wählen (Karte)',bad:'Unbekannter Befehl',role:'Geht nicht'}[e.why]||'Geht nicht');return true;}
+  if(e.k==='cakeblock'){tmpA.set(e.x,e.y,e.z);puff(tmpA,0xf6e2b3,8,0.6);if(KK.role==='sheep'&&e.sid===KK.mineSid)popup('Der Kuchen hat dich geschützt!');return true;}
+  if(e.k==='hjump'){return true;}
   if(e.k==='ammo'){if(e.id===NET.you){for(const k in WEAPONS)ammo[k]=WEAPONS[k].mag;reloadT=0;popup('Munition aufgefüllt');}return true;}
   if(e.k==='build'){if(KK.role==='def'){coinSound();}return true;}
   if(e.k==='wallup'){tmpA.set(KK_SIDES[e.side].ax==='x'?KK_SIDES[e.side].sg*KK_F:0,1,KK_SIDES[e.side].ax==='z'?KK_SIDES[e.side].sg*KK_F:0);puff(tmpA,0xfff4dc,14,1);return true;}
@@ -2833,6 +2943,9 @@ function kkEvent(e){
   if(e.k==='wall'&&e.destroyed){popup('Mauer '+({N:'Nord',E:'Ost',S:'Süd',W:'West'}[e.side])+' ist gefallen!');return true;}
   return false;}
 function alarmSound(){if(!ac)return;const t=ac.currentTime;for(let i=0;i<3;i++){const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(880,t+i*0.22);o.frequency.setValueAtTime(660,t+i*0.22+0.11);const g=ac.createGain();g.gain.setValueAtTime(0.06,t+i*0.22);g.gain.exponentialRampToValueAtTime(0.0005,t+i*0.22+0.2);o.connect(g);g.connect(master);o.start(t+i*0.22);o.stop(t+i*0.22+0.21);}}
+// Alarm-Hinweis in der Welt: ein pulsierender Kreis am Melder (nur Ort des Geräts, keine Identität)
+function alarmPing(x,z){const T=tacMats();if(!KK.ping){KK.ping=new THREE.Mesh(T.ring,new THREE.MeshBasicMaterial({color:0xff5c5c,transparent:true,opacity:0.8,depthWrite:false}));KK.ping.position.y=0.06;KK.ping.renderOrder=3;KK.group.add(KK.ping);}
+  KK.ping.position.x=x;KK.ping.position.z=z;KK.ping.visible=true;KK.pingT=3;}
 function bellSound(){if(!ac)return;const t=ac.currentTime;for(const [f,d] of[[880,1.2],[1320,0.8],[1760,0.5]]){const o=ac.createOscillator();o.type='sine';o.frequency.value=f;const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.0005,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d);}}
 
 // ---------- pro Bild ----------
@@ -2846,12 +2959,14 @@ function kkUpdate(dt){
   if(KK.ringT>0){KK.ringT-=dt;KK.ring.material.opacity=0.35+0.3*Math.abs(Math.sin(performance.now()/80));if(KK.ringT<=0)KK.ring.visible=false;}
   if(KK.laneT>0){KK.laneT-=dt;KK.lane.material.opacity=0.25+0.25*Math.abs(Math.sin(performance.now()/70));if(KK.laneT<=0)KK.lane.visible=false;}
   if(KK.dropCake.visible)KK.dropCake.rotation.y+=dt;
+  if(KK.pingT>0){KK.pingT-=dt;const k=1+(3-KK.pingT)%1*6;KK.ping.scale.setScalar(k);KK.ping.material.opacity=0.8*(1-(3-KK.pingT)%1);if(KK.pingT<=0)KK.ping.visible=false;}
   // Omi: ab und zu ein Kommentar, wenn nichts los ist
   const now=performance.now()/1000;if(state==='play'&&now>omiQ.idleAt){omiQ.idleAt=now+22+Math.random()*14;omiSay('idle');}
   // Knöpfe je Rolle
   const def=KK.role==='def',play=state==='play';const wb=$('wolfBtn');const avail=NET.wave>=3||(NET.wave===2&&NET.phase!=='wave');wb.hidden=!(play&&def&&avail);
   if(!wb.hidden){const cd=KK.wolfIn,full=KK.wolfAlive>=2;wb.classList.toggle('cd',cd>0||full||coins<60);wb.querySelector('small').textContent=full?'2/2 aktiv':cd>0?Math.ceil(cd)+' s':coins<60?'60 Münzen':'60';}
   if(!def){const c=KK.snap&&KK.snap.cake,me=KK.you||{};const near=c&&c.s!==1&&Math.hypot(player.x-c.x,player.z-c.z)<2.6;$('grabBtn').hidden=!(play&&!KK.dead&&(near||me.carrying));$('grabBtn').textContent=me.carrying?'Ablegen':'Kuchen';
+    const mb=$('mapBtn');mb.hidden=!(play||KK.mapOpen)||!!me.out;const tc=KK.tacSnap;if(tc)mb.classList.toggle('ready',tc.helpers.length>0&&!(tc.cIn>0));
     const g=me.grab||0;$('grabRing').hidden=!(g>0&&!me.carrying);if(g>0)$('grabRing').style.setProperty('--p',(g*100).toFixed(0));$('emoteBtn').hidden=!play||KK.dead;}}
 // Heulen des Werwolfs (prozedural)
 function howl(v){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(520,t+0.45);o.frequency.exponentialRampToValueAtTime(330,t+1.1);
@@ -2863,7 +2978,7 @@ $('wolfBtn').addEventListener('pointerdown',e=>{e.preventDefault();kkBuyWolf();}
 // ---------- Märkte (Verteidiger und Schafe) ----------
 const DEF_ITEMS=[
   ['Festung',[['wood','Holzmauer','Baut eine gefallene Mauer neu (1,3 m)',40,1],['stone','Steinmauer','Nächste Mauer auf Stein (2,1 m, 140 Leben)',70,2],['steel','Stahlmauer','Nächste Mauer auf Stahl (2,8 m, 240 Leben)',110,4],['repair','Mauer reparieren','Schwächste Mauer +50 %',20,1],['repairall','Alle Mauern reparieren','Jede Mauer +50 %',55,2],['gate','Tor','Öffnung nur für Verteidiger und Werwölfe',30,2],['cake','Kuchen flicken','+25 % Kuchen',50,2]]],
-  ['Verteidigung',[['tower','Verteidigungsturm','Armbrust auf einem Eckturm, schießt auf Ziegen und aufgeflogene Schafe',80,2],['gun','Automatisches Geschütz','Schnelles Geschütz auf einer Mauer',120,4],['spikes','Stachelfalle','Verlangsamt und verletzt alles davor',25,1],['mine','Explosivfalle','Zündet bei Ziegengruppen oder Schafspieler',40,3],['watch','Aussichtsturm','Schwarzer Schwanz bis 32 m erkennbar',50,1],['bell','Wachglocke','Läutet, wenn ein Schafspieler in die Festung kommt',35,1],['ammo','Munitionsstation','Sofort nachladen + Granaten',30,1]]],
+  ['Verteidigung',[['tower','Verteidigungsturm','Armbrust auf einem Eckturm, schießt auf Ziegen und aufgeflogene Schafe',80,2],['gun','Automatisches Geschütz','Schnelles Geschütz auf einer Mauer',120,4],['spikes','Stachelfalle','Verlangsamt und verletzt alles davor',25,1],['mine','Explosivfalle','Zündet bei Ziegengruppen oder Schafspieler',40,3],['watch','Aussichtsturm','Erhöhte Beobachtung: schwarzer Schwanz bis 32 m erkennbar',50,1],['bell','Wachglocke','Läutet bei auffälligem Verhalten in 11 m (Rennen, Springen, Rempeln, Eindringen) – auch bei Helferschafen',35,1],['motion','Bewegungsmelder','Meldet schnelle Bewegungen vor einer Mauer (8 m) – Fehlalarme möglich',30,2],['cakealarm','Kuchenalarm','Sirene und Ortung, sobald der Kuchen aufgenommen wird',40,1],['ammo','Munitionsstation','Sofort nachladen + Granaten',30,1]]],
   ['Helfer',[['wolf','Werwolf','Bewacht den Kuchen (9 m), 30 s, max. 2',60,3],['bot','Reparaturhelfer','Repariert 45 s lang die schwächste Mauer',50,2]]],
   ['Ausrüstung',[['shotgun','Schrotflinte','Nahkampf-Streuung',80,1],['smg','MP','Schnelle Salven',100,2],['rifle','Sturmgewehr','Präzise und stark',120,3],['sniper','Präzisionsgewehr','Hoher Schaden, ohne Zielfernrohr',150,4],['dmg','Mehr Schaden','+20 % pro Stufe (4)',45,1],['rate','Schneller feuern','+15 % pro Stufe (4)',40,1],['mag','Größere Magazine','+50 % Munition pro Magazin',60,2],['reload','Schnelles Nachladen','−35 % Ladezeit',50,2],['nades','Granaten','+2 Granaten',30,1],['move','Lauftempo','+12 % Tempo',40,1],['boostcd','Boost-Feder','Boost-Abklingzeit 4 s statt 6 s',45,2],['fixer','Reparatur-Profi','Reparaturen +100 % und günstiger',40,2]]]];
 const SHEEP_SHOP_UI=[['shield','Schutzschild','Fängt 40 Schaden ab, sichtbar, 20 s – fällt ab, wenn du den Kuchen nimmst',40],['jump','Sprungfeder','Dauerhaft höher springen: über Steinmauern',60],['speed','Geschwindigkeitsschub','3 s +55 % Tempo (nicht mit Kuchen)',25],['smoke','Rauchbombe','8 s Sichtschutz, 5 m',30],['decoy','Ablenkungs-Schaf','Läuft 8 s davon – mit schwarzem Schwanz',35],['camo','Tarnpuder','12 s: dein Schwanz wirkt hell',45],['heal','Heilkraut','+35 Leben',20]];
@@ -2884,7 +2999,9 @@ $('hshopReady').addEventListener('click',()=>{netShopReady();$('hshopReady').tex
 $('grabBtn').addEventListener('pointerdown',e=>{e.preventDefault();kkGrab(true);});$('grabBtn').addEventListener('pointerup',()=>{if(KK.grabHeld)kkGrab(false);});$('grabBtn').addEventListener('pointercancel',()=>{if(KK.grabHeld)kkGrab(false);});
 $('emoteBtn').addEventListener('pointerdown',e=>{e.preventDefault();kkEmote(KK.emote==='graze'&&KK.emoteT>0?'warn':'graze');});
 addEventListener('keydown',e=>{if(!KK.on||e.repeat)return;
-  if(e.code==='KeyT'&&(state==='play'||state==='shop')){if(KK.shopOpen)kkCloseShop();else kkOpenShop();return;}
+  if(e.code==='KeyT'&&(state==='play'||state==='shop')){if(KK.mapOpen)tmapClose();if(KK.shopOpen)kkCloseShop();else kkOpenShop();return;}
+  if(e.code==='KeyM'&&KK.role==='sheep'&&(state==='play'||state==='shop')){if(KK.mapOpen)tmapClose();else tmapOpen();return;}
+  if(e.code==='Escape'&&KK.mapOpen){tmapClose();return;}
   if(state!=='play')return;
   if(e.code==='KeyB')kkBuyWolf();
   if(KK.role==='sheep'){if(e.code==='KeyE')kkGrab(true);if(e.code==='KeyV')kkEmote('graze');if(e.code==='KeyX')kkEmote('warn');const d=/^Digit([1-6])$/.exec(e.code);if(d)kkUse(+d[1]-1);}});

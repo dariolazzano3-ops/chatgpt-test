@@ -82,7 +82,7 @@ function handle(req, res) {
       match: m && m.fort && { wave: m.wave, phase: m.phase, phaseT: m.phaseT, time: m.time, night: m.night, final: m.final, cake: m.cake, coins: m.fort.coins, upg: m.fort.upg, kills: m.fort.kills, walls: m.fort.walls,
         builds: m.fort.builds.map(b => ({ id: b.id, kind: b.kind, slot: b.slot, x: b.x, z: b.z, hp: b.hp, dur: b.dur, life: b.life })), goats: m.goats.length, queue: m.queue.length, maxAlive: m.maxAlive,
         goatList: m.goats.map(g => ({ id: g.id, type: g.type, x: g.x, z: g.z, hp: g.hp, state: g.state })),
-        npcs: m.npcs.map(n => ({ sid: n.sid, x: n.x, z: n.z, state: n.state, hp: n.hp, target: n.target })), decoys: m.decoys.length, smokes: m.smokes.length,
+        npcs: m.npcs.map(n => ({ sid: n.sid, x: n.x, z: n.z, y: n.y, state: n.state, hp: n.hp, target: n.target, helper: n.helper, cmd: n.cmd && n.cmd.mode })), wrong: m.fort.wrong, attackPt: m.attackPt, route: m.route, herdBand: null, decoys: m.decoys.length, smokes: m.smokes.length,
         players: [...m.players.values()].map(ps => ({ id: ps.id, team: ps.team, role: ps.role, x: ps.x, y: ps.y, z: ps.z, hp: ps.hp, dead: ps.dead, prot: ps.prot, sid: ps.sid, lives: ps.lives, waiting: ps.waiting, out: ps.out, coins: ps.coins, inv: ps.inv, shield: ps.shield,
           jumpUpg: ps.jumpUpg, revealUntil: ps.revealUntil, grabT: ps.grabT, owned: ps.owned && [...ps.owned], ammo: ps.ammo, nades: ps.nades, kills: ps.kills, pkills: ps.pkills, deaths: ps.deaths, rejects: ps.rejects, speedRejects: ps.speedRejects, yRejects: ps.yRejects, wallRejects: ps.wallRejects, boostReadyAt: ps.boostReadyAt, shots: ps.shots, bot: !!ps.bot, botState: ps.bot && ps.bot.state, botStats: ps.bot && ps.bot.stats, landed: ps.landed || 0 })),
         wolves: m.wolves.map(f => ({ id: f.id, x: f.x, z: f.z, hp: f.hp, life: f.life, dead: f.dead, state: f.state, leash: f.leash || 0 })) } });
@@ -107,6 +107,8 @@ function handle(req, res) {
     if (k === 'npcpos') { const n = m.npcs[+q('i') || 0]; if (n) { n.x = +q('x'); n.z = +q('z'); n.tx = n.x; n.tz = n.z; n.state = 'graze'; n.t = 99; n.ry = q('ry') != null ? +q('ry') : n.ry; } }
     if (k === 'nobuild') { m.fort.builds = []; m.wolves = []; }
     if (k === 'npcfreeze') for (const n of m.npcs) { n.state = 'graze'; n.t = 999; }
+    if (k === 'wrong') m.fort.wrong = +q('v');
+    if (k === 'cmdcd') { m.cmdReadyAt = 0; m.helperReadyAt = 0; }
     if (k === 'npcaway') m.npcs.forEach((n, i) => { const a = i / m.npcs.length * 6.283; n.x = n.tx = Math.cos(a) * 33; n.z = n.tz = Math.sin(a) * 33; n.state = 'graze'; n.t = 999; });
     if (k === 'wall') { const wl = m.fort.walls[q('side')]; if (wl) { wl.lvl = v; wl.hp = wl.maxHp = v ? [0, 60, 140, 240][v] : 0; } }
     res.writeHead(200); return res.end('ok');

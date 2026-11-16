@@ -1,5 +1,10 @@
 // TEST-ONLY: wird vom Test-Harness an der Stelle /*@test-hooks*/ eingefügt. Nicht Teil des veröffentlichten Spiels.
-window.__ziegenalarm={snap:()=>({state,wave,score,kills,cakeHp:+cakeHp.toFixed(2),visibleSlices,toSpawn,waveActive,
+window.__ziegenalarm={mapPt:(x,z)=>{const c=$('tmapCv'),r=c.getBoundingClientRect(),[px,py]=tmapW2C(x,z);return[r.left+px*r.width/c.width,r.top+py*r.height/c.height];},kk72:()=>({mapOpen:!!KK.mapOpen,mapBtn:!$('mapBtn').hidden,tarn:$('kkTarn').hidden?null:$('kkTarn').textContent,tarnCls:$('kkTarn').className,wrong:$('kkWrong').hidden?null:$('kkWrong').textContent,wrongCls:$('kkWrong').className,
+  rings:[...KK.sheep.values()].filter(s=>s.hring).length,ringsActive:[...KK.sheep.values()].filter(s=>s.hring&&s.hring.material===TAC_G.m2).length,thief:!!(KK.thief&&KK.thief.visible),tac:KK.tacSnap,route3d:KK.tacG?KK.tacG.children.length:0,
+  mapPx:(()=>{const c=$('tmapCv');const x=c.getContext('2d');const d=x.getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=64)if(d[i])n++;return n;})(),
+ping:!!(KK.ping&&KK.ping.visible),omi:$('omiSub').textContent,
+  buttons:[...document.querySelectorAll('#tmap button')].map(b=>{const r=b.getBoundingClientRect();return{t:b.textContent,h:Math.round(r.height),w:Math.round(r.width)};}),
+  canvas:(()=>{const r=$('tmapCv').getBoundingClientRect();return{w:Math.round(r.width),h:Math.round(r.height),l:Math.round(r.left),t:Math.round(r.top),r:Math.round(r.right),b:Math.round(r.bottom)};})()}),snap:()=>({state,wave,score,kills,cakeHp:+cakeHp.toFixed(2),visibleSlices,toSpawn,waveActive,
   moveSpeed:6*(1+0.1*upg.speed),shotCount,lastRays,coins,weapon,hasShotgun,upg:{...upg},ledger:ledger.slice(),fireCdMax,switchT,
   prices:Object.fromEntries(SHOP.map(o=>[o.id,priceOf(o)])),
   goats:goats.length,alive:aliveCount(),puffs:puffs.length,tracers:tracers.length,firing,fireCd,mDown,keys:Object.keys(keys).length,
