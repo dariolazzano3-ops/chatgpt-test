@@ -460,13 +460,46 @@ async function fcEcDryRunBatch(account,usernames){
 }
 /* FC_EXPORT_CHECKER_V1_END */
 
+async function fcApifyReadOnlyPreflight(env) {
+  const token=typeof env.FC_APIFY_TOKEN==='string'?env.FC_APIFY_TOKEN:'';
+  if(token.length<24)return {ok:false,tokenConfigured:false,runStarted:false,reason:'token_not_configured'};
+  const headers={Authorization:'Bearer '+token,Accept:'application/json'};
+  const timeout=()=>AbortSignal.timeout(10000);
+  async function get(path) {
+    try {
+      const response=await fetch('https://api.apify.com'+path,{headers,signal:timeout()});
+      let data=null;try{data=await response.json();}catch{}
+      return {status:response.status,data};
+    } catch(e) {
+      return {status:0,error:e?.name==='TimeoutError'?'timeout':'network_error'};
+    }
+  }
+  // GET-only checks. These never call an Actor, create a run, or incur Actor event charges.
+  const identity=await get('/v2/users/me');
+  const actors=[];
+  for(const [kind,id] of Object.entries(FC_V2_ACTORS)) {
+    const response=await get('/v2/acts/'+encodeURIComponent(id));
+    const pricing=response.data?.data?.pricingInfo||response.data?.pricingInfo||{};
+    const model=String(pricing.pricingModel||'').toUpperCase();
+    const minimum=Number(pricing.minimalMaxTotalChargeUsd);
+    actors.push({kind,actorId:id,httpStatus:response.status,
+      pricingModel:model||'UNKNOWN',
+      minimumMaxTotalChargeUsd:Number.isFinite(minimum)?minimum:null,
+      supportsEnforceableFiveCentCap:model==='PAY_PER_EVENT'&&Number.isFinite(minimum)&&minimum<=0.05});
+  }
+  return {ok:identity.status===200&&actors.every(a=>a.httpStatus===200),
+    tokenConfigured:true,tokenAuthenticationHttp:identity.status,
+    actors,runPermission:'NOT_CHECKED',runStarted:false,
+    note:'Read-only preflight; a successful GET does not prove Actor run permission.'};
+}
+
 async function handleAnalysisBudget(request, env, url) {
   const endpoint=url.pathname.slice('/api/analysis/'.length);
   if (endpoint==='policy' && request.method==='GET') {
     return json({policy:FC_BUDGET_POLICY, apiProvider:'apify_standby',
       currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
   }
-  if (endpoint==='provider/status' && request.method==='GET') {
+  if (endpoint==='provider/preflight' && request.method==='GET') {\n    return json(await fcApifyReadOnlyPreflight(env));\n  }\n  if (endpoint==='provider/status' && request.method==='GET') {
     const budgetLedger=env.FC_APIFY_BUDGET_DB
       ? await fcV2BudgetStatus(env.FC_APIFY_BUDGET_DB)
       : {ok:false,reason:'budget_database_not_bound',startableRuns:0,overBudget:null};
