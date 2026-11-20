@@ -479,12 +479,18 @@ async function fcApifyReadOnlyPreflight(env) {
   const actors=[];
   for(const [kind,id] of Object.entries(FC_V2_ACTORS)) {
     const response=await get('/v2/acts/'+encodeURIComponent(id));
-    const pricing=response.data?.data?.pricingInfo||response.data?.pricingInfo||{};
+    const actor=response.data?.data||response.data||{};
+    const infos=Array.isArray(actor.pricingInfos)?actor.pricingInfos:[];
+    const pricing=actor.currentPricingInfo||actor.pricingInfo||
+      (infos.length?[...infos].sort((a,b)=>Date.parse(a.startedAt||'')-Date.parse(b.startedAt||'')).at(-1):{});
     const model=String(pricing.pricingModel||'').toUpperCase();
-    const minimum=Number(pricing.minimalMaxTotalChargeUsd);
+    const rawMinimum=pricing.minimalMaxTotalChargeUsd;
+    const minimum=rawMinimum===null||rawMinimum===undefined?NaN:Number(rawMinimum);
     actors.push({kind,actorId:id,httpStatus:response.status,
       pricingModel:model||'UNKNOWN',
       minimumMaxTotalChargeUsd:Number.isFinite(minimum)?minimum:null,
+      priceEventCount:Object.keys(pricing.pricingPerEvent?.actorChargeEvents||{}).length,
+      platformUsageChargedToUser:pricing.isPPEPlatformUsagePaidByUser===true,
       supportsEnforceableFiveCentCap:model==='PAY_PER_EVENT'&&Number.isFinite(minimum)&&minimum<=0.05});
   }
   return {ok:identity.status===200&&actors.every(a=>a.httpStatus===200),
