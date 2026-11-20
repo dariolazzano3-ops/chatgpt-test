@@ -1,0 +1,33 @@
+{
+  "product": "FollowClean",
+  "worker": "followclean-mvp-preview",
+  "release": "V21-candidate",
+  "deployed": false,
+  "status": "Candidate, NOT deployed. V20 behaviour unchanged (username-first honest NO_RELIABLE_LIVE_RESULT, free ZIP access, paywall OFF) plus V21 landing: brief hero, feature preview, steps, two paths, privacy, pricing, FAQ, final CTA, motion system.",
+  "source_commit": "4e38d105b06a543a4a1d0ec38807a6f438edca9e",
+  "artifact": {
+    "path": "apps/followclean/release/v21-candidate/worker.mjs",
+    "sha256": "e488e7e72fe4449cc62893b39506dd64595ae89ad800315900866602b3f2d47c",
+    "bytes": 486818
+  },
+  "index_html_sha256": "4824f55f043d60ef4902a7f47e0334788a4db6c4013a4f52e90019b1a0641c93",
+  "bindings_expected": {
+    "FC_APIFY_BUDGET_DB": "followclean-db 28194058-2779-4b6d-ab81-b38459d5f6a8 (tables already present); with the old chatgpt-test-db the scan still answers honestly but rate limit reports unavailable"
+  },
+  "secrets_expected_unchanged": [
+    "FC_APIFY_TOKEN",
+    "FC_IG_SESSION_SECRET"
+  ],
+  "optional_new_config": {
+    "FC_STRIPE_WEBHOOK_SECRET": "whsec_ TEST, created by Rio",
+    "FC_STRIPE_PAYMENT_LINK_ID": "plink_ of the TEST link buy.stripe.com/test_28E3cu73K8VO9SIdGD8EM00",
+    "FC_PREMIUM_GATE": "on (has no effect while FC_PROVIDER_EXECUTION_ENABLED=false)"
+  },
+  "safety": {
+    "paid_provider_execution": "disabled",
+    "apify_network_calls": 0,
+    "real_payments": "off; live events rejected",
+    "paywall": "off in this build"
+  },
+  "tests": "12/12 Node suites green incl. landing-v21-smoke; WebKit/real iPhone pending"
+}
