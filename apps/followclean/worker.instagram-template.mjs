@@ -467,9 +467,14 @@ async function handleAnalysisBudget(request, env, url) {
       currencyNote:'Referenzpreis in USD, keine garantierte EUR-Umrechnung; vor Echtgeldbetrieb Wechselkurs und Providergebühren prüfen.'});
   }
   if (endpoint==='provider/status' && request.method==='GET') {
+    const budgetLedger=env.FC_APIFY_BUDGET_DB
+      ? await fcV2BudgetStatus(env.FC_APIFY_BUDGET_DB)
+      : {ok:false,reason:'budget_database_not_bound',startableRuns:0,overBudget:null};
     return json({provider:'Apify', actor:FC_APIFY_ACTOR, actorName:FC_APIFY_ACTOR_SLUG,
       configured:typeof env.FC_APIFY_TOKEN==='string'&&env.FC_APIFY_TOKEN.length>24,
-      budgetDatabaseReady:!!env.FC_APIFY_BUDGET_DB,
+      budgetDatabaseBound:!!env.FC_APIFY_BUDGET_DB,
+      budgetDatabaseReady:budgetLedger.ok===true,
+      budgetLedger,
       executionEnabled:FC_PROVIDER_EXECUTION_ENABLED, mode:'standby',
       acceptedAccounts:'owner-authorized test accounts only',
       analysisAvailable:false,
