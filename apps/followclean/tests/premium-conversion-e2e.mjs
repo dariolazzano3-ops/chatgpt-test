@@ -170,7 +170,7 @@ await browser(worker,mkEnv({FC_PREMIUM_GATE:'on'}),async b=>{const {cdp,ev,until
   await cdp('Page.navigate',{url});
   await until("document.readyState==='complete'&&document.body.classList.contains('fc-free')",'load');await sleep(300);
   await test('Shipped build: username start, NO paywall, free ZIP access stays (no free live hit possible yet)',async()=>{
-    assert.equal(await ev("return document.querySelector('#fc-analyze-submit').textContent.trim().startsWith('Jetzt analysieren')"),true);
+    assert.equal(await ev("return document.querySelector('#fc-analyze-submit').textContent.trim().startsWith('Jetzt kostenlos analysieren')"),true);
     assert.equal(await ev("return document.body.classList.contains('fc-gate-on')"),false);
     for(const sel of ['#dropzone','#workspace'])assert.equal(await ev('return '+vis(sel)),true,sel+' must stay free');
     assert.equal(await ev('return '+vis('#fc-premium-welcome')),false);

@@ -17,6 +17,7 @@ Stand: 15.11.2026 · Branch `factory/followclean-mvp-v1-20261109` · Beta, `noin
 | Instagram-Login für Profilzahlen (Business/Creator) | Code vorhanden, ohne Meta-App-Secrets inaktiv |
 | Apify Smart Scan V2: Plan, Ledger, 10er-Orchestrierung | implementiert, synthetisch getestet, Ausführung gesperrt |
 | Export + optionaler Checker V1 (Aktualitätshinweis für Export-Treffer) | Dry-Run, synthetisch getestet, keine Oberfläche, Ausführung gesperrt |
+| Landing V21: Hero nach Brief, Funktionsvorschau (animiertes Beispiel-Dashboard), So funktioniert’s, Zwei Wege, Sicherheit, Preise, FAQ, Schluss-CTA, Motion-System mit reduced motion | V21-Kandidat, in Chrome getestet, nicht deployt |
 
 ## Aufbau
 
@@ -46,7 +47,7 @@ cd apps/followclean && python3 -m http.server 4173   # http://localhost:4173
 
 for t in analysis-budget-smoke apify-adapter-smoke apify-two-actor-smartscan-v2-smoke \
   instagram-live-worker-smoke smart-scan-v1-smoke apify-v2-ledger-orchestration-smoke \
-  apify-v2-ledger-hardening-smoke export-checker-v1-smoke chrome-ux-smoke release-verify; do node apps/followclean/tests/$t.mjs; done
+  apify-v2-ledger-hardening-smoke export-checker-v1-smoke chrome-ux-smoke landing-v21-smoke release-verify; do node apps/followclean/tests/$t.mjs; done
 ```
 
 - Node ≥ 22.5 (für `node:sqlite`). `chrome-ux-smoke` braucht Chrome oder Chromium.
