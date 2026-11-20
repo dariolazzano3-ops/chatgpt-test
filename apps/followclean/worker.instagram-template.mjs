@@ -501,7 +501,8 @@ async function handleAnalysisBudget(request, env, url) {
   }
   if (endpoint==='provider/preflight' && request.method==='GET') {
     return json(await fcApifyReadOnlyPreflight(env));
-  }\n  if (endpoint==='provider/status' && request.method==='GET') {
+  }
+  if (endpoint==='provider/status' && request.method==='GET') {
     const budgetLedger=env.FC_APIFY_BUDGET_DB
       ? await fcV2BudgetStatus(env.FC_APIFY_BUDGET_DB)
       : {ok:false,reason:'budget_database_not_bound',startableRuns:0,overBudget:null};
